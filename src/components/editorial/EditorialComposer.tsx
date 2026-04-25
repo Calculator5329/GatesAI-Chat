@@ -3,7 +3,6 @@ import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { SendKey } from '../../core/types';
 import { useBridgeStore, useChatStore, useModelRegistry, useUiStore } from '../../stores/context';
-import { uploadAttachment } from '../../services/bridge/attachments';
 import { ModelPopover } from './ModelPopover';
 
 interface ComposerProps {
@@ -128,7 +127,7 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
     setUploading(true);
     try {
       for (const f of Array.from(files)) {
-        const att = await uploadAttachment(f, bridge);
+        const att = await bridge.uploadAttachment(f);
         ui.addAttachment(att);
       }
     } catch (err) {

@@ -33,15 +33,15 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [ ] OpenRouter custom routes / fallbacks per model
 
 ### Provider features
-- [ ] Per-provider streaming via Server-Sent Events
-- [ ] Tool / function calling (unified shape across providers)
+- [x] Per-provider streaming via Server-Sent Events
+- [x] Tool / function calling (unified shape across providers)
 - [ ] Vision input (image attachments)
 - [ ] Audio input (Whisper-style transcription)
 - [ ] Audio output (TTS)
 - [ ] Embeddings (for memory / RAG)
 - [ ] Structured output (JSON mode)
 - [x] Per-model context-window awareness (shown for OpenRouter live entries; need to wire counting + display per provider for the curated set too)
-- [ ] Token counting per request
+- [x] Token counting / context-window estimation per request
 - [ ] Live catalog refresh for the direct providers (Anthropic / OpenAI / Gemini / Groq) — today only OpenRouter has a fetcher
 - [ ] Cost tracking per request (real numbers, not the mocked Usage panel)
 - [ ] Provider health checks + automatic fallback
@@ -128,8 +128,8 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 ## Quality
 
-- [ ] Vitest suite under `tests/` (Phase 4 of current refactor)
-- [ ] ESLint + Prettier config + CI check
+- [x] Vitest suite under `tests/` (Phase 4 of current refactor)
+- [x] ESLint + TypeScript CI scripts
 - [ ] Playwright smoke test (send a message, switch threads, open menu)
 - [ ] GitHub Actions CI: typecheck + lint + test on PR
 - [ ] Bundle-size budget + report in CI

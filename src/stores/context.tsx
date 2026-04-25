@@ -9,7 +9,6 @@ import type { OpenRouterStore } from './OpenRouterStore';
 import type { UserProfileStore } from './UserProfileStore';
 import type { BridgeStore } from './BridgeStore';
 import type { ExecStreamStore } from './ExecStreamStore';
-import type { NotesStore } from './NotesStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -57,8 +56,4 @@ export function useBridgeStore(): BridgeStore {
 
 export function useExecStreamStore(): ExecStreamStore {
   return useRootStore().execStream;
-}
-
-export function useNotesStore(): NotesStore {
-  return useRootStore().notes;
 }

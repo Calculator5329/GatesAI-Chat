@@ -20,10 +20,12 @@ export const EditorialChat = observer(function EditorialChat({ sendKey, threadHe
   const activeThread = chat.activeThread;
   const messages = activeThread?.messages ?? [];
 
-  // Auto-scroll on new content / thread switch.
+  // Auto-scroll when a new message row appears or the thread switches.
+  // Deliberately excludes streamingMessageId so the viewport stays put while
+  // the assistant streams tokens — the user can scroll freely mid-response.
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [activeThread?.id, messages.length, chat.streamingMessageId]);
+  }, [activeThread?.id, messages.length]);
 
   return (
     <div style={{

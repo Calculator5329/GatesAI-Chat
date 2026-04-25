@@ -1,5 +1,53 @@
 # Changelog
 
+## 2026-04-25 — Architecture cleanup sprint
+
+Moved shared tool-call/result rendering into `components/ui/` so editorial and
+menu surfaces no longer import from each other. Removed React type dependencies
+from `core/` style modules and tightened ESLint boundary rules for core,
+stores, and cross-feature component imports.
+
+Resynced architecture docs with the current store graph, menu routes, and
+storage keys, including profile, notes, UI preferences, bridge, exec stream,
+and workspace menu state. Roadmap and TODO entries now distinguish completed
+attachment/tooling work from the remaining cleanup.
+
+Centralized attachment footer formatting/parsing in `core/attachments.ts`, then
+moved file uploads behind `BridgeStore.uploadAttachment()` so UI components no
+longer import bridge services directly. Extracted ChatStore helper logic for
+runtime context, artifact README loading, and tool failure logging into focused
+service modules with regression tests.
+
+## 2026-04-25 — Streaming markdown rendering and scroll UX fix
+
+`EditorialChat` no longer forces the scroll container to the bottom on every
+streaming token. The `useEffect` dependency on `chat.streamingMessageId` was
+removed so the viewport only scrolls when a new message row appears or the
+active thread switches — users can now freely scroll while the assistant streams.
+
+`EditorialMessage` now routes active assistant stream content through the same
+`ReactMarkdown` / remark-gfm / rehype pipeline used for finalized messages.
+The old `StreamingPlainText` component is gone; a shared `MarkdownBody` helper
+deduplicates the plugin configuration. The `WorkingIndicator` remains visible
+outside the markdown tree during streaming. Tests updated to reflect markdown
+rendering during active streams.
+
+## 2026-04-25 — Architecture boundary cleanup, P0
+
+Moved the shared SVG icon set from `core/` into `components/ui/` so the core
+layer no longer owns React components. Removed unused icon exports and the
+unused `fieldStyle` barrel export.
+
+Replaced service-layer imports of store classes with narrow facades: tools now
+type against service-owned context interfaces, `LlmRouter` accepts a
+`ModelCatalog` interface, `threadNamer` accepts a router facade, and attachment
+upload accepts a bridge-shaped facade. Added staged `no-restricted-imports`
+rules so service-layer violations fail while the remaining UI-to-service
+attachment import is tracked as a warning until the attachment store lands.
+
+Made `FakeProvider` response rotation instance-local and moved duplicated
+provider JSON parsing into a shared `services/llm/json.ts` helper.
+
 ## 2026-04-25 — Inspect workflow and query-script guidance
 
 `inspect_file` now handles common uploaded data encodings instead of rejecting

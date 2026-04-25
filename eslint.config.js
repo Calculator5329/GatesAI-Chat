@@ -21,17 +21,23 @@ export default defineConfig([
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true, allowExportNames: ['useRootStore', 'useChatStore', 'useUiStore', 'useProviderStore', 'useRouterStore', 'useModelRegistry', 'useOpenRouterStore', 'useUserProfileStore', 'Icons'] }],
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true, allowExportNames: ['useRootStore', 'useChatStore', 'useUiStore', 'useProviderStore', 'useRouterStore', 'useModelRegistry', 'useOpenRouterStore', 'useUserProfileStore', 'useBridgeStore', 'useExecStreamStore', 'Icons'] }],
     },
   },
   {
     files: ['src/core/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': ['error', {
-        patterns: [{
-          group: ['../stores/*', '../services/*', '../components/*', '../app/*'],
-          message: 'core/ must stay independent of app, component, store, and service layers.',
-        }],
+        patterns: [
+          {
+            group: ['../stores/*', '../services/*', '../components/*', '../app/*'],
+            message: 'core/ must stay independent of app, component, store, and service layers.',
+          },
+          {
+            group: ['react', 'mobx', 'mobx-react-lite'],
+            message: 'core/ must stay framework-agnostic; put React/MobX typing at the UI or store boundary.',
+          },
+        ],
       }],
     },
   },
@@ -51,8 +57,8 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{
-          group: ['../components/*', '../../components/*', '../app/*', '../../app/*', 'mobx-react-lite'],
-          message: 'stores/ must not import UI or app composition code.',
+          group: ['../components/*', '../../components/*', '../app/*', '../../app/*', 'react', 'mobx-react-lite'],
+          message: 'stores/ must not import UI, React, or app composition code. Use stores/context.tsx as the React bridge.',
         }],
       }],
     },
@@ -72,10 +78,32 @@ export default defineConfig([
     files: ['src/components/**/*.{ts,tsx}'],
     ignores: ['src/components/ui/**/*.{ts,tsx}'],
     rules: {
-      'no-restricted-imports': ['warn', {
+      'no-restricted-imports': ['error', {
         patterns: [{
           group: ['../services/*', '../../services/*'],
-          message: 'UI should go through stores/facades rather than importing services directly. This warning becomes an error after attachment upload moves behind a store.',
+          message: 'UI must go through stores/facades rather than importing services directly.',
+        }],
+      }],
+    },
+  },
+  {
+    files: ['src/components/editorial/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['../menu/*', '../menu/**'],
+          message: 'editorial components must not import menu components; move shared UI to components/ui.',
+        }],
+      }],
+    },
+  },
+  {
+    files: ['src/components/menu/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['../editorial/*', '../editorial/**'],
+          message: 'menu components must not import editorial components; move shared UI to components/ui.',
         }],
       }],
     },

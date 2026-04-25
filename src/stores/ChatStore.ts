@@ -3,6 +3,7 @@ import type { AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from
 import type { LlmProvider, LlmRequest, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { buildSeedThreads } from '../core/seed';
+import { formatAttachmentFooter } from '../core/attachments';
 import { loadSnapshot, saveSnapshot } from '../services/persistence';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, type TokenUsage } from '../core/tokens';
 import { flattenForWire } from '../services/llm/wireFormat';
@@ -14,70 +15,16 @@ import {
 import { StreamingTextBuffer } from '../services/streaming/StreamingTextBuffer';
 import { toolRegistry } from '../services/tools/registry';
 import { generateThreadTitle } from '../services/threadNamer';
+import { loadArtifactReadmeInstructions } from '../services/chat/artifactReadmeContext';
+import { buildRuntimeContext } from '../services/chat/runtimeContext';
+import { isToolFailureContent, logToolCallFailure } from '../services/chat/toolFailureLog';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
 import type { ToolContext } from '../services/tools/types';
-import type { FsListResp, FsReadResp } from '../core/workspace';
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-}
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)}GB`;
-}
-
-function isToolFailureContent(toolName: string, content: string): boolean {
-  const trimmed = content.trim();
-  if (/^Error(?: executing [\w-]+)?:/i.test(trimmed)) return true;
-  if ((toolName === 'terminal' || toolName === 'git') && /^\$ .+\n\[exit [1-9]\d*/m.test(trimmed)) return true;
-  return false;
-}
-
-function failureReason(content: string): string {
-  const lines = content.trim().split('\n');
-  const exitLine = lines.find(line => /^\[exit [1-9]\d*/.test(line));
-  return (exitLine ?? lines[0])?.slice(0, 500) || 'Tool returned an empty error.';
-}
-
-function safeJsonPreview(value: unknown, maxChars = 1200): string {
-  const sensitiveKeys = new Set(['content', 'stdin', 'fact', 'next', 'body', 'message', 'apiKey', 'token', 'password', 'secret']);
-  const json = JSON.stringify(value, (key, child) => {
-    if (sensitiveKeys.has(key)) {
-      if (typeof child === 'string') return `[redacted ${child.length} chars]`;
-      return '[redacted]';
-    }
-    if (typeof child === 'string' && child.length > 240) return `${child.slice(0, 240)}...[truncated ${child.length - 240} chars]`;
-    return child;
-  });
-  if (!json) return '';
-  return json.length > maxChars ? `${json.slice(0, maxChars)}...[truncated ${json.length - maxChars} chars]` : json;
-}
-
-function logToolCallFailure(opts: {
-  call: ToolCall;
-  threadId: string;
-  content: string;
-  startedAt: number;
-  bridgeOnline: boolean | undefined;
-  readOnly: boolean;
-}): void {
-  console.warn('[tool-call-failed]', {
-    toolName: opts.call.name,
-    toolCallId: opts.call.id,
-    threadId: opts.threadId,
-    reason: failureReason(opts.content),
-    resultPreview: opts.content.slice(0, 1200),
-    argumentsPreview: safeJsonPreview(opts.call.arguments),
-    bridgeOnline: opts.bridgeOnline ?? false,
-    readOnly: opts.readOnly,
-    durationMs: Date.now() - opts.startedAt,
-    ranAt: new Date().toISOString(),
-  });
 }
 
 /** Hard cap on the number of tool-call rounds per user turn, to prevent infinite loops if a model keeps re-calling the same tool. */
@@ -97,9 +44,6 @@ const COMPACTION_INSTRUCTION = [
   'Preserve workspace paths, schemas, counts, date ranges, and migration-relevant facts.',
   'Return concise plain text only. No markdown preamble.',
 ].join(' ');
-const ARTIFACT_README_ROOT = '/workspace/artifacts';
-const ARTIFACT_README_PER_FILE_CHARS = 6_000;
-const ARTIFACT_README_TOTAL_CHARS = 18_000;
 
 /**
  * Owns the chat domain: threads, the active selection, and live streaming.
@@ -217,7 +161,7 @@ export class ChatStore {
       bridgeOnline: bridge?.isOnline ?? false,
     });
     const systemPrompt = this.profile.composeSystemPrompt({
-      runtimeContext: buildRuntimeContext(bridge),
+      runtimeContext: buildRuntimeContext({ bridge }),
       threadContext: thread.threadContext,
       recentSummaries: this.recentSummariesProvider?.() ?? [],
     });
@@ -332,10 +276,7 @@ export class ChatStore {
 
     this.lastError = null;
 
-    const attachmentFooter = attachments.length > 0
-      ? '\n\n📎 Attached files (use `inspect_file` for CSV/JSON/text; use fs for byte-level reads/writes):\n' +
-        attachments.map(a => `  - ${a.path} · ${formatSize(a.size)} · ${a.mime}`).join('\n')
-      : '';
+    const attachmentFooter = formatAttachmentFooter(attachments);
 
     const userMessage: Message = {
       id: newId('m'),
@@ -569,7 +510,7 @@ export class ChatStore {
   private buildTurnRequest(thread: Thread, providerModelId: string, recentSummaries: string[]): LlmRequest {
     const bridge = this.toolStoresProvider?.().bridge;
     const systemPrompt = this.profile.composeSystemPrompt({
-      runtimeContext: buildRuntimeContext(bridge),
+      runtimeContext: buildRuntimeContext({ bridge }),
       threadContext: thread.threadContext,
       recentSummaries,
       artifactInstructions: this.artifactInstructions,
@@ -587,39 +528,7 @@ export class ChatStore {
   }
 
   private async refreshArtifactInstructions(bridge: NonNullable<ToolContext['bridge']>, signal: AbortSignal): Promise<void> {
-    try {
-      const listed = await bridge.client.request<FsListResp>('fs.list', {
-        path: ARTIFACT_README_ROOT,
-        recursive: true,
-      });
-      if (signal.aborted) return;
-
-      const paths = (Array.isArray(listed.entries) ? listed.entries : [])
-        .filter(e => e.kind === 'file' && isArtifactReadmePath(e.path))
-        .map(e => e.path)
-        .sort((a, b) => a.localeCompare(b));
-
-      const parts: string[] = [];
-      let remaining = ARTIFACT_README_TOTAL_CHARS;
-      for (const path of paths) {
-        if (signal.aborted || remaining <= 0) break;
-        try {
-          const read = await bridge.client.request<FsReadResp>('fs.read', { path });
-          if (signal.aborted) return;
-          if (read.encoding !== 'utf8') continue;
-          const content = read.content.trim();
-          if (!content) continue;
-          const capped = content.slice(0, Math.min(ARTIFACT_README_PER_FILE_CHARS, remaining));
-          parts.push(`[${read.path}]\n${capped}${content.length > capped.length ? '\n[truncated]' : ''}`);
-          remaining -= capped.length;
-        } catch {
-          // A README can disappear between list and read; skip it rather than blocking the turn.
-        }
-      }
-      this.artifactInstructions = parts.join('\n\n');
-    } catch {
-      this.artifactInstructions = '';
-    }
+    this.artifactInstructions = await loadArtifactReadmeInstructions(bridge, signal);
   }
 
   private async compactThreadContext(thread: Thread, signal: AbortSignal): Promise<void> {
@@ -818,38 +727,6 @@ function latestUserMessageContent(thread: Thread): string {
     if (message.role === 'user') return message.content;
   }
   return '';
-}
-
-function buildRuntimeContext(bridge: Pick<ToolContext, 'bridge'>['bridge'] | undefined): string {
-  const now = new Date();
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  const local = now.toLocaleString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
-  const lines = [
-    `local_time: ${local}`,
-    `timezone: ${tz}`,
-    `iso: ${now.toISOString()}`,
-    `bridge: ${bridge?.isOnline ? 'online' : 'offline'}`,
-  ];
-  if (bridge?.platform) lines.push(`platform: ${bridge.platform}`);
-  if (bridge?.version) lines.push(`bridge_version: ${bridge.version}`);
-  lines.push('workspace_paths: /workspace/attachments, /workspace/notes, /workspace/artifacts');
-  lines.push('terminal_cwd: bridge workspace root');
-  lines.push('/workspace/... is model-facing for tools and artifact references; scripts should use cwd-relative paths.');
-  return lines.join('\n');
-}
-
-function isArtifactReadmePath(path: string): boolean {
-  const normalized = path.replace(/\\/g, '/');
-  if (!normalized.startsWith(`${ARTIFACT_README_ROOT}/`)) return false;
-  return normalized.split('/').pop()?.toLowerCase() === 'readme.md';
 }
 
 function formatOversizedContextMessage(used: number, window: number): string {

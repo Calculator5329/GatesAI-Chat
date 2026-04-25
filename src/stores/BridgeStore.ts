@@ -1,5 +1,7 @@
 import { makeAutoObservable, runInAction } from 'mobx';
+import type { DraftAttachment } from '../core/types';
 import type { BridgeConnectionState, BridgeStatus } from '../core/workspace';
+import { uploadAttachment } from '../services/bridge/attachments';
 import { BridgeClient, BridgeOfflineError } from '../services/bridge/client';
 
 const HEALTH_URL = 'http://127.0.0.1:7331/health';
@@ -71,6 +73,10 @@ export class BridgeStore {
       lastSeenAt: this.lastSeenAt,
       lastError: this.lastError,
     };
+  }
+
+  uploadAttachment(file: File): Promise<DraftAttachment> {
+    return uploadAttachment(file, this);
   }
 
   /**

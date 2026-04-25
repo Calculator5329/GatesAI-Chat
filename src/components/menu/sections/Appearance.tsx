@@ -1,7 +1,7 @@
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
-import { Card, SettingsRow, Toggle, Select, SegmentedControl } from '../../ui';
+import { Card, SettingsRow, Toggle, Select, SegmentedControl, ToolCallView, ToolResultView } from '../../ui';
 import { useUiStore } from '../../../stores/context';
 import type {
   CodeSizeKey,
@@ -12,7 +12,6 @@ import type {
   ToolResult,
 } from '../../../core/types';
 import type { ToolCall } from '../../../core/llm';
-import { ToolCallView, ToolResultView } from '../../editorial/ToolCallRender';
 
 const DENSITY = ['compact', 'comfortable', 'spacious'] as const;
 type Density = typeof DENSITY[number];

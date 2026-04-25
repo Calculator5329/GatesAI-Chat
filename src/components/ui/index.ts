@@ -7,4 +7,5 @@ export { Select } from './Select';
 export { Textarea } from './Textarea';
 export { SettingsRow } from './SettingsRow';
 export { SegmentedControl } from './SegmentedControl';
+export { ToolCallView, ToolResultView } from './ToolCallRender';
 export { Icons } from './icons';

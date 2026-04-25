@@ -1,5 +1,6 @@
-import type { CSSProperties } from 'react';
 import type { AccentKey, BgKey, ThemeConfig } from './types';
+
+export type ThemeCssVars = Record<string, string>;
 
 interface BgPalette {
   key: BgKey;
@@ -63,24 +64,24 @@ export function buildTheme(bgKey: BgKey, accentKey: AccentKey): ThemeConfig {
   };
 }
 
-export function themeToCssVars(t: ThemeConfig): CSSProperties {
+export function themeToCssVars(t: ThemeConfig): ThemeCssVars {
   return {
-    ['--accent' as never]: t.accent,
-    ['--accent-2' as never]: t.accent2,
-    ['--accent-glow' as never]: t.accentGlow,
-    ['--bg' as never]: t.bg,
-    ['--panel' as never]: t.panel,
-    ['--panel-2' as never]: t.panel2,
-    ['--panel-3' as never]: t.panel3,
-    ['--border' as never]: t.border,
-    ['--text' as never]: t.text,
-    ['--text-dim' as never]: t.textDim,
-    ['--text-faint' as never]: t.textFaint,
-    ['--palette-bg' as never]: 'rgba(18, 20, 26, 0.92)',
-    ['--palette-foot' as never]: 'rgba(12, 14, 20, 0.7)',
-    ['--palette-border' as never]: 'rgba(255,255,255,0.08)',
-    ['--code-bg' as never]: 'rgba(6, 8, 12, 0.9)',
-    ['--code-head' as never]: 'rgba(14, 16, 22, 0.95)',
+    '--accent': t.accent,
+    '--accent-2': t.accent2,
+    '--accent-glow': t.accentGlow,
+    '--bg': t.bg,
+    '--panel': t.panel,
+    '--panel-2': t.panel2,
+    '--panel-3': t.panel3,
+    '--border': t.border,
+    '--text': t.text,
+    '--text-dim': t.textDim,
+    '--text-faint': t.textFaint,
+    '--palette-bg': 'rgba(18, 20, 26, 0.92)',
+    '--palette-foot': 'rgba(12, 14, 20, 0.7)',
+    '--palette-border': 'rgba(255,255,255,0.08)',
+    '--code-bg': 'rgba(6, 8, 12, 0.9)',
+    '--code-head': 'rgba(14, 16, 22, 0.95)',
     fontFamily: t.font,
     color: t.text,
   };

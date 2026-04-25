@@ -71,7 +71,7 @@ describe('EditorialMessage markdown rendering', () => {
       id: 'm-user-attachment',
       role: 'user',
       createdAt: Date.now(),
-      content: 'Normalize these files.\n\n📎 Attached files (read with the `fs` tool):\n  - /workspace/attachments/plan.csv · 10.7KB · text/csv',
+      content: 'Normalize these files.\n\n📎 Attached files (use `inspect_file` for CSV/JSON/text; use fs for byte-level reads/writes):\n  - /workspace/attachments/plan.csv · 10.7KB · text/csv',
     }, 'You');
 
     const body = rendered.querySelector('.user-message-body');
@@ -96,9 +96,10 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.textContent).toContain('Yes');
     expect(rendered.querySelector('.stream-caret')).toBeNull();
     expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+    expect(rendered.querySelector('[aria-label="Working"]')).not.toBeNull();
   });
 
-  it('renders active assistant streams as lightweight plain text until final', () => {
+  it('renders active assistant streams as markdown with a working indicator', () => {
     const streaming = renderMessage({
       id: 'm-active-stream',
       role: 'assistant',
@@ -106,8 +107,8 @@ describe('EditorialMessage markdown rendering', () => {
       content: '**bold so far**',
     }, 'Assistant', true);
 
-    expect(streaming.querySelector('.streaming-plain-text')?.textContent).toBe('**bold so far**');
-    expect(streaming.querySelector('strong')).toBeNull();
+    expect(streaming.querySelector('.streaming-plain-text')).toBeNull();
+    expect(streaming.querySelector('strong')?.textContent).toBe('bold so far');
     expect(streaming.textContent).toContain('working');
     expect(streaming.querySelector('[aria-label="Working"]')).not.toBeNull();
     expect(streaming.querySelector('.editorial-message')?.getAttribute('style')).not.toContain('border-bottom');
@@ -126,6 +127,7 @@ describe('EditorialMessage markdown rendering', () => {
 
     expect(finalized.querySelector('.streaming-plain-text')).toBeNull();
     expect(finalized.querySelector('strong')?.textContent).toBe('bold now final');
+    expect(finalized.querySelector('[aria-label="Working"]')).toBeNull();
   });
 
   it('can label an empty streaming assistant message as responding', () => {

@@ -122,21 +122,24 @@ interface LlmProvider {
 #/                 → default (active thread)
 #/thread/<id>      → select thread
 #/menu/<section>   → open menu surface; section ∈
-                     profile|agent|settings|usage|api|appearance
+                     profile|agent|settings|usage|api|appearance|workspace
 ```
 
 ## Storage
 
-| Key                      | Shape              | Owner             |
-| ------------------------ | ------------------ | ----------------- |
-| `gatesai.state.v1`       | `ChatSnapshot`     | `ChatStore`       |
-| `gatesai.providers.v1`   | `ProviderConfigs`  | `ProviderStore`   |
-| `gatesai.profile.v1`     | `UserProfileSnapshot` | `UserProfileStore` |
-| `gatesai.openrouter.catalog.v1` | OpenRouter catalog cache | `OpenRouterStore` |
+| Key                              | Shape                     | Owner              |
+| -------------------------------- | ------------------------- | ------------------ |
+| `gatesai.state.v1`               | `ChatSnapshot`            | `ChatStore`        |
+| `gatesai.providers.v1`           | `ProviderConfigs`         | `ProviderStore`    |
+| `gatesai.profile.v1`             | `UserProfileSnapshot`     | `UserProfileStore` |
+| `gatesai.notes.v1`               | `Note[]`                  | `NotesStore`       |
+| `gatesai.uiprefs.v1`             | output style preferences  | `UiStore`          |
+| `gatesai.openrouter.catalog.v1`  | OpenRouter catalog cache  | `OpenRouterStore`  |
 
-Both saved on every observable mutation via MobX `autorun`. Provider keys
-are deliberately stored under a separate key so chat exports never include
-credentials.
+Chat, provider, profile, notes, and UI preference snapshots are saved by their
+owning stores. Provider keys are deliberately stored under a separate key so
+chat exports never include credentials. The OpenRouter catalog cache is written
+only when refreshed or cleared.
 
 If a full chat snapshot exceeds the browser's `localStorage` quota, the
 chat persistence service retries once with an emergency-compacted snapshot.
@@ -151,9 +154,9 @@ conversation back to the previous successful save.
 `UiStore` holds theme keys (`bgKey`, `accentKey`, `headerKey`, `sendKey`,
 `threadHeaderKey`) plus persisted reading preferences for tool calls,
 markdown, and code output. `core/theme.ts:buildTheme(bg, accent)` turns the
-chosen keys into a `ThemeConfig`, and `themeToCssVars(theme)` emits a
-`CSSProperties` object of `--bg`, `--accent`, etc. that `App` spreads onto
-the root container.
+chosen keys into a `ThemeConfig`, and `themeToCssVars(theme)` emits a plain
+style object of `--bg`, `--accent`, etc. that `App` spreads onto the root
+container.
 
 `gatesai.uiprefs.v1` persists set-and-forget output style choices:
 `toolCallStyle`, `markdownStyle`, `codeStyle`, `markdownDensity`, and
@@ -248,11 +251,13 @@ Adding a tool: drop `services/tools/<name>.ts` exporting a `Tool`, then add
 one `toolRegistry.register()` line in `services/tools/registry.ts`. No UI
 wiring required.
 
-`ToolContext` carries the stores tools may reach into: `profile`, `chat`,
-`notes`, `summary`, and the calling `threadId`. `notes` and `summary` are
-injected lazily via `ChatStore.setToolStoresProvider(...)` so unit tests
-that exercise tools needing only `profile` / `chat` don't have to stand
-up the full graph.
+`ToolContext` carries narrow facades tools may reach into: `profile`, `chat`,
+optional `notes`, optional `summary`, optional `bridge`, optional `execStream`,
+and the calling `threadId`. The facade interfaces live in
+`services/tools/types.ts` so tools stay in the service layer without importing
+MobX store classes. Auxiliary facades are injected lazily via
+`ChatStore.setToolStoresProvider(...)` so unit tests that exercise tools needing
+only `profile` / `chat` don't have to stand up the full graph.
 
 Tool results are budgeted before reaching the next model round. Large
 `terminal`/`git` outputs are represented with command metadata, truncation
@@ -396,9 +401,10 @@ Chat-side wiring:
   for the UI; the model never sees the live stream, only the final
   captured output in the tool result.
 - `services/bridge/attachments.ts` reads a `File` via FileReader,
-  base64s it, and writes via `fs.write`. The composer turns the
-  resulting `DraftAttachment[]` into a "📎 Attached files:" footer on
-  the user message at send time so the model has paths inline.
+  base64s it, and writes via `fs.write`. `BridgeStore.uploadAttachment()`
+  is the UI-facing facade. The composer sends the resulting
+  `DraftAttachment[]` to `ChatStore`, which formats a "📎 Attached files:"
+  footer on the user message so the model has paths inline.
 
 ## Auto-named threads
 

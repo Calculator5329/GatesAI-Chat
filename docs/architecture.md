@@ -10,10 +10,10 @@ UI (components/, app/)
 Stores (MobX object models)
         │
         ▼
-Services (persistence, llm/, router)
+Services (persistence, llm/, tools/, bridge, router)
         │
         ▼
-Core (types, theme, models, providers, llm contract, seed, icons)
+Core (types, theme, models, providers, llm contract, seed)
 ```
 
 ## Folder layout
@@ -29,6 +29,8 @@ src/
       Toggle.tsx Pill.tsx Card.tsx Button.tsx
       Input.tsx Select.tsx Textarea.tsx
       SettingsRow.tsx SegmentedControl.tsx
+      ToolCallRender.tsx          # shared tool-call/result renderers
+      icons.tsx
       index.ts
     editorial/                    # the chat surface
       EditorialSidebar.tsx
@@ -42,19 +44,27 @@ src/
       GatesMenu.tsx
       sections/
         Profile.tsx Agent.tsx Settings.tsx
-        Usage.tsx Api.tsx Appearance.tsx
+        Usage.tsx Api.tsx Appearance.tsx Workspace.tsx
   stores/
-    RootStore.ts                  # composes registry + providers + chat + ui + router + openrouter
+    RootStore.ts                  # composes the store graph
     ChatStore.ts                  # threads, messages, streaming via LlmRouter
-    UiStore.ts                    # theme keys, draft text
+    UiStore.ts                    # theme keys, draft text, persisted reading prefs
     ProviderStore.ts              # API keys + LlmRouter, persisted separately
     RouterStore.ts                # observable URL hash
     ModelRegistry.ts              # curated + dynamic model catalog (MobX)
     OpenRouterStore.ts            # live OpenRouter catalog: refresh / cache / errors
+    UserProfileStore.ts           # bio, durable facts, base system prompt
+    SummaryStore.ts               # lazy cross-thread summaries
+    NotesStore.ts                 # durable user/model notes
+    BridgeStore.ts                # bridge health + WebSocket client
+    ExecStreamStore.ts            # live terminal output tail for UI
     context.tsx                   # React context + use*Store hooks
   services/
     persistence.ts                # chat snapshot localStorage
     providerStorage.ts            # provider configs localStorage
+    profileStorage.ts             # user profile localStorage
+    notesStorage.ts               # notes localStorage
+    uiPrefsStorage.ts             # output style prefs localStorage
     openrouterCache.ts            # gatesai.openrouter.catalog.v1 cache
     router.ts                     # tiny hash-router parser/writer
     llm/
@@ -74,7 +84,6 @@ src/
     theme.ts                      # accent/bg palettes, CSS-var builder
     styleTokens.ts                # typography/layout style objects
     seed.ts                       # initial threads + welcome conversation
-    icons.tsx                     # SVG icon set
 
 tests/                            # Vitest, completely separate from src/
   helpers/
@@ -99,13 +108,21 @@ tests/                            # Vitest, completely separate from src/
 | `app/`               | everything                                     | Composition root.                              |
 | `tests/`             | anything in `src/`                             | Lives outside `src/` so the app build is pure. |
 
+`stores/context.tsx` is the explicit React bridge exception: it hosts
+`StoreProvider` and the `use*Store()` hooks so feature components never import
+`RootStore` directly. `eslint.config.js` contains staged
+`no-restricted-imports` rules that enforce these boundaries for production
+source while keeping tests looser.
+
 ## State management
 
 - **MobX** with class-based stores; each store is a plain object model that
   exposes observable state, computed getters, and action methods.
 - `ChatStore` owns threads + the active selection + the in-flight stream.
   An `autorun` writes the snapshot to `localStorage` whenever it changes.
-- `UiStore` owns ephemeral UI state (theme keys, draft text). Not persisted.
+- `UiStore` owns UI state (theme keys, draft text, reading preferences).
+  Draft/theme keys are ephemeral today; output style preferences persist under
+  `gatesai.uiprefs.v1`.
 - `ProviderStore` owns API keys + a long-lived `LlmRouter`. Persisted under
   `gatesai.providers.v1` separately from chat data so keys don't leak into
   thread exports.
@@ -117,7 +134,16 @@ tests/                            # Vitest, completely separate from src/
   runtime. Dedupes by `(providerId, providerModelId)`; dynamic wins.
 - `OpenRouterStore` owns the live OpenRouter catalog. It hydrates from
   `gatesai.openrouter.catalog.v1` on boot, exposes `refresh()` /
-  `clearCache()` (no auto-TTL), and pushes the result into the registry.
+  `clearCache()` (no auto-TTL), writes cache on explicit refresh/clear, and
+  pushes the result into the registry.
+- `UserProfileStore` owns durable user facts and composes the base system
+  prompt sections used by `ChatStore`.
+- `SummaryStore` lazily writes one-line digests for inactive threads so the
+  active prompt can include recent cross-thread context.
+- `NotesStore` owns durable long-form notes exposed through the `notes` tool.
+- `BridgeStore` owns bridge health polling and the WebSocket client.
+- `ExecStreamStore` owns the live terminal output tail rendered while
+  `terminal` calls are in flight.
 - `RootStore` composes them and is provided through React context. Components
   use `observer()` from `mobx-react-lite` and read state via `use*Store()`.
 
@@ -152,14 +178,19 @@ side-effecting `read/write/subscribeRoute` for `window.location.hash`.
 
 ## Persistence
 
-| Key                        | Shape            | Owner             |
-| -------------------------- | ---------------- | ----------------- |
-| `gatesai.state.v1`              | `ChatSnapshot`            | `ChatStore`        |
-| `gatesai.providers.v1`          | `ProviderConfigs`         | `ProviderStore`    |
-| `gatesai.openrouter.catalog.v1` | `{ fetchedAt, models[] }` | `OpenRouterStore`  |
+| Key                              | Shape                    | Owner              |
+| -------------------------------- | ------------------------ | ------------------ |
+| `gatesai.state.v1`               | `ChatSnapshot`           | `ChatStore`        |
+| `gatesai.providers.v1`           | `ProviderConfigs`        | `ProviderStore`    |
+| `gatesai.profile.v1`             | `UserProfileSnapshot`    | `UserProfileStore` |
+| `gatesai.notes.v1`               | `Note[]`                 | `NotesStore`       |
+| `gatesai.uiprefs.v1`             | output style prefs       | `UiStore`          |
+| `gatesai.openrouter.catalog.v1`  | `{ fetchedAt, models[] }`| `OpenRouterStore`  |
 
-Both are saved on every observable mutation via `autorun`. UI state and
-provider routing live in memory only.
+Chat, provider, profile, notes, and UI preference snapshots are saved from
+their owning stores. OpenRouter cache writes happen on explicit
+`refresh()`/`clearCache()` instead of on every observable mutation. Provider
+routing and transient UI state live in memory only.
 
 ## Testing
 

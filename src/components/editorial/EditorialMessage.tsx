@@ -7,8 +7,9 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import type { Message } from '../../core/types';
+import { splitAttachmentFooter, type RenderedAttachment } from '../../core/attachments';
+import { ToolCallView, ToolResultView } from '../ui';
 import { useUiStore, useExecStreamStore } from '../../stores/context';
-import { ToolCallView, ToolResultView } from './ToolCallRender';
 import { LiveExecTail } from './LiveExecTail';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
 
@@ -20,12 +21,6 @@ interface MessageProps {
 }
 
 type CopyState = 'idle' | 'hint' | 'copied' | 'failed';
-interface RenderedAttachment {
-  path: string;
-  name: string;
-  kind: string;
-  size: string;
-}
 
 let copyHintSeen = false;
 
@@ -64,7 +59,7 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
   const resultByCallId = new Map(results.map(r => [r.toolCallId, r]));
   const hasContent = message.content.trim().length > 0;
   const hasCalls = calls.length > 0;
-  const userContent = isUser ? splitUserAttachmentFooter(message.content) : null;
+  const userContent = isUser ? splitAttachmentFooter(message.content) : null;
 
   useEffect(() => {
     if (copyState === 'idle') return;
@@ -150,16 +145,12 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
         {isUser ? (
           <UserMessageContent body={userContent?.body ?? message.content} attachments={userContent?.attachments ?? []} />
         ) : hasContent && streaming ? (
-          <StreamingPlainText content={message.content} />
+          <>
+            <MarkdownBody content={message.content} />
+            <WorkingIndicator />
+          </>
         ) : hasContent ? (
-          <div className="md-body">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
-              rehypePlugins={[rehypeHighlight, [rehypeKatex, { throwOnError: false, strict: 'ignore' }]]}
-            >
-              {message.content}
-            </ReactMarkdown>
-          </div>
+          <MarkdownBody content={message.content} />
         ) : streaming ? (
           <ThinkingIndicator label={preTokenLabel ?? message.preTokenLabel ?? 'thinking'} />
         ) : null}
@@ -168,12 +159,16 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
   );
 });
 
-function StreamingPlainText({ content }: { content: string }) {
+function MarkdownBody({ content }: { content: string }) {
   return (
-    <>
-      <p className="streaming-plain-text">{content}</p>
-      <WorkingIndicator />
-    </>
+    <div className="md-body">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
+        rehypePlugins={[rehypeHighlight, [rehypeKatex, { throwOnError: false, strict: 'ignore' }]]}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
   );
 }
 
@@ -194,37 +189,6 @@ function UserMessageContent({ body, attachments }: { body: string; attachments: 
       )}
     </>
   );
-}
-
-function splitUserAttachmentFooter(content: string): { body: string; attachments: RenderedAttachment[] } {
-  const marker = '\n\n📎 Attached files (read with the `fs` tool):\n';
-  const idx = content.indexOf(marker);
-  if (idx < 0) return { body: content, attachments: [] };
-
-  const body = content.slice(0, idx);
-  const footer = content.slice(idx + marker.length);
-  const attachments = footer
-    .split('\n')
-    .map(parseAttachmentLine)
-    .filter((file): file is RenderedAttachment => Boolean(file));
-
-  return { body, attachments };
-}
-
-function parseAttachmentLine(line: string): RenderedAttachment | null {
-  const match = line.trim().match(/^-\s+(.+?)\s+·\s+(.+?)\s+·\s+(.+)$/);
-  if (!match) return null;
-  const [, path, size, mime] = match;
-  const name = path.split(/[\\/]/).pop() || path;
-  return { path, name, size, kind: attachmentKind(name, mime) };
-}
-
-function attachmentKind(name: string, mime: string): string {
-  const ext = name.includes('.') ? name.split('.').pop()?.toUpperCase() : '';
-  if (mime.toLowerCase().includes('csv')) return 'CSV';
-  if (mime.toLowerCase().includes('json')) return 'JSON';
-  if (mime.toLowerCase().includes('pdf')) return 'PDF';
-  return ext || 'FILE';
 }
 
 /**
