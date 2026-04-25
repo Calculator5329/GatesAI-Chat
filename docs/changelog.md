@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-04-25 — Fresh-install UX
+
+Removed the demo-mode feel from a fresh install. New installs land in one
+empty untitled thread instead of eleven seeded fakes. Sending a message
+without a configured provider no longer falls back to canned responses —
+the composer's send button is disabled and a banner above it links to the
+API settings panel until a real provider is configured. `FakeProvider` and
+`src/core/seed.ts` are gone; the router throws `NoProviderConfiguredError`
+when no real provider can serve a request. The installer now ships with
+the brand icon instead of the Tauri placeholder.
+
 ## 2026-04-25 — Desktop app
 
 GatesAI Chat now ships as a native Windows installer that bundles the Go
