@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
-import { Icons } from '../../core/icons';
+import { Icons } from '../ui/icons';
 import { useModelRegistry } from '../../stores/context';
 
 interface ModelPopoverProps {

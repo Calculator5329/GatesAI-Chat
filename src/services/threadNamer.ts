@@ -1,5 +1,5 @@
-import type { LlmRequest } from '../core/llm';
-import type { ProviderStore } from '../stores/ProviderStore';
+import type { LlmProvider, LlmRequest } from '../core/llm';
+import type { RouterOptions } from './llm/router';
 
 /**
  * Auto-name a thread from its opening exchange using a small, cheap model.
@@ -44,9 +44,13 @@ export interface NameThreadInput {
   fallbackModelId: string;
 }
 
+export interface ThreadTitleRouter {
+  resolve(modelId: string, opts?: RouterOptions): { provider: LlmProvider; providerModelId: string };
+}
+
 export async function generateThreadTitle(
   input: NameThreadInput,
-  providers: ProviderStore,
+  router: ThreadTitleRouter,
 ): Promise<string | null> {
   const candidates = [...NAMER_CASCADE, input.fallbackModelId];
   const userMsg = trimForPrompt(input.userText, 600);
@@ -56,7 +60,7 @@ export async function generateThreadTitle(
     : `User asked:\n${userMsg}\n\nTitle:`;
 
   for (const modelId of candidates) {
-    const { provider, providerModelId } = providers.router.resolve(modelId, { fallbackToFake: false });
+    const { provider, providerModelId } = router.resolve(modelId, { fallbackToFake: false });
     if (!provider.ready()) continue;
 
     const request: LlmRequest = {

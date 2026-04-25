@@ -1,6 +1,12 @@
+import type { DraftAttachment } from '../../core/types';
 import type { FsWriteResp } from '../../core/workspace';
-import type { BridgeStore } from '../../stores/BridgeStore';
-import type { DraftAttachment } from '../../stores/UiStore';
+
+interface AttachmentBridge {
+  readonly isOnline: boolean;
+  readonly client: {
+    request<T = unknown>(op: string, data: unknown): Promise<T>;
+  };
+}
 
 /**
  * Read a `File` from the browser, base64 it, and write it under
@@ -12,7 +18,7 @@ import type { DraftAttachment } from '../../stores/UiStore';
  * collision) clean for the model to reference.
  */
 
-export async function uploadAttachment(file: File, bridge: BridgeStore): Promise<DraftAttachment> {
+export async function uploadAttachment(file: File, bridge: AttachmentBridge): Promise<DraftAttachment> {
   if (!bridge.isOnline) throw new Error('Bridge offline. Start gatesai-bridge to attach files.');
 
   const safeName = sanitizeFilename(file.name);

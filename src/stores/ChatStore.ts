@@ -698,6 +698,8 @@ export class ChatStore {
   private maybeAutoName(threadId: string, assistantMessage: AssistantMessage): void {
     const thread = this.findThread(threadId);
     if (!thread || thread.autoNamed) return;
+    const { provider } = this.providers.router.resolve(thread.modelId);
+    if (provider.id === 'fake') return;
     const opener = thread.messages.find(m => m.role === 'user');
     if (!opener) return;
 
@@ -711,7 +713,7 @@ export class ChatStore {
         assistantText,
         fallbackModelId: thread.modelId,
       },
-      this.providers,
+      this.providers.router,
     ).then(title => runInAction(() => {
       thread.naming = false;
       if (title) {

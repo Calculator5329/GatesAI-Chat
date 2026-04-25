@@ -29,10 +29,6 @@ export const Icons = {
   Plus:      () => <Ico d="M8 3v10M3 8h10" />,
   ArrowUp:   () => <Ico d="M8 13V3M4 7l4-4 4 4" />,
   Paperclip: () => <Ico d="M11.5 6.5l-4.8 4.8a2 2 0 1 0 2.8 2.8L14 9.6a3.5 3.5 0 1 0-5-5L4.3 9.3" />,
-  Bolt:      () => <Ico d="M9 1L3 9h4l-1 6 6-8H8l1-6z" />,
   Chevron:   () => <Ico d="M4 6l4 4 4-4" />,
-  Check:     () => <Ico d="M3 8.5l3 3 7-7" />,
-  Tool:      () => <Ico d="M10.5 2.5a3 3 0 0 0-3.8 3.8L2 11l3 3 4.7-4.7a3 3 0 0 0 3.8-3.8L11 8 8 5z" />,
-  File:      () => <Ico d="M3.5 2h5L12.5 6v8h-9z M8.5 2v4h4" />,
   Close:     () => <Ico d="M4 4l8 8M12 4l-8 8" />,
 };

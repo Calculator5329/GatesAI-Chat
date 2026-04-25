@@ -74,14 +74,14 @@ function doCreate(args: Record<string, unknown>, ctx: Parameters<Tool['execute']
   if (!title.trim()) return 'Error: `title` is required for create.';
   if (!body.trim()) return 'Error: `body` is required for create.';
   const tags = Array.isArray(args.tags) ? args.tags.filter((t): t is string => typeof t === 'string') : undefined;
-  const note = ctx.notes.create({ title, body, tags });
+  const note = ctx.notes!.create({ title, body, tags });
   return `Created note ${note.id}: "${note.title}"`;
 }
 
 function doRead(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): string {
   const id = typeof args.id === 'string' ? args.id : '';
   if (!id) return 'Error: `id` is required for read.';
-  const note = ctx.notes.findById(id);
+  const note = ctx.notes!.findById(id);
   if (!note) return `Error: no note with id "${id}".`;
   return formatFull(note);
 }
@@ -94,7 +94,7 @@ function doUpdate(args: Record<string, unknown>, ctx: Parameters<Tool['execute']
   if (typeof args.body === 'string') patch.body = args.body;
   if (Array.isArray(args.tags)) patch.tags = args.tags.filter((t): t is string => typeof t === 'string');
   if (Object.keys(patch).length === 0) return 'Error: provide at least one of `title`, `body`, or `tags`.';
-  const updated = ctx.notes.update(id, patch);
+  const updated = ctx.notes!.update(id, patch);
   if (!updated) return `Error: no note with id "${id}".`;
   return `Updated note ${updated.id}: "${updated.title}"`;
 }
@@ -102,7 +102,7 @@ function doUpdate(args: Record<string, unknown>, ctx: Parameters<Tool['execute']
 function doDelete(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): string {
   const id = typeof args.id === 'string' ? args.id : '';
   if (!id) return 'Error: `id` is required for delete.';
-  const removed = ctx.notes.remove(id);
+  const removed = ctx.notes!.remove(id);
   if (!removed) return `Error: no note with id "${id}".`;
   return `Deleted note ${removed.id}: "${removed.title}"`;
 }
@@ -111,14 +111,14 @@ function doSearch(args: Record<string, unknown>, ctx: Parameters<Tool['execute']
   const query = typeof args.query === 'string' ? args.query : '';
   if (!query.trim()) return 'Error: `query` is required for search.';
   const limit = typeof args.limit === 'number' && args.limit > 0 ? Math.floor(args.limit) : 10;
-  const hits = ctx.notes.search(query).slice(0, limit);
+  const hits = ctx.notes!.search(query).slice(0, limit);
   if (hits.length === 0) return `No notes matched "${query}".`;
   return hits.map(formatHit).join('\n\n');
 }
 
 function doList(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): string {
   const limit = typeof args.limit === 'number' && args.limit > 0 ? Math.floor(args.limit) : 10;
-  const all = ctx.notes.sortedByRecency.slice(0, limit);
+  const all = ctx.notes!.sortedByRecency.slice(0, limit);
   if (all.length === 0) return 'No notes stored yet.';
   return all.map(formatLine).join('\n');
 }

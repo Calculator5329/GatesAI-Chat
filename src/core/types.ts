@@ -62,6 +62,20 @@ export interface ToolResult {
   ranAt: number;
 }
 
+/**
+ * One file the user has staged for the next send. Once uploaded to the bridge
+ * it carries its workspace path; the composer turns the chip set into an
+ * attachment footer on the user message so the model can reference the path.
+ */
+export interface DraftAttachment {
+  id: string;
+  filename: string;
+  /** Workspace path, e.g. `/workspace/attachments/foo.csv`. */
+  path: string;
+  size: number;
+  mime: string;
+}
+
 export interface Thread {
   id: string;
   title: string;

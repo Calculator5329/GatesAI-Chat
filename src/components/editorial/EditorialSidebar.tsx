@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
-import { Icons } from '../../core/icons';
+import { Icons } from '../ui/icons';
 import type { Thread, HeaderKey } from '../../core/types';
 import { useChatStore, useRouterStore } from '../../stores/context';
 import { EDITORIAL_HEADERS } from './headers';

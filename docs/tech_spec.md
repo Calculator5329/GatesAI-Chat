@@ -230,9 +230,10 @@ tool also carries internal metadata for category, read-only/side-effect
 classification, result policy, and safe concurrency decisions. The registry
 selects a conservative `ToolDef[]` per provider round via
 `toolDefsForTurn(...)`: `memory` and `thread` are always available;
-bridge tools (`workspace`, `fs`, `inspect_file`, `terminal`, `git`) are included when the
-bridge is online or the turn mentions files, attachments, code, commands,
-Git, tests/builds, artifacts, CSV/JSON/text data, or workspace; `notes` is included
+bridge tools (`workspace`, `fs`, `inspect_file`, `terminal`, `python_inline`,
+`sqlite_query`, `query_script`, `git`) are included when the bridge is online
+or the turn mentions files, attachments, code, commands, Git, tests/builds,
+artifacts, CSV/JSON/text data, or workspace; `notes` is included
 for note/document/search/plan language. If the selector cannot make a useful
 choice, it falls back to the full catalog. Provider adapters translate to/from each
 vendor's native tool-call shape (OpenAI `tool_calls[]`, Anthropic
@@ -292,7 +293,10 @@ Current tool catalog:
   unix_ms. Used whenever the model needs the current date/time.
 - `workspace({ action })` — bridge runtime facade. `info` returns platform,
   workspace root, allowlist, and path semantics; `limits` returns known caps;
-  `how_to_run_scripts` gives the cwd/relative-path script recipe.
+  `how_to_run_scripts` gives the artifact-first query script recipe: check
+  artifacts first, inspect sources with `inspect_file`, write scripts under
+  `/workspace/notes/query_scripts/`, and write reusable outputs under
+  `/workspace/artifacts/`.
 - `fs({ action, path?, content?, encoding?, ... })` — workspace
   filesystem ops via the bridge. Verbs: `read | write | append | list |
   delete | move | copy | mkdir | stat | search`. All paths resolve
@@ -301,12 +305,18 @@ Current tool catalog:
   companion process isn't running. `list` and `search` defensively normalize
   legacy bridge `null` arrays to empty arrays so stale bridge processes cannot
   leak JavaScript formatter errors into tool results.
-- `inspect_file({ action, path, format?, ... })` — read-only semantic
-  inspection for CSV, JSON, and text files. Verbs: `profile | preview |
-  search | extract | aggregate`. It uses bridge `fs.read` internally but
-  returns compact structure, selected rows/paths/line ranges, and simple CSV
+- `inspect_file({ action, path?, format?, ... })` — read-only semantic
+  inspection for CSV, JSON, and text files. Verbs: `workspace_profile |
+  profile | preview | search | extract | aggregate`. `workspace_profile`
+  uses bridge `fs.list` and optional `fs.search` to return an artifact-first
+  view of `/workspace/artifacts`, `/workspace/attachments`, and
+  `/workspace/notes`. File actions use bridge `fs.read` internally, decode
+  UTF-8/BOM, UTF-16LE/BE, and Windows-1252/Latin-1 style base64 reads, then
+  return compact structure, selected rows/paths/line ranges, and CSV
   aggregates instead of dumping full file contents into model context.
-  Attachment footers reinforce the same rule: use `inspect_file` for
+  CSV profiles include detected delimiter, detected encoding, row/column
+  counts, likely date columns, numeric min/max/sample, and empty/ragged row
+  counts. Attachment footers reinforce the same rule: use `inspect_file` for
   CSV/JSON/text and `fs` only for byte-level reads/writes.
 - `python_inline({ code, stdin?, timeout_ms? })` — scoped short Python
   snippets through `exec.run` with `cmd: "python"` and argv
@@ -318,6 +328,12 @@ Current tool catalog:
   `.db` files. It rejects dot-commands, multiple statements, absolute paths,
   and path traversal, then executes through Python's stdlib `sqlite3` helper
   rather than the raw `sqlite3` shell.
+- `query_script({ action, topic? })` — model-facing templates for organized
+  data scripts. Actions: `template_python_csv_query`, `template_json_query`,
+  and `template_artifact_audit`. Templates keep scripts under
+  `/workspace/notes/query_scripts/<topic>.py`, final reusable JSON under
+  `/workspace/artifacts/<topic>.json`, use cwd-relative paths, and include
+  validation checkpoints before reporting results.
 - `git({ action, paths?, message?, branch?, ref?, staged?, cwd?, limit?,
   confirm? })` — local-only Git porcelain through the bridge. Read actions:
   `status | diff | log | show | branch_list`; safe local writes:

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-04-25 — Inspect workflow and query-script guidance
+
+`inspect_file` now handles common uploaded data encodings instead of rejecting
+binary/base64 bridge reads. It decodes UTF-8/BOM, UTF-16LE/BE, and
+Windows-1252/Latin-1 style CSV/text inputs, reports detected encoding, and adds
+richer CSV profiling with delimiter, row/column counts, likely date columns,
+numeric min/max/sample, and empty/ragged row counts.
+
+Added `inspect_file({ action: "workspace_profile" })` for artifact-first
+workspace discovery using bridge `fs.list` and optional `fs.search`, plus a
+`query_script` template tool for reusable scripts under
+`/workspace/notes/query_scripts/` and final JSON outputs under
+`/workspace/artifacts/`.
+
 ## 2026-04-25 — Scoped Python and SQLite wrappers
 
 Added scoped `python_inline` and `sqlite_query` tools so the model can run

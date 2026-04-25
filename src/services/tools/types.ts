@@ -1,23 +1,73 @@
 import type { ToolDef } from '../../core/llm';
-import type { UserProfileStore } from '../../stores/UserProfileStore';
-import type { ChatStore } from '../../stores/ChatStore';
-import type { NotesStore } from '../../stores/NotesStore';
-import type { SummaryStore } from '../../stores/SummaryStore';
-import type { BridgeStore } from '../../stores/BridgeStore';
-import type { ExecStreamStore } from '../../stores/ExecStreamStore';
+import type { Note } from '../../core/notes';
+import type { Thread } from '../../core/types';
 
 /**
  * Runtime context passed to every tool. Add fields here as tools need them
  * (e.g. an HTTP client, a fetcher for `web_search`). Keep this surface
  * minimal — tools should only depend on what they actually use.
  */
+export interface ProfileFacade {
+  readonly facts: string[];
+  addFact(fact: string): boolean;
+  removeFactAt(index: number): string | null;
+  removeFactMatching(match: string): string | null;
+  updateFactAt(index: number, next: string): string | null;
+  updateFactMatching(match: string, next: string): string | null;
+}
+
+export interface ChatFacade {
+  readonly threads: Thread[];
+  selectThread(id: string): void;
+  renameThread(id: string, title: string): void;
+  setThreadContext(id: string, context: string): void;
+}
+
+export interface NotesFacade {
+  readonly sortedByRecency: Note[];
+  create(input: { title: string; body: string; tags?: string[] }): Note;
+  findById(id: string): Note | null;
+  update(id: string, patch: { title?: string; body?: string; tags?: string[] }): Note | null;
+  remove(id: string): Note | null;
+  search(query: string): Note[];
+}
+
+export interface SummaryFacade {
+  summarizeNow(threadId: string): Promise<boolean>;
+}
+
+export interface BridgeClientFacade {
+  request<T = unknown>(
+    op: string,
+    data: unknown,
+    onEvent?: (data: unknown) => void,
+  ): Promise<T>;
+}
+
+export interface BridgeFacade {
+  readonly isOnline: boolean;
+  readonly state?: string;
+  readonly version?: string;
+  readonly platform?: string;
+  readonly workspaceRoot?: string;
+  readonly allowlist?: string[];
+  readonly client: BridgeClientFacade;
+}
+
+export interface ExecStreamFacade {
+  start(jobId: string, command: string, args: string[]): void;
+  appendChunk(jobId: string, stream: 'stdout' | 'stderr', chunk: string): void;
+  finish(jobId: string, exitCode: number, durationMs: number): void;
+  fail(jobId: string, message: string): void;
+}
+
 export interface ToolContext {
-  profile: UserProfileStore;
-  chat: ChatStore;
-  notes: NotesStore;
-  summary: SummaryStore;
-  bridge: BridgeStore;
-  execStream: ExecStreamStore;
+  profile: ProfileFacade;
+  chat: ChatFacade;
+  notes?: NotesFacade;
+  summary?: SummaryFacade;
+  bridge?: BridgeFacade;
+  execStream?: ExecStreamFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;
 }

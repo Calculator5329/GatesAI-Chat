@@ -1,5 +1,5 @@
 import type { LlmProvider, ProviderConfigs, ProviderId } from '../../core/llm';
-import type { ModelRegistry } from '../../stores/ModelRegistry';
+import type { Model } from '../../core/types';
 import { FakeProvider } from './fake';
 import { OpenAiProvider } from './openai';
 import { GroqProvider } from './groq';
@@ -29,11 +29,16 @@ export interface RouterOptions {
   fallbackToFake?: boolean;
 }
 
+export interface ModelCatalog {
+  readonly all: Model[];
+  findById(id: string): Model | undefined;
+}
+
 export class LlmRouter {
   private providers: Record<ProviderId, LlmProvider>;
-  private readonly registry: ModelRegistry;
+  private readonly registry: ModelCatalog;
 
-  constructor(registry: ModelRegistry, configs: ProviderConfigs = {}) {
+  constructor(registry: ModelCatalog, configs: ProviderConfigs = {}) {
     this.registry = registry;
     this.providers = buildProviders(configs);
   }

@@ -4,6 +4,7 @@ import type {
   BgKey,
   CodeSizeKey,
   CodeStyleKey,
+  DraftAttachment,
   HeaderKey,
   MarkdownDensityKey,
   MarkdownStyleKey,
@@ -22,21 +23,6 @@ import { loadUiPrefs, saveUiPrefs } from '../services/uiPrefsStorage';
  * users want set-and-forget for that one, so it round-trips through
  * `gatesai.uiprefs.v1`.
  */
-/**
- * One file the user has staged for the next send. Once uploaded to the
- * bridge it carries its workspace path; the composer turns the chip set
- * into a "📎 Attached: ..." footer on the user message at send time so
- * the model has the path inline.
- */
-export interface DraftAttachment {
-  id: string;
-  filename: string;
-  /** Workspace path, e.g. `/workspace/attachments/foo.csv`. */
-  path: string;
-  size: number;
-  mime: string;
-}
-
 export class UiStore {
   draft = '';
   attachments: DraftAttachment[] = [];

@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { observer } from 'mobx-react-lite';
-import { Icons } from '../../core/icons';
+import { Icons } from '../ui/icons';
 import type { SendKey } from '../../core/types';
 import { useBridgeStore, useChatStore, useModelRegistry, useUiStore } from '../../stores/context';
 import { uploadAttachment } from '../../services/bridge/attachments';

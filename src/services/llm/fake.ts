@@ -47,8 +47,6 @@ Use \`safely\` at the boundary of your application — route handlers, queue con
 For most workloads, **start in-process** and graduate to Redis only when you need cross-instance coherence. The jump to a CDN is warranted only when you're serving static responses at scale.`,
 ];
 
-let cursor = 0;
-
 const wait = (ms: number, signal: AbortSignal): Promise<void> =>
   new Promise((resolve, reject) => {
     if (signal.aborted) return reject(signal.reason);
@@ -62,11 +60,12 @@ const wait = (ms: number, signal: AbortSignal): Promise<void> =>
 
 export class FakeProvider implements LlmProvider {
   readonly id = 'fake' as const;
+  private cursor = 0;
 
   ready(): boolean { return true; }
 
   async *stream(_req: LlmRequest, signal: AbortSignal): AsyncIterable<LlmChunk> {
-    const text = RESPONSES[cursor++ % RESPONSES.length];
+    const text = RESPONSES[this.cursor++ % RESPONSES.length];
     const tokens = text.split(/(\s+)/);
 
     try {

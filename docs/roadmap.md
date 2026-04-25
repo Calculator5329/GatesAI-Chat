@@ -22,6 +22,7 @@
 - [x] Add Windows double-click launcher for chat + bridge
 - [x] Inject artifact README files into every turn's system prompt context
 - [x] Inject runtime time, timezone, and harness context into every turn
+- [x] Make `inspect_file` encoding-tolerant and add artifact-first query workflows
 
 ## Near-term
 - [ ] Persist UI preferences (theme keys) alongside chat snapshot

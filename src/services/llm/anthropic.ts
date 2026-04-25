@@ -1,4 +1,5 @@
 import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, ToolCall, ToolDef } from '../../core/llm';
+import { safeJsonObject } from './json';
 import { ensureOk, parseSse } from './sse';
 
 interface AnthropicEvent {
@@ -139,16 +140,6 @@ export class AnthropicProvider implements LlmProvider {
 
 function toAnthropicTool(t: ToolDef): { name: string; description: string; input_schema: unknown } {
   return { name: t.name, description: t.description, input_schema: t.parameters };
-}
-
-function safeJsonObject(raw: string): Record<string, unknown> {
-  if (!raw.trim()) return {};
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : {};
-  } catch {
-    return {};
-  }
 }
 
 /**

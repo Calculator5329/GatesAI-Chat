@@ -1,4 +1,5 @@
 import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, ProviderId, ToolCall, ToolDef } from '../../core/llm';
+import { safeJsonObject } from './json';
 import { ensureOk, parseSse } from './sse';
 
 export interface OpenAiCompatOptions {
@@ -160,16 +161,6 @@ export class OpenAiCompatProvider implements LlmProvider {
 
 function toOpenAiTool(t: ToolDef): { type: 'function'; function: { name: string; description: string; parameters: unknown } } {
   return { type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } };
-}
-
-function safeJsonObject(raw: string): Record<string, unknown> {
-  if (!raw.trim()) return {};
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : {};
-  } catch {
-    return {};
-  }
 }
 
 /**

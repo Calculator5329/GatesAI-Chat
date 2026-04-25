@@ -115,7 +115,7 @@ async function doRead(args: Record<string, unknown>, ctx: Parameters<Tool['execu
   const path = strArg(args, 'path');
   if (!path) return 'Error: `path` is required for read.';
   const encoding = args.encoding === 'base64' ? 'base64' : undefined;
-  const resp = await ctx.bridge.client.request<FsReadResp>('fs.read', { path, encoding });
+  const resp = await ctx.bridge!.client.request<FsReadResp>('fs.read', { path, encoding });
   const maxChars = typeof args.max_chars === 'number' && Number.isFinite(args.max_chars)
     ? Math.max(1, Math.floor(args.max_chars))
     : 12_000;
@@ -136,7 +136,7 @@ async function doWrite(args: Record<string, unknown>, ctx: Parameters<Tool['exec
   if (!path) return `Error: \`path\` is required for ${append ? 'append' : 'write'}.`;
   if (typeof args.content !== 'string') return `Error: \`content\` is required for ${append ? 'append' : 'write'}.`;
   const encoding = args.encoding === 'base64' ? 'base64' : 'utf8';
-  const resp = await ctx.bridge.client.request<FsWriteResp>('fs.write', {
+  const resp = await ctx.bridge!.client.request<FsWriteResp>('fs.write', {
     path, content: args.content, encoding, append,
   });
   return `${append ? 'Appended' : 'Wrote'} ${resp.bytes} bytes to ${resp.path}`;
@@ -145,7 +145,7 @@ async function doWrite(args: Record<string, unknown>, ctx: Parameters<Tool['exec
 async function doList(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): Promise<string> {
   const path = strArg(args, 'path') || '/workspace';
   const recursive = args.recursive === true;
-  const resp = await ctx.bridge.client.request<FsListResp>('fs.list', { path, recursive });
+  const resp = await ctx.bridge!.client.request<FsListResp>('fs.list', { path, recursive });
   const entries = Array.isArray(resp.entries) ? resp.entries : [];
   if (entries.length === 0) return `${resp.path} is empty.`;
   const lines = entries.map(e => {
@@ -160,7 +160,7 @@ async function doList(args: Record<string, unknown>, ctx: Parameters<Tool['execu
 async function doDelete(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): Promise<string> {
   const path = strArg(args, 'path');
   if (!path) return 'Error: `path` is required for delete.';
-  await ctx.bridge.client.request('fs.delete', { path });
+  await ctx.bridge!.client.request('fs.delete', { path });
   return `Deleted ${path}`;
 }
 
@@ -168,21 +168,21 @@ async function doMove(args: Record<string, unknown>, ctx: Parameters<Tool['execu
   const from = strArg(args, 'from');
   const to = strArg(args, 'to');
   if (!from || !to) return `Error: \`from\` and \`to\` are required for ${op === 'fs.move' ? 'move' : 'copy'}.`;
-  await ctx.bridge.client.request(op, { from, to });
+  await ctx.bridge!.client.request(op, { from, to });
   return `${op === 'fs.move' ? 'Moved' : 'Copied'} ${from} → ${to}`;
 }
 
 async function doMkdir(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): Promise<string> {
   const path = strArg(args, 'path');
   if (!path) return 'Error: `path` is required for mkdir.';
-  await ctx.bridge.client.request('fs.mkdir', { path });
+  await ctx.bridge!.client.request('fs.mkdir', { path });
   return `Created directory ${path}`;
 }
 
 async function doStat(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): Promise<string> {
   const path = strArg(args, 'path');
   if (!path) return 'Error: `path` is required for stat.';
-  const resp = await ctx.bridge.client.request<FsStatResp>('fs.stat', { path });
+  const resp = await ctx.bridge!.client.request<FsStatResp>('fs.stat', { path });
   return [
     `path: ${resp.path}`,
     `kind: ${resp.kind}`,
@@ -197,7 +197,7 @@ async function doSearch(args: Record<string, unknown>, ctx: Parameters<Tool['exe
   if (!query) return 'Error: `query` is required for search.';
   const path = strArg(args, 'path') || '/workspace';
   const max_hits = typeof args.max_hits === 'number' ? args.max_hits : undefined;
-  const resp = await ctx.bridge.client.request<FsSearchResp>('fs.search', { query, path, max_hits });
+  const resp = await ctx.bridge!.client.request<FsSearchResp>('fs.search', { query, path, max_hits });
   const hits = Array.isArray(resp.hits) ? resp.hits : [];
   if (hits.length === 0) return `No matches for "${query}" under ${path}.`;
   const lines = hits.map(h => `${h.path}:${h.line}: ${h.snippet}`);
