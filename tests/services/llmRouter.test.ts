@@ -63,6 +63,30 @@ describe('LlmRouter', () => {
     expect(providerModelId).toBe('anthropic/claude-sonnet-4.6');
   });
 
+  describe('canRoute', () => {
+    it('returns false with no configs (defaulted local does not count)', () => {
+      const router = new LlmRouter(reg(), {});
+      expect(router.canRoute()).toBe(false);
+    });
+
+    it('returns true once an api key is set', () => {
+      const router = new LlmRouter(reg(), { openai: { apiKey: 'sk-x' } });
+      expect(router.canRoute()).toBe(true);
+    });
+
+    it('returns true when the user explicitly sets a local baseUrl', () => {
+      const router = new LlmRouter(reg(), { local: { baseUrl: 'http://127.0.0.1:8080/v1' } });
+      expect(router.canRoute()).toBe(true);
+    });
+
+    it('reflects updateConfigs', () => {
+      const router = new LlmRouter(reg(), {});
+      expect(router.canRoute()).toBe(false);
+      router.updateConfigs({ anthropic: { apiKey: 'sk-a' } });
+      expect(router.canRoute()).toBe(true);
+    });
+  });
+
   it('resolves a dynamic OpenRouter model added to the registry at runtime', () => {
     const r = reg();
     r.setDynamicForProvider('openrouter', [{

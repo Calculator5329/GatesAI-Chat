@@ -44,6 +44,17 @@ describe('ProviderStore', () => {
     expect(b.getConfig('local').baseUrl).toBe('http://127.0.0.1:8080/v1');
   });
 
+  it('hasUsableProvider reacts to key changes', async () => {
+    const store = make();
+    expect(store.hasUsableProvider).toBe(false);
+    store.setKey('openai', 'sk-test');
+    await flush(2);
+    expect(store.hasUsableProvider).toBe(true);
+    store.setKey('openai', '');
+    await flush(2);
+    expect(store.hasUsableProvider).toBe(false);
+  });
+
   it('remove deletes an entire provider entry', () => {
     const store = make();
     store.setKey('gemini', 'g-test');

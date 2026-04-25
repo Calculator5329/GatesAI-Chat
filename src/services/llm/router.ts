@@ -36,16 +36,41 @@ export interface ModelCatalog {
 
 export class LlmRouter {
   private providers: Record<ProviderId, LlmProvider>;
+  private configs: ProviderConfigs;
   private readonly registry: ModelCatalog;
 
   constructor(registry: ModelCatalog, configs: ProviderConfigs = {}) {
     this.registry = registry;
+    this.configs = configs;
     this.providers = buildProviders(configs);
   }
 
   /** Hot-swap configs (e.g. when the user pastes a new key). */
   updateConfigs(configs: ProviderConfigs): void {
+    this.configs = configs;
     this.providers = buildProviders(configs);
+  }
+
+  /**
+   * Whether any non-fake provider is configured by the user. This does NOT
+   * just check `provider.ready()` — `LocalProvider` is "ready" with a default
+   * baseUrl baked in, but we treat local as configured only when the user has
+   * explicitly set their own baseUrl. Other providers count as configured iff
+   * they have an API key.
+   *
+   * When false, the UI must prevent sending — there's nothing real to route
+   * to and we no longer fall back to the fake provider.
+   */
+  canRoute(): boolean {
+    for (const [id, provider] of Object.entries(this.providers)) {
+      if (id === 'fake') continue;
+      if (id === 'local') {
+        if (this.configs.local?.baseUrl) return true;
+        continue;
+      }
+      if (provider.ready()) return true;
+    }
+    return false;
   }
 
   /**

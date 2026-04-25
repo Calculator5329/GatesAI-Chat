@@ -60,4 +60,14 @@ export class ProviderStore {
   isConnected(id: ProviderId): boolean {
     return this.router.get(id).ready();
   }
+
+  /**
+   * True iff at least one real provider is configured (has a key, or for
+   * local, an explicit baseUrl). Backed by `LlmRouter.canRoute()`. The UI
+   * uses this to gate sending — when false, there's no real backend to talk
+   * to.
+   */
+  get hasUsableProvider(): boolean {
+    return this.router.canRoute();
+  }
 }
