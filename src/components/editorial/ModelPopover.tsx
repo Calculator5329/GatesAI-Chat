@@ -38,11 +38,12 @@ const META: Record<string, ModelMeta> = {
   'groq-llama-3.1-8b':     { tag: 'Tiny Llama, instant',              capabilities: ['fast'] },
   'groq-gpt-oss-120b':     { tag: 'GPT-OSS 120B on Groq',             capabilities: ['fast', 'reasoning'] },
   'groq-gpt-oss-20b':      { tag: 'GPT-OSS 20B on Groq',              capabilities: ['fast'] },
-  'or-llama-4-maverick':   { tag: 'Meta Llama 4 via OpenRouter',      capabilities: ['tools'] },
-  'or-deepseek-r1':        { tag: 'Open reasoning via OpenRouter',    capabilities: ['reasoning'] },
+  'or-deepseek-v4-pro':    { tag: 'DeepSeek V4 Pro via OpenRouter',   capabilities: ['reasoning'] },
+  'or-deepseek-v4-flash':  { tag: 'DeepSeek V4 Flash via OpenRouter', capabilities: ['fast', 'reasoning'] },
   'or-gpt-5.5':            { tag: 'GPT-5.5 via OpenRouter',           capabilities: ['vision', 'tools', 'reasoning'] },
   'or-gpt-5.5-pro':        { tag: 'GPT-5.5 Pro via OpenRouter',       capabilities: ['vision', 'tools', 'reasoning'] },
-  'or-gemini-3-pro':       { tag: 'Gemini 3 Pro via OpenRouter',      capabilities: ['vision', 'tools', 'reasoning'] },
+  'or-gemini-3.1-pro':     { tag: 'Gemini 3.1 Pro via OpenRouter',    capabilities: ['vision', 'tools', 'reasoning'] },
+  'or-gemini-3.1-flash-lite': { tag: 'Gemini 3.1 Flash Lite via OpenRouter', capabilities: ['vision', 'fast'] },
   'local-default':         { tag: 'Whatever you have running',        capabilities: ['fast'] },
 };
 

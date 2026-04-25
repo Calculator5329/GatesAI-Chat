@@ -7,8 +7,9 @@ import type { Model } from './types';
  *   `providerModelId`  — what the provider's API actually expects. Update freely
  *                        as providers ship new versions; thread `id` won't change.
  *
- * Slugs verified against live provider docs / OpenRouter model pages
- * on 2026-04-25. See `docs/changelog.md` for the audit notes.
+ * Slugs verified against the live OpenRouter `/api/v1/models` catalog
+ * on 2026-04-25. Direct provider slugs (Anthropic, OpenAI, Gemini, Groq)
+ * follow each vendor's published id; check there if a direct call fails.
  */
 export const MODELS: Model[] = [
   // ─────────────────────────────────────────────────────────────────
@@ -61,27 +62,18 @@ export const MODELS: Model[] = [
   { id: 'or-gpt-5.5',             name: 'GPT-5.5 (OpenRouter)',           vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'openai/gpt-5.5' },
   { id: 'or-gpt-5.4',             name: 'GPT-5.4 (OpenRouter)',           vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'openai/gpt-5.4' },
   { id: 'or-gpt-5.4-mini',        name: 'GPT-5.4 mini (OpenRouter)',      vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'openai/gpt-5.4-mini' },
-  { id: 'or-gemini-3-pro',        name: 'Gemini 3 Pro (OpenRouter)',      vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'google/gemini-3-pro-preview' },
+  { id: 'or-gemini-3.1-pro',      name: 'Gemini 3.1 Pro (OpenRouter)',    vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-pro-preview' },
+  { id: 'or-gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite (OpenRouter)', vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-flash-lite-preview' },
 
   // xAI
-  { id: 'or-grok-4.20',           name: 'Grok 4.20 (OpenRouter)',         vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'x-ai/grok-4.20' },
-  { id: 'or-grok-4-fast',         name: 'Grok 4 Fast (OpenRouter)',       vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'x-ai/grok-4-fast' },
-  { id: 'or-grok-code-fast-1',    name: 'Grok Code Fast 1 (OpenRouter)',  vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'x-ai/grok-code-fast-1' },
+  { id: 'or-grok-4.20',                 name: 'Grok 4.20 (OpenRouter)',                vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'x-ai/grok-4.20' },
+  { id: 'or-grok-4.20-multi-agent',     name: 'Grok 4.20 Multi-Agent (OpenRouter)',    vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'x-ai/grok-4.20-multi-agent' },
 
   // Open weights
-  { id: 'or-llama-4-maverick',    name: 'Llama 4 Maverick (OpenRouter)',  vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'meta-llama/llama-4-maverick' },
-  { id: 'or-llama-4-scout',       name: 'Llama 4 Scout (OpenRouter)',     vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'meta-llama/llama-4-scout' },
-  { id: 'or-deepseek-v3.2',       name: 'DeepSeek V3.2 (OpenRouter)',     vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'deepseek/deepseek-v3.2' },
-  { id: 'or-deepseek-r1',         name: 'DeepSeek R1 (OpenRouter)',       vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'deepseek/deepseek-r1' },
-  { id: 'or-qwen3-max',           name: 'Qwen3 Max (OpenRouter)',         vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'qwen/qwen3-max' },
-  { id: 'or-qwen3-vl-235b',       name: 'Qwen3 VL 235B (OpenRouter)',     vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'qwen/qwen3-vl-235b-a22b-instruct' },
+  { id: 'or-deepseek-v4-pro',     name: 'DeepSeek V4 Pro (OpenRouter)',   vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'deepseek/deepseek-v4-pro' },
+  { id: 'or-deepseek-v4-flash',   name: 'DeepSeek V4 Flash (OpenRouter)', vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'deepseek/deepseek-v4-flash' },
   { id: 'or-kimi-k2.6',           name: 'Kimi K2.6 (OpenRouter)',         vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'moonshotai/kimi-k2.6' },
-  { id: 'or-mistral-large-3',     name: 'Mistral Large 3 (OpenRouter)',   vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'mistralai/mistral-large-2512' },
-  { id: 'or-mistral-medium-3.1',  name: 'Mistral Medium 3.1 (OpenRouter)',vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'mistralai/mistral-medium-3.1' },
-
-  // Search
-  { id: 'or-perplexity-sonar-pro',    name: 'Perplexity Sonar Pro (OpenRouter)',     vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'perplexity/sonar-pro' },
-  { id: 'or-perplexity-sonar-reason', name: 'Perplexity Sonar Reasoning Pro (OpenRouter)', vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'perplexity/sonar-reasoning-pro' },
+  { id: 'or-mistral-small',       name: 'Mistral Small (OpenRouter)',     vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'mistralai/mistral-small-2603' },
 
   // ─────────────────────────────────────────────────────────────────
   // Local (OpenAI-compatible) — model id depends on what's running
