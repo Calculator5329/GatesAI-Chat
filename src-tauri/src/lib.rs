@@ -57,9 +57,28 @@ pub fn run() {
           }
         }
       });
-      app.state::<BridgeChild>().0.lock().unwrap().replace(child);
+      let state = app.state::<BridgeChild>();
+      let mut guard = match state.0.lock() {
+        Ok(g) => g,
+        Err(poison) => poison.into_inner(),
+      };
+      guard.replace(child);
       eprintln!("[gatesai] spawned bridge sidecar");
       Ok(())
+    })
+    .on_window_event(|window, event| {
+      if let tauri::WindowEvent::Destroyed = event {
+        let app = window.app_handle();
+        let state = app.state::<BridgeChild>();
+        let mut guard = match state.0.lock() {
+          Ok(g) => g,
+          Err(poison) => poison.into_inner(),
+        };
+        if let Some(child) = guard.take() {
+          let _ = child.kill();
+          log::info!("[gatesai] bridge sidecar killed");
+        }
+      }
     })
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
