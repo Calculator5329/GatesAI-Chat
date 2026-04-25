@@ -2,7 +2,6 @@ import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
 import type { LlmProvider, LlmRequest, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
-import { buildSeedThreads } from '../core/seed';
 import { formatAttachmentFooter } from '../core/attachments';
 import { loadSnapshot, saveSnapshot } from '../services/persistence';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, type TokenUsage } from '../core/tokens';
@@ -103,8 +102,22 @@ export class ChatStore {
       this.threads = snapshot.threads;
       this.activeThreadId = snapshot.activeThreadId;
     } else {
-      this.threads = buildSeedThreads();
-      this.activeThreadId = this.threads[0]?.id ?? null;
+      // First run / cleared storage: land in one empty untitled thread so the
+      // user has somewhere to type. Composer is disabled by hasUsableProvider
+      // until a key is configured.
+      const now = Date.now();
+      const id = newId('t');
+      this.threads = [{
+        id,
+        title: 'New conversation',
+        subtitle: '',
+        createdAt: now,
+        updatedAt: now,
+        pinned: false,
+        modelId: DEFAULT_MODEL_ID,
+        messages: [],
+      }];
+      this.activeThreadId = id;
     }
     makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'artifactInstructions' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
       providers: false,

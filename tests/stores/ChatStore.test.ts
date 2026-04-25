@@ -59,9 +59,11 @@ describe('ChatStore', () => {
   beforeEach(() => clearAppStorage());
   afterEach(() => clearAppStorage());
 
-  it('seeds threads on a fresh boot and selects the first one', () => {
+  it('creates exactly one empty untitled thread when no snapshot exists', () => {
     const { chat } = setup();
-    expect(chat.threads.length).toBeGreaterThan(0);
+    expect(chat.threads).toHaveLength(1);
+    expect(chat.threads[0].messages).toEqual([]);
+    expect(chat.threads[0].title).toBe('New conversation');
     expect(chat.activeThreadId).toBe(chat.threads[0].id);
   });
 
