@@ -68,6 +68,18 @@ export class ProviderStore {
    * to.
    */
   get hasUsableProvider(): boolean {
+    // Touch configs and its keys so MobX tracks this getter as depending on
+    // mutations to configs. The canonical authority is router.canRoute(), but
+    // the router's mirror of configs is plain (non-observable) — kept in
+    // sync by the autorun in this constructor. Reading just `this.configs`
+    // would only subscribe to reassignment of the configs property itself;
+    // we add/remove inner keys (`configs[id] = …`), so we must also subscribe
+    // to the key set of the inner object. Without this, observer components
+    // subscribed to hasUsableProvider would not re-render when the user adds
+    // a key. The `void` reads are intentional — JS evaluators don't elide
+    // side-effecting Proxy access — and they document the why.
+    void this.configs;
+    void Object.keys(this.configs).length;
     return this.router.canRoute();
   }
 }

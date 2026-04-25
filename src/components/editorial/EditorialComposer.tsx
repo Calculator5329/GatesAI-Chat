@@ -2,7 +2,7 @@ import { useRef, useState, type CSSProperties, type DragEvent, type KeyboardEven
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { SendKey } from '../../core/types';
-import { useBridgeStore, useChatStore, useModelRegistry, useUiStore } from '../../stores/context';
+import { useBridgeStore, useChatStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
 import { ModelPopover } from './ModelPopover';
 
 interface ComposerProps {
@@ -95,6 +95,7 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
   const ui = useUiStore();
   const bridge = useBridgeStore();
   const registry = useModelRegistry();
+  const providers = useProviderStore();
   const [modelOpen, setModelOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -109,7 +110,7 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
   const hasAttachments = ui.attachments.length > 0;
   // Send is enabled whenever there's text or at least one attachment. While
   // streaming, sending interrupts the in-flight reply and starts a new turn.
-  const canSend = hasText || hasAttachments;
+  const canSend = (hasText || hasAttachments) && providers.hasUsableProvider;
 
   const onSend = () => {
     if (!canSend) return;
@@ -182,6 +183,7 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
       onDrop={onDrop}
     >
       <div style={{ width: 'min(750px, 70%)', margin: '0 auto', paddingTop: 4 }}>
+        {!providers.hasUsableProvider && <ApiKeyBanner />}
         {hasAttachments && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
             {ui.attachments.map(a => (
@@ -359,6 +361,41 @@ const ContextMeter = observer(function ContextMeter() {
         }} />
       </div>
       <span>{formatTokens(usage.used)} / {formatTokens(usage.window)}</span>
+    </div>
+  );
+});
+
+const ApiKeyBanner = observer(function ApiKeyBanner() {
+  const router = useRouterStore();
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 12,
+      padding: '8px 12px',
+      marginBottom: 8,
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      background: 'var(--panel)',
+      color: 'var(--text-dim)',
+      fontSize: 13,
+      fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+    }}>
+      <span>Add an API key to start chatting.</span>
+      <button
+        onClick={() => router.goMenu('api')}
+        style={{
+          padding: '4px 10px',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          background: 'transparent',
+          color: 'var(--accent)',
+          cursor: 'pointer',
+          fontSize: 12,
+          fontFamily: 'inherit',
+        }}
+      >
+        Open API settings
+      </button>
     </div>
   );
 });
