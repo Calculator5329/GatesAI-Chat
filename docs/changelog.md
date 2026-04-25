@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-04-25 — Desktop app
+
+GatesAI Chat now ships as a native Windows installer that bundles the Go
+bridge automatically. The previous `Start GatesAI Chat.cmd` launcher has been
+removed.
+
 ## 2026-04-25 — Architecture cleanup sprint
 
 Moved shared tool-call/result rendering into `components/ui/` so editorial and

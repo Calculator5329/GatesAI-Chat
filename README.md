@@ -1,28 +1,34 @@
 # GatesAI Chat
 
-## Run Locally
+## Install
 
-On Windows, double-click `Start GatesAI Chat.cmd` from File Explorer. It starts:
+Grab the latest Windows installer from the releases page (`<TBD: link to GitHub releases>`), double-click it, and follow the NSIS prompts. Once installed, launch **GatesAI Chat** from the Start menu — no terminal needed.
 
-- `gatesai-bridge` from the sibling `..\gatesai-bridge` folder, unless it is already running on `127.0.0.1:7331`
-- the chat app with `npm run dev`
+The installer bundles the GatesAI Bridge automatically; no separate Go install required.
 
-The processes open in separate PowerShell windows. If the bridge is already
-online, the launcher reuses it and only opens the chat window. Open the local
-URL printed by the GatesAI Chat window.
+## Development
+
+This project is a Vite + React + TypeScript SPA wrapped in a Tauri desktop shell. The Go-based bridge process lives alongside the chat app and is spawned by Tauri at runtime.
 
 Requirements:
 
 - Node.js / npm for the chat app
+- Rust + Tauri prerequisites for desktop builds
 - Either Go 1.24+ or a built bridge binary at `..\gatesai-bridge\bin\gatesai-bridge.exe`
 
-To verify the launcher without starting either process:
+Common commands:
+
+- `npm install` — install dependencies
+- `npm run dev` — start the Vite dev server
+- `npm run tauri dev` — run the desktop app against the dev server
+- `npm run tauri build` — produce the NSIS installer
+
+To run the bridge directly from source during development:
 
 ```powershell
-.\Start GatesAI Chat.cmd /check
+cd ..\gatesai-bridge
+go run ./cmd/gatesai-bridge
 ```
-
-## Development
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
