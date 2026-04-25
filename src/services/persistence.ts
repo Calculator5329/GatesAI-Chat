@@ -1,0 +1,211 @@
+import type { ChatSnapshot, Message, ToolResult, Thread } from '../core/types';
+import type { ToolCall } from '../core/llm';
+
+const STORAGE_KEY = 'gatesai.state.v1';
+const EMERGENCY_TOOL_RESULT_CHARS = 600;
+const EMERGENCY_TOOL_ARGUMENT_CHARS = 600;
+const LARGE_TOOL_ARGUMENT_KEYS = new Set(['body', 'content', 'stdin']);
+
+export function loadSnapshot(): ChatSnapshot | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ChatSnapshot;
+    if (!parsed || !Array.isArray(parsed.threads)) return null;
+    return migrate(parsed);
+  } catch {
+    return null;
+  }
+}
+
+export function saveSnapshot(snapshot: ChatSnapshot): void {
+  const cleaned = cleanSnapshot(snapshot);
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+  } catch {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(compactSnapshotForEmergencySave(cleaned)));
+      console.warn('[persistence] saved compacted chat snapshot after localStorage rejected full snapshot');
+    } catch (err) {
+      console.error('[persistence] failed to save chat snapshot', err);
+    }
+  }
+}
+
+function cleanSnapshot(snapshot: ChatSnapshot): ChatSnapshot {
+  // Strip transient flags (e.g. `naming`, an in-flight UI marker) so we
+  // don't persist a half-named state. Stable fields like `autoNamed`
+  // are preserved.
+  return {
+    ...snapshot,
+    threads: snapshot.threads.map(t => {
+      const copy = { ...t };
+      delete (copy as { naming?: boolean }).naming;
+      return copy;
+    }),
+  };
+}
+
+function compactSnapshotForEmergencySave(snapshot: ChatSnapshot): ChatSnapshot {
+  return {
+    ...snapshot,
+    threads: snapshot.threads.map(thread => ({
+      ...thread,
+      messages: thread.messages.map(compactMessageForEmergencySave),
+    })),
+  };
+}
+
+function compactMessageForEmergencySave(message: Message): Message {
+  if (message.role !== 'assistant') return message;
+  return {
+    ...message,
+    toolCalls: message.toolCalls?.map(compactToolCallForEmergencySave),
+    toolResults: message.toolResults?.map(result => ({
+      ...result,
+      content: compactToolResult(result),
+    })),
+  };
+}
+
+function compactToolCallForEmergencySave(call: ToolCall): ToolCall {
+  return {
+    ...call,
+    arguments: compactToolArguments(call),
+  };
+}
+
+function compactToolArguments(call: ToolCall): Record<string, unknown> {
+  const path = typeof call.arguments.path === 'string' ? call.arguments.path : '';
+  return Object.fromEntries(Object.entries(call.arguments).map(([key, value]) => {
+    if (!LARGE_TOOL_ARGUMENT_KEYS.has(key) || typeof value !== 'string') return [key, value];
+    return [key, compactLargeString({
+      marker: 'persisted tool argument compacted',
+      value,
+      maxChars: EMERGENCY_TOOL_ARGUMENT_CHARS,
+      metadata: [
+        `original_chars: ${value.length}`,
+        `tool: ${call.name}`,
+        `argument: ${key}`,
+        path ? `path: ${path}` : '',
+      ].filter(Boolean),
+    })];
+  }));
+}
+
+function compactToolResult(result: ToolResult): string {
+  return compactLargeString({
+    marker: 'persisted tool result compacted',
+    value: result.content,
+    maxChars: EMERGENCY_TOOL_RESULT_CHARS,
+    metadata: [
+      `original_chars: ${result.content.length}`,
+      `tool: ${result.toolName}`,
+    ],
+  });
+}
+
+function compactLargeString(opts: {
+  marker: string;
+  value: string;
+  maxChars: number;
+  metadata: string[];
+}): string {
+  if (opts.value.length <= opts.maxChars) return opts.value;
+  const edgeChars = Math.floor(opts.maxChars / 2);
+  const head = opts.value.slice(0, edgeChars);
+  const tail = opts.value.slice(-edgeChars);
+  return [
+    `[${opts.marker}]`,
+    [...opts.metadata, `omitted_chars: ${opts.value.length - (edgeChars * 2)}`].join('; '),
+    head,
+    '...',
+    tail,
+  ].join('\n');
+}
+
+/**
+ * Forward-migrate any snapshot shape we've ever shipped. Two layered
+ * migrations, run in order:
+ *
+ *   1. Fold legacy `role: 'tool'` messages onto the preceding assistant
+ *      message's `toolResults`. (We dropped the `tool` role entirely.)
+ *
+ *   2. Fold consecutive assistant messages from the same turn into ONE.
+ *      (We used to store one assistant message per round trip; we now
+ *      store one per user turn, with all calls/results accumulated and
+ *      the final round's prose kept as `content`.)
+ *
+ * Both are idempotent — clean snapshots round-trip unchanged.
+ */
+function migrate(snap: ChatSnapshot): ChatSnapshot {
+  const threads: Thread[] = snap.threads.map(t => ({
+    ...t,
+    messages: foldAssistantRuns(foldToolMessages(t.messages as LegacyMessage[])),
+  }));
+  return { ...snap, threads };
+}
+
+/** Pre-migration message — `role: 'tool'` was a third union member. */
+type LegacyMessage =
+  | Message
+  | {
+      id: string;
+      role: 'tool';
+      content: string;
+      createdAt: number;
+      toolCallId: string;
+      toolName: string;
+    };
+
+function foldToolMessages(messages: LegacyMessage[]): Message[] {
+  const out: Message[] = [];
+  for (const m of messages) {
+    if (m.role === 'tool') {
+      const lastAssistant = findLastAssistant(out);
+      if (lastAssistant) {
+        const result: ToolResult = {
+          toolCallId: m.toolCallId,
+          toolName: m.toolName,
+          content: m.content,
+          ranAt: m.createdAt,
+        };
+        lastAssistant.toolResults = [...(lastAssistant.toolResults ?? []), result];
+      }
+      continue;
+    }
+    out.push(m);
+  }
+  return out;
+}
+
+/**
+ * Collapse runs of consecutive assistant messages (same turn, multiple
+ * rounds) into a single assistant message. The merged message keeps the
+ * first round's id/createdAt/model (so external references stay stable),
+ * concatenates `toolCalls` and `toolResults` in order across the run, and
+ * uses the LAST non-empty `content` as the final prose — that's the
+ * model's closing reply, which is what the user actually wants to see.
+ */
+function foldAssistantRuns(messages: Message[]): Message[] {
+  const out: Message[] = [];
+  for (const m of messages) {
+    const prev = out[out.length - 1];
+    if (m.role === 'assistant' && prev?.role === 'assistant') {
+      prev.toolCalls = [...(prev.toolCalls ?? []), ...(m.toolCalls ?? [])];
+      prev.toolResults = [...(prev.toolResults ?? []), ...(m.toolResults ?? [])];
+      if (m.content.trim().length > 0) prev.content = m.content;
+      continue;
+    }
+    out.push(m);
+  }
+  return out;
+}
+
+function findLastAssistant(messages: Message[]) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role === 'assistant') return m;
+  }
+  return null;
+}

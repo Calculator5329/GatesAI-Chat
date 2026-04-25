@@ -1,0 +1,21 @@
+---
+description: Consult per-chat logs during investigations
+alwaysApply: true
+---
+
+# Per-Chat Logs
+
+When investigating bugs, regressions, or confusing runtime behavior, check the
+workspace's per-chat agent transcripts before drawing conclusions.
+
+- Use the transcript logs under the Cursor project metadata for this workspace
+  to recover recent screenshots, interrupted tool calls, prior hypotheses, and
+  exact error strings.
+- Search the transcripts for the visible symptom first, for example
+  `network error`, `Cannot read properties`, a filename, or a tool name.
+- Treat transcript evidence as debugging context, not as proof by itself.
+  Corroborate with source, terminal output, browser console/network evidence,
+  or tests before claiming root cause.
+- Do not cite subagent transcript IDs to the user. If citing a prior parent
+  chat is useful, use the parent transcript citation format provided by the
+  session context.

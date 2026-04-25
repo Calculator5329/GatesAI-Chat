@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "noEmit": true,
+    "types": ["vitest/globals", "node", "vite/client"],
+    "verbatimModuleSyntax": false,
+    "erasableSyntaxOnly": false
+  },
+  "include": ["tests", "src"]
+}
