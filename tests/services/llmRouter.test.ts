@@ -1,17 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { LlmRouter } from '../../src/services/llm';
+import { LlmRouter, NoProviderConfiguredError } from '../../src/services/llm';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
 
 const reg = () => new ModelRegistry();
 
 describe('LlmRouter', () => {
-  it('falls back to fake when the model exists but its provider has no key', () => {
+  it('throws NoProviderConfiguredError when the model exists but its provider has no key', () => {
     const r = reg();
     const router = new LlmRouter(r, {});
     const anthropicModel = r.all.find(m => m.providerId === 'anthropic')!;
-    const { provider, providerModelId } = router.resolve(anthropicModel.id);
-    expect(provider.id).toBe('fake');
-    expect(providerModelId).toBe(anthropicModel.providerModelId);
+    expect(() => router.resolve(anthropicModel.id)).toThrow(NoProviderConfiguredError);
   });
 
   it('uses the real provider once a key is supplied', () => {
@@ -34,16 +32,14 @@ describe('LlmRouter', () => {
     const r = reg();
     const router = new LlmRouter(r, {});
     const openaiModel = r.all.find(m => m.providerId === 'openai')!;
-    expect(router.resolve(openaiModel.id).provider.id).toBe('fake');
+    expect(() => router.resolve(openaiModel.id)).toThrow(NoProviderConfiguredError);
     router.updateConfigs({ openai: { apiKey: 'sk-x' } });
     expect(router.resolve(openaiModel.id).provider.id).toBe('openai');
   });
 
-  it('returns the fake provider for an unknown model id', () => {
+  it('throws NoProviderConfiguredError for an unknown model id', () => {
     const router = new LlmRouter(reg(), { openai: { apiKey: 'sk-x' } });
-    const { provider, providerModelId } = router.resolve('nope-9000');
-    expect(provider.id).toBe('fake');
-    expect(providerModelId).toBe('nope-9000');
+    expect(() => router.resolve('nope-9000')).toThrow(NoProviderConfiguredError);
   });
 
   it('routes a Claude model through OpenRouter when only the OR key is set', () => {

@@ -13,6 +13,7 @@ import { workspaceTool } from '../../src/services/tools/workspace';
 import { toolRegistry } from '../../src/services/tools/registry';
 import type { ToolContext } from '../../src/services/tools/types';
 import type { Thread } from '../../src/core/types';
+import { DEFAULT_MODEL_ID } from '../../src/core/models';
 import { clearAppStorage } from '../helpers/storage';
 
 const NOTES_KEY = 'gatesai.notes.v1';
@@ -143,7 +144,7 @@ describe('thread tool', () => {
       id,
       title: `Thread ${id}`,
       subtitle: '',
-      modelId: 'fake',
+      modelId: DEFAULT_MODEL_ID,
       messages: [],
       createdAt: 0,
       updatedAt: Date.now(),

@@ -10,7 +10,6 @@
  */
 
 export type ProviderId =
-  | 'fake'        // canned offline responses, used for dev / when no key is set
   | 'openrouter'
   | 'openai'
   | 'anthropic'

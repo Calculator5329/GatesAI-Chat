@@ -1,5 +1,4 @@
-export { LlmRouter, buildProviders } from './router';
-export { FakeProvider } from './fake';
+export { LlmRouter, buildProviders, NoProviderConfiguredError } from './router';
 export { OpenAiProvider } from './openai';
 export { GroqProvider } from './groq';
 export { OpenRouterProvider } from './openrouter';

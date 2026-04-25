@@ -549,7 +549,6 @@ export class ChatStore {
   private async compactToolResultWithModel(result: ToolResult, signal: AbortSignal): Promise<string | null> {
     const picked = this.pickCompactionModel();
     if (!picked) return null;
-    if (picked.provider.id === 'fake') return null;
 
     const request: LlmRequest = {
       modelId: picked.providerModelId,
@@ -588,8 +587,13 @@ export class ChatStore {
     for (const modelId of COMPACTION_MODELS) {
       const model = this.registry.findById(modelId);
       if (!model) continue;
-      const resolved = this.providers.router.resolve(modelId, { fallbackToFake: false });
-      if (resolved.provider.ready()) return resolved;
+      try {
+        const resolved = this.providers.router.resolve(modelId);
+        if (resolved.provider.ready()) return resolved;
+      } catch {
+        // No usable provider for this model — try the next.
+        continue;
+      }
     }
     return null;
   }
@@ -607,8 +611,7 @@ export class ChatStore {
   private maybeAutoName(threadId: string, assistantMessage: AssistantMessage): void {
     const thread = this.findThread(threadId);
     if (!thread || thread.autoNamed) return;
-    const { provider } = this.providers.router.resolve(thread.modelId);
-    if (provider.id === 'fake') return;
+    if (!this.providers.router.canRoute()) return;
     const opener = thread.messages.find(m => m.role === 'user');
     if (!opener) return;
 

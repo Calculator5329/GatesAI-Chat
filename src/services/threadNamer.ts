@@ -1,5 +1,4 @@
 import type { LlmProvider, LlmRequest } from '../core/llm';
-import type { RouterOptions } from './llm/router';
 
 /**
  * Auto-name a thread from its opening exchange using a small, cheap model.
@@ -45,7 +44,7 @@ export interface NameThreadInput {
 }
 
 export interface ThreadTitleRouter {
-  resolve(modelId: string, opts?: RouterOptions): { provider: LlmProvider; providerModelId: string };
+  resolve(modelId: string): { provider: LlmProvider; providerModelId: string };
 }
 
 export async function generateThreadTitle(
@@ -60,7 +59,13 @@ export async function generateThreadTitle(
     : `User asked:\n${userMsg}\n\nTitle:`;
 
   for (const modelId of candidates) {
-    const { provider, providerModelId } = router.resolve(modelId, { fallbackToFake: false });
+    let provider: LlmProvider;
+    let providerModelId: string;
+    try {
+      ({ provider, providerModelId } = router.resolve(modelId));
+    } catch {
+      continue;
+    }
     if (!provider.ready()) continue;
 
     const request: LlmRequest = {

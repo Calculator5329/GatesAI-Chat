@@ -20,7 +20,6 @@ export const DEFAULT_RESERVED_REPLY_TOKENS = 4096;
 
 /** Default context windows by provider, used when `model.contextLength` is unset. */
 const DEFAULT_WINDOW_BY_PROVIDER: Record<ProviderId, number> = {
-  fake: 32_000,
   openrouter: 128_000,
   openai: 128_000,
   anthropic: 200_000,
@@ -72,7 +71,7 @@ export function estimateLlmPayloadTokens(args: {
 }
 
 export function contextWindowFor(model: Model | undefined | null): number {
-  if (!model) return DEFAULT_WINDOW_BY_PROVIDER.fake;
+  if (!model) return 32_000;
   if (model.contextLength && model.contextLength > 0) return model.contextLength;
   return DEFAULT_WINDOW_BY_PROVIDER[model.providerId] ?? 32_000;
 }
