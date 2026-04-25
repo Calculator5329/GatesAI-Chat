@@ -1,5 +1,6 @@
 import type { FsEntry, FsListResp, FsReadResp, FsSearchResp } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
+import { decodeFsRead, stripBom } from './textDecode';
 import type { Tool, ToolContext } from './types';
 
 type InspectFormat = 'csv' | 'json' | 'txt';
@@ -307,8 +308,18 @@ function parseCsv(content: string): CsvTable | string {
   const emptyRowCount = parsedRows.filter(row => row.every(cell => cell.trim().length === 0)).length;
   const rawRows = parsedRows.filter(row => row.some(cell => cell.trim().length > 0));
   if (rawRows.length === 0) return 'CSV file is empty.';
-  const headers = rawRows[0].map(h => stripBom(h).trim());
-  if (headers.some(h => !h)) return 'CSV header row contains an empty column name.';
+  const rawHeaders = rawRows[0].map(h => stripBom(h).trim());
+  // Excel-exported CSVs often have trailing empty columns or sparse header
+  // rows. Auto-name those slots instead of failing the whole inspection.
+  const headers = rawHeaders.map((h, i) => h || `column_${i + 1}`);
+  const seen = new Set<string>();
+  for (let i = 0; i < headers.length; i++) {
+    let name = headers[i];
+    let n = 2;
+    while (seen.has(name)) name = `${headers[i]}_${n++}`;
+    headers[i] = name;
+    seen.add(name);
+  }
   const raggedRowCount = rawRows.slice(1).filter(raw => raw.length !== headers.length).length;
   const rows = rawRows.slice(1).map(raw => {
     const out: CsvRow = {};
@@ -537,91 +548,11 @@ function splitLines(content: string): string[] {
 }
 
 function decodeReadResponse(resp: FsReadResp): { ok: true; resp: DecodedReadResp } | { ok: false; error: string } {
-  if (resp.encoding === 'utf8') {
-    const normalized = normalizeDecodedText(resp.content);
-    return { ok: true, resp: { ...resp, content: normalized.text, detectedEncoding: normalized.hadBom ? 'utf-8-bom' : 'utf-8' } };
+  const decoded = decodeFsRead(resp);
+  if (decoded.kind === 'binary') {
+    return { ok: false, error: `${resp.path} is not a text file (${decoded.reason}); inspect_file only supports csv, json, txt.` };
   }
-
-  try {
-    const bytes = base64ToBytes(resp.content);
-    const decoded = decodeBytes(bytes);
-    return { ok: true, resp: { ...resp, content: decoded.text, detectedEncoding: decoded.encoding } };
-  } catch (err) {
-    return { ok: false, error: `${resp.path} could not be decoded as text: ${(err as Error).message}` };
-  }
-}
-
-function decodeBytes(bytes: Uint8Array): { text: string; encoding: string } {
-  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
-    return { text: normalizeDecodedText(decodeUtf16(bytes.slice(2), true)).text, encoding: 'utf-16le' };
-  }
-  if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
-    return { text: normalizeDecodedText(decodeUtf16(bytes.slice(2), false)).text, encoding: 'utf-16be' };
-  }
-  const nulPattern = detectUtf16ByNulPattern(bytes);
-  if (nulPattern) {
-    return { text: normalizeDecodedText(decodeUtf16(bytes, nulPattern === 'utf-16le')).text, encoding: nulPattern };
-  }
-  try {
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    const normalized = normalizeDecodedText(text);
-    return { text: normalized.text, encoding: normalized.hadBom ? 'utf-8-bom' : 'utf-8' };
-  } catch {
-    return { text: normalizeDecodedText(decodeWindows1252(bytes)).text, encoding: 'windows-1252' };
-  }
-}
-
-function base64ToBytes(content: string): Uint8Array {
-  const clean = content.replace(/\s+/g, '');
-  const binary = globalThis.atob(clean);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
-function detectUtf16ByNulPattern(bytes: Uint8Array): 'utf-16le' | 'utf-16be' | null {
-  const sample = bytes.slice(0, Math.min(bytes.length, 200));
-  let evenNuls = 0;
-  let oddNuls = 0;
-  for (let i = 0; i < sample.length; i++) {
-    if (sample[i] === 0) {
-      if (i % 2 === 0) evenNuls++;
-      else oddNuls++;
-    }
-  }
-  if (oddNuls > evenNuls * 3 && oddNuls >= 2) return 'utf-16le';
-  if (evenNuls > oddNuls * 3 && evenNuls >= 2) return 'utf-16be';
-  return null;
-}
-
-function decodeUtf16(bytes: Uint8Array, littleEndian: boolean): string {
-  let text = '';
-  for (let i = 0; i + 1 < bytes.length; i += 2) {
-    const code = littleEndian ? bytes[i] | (bytes[i + 1] << 8) : (bytes[i] << 8) | bytes[i + 1];
-    text += String.fromCharCode(code);
-  }
-  return text;
-}
-
-const WINDOWS_1252 = new Map<number, string>([
-  [0x80, '€'], [0x82, '‚'], [0x83, 'ƒ'], [0x84, '„'], [0x85, '…'], [0x86, '†'], [0x87, '‡'],
-  [0x88, 'ˆ'], [0x89, '‰'], [0x8a, 'Š'], [0x8b, '‹'], [0x8c, 'Œ'], [0x8e, 'Ž'], [0x91, '‘'],
-  [0x92, '’'], [0x93, '“'], [0x94, '”'], [0x95, '•'], [0x96, '–'], [0x97, '—'], [0x98, '˜'],
-  [0x99, '™'], [0x9a, 'š'], [0x9b, '›'], [0x9c, 'œ'], [0x9e, 'ž'], [0x9f, 'Ÿ'],
-]);
-
-function decodeWindows1252(bytes: Uint8Array): string {
-  return Array.from(bytes, byte => WINDOWS_1252.get(byte) ?? String.fromCharCode(byte)).join('');
-}
-
-function normalizeDecodedText(text: string): { text: string; hadBom: boolean } {
-  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  const hadBom = normalized.charCodeAt(0) === 0xfeff;
-  return { text: stripBom(normalized), hadBom };
-}
-
-function stripBom(value: string): string {
-  return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value;
+  return { ok: true, resp: { ...resp, content: decoded.text, detectedEncoding: decoded.encoding } };
 }
 
 function detectCsvDelimiter(content: string): CsvDelimiter {

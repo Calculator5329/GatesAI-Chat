@@ -60,10 +60,14 @@ const CASES: Case[] = [
   // Gemini direct
   { modelId: 'gemini-3.1-pro',           requires: 'gemini',     label: 'Gemini 3.1 Pro (direct)' },
   { modelId: 'gemini-3-flash',           requires: 'gemini',     label: 'Gemini 3 Flash (direct)' },
-  // OpenRouter fallbacks
+  // OpenRouter fallbacks — full coverage so a single OPENROUTER_API_KEY can
+  // exercise every top model end-to-end through the OR-compat path.
   { modelId: 'or-claude-opus-4.7',       requires: 'openrouter', label: 'Claude Opus 4.7 (via OR)' },
+  { modelId: 'or-claude-sonnet-4.6',     requires: 'openrouter', label: 'Claude Sonnet 4.6 (via OR)' },
   { modelId: 'or-gpt-5.5-pro',           requires: 'openrouter', label: 'GPT-5.5 Pro (via OR)' },
+  { modelId: 'or-gpt-5.5',               requires: 'openrouter', label: 'GPT-5.5 (via OR)' },
   { modelId: 'or-gemini-3.1-pro',        requires: 'openrouter', label: 'Gemini 3.1 Pro (via OR)' },
+  { modelId: 'or-gemini-3-flash',        requires: 'openrouter', label: 'Gemini 3 Flash (via OR)' },
   { modelId: 'or-gemini-3.1-flash-lite', requires: 'openrouter', label: 'Gemini 3.1 Flash Lite (via OR)' },
 ];
 
@@ -84,7 +88,11 @@ describe('top models — live smoke', () => {
           {
             modelId: providerModelId,
             messages: [{ role: 'user', content: 'Reply with exactly the word: pong.' }],
-            maxTokens: 16,
+            // 256 tokens leaves headroom for reasoning-model thinking budgets
+            // (Gemini 3 Pro / GPT-5.5 Pro burn invisible thinking tokens
+            // against this cap; 16 was too tight and produced empty replies
+            // with finish=length).
+            maxTokens: 256,
             temperature: 0,
             tools: [],
           },

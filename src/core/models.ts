@@ -63,6 +63,7 @@ export const MODELS: Model[] = [
   { id: 'or-gpt-5.4',             name: 'GPT-5.4 (OpenRouter)',           vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'openai/gpt-5.4' },
   { id: 'or-gpt-5.4-mini',        name: 'GPT-5.4 mini (OpenRouter)',      vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'openai/gpt-5.4-mini' },
   { id: 'or-gemini-3.1-pro',      name: 'Gemini 3.1 Pro (OpenRouter)',    vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-pro-preview' },
+  { id: 'or-gemini-3-flash',      name: 'Gemini 3 Flash (OpenRouter)',    vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'google/gemini-3-flash-preview' },
   { id: 'or-gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite (OpenRouter)', vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-flash-lite-preview' },
 
   // xAI
@@ -81,4 +82,4 @@ export const MODELS: Model[] = [
   { id: 'local-default',          name: 'Local model',                    vendor: 'Local', providerId: 'local', providerModelId: 'local-model' },
 ];
 
-export const DEFAULT_MODEL_ID = 'claude-sonnet-4.6';
+export const DEFAULT_MODEL_ID = 'gemini-3-flash';

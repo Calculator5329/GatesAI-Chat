@@ -272,7 +272,8 @@ describe('fs tool', () => {
     const out = await fsTool.execute({ action: 'read', path: 'notes/x.md' }, ctx);
     expect(out).toContain('path: /workspace/notes/x.md');
     expect(out).toContain('mime: text/markdown');
-    expect(out).toContain('size: 5  encoding: utf8');
+    expect(out).toContain('size: 5');
+    expect(out).toContain('encoding: utf-8');
     expect(out.endsWith('hello')).toBe(true);
   });
 
@@ -288,7 +289,7 @@ describe('fs tool', () => {
     const out = await fsTool.execute({ action: 'read', path: 'notes/big.txt', max_chars: 40 }, ctx);
 
     expect(out).toContain('truncated: true');
-    expect(out).toContain('showing first 40 chars');
+    expect(out).toContain('showing first 40 of 220 chars');
     expect(out).not.toContain('x'.repeat(100));
   });
 

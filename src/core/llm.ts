@@ -68,6 +68,8 @@ export interface LlmRequest {
   maxTokens?: number;
   /** Tools the model may call. Omit (or pass []) to disable tool calling. */
   tools?: ToolDef[];
+  /** Optional: threadId for diagnostic log routing. Not sent to providers. */
+  threadId?: string;
 }
 
 /**

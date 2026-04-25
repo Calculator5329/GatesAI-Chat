@@ -132,6 +132,23 @@ export class LlmRouter {
   get(providerId: ProviderId): LlmProvider {
     return this.providers[providerId];
   }
+
+  /**
+   * Resolve an OpenRouter fallback for the given model id, even when the
+   * direct provider has a key. Returns null if there is no OR slug or the
+   * OR provider isn't configured. Used by `ChatStore` for runtime retry
+   * when a direct call errors out before producing any text.
+   */
+  resolveOpenRouterFallback(modelId: string): { provider: LlmProvider; providerModelId: string } | null {
+    const model = this.registry.findById(modelId);
+    if (!model) return null;
+    if (model.providerId === 'openrouter' || model.providerId === 'local') return null;
+    const or = this.providers.openrouter;
+    if (!or.ready()) return null;
+    const slug = this.findOpenRouterSlugFor(model.providerId, model.providerModelId);
+    if (!slug) return null;
+    return { provider: or, providerModelId: slug };
+  }
 }
 
 /** Direct provider id → OpenRouter vendor prefix used in `<vendor>/<model>`. */

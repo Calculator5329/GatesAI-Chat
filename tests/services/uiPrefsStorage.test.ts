@@ -7,10 +7,10 @@ describe('uiPrefsStorage', () => {
 
   it('loads default markdown and code appearance preferences', () => {
     expect(loadUiPrefs()).toEqual({
-      toolCallStyle: 'whisper',
-      markdownStyle: 'editorial',
+      toolCallStyle: 'aside',
+      markdownStyle: 'compact',
       codeStyle: 'obsidian',
-      markdownDensity: 'comfortable',
+      markdownDensity: 'compact',
       codeSize: 'medium',
     });
   });
@@ -43,10 +43,10 @@ describe('uiPrefsStorage', () => {
     }));
 
     expect(loadUiPrefs()).toEqual({
-      toolCallStyle: 'whisper',
-      markdownStyle: 'editorial',
+      toolCallStyle: 'aside',
+      markdownStyle: 'compact',
       codeStyle: 'obsidian',
-      markdownDensity: 'comfortable',
+      markdownDensity: 'compact',
       codeSize: 'medium',
     });
   });

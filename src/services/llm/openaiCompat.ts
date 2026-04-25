@@ -88,6 +88,20 @@ export class OpenAiCompatProvider implements LlmProvider {
           // chars) is plenty for a chat reply; longer outputs should opt in
           // explicitly via `req.maxTokens`.
           max_tokens: req.maxTokens ?? 4096,
+          // Gemini 3 (and other reasoning models routed via OpenRouter) burn
+          // the entire output budget on hidden "thinking" tokens by default,
+          // returning empty text + finish=length. Cap the reasoning budget so
+          // visible output always gets at least half the user's `maxTokens`.
+          // OpenRouter only accepts ONE of `reasoning.effort` or
+          // `reasoning.max_tokens` — we use max_tokens because it's precise
+          // and matches our budget math. Other providers ignore unknown fields.
+          ...(/(^|\/)gemini-3/i.test(req.modelId)
+            ? {
+                reasoning: {
+                  max_tokens: Math.max(64, Math.floor((req.maxTokens ?? 4096) / 2)),
+                },
+              }
+            : {}),
           ...(req.tools && req.tools.length > 0
             ? { tools: req.tools.map(toOpenAiTool), tool_choice: 'auto' }
             : {}),

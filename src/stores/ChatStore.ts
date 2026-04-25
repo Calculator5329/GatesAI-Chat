@@ -17,6 +17,7 @@ import { generateThreadTitle } from '../services/threadNamer';
 import { loadArtifactReadmeInstructions } from '../services/chat/artifactReadmeContext';
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
 import { isToolFailureContent, logToolCallFailure } from '../services/chat/toolFailureLog';
+import { logEvent } from '../services/diagnostics/chatLog';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
@@ -378,10 +379,36 @@ export class ChatStore {
       this.streamingByThread[threadId] = assistantMessage.id;
     });
 
+    logEvent(thread.id, 'turn.start', {
+      modelId: thread.modelId,
+      lastUserText: latestUserMessageContent(thread).slice(0, 200),
+    });
+
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       if (signal.aborted) return;
 
-      const { provider, providerModelId } = this.providers.router.resolve(thread.modelId);
+      let provider: LlmProvider;
+      let providerModelId: string;
+      try {
+        const resolved = this.providers.router.resolve(thread.modelId);
+        provider = resolved.provider;
+        providerModelId = resolved.providerModelId;
+      } catch (err) {
+        const msg = (err as Error).message;
+        logEvent(thread.id, 'round.resolveError', { round, modelId: thread.modelId, error: msg });
+        this.textBuffer.flush(assistantMessage.id);
+        runInAction(() => {
+          this.lastError = msg;
+          const m = this.findMessage(threadId, assistantMessage.id);
+          if (m && m.role === 'assistant') {
+            m.content = `_Error: ${msg}_`;
+            this.touchMessage(threadId, assistantMessage.id);
+          }
+          this.clearStreamingState(threadId);
+        });
+        return;
+      }
+      logEvent(thread.id, 'round.start', { round, providerId: provider.id, providerModelId });
       const recentSummaries = this.recentSummariesProvider?.() ?? [];
       const bridge = this.toolStoresProvider?.().bridge;
       if (bridge?.isOnline) {
@@ -438,20 +465,20 @@ export class ChatStore {
 
       const collectedCalls: ToolCall[] = [];
       let errored = false;
+      let textCharsThisRound = 0;
+      let errorMessage: string | undefined;
       try {
         for await (const chunk of provider.stream(request, signal)) {
           if (chunk.type === 'text') {
+            textCharsThisRound += chunk.delta.length;
             this.queueTextChunk(threadId, assistantMessage.id, chunk.delta);
           } else if (chunk.type === 'tool_call') {
             collectedCalls.push(chunk.call);
           } else if (chunk.type === 'done') {
+            logEvent(thread.id, 'round.done', { round, finishReason: chunk.finishReason, error: chunk.error });
             if (chunk.finishReason === 'error' && chunk.error) {
               errored = true;
-              this.textBuffer.flush(assistantMessage.id);
-              runInAction(() => {
-                this.lastError = chunk.error ?? 'unknown error';
-                this.appendChunk(threadId, assistantMessage.id, `\n\n_Error: ${chunk.error}_`);
-              });
+              errorMessage = chunk.error;
             }
             break;
           }
@@ -462,12 +489,70 @@ export class ChatStore {
           runInAction(() => this.clearStreamingState(threadId));
           return;
         }
+        logEvent(thread.id, 'round.exception', { round, error: (err as Error).message, stack: (err as Error).stack });
+        errored = true;
+        errorMessage = (err as Error).message;
+      }
+
+      // Runtime fallback: if the direct provider failed before any text or
+      // tool calls landed (round 0 only — past that, partial state would
+      // make a re-run unsafe), and an OpenRouter slug exists for this
+      // model with an OR key configured, retry once through OR. This
+      // covers expired keys, transient 5xxs, and provider-side outages.
+      if (
+        errored &&
+        round === 0 &&
+        textCharsThisRound === 0 &&
+        collectedCalls.length === 0 &&
+        provider.id !== 'openrouter'
+      ) {
+        const fb = this.providers.router.resolveOpenRouterFallback(thread.modelId);
+        if (fb) {
+          logEvent(thread.id, 'round.fallback', {
+            from: { providerId: provider.id, providerModelId },
+            to: { providerId: fb.provider.id, providerModelId: fb.providerModelId },
+            reason: errorMessage,
+          });
+          provider = fb.provider;
+          providerModelId = fb.providerModelId;
+          request = { ...request, modelId: providerModelId };
+          errored = false;
+          errorMessage = undefined;
+          try {
+            for await (const chunk of provider.stream(request, signal)) {
+              if (chunk.type === 'text') {
+                textCharsThisRound += chunk.delta.length;
+                this.queueTextChunk(threadId, assistantMessage.id, chunk.delta);
+              } else if (chunk.type === 'tool_call') {
+                collectedCalls.push(chunk.call);
+              } else if (chunk.type === 'done') {
+                logEvent(thread.id, 'round.done', { round, viaFallback: true, finishReason: chunk.finishReason, error: chunk.error });
+                if (chunk.finishReason === 'error' && chunk.error) {
+                  errored = true;
+                  errorMessage = chunk.error;
+                }
+                break;
+              }
+            }
+          } catch (err) {
+            if (signal.aborted) {
+              this.textBuffer.flush(assistantMessage.id);
+              runInAction(() => this.clearStreamingState(threadId));
+              return;
+            }
+            logEvent(thread.id, 'round.fallbackException', { error: (err as Error).message });
+            errored = true;
+            errorMessage = (err as Error).message;
+          }
+        }
+      }
+
+      if (errored && errorMessage) {
         this.textBuffer.flush(assistantMessage.id);
         runInAction(() => {
-          this.lastError = (err as Error).message;
-          this.appendChunk(threadId, assistantMessage.id, `\n\n_Error: ${(err as Error).message}_`);
+          this.lastError = errorMessage ?? 'unknown error';
+          this.appendChunk(threadId, assistantMessage.id, `\n\n_Error: ${errorMessage}_`);
         });
-        errored = true;
       }
 
       if (errored || collectedCalls.length === 0) {
@@ -537,6 +622,7 @@ export class ChatStore {
       messages: flattenForWire(thread.messages),
       ...(systemPrompt ? { systemPrompt } : {}),
       tools,
+      threadId: thread.id,
     };
   }
 

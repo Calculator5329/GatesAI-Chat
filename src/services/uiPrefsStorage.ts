@@ -17,10 +17,10 @@ export interface UiPrefsSnapshot {
 
 const KEY = 'gatesai.uiprefs.v1';
 const DEFAULT: UiPrefsSnapshot = {
-  toolCallStyle: 'whisper',
-  markdownStyle: 'editorial',
+  toolCallStyle: 'aside',
+  markdownStyle: 'compact',
   codeStyle: 'obsidian',
-  markdownDensity: 'comfortable',
+  markdownDensity: 'compact',
   codeSize: 'medium',
 };
 

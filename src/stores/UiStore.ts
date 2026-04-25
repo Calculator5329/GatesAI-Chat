@@ -33,10 +33,10 @@ export class UiStore {
   sendKey: SendKey = 'ghost';
   threadHeaderKey: ThreadHeaderKey = 'none';
 
-  toolCallStyle: ToolCallStyleKey = 'whisper';
-  markdownStyle: MarkdownStyleKey = 'editorial';
+  toolCallStyle: ToolCallStyleKey = 'aside';
+  markdownStyle: MarkdownStyleKey = 'compact';
   codeStyle: CodeStyleKey = 'obsidian';
-  markdownDensity: MarkdownDensityKey = 'comfortable';
+  markdownDensity: MarkdownDensityKey = 'compact';
   codeSize: CodeSizeKey = 'medium';
 
   constructor() {

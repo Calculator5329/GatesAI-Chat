@@ -1,8 +1,10 @@
 import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, ToolCall, ToolDef } from '../../core/llm';
+import { logEvent } from '../diagnostics/chatLog';
 import { ensureOk, parseSse } from './sse';
 
 interface GeminiPart {
   text?: string;
+  thought?: boolean;
   functionCall?: { name: string; args?: Record<string, unknown> };
   functionResponse?: { name: string; response: Record<string, unknown> };
 }
@@ -56,11 +58,22 @@ export class GeminiProvider implements LlmProvider {
     const generationConfig: Record<string, unknown> = {};
     if (req.temperature !== undefined) generationConfig.temperature = req.temperature;
     if (req.maxTokens !== undefined) generationConfig.maxOutputTokens = req.maxTokens;
+    // Gemini 3.x reserves output-token budget for an internal "thinking" pass.
+    // With dynamic thinking (the default) the model can spend the entire
+    // maxOutputTokens budget on thoughts and return zero visible text — which
+    // is exactly the "Gemini 3 Flash is broken" symptom. Constrain to a low
+    // budget for chat so first-token latency stays snappy and replies actually
+    // arrive. Callers that want deeper reasoning can opt back in later.
+    if (/^gemini-3/.test(req.modelId)) {
+      generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+    }
     if (Object.keys(generationConfig).length) body.generationConfig = generationConfig;
 
     const url =
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(req.modelId)}` +
       `:streamGenerateContent?alt=sse&key=${encodeURIComponent(this.apiKey)}`;
+
+    logEvent(req.threadId, 'gemini.request', { modelId: req.modelId, body });
 
     let response: Response;
     try {
@@ -72,22 +85,44 @@ export class GeminiProvider implements LlmProvider {
       });
     } catch (err) {
       if (signal.aborted) { yield { type: 'done', finishReason: 'cancelled' }; return; }
+      logEvent(req.threadId, 'gemini.fetchError', { error: (err as Error).message });
       yield { type: 'done', finishReason: 'error', error: (err as Error).message };
       return;
     }
 
+    logEvent(req.threadId, 'gemini.response', {
+      status: response.status,
+      contentType: response.headers.get('content-type'),
+    });
+
     try { await ensureOk(response, 'Gemini'); }
-    catch (err) { yield { type: 'done', finishReason: 'error', error: (err as Error).message }; return; }
+    catch (err) {
+      logEvent(req.threadId, 'gemini.non2xx', { error: (err as Error).message });
+      yield { type: 'done', finishReason: 'error', error: (err as Error).message };
+      return;
+    }
 
     let finishReason: 'stop' | 'length' | 'tool_use' | undefined;
+    let chunkCount = 0;
+    let textChars = 0;
+    let lastFinishRaw: string | undefined;
     try {
       for await (const data of parseSse(response, signal)) {
+        chunkCount++;
         let chunk: GeminiChunk;
-        try { chunk = JSON.parse(data) as GeminiChunk; } catch { continue; }
+        try { chunk = JSON.parse(data) as GeminiChunk; }
+        catch (parseErr) {
+          logEvent(req.threadId, 'gemini.badJson', { data: data.slice(0, 500), error: (parseErr as Error).message });
+          continue;
+        }
+        if (chunkCount <= 5) logEvent(req.threadId, 'gemini.chunk', { n: chunkCount, chunk });
         const candidate = chunk.candidates?.[0];
+        if (candidate?.finishReason) lastFinishRaw = candidate.finishReason;
         const parts = candidate?.content?.parts ?? [];
         for (const p of parts) {
-          if (p.text) yield { type: 'text', delta: p.text };
+          // Gemini 3 surfaces reasoning as parts with `thought: true`; skip
+          // them so the user sees only the final reply, not internal thoughts.
+          if (p.text && !p.thought) { textChars += p.text.length; yield { type: 'text', delta: p.text }; }
           if (p.functionCall?.name) {
             const call: ToolCall = {
               id: `${p.functionCall.name}-${Math.random().toString(36).slice(2, 8)}`,
@@ -105,6 +140,15 @@ export class GeminiProvider implements LlmProvider {
     } catch (err) {
       if (signal.aborted) { yield { type: 'done', finishReason: 'cancelled' }; return; }
       yield { type: 'done', finishReason: 'error', error: (err as Error).message };
+      return;
+    }
+
+    logEvent(req.threadId, 'gemini.summary', { chunks: chunkCount, visibleChars: textChars, finishReason: lastFinishRaw });
+    if (chunkCount > 0 && textChars === 0) {
+      const reason = lastFinishRaw === 'MAX_TOKENS'
+        ? 'Gemini returned no visible text (finishReason=MAX_TOKENS — thinking budget likely consumed the entire output budget). Try raising maxTokens or lowering thinkingLevel.'
+        : `Gemini returned no visible text (finishReason=${lastFinishRaw ?? 'unset'}). See console [gemini] logs for the raw stream.`;
+      yield { type: 'done', finishReason: 'error', error: reason };
       return;
     }
 

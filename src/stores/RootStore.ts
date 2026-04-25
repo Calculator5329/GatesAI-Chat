@@ -10,6 +10,7 @@ import { SummaryStore } from './SummaryStore';
 import { NotesStore } from './NotesStore';
 import { BridgeStore } from './BridgeStore';
 import { ExecStreamStore } from './ExecStreamStore';
+import { configureChatLog } from '../services/diagnostics/chatLog';
 
 export class RootStore {
   readonly registry: ModelRegistry;
@@ -55,6 +56,14 @@ export class RootStore {
 
     // Boot the bridge poller — chat keeps working if it never connects.
     this.bridge.start();
+
+    // Diagnostics: route per-thread log lines to /workspace/logs/<id>.log
+    // through the bridge whenever it's online.
+    const bridge = this.bridge;
+    configureChatLog({
+      get isOnline() { return bridge.isOnline; },
+      client: bridge.client,
+    });
 
     // Boot the lazy summarizer.
     this.summary.start();

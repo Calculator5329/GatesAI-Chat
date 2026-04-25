@@ -10,6 +10,29 @@ interface ComposerProps {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
 }
 
+function AttachButton({
+  onClick, disabled, title,
+}: { onClick: () => void; disabled: boolean; title: string }) {
+  return (
+    <div
+      onClick={onClick}
+      title={title}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+      style={{
+        width: 28, height: 28, borderRadius: 6,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: 'var(--text-faint)',
+        opacity: disabled ? 0.35 : 0.85,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        flex: 'none',
+        alignSelf: 'flex-start',
+        transition: 'background 100ms ease',
+      }}
+    ><Icons.Paperclip /></div>
+  );
+}
+
 function renderSendButton(sendKey: SendKey): ReactNode {
   switch (sendKey) {
     case 'arrow':
@@ -217,8 +240,8 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
           </div>
         )}
         <div style={{
-          display: 'flex', alignItems: 'flex-end', gap: 12,
-          padding: '10px 14px',
+          display: 'flex', alignItems: 'flex-end', gap: 8,
+          padding: '8px 14px 8px 8px',
           background: 'var(--panel)',
           border: dragActive ? '1px dashed var(--accent)' : '1px solid var(--border)',
           borderRadius: 10,
@@ -234,20 +257,11 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
               e.target.value = '';
             }}
           />
-          <div
-            onClick={() => fileInputRef.current?.click()}
+          <AttachButton
+            onClick={() => bridge.isOnline && fileInputRef.current?.click()}
+            disabled={!bridge.isOnline}
             title={bridge.isOnline ? 'Attach file' : 'Bridge offline — cannot attach files'}
-            style={{
-              width: 22, height: 22,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: bridge.isOnline ? 'pointer' : 'not-allowed',
-              color: 'var(--text-faint)',
-              opacity: bridge.isOnline ? 0.85 : 0.35,
-              flex: 'none',
-            }}
-          >
-            <Icons.Paperclip />
-          </div>
+          />
           <textarea
             ref={textareaRef}
             value={value}

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-04-25 — Quieter `fs.read` and tougher CSV header parsing
+
+`fs.read` no longer dumps base64 blobs into model context when the bridge
+returns binary-coded content. Responses are now decoded through a shared
+text decoder (`services/tools/textDecode.ts`) that recognizes utf-8/utf-16/
+windows-1252 and detects truly-binary content; binary files come back as a
+short stub (`path`, `mime`, `size`, `kind: binary`) instead of pages of
+`LCwsLCws…`. Callers that genuinely want raw bytes can still pass
+`encoding: "base64"` explicitly. `inspect_file` now reuses the same
+decoder and auto-names empty CSV header columns as `column_N` instead of
+hard-erroring on Excel-exported sparse headers, so attached `.csv` files
+stop falling through to the gross `fs.read` path.
+
 ## 2026-04-25 — Fresh-install UX
 
 Removed the demo-mode feel from a fresh install. New installs land in one

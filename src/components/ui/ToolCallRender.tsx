@@ -42,14 +42,21 @@ function WhisperCall(_: { call: ToolCall }) {
 }
 
 function WhisperResult({ result }: { result: ToolResult }) {
+  const flat = oneLine(result.content);
   return (
-    <div style={{
-      ...mono(11), color: 'var(--text-faint)',
-      letterSpacing: '0.02em',
-      padding: '4px 0',
-      whiteSpace: 'pre-wrap',
-    }}>
-      {result.toolName} · {oneLine(result.content)}
+    <div
+      title={`${result.toolName}: ${flat}`}
+      style={{
+        ...mono(11), color: 'var(--text-faint)',
+        letterSpacing: '0.02em',
+        padding: '4px 0',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        maxWidth: '100%',
+      }}
+    >
+      {result.toolName} · {flat}
     </div>
   );
 }

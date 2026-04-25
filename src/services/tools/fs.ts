@@ -6,6 +6,7 @@ import type {
   FsWriteResp,
 } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
+import { decodeFsRead } from './textDecode';
 import type { Tool } from './types';
 
 /**
@@ -114,21 +115,57 @@ export const fsTool: Tool = {
 async function doRead(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): Promise<string> {
   const path = strArg(args, 'path');
   if (!path) return 'Error: `path` is required for read.';
-  const encoding = args.encoding === 'base64' ? 'base64' : undefined;
-  const resp = await ctx.bridge!.client.request<FsReadResp>('fs.read', { path, encoding });
-  const maxChars = typeof args.max_chars === 'number' && Number.isFinite(args.max_chars)
-    ? Math.max(1, Math.floor(args.max_chars))
-    : 12_000;
-  const content = resp.content.length > maxChars ? resp.content.slice(0, maxChars) : resp.content;
-  const truncated = resp.content.length > maxChars;
-  return [
+  const wantsBase64 = args.encoding === 'base64';
+  const resp = await ctx.bridge!.client.request<FsReadResp>('fs.read', {
+    path,
+    encoding: wantsBase64 ? 'base64' : undefined,
+  });
+
+  const header = [
     `path: ${resp.path}`,
     `mime: ${resp.mime}`,
-    `size: ${resp.size}  encoding: ${resp.encoding}`,
-    truncated ? `truncated: true (showing first ${maxChars} chars of ${resp.content.length}; use fs.search/stat or read with max_chars and a narrower file/chunk request)` : '',
+    `size: ${resp.size}`,
+  ];
+
+  // Caller explicitly asked for base64 — they know what they're doing.
+  if (wantsBase64) {
+    const maxChars = readMaxChars(args);
+    const truncated = resp.content.length > maxChars;
+    const content = truncated ? resp.content.slice(0, maxChars) : resp.content;
+    return [
+      ...header,
+      'encoding: base64',
+      truncated ? `truncated: true (showing first ${maxChars} of ${resp.content.length} base64 chars)` : '',
+      '',
+      content,
+    ].filter(line => line !== '').join('\n');
+  }
+
+  const decoded = decodeFsRead(resp);
+  if (decoded.kind === 'binary') {
+    return [
+      ...header,
+      `kind: binary (${decoded.reason})`,
+      'No content shown. Use `inspect_file` for structured files, or call `fs.read` with `encoding: "base64"` only if you really need the raw bytes.',
+    ].join('\n');
+  }
+
+  const maxChars = readMaxChars(args);
+  const truncated = decoded.text.length > maxChars;
+  const content = truncated ? decoded.text.slice(0, maxChars) : decoded.text;
+  return [
+    ...header,
+    `encoding: ${decoded.encoding}`,
+    truncated ? `truncated: true (showing first ${maxChars} of ${decoded.text.length} chars; use fs.search or read with a narrower max_chars)` : '',
     '',
     content,
   ].filter(line => line !== '').join('\n');
+}
+
+function readMaxChars(args: Record<string, unknown>): number {
+  return typeof args.max_chars === 'number' && Number.isFinite(args.max_chars)
+    ? Math.max(1, Math.floor(args.max_chars))
+    : 12_000;
 }
 
 async function doWrite(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1], append: boolean): Promise<string> {
