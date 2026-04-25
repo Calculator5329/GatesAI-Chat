@@ -6,6 +6,16 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "binaries/gatesai-bridge",
+          "sidecar": true,
+          "args": ["--listen", { "validator": "^127\\.0\\.0\\.1:\\d{2,5}$" }]
+        }
+      ]
+    }
   ]
 }
