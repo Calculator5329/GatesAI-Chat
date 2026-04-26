@@ -1,10 +1,56 @@
-import type { DraftAttachment } from './types';
+import type { DraftAttachment, MessageAttachmentRef, UserMessage } from './types';
 
 export interface RenderedAttachment {
   path: string;
   name: string;
   kind: string;
   size: string;
+  /** Original MIME type (retained so the UI can pick a thumbnail renderer). */
+  mime: string;
+  /** Convenience: true when {@link mime} starts with `image/`. */
+  isImage: boolean;
+}
+
+/**
+ * Convert an upload-time attachment into the persisted ref that lives on the
+ * user message. Drops transient fields (the draft id) and re-derives the
+ * display name from the path so we store a single source of truth.
+ */
+export function toMessageAttachmentRef(
+  a: Pick<DraftAttachment, 'path' | 'mime' | 'size' | 'filename'>,
+): MessageAttachmentRef {
+  const name = a.filename || a.path.split(/[\\/]/).pop() || a.path;
+  return { path: a.path, name, mime: a.mime, size: a.size };
+}
+
+/**
+ * Prefer structured {@link UserMessage.attachments} when present; fall back
+ * to parsing the legacy footer in {@link UserMessage.content}. Returns both
+ * the visible body (footer stripped) and a render-ready attachment list.
+ */
+export function resolveUserAttachments(message: Pick<UserMessage, 'content' | 'attachments'>): {
+  body: string;
+  attachments: RenderedAttachment[];
+} {
+  const parsed = splitAttachmentFooter(message.content);
+  if (message.attachments && message.attachments.length > 0) {
+    return {
+      body: parsed.body,
+      attachments: message.attachments.map(renderAttachment),
+    };
+  }
+  return parsed;
+}
+
+function renderAttachment(ref: MessageAttachmentRef): RenderedAttachment {
+  return {
+    path: ref.path,
+    name: ref.name,
+    size: formatSize(ref.size),
+    kind: attachmentKind(ref.name, ref.mime),
+    mime: ref.mime,
+    isImage: /^image\//i.test(ref.mime),
+  };
 }
 
 export const ATTACHMENT_FOOTER_MARKER =
@@ -35,7 +81,14 @@ function parseAttachmentLine(line: string): RenderedAttachment | null {
   if (!match) return null;
   const [, path, size, mime] = match;
   const name = path.split(/[\\/]/).pop() || path;
-  return { path, name, size, kind: attachmentKind(name, mime) };
+  return {
+    path,
+    name,
+    size,
+    kind: attachmentKind(name, mime),
+    mime,
+    isImage: /^image\//i.test(mime),
+  };
 }
 
 function attachmentKind(name: string, mime: string): string {

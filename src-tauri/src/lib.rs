@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::Manager;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
@@ -19,10 +20,26 @@ fn bridge_already_running() -> bool {
   )
 }
 
+/// Open a filesystem path with the OS default handler (browser for .html,
+/// editor for .md/.py/etc., file manager for directories). Used by the
+/// markdown renderer when the user clicks a workspace path that the model
+/// produced. We do a `canonicalize` + existence check up front so we can
+/// surface a friendly error instead of silently failing or shelling out
+/// to a path that contains shell metacharacters.
+#[tauri::command]
+fn open_path(path: String) -> Result<(), String> {
+  let pb = PathBuf::from(&path);
+  let canonical = pb
+    .canonicalize()
+    .map_err(|err| format!("cannot resolve {path}: {err}"))?;
+  open::that_detached(&canonical).map_err(|err| format!("cannot open {}: {err}", canonical.display()))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_shell::init())
+    .invoke_handler(tauri::generate_handler![open_path])
     .manage(BridgeChild(Mutex::new(None)))
     .setup(|app| {
       if cfg!(debug_assertions) {

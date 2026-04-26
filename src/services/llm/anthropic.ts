@@ -188,6 +188,19 @@ function buildAnthropicMessages(input: LlmMessage[]): {
       continue;
     }
 
+    if (m.role === 'user' && m.images && m.images.length > 0) {
+      const blocks: unknown[] = [];
+      for (const img of m.images) {
+        blocks.push({
+          type: 'image',
+          source: { type: 'base64', media_type: img.mime, data: img.base64 },
+        });
+      }
+      if (m.content) blocks.push({ type: 'text', text: m.content });
+      out.push({ role: 'user', content: blocks });
+      continue;
+    }
+
     out.push({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content });
   }
 

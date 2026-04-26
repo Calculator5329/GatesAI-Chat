@@ -7,6 +7,7 @@ interface GeminiPart {
   thought?: boolean;
   functionCall?: { name: string; args?: Record<string, unknown> };
   functionResponse?: { name: string; response: Record<string, unknown> };
+  inlineData?: { mimeType: string; data: string };
 }
 interface GeminiCandidate {
   content?: { parts?: GeminiPart[]; role?: string };
@@ -190,6 +191,16 @@ function buildGeminiContents(input: LlmMessage[]): Array<{ role: 'user' | 'model
       out.push({ role: 'model', parts });
       continue;
     }
+    if (m.role === 'user' && m.images && m.images.length > 0) {
+      const parts: GeminiPart[] = [];
+      if (m.content) parts.push({ text: m.content });
+      for (const img of m.images) {
+        parts.push({ inlineData: { mimeType: img.mime, data: img.base64 } });
+      }
+      out.push({ role: 'user', parts });
+      continue;
+    }
+
     out.push({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import { PROVIDERS } from '../../../core/providers';
-import { useOpenRouterStore, useProviderStore } from '../../../stores/context';
+import { useOpenRouterStore, useProviderStore, useImageGenStore } from '../../../stores/context';
 import { Card, Pill, SettingsRow, Input, Select, Button } from '../../ui';
 
 function maskKey(key: string): string {
@@ -29,6 +29,11 @@ export const ApiSection = observer(function ApiSection() {
       {PROVIDERS.map(p => (
         <ProviderCard key={p.id} info={p} providers={providers} />
       ))}
+
+      <div style={{ ...tokens.section, marginTop: 32 }}>
+        <div style={tokens.sectionTitle}>Image generation</div>
+        <ImageGenCard />
+      </div>
 
       <div style={{ ...tokens.section, marginTop: 32 }}>
         <div style={tokens.sectionTitle}>Routing</div>
@@ -127,6 +132,201 @@ const ProviderCard = observer(function ProviderCard({ info, providers }: Provide
 
       {info.id === 'openrouter' && <OpenRouterCatalogRow />}
     </Card>
+  );
+});
+
+const ImageGenCard = observer(function ImageGenCard() {
+  const store = useImageGenStore();
+  const backend = store.backend;
+  const connected = store.hasUsableBackend;
+
+  return (
+    <Card style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+        <ProviderAvatar name="image" />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>
+            {backend === 'fal' && 'fal.ai (FLUX 2)'}
+            {backend === 'bfl' && 'Black Forest Labs'}
+            {backend === 'local-comfy' && 'ComfyUI (local)'}
+            {backend === 'local-a1111' && 'AUTOMATIC1111 (local)'}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 1 }}>
+            Text-to-image. Artifacts land in /workspace/artifacts/.
+          </div>
+        </div>
+        {connected
+          ? <Pill>● Connected</Pill>
+          : <Pill tone="muted">Not connected</Pill>
+        }
+      </div>
+
+      <div style={{ paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <SettingsRow label="Backend">
+          <Select
+            value={backend}
+            onChange={e => store.setBackend(e.currentTarget.value as 'fal' | 'bfl' | 'local-comfy' | 'local-a1111')}
+          >
+            <option value="fal">fal.ai (cloud, FLUX 2)</option>
+            <option value="local-comfy">ComfyUI (local)</option>
+            <option value="local-a1111">AUTOMATIC1111 (local)</option>
+            <option value="bfl" disabled>Black Forest Labs (soon)</option>
+          </Select>
+        </SettingsRow>
+
+        {backend === 'fal' && <FalBackendFields />}
+        {backend === 'local-comfy' && <ComfyBackendFields />}
+        {backend === 'local-a1111' && <A1111BackendFields />}
+
+        {(backend === 'local-comfy' || backend === 'local-a1111') && (
+          <SettingsRow label="Cloud fallback" last>
+            <Select
+              value={store.config.fallbackBackend ?? ''}
+              onChange={e => {
+                const v = e.currentTarget.value;
+                store.setFallbackBackend(v ? (v as 'fal' | 'bfl') : null);
+              }}
+            >
+              <option value="">Disabled (errors surface to the model)</option>
+              <option value="fal">fal.ai</option>
+            </Select>
+          </SettingsRow>
+        )}
+      </div>
+    </Card>
+  );
+});
+
+const FalBackendFields = observer(function FalBackendFields() {
+  const store = useImageGenStore();
+  const [draftKey, setDraftKey] = useState('');
+  const [revealed, setRevealed] = useState(false);
+  const existingKey = store.config.falApiKey ?? '';
+
+  if (existingKey) {
+    return (
+      <>
+        <SettingsRow label="API key">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+            <Input
+              readOnly
+              value={revealed ? existingKey : maskKey(existingKey)}
+              style={{ ...tokens.mono, fontSize: 12, flex: 1 }}
+            />
+            <Button onClick={() => setRevealed(v => !v)}>{revealed ? 'Hide' : 'Reveal'}</Button>
+            <Button variant="danger" onClick={() => store.setFalKey('')}>Remove</Button>
+          </div>
+        </SettingsRow>
+        <SettingsRow label="Default variant">
+          <Select
+            value={store.config.defaultVariant ?? 'flux-2-pro'}
+            onChange={e => store.setDefaultVariant(e.currentTarget.value as 'flux-2-pro' | 'flux-2-flex' | 'flux-2-dev')}
+          >
+            <option value="flux-2-pro">flux-2-pro (quality)</option>
+            <option value="flux-2-flex">flux-2-flex (balanced)</option>
+            <option value="flux-2-dev">flux-2-dev (fast)</option>
+          </Select>
+        </SettingsRow>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <SettingsRow label="API key">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+          <Input
+            type="password"
+            placeholder="Paste your fal.ai API key…"
+            value={draftKey}
+            onChange={e => setDraftKey(e.currentTarget.value)}
+            style={{ flex: 1 }}
+            onKeyDown={e => { if (e.key === 'Enter' && draftKey.trim()) { store.setFalKey(draftKey); setDraftKey(''); } }}
+          />
+          <Button variant="accent"
+            onClick={() => { if (draftKey.trim()) { store.setFalKey(draftKey); setDraftKey(''); } }}
+            disabled={!draftKey.trim()}>Connect</Button>
+        </div>
+      </SettingsRow>
+      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', paddingLeft: 8 }}>
+        Get a key →{' '}
+        <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noreferrer"
+           style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+          fal.ai/dashboard/keys
+        </a>
+      </div>
+    </>
+  );
+});
+
+const ComfyBackendFields = observer(function ComfyBackendFields() {
+  const store = useImageGenStore();
+  return (
+    <>
+      <SettingsRow label="Base URL">
+        <Input
+          placeholder="http://127.0.0.1:8188"
+          value={store.config.comfyBaseUrl ?? ''}
+          onChange={e => store.setComfyBaseUrl(e.currentTarget.value)}
+          style={{ ...tokens.mono, fontSize: 12, flex: 1 }}
+        />
+      </SettingsRow>
+      <SettingsRow label="Workflow template">
+        <Input
+          placeholder="(built-in SDXL default) · e.g. /workspace/notes/flux-workflow.json"
+          value={store.config.comfyWorkflowPath ?? ''}
+          onChange={e => store.setComfyWorkflowPath(e.currentTarget.value)}
+          style={{ ...tokens.mono, fontSize: 12, flex: 1 }}
+        />
+      </SettingsRow>
+      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', paddingLeft: 8 }}>
+        Use <code style={tokens.mono}>{'{{PROMPT}}'}</code>, <code style={tokens.mono}>{'{{WIDTH}}'}</code>, <code style={tokens.mono}>{'{{HEIGHT}}'}</code>, <code style={tokens.mono}>{'{{SEED}}'}</code> as placeholders in your workflow JSON.
+      </div>
+    </>
+  );
+});
+
+const A1111BackendFields = observer(function A1111BackendFields() {
+  const store = useImageGenStore();
+  const [draftKey, setDraftKey] = useState('');
+  const [revealed, setRevealed] = useState(false);
+  const existingKey = store.config.a1111ApiKey ?? '';
+  return (
+    <>
+      <SettingsRow label="Base URL">
+        <Input
+          placeholder="http://127.0.0.1:7860"
+          value={store.config.a1111BaseUrl ?? ''}
+          onChange={e => store.setA1111BaseUrl(e.currentTarget.value)}
+          style={{ ...tokens.mono, fontSize: 12, flex: 1 }}
+        />
+      </SettingsRow>
+      <SettingsRow label="API key (optional)">
+        {existingKey ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+            <Input
+              readOnly
+              value={revealed ? existingKey : maskKey(existingKey)}
+              style={{ ...tokens.mono, fontSize: 12, flex: 1 }}
+            />
+            <Button onClick={() => setRevealed(v => !v)}>{revealed ? 'Hide' : 'Reveal'}</Button>
+            <Button variant="danger" onClick={() => store.setA1111Key('')}>Remove</Button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+            <Input
+              type="password"
+              placeholder="Only if you started A1111 with --api-auth"
+              value={draftKey}
+              onChange={e => setDraftKey(e.currentTarget.value)}
+              style={{ flex: 1 }}
+            />
+            <Button onClick={() => { if (draftKey.trim()) { store.setA1111Key(draftKey); setDraftKey(''); } }}
+              disabled={!draftKey.trim()}>Set</Button>
+          </div>
+        )}
+      </SettingsRow>
+    </>
   );
 });
 

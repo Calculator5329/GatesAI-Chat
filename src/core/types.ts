@@ -29,6 +29,29 @@ export interface UserMessage {
   role: 'user';
   content: string;
   createdAt: number;
+  /**
+   * Files the user attached when sending this message. References workspace
+   * paths only — bytes are resolved on-demand by provider adapters at send
+   * time. Kept in parallel with the legacy attachment footer embedded in
+   * {@link content}; newer messages are authoritative from this field,
+   * older persisted messages fall back to {@link splitAttachmentFooter}.
+   */
+  attachments?: MessageAttachmentRef[];
+}
+
+/**
+ * Structured reference to a file the user attached to a message. Holds a
+ * workspace path and lightweight metadata; no base64 bytes live here.
+ */
+export interface MessageAttachmentRef {
+  /** Workspace path, e.g. `/workspace/attachments/plan.csv`. */
+  path: string;
+  /** Short display name split from the path. */
+  name: string;
+  /** MIME type reported by the bridge at upload time. */
+  mime: string;
+  /** Bytes, as reported by the bridge. */
+  size: number;
 }
 
 export interface AssistantMessage {
@@ -141,6 +164,12 @@ export interface Model {
   pricing?: { prompt?: number; completion?: number };
   /** True for entries fetched at runtime (e.g. from OpenRouter). */
   dynamic?: boolean;
+  /**
+   * Whether this model can accept image inputs. When unset, callers fall
+   * back to {@link modelSupportsVision} which pattern-matches known vision
+   * families. Explicit values override the heuristic.
+   */
+  supportsVision?: boolean;
 }
 
 export interface ChatSnapshot {

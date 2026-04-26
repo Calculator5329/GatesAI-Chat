@@ -1,8 +1,11 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import type { DraftAttachment } from '../core/types';
 import type { BridgeConnectionState, BridgeStatus } from '../core/workspace';
+import { isWorkspacePath, resolveWorkspacePath } from '../core/workspacePaths';
 import { uploadAttachment } from '../services/bridge/attachments';
 import { BridgeClient, BridgeOfflineError } from '../services/bridge/client';
+import { readAttachmentBase64 } from '../services/bridge/readAttachmentBytes';
+import { openExternal } from '../services/system/openExternal';
 
 const HEALTH_URL = 'http://127.0.0.1:7331/health';
 const WS_URL = 'ws://127.0.0.1:7331/ws';
@@ -77,6 +80,36 @@ export class BridgeStore {
 
   uploadAttachment(file: File): Promise<DraftAttachment> {
     return uploadAttachment(file, this);
+  }
+
+  /**
+   * Fetch a workspace file's bytes as base64. Thin pass-through to the
+   * service helper; lives on the store so provider adapters and UI
+   * components go through the same facade instead of importing
+   * bridge internals directly.
+   */
+  readAttachmentBase64(workspacePath: string): Promise<{ base64: string; mime: string; size: number } | null> {
+    return readAttachmentBase64(this, workspacePath);
+  }
+
+  /**
+   * Open a `/workspace/...` path in the OS's default handler (browser for
+   * .html, editor for .py/.md, etc.). Returns true when the request was
+   * dispatched, false when the path can't be resolved (bridge offline,
+   * malformed path) so the caller can show a hint instead of failing
+   * silently.
+   */
+  async openWorkspacePath(workspacePath: string): Promise<boolean> {
+    if (!isWorkspacePath(workspacePath)) return false;
+    const abs = resolveWorkspacePath(workspacePath, this.workspaceRoot, this.platform);
+    if (!abs) return false;
+    try {
+      await openExternal(abs);
+      return true;
+    } catch (err) {
+      console.warn('[BridgeStore] openWorkspacePath failed', workspacePath, err);
+      return false;
+    }
   }
 
   /**

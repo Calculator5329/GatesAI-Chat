@@ -2,10 +2,12 @@ import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
 import type { LlmProvider, LlmRequest, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
-import { formatAttachmentFooter } from '../core/attachments';
+import { formatAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
 import { loadSnapshot, saveSnapshot } from '../services/persistence';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, type TokenUsage } from '../core/tokens';
 import { flattenForWire } from '../services/llm/wireFormat';
+import { resolveWireImages } from '../services/llm/resolveImages';
+import { modelSupportsVision } from '../core/modelCapabilities';
 import {
   buildToolResultCompactionInput,
   compactLargeToolResultsInThread,
@@ -92,7 +94,7 @@ export class ChatStore {
    * deps through every test that builds a ChatStore. Falls back to throwing
    * a clear error if a tool is called without it being set.
    */
-  private toolStoresProvider: (() => Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream'>) | null = null;
+  private toolStoresProvider: (() => Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen'>) | null = null;
 
   constructor(providers: ProviderStore, registry: ModelRegistry, profile: UserProfileStore) {
     this.providers = providers;
@@ -236,7 +238,7 @@ export class ChatStore {
    * by RootStore after all stores exist. Tests that don't exercise tools
    * needing these stores can skip wiring entirely.
    */
-  setToolStoresProvider(fn: () => Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream'>): void {
+  setToolStoresProvider(fn: () => Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen'>): void {
     this.toolStoresProvider = fn;
   }
 
@@ -291,12 +293,14 @@ export class ChatStore {
     this.lastError = null;
 
     const attachmentFooter = formatAttachmentFooter(attachments);
+    const refs = attachments.map(toMessageAttachmentRef);
 
     const userMessage: Message = {
       id: newId('m'),
       role: 'user',
       content: (trimmed + attachmentFooter).trim() || '(see attachments)',
       createdAt: Date.now(),
+      ...(refs.length > 0 ? { attachments: refs } : {}),
     };
     this.appendMessage(thread.id, userMessage);
 
@@ -418,6 +422,9 @@ export class ChatStore {
         this.artifactInstructions = '';
       }
       let request = this.buildTurnRequest(thread, providerModelId, recentSummaries);
+      if (hasAnyImageAttachment(thread.messages)) {
+        await this.inlineImageAttachments(thread, request);
+      }
       const contextWindow = contextWindowFor(this.registry.findById(thread.modelId));
       let requestedTokens = estimateLlmPayloadTokens({
         systemPrompt: request.systemPrompt,
@@ -442,6 +449,9 @@ export class ChatStore {
           }
         });
         request = this.buildTurnRequest(thread, providerModelId, recentSummaries);
+        if (hasAnyImageAttachment(thread.messages)) {
+          await this.inlineImageAttachments(thread, request);
+        }
         requestedTokens = estimateLlmPayloadTokens({
           systemPrompt: request.systemPrompt,
           messages: request.messages,
@@ -626,6 +636,22 @@ export class ChatStore {
     };
   }
 
+  /**
+   * If the thread carries any image attachments AND the target model
+   * supports vision AND the bridge is available, resolve the base64
+   * bytes and inline them onto the wire messages. Callers gate this on
+   * {@link hasAnyImageAttachment} so the common no-image path avoids
+   * the microtask an unconditional `await` would add — several
+   * streaming tests rely on the turn's startup being fully synchronous
+   * up to the first `provider.stream` chunk.
+   */
+  private async inlineImageAttachments(thread: Thread, request: LlmRequest): Promise<void> {
+    const bridge = this.toolStoresProvider?.().bridge;
+    const model = this.registry.findById(thread.modelId);
+    if (!bridge || !model || !modelSupportsVision(model)) return;
+    await resolveWireImages(request.messages, thread.messages, bridge, true);
+  }
+
   private async refreshArtifactInstructions(bridge: NonNullable<ToolContext['bridge']>, signal: AbortSignal): Promise<void> {
     this.artifactInstructions = await loadArtifactReadmeInstructions(bridge, signal);
   }
@@ -758,7 +784,7 @@ export class ChatStore {
   }
 
   private async executeOneToolCall(call: ToolCall, threadId: string): Promise<ToolResult> {
-    const extras = this.toolStoresProvider?.() ?? ({} as Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream'>);
+    const extras = this.toolStoresProvider?.() ?? ({} as Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen'>);
     const startedAt = Date.now();
     const content = await toolRegistry.execute(call.name, call.arguments, {
       profile: this.profile,
@@ -767,6 +793,7 @@ export class ChatStore {
       summary: extras.summary,
       bridge: extras.bridge,
       execStream: extras.execStream,
+      imageGen: extras.imageGen,
       threadId,
     });
     if (isToolFailureContent(call.name, content)) {
@@ -829,6 +856,16 @@ function latestUserMessageContent(thread: Thread): string {
     if (message.role === 'user') return message.content;
   }
   return '';
+}
+
+function hasAnyImageAttachment(messages: Message[]): boolean {
+  for (const m of messages) {
+    if (m.role !== 'user' || !m.attachments) continue;
+    for (const a of m.attachments) {
+      if (/^image\//i.test(a.mime)) return true;
+    }
+  }
+  return false;
 }
 
 function formatOversizedContextMessage(used: number, window: number): string {

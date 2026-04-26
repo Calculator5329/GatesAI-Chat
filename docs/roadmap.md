@@ -33,6 +33,10 @@
       failure logging helpers into focused services
 
 ## Near-term
+- [ ] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`
+      - [x] Phase 1: Vision input (cloud + local), content-parts at the wire boundary
+      - [x] Phase 2: FLUX 2.0 image generation via fal.ai, saved as workspace artifact
+      - [x] Phase 3: Local image-gen backend (ComfyUI / A1111) behind same `image_generate` tool
 - [ ] Continue architecture cleanup: split large tools/components and keep
       slimming `ChatStore` where helpers can move out safely
 - [ ] Persist theme keys alongside existing output style preferences

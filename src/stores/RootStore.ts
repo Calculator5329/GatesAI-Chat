@@ -10,6 +10,7 @@ import { SummaryStore } from './SummaryStore';
 import { NotesStore } from './NotesStore';
 import { BridgeStore } from './BridgeStore';
 import { ExecStreamStore } from './ExecStreamStore';
+import { ImageGenStore } from './ImageGenStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 
 export class RootStore {
@@ -24,6 +25,7 @@ export class RootStore {
   readonly notes: NotesStore;
   readonly bridge: BridgeStore;
   readonly execStream: ExecStreamStore;
+  readonly imageGen: ImageGenStore;
 
   constructor() {
     this.registry = new ModelRegistry();
@@ -37,6 +39,7 @@ export class RootStore {
     this.notes = new NotesStore();
     this.bridge = new BridgeStore();
     this.execStream = new ExecStreamStore();
+    this.imageGen = new ImageGenStore();
 
     // Cross-thread awareness: ChatStore asks SummaryStore for the digest
     // list every time it composes a system prompt. Wiring is one-way
@@ -52,6 +55,7 @@ export class RootStore {
       summary: this.summary,
       bridge: this.bridge,
       execStream: this.execStream,
+      imageGen: this.imageGen,
     }));
 
     // Boot the bridge poller — chat keeps working if it never connects.

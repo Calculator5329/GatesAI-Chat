@@ -6,12 +6,16 @@ import remarkMath from 'remark-math';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import type { Message } from '../../core/types';
-import { splitAttachmentFooter, type RenderedAttachment } from '../../core/attachments';
+import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
+import { isWorkspacePath } from '../../core/workspacePaths';
 import { ToolCallView, ToolResultView } from '../ui';
-import { useUiStore, useExecStreamStore } from '../../stores/context';
+import { useBridgeStore, useUiStore, useExecStreamStore } from '../../stores/context';
+import type { BridgeStore } from '../../stores/BridgeStore';
 import { LiveExecTail } from './LiveExecTail';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
+import { WorkspaceImage } from './WorkspaceImage';
 
 interface MessageProps {
   message: Message;
@@ -59,7 +63,7 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
   const resultByCallId = new Map(results.map(r => [r.toolCallId, r]));
   const hasContent = message.content.trim().length > 0;
   const hasCalls = calls.length > 0;
-  const userContent = isUser ? splitAttachmentFooter(message.content) : null;
+  const userContent = isUser && message.role === 'user' ? resolveUserAttachments(message) : null;
 
   useEffect(() => {
     if (copyState === 'idle') return;
@@ -125,10 +129,18 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
           {calls.map(call => {
             const result = resultByCallId.get(call.id);
             const showLiveTail = !result && call.name === 'terminal';
+            const artifactPath = result && call.name === 'image_generate'
+              ? extractArtifactPath(result.content)
+              : null;
             return (
               <div key={call.id}>
                 <ToolCallView call={call} style={ui.toolCallStyle} />
                 {result && <ToolResultView result={result} style={ui.toolCallStyle} />}
+                {artifactPath && (
+                  <div style={{ marginTop: 8 }}>
+                    <WorkspaceImage path={artifactPath} alt="Generated image" kind="image" />
+                  </div>
+                )}
                 {showLiveTail && <LiveExecTail store={execStream} />}
               </div>
             );
@@ -160,16 +172,68 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
 });
 
 function MarkdownBody({ content }: { content: string }) {
+  const bridge = useBridgeStore();
   return (
     <div className="md-body">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
         rehypePlugins={[rehypeHighlight, [rehypeKatex, { throwOnError: false, strict: 'ignore' }]]}
+        components={{
+          // Inline code that's a /workspace/... path becomes a clickable
+          // link the system handler can open. Block code (anything with
+          // a language class from rehype-highlight) renders normally.
+          code: (props) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
+        }}
       >
         {content}
       </ReactMarkdown>
     </div>
   );
+}
+
+interface CodeProps extends ComponentPropsWithoutRef<'code'> {
+  bridge: BridgeStore;
+}
+
+function CodeOrWorkspaceLink({ bridge, className, children, ...rest }: CodeProps) {
+  const isInline = !className;
+  if (isInline) {
+    const text = childrenToString(children);
+    if (isWorkspacePath(text)) {
+      return <WorkspacePathLink path={text} bridge={bridge} />;
+    }
+  }
+  return <code className={className} {...rest}>{children}</code>;
+}
+
+function WorkspacePathLink({ path, bridge }: { path: string; bridge: BridgeStore }) {
+  return (
+    <button
+      type="button"
+      className="workspace-path-link"
+      title={`Open ${path}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        void bridge.openWorkspacePath(path);
+      }}
+    >
+      <span className="workspace-path-link__glyph" aria-hidden="true">↗</span>
+      <code>{path}</code>
+    </button>
+  );
+}
+
+function extractArtifactPath(text: string): string | null {
+  // Tool emits "Saved: /workspace/artifacts/<file>.<ext> (...)".
+  const m = text.match(/\/workspace\/artifacts\/[^\s)]+\.(?:png|jpe?g|webp|gif)/i);
+  return m ? m[0] : null;
+}
+
+function childrenToString(children: ReactNode): string {
+  if (typeof children === 'string') return children;
+  if (typeof children === 'number') return String(children);
+  if (Array.isArray(children)) return children.map(childrenToString).join('');
+  return '';
 }
 
 function UserMessageContent({ body, attachments }: { body: string; attachments: RenderedAttachment[] }) {
@@ -179,11 +243,15 @@ function UserMessageContent({ body, attachments }: { body: string; attachments: 
       {attachments.length > 0 && (
         <div className="user-attachments" aria-label="Attached files">
           {attachments.map(file => (
-            <div className="user-attachment-chip" key={`${file.path}-${file.size}`}>
-              <span className="user-attachment-kind">{file.kind}</span>
-              <span className="user-attachment-separator"> · </span>
-              <span className="user-attachment-size">{file.size}</span>
-            </div>
+            file.isImage
+              ? <WorkspaceImage key={`${file.path}-${file.size}`} path={file.path} alt={file.name} kind={file.kind} />
+              : (
+                <div className="user-attachment-chip" key={`${file.path}-${file.size}`}>
+                  <span className="user-attachment-kind">{file.kind}</span>
+                  <span className="user-attachment-separator"> · </span>
+                  <span className="user-attachment-size">{file.size}</span>
+                </div>
+              )
           ))}
         </div>
       )}

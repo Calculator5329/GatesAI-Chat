@@ -52,6 +52,29 @@ export interface BridgeFacade {
   readonly workspaceRoot?: string;
   readonly allowlist?: string[];
   readonly client: BridgeClientFacade;
+  readAttachmentBase64(path: string): Promise<{ base64: string; mime: string; size: number } | null>;
+}
+
+export type ImageBackendId = 'fal' | 'bfl' | 'local-comfy' | 'local-a1111';
+
+export interface ImageBackendSnapshot {
+  primary: ImageBackendId;
+  falApiKey?: string;
+  bflApiKey?: string;
+  comfyBaseUrl?: string;
+  a1111BaseUrl?: string;
+  a1111ApiKey?: string;
+  fallback?: ImageBackendId | null;
+}
+
+export interface ImageGenFacade {
+  readonly hasUsableBackend: boolean;
+  readonly backend: ImageBackendId;
+  getCredential(backend?: ImageBackendId): string | null;
+  /** Plain snapshot consumed by the dispatcher. */
+  toBackendConfig(): ImageBackendSnapshot;
+  /** User-configured /workspace/ path to a ComfyUI workflow override. */
+  readonly comfyWorkflowPath?: string;
 }
 
 export interface ExecStreamFacade {
@@ -67,6 +90,7 @@ export interface ToolContext {
   notes?: NotesFacade;
   summary?: SummaryFacade;
   bridge?: BridgeFacade;
+  imageGen?: ImageGenFacade;
   execStream?: ExecStreamFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;

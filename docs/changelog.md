@@ -1,5 +1,195 @@
 # Changelog
 
+## 2026-04-26 — Bugfix: ComfyUI workflow metadata and background prompts
+
+ComfyUI crashed with `'str' object has no attribute 'get'` when the custom
+workflow JSON contained a top-level `_comment` string. The Comfy client now
+strips top-level underscore metadata before POSTing to `/prompt`, and tool
+selection treats "background" / "wallpaper" as image-generation requests.
+
+## 2026-04-26 — Bugfix: image `fetch` Illegal invocation (Tauri WebView)
+
+The FLUX / ComfyUI / A1111 clients kept `this.fetchImpl = fetch` and later
+called it as a method, so the native `fetch` received the wrong `this` and
+threw `Failed to execute 'fetch' on 'Window': Illegal invocation`. Storing
+a wrapper from `wrapGlobalFetch()` in `src/services/image/types.ts` fixes it.
+
+## 2026-04-26 — Phase 3: Local image generation (ComfyUI + A1111)
+
+Closes the multimodal + image-gen plan. The same `image_generate`
+tool can now route to three backends behind one contract, with a
+cloud fallback so local GPU failures don't silently break things.
+
+Architecture:
+
+- **`ImageBackend` interface** (`src/services/image/types.ts`) —
+  shared `{prompt, aspectRatio, seed, variant}` request and
+  `{base64, mime, width, height, seed, endpoint, backend}` response
+  shape. Extracted shared helpers (`dimsForAspect`, `bytesToBase64`,
+  `mimeFromUrl`, `safeText`) out of `fluxClient.ts` so every backend
+  speaks the same vocabulary.
+- **`A1111Client`** (`src/services/image/a1111Client.ts`) — wraps
+  AUTOMATIC1111's `POST /sdapi/v1/txt2img`. Returns base64 images
+  synchronously, parses the resolved seed from the `info` JSON
+  blob, supports optional `--api-auth` Bearer tokens.
+- **`ComfyClient`** (`src/services/image/comfyClient.ts`) — full
+  `/prompt → /history/<id> → /view` flow. Ships a built-in SDXL
+  txt2img workflow with `{{PROMPT}}`, `{{WIDTH}}`, `{{HEIGHT}}`,
+  `{{SEED}}` token substitution; users with non-SDXL checkpoints
+  can point the `comfyWorkflowPath` setting at their own workflow
+  JSON (e.g. a FLUX.1-schnell graph) and the tool will load and
+  substitute it. Polling is injectable (`sleep`, `fetch`,
+  `maxPollAttempts`, `pollIntervalMs`) for deterministic tests.
+- **`dispatchImageGenerate`** (`src/services/image/imageBackend.ts`)
+  — single entry point the tool calls. Resolves the `primary`
+  backend, runs it, and on local failure (or un-instantiable local
+  backend) automatically retries against the configured cloud
+  `fallback` with usable credentials. Cloud primaries never
+  auto-fall-back — a 402 / 429 there is signal, not noise. The
+  fallback emits a short note the tool prepends to its return
+  string so the model can mention the degraded state.
+- **Settings UI** — single "Image generation" card now hosts a
+  backend dropdown (fal.ai / ComfyUI / A1111, with BFL reserved).
+  Selecting a backend swaps in only the fields it needs: API key
+  for fal, base URL + optional workflow path for ComfyUI, base URL
+  + optional API key for A1111. A "Cloud fallback" row shows only
+  for local backends.
+- **Store surface** — `ImageGenStore.toBackendConfig()` returns a
+  plain snapshot the dispatcher accepts. The facade
+  (`ImageGenFacade` in `services/tools/types.ts`) exposes only the
+  snapshot + workflow-path getter so the tool stays decoupled from
+  the store.
+
+Bundling note (for the distributed `.exe`): the **client code**
+bundles fine — it's just TypeScript. The **backend** (Python +
+PyTorch + CUDA runtime + 7-24GB model weights) cannot reasonably
+be bundled. The current Phase-3 implementation assumes the user
+brings their own ComfyUI / A1111 install. A future polish could
+ship a first-run helper that downloads ComfyUI into
+`~/GatesAI/comfyui/` and boots it as a sidecar — same pattern as
+the existing bridge.
+
+Tests (18 new, 229 total):
+
+- `tests/services/image/a1111Client.test.ts` — 4 cases: request
+  shape + aspect-ratio dims, error-body surfacing, Bearer auth,
+  missing-images guard.
+- `tests/services/image/comfyClient.test.ts` — 7 cases:
+  `substituteWorkflow` type-preservation + substring semantics,
+  full submit-poll-fetch flow, workflow token wiring, timeout
+  path, /prompt rejection path.
+- `tests/services/image/imageBackend.test.ts` — 7 cases:
+  primary-ok, unconfigured-primary, local→cloud fallback on
+  failure, cloud-never-auto-falls-back, local→cloud on
+  missing-base-URL, double-failure reporting, identical
+  primary/fallback treated as no fallback.
+
+Typecheck + lint clean.
+
+## 2026-04-26 — Phase 2: Image generation via fal.ai (FLUX 2.x)
+
+Second phase of the multimodal + image-gen plan. The model can now
+produce images with a single tool call: `image_generate` takes a
+prompt, renders it through fal.ai FLUX 2.x, and saves the bytes to
+`/workspace/artifacts/` where the clickable-workspace-path link from
+the last session lets the user open the full-resolution result.
+
+Architecture:
+
+- `ImageGenStore` (`src/stores/ImageGenStore.ts`) — new MobX store
+  backed by `services/imageGenStorage.ts`, persisted under
+  `gatesai.imagegen.v1` separately from `gatesai.providers.v1`.
+  Holds `{backend, falApiKey, bflApiKey, defaultVariant}`; backend
+  switcher is ready for Phase 3 (local ComfyUI / A1111) without
+  churning the schema.
+- `FluxClient` (`src/services/image/fluxClient.ts`) — stateless
+  service wrapper around fal.ai's synchronous POST endpoints
+  (`https://fal.run/fal-ai/flux-pro/v2`, `/flux/v2/flex`,
+  `/flux/v2/dev`). Maps aspect-ratio strings to concrete
+  `image_size` dims, fetches the returned image bytes, and returns
+  `{base64, mime, width, height, seed, endpoint}`. Injectable `fetch`
+  for tests; surfaces fal error bodies in the thrown `Error`.
+- `image_generate` tool (`src/services/tools/imageGenerate.ts`) —
+  registered in the tool registry, gated into the per-turn toolset
+  by intent keywords (`draw`, `render`, `generate image`, `flux`,
+  `dall-e`, etc.). Writes base64 bytes through `fs.write`, so
+  artifacts flow through the same bridge jail as everything else.
+  Returns a concise `Saved: /workspace/artifacts/<file>.png
+  (WxH, seed=N, variant=...)` so the model never ingests raw base64.
+- Settings UI — new "Image generation" section in Settings → API
+  exposes the fal.ai key + default-variant selector. The field
+  re-uses the same masked/revealed key pattern as LLM providers.
+- Inline preview — when a message has an `image_generate` tool
+  result, `EditorialMessage` renders a `WorkspaceImage` thumbnail
+  right below the tool-result box so the generated artwork lands
+  visibly in the chat flow, not just as a path string.
+- `ToolContext.imageGen` facade — `ImageGenFacade` exposes only the
+  minimum surface (`hasUsableBackend`, `backend`, `getCredential`),
+  keeping the tool decoupled from the full store.
+
+Tests:
+
+- `tests/services/image/fluxClient.test.ts` — 4 cases covering auth
+  header, image_size per aspect ratio, endpoint selection per
+  variant, error-body surfacing, `endpointOverride`.
+- `tests/services/tools/imageGenerate.test.ts` — 6 cases covering
+  prompt validation, missing-key / offline-bridge error paths,
+  filename defaulting, filename sanitization against path
+  traversal, and the fs.write payload shape.
+
+All 211 tests pass; typecheck clean.
+
+## 2026-04-26 — Phase 1: Vision input (multimodal wire format)
+
+First phase of the multimodal + image-gen plan
+(`docs/plans/2026-04-26-multimodal-and-imagegen.md`). Users can now drop
+images into the composer, attach them to a user turn, and have every
+vision-capable model (Anthropic Claude, OpenAI GPT-4o / GPT-5+, Gemini,
+same families routed via OpenRouter) actually see the pixels instead of
+just the file footer.
+
+Architecture:
+
+- `UserMessage.attachments: MessageAttachmentRef[]` — structured refs
+  (path + mime + size) live alongside the legacy markdown footer in
+  `content`, so older persisted messages still parse via
+  `splitAttachmentFooter` while new turns use the authoritative field.
+- `BridgeStore.readAttachmentBase64()` — facade method (pure service
+  helper in `services/bridge/readAttachmentBytes.ts`) that fetches a
+  workspace file's bytes as base64, returning `null` when offline or on
+  failure so callers can degrade instead of throwing.
+- `modelSupportsVision(model)` — pattern-matches provider + model id
+  (with an explicit `Model.supportsVision` override), centralizing the
+  capability check so the composer, provider adapters, and future
+  tools all agree.
+- `LlmMessage.images?: LlmImagePart[]` — inline base64 on the wire. A
+  new `resolveWireImages()` resolver runs just before `provider.stream`
+  (gated on `hasAnyImageAttachment`, so the zero-image fast path stays
+  synchronous and time-sensitive streaming tests still pass).
+- Provider adapters extended to emit native multimodal shapes:
+  OpenAI-compat emits `image_url` content parts with `data:` URLs,
+  Anthropic emits `image` blocks with base64 sources, Gemini emits
+  `inlineData` parts.
+- UI: `WorkspaceImage` component renders attached images as thumbnails
+  (in both the composer preview and sent user messages), clicking opens
+  the file in the OS default handler. The composer shows a small
+  "text-only model" hint when the active model can't consume images.
+
+## 2026-04-25 — Clickable workspace paths in chat
+
+Inline code in assistant messages that looks like a `/workspace/...` path now
+renders as a clickable link. Click resolves the model-facing path against the
+bridge's reported `workspaceRoot` (platform-aware path joining via
+`core/workspacePaths.ts`) and opens the file with the OS default handler — so
+a `/workspace/artifacts/pi.html` artifact opens in the browser, a `.py` in
+the user's editor, etc. Implementation: a new `open_path` Tauri command
+(backed by the `open` crate), an `openExternal` service wrapper that no-ops
+gracefully outside Tauri, a `BridgeStore.openWorkspacePath()` facade that
+keeps UI code free of path manipulation, and a `<code>` override in
+`EditorialMessage` that detects workspace paths without re-parsing the
+markdown stream. Block code (anything with a syntax-highlight class) is left
+alone.
+
 ## 2026-04-25 — Quieter `fs.read` and tougher CSV header parsing
 
 `fs.read` no longer dumps base64 blobs into model context when the bridge

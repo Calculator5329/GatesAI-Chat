@@ -1,0 +1,123 @@
+import { autorun, makeAutoObservable, toJS } from 'mobx';
+import type { ImageBackendConfig } from '../services/image/imageBackend';
+import {
+  DEFAULT_IMAGE_GEN_CONFIG,
+  loadImageGenConfig,
+  saveImageGenConfig,
+  type ImageGenBackend,
+  type ImageGenConfig,
+} from '../services/imageGenStorage';
+
+/**
+ * Owns image-generation credentials + backend selection. Kept separate
+ * from {@link ProviderStore} because image-gen isn't quite "another LLM
+ * provider" — it has its own config shape (backend switcher, per-vendor
+ * keys, local base URLs) and different credentials per backend.
+ *
+ * UI asks {@link hasUsableBackend} to decide whether to show image-gen
+ * as "connected"; the `image_generate` tool asks {@link toBackendConfig}
+ * to get a plain config snapshot for the dispatcher.
+ */
+export class ImageGenStore {
+  config: ImageGenConfig;
+
+  constructor() {
+    this.config = loadImageGenConfig();
+    makeAutoObservable(this);
+
+    autorun(() => {
+      saveImageGenConfig(toJS(this.config));
+    });
+  }
+
+  get backend(): ImageGenBackend {
+    return this.config.backend;
+  }
+
+  get comfyWorkflowPath(): string | undefined {
+    return this.config.comfyWorkflowPath;
+  }
+
+  setBackend(backend: ImageGenBackend): void {
+    this.config = { ...this.config, backend };
+  }
+
+  setFalKey(key: string): void {
+    const trimmed = key.trim();
+    this.config = { ...this.config, falApiKey: trimmed || undefined };
+  }
+
+  setBflKey(key: string): void {
+    const trimmed = key.trim();
+    this.config = { ...this.config, bflApiKey: trimmed || undefined };
+  }
+
+  setComfyBaseUrl(url: string): void {
+    const trimmed = url.trim();
+    this.config = { ...this.config, comfyBaseUrl: trimmed || undefined };
+  }
+
+  setComfyWorkflowPath(path: string): void {
+    const trimmed = path.trim();
+    this.config = { ...this.config, comfyWorkflowPath: trimmed || undefined };
+  }
+
+  setA1111BaseUrl(url: string): void {
+    const trimmed = url.trim();
+    this.config = { ...this.config, a1111BaseUrl: trimmed || undefined };
+  }
+
+  setA1111Key(key: string): void {
+    const trimmed = key.trim();
+    this.config = { ...this.config, a1111ApiKey: trimmed || undefined };
+  }
+
+  setFallbackBackend(backend: ImageGenBackend | null): void {
+    this.config = { ...this.config, fallbackBackend: backend };
+  }
+
+  setDefaultVariant(variant: ImageGenConfig['defaultVariant']): void {
+    this.config = { ...this.config, defaultVariant: variant };
+  }
+
+  reset(): void {
+    this.config = { ...DEFAULT_IMAGE_GEN_CONFIG };
+  }
+
+  /** True when the currently-selected backend has usable credentials / URLs. */
+  get hasUsableBackend(): boolean {
+    return Boolean(this.getCredential());
+  }
+
+  /**
+   * Resolve the credential / base URL for a given backend. Used by
+   * Settings UI to decide whether to render "connected" state; the
+   * actual dispatcher reads the full config via {@link toBackendConfig}.
+   */
+  getCredential(backend: ImageGenBackend = this.backend): string | null {
+    switch (backend) {
+      case 'fal': return this.config.falApiKey ?? null;
+      case 'bfl': return this.config.bflApiKey ?? null;
+      case 'local-comfy': return this.config.comfyBaseUrl ?? null;
+      case 'local-a1111': return this.config.a1111BaseUrl ?? null;
+    }
+  }
+
+  /**
+   * Flatten the observable config into a plain config object the
+   * dispatcher can consume. Intentionally excludes `comfyWorkflowPath`
+   * — the tool resolves that through the bridge before calling the
+   * dispatcher (path → JSON).
+   */
+  toBackendConfig(): Omit<ImageBackendConfig, 'comfyWorkflowTemplate' | 'fetch'> {
+    return {
+      primary: this.config.backend,
+      falApiKey: this.config.falApiKey,
+      bflApiKey: this.config.bflApiKey,
+      comfyBaseUrl: this.config.comfyBaseUrl,
+      a1111BaseUrl: this.config.a1111BaseUrl,
+      a1111ApiKey: this.config.a1111ApiKey,
+      fallback: this.config.fallbackBackend ?? null,
+    };
+  }
+}

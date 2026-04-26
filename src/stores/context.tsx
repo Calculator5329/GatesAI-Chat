@@ -9,6 +9,7 @@ import type { OpenRouterStore } from './OpenRouterStore';
 import type { UserProfileStore } from './UserProfileStore';
 import type { BridgeStore } from './BridgeStore';
 import type { ExecStreamStore } from './ExecStreamStore';
+import type { ImageGenStore } from './ImageGenStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -56,4 +57,8 @@ export function useBridgeStore(): BridgeStore {
 
 export function useExecStreamStore(): ExecStreamStore {
   return useRootStore().execStream;
+}
+
+export function useImageGenStore(): ImageGenStore {
+  return useRootStore().imageGen;
 }

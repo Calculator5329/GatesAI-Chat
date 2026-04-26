@@ -211,5 +211,16 @@ function toOpenAiMessage(m: LlmMessage): unknown {
       })),
     };
   }
+  if (m.role === 'user' && m.images && m.images.length > 0) {
+    const parts: unknown[] = [];
+    if (m.content) parts.push({ type: 'text', text: m.content });
+    for (const img of m.images) {
+      parts.push({
+        type: 'image_url',
+        image_url: { url: `data:${img.mime};base64,${img.base64}` },
+      });
+    }
+    return { role: 'user', content: parts };
+  }
   return { role: m.role, content: m.content };
 }

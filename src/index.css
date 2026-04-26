@@ -231,6 +231,47 @@ body {
   background: var(--md-code-bg-inline);
   color: var(--md-code-text);
 }
+
+/*
+ * workspace-path-link: inline code that the model wrote as a /workspace/...
+ * path becomes a clickable chip the OS can open. Reads as a quiet link
+ * (accent color, underline on hover) but keeps the mono code interior so
+ * the path itself stays scannable.
+ */
+.md-body .workspace-path-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: inherit;
+  border-radius: 4px;
+}
+.md-body .workspace-path-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 2px;
+}
+.md-body .workspace-path-link code {
+  color: var(--accent);
+  background: var(--md-code-bg-inline);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms ease;
+}
+.md-body .workspace-path-link:hover code {
+  text-decoration-color: var(--accent);
+}
+.md-body .workspace-path-link__glyph {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 0.85em;
+  opacity: 0.75;
+}
 .md-body pre {
   margin: var(--md-block-gap) 0;
   border-radius: var(--md-code-radius);
@@ -305,4 +346,39 @@ body {
 }
 .user-attachment-size {
   color: color-mix(in srgb, var(--accent) 62%, var(--text));
+}
+.user-attachment-thumb {
+  display: block;
+  width: 88px;
+  height: 88px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  line-height: 0;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+.user-attachment-thumb:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  transform: translateY(-1px);
+}
+.user-attachment-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.user-attachment-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-faint));
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }

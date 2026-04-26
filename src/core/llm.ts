@@ -34,6 +34,23 @@ export interface LlmMessage {
   toolCalls?: ToolCall[];   // assistant only
   toolCallId?: string;      // tool only
   toolName?: string;        // tool only (some providers want this)
+  /**
+   * Inline image inputs for user messages. Populated just before send
+   * by `resolveWireImages` (or equivalent), which reads bytes from the
+   * bridge and base64-encodes them. Providers that support vision turn
+   * these into their native image block shape; providers that do not
+   * simply ignore them.
+   */
+  images?: LlmImagePart[];
+}
+
+/**
+ * One image attached to a wire-level user message. Bytes are inline
+ * base64 — refs are already resolved by the time the provider sees them.
+ */
+export interface LlmImagePart {
+  mime: string;
+  base64: string;
 }
 
 /** A function/tool the model is allowed to call. JSON-Schema for parameters. */
