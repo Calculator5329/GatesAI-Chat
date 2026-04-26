@@ -77,7 +77,7 @@ describe('ComfyClient', () => {
       },
       {
         match: (u) => u.includes('/view'),
-        respond: () => new Response(pngBytes(), { status: 200, headers: { 'content-type': 'image/png' } }),
+        respond: () => new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200, headers: { 'content-type': 'image/png' } }),
       },
     ]);
 
@@ -114,7 +114,7 @@ describe('ComfyClient', () => {
       if (url.includes('/history/')) {
         return new Response(JSON.stringify({ p: { outputs: { '9': { images: [{ filename: 'a.png', subfolder: '', type: 'output' }] } } } }), { status: 200, headers: { 'content-type': 'application/json' } });
       }
-      return new Response(pngBytes(), { status: 200 });
+      return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200 });
     };
     const client = new ComfyClient({
       baseUrl: 'http://h',
@@ -134,6 +134,36 @@ describe('ComfyClient', () => {
     expect(submittedFirst.prompt.node.inputs.width).toBe(1344);
     expect(submittedFirst.prompt.node.inputs.height).toBe(768);
     expect('_comment' in submittedFirst.prompt).toBe(false);
+  });
+
+  it('uses the SDXL Lightning workflow for draft quality', async () => {
+    const submitted: unknown[] = [];
+    const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/prompt')) {
+        submitted.push(JSON.parse(init!.body as string));
+        return new Response(JSON.stringify({ prompt_id: 'p' }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url.includes('/history/')) {
+        return new Response(JSON.stringify({ p: { outputs: { '9': { images: [{ filename: 'a.png', subfolder: '', type: 'output' }] } } } }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200 });
+    };
+    const client = new ComfyClient({
+      baseUrl: 'http://h',
+      fetch: fetchImpl as typeof fetch,
+      sleep: async () => undefined,
+      qualityPreset: 'draft',
+    });
+
+    await client.generate({ prompt: 'fast background', aspectRatio: '16:9', seed: 9 });
+
+    const submittedFirst = submitted[0] as {
+      prompt: Record<string, { class_type?: string; inputs?: Record<string, unknown> }>;
+    };
+    expect(submittedFirst.prompt['4'].class_type).toBe('CheckpointLoaderSimple');
+    expect(submittedFirst.prompt['4'].inputs?.ckpt_name).toBe('sdxl_lightning_4step.safetensors');
+    expect(submittedFirst.prompt['3'].inputs?.steps).toBe(4);
   });
 
   it('times out with a clear error if history never reports outputs', async () => {

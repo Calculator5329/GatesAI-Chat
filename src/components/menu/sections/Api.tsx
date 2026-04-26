@@ -271,6 +271,15 @@ const ComfyBackendFields = observer(function ComfyBackendFields() {
           style={{ ...tokens.mono, fontSize: 12, flex: 1 }}
         />
       </SettingsRow>
+      <SettingsRow label="Quality preset">
+        <Select
+          value={store.config.comfyQualityPreset ?? 'final'}
+          onChange={e => store.setComfyQualityPreset(e.currentTarget.value as 'final' | 'draft')}
+        >
+          <option value="draft">Draft — SDXL Lightning 4-step</option>
+          <option value="final">Final — custom / FLUX workflow</option>
+        </Select>
+      </SettingsRow>
       <SettingsRow label="Workflow template">
         <Input
           placeholder="(built-in SDXL default) · e.g. /workspace/notes/flux-workflow.json"
@@ -280,7 +289,7 @@ const ComfyBackendFields = observer(function ComfyBackendFields() {
         />
       </SettingsRow>
       <div style={{ fontSize: 11.5, color: 'var(--text-faint)', paddingLeft: 8 }}>
-        Use <code style={tokens.mono}>{'{{PROMPT}}'}</code>, <code style={tokens.mono}>{'{{WIDTH}}'}</code>, <code style={tokens.mono}>{'{{HEIGHT}}'}</code>, <code style={tokens.mono}>{'{{SEED}}'}</code> as placeholders in your workflow JSON.
+        Draft mode expects <code style={tokens.mono}>sdxl_lightning_4step.safetensors</code> in ComfyUI checkpoints and ignores the custom workflow path. Final mode uses your workflow JSON with <code style={tokens.mono}>{'{{PROMPT}}'}</code>, <code style={tokens.mono}>{'{{WIDTH}}'}</code>, <code style={tokens.mono}>{'{{HEIGHT}}'}</code>, <code style={tokens.mono}>{'{{SEED}}'}</code> placeholders.
       </div>
     </>
   );

@@ -33,6 +33,8 @@ export interface ComfyClientDeps {
   clientId?: string;
   /** Override the default SDXL txt2img template. */
   workflowTemplate?: Record<string, unknown>;
+  /** Built-in workflow choice when no explicit template is supplied. */
+  qualityPreset?: 'final' | 'draft';
   /** How many times to poll /history. 120 × 500ms = 60s default. */
   maxPollAttempts?: number;
   pollIntervalMs?: number;
@@ -85,6 +87,41 @@ const DEFAULT_SDXL_WORKFLOW: Record<string, unknown> = {
   },
 };
 
+const SDXL_LIGHTNING_4STEP_WORKFLOW: Record<string, unknown> = {
+  '3': {
+    class_type: 'KSampler',
+    inputs: {
+      seed: '{{SEED}}', steps: 4, cfg: 1,
+      sampler_name: 'euler', scheduler: 'sgm_uniform', denoise: 1,
+      model: ['4', 0], positive: ['6', 0], negative: ['7', 0], latent_image: ['5', 0],
+    },
+  },
+  '4': {
+    class_type: 'CheckpointLoaderSimple',
+    inputs: { ckpt_name: 'sdxl_lightning_4step.safetensors' },
+  },
+  '5': {
+    class_type: 'EmptyLatentImage',
+    inputs: { width: '{{WIDTH}}', height: '{{HEIGHT}}', batch_size: 1 },
+  },
+  '6': {
+    class_type: 'CLIPTextEncode',
+    inputs: { text: '{{PROMPT}}', clip: ['4', 1] },
+  },
+  '7': {
+    class_type: 'CLIPTextEncode',
+    inputs: { text: 'blurry, low quality, watermark', clip: ['4', 1] },
+  },
+  '8': {
+    class_type: 'VAEDecode',
+    inputs: { samples: ['3', 0], vae: ['4', 2] },
+  },
+  '9': {
+    class_type: 'SaveImage',
+    inputs: { filename_prefix: 'gatesai_sdxl_lightning', images: ['8', 0] },
+  },
+};
+
 interface PromptResp { prompt_id?: string; error?: string | { message?: string } }
 interface HistoryOutputImage { filename: string; subfolder: string; type: string }
 interface HistoryEntry {
@@ -105,7 +142,9 @@ export class ComfyClient implements ImageBackend {
   constructor(deps: ComfyClientDeps) {
     this.baseUrl = deps.baseUrl.replace(/\/+$/, '');
     this.clientId = deps.clientId ?? 'gatesai-chat';
-    this.workflowTemplate = deps.workflowTemplate ?? DEFAULT_SDXL_WORKFLOW;
+    this.workflowTemplate = deps.workflowTemplate ?? (
+      deps.qualityPreset === 'draft' ? SDXL_LIGHTNING_4STEP_WORKFLOW : DEFAULT_SDXL_WORKFLOW
+    );
     this.fetchImpl = wrapGlobalFetch(deps.fetch);
     this.sleep = deps.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.maxPoll = deps.maxPollAttempts ?? DEFAULT_POLL_ATTEMPTS;

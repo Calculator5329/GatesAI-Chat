@@ -50,7 +50,7 @@ export const DEFAULT_IMAGE_GEN_CONFIG: ImageGenConfig = {
   comfyBaseUrl: 'http://127.0.0.1:8188',
   a1111BaseUrl: 'http://127.0.0.1:7860',
   fallbackBackend: 'fal',
-  comfyQualityPreset: 'final',
+  comfyQualityPreset: 'draft',
 };
 
 const KEY = 'gatesai.imagegen.v1';

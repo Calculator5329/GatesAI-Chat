@@ -79,7 +79,11 @@ export const imageGenerateTool: Tool = {
     // ComfyUI-only: load the user's custom workflow JSON from /workspace/
     // if they've pointed at one. We do this here rather than in the
     // dispatcher because only the bridge knows how to read workspace paths.
-    if (snapshot.primary === 'local-comfy' && ctx.imageGen.comfyWorkflowPath) {
+    if (
+      snapshot.primary === 'local-comfy'
+      && snapshot.comfyQualityPreset !== 'draft'
+      && ctx.imageGen.comfyWorkflowPath
+    ) {
       const template = await loadComfyWorkflow(ctx.bridge, ctx.imageGen.comfyWorkflowPath);
       if (typeof template === 'string') return template; // error string
       config.comfyWorkflowTemplate = template;

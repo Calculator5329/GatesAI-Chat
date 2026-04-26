@@ -21,7 +21,7 @@ function fakeBridge(opts: {
   } as unknown as ToolContext['bridge'];
 }
 
-function fakeImageGen(opts: { key?: string; backend?: 'fal' | 'local-comfy' | 'local-a1111'; comfyBaseUrl?: string; a1111BaseUrl?: string; fallback?: 'fal' | null; comfyWorkflowPath?: string }): ToolContext['imageGen'] {
+function fakeImageGen(opts: { key?: string; backend?: 'fal' | 'local-comfy' | 'local-a1111'; comfyBaseUrl?: string; a1111BaseUrl?: string; fallback?: 'fal' | null; comfyWorkflowPath?: string; comfyQualityPreset?: 'final' | 'draft' }): ToolContext['imageGen'] {
   const backend = opts.backend ?? 'fal';
   return {
     hasUsableBackend: !!(opts.key ?? opts.comfyBaseUrl ?? opts.a1111BaseUrl),
@@ -38,6 +38,7 @@ function fakeImageGen(opts: { key?: string; backend?: 'fal' | 'local-comfy' | 'l
       primary: backend,
       falApiKey: opts.key,
       comfyBaseUrl: opts.comfyBaseUrl,
+      comfyQualityPreset: opts.comfyQualityPreset,
       a1111BaseUrl: opts.a1111BaseUrl,
       fallback: opts.fallback ?? null,
     }),
@@ -71,7 +72,7 @@ beforeEach(() => {
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
     if (url === 'https://cdn.fal/img.png') {
-      return new Response(pngBytes(), { status: 200, headers: { 'content-type': 'image/png' } });
+      return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200, headers: { 'content-type': 'image/png' } });
     }
     throw new Error(`unexpected fetch ${url}`);
   });
@@ -160,5 +161,40 @@ describe('image_generate tool', () => {
     expect(filename).not.toMatch(/\.\./);
     expect(filename).not.toMatch(/ /);
     expect(filename).toMatch(/evil_name_with_spaces/);
+  });
+
+  it('does not load a custom Comfy workflow while draft quality is selected', async () => {
+    const requests: FakeRequest[] = [];
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        requests,
+        respond: (op, data) => {
+          if (op === 'fs.write') return { path: (data as { path: string }).path, bytes: 10 };
+          throw new Error(`unexpected bridge request ${op}`);
+        },
+      }),
+      imageGen: fakeImageGen({
+        backend: 'local-comfy',
+        comfyBaseUrl: 'http://127.0.0.1:8188',
+        comfyWorkflowPath: 'notes/flux2-workflow.json',
+        comfyQualityPreset: 'draft',
+      }),
+    });
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/prompt')) return new Response(JSON.stringify({ prompt_id: 'p' }), { status: 200 });
+      if (url.includes('/history/')) return new Response(JSON.stringify({ p: { outputs: { '9': { images: [{ filename: 'a.png', subfolder: '', type: 'output' }] } } } }), { status: 200 });
+      return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200 });
+    }) as unknown as typeof fetch;
+    try {
+      const out = await imageGenerateTool.execute({ prompt: 'draft background' }, ctx);
+      expect(out).toMatch(/backend=local-comfy/);
+      expect(requests.some((r) => r.op === 'fs.read')).toBe(false);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });

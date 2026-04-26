@@ -62,6 +62,7 @@ export interface ImageBackendSnapshot {
   falApiKey?: string;
   bflApiKey?: string;
   comfyBaseUrl?: string;
+  comfyQualityPreset?: 'final' | 'draft';
   a1111BaseUrl?: string;
   a1111ApiKey?: string;
   fallback?: ImageBackendId | null;

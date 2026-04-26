@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-04-26 — Feature: SDXL Lightning draft image preset
+
+Added a ComfyUI quality preset for fast prototype images. `Draft` is now the
+default ComfyUI preset and uses a built-in SDXL Lightning 4-step workflow
+targeting `sdxl_lightning_4step.safetensors` in ComfyUI's checkpoints folder.
+`Final` keeps using the custom FLUX workflow path. The public `image_generate`
+tool contract stays unchanged.
+
 ## 2026-04-26 — Bugfix: ComfyUI workflow metadata and background prompts
 
 ComfyUI crashed with `'str' object has no attribute 'get'` when the custom

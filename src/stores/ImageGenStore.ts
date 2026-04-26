@@ -62,6 +62,10 @@ export class ImageGenStore {
     this.config = { ...this.config, comfyWorkflowPath: trimmed || undefined };
   }
 
+  setComfyQualityPreset(preset: ImageGenConfig['comfyQualityPreset']): void {
+    this.config = { ...this.config, comfyQualityPreset: preset };
+  }
+
   setA1111BaseUrl(url: string): void {
     const trimmed = url.trim();
     this.config = { ...this.config, a1111BaseUrl: trimmed || undefined };
@@ -115,6 +119,7 @@ export class ImageGenStore {
       falApiKey: this.config.falApiKey,
       bflApiKey: this.config.bflApiKey,
       comfyBaseUrl: this.config.comfyBaseUrl,
+      comfyQualityPreset: this.config.comfyQualityPreset ?? 'final',
       a1111BaseUrl: this.config.a1111BaseUrl,
       a1111ApiKey: this.config.a1111ApiKey,
       fallback: this.config.fallbackBackend ?? null,

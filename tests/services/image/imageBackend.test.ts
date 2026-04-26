@@ -84,10 +84,10 @@ describe('dispatchImageGenerate', () => {
   });
 
   it('treats identical primary/fallback as no-fallback', async () => {
-    const fetch = vi.fn(async () => new Response('nope', { status: 500, statusText: 'err' })) as unknown as typeof fetch;
+    const fetchImpl = vi.fn(async () => new Response('nope', { status: 500, statusText: 'err' })) as unknown as typeof fetch;
     await expect(dispatchImageGenerate(
       { prompt: 'x' },
-      { primary: 'fal', falApiKey: 'k', fallback: 'fal', fetch },
+      { primary: 'fal', falApiKey: 'k', fallback: 'fal', fetch: fetchImpl },
     )).rejects.toThrow(/fal 500/);
   });
 });

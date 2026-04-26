@@ -31,7 +31,7 @@ describe('FluxClient', () => {
       },
       {
         match: (u) => u === 'https://cdn.fal.ai/result/abc.png',
-        respond: () => new Response(bytes, { status: 200, headers: { 'content-type': 'image/png' } }),
+        respond: () => new Response(new Blob([bytes.buffer as ArrayBuffer]), { status: 200, headers: { 'content-type': 'image/png' } }),
       },
     ]);
 
@@ -62,7 +62,7 @@ describe('FluxClient', () => {
       },
       {
         match: (u) => u === 'https://cdn/img.png',
-        respond: () => new Response(bytes, { status: 200 }),
+        respond: () => new Response(new Blob([bytes.buffer as ArrayBuffer]), { status: 200 }),
       },
     ]);
 
@@ -94,7 +94,7 @@ describe('FluxClient', () => {
       },
       {
         match: (u) => u === 'https://cdn/z.png',
-        respond: () => new Response(bytes, { status: 200 }),
+        respond: () => new Response(new Blob([bytes.buffer as ArrayBuffer]), { status: 200 }),
       },
     ]);
     const client = new FluxClient({ apiKey: 'k', fetch: fakeFetch });

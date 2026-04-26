@@ -158,6 +158,8 @@ Closing the window stops the backend.
 4. Set:
    - **Backend:** `Local ComfyUI`
    - **Base URL:** `http://127.0.0.1:8188`
+   - **Quality preset:** `Draft — SDXL Lightning 4-step` for fast prototype
+     images, or `Final — custom / FLUX workflow` for FLUX 2.
    - **Workflow JSON path:** `notes/flux2-workflow.json`
      *(This file ships with the app in your workspace under `notes/`. If it's
      missing, see the "Workflow template" section below.)*
@@ -178,6 +180,8 @@ The `image_generate` tool will fire. Expected behavior:
 
 - **First run:** 30–90 seconds (FLUX 2 has to load ~33 GB into VRAM).
 - **Subsequent runs:** 5–15 seconds per image.
+- **Draft preset:** usually much faster after `sdxl_lightning_4step.safetensors`
+  is loaded, using a built-in 4-step SDXL Lightning workflow.
 - The result saves to `workspace/artifacts/<timestamp>-<slug>.png`.
 - A thumbnail renders inline in the chat transcript.
 - Clicking the path opens the file in the OS viewer.
@@ -202,6 +206,20 @@ If it's missing, recreate it with a minimal FLUX 2 node graph:
    height with `{{HEIGHT}}`, and the seed value with `{{SEED}}`
 
 Any valid ComfyUI API-format workflow with those four tokens will work.
+
+### Draft SDXL Lightning preset
+
+For quick prototypes, download `sdxl_lightning_4step.safetensors` from
+`https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors`
+and place it in:
+
+```text
+ComfyUI\models\checkpoints\sdxl_lightning_4step.safetensors
+```
+
+Then choose **Draft — SDXL Lightning 4-step** in Settings → API. Draft is the
+default ComfyUI preset, uses the app's built-in workflow, and ignores the
+custom workflow path.
 
 ---
 
