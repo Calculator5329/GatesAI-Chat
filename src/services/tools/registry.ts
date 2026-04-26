@@ -1,5 +1,5 @@
 import type { ToolDef } from '../../core/llm';
-import type { Tool, ToolContext } from './types';
+import type { Tool, ToolContext, ToolExecuteResult } from './types';
 import { memoryTool } from './memory';
 import { timeTool } from './time';
 import { notesTool } from './notes';
@@ -81,13 +81,14 @@ export class ToolRegistry {
     return false;
   }
 
-  async execute(name: string, args: Record<string, unknown>, ctx: ToolContext): Promise<string> {
+  async execute(name: string, args: Record<string, unknown>, ctx: ToolContext): Promise<ToolExecuteResult> {
     const tool = this.get(name);
-    if (!tool) return `Error: unknown tool "${name}".`;
+    if (!tool) return { content: `Error: unknown tool "${name}".` };
     try {
-      return await tool.execute(args, ctx);
+      const out = await tool.execute(args, ctx);
+      return typeof out === 'string' ? { content: out } : out;
     } catch (err) {
-      return `Error executing ${name}: ${(err as Error).message}`;
+      return { content: `Error executing ${name}: ${(err as Error).message}` };
     }
   }
 }

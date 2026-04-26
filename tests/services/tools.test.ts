@@ -63,7 +63,7 @@ describe('notes tool', () => {
       ctx,
     );
     expect(created).toMatch(/^Created note n-/);
-    const id = created.match(/Created note (n-[a-z0-9]+)/)![1];
+    const id = (created as string).match(/Created note (n-[a-z0-9]+)/)![1];
 
     // read
     const read = await notesTool.execute({ action: 'read', id }, ctx);
@@ -208,7 +208,7 @@ describe('thread tool', () => {
       { action: 'list' },
       makeCtx({ chat: chat as unknown as ToolContext['chat'], threadId: 't1' }),
     );
-    const lines = out.split('\n');
+    const lines = (out as string).split('\n');
     expect(lines[0]).toContain('t2');
     expect(lines[0]).toContain('a recap');
     expect(lines[1]).toContain('t1');
@@ -274,7 +274,7 @@ describe('fs tool', () => {
     expect(out).toContain('mime: text/markdown');
     expect(out).toContain('size: 5');
     expect(out).toContain('encoding: utf-8');
-    expect(out.endsWith('hello')).toBe(true);
+    expect((out as string).endsWith('hello')).toBe(true);
   });
 
   it('caps large read output with a model-facing continuation hint', async () => {

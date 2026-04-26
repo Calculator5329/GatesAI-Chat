@@ -1,5 +1,6 @@
 import type { LlmImagePart, LlmMessage } from '../../core/llm';
 import type { Message } from '../../core/types';
+import { isImageMime } from '../../core/attachments';
 
 /**
  * Minimal surface the resolver needs from the bridge. Narrower than the
@@ -64,10 +65,6 @@ function collectUserWireIndices(wire: LlmMessage[]): number[] {
   const idxs: number[] = [];
   for (let i = 0; i < wire.length; i++) if (wire[i].role === 'user') idxs.push(i);
   return idxs;
-}
-
-function isImageMime(mime: string): boolean {
-  return /^image\//i.test(mime);
 }
 
 async function readOne(bridge: AttachmentBytesReader, path: string): Promise<LlmImagePart | null> {

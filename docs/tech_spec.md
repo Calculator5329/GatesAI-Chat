@@ -39,6 +39,13 @@ interface ToolResult {
   toolName: string;     // denormalized so the renderer doesn't need a join
   content: string;      // what the tool returned (and the model sees next round)
   ranAt: number;
+  artifacts?: ToolResultArtifact[];   // UI-only side channel (image thumbnails, ...)
+}
+
+interface ToolResultArtifact {
+  kind: 'image';
+  path: string;         // workspace path the UI can render
+  mime: string;
 }
 
 interface Thread {
@@ -250,6 +257,15 @@ the stored chat model unchanged.
 Adding a tool: drop `services/tools/<name>.ts` exporting a `Tool`, then add
 one `toolRegistry.register()` line in `services/tools/registry.ts`. No UI
 wiring required.
+
+Tools may return either a plain `string` (the common case — the string
+becomes the tool result the model sees next round) or
+`{ content: string; artifacts?: ToolResultArtifact[] }`. The `content`
+remains the model-facing payload; `artifacts` is a UI-only side channel
+the chat renderer reads to show rich outputs (e.g. the `image_generate`
+thumbnail). Concretely, `image_generate` returns
+`{ content: 'Saved: …', artifacts: [{ kind:'image', path, mime }] }`
+so the renderer never has to parse the tool result string for a path.
 
 `ToolContext` carries narrow facades tools may reach into: `profile`, `chat`,
 optional `notes`, optional `summary`, optional `bridge`, optional `execStream`,

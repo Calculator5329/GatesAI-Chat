@@ -129,18 +129,16 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
           {calls.map(call => {
             const result = resultByCallId.get(call.id);
             const showLiveTail = !result && call.name === 'terminal';
-            const artifactPath = result && call.name === 'image_generate'
-              ? extractArtifactPath(result.content)
-              : null;
+            const imageArtifacts = (result?.artifacts ?? []).filter(a => a.kind === 'image');
             return (
               <div key={call.id}>
                 <ToolCallView call={call} style={ui.toolCallStyle} />
                 {result && <ToolResultView result={result} style={ui.toolCallStyle} />}
-                {artifactPath && (
-                  <div style={{ marginTop: 8 }}>
-                    <WorkspaceImage path={artifactPath} alt="Generated image" kind="image" />
+                {imageArtifacts.map(artifact => (
+                  <div key={artifact.path} style={{ marginTop: 8 }}>
+                    <WorkspaceImage path={artifact.path} alt="Generated image" kind="image" />
                   </div>
-                )}
+                ))}
                 {showLiveTail && <LiveExecTail store={execStream} />}
               </div>
             );
@@ -221,12 +219,6 @@ function WorkspacePathLink({ path, bridge }: { path: string; bridge: BridgeStore
       <code>{path}</code>
     </button>
   );
-}
-
-function extractArtifactPath(text: string): string | null {
-  // Tool emits "Saved: /workspace/artifacts/<file>.<ext> (...)".
-  const m = text.match(/\/workspace\/artifacts\/[^\s)]+\.(?:png|jpe?g|webp|gif)/i);
-  return m ? m[0] : null;
 }
 
 function childrenToString(children: ReactNode): string {

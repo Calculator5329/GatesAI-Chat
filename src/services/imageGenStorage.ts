@@ -5,11 +5,14 @@
  * without churning the LLM-provider shape.
  */
 
-export type ImageGenBackend = 'fal' | 'bfl' | 'local-comfy' | 'local-a1111';
-export type ComfyQualityPreset = 'final' | 'draft';
+import type { ImageBackendId, ComfyQualityPreset } from './image/types';
+
+export type { ImageBackendId, ComfyQualityPreset };
+/** @deprecated Use {@link ImageBackendId} from `services/image/types`. */
+export type ImageGenBackend = ImageBackendId;
 
 export interface ImageGenConfig {
-  backend: ImageGenBackend;
+  backend: ImageBackendId;
   falApiKey?: string;
   bflApiKey?: string;
 
@@ -38,7 +41,7 @@ export interface ImageGenConfig {
    * When a local backend fails, try this cloud backend automatically.
    * `null` disables the fallback.
    */
-  fallbackBackend?: ImageGenBackend | null;
+  fallbackBackend?: ImageBackendId | null;
 
   /** Default cloud variant used when the tool doesn't specify one. */
   defaultVariant?: 'flux-2-pro' | 'flux-2-flex' | 'flux-2-dev';

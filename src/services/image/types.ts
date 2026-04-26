@@ -39,6 +39,33 @@ export interface GenerateImageResult {
 
 export type ImageBackendId = 'fal' | 'bfl' | 'local-comfy' | 'local-a1111';
 
+export type ComfyQualityPreset = 'final' | 'draft';
+
+/**
+ * Plain JSON-serializable snapshot of the user's image-gen settings,
+ * resolved at tool-call time and consumed by the dispatcher and tools.
+ * Source of truth for the shape; `services/tools/types.ts` re-exports it.
+ *
+ * Kept JSON-serializable on purpose: a future `ImageJobStore` will persist
+ * one snapshot per queued job so mid-run settings changes don't corrupt
+ * in-flight batches.
+ */
+export interface ImageBackendSnapshot {
+  primary: ImageBackendId;
+  falApiKey?: string;
+  bflApiKey?: string;
+  comfyBaseUrl?: string;
+  comfyQualityPreset?: ComfyQualityPreset;
+  a1111BaseUrl?: string;
+  a1111ApiKey?: string;
+  fallback?: ImageBackendId | null;
+  /**
+   * Default cloud variant the tool falls back to when the model
+   * doesn't pick one. Local backends ignore this.
+   */
+  defaultVariant?: FluxVariant;
+}
+
 export interface ImageBackend {
   readonly id: ImageBackendId;
   generate(req: GenerateImageRequest): Promise<GenerateImageResult>;

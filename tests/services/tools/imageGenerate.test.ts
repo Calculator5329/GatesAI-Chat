@@ -21,7 +21,7 @@ function fakeBridge(opts: {
   } as unknown as ToolContext['bridge'];
 }
 
-function fakeImageGen(opts: { key?: string; backend?: 'fal' | 'local-comfy' | 'local-a1111'; comfyBaseUrl?: string; a1111BaseUrl?: string; fallback?: 'fal' | null; comfyWorkflowPath?: string; comfyQualityPreset?: 'final' | 'draft' }): ToolContext['imageGen'] {
+function fakeImageGen(opts: { key?: string; backend?: 'fal' | 'local-comfy' | 'local-a1111'; comfyBaseUrl?: string; a1111BaseUrl?: string; fallback?: 'fal' | null; comfyWorkflowPath?: string; comfyQualityPreset?: 'final' | 'draft'; defaultVariant?: 'flux-2-pro' | 'flux-2-flex' | 'flux-2-dev' }): ToolContext['imageGen'] {
   const backend = opts.backend ?? 'fal';
   return {
     hasUsableBackend: !!(opts.key ?? opts.comfyBaseUrl ?? opts.a1111BaseUrl),
@@ -41,6 +41,7 @@ function fakeImageGen(opts: { key?: string; backend?: 'fal' | 'local-comfy' | 'l
       comfyQualityPreset: opts.comfyQualityPreset,
       a1111BaseUrl: opts.a1111BaseUrl,
       fallback: opts.fallback ?? null,
+      defaultVariant: opts.defaultVariant,
     }),
   };
 }
@@ -60,6 +61,10 @@ const originalFetch = globalThis.fetch;
 
 function pngBytes(): Uint8Array {
   return new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+}
+
+function text(out: Awaited<ReturnType<typeof imageGenerateTool.execute>>): string {
+  return typeof out === 'string' ? out : out.content;
 }
 
 beforeEach(() => {
@@ -87,19 +92,19 @@ describe('image_generate tool', () => {
   it('rejects empty prompts', async () => {
     const ctx = makeCtx({ bridge: fakeBridge({ online: true }), imageGen: fakeImageGen({ key: 'k' }) });
     const out = await imageGenerateTool.execute({ prompt: '   ' }, ctx);
-    expect(out).toMatch(/`prompt` is required/);
+    expect(text(out)).toMatch(/`prompt` is required/);
   });
 
   it('reports a clear error when no fal key is configured', async () => {
     const ctx = makeCtx({ bridge: fakeBridge({ online: true }), imageGen: fakeImageGen({}) });
     const out = await imageGenerateTool.execute({ prompt: 'a cat' }, ctx);
-    expect(out).toMatch(/no fal\.ai API key/i);
+    expect(text(out)).toMatch(/no fal\.ai API key/i);
   });
 
   it('reports a clear error when the bridge is offline', async () => {
     const ctx = makeCtx({ bridge: fakeBridge({ online: false }), imageGen: fakeImageGen({ key: 'k' }) });
     const out = await imageGenerateTool.execute({ prompt: 'a cat' }, ctx);
-    expect(out).toMatch(/bridge is offline/i);
+    expect(text(out)).toMatch(/bridge is offline/i);
   });
 
   it('writes base64 bytes to /workspace/artifacts/ via fs.write', async () => {
@@ -118,9 +123,12 @@ describe('image_generate tool', () => {
       ctx,
     );
 
-    expect(out).toMatch(/Saved: \/workspace\/artifacts\/cathedral\.png/);
-    expect(out).toMatch(/backend=fal/);
-    expect(out).toMatch(/seed=7/);
+    expect(text(out)).toMatch(/Saved: \/workspace\/artifacts\/cathedral\.png/);
+    expect(text(out)).toMatch(/backend=fal/);
+    expect(text(out)).toMatch(/seed=7/);
+    expect(typeof out === 'string' ? null : out.artifacts).toEqual([
+      { kind: 'image', path: '/workspace/artifacts/cathedral.png', mime: 'image/png' },
+    ]);
 
     expect(requests).toHaveLength(1);
     expect(requests[0].op).toBe('fs.write');
@@ -140,7 +148,7 @@ describe('image_generate tool', () => {
     });
 
     const out = await imageGenerateTool.execute({ prompt: 'a forest' }, ctx);
-    expect(out).toMatch(/\/workspace\/artifacts\/flux-\d{8}-\d{6}\.png/);
+    expect(text(out)).toMatch(/\/workspace\/artifacts\/flux-\d{8}-\d{6}\.png/);
   });
 
   it('sanitizes filenames with path separators and unsafe characters', async () => {
@@ -155,7 +163,7 @@ describe('image_generate tool', () => {
       { prompt: 'x', filename: '../evil/name with spaces?' },
       ctx,
     );
-    const pathMatch = out.match(/\/workspace\/artifacts\/[^\s]+\.png/);
+    const pathMatch = text(out).match(/\/workspace\/artifacts\/[^\s]+\.png/);
     expect(pathMatch).not.toBeNull();
     const filename = pathMatch![0];
     expect(filename).not.toMatch(/\.\./);
@@ -191,10 +199,91 @@ describe('image_generate tool', () => {
     }) as unknown as typeof fetch;
     try {
       const out = await imageGenerateTool.execute({ prompt: 'draft background' }, ctx);
-      expect(out).toMatch(/backend=local-comfy/);
+      expect(text(out)).toMatch(/backend=local-comfy/);
       expect(requests.some((r) => r.op === 'fs.read')).toBe(false);
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('honors snapshot.defaultVariant when args.variant is omitted', async () => {
+    const calls: string[] = [];
+    const impl = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input.toString();
+      calls.push(url);
+      if (url.startsWith('https://fal.run/')) {
+        return new Response(JSON.stringify({
+          images: [{ url: 'https://cdn.fal/img.png', width: 1024, height: 1024 }],
+          seed: 1,
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url === 'https://cdn.fal/img.png') {
+        return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200, headers: { 'content-type': 'image/png' } });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    globalThis.fetch = impl as unknown as typeof fetch;
+
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        respond: (_op, data) => ({ path: (data as { path: string }).path, bytes: 10 }),
+      }),
+      imageGen: fakeImageGen({ key: 'k', defaultVariant: 'flux-2-flex' }),
+    });
+
+    await imageGenerateTool.execute({ prompt: 'sunset' }, ctx);
+    expect(calls.some(u => u.startsWith('https://fal.run/fal-ai/flux/v2/flex'))).toBe(true);
+  });
+
+  it('args.variant overrides snapshot.defaultVariant', async () => {
+    const calls: string[] = [];
+    const impl = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input.toString();
+      calls.push(url);
+      if (url.startsWith('https://fal.run/')) {
+        return new Response(JSON.stringify({ images: [{ url: 'https://cdn.fal/img.png', width: 1, height: 1 }], seed: 1 }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url === 'https://cdn.fal/img.png') return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200, headers: { 'content-type': 'image/png' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    globalThis.fetch = impl as unknown as typeof fetch;
+
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        respond: (_op, data) => ({ path: (data as { path: string }).path, bytes: 10 }),
+      }),
+      imageGen: fakeImageGen({ key: 'k', defaultVariant: 'flux-2-flex' }),
+    });
+
+    await imageGenerateTool.execute({ prompt: 'sunset', variant: 'flux-2-dev' }, ctx);
+    expect(calls.some(u => u.startsWith('https://fal.run/fal-ai/flux/v2/dev'))).toBe(true);
+    expect(calls.some(u => u.startsWith('https://fal.run/fal-ai/flux/v2/flex'))).toBe(false);
+  });
+
+  it('falls back to flux-2-pro when neither args.variant nor defaultVariant is set', async () => {
+    const calls: string[] = [];
+    const impl = vi.fn(async (input: RequestInfo | URL): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input.toString();
+      calls.push(url);
+      if (url.startsWith('https://fal.run/')) {
+        return new Response(JSON.stringify({ images: [{ url: 'https://cdn.fal/img.png', width: 1, height: 1 }], seed: 1 }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url === 'https://cdn.fal/img.png') return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200, headers: { 'content-type': 'image/png' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    globalThis.fetch = impl as unknown as typeof fetch;
+
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        respond: (_op, data) => ({ path: (data as { path: string }).path, bytes: 10 }),
+      }),
+      imageGen: fakeImageGen({ key: 'k' }),
+    });
+
+    await imageGenerateTool.execute({ prompt: 'sunset' }, ctx);
+    expect(calls.some(u => u.startsWith('https://fal.run/fal-ai/flux-pro/v2'))).toBe(true);
   });
 });

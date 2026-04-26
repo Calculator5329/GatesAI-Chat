@@ -1,4 +1,4 @@
-import { autorun, makeAutoObservable, toJS } from 'mobx';
+import { autorun, makeAutoObservable, runInAction, toJS } from 'mobx';
 import type {
   AccentKey,
   BgKey,
@@ -13,6 +13,7 @@ import type {
   ToolCallStyleKey,
 } from '../core/types';
 import { loadUiPrefs, saveUiPrefs } from '../services/uiPrefsStorage';
+import type { BridgeStore } from './BridgeStore';
 
 /**
  * Owns ephemeral UI state: theme keys + composer draft.
@@ -26,6 +27,10 @@ import { loadUiPrefs, saveUiPrefs } from '../services/uiPrefsStorage';
 export class UiStore {
   draft = '';
   attachments: DraftAttachment[] = [];
+  /** True while at least one file from the most recent drop / picker is in flight. */
+  uploading = false;
+  /** Last upload error message. Cleared on each new upload attempt. */
+  uploadError: string | null = null;
 
   bgKey: BgKey = 'charcoal';
   accentKey: AccentKey = 'emerald';
@@ -62,6 +67,32 @@ export class UiStore {
   addAttachment(att: DraftAttachment): void { this.attachments.push(att); }
   removeAttachment(id: string): void { this.attachments = this.attachments.filter(a => a.id !== id); }
   clearAttachments(): void { this.attachments = []; }
+
+  /**
+   * Sequentially upload a batch of files through the bridge and append
+   * each successful result to {@link attachments}. Owns the `uploading`
+   * flag and the `uploadError` message so the composer can stay a thin
+   * presentational shell.
+   */
+  async uploadFiles(files: FileList | File[], bridge: BridgeStore): Promise<void> {
+    runInAction(() => { this.uploadError = null; });
+    if (!bridge.isOnline) {
+      runInAction(() => { this.uploadError = 'Bridge offline. Start gatesai-bridge to attach files.'; });
+      return;
+    }
+    runInAction(() => { this.uploading = true; });
+    try {
+      for (const f of Array.from(files)) {
+        const att = await bridge.uploadAttachment(f);
+        runInAction(() => { this.attachments.push(att); });
+      }
+    } catch (err) {
+      const message = (err as Error).message;
+      runInAction(() => { this.uploadError = message; });
+    } finally {
+      runInAction(() => { this.uploading = false; });
+    }
+  }
 
   setToolCallStyle(value: ToolCallStyleKey): void { this.toolCallStyle = value; }
   setMarkdownStyle(value: MarkdownStyleKey): void { this.markdownStyle = value; }

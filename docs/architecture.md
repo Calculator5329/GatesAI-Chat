@@ -147,6 +147,22 @@ source while keeping tests looser.
 - `RootStore` composes them and is provided through React context. Components
   use `observer()` from `mobx-react-lite` and read state via `use*Store()`.
 
+## Tools
+
+Tools live under `services/tools/`. Each implements `Tool` from
+`services/tools/types.ts`: a `ToolDef` the model sees, optional
+`meta` for category / read-only hints, and `execute(args, ctx)`.
+`execute` returns either a string (the common case — the model gets it
+verbatim as the tool result) or `{ content, artifacts }` where
+`artifacts: ToolResultArtifact[]` is a UI-only side channel for rich
+rendering. The `image_generate` tool uses this to surface the saved
+artifact path so the chat renderer can mount a thumbnail without
+parsing the human-facing result string.
+
+`ChatStore.executeOneToolCall` runs the registry, persists the
+`content` onto the assistant message's `toolResults`, and stashes
+`artifacts` next to it when present.
+
 ## LLM provider abstraction
 
 Every provider in `src/services/llm/` implements the `LlmProvider` contract:

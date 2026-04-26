@@ -4,6 +4,7 @@ import { Icons } from '../ui/icons';
 import type { SendKey } from '../../core/types';
 import { useBridgeStore, useChatStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
 import { modelSupportsVision } from '../../core/modelCapabilities';
+import { isImageMime } from '../../core/attachments';
 import { ModelPopover } from './ModelPopover';
 import { WorkspaceImage } from './WorkspaceImage';
 
@@ -123,8 +124,6 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
   const providers = useProviderStore();
   const [modelOpen, setModelOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeThread = chat.activeThread;
@@ -144,29 +143,10 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
-  const onUpload = async (files: FileList | File[]) => {
-    setUploadError(null);
-    if (!bridge.isOnline) {
-      setUploadError('Bridge offline. Start gatesai-bridge to attach files.');
-      return;
-    }
-    setUploading(true);
-    try {
-      for (const f of Array.from(files)) {
-        const att = await bridge.uploadAttachment(f);
-        ui.addAttachment(att);
-      }
-    } catch (err) {
-      setUploadError((err as Error).message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragActive(false);
-    if (e.dataTransfer.files.length > 0) void onUpload(e.dataTransfer.files);
+    if (e.dataTransfer.files.length > 0) void ui.uploadFiles(e.dataTransfer.files, bridge);
   };
 
   const onStop = () => {
@@ -212,7 +192,7 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
         {hasAttachments && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             {ui.attachments.map(a => (
-              /^image\//i.test(a.mime) ? (
+              isImageMime(a.mime) ? (
                 <span
                   key={a.id}
                   style={{ position: 'relative', display: 'inline-block' }}
@@ -277,9 +257,9 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
             {currentModel.name} is text-only — the image won't be sent as vision input. Switch to a vision-capable model to have it described.
           </div>
         )}
-        {(uploadError || uploading) && (
-          <div style={{ fontSize: 11, color: uploadError ? '#c96a6a' : 'var(--text-faint)', marginBottom: 6 }}>
-            {uploadError ?? 'Uploading…'}
+        {(ui.uploadError || ui.uploading) && (
+          <div style={{ fontSize: 11, color: ui.uploadError ? '#c96a6a' : 'var(--text-faint)', marginBottom: 6 }}>
+            {ui.uploadError ?? 'Uploading…'}
           </div>
         )}
         <div style={{
@@ -296,7 +276,7 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
             multiple
             style={{ display: 'none' }}
             onChange={(e) => {
-              if (e.target.files) void onUpload(e.target.files);
+              if (e.target.files) void ui.uploadFiles(e.target.files, bridge);
               e.target.value = '';
             }}
           />
@@ -458,7 +438,7 @@ const ApiKeyBanner = observer(function ApiKeyBanner() {
 });
 
 function hasImageAttachment(attachments: { mime: string }[]): boolean {
-  return attachments.some(a => /^image\//i.test(a.mime));
+  return attachments.some(a => isImageMime(a.mime));
 }
 
 function formatTokens(n: number): string {

@@ -6,29 +6,17 @@ import type {
   GenerateImageResult,
   ImageBackend,
   ImageBackendId,
+  ImageBackendSnapshot,
 } from './types';
 
 /**
- * Configuration snapshot resolved once per tool call. The dispatcher
- * is intentionally config-driven rather than store-aware so tests can
- * drive it with plain objects and the facade-only `ToolContext` stays
- * clean.
+ * Configuration the dispatcher consumes for one tool call. Extends the
+ * UI-facing {@link ImageBackendSnapshot} with two fields the tool
+ * resolves before dispatching: a parsed Comfy workflow template (loaded
+ * from /workspace/) and an injectable fetch for tests.
  */
-export interface ImageBackendConfig {
-  primary: ImageBackendId;
-  falApiKey?: string;
-  bflApiKey?: string;
-  comfyBaseUrl?: string;
+export interface ImageBackendConfig extends ImageBackendSnapshot {
   comfyWorkflowTemplate?: Record<string, unknown>;
-  comfyQualityPreset?: 'final' | 'draft';
-  a1111BaseUrl?: string;
-  a1111ApiKey?: string;
-  /**
-   * When the primary is a `local-*` backend and it fails, automatically
-   * retry against this backend. Only honored when credentials for the
-   * fallback exist. `null` disables fallback.
-   */
-  fallback?: ImageBackendId | null;
   /** Injectable for tests. */
   fetch?: typeof fetch;
 }

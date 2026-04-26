@@ -1,6 +1,6 @@
 import type { ToolDef } from '../../core/llm';
 import type { Note } from '../../core/notes';
-import type { Thread } from '../../core/types';
+import type { Thread, ToolResultArtifact } from '../../core/types';
 
 /**
  * Runtime context passed to every tool. Add fields here as tools need them
@@ -55,18 +55,8 @@ export interface BridgeFacade {
   readAttachmentBase64(path: string): Promise<{ base64: string; mime: string; size: number } | null>;
 }
 
-export type ImageBackendId = 'fal' | 'bfl' | 'local-comfy' | 'local-a1111';
-
-export interface ImageBackendSnapshot {
-  primary: ImageBackendId;
-  falApiKey?: string;
-  bflApiKey?: string;
-  comfyBaseUrl?: string;
-  comfyQualityPreset?: 'final' | 'draft';
-  a1111BaseUrl?: string;
-  a1111ApiKey?: string;
-  fallback?: ImageBackendId | null;
-}
+import type { ImageBackendId, ImageBackendSnapshot } from '../image/types';
+export type { ImageBackendId, ImageBackendSnapshot };
 
 export interface ImageGenFacade {
   readonly hasUsableBackend: boolean;
@@ -114,15 +104,26 @@ export interface ToolMetadata {
 }
 
 /**
+ * Structured tool output. Tools may return either a bare string (the common
+ * case) or this shape when they also need to surface UI artifacts. The
+ * model only ever sees `content`; `artifacts` is a side-channel for the UI.
+ */
+export interface ToolExecuteResult {
+  content: string;
+  artifacts?: ToolResultArtifact[];
+}
+
+/**
  * A registered tool. `def` is what the model sees (sent in `LlmRequest.tools`);
- * `execute` runs locally with the parsed args and returns a string the model
- * gets back as a tool-result message.
+ * `execute` runs locally with the parsed args and returns either a string the
+ * model gets back as a tool-result message, or a structured result with
+ * optional artifacts the UI can render directly.
  *
- * The string return is intentional — every provider serializes tool results
- * as a string. If your tool wants to return JSON, stringify it.
+ * Every provider serializes tool results as a string — if a tool wants to
+ * return JSON to the model, stringify it into `content`.
  */
 export interface Tool {
   def: ToolDef;
   meta?: ToolMetadata;
-  execute(args: Record<string, unknown>, ctx: ToolContext): Promise<string>;
+  execute(args: Record<string, unknown>, ctx: ToolContext): Promise<string | ToolExecuteResult>;
 }

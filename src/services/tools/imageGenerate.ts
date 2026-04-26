@@ -90,7 +90,9 @@ export const imageGenerateTool: Tool = {
     }
 
     const aspect = typeof args.aspect_ratio === 'string' ? (args.aspect_ratio as ImageAspectRatio) : '1:1';
-    const variant = typeof args.variant === 'string' ? (args.variant as FluxVariant) : 'flux-2-pro';
+    const variant: FluxVariant = typeof args.variant === 'string'
+      ? (args.variant as FluxVariant)
+      : (snapshot.defaultVariant ?? 'flux-2-pro');
     const seed = typeof args.seed === 'number' && Number.isFinite(args.seed) ? Math.floor(args.seed) : undefined;
 
     let dispatchResult;
@@ -120,7 +122,10 @@ export const imageGenerateTool: Tool = {
       const dims = result.width && result.height ? `${result.width}x${result.height}` : aspect;
       const seedStr = typeof result.seed === 'number' ? `, seed=${result.seed}` : '';
       const fallbackLine = fallbackNote ? `\nNote: ${fallbackNote}` : '';
-      return `Saved: ${resp.path} (${dims}${seedStr}, backend=${result.backend})${fallbackLine}`;
+      return {
+        content: `Saved: ${resp.path} (${dims}${seedStr}, backend=${result.backend})${fallbackLine}`,
+        artifacts: [{ kind: 'image', path: resp.path, mime: result.mime }],
+      };
     } catch (err) {
       return `Error saving image: ${(err as Error).message}`;
     }

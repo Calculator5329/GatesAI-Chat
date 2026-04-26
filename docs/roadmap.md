@@ -31,6 +31,10 @@
       service-import boundaries to lint errors
 - [x] Extract ChatStore runtime context, artifact README loading, and tool
       failure logging helpers into focused services
+- [x] Multimodal cleanup (structured tool artifacts, facade-only bridge
+      service, shared `SecretKeyField`, unified image-backend types,
+      `Api.tsx` split, composer upload action on `UiStore`, Routing card
+      marked as Coming soon)
 
 ## Near-term
 - [ ] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`

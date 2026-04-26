@@ -1,10 +1,10 @@
 import { autorun, makeAutoObservable, toJS } from 'mobx';
 import type { ImageBackendConfig } from '../services/image/imageBackend';
+import type { ImageBackendId } from '../services/image/types';
 import {
   DEFAULT_IMAGE_GEN_CONFIG,
   loadImageGenConfig,
   saveImageGenConfig,
-  type ImageGenBackend,
   type ImageGenConfig,
 } from '../services/imageGenStorage';
 
@@ -30,7 +30,7 @@ export class ImageGenStore {
     });
   }
 
-  get backend(): ImageGenBackend {
+  get backend(): ImageBackendId {
     return this.config.backend;
   }
 
@@ -38,7 +38,7 @@ export class ImageGenStore {
     return this.config.comfyWorkflowPath;
   }
 
-  setBackend(backend: ImageGenBackend): void {
+  setBackend(backend: ImageBackendId): void {
     this.config = { ...this.config, backend };
   }
 
@@ -76,7 +76,7 @@ export class ImageGenStore {
     this.config = { ...this.config, a1111ApiKey: trimmed || undefined };
   }
 
-  setFallbackBackend(backend: ImageGenBackend | null): void {
+  setFallbackBackend(backend: ImageBackendId | null): void {
     this.config = { ...this.config, fallbackBackend: backend };
   }
 
@@ -98,7 +98,7 @@ export class ImageGenStore {
    * Settings UI to decide whether to render "connected" state; the
    * actual dispatcher reads the full config via {@link toBackendConfig}.
    */
-  getCredential(backend: ImageGenBackend = this.backend): string | null {
+  getCredential(backend: ImageBackendId = this.backend): string | null {
     switch (backend) {
       case 'fal': return this.config.falApiKey ?? null;
       case 'bfl': return this.config.bflApiKey ?? null;
@@ -123,6 +123,7 @@ export class ImageGenStore {
       a1111BaseUrl: this.config.a1111BaseUrl,
       a1111ApiKey: this.config.a1111ApiKey,
       fallback: this.config.fallbackBackend ?? null,
+      defaultVariant: this.config.defaultVariant,
     };
   }
 }

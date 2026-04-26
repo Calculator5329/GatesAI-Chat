@@ -69,6 +69,19 @@ export interface AssistantMessage {
 }
 
 /**
+ * Structured artifact produced by a tool run, surfaced to the UI for
+ * rich rendering (thumbnails, file links, …) without parsing the
+ * model-facing `content` string. The `content` remains the
+ * authoritative payload for the model; `artifacts` is for the UI.
+ */
+export interface ToolResultArtifact {
+  kind: 'image';
+  /** Workspace path, e.g. `/workspace/artifacts/foo.png`. */
+  path: string;
+  mime: string;
+}
+
+/**
  * Output of one tool execution, attached to the assistant message that
  * called it. Lives on the message rather than as its own row because nobody
  * "said" the result — it's the function's return value the model reads on
@@ -83,6 +96,13 @@ export interface ToolResult {
   content: string;
   /** When the tool finished. */
   ranAt: number;
+  /**
+   * Optional structured outputs the UI can render directly (e.g. an image
+   * thumbnail for `image_generate`). Empty / omitted for text-only tools.
+   * The renderer should NOT regex the content string for these — read this
+   * field instead.
+   */
+  artifacts?: ToolResultArtifact[];
 }
 
 /**

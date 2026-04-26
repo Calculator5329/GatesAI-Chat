@@ -1,5 +1,10 @@
 import type { DraftAttachment, MessageAttachmentRef, UserMessage } from './types';
 
+/** True when a MIME type names an image (case-insensitive `image/*`). */
+export function isImageMime(mime: string | undefined | null): boolean {
+  return typeof mime === 'string' && /^image\//i.test(mime);
+}
+
 export interface RenderedAttachment {
   path: string;
   name: string;
@@ -49,7 +54,7 @@ function renderAttachment(ref: MessageAttachmentRef): RenderedAttachment {
     size: formatSize(ref.size),
     kind: attachmentKind(ref.name, ref.mime),
     mime: ref.mime,
-    isImage: /^image\//i.test(ref.mime),
+    isImage: isImageMime(ref.mime),
   };
 }
 
@@ -87,7 +92,7 @@ function parseAttachmentLine(line: string): RenderedAttachment | null {
     size,
     kind: attachmentKind(name, mime),
     mime,
-    isImage: /^image\//i.test(mime),
+    isImage: isImageMime(mime),
   };
 }
 

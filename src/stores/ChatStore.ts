@@ -2,7 +2,7 @@ import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
 import type { LlmProvider, LlmRequest, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
-import { formatAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
+import { formatAttachmentFooter, isImageMime, toMessageAttachmentRef } from '../core/attachments';
 import { loadSnapshot, saveSnapshot } from '../services/persistence';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, type TokenUsage } from '../core/tokens';
 import { flattenForWire } from '../services/llm/wireFormat';
@@ -786,7 +786,7 @@ export class ChatStore {
   private async executeOneToolCall(call: ToolCall, threadId: string): Promise<ToolResult> {
     const extras = this.toolStoresProvider?.() ?? ({} as Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen'>);
     const startedAt = Date.now();
-    const content = await toolRegistry.execute(call.name, call.arguments, {
+    const { content, artifacts } = await toolRegistry.execute(call.name, call.arguments, {
       profile: this.profile,
       chat: this,
       notes: extras.notes,
@@ -811,6 +811,7 @@ export class ChatStore {
       toolName: call.name,
       content,
       ranAt: Date.now(),
+      ...(artifacts && artifacts.length ? { artifacts } : {}),
     };
   }
 
@@ -862,7 +863,7 @@ function hasAnyImageAttachment(messages: Message[]): boolean {
   for (const m of messages) {
     if (m.role !== 'user' || !m.attachments) continue;
     for (const a of m.attachments) {
-      if (/^image\//i.test(a.mime)) return true;
+      if (isImageMime(a.mime)) return true;
     }
   }
   return false;

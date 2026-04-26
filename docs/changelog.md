@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-04-26 — Refactor: Multimodal feature cleanup
+
+Architectural cleanup of the seams introduced by multimodal + image-gen.
+No user-visible behavior change except that the unwired Routing card is
+now clearly disabled with a Coming-soon pill.
+
+- **Structured tool artifacts.** `ToolResult` gained an optional
+  `artifacts: ToolResultArtifact[]` field; `Tool.execute` may return
+  `string | { content, artifacts }`. The chat UI renders the
+  `image_generate` thumbnail from `result.artifacts` instead of regex-ing
+  the tool result string. Forward-compat with batch image generation.
+- **Service / store boundary.** `services/bridge/readAttachmentBytes.ts`
+  no longer imports `BridgeStore`; takes a narrow `AttachmentBytesReadDeps`
+  shape. The store-side facade still passes `this`.
+- **defaultVariant honored.** `ImageGenStore.config.defaultVariant` is now
+  surfaced through `ImageBackendSnapshot` and consulted by `image_generate`
+  (precedence: tool args → snapshot default → `flux-2-pro`).
+- **Unified image-backend types.** `ImageBackendId`, `ComfyQualityPreset`,
+  and `ImageBackendSnapshot` live in `services/image/types.ts` only;
+  `services/imageGenStorage.ts` and `services/tools/types.ts` re-export.
+  `ImageBackendConfig` extends the snapshot.
+- **`SecretKeyField` primitive.** New `components/ui/SecretKeyField`
+  consolidates three inline mask / reveal / connect / clear blocks in
+  Settings → API.
+- **`Api.tsx` split.** `components/menu/sections/api/{ApiSection,ProviderCard,
+  ImageGenCard,OpenRouterCatalogRow,RoutingCard,ProviderAvatar}.tsx`. The
+  outer `sections/Api.tsx` is a one-line re-export.
+- **Composer upload moved into store.** `UiStore.uploadFiles(files, bridge)`
+  owns `uploading` / `uploadError` and the upload loop;
+  `EditorialComposer` is now a thin presentational wrapper.
+- **Routing settings disabled.** Inputs are bound (not `defaultValue`) and
+  rendered with `disabled` + a Coming-soon pill so users don't think their
+  selection is being honored.
+- **`isImageMime` helper.** `core/attachments.ts#isImageMime` replaces
+  open-coded `/^image\//i.test(...)` scattered across the composer,
+  ChatStore, the resolver, and the legacy attachment renderer.
+
 ## 2026-04-26 — Feature: SDXL Lightning draft image preset
 
 Added a ComfyUI quality preset for fast prototype images. `Draft` is now the
