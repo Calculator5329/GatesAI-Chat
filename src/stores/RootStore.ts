@@ -5,6 +5,7 @@ import { ProviderStore } from './ProviderStore';
 import { RouterStore } from './RouterStore';
 import { ModelRegistry } from './ModelRegistry';
 import { OpenRouterStore } from './OpenRouterStore';
+import { OllamaStore } from './OllamaStore';
 import { UserProfileStore } from './UserProfileStore';
 import { SummaryStore } from './SummaryStore';
 import { NotesStore } from './NotesStore';
@@ -21,6 +22,7 @@ export class RootStore {
   readonly ui: UiStore;
   readonly router: RouterStore;
   readonly openrouter: OpenRouterStore;
+  readonly ollama: OllamaStore;
   readonly summary: SummaryStore;
   readonly notes: NotesStore;
   readonly bridge: BridgeStore;
@@ -35,6 +37,7 @@ export class RootStore {
     this.ui = new UiStore();
     this.router = new RouterStore();
     this.openrouter = new OpenRouterStore(this.registry);
+    this.ollama = new OllamaStore(this.registry);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
     this.bridge = new BridgeStore();

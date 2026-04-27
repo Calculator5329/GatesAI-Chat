@@ -7,6 +7,7 @@ export function clearAppStorage(): void {
     localStorage.removeItem('gatesai.profile.v1');
     localStorage.removeItem('gatesai.notes.v1');
     localStorage.removeItem('gatesai.uiprefs.v1');
+    localStorage.removeItem('gatesai.ollama.v1');
   } catch {
     // ignore
   }

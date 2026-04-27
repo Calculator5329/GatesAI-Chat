@@ -10,6 +10,7 @@ import type { UserProfileStore } from './UserProfileStore';
 import type { BridgeStore } from './BridgeStore';
 import type { ExecStreamStore } from './ExecStreamStore';
 import type { ImageGenStore } from './ImageGenStore';
+import type { OllamaStore } from './OllamaStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -61,4 +62,8 @@ export function useExecStreamStore(): ExecStreamStore {
 
 export function useImageGenStore(): ImageGenStore {
   return useRootStore().imageGen;
+}
+
+export function useOllamaStore(): OllamaStore {
+  return useRootStore().ollama;
 }
