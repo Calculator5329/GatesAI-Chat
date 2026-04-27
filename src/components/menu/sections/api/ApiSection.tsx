@@ -5,6 +5,7 @@ import { useProviderStore } from '../../../../stores/context';
 import { Card } from '../../../ui';
 import { ProviderCard } from './ProviderCard';
 import { ImageGenCard } from './ImageGenCard';
+import { OllamaCard } from './OllamaCard';
 import { RoutingCard } from './RoutingCard';
 
 export const ApiSection = observer(function ApiSection() {
@@ -25,6 +26,11 @@ export const ApiSection = observer(function ApiSection() {
       {PROVIDERS.map(p => (
         <ProviderCard key={p.id} info={p} providers={providers} />
       ))}
+
+      <div style={{ ...tokens.section, marginTop: 32 }}>
+        <div style={tokens.sectionTitle}>Local models</div>
+        <OllamaCard />
+      </div>
 
       <div style={{ ...tokens.section, marginTop: 32 }}>
         <div style={tokens.sectionTitle}>Image generation</div>
