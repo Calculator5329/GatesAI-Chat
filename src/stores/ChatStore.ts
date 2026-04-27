@@ -172,10 +172,13 @@ export class ChatStore {
     const latestUserText = latestUserMessageContent(thread);
     const extras = this.toolStoresProvider?.();
     const bridge = extras?.bridge;
-    const tools = toolRegistry.toolDefsForTurn({
-      userText: [latestUserText, draftText].filter(Boolean).join('\n'),
-      bridgeOnline: bridge?.isOnline ?? false,
-    });
+    const toolsAllowed = model?.supportsTools !== false;
+    const tools = toolsAllowed
+      ? toolRegistry.toolDefsForTurn({
+          userText: [latestUserText, draftText].filter(Boolean).join('\n'),
+          bridgeOnline: bridge?.isOnline ?? false,
+        })
+      : [];
     const systemPrompt = this.profile.composeSystemPrompt({
       runtimeContext: buildRuntimeContext({ bridge }),
       threadContext: thread.threadContext,
@@ -240,6 +243,30 @@ export class ChatStore {
    */
   setToolStoresProvider(fn: () => Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen'>): void {
     this.toolStoresProvider = fn;
+  }
+
+  async llmComplete(messages: Pick<LlmRequest['messages'][number], 'role' | 'content'>[], systemPrompt?: string): Promise<string> {
+    const modelId = this.activeThread?.modelId ?? DEFAULT_MODEL_ID;
+    const { provider, providerModelId } = this.providers.router.resolve(modelId);
+    const controller = new AbortController();
+    let text = '';
+
+    for await (const chunk of provider.stream({
+      modelId: providerModelId,
+      messages,
+      ...(systemPrompt ? { systemPrompt } : {}),
+      temperature: 0.2,
+      maxTokens: 240,
+      tools: [],
+    }, controller.signal)) {
+      if (chunk.type === 'text') text += chunk.delta;
+      if (chunk.type === 'done') {
+        if (chunk.finishReason === 'error') throw new Error(chunk.error ?? 'LLM completion failed');
+        break;
+      }
+    }
+
+    return text.trim();
   }
 
   /**
@@ -623,15 +650,19 @@ export class ChatStore {
       recentSummaries,
       artifactInstructions: this.artifactInstructions,
     });
-    const tools = toolRegistry.toolDefsForTurn({
-      userText: latestUserMessageContent(thread),
-      bridgeOnline: bridge?.isOnline ?? false,
-    });
+    const model = this.registry.findById(thread.modelId);
+    const toolsAllowed = model?.supportsTools !== false;
+    const tools = toolsAllowed
+      ? toolRegistry.toolDefsForTurn({
+          userText: latestUserMessageContent(thread),
+          bridgeOnline: bridge?.isOnline ?? false,
+        })
+      : undefined;
     return {
       modelId: providerModelId,
       messages: flattenForWire(thread.messages),
       ...(systemPrompt ? { systemPrompt } : {}),
-      tools,
+      ...(tools ? { tools } : {}),
       threadId: thread.id,
     };
   }

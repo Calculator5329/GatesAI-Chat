@@ -475,6 +475,50 @@ describe('ChatStore', () => {
     expect(chat.streamingMessageId).toBeNull();
   });
 
+  it('omits tools from the request when the active model has supportsTools=false', async () => {
+    const { chat, mock, registry } = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    registry.setDynamicForProvider('ollama', [
+      {
+        id: 'ollama-gemma2',
+        name: 'Gemma 2 (Ollama)',
+        vendor: 'Ollama',
+        providerId: 'ollama',
+        providerModelId: 'gemma2',
+        supportsTools: false,
+      },
+      {
+        id: 'ollama-llama3.1',
+        name: 'Llama 3.1 (Ollama)',
+        vendor: 'Ollama',
+        providerId: 'ollama',
+        providerModelId: 'llama3.1',
+        // supportsTools undefined => allow tools (positive control)
+      },
+    ]);
+
+    // Negative case: tools dropped for supportsTools=false
+    const noToolsId = chat.createThread();
+    chat.setThreadModel(noToolsId, 'ollama-gemma2');
+    chat.sendMessage('hi');
+    await flush(20);
+    const gemmaCall = mock.calls.find(c => c.modelId === 'ollama-gemma2');
+    expect(gemmaCall).toBeDefined();
+    expect(gemmaCall!.tools).toBeUndefined();
+
+    // Positive control: a normal model still receives tools.
+    const withToolsId = chat.createThread();
+    chat.setThreadModel(withToolsId, 'ollama-llama3.1');
+    chat.sendMessage('hi');
+    await flush(20);
+    const llamaCall = mock.calls.find(c => c.modelId === 'ollama-llama3.1');
+    expect(llamaCall).toBeDefined();
+    expect(Array.isArray(llamaCall!.tools)).toBe(true);
+    expect((llamaCall!.tools ?? []).length).toBeGreaterThan(0);
+  });
+
   it('tokenUsage counts serialized tool calls, tool results, and selected tool schemas', () => {
     const { chat } = setup();
     chat.createThread();
