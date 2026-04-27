@@ -78,6 +78,7 @@ export class RootStore {
       bridge: this.bridge,
       execStream: this.execStream,
       imageGen: this.imageGen,
+      imageJobs: this.imageJobs,
       localRuntime: this.localRuntime,
     }));
 

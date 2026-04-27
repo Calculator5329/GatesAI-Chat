@@ -25,7 +25,7 @@ import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
 import type { ToolContext } from '../services/tools/types';
 
-type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'localRuntime'>;
+type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime'>;
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -660,10 +660,11 @@ export class ChatStore {
           bridgeOnline: bridge?.isOnline ?? false,
         })
       : undefined;
+    const finalSystemPrompt = appendImageGenAddendum(systemPrompt, tools);
     return {
       modelId: providerModelId,
       messages: flattenForWire(thread.messages),
-      ...(systemPrompt ? { systemPrompt } : {}),
+      ...(finalSystemPrompt ? { systemPrompt: finalSystemPrompt } : {}),
       ...(tools ? { tools } : {}),
       threadId: thread.id,
     };
@@ -827,6 +828,7 @@ export class ChatStore {
       bridge: extras.bridge,
       execStream: extras.execStream,
       imageGen: extras.imageGen,
+      imageJobs: extras.imageJobs,
       localRuntime: extras.localRuntime,
       threadId,
     });
@@ -883,6 +885,13 @@ export class ChatStore {
     const message = this.findMessage(threadId, messageId);
     if (message) message.createdAt = Date.now();
   }
+}
+
+const IMAGE_GEN_ADDENDUM = 'When you call image_generate, don\'t repeat the tool result back. The user already sees the image inline. Just say briefly what you made.';
+
+function appendImageGenAddendum(systemPrompt: string | undefined, tools: { name: string }[] | undefined): string | undefined {
+  if (!tools || !tools.some(t => t.name === 'image_generate')) return systemPrompt;
+  return systemPrompt ? `${systemPrompt}\n\n${IMAGE_GEN_ADDENDUM}` : IMAGE_GEN_ADDENDUM;
 }
 
 function latestUserMessageContent(thread: Thread): string {

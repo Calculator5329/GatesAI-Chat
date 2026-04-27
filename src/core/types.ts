@@ -74,12 +74,20 @@ export interface AssistantMessage {
  * model-facing `content` string. The `content` remains the
  * authoritative payload for the model; `artifacts` is for the UI.
  */
-export interface ToolResultArtifact {
-  kind: 'image';
-  /** Workspace path, e.g. `/workspace/artifacts/foo.png`. */
-  path: string;
-  mime: string;
-}
+export type ToolResultArtifact =
+  | {
+      kind: 'image';
+      /** Workspace path, e.g. `/workspace/artifacts/foo.png`. */
+      path: string;
+      mime: string;
+    }
+  | {
+      kind: 'image-job';
+      /** Reference into ImageJobStore. */
+      jobId: string;
+      /** Number of images this job is expected to produce. */
+      count: number;
+    };
 
 /**
  * Output of one tool execution, attached to the assistant message that

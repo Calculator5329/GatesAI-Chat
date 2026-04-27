@@ -804,12 +804,14 @@ Replace the stub `runNext` in `ImageJobStore` with the real runner. The runner n
 
 ```ts
 export interface ImageJobStoreDeps {
-  bridge: BridgeStore;
-  imageGen: ImageGenStore;
+  bridge: BridgeFacade;
+  imageGen: ImageGenFacade;
   /** Injectable for tests; defaults to factories that pick by backend. */
-  progressFactory?: (cfg: ImageBackendConfig) => JobProgress | null;
+  progressFactory?: (id: ImageBackendId, config: ImageBackendConfig) => JobProgress | null;
 }
 ```
+
+Use the `*Facade` types consistently (matches the dispatcher injection in Step 4 and the existing facade pattern used in `ToolContext`).
 
 **Step 2: Implement the real runner**
 
@@ -1045,10 +1047,19 @@ export const ImageJobCard = observer(function ImageJobCard({ jobId, expectedCoun
         {lightboxIdx !== null && <Lightbox ... />}
       </>;
     case 'failed':
-      return <FailedCard job={job} onRetry={() => jobs.enqueue({ ...job })} />;
+      return <FailedCard job={job} onRetry={() => jobs.enqueue(toInput(job))} />;
     case 'cancelled':
-      return <CancelledCard job={job} onRetry={() => jobs.enqueue({ ...job })} />;
+      return <CancelledCard job={job} onRetry={() => jobs.enqueue(toInput(job))} />;
   }
+});
+```
+
+`toInput` is a tiny helper that narrows an `ImageJob` back down to `ImageJobInput` (only the fields `enqueue` accepts) — spreading the full job would carry along `id`, `status`, `results`, `progress`, etc. and trip strict object-literal checks:
+
+```ts
+const toInput = (j: ImageJob | CompletedJob): ImageJobInput => ({
+  threadId: j.threadId, prompt: j.prompt, count: j.count,
+  width: j.width, height: j.height, seed: j.seed, backend: j.backend,
 });
 ```
 
@@ -1104,28 +1115,29 @@ In `EditorialMessage`, where the existing `image` artifact is rendered, dispatch
     return <WorkspaceImage key={i} path={a.path} alt="Generated image" kind="image" />;
   }
   if (a.kind === 'image-job') {
-    return <ImageJobCard key={i} jobId={a.jobId} expectedCount={a.count} aspect={...} />;
+    return <ImageJobCard key={i} jobId={a.jobId} expectedCount={a.count} />;
   }
   return null;
 })}
 ```
 
-(Aspect comes from the job itself once available; before then, fall back to a square placeholder. The card looks up the job by id and uses its `width`/`height`.)
+The card looks up the job by id and reads `width`/`height` itself; if the lookup misses (history pruned, etc.) it falls back to a square placeholder. Drop the `aspect` prop from `ImageJobCard`'s signature — the artifact only carries `{ jobId, count }` and the dims live on the job.
 
 **Step 2: "generating" pre-token label**
 
-In `ChatStore` or `EditorialMessage`'s pre-token label resolver: when the assistant message is mid-stream AND `imageJobs.active?.threadId === message.threadId`, swap `'thinking'` → `'generating'`. Easiest place is the `preTokenLabel` computation:
+The label needs to be reactive — at the moment the assistant message is appended, the tool hasn't run yet and `imageJobs.active` is null, so a one-shot snapshot in `ChatStore.runTurn` is wrong. Derive it where the label is rendered.
 
-```ts
-// In ChatStore.runTurn, when setting preTokenLabel for the assistant message:
-const hasRunningJob = this.toolStoresProvider?.().imageJobs?.active != null;
-this.appendMessage(threadId, {
-  ...,
-  preTokenLabel: hasRunningJob ? 'generating' : 'thinking',
-});
+Add `'generating'` to the `preTokenLabel` union in `core/types.ts`. Then in `EditorialMessage` (or wherever the pre-token spinner label is read), wrap the read in `observer` and substitute when there's a running job for this thread:
+
+```tsx
+const jobs = useImageJobStore();
+const label = (
+  message.preTokenLabel === 'thinking' &&
+  jobs.active?.threadId === message.threadId
+) ? 'generating' : message.preTokenLabel;
 ```
 
-Add `'generating'` to the `preTokenLabel` union in `core/types.ts`.
+This way the label flips live as the job starts and reverts when it ends, without ChatStore needing to know about jobs.
 
 **Step 3: Verify + commit**
 
@@ -1145,8 +1157,32 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 **Files:**
 - Modify: `src/core/types.ts` (`MenuSectionKey` adds `'gallery'`)
 - Modify: `src/services/router.ts` (`MENU_SECTIONS` adds `'gallery'`)
+- Modify: `src/stores/ImageJobStore.ts` (add `deleteResult(jobId, index)` — see Step 0 below)
 - Create: `src/components/menu/sections/Gallery.tsx`
 - Modify: `src/components/menu/GatesMenu.tsx` (add the Gallery entry to the sidebar nav and route to the section)
+
+**Step 0: Per-tile delete on the store**
+
+The Gallery shows one tile per result image. Tile delete should remove that one image, not the whole batch. Add to `ImageJobStore`:
+
+```ts
+/**
+ * Remove a single image from a completed job. If it's the last image in
+ * the batch, drop the job entirely.
+ */
+deleteResult(jobId: string, index: number): void {
+  runInAction(() => {
+    this.history = this.history.flatMap(j => {
+      if (j.id !== jobId) return [j];
+      const next = j.results.filter((_, i) => i !== index);
+      if (next.length === 0) return [];
+      return [{ ...j, results: next, count: next.length }];
+    });
+  });
+}
+```
+
+Add a unit test alongside the existing `delete()` test.
 
 **Step 1: Type + router**
 
@@ -1181,7 +1217,7 @@ export const GallerySection = observer(function GallerySection() {
             prompt={job.prompt}
             onClick={() => setLightboxStart({ paths: job.results, index: i, prompt: job.prompt })}
             onOpenInOs={() => /* bridge.openWorkspacePath(path) */}
-            onDelete={() => jobs.delete(job.id)}
+            onDelete={() => jobs.deleteResult(job.id, i)}
           />
         )))}
       </div>

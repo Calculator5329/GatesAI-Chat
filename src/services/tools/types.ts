@@ -68,6 +68,18 @@ export interface ImageGenFacade {
   readonly comfyWorkflowPath?: string;
 }
 
+export interface ImageJobsFacade {
+  enqueue(input: {
+    threadId: string;
+    prompt: string;
+    count: number;
+    width: number;
+    height: number;
+    seed?: number;
+    backend: ImageBackendId;
+  }): { jobId: string; count: number };
+}
+
 export interface LocalRuntimeFacade {
   readonly ollamaBaseUrl: string;
   readonly comfyBaseUrl?: string;
@@ -88,6 +100,7 @@ export interface ToolContext {
   summary?: SummaryFacade;
   bridge?: BridgeFacade;
   imageGen?: ImageGenFacade;
+  imageJobs?: ImageJobsFacade;
   localRuntime?: LocalRuntimeFacade;
   execStream?: ExecStreamFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
