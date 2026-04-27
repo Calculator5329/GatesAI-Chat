@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { StoreProvider } from '../../../src/stores/context';
 import { UiStore } from '../../../src/stores/UiStore';
 import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
+import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { EditorialMessage } from '../../../src/components/editorial/EditorialMessage';
 import type { RootStore } from '../../../src/stores/RootStore';
 
@@ -25,6 +26,7 @@ function renderMessage(
   const store = {
     ui: new UiStore(),
     execStream: new ExecStreamStore(),
+    imageJobs: new ImageJobStore(),
   } as RootStore;
 
   act(() => {

@@ -11,17 +11,18 @@ import type { Message } from '../../core/types';
 import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
 import { isWorkspacePath } from '../../core/workspacePaths';
 import { ToolCallView, ToolResultView } from '../ui';
-import { useBridgeStore, useUiStore, useExecStreamStore } from '../../stores/context';
+import { useBridgeStore, useUiStore, useExecStreamStore, useImageJobStore } from '../../stores/context';
 import type { BridgeStore } from '../../stores/BridgeStore';
 import { LiveExecTail } from './LiveExecTail';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
 import { WorkspaceImage } from './WorkspaceImage';
+import { ImageJobCard } from './ImageJobCard';
 
 interface MessageProps {
   message: Message;
   modelName: string | undefined;
   streaming: boolean;
-  preTokenLabel?: 'thinking' | 'responding' | 'compacting';
+  preTokenLabel?: 'thinking' | 'responding' | 'compacting' | 'generating';
 }
 
 type CopyState = 'idle' | 'hint' | 'copied' | 'failed';
@@ -49,6 +50,7 @@ let copyHintSeen = false;
 export const EditorialMessage = observer(function EditorialMessage({ message, modelName, streaming, preTokenLabel }: MessageProps) {
   const ui = useUiStore();
   const execStream = useExecStreamStore();
+  const imageJobs = useImageJobStore();
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const isUser = message.role === 'user';
   const when = message.createdAt
@@ -129,16 +131,28 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
           {calls.map(call => {
             const result = resultByCallId.get(call.id);
             const showLiveTail = !result && call.name === 'terminal';
-            const imageArtifacts = (result?.artifacts ?? []).filter(a => a.kind === 'image');
+            const artifacts = result?.artifacts ?? [];
             return (
               <div key={call.id}>
                 <ToolCallView call={call} style={ui.toolCallStyle} />
                 {result && <ToolResultView result={result} style={ui.toolCallStyle} />}
-                {imageArtifacts.map(artifact => (
-                  <div key={artifact.path} style={{ marginTop: 8 }}>
-                    <WorkspaceImage path={artifact.path} alt="Generated image" kind="image" />
-                  </div>
-                ))}
+                {artifacts.map((artifact, idx) => {
+                  if (artifact.kind === 'image') {
+                    return (
+                      <div key={`img-${artifact.path}`} style={{ marginTop: 8 }}>
+                        <WorkspaceImage path={artifact.path} alt="Generated image" kind="image" />
+                      </div>
+                    );
+                  }
+                  if (artifact.kind === 'image-job') {
+                    return (
+                      <div key={`job-${artifact.jobId}-${idx}`} style={{ marginTop: 8 }}>
+                        <ImageJobCard jobId={artifact.jobId} expectedCount={artifact.count} />
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
                 {showLiveTail && <LiveExecTail store={execStream} />}
               </div>
             );
@@ -162,7 +176,11 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
         ) : hasContent ? (
           <MarkdownBody content={message.content} />
         ) : streaming ? (
-          <ThinkingIndicator label={preTokenLabel ?? message.preTokenLabel ?? 'thinking'} />
+          <ThinkingIndicator label={
+            imageJobs.active
+              ? 'generating'
+              : (preTokenLabel ?? message.preTokenLabel ?? 'thinking')
+          } />
         ) : null}
       </div>
     </div>
@@ -257,7 +275,7 @@ function UserMessageContent({ body, attachments }: { body: string; attachments: 
  * a generic spinner — uppercase mono label + three pulsing dots in the
  * accent color so it's noticeable but not loud.
  */
-type StreamStatusLabel = 'thinking' | 'responding' | 'compacting' | 'working';
+type StreamStatusLabel = 'thinking' | 'responding' | 'compacting' | 'working' | 'generating';
 
 function ThinkingIndicator({ label }: { label: StreamStatusLabel }) {
   const accessibleLabel = label[0].toUpperCase() + label.slice(1);

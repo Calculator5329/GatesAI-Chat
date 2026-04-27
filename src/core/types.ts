@@ -61,7 +61,7 @@ export interface AssistantMessage {
   createdAt: number;
   model?: string;
   /** Label for the empty pre-token streaming state. Omitted means "thinking". */
-  preTokenLabel?: 'thinking' | 'responding' | 'compacting';
+  preTokenLabel?: 'thinking' | 'responding' | 'compacting' | 'generating';
   /** Tool calls the model made during this round. Empty / omitted when none. */
   toolCalls?: ToolCall[];
   /** Results from executing those tool calls. Length matches toolCalls; pair by id. */
