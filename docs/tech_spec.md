@@ -86,7 +86,7 @@ interface Model {
 ```ts
 type ProviderId =
   | 'fake' | 'openrouter' | 'openai' | 'anthropic'
-  | 'gemini' | 'groq' | 'local';
+  | 'gemini' | 'groq' | 'local' | 'ollama';
 
 interface LlmRequest {
   modelId: string;            // provider-native id
@@ -142,11 +142,14 @@ interface LlmProvider {
 | `gatesai.notes.v1`               | `Note[]`                  | `NotesStore`       |
 | `gatesai.uiprefs.v1`             | output style preferences  | `UiStore`          |
 | `gatesai.openrouter.catalog.v1`  | OpenRouter catalog cache  | `OpenRouterStore`  |
+| `gatesai.ollama.v1`              | Ollama config + catalog   | `OllamaStore`      |
 
 Chat, provider, profile, notes, and UI preference snapshots are saved by their
 owning stores. Provider keys are deliberately stored under a separate key so
 chat exports never include credentials. The OpenRouter catalog cache is written
-only when refreshed or cleared.
+only when refreshed or cleared. The Ollama snapshot bundles config (base URL,
+optional bearer key, `toolsEnabled` toggle) with the cached `/api/tags`
+catalog so a fresh boot has a populated picker before the first probe.
 
 If a full chat snapshot exceeds the browser's `localStorage` quota, the
 chat persistence service retries once with an emergency-compacted snapshot.
@@ -282,6 +285,15 @@ explicit continuation hint when the file content is larger than the model
 result budget. Token usage estimates use the flattened wire messages plus
 serialized tool calls/results and the selected tool schemas, so tool-heavy
 threads do not undercount context as aggressively.
+
+Per-model `Model.supportsTools` flag is honored at request build time:
+when the active thread's model has `supportsTools: false` (set by the
+Ollama catalog mapper for known-bad tool families like `gemma*`,
+`phi*`, `codellama`), `ChatStore.buildTurnRequest` omits the `tools`
+field entirely so the model isn't asked to call tools it can't reliably
+emit. The `OllamaProvider` independently honors a global `toolsEnabled`
+toggle that suppresses tool calls across all Ollama models — both gates
+must allow tools for them to reach the wire.
 
 Tool failures are logged from the central `ChatStore.executeOneToolCall`
 boundary whenever a tool result starts with `Error:` or a `terminal` / `git`

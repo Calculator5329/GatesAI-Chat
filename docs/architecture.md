@@ -202,10 +202,13 @@ side-effecting `read/write/subscribeRoute` for `window.location.hash`.
 | `gatesai.notes.v1`               | `Note[]`                 | `NotesStore`       |
 | `gatesai.uiprefs.v1`             | output style prefs       | `UiStore`          |
 | `gatesai.openrouter.catalog.v1`  | `{ fetchedAt, models[] }`| `OpenRouterStore`  |
+| `gatesai.ollama.v1`              | Ollama config + catalog  | `OllamaStore`      |
 
 Chat, provider, profile, notes, and UI preference snapshots are saved from
 their owning stores. OpenRouter cache writes happen on explicit
-`refresh()`/`clearCache()` instead of on every observable mutation. Provider
+`refresh()`/`clearCache()` instead of on every observable mutation. The
+Ollama snapshot persists on every config mutation so a fresh boot has
+a populated picker before the first `/api/tags` probe completes. Provider
 routing and transient UI state live in memory only.
 
 ## Testing

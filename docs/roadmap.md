@@ -35,6 +35,17 @@
       service, shared `SecretKeyField`, unified image-backend types,
       `Api.tsx` split, composer upload action on `UiStore`, Routing card
       marked as Coming soon)
+- [x] Local image-gen quality pass: SDXL Lightning hi-res workflow, sweep3
+      model comparison script, picker manifest auto-detect, and LLM prompt
+      enhancement controls
+- [x] Local image-gen tuning pass: narrow FLUX.2/Z-Image winner sweep and
+      Ultimate SD Upscale 2x benchmark mode
+- [x] Prepare local image-gen finalization: SDXL quick draft lane, reusable
+      final ComfyUI workflow templates, and winner selection script
+- [x] Add FLUX.2 Klein FP8 wide recovery benchmark for final workflow selection
+- [x] Ollama provider — local LLMs in the model picker via the Ollama runtime
+      (native NDJSON `/api/chat`, catalog refresh, status pill, per-model
+      `supportsTools` allowlist, global tool-calls toggle)
 
 ## Near-term
 - [ ] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`

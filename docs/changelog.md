@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-04-26 — Feature: Ollama provider
+
+Local LLMs via Ollama are now first-class in the model picker. New
+**Ollama** card under Settings → API takes the base URL (default
+`http://127.0.0.1:11434`), an optional bearer key, and a global tool-
+calls toggle; clicking Refresh hits `/api/tags` and populates the
+picker with whatever models you've pulled.
+
+The `OllamaProvider` speaks Ollama's native NDJSON `/api/chat`, so
+streaming text, tool calls, and image inputs all work for capable
+models. The catalog flags known-bad tool families (`gemma*`, `phi*`,
+`codellama`) with `supportsTools: false`; ChatStore drops `tools` from
+the request for those models. The existing **Local endpoint** provider
+(LM Studio / vLLM / llama.cpp) is untouched.
+
+Status polls every 30s while the Settings → API panel is open;
+otherwise the pill is fixed at last-known state. The "configured"
+gate requires at least one model in the catalog (not just a baseUrl),
+so a fresh install with no Ollama server still surfaces the API-key
+banner correctly. Persistence under `gatesai.ollama.v1`, separate
+from the LLM-provider config.
+
 ## 2026-04-26 — Refactor: Multimodal feature cleanup
 
 Architectural cleanup of the seams introduced by multimodal + image-gen.
