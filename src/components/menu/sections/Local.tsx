@@ -21,6 +21,13 @@ export const LocalSection = observer(function LocalSection() {
     return () => clearInterval(timer);
   }, [local]);
 
+  useEffect(() => {
+    if (!logRuntime) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setLogRuntime(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [logRuntime]);
+
   const logs = logRuntime ? local.runtimes[logRuntime].logs : [];
 
   return (
@@ -148,7 +155,8 @@ const RuntimeRow = observer(function RuntimeRow({ id, runtime, onOpenLogs, last 
 const LocalLlmCard = observer(function LocalLlmCard() {
   const local = useLocalRuntimeStore();
   const ollama = useOllamaStore();
-  const online = local.runtimes.ollama.status === 'online';
+  const status = local.runtimes.ollama.status;
+  const online = status === 'online';
   return (
     <Card style={{ marginBottom: 18, opacity: online ? 1 : 0.72 }}>
       <div style={cardHeaderStyle}>
@@ -157,7 +165,7 @@ const LocalLlmCard = observer(function LocalLlmCard() {
           <div style={cardTitleStyle}>Local LLMs</div>
           <div style={cardDescStyle}>Ollama model catalog, optional auth, and tool-call behavior.</div>
         </div>
-        {online ? <Pill>● Online</Pill> : <Pill tone="muted">Start Ollama first</Pill>}
+        {sectionPill(status, 'Ollama')}
       </div>
       <SettingsRow label="Base URL">
         <Input value={local.ollamaBaseUrl} onChange={e => local.setBaseUrl('ollama', e.currentTarget.value)} style={{ ...tokens.mono, fontSize: 12 }} />
@@ -195,7 +203,10 @@ const LocalLlmCard = observer(function LocalLlmCard() {
 const LocalImageCard = observer(function LocalImageCard() {
   const local = useLocalRuntimeStore();
   const image = useImageGenStore();
-  const online = local.runtimes.comfyui.status === 'online';
+  const status = local.runtimes.comfyui.status;
+  const online = status === 'online';
+  const isActiveBackend = image.backend === 'local-comfy';
+  const preset = image.config.comfyQualityPreset ?? 'final';
   return (
     <Card style={{ marginBottom: 18, opacity: online ? 1 : 0.72 }}>
       <div style={cardHeaderStyle}>
@@ -204,28 +215,30 @@ const LocalImageCard = observer(function LocalImageCard() {
           <div style={cardTitleStyle}>Local image generation</div>
           <div style={cardDescStyle}>ComfyUI workflows behind the same image_generate tool.</div>
         </div>
-        {online ? <Pill>● Online</Pill> : <Pill tone="muted">Start ComfyUI first</Pill>}
+        {sectionPill(status, 'ComfyUI')}
       </div>
       <SettingsRow label="Base URL">
         <Input value={local.comfyBaseUrl} onChange={e => local.setBaseUrl('comfyui', e.currentTarget.value)} style={{ ...tokens.mono, fontSize: 12 }} />
       </SettingsRow>
       <SettingsRow label="Quality preset">
         <Select
-          value={image.config.comfyQualityPreset ?? 'final'}
+          value={preset}
           onChange={e => image.setComfyQualityPreset(e.currentTarget.value as 'final' | 'draft')}
         >
           <option value="draft">Draft — SDXL quick prototype</option>
           <option value="final">Final — selected workflow template</option>
         </Select>
       </SettingsRow>
-      <SettingsRow label="Workflow template">
-        <Input
-          placeholder="/workspace/scripts/comfy-workflows/current-final-workflow.json"
-          value={image.config.comfyWorkflowPath ?? ''}
-          onChange={e => image.setComfyWorkflowPath(e.currentTarget.value)}
-          style={{ ...tokens.mono, fontSize: 12 }}
-        />
-      </SettingsRow>
+      {preset === 'final' && (
+        <SettingsRow label="Workflow template">
+          <Input
+            placeholder="/workspace/scripts/comfy-workflows/current-final-workflow.json"
+            value={image.config.comfyWorkflowPath ?? ''}
+            onChange={e => image.setComfyWorkflowPath(e.currentTarget.value)}
+            style={{ ...tokens.mono, fontSize: 12 }}
+          />
+        </SettingsRow>
+      )}
       <SettingsRow label="Prompt enhancement">
         <Select
           value={image.config.promptEnhancement ?? 'off'}
@@ -250,9 +263,16 @@ const LocalImageCard = observer(function LocalImageCard() {
         </SettingsRow>
       )}
       <SettingsRow label="Use for generation" last>
-        <Button variant="accent" onClick={() => image.setBackend('local-comfy')} disabled={!online}>
-          Set image_generate to ComfyUI
-        </Button>
+        {isActiveBackend ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Pill>● Active backend</Pill>
+            <span style={hintStyle}>image_generate is routing to ComfyUI.</span>
+          </div>
+        ) : (
+          <Button variant="accent" onClick={() => image.setBackend('local-comfy')} disabled={!online}>
+            Set image_generate to ComfyUI
+          </Button>
+        )}
       </SettingsRow>
       <div style={footerHintStyle}>GatesAI appends the required CORS flags when it starts ComfyUI.</div>
     </Card>
@@ -300,6 +320,15 @@ function statusPill(status: RuntimeState['status']) {
     case 'stopped':
     default: return <Pill tone="muted">○ Stopped</Pill>;
   }
+}
+
+/** Header pill for service-level cards. Differentiates 'starting' so users
+ *  don't see "Start X first" while X is already starting. */
+function sectionPill(status: RuntimeState['status'], runtime: string) {
+  if (status === 'online') return <Pill>● Online</Pill>;
+  if (status === 'starting') return <Pill tone="muted">● Starting…</Pill>;
+  if (status === 'crashed') return <Pill tone="muted">× {runtime} crashed</Pill>;
+  return <Pill tone="muted">Start {runtime} first</Pill>;
 }
 
 function runtimeLabel(id: LocalRuntimeId): string {

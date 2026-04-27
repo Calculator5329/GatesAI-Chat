@@ -217,7 +217,7 @@ export type BgKey = 'graphite' | 'charcoal' | 'slate' | 'espresso' | 'pure';
 export type HeaderKey = 'reading' | 'wordmark' | 'monogram' | 'rule';
 export type SendKey = 'arrow' | 'ghost' | 'circle' | 'enter' | 'quill';
 export type ThreadHeaderKey = 'none' | 'topLeft' | 'topRight' | 'spine' | 'chip' | 'both';
-export type MenuSectionKey = 'profile' | 'agent' | 'workspace' | 'settings' | 'usage' | 'local' | 'api' | 'appearance';
+export type MenuSectionKey = 'profile' | 'agent' | 'workspace' | 'settings' | 'usage' | 'local' | 'api' | 'appearance' | 'gallery';
 
 /**
  * How the assistant's tool invocations and their results are rendered in

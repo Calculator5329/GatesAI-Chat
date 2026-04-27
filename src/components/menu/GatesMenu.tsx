@@ -10,6 +10,7 @@ import { ApiSection } from './sections/Api';
 import { LocalSection } from './sections/Local';
 import { AppearanceSection } from './sections/Appearance';
 import { WorkspaceSection } from './sections/Workspace';
+import { GallerySection } from './sections/Gallery';
 
 interface MenuSectionDef {
   key: MenuSectionKey;
@@ -25,6 +26,7 @@ const SECTIONS: MenuSectionDef[] = [
   { key: 'usage',      label: 'Usage',      component: UsageSection },
   { key: 'local',      label: 'Local',      component: LocalSection },
   { key: 'api',        label: 'API',        component: ApiSection },
+  { key: 'gallery',    label: 'Gallery',    component: GallerySection },
   { key: 'appearance', label: 'Appearance', component: AppearanceSection },
 ];
 
