@@ -4,7 +4,6 @@ import { PROVIDERS } from '../../../../core/providers';
 import { useProviderStore } from '../../../../stores/context';
 import { Card } from '../../../ui';
 import { ProviderCard } from './ProviderCard';
-import { ImageGenCard } from './ImageGenCard';
 import { RoutingCard } from './RoutingCard';
 
 export const ApiSection = observer(function ApiSection() {
@@ -25,11 +24,6 @@ export const ApiSection = observer(function ApiSection() {
       {PROVIDERS.filter(p => p.id !== 'local').map(p => (
         <ProviderCard key={p.id} info={p} providers={providers} />
       ))}
-
-      <div style={{ ...tokens.section, marginTop: 32 }}>
-        <div style={tokens.sectionTitle}>Cloud image generation</div>
-        <ImageGenCard />
-      </div>
 
       <RoutingCard />
     </>

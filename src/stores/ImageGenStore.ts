@@ -45,16 +45,6 @@ export class ImageGenStore {
     this.config = { ...this.config, backend };
   }
 
-  setFalKey(key: string): void {
-    const trimmed = key.trim();
-    this.config = { ...this.config, falApiKey: trimmed || undefined };
-  }
-
-  setBflKey(key: string): void {
-    const trimmed = key.trim();
-    this.config = { ...this.config, bflApiKey: trimmed || undefined };
-  }
-
   setComfyWorkflowPath(path: string): void {
     const trimmed = path.trim();
     this.config = { ...this.config, comfyWorkflowPath: trimmed || undefined };
@@ -82,14 +72,6 @@ export class ImageGenStore {
     this.config = { ...this.config, a1111ApiKey: trimmed || undefined };
   }
 
-  setFallbackBackend(backend: ImageBackendId | null): void {
-    this.config = { ...this.config, fallbackBackend: backend };
-  }
-
-  setDefaultVariant(variant: ImageGenConfig['defaultVariant']): void {
-    this.config = { ...this.config, defaultVariant: variant };
-  }
-
   reset(): void {
     this.config = { ...DEFAULT_IMAGE_GEN_CONFIG };
   }
@@ -101,8 +83,6 @@ export class ImageGenStore {
    */
   getCredential(backend: ImageBackendId = this.backend): string | null {
     switch (backend) {
-      case 'fal': return this.config.falApiKey ?? null;
-      case 'bfl': return this.config.bflApiKey ?? null;
       case 'local-comfy': return this.localRuntime?.comfyBaseUrl ?? null;
       case 'local-a1111': return this.config.a1111BaseUrl ?? null;
     }
@@ -117,16 +97,12 @@ export class ImageGenStore {
   toBackendConfig(): Omit<ImageBackendConfig, 'comfyWorkflowTemplate' | 'fetch'> {
     return {
       primary: this.config.backend,
-      falApiKey: this.config.falApiKey,
-      bflApiKey: this.config.bflApiKey,
       comfyBaseUrl: this.localRuntime?.comfyBaseUrl,
       comfyQualityPreset: this.config.comfyQualityPreset ?? 'final',
       promptEnhancement: this.config.promptEnhancement ?? 'off',
       promptStylePreset: this.config.promptStylePreset ?? 'auto',
       a1111BaseUrl: this.config.a1111BaseUrl,
       a1111ApiKey: this.config.a1111ApiKey,
-      fallback: this.config.fallbackBackend ?? null,
-      defaultVariant: this.config.defaultVariant,
     };
   }
 }

@@ -2,13 +2,10 @@
  * Shared request / response shapes for every image-generation backend.
  *
  * The `image_generate` tool speaks this vocabulary; individual backends
- * (fal.ai, ComfyUI, A1111, BFL, Replicate…) adapt it to whatever their
- * API wants. Keeping the tool pinned to this shape is what lets us add
+ * (ComfyUI, A1111, future cloud routes) adapt it to whatever their API
+ * wants. Keeping the tool pinned to this shape is what lets us add
  * backends without touching the tool contract.
  */
-
-export const IMAGE_VARIANTS = ['flux-2-pro', 'flux-2-flex', 'flux-2-dev'] as const;
-export type FluxVariant = typeof IMAGE_VARIANTS[number];
 
 export const IMAGE_ASPECT_RATIOS = ['1:1', '3:2', '2:3', '16:9', '9:16'] as const;
 export type ImageAspectRatio = typeof IMAGE_ASPECT_RATIOS[number];
@@ -19,13 +16,6 @@ export interface GenerateImageRequest {
   width?: number;
   height?: number;
   seed?: number;
-  /**
-   * Advisory hint for cloud backends. Local backends ignore this —
-   * they use whatever checkpoint the user has loaded.
-   */
-  variant?: FluxVariant;
-  /** Optional full endpoint override (fal only). */
-  endpointOverride?: string;
 }
 
 export interface GenerateImageResult {
@@ -41,7 +31,7 @@ export interface GenerateImageResult {
   backend: ImageBackendId;
 }
 
-export type ImageBackendId = 'fal' | 'bfl' | 'local-comfy' | 'local-a1111';
+export type ImageBackendId = 'local-comfy' | 'local-a1111';
 
 export type ComfyQualityPreset = 'final' | 'draft';
 
@@ -65,20 +55,12 @@ export type PromptStylePreset =
  */
 export interface ImageBackendSnapshot {
   primary: ImageBackendId;
-  falApiKey?: string;
-  bflApiKey?: string;
   comfyBaseUrl?: string;
   comfyQualityPreset?: ComfyQualityPreset;
   promptEnhancement?: PromptEnhancementMode;
   promptStylePreset?: PromptStylePreset;
   a1111BaseUrl?: string;
   a1111ApiKey?: string;
-  fallback?: ImageBackendId | null;
-  /**
-   * Default cloud variant the tool falls back to when the model
-   * doesn't pick one. Local backends ignore this.
-   */
-  defaultVariant?: FluxVariant;
 }
 
 export interface ImageBackend {
@@ -88,10 +70,6 @@ export interface ImageBackend {
 
 export function isImageAspectRatio(value: unknown): value is ImageAspectRatio {
   return typeof value === 'string' && IMAGE_ASPECT_RATIOS.includes(value as ImageAspectRatio);
-}
-
-export function isImageVariant(value: unknown): value is FluxVariant {
-  return typeof value === 'string' && IMAGE_VARIANTS.includes(value as FluxVariant);
 }
 
 export function isLocalImageBackend(id: ImageBackendId): boolean {

@@ -249,15 +249,6 @@ const LocalImageCard = observer(function LocalImageCard() {
           </Select>
         </SettingsRow>
       )}
-      <SettingsRow label="Cloud fallback">
-        <Select
-          value={image.config.fallbackBackend ?? ''}
-          onChange={e => image.setFallbackBackend(e.currentTarget.value ? 'fal' : null)}
-        >
-          <option value="">Disabled</option>
-          <option value="fal">fal.ai</option>
-        </Select>
-      </SettingsRow>
       <SettingsRow label="Use for generation" last>
         <Button variant="accent" onClick={() => image.setBackend('local-comfy')} disabled={!online}>
           Set image_generate to ComfyUI

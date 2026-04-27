@@ -3,7 +3,6 @@ import { dispatchImageGenerate, type ImageBackendConfig } from '../image/imageBa
 import { enhancePrompt } from '../image/promptEnhancer';
 import {
   isImageAspectRatio,
-  isImageVariant,
   isLocalImageBackend,
   validateExplicitDimensions,
 } from '../image/types';
@@ -11,16 +10,13 @@ import type { Tool } from './types';
 
 /**
  * image_generate — render an image from a text prompt using the
- * configured image-gen backend (fal.ai FLUX 2.x in the cloud, or a
- * local ComfyUI / AUTOMATIC1111 server) and save the bytes into
- * `/workspace/artifacts/`.
+ * configured local image-gen backend (ComfyUI or AUTOMATIC1111) and
+ * save the bytes into `/workspace/artifacts/`.
  *
  * The tool contract is backend-agnostic by design: the model doesn't
- * know or care whether a request went to fal, ComfyUI, or A1111.
- * Routing lives in {@link ImageGenStore} and the
- * {@link dispatchImageGenerate} helper. That same indirection lets a
- * local failure transparently fall back to the cloud, with a short
- * note appended to the tool result so the model can mention it.
+ * know or care whether a request went to ComfyUI or A1111. Routing
+ * lives in {@link ImageGenStore} and the {@link dispatchImageGenerate}
+ * helper.
  *
  * The tool does NOT return raw base64 to the model — that would blow
  * the context window. It writes the file through `fs.write` and hands
@@ -31,19 +27,14 @@ export const imageGenerateTool: Tool = {
   def: {
     name: 'image_generate',
     description: [
-      'Generate an image from a text prompt and save it to /workspace/artifacts/.',
+      'Generate an image using the configured local backend (ComfyUI or AUTOMATIC1111). Returns a workspace path the user can click to open.',
       '',
       'Use this when the user asks you to draw, render, create, or generate an image, picture, or illustration.',
-      'Returns a workspace path the user can click to open the full-resolution file.',
-      '',
-      'Backends: fal.ai FLUX 2.x is configured in API; ComfyUI local generation is configured in Local.',
-      'The model doesn\'t pick the backend — the user does. Local failures fall back to cloud automatically when a cloud key is configured.',
       '',
       'Parameters:',
       '  prompt — what to render (be specific about subject, style, lighting).',
-      '  aspect_ratio — 1:1 (default), 3:2, 2:3, 16:9, 9:16. Works on every backend.',
-      '  width + height — optional explicit local pixel dimensions, e.g. width=1360 height=768. Local ComfyUI/A1111 only; cloud backends keep aspect_ratio.',
-      '  variant — flux-2-pro (highest quality, default), flux-2-flex, flux-2-dev. Cloud backends only; local backends ignore this.',
+      '  aspect_ratio — 1:1 (default), 3:2, 2:3, 16:9, 9:16.',
+      '  width + height — optional explicit pixel dimensions; must be supplied together and be multiples of 16.',
       '  filename — optional stem for the artifact; extension is appended. Defaults to a timestamp.',
       '  seed — optional integer for reproducibility.',
     ].join('\n'),
@@ -56,20 +47,15 @@ export const imageGenerateTool: Tool = {
           enum: ['1:1', '3:2', '2:3', '16:9', '9:16'],
           description: 'Output aspect ratio. Default 1:1.',
         },
-        variant: {
-          type: 'string',
-          enum: ['flux-2-pro', 'flux-2-flex', 'flux-2-dev'],
-          description: 'FLUX 2 variant. Default flux-2-pro. Cloud backends only.',
-        },
         filename: { type: 'string', description: 'Optional filename stem (without extension).' },
         seed: { type: 'number', description: 'Optional deterministic seed.' },
         width: {
           type: 'number',
-          description: 'Optional explicit output width in pixels for local ComfyUI/A1111. Must be supplied with height and be a multiple of 16.',
+          description: 'Optional explicit output width in pixels. Must be supplied with height and be a multiple of 16.',
         },
         height: {
           type: 'number',
-          description: 'Optional explicit output height in pixels for local ComfyUI/A1111. Must be supplied with width and be a multiple of 16.',
+          description: 'Optional explicit output height in pixels. Must be supplied with width and be a multiple of 16.',
         },
       },
       required: ['prompt'],
@@ -105,9 +91,6 @@ export const imageGenerateTool: Tool = {
     }
 
     const aspect = isImageAspectRatio(args.aspect_ratio) ? args.aspect_ratio : '1:1';
-    const variant = isImageVariant(args.variant)
-      ? args.variant
-      : (snapshot.defaultVariant ?? 'flux-2-pro');
     const seed = typeof args.seed === 'number' && Number.isFinite(args.seed) ? Math.floor(args.seed) : undefined;
     const width = parseDimensionArg(args.width);
     const height = parseDimensionArg(args.height);
@@ -127,13 +110,13 @@ export const imageGenerateTool: Tool = {
     let dispatchResult;
     try {
       dispatchResult = await dispatchImageGenerate(
-        { prompt: effectivePrompt, aspectRatio: aspect, variant, seed, ...localDimensions },
+        { prompt: effectivePrompt, aspectRatio: aspect, seed, ...localDimensions },
         config,
       );
     } catch (err) {
       return `Error generating image: ${(err as Error).message}`;
     }
-    const { result, fallbackNote } = dispatchResult;
+    const { result } = dispatchResult;
 
     const filename = sanitizeFilename(typeof args.filename === 'string' ? args.filename : '')
       || defaultFilename(result.backend);
@@ -150,10 +133,9 @@ export const imageGenerateTool: Tool = {
       });
       const dims = result.width && result.height ? `${result.width}x${result.height}` : aspect;
       const seedStr = typeof result.seed === 'number' ? `, seed=${result.seed}` : '';
-      const fallbackLine = fallbackNote ? `\nNote: ${fallbackNote}` : '';
       const promptLine = effectivePrompt !== prompt ? `\nEnhanced prompt: ${effectivePrompt}` : '';
       return {
-        content: `Saved: ${resp.path} (${dims}${seedStr}, backend=${result.backend})${promptLine}${fallbackLine}`,
+        content: `Saved: ${resp.path} (${dims}${seedStr}, backend=${result.backend})${promptLine}`,
         artifacts: [{ kind: 'image', path: resp.path, mime: result.mime }],
       };
     } catch (err) {
@@ -200,7 +182,7 @@ function defaultFilename(backend: string): string {
   const d = new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
   const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  const prefix = backend === 'local-comfy' ? 'comfy' : backend === 'local-a1111' ? 'a1111' : 'flux';
+  const prefix = backend === 'local-comfy' ? 'comfy' : backend === 'local-a1111' ? 'a1111' : 'image';
   return `${prefix}-${stamp}`;
 }
 

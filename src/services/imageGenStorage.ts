@@ -16,8 +16,6 @@ export type { ImageBackendId, ComfyQualityPreset, PromptEnhancementMode, PromptS
 
 export interface ImageGenConfig {
   backend: ImageBackendId;
-  falApiKey?: string;
-  bflApiKey?: string;
 
   /**
    * Optional path inside `/workspace/` to a custom ComfyUI workflow
@@ -41,22 +39,11 @@ export interface ImageGenConfig {
   /** AUTOMATIC1111 local server base URL, e.g. `http://127.0.0.1:7860`. */
   a1111BaseUrl?: string;
   a1111ApiKey?: string;
-
-  /**
-   * When a local backend fails, try this cloud backend automatically.
-   * `null` disables the fallback.
-   */
-  fallbackBackend?: ImageBackendId | null;
-
-  /** Default cloud variant used when the tool doesn't specify one. */
-  defaultVariant?: 'flux-2-pro' | 'flux-2-flex' | 'flux-2-dev';
 }
 
 export const DEFAULT_IMAGE_GEN_CONFIG: ImageGenConfig = {
-  backend: 'fal',
-  defaultVariant: 'flux-2-pro',
+  backend: 'local-comfy',
   a1111BaseUrl: 'http://127.0.0.1:7860',
-  fallbackBackend: 'fal',
   comfyQualityPreset: 'draft',
   promptEnhancement: 'off',
   promptEnhancementOptIn: false,
@@ -94,6 +81,9 @@ function normalizeImageGenConfig(config: ImageGenConfig): ImageGenConfig {
   }
   if (next.promptEnhancement === 'llm' && next.promptEnhancementOptIn !== true) {
     next.promptEnhancement = 'off';
+  }
+  if (next.backend !== 'local-comfy' && next.backend !== 'local-a1111') {
+    next.backend = 'local-comfy';
   }
   return next;
 }
