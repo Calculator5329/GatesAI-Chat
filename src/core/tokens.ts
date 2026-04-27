@@ -26,6 +26,7 @@ const DEFAULT_WINDOW_BY_PROVIDER: Record<ProviderId, number> = {
   gemini: 1_000_000,
   groq: 32_000,
   local: 8_000,
+  ollama: 8_000,
 };
 
 export function estimateTokens(text: string): number {

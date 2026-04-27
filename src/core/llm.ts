@@ -15,7 +15,8 @@ export type ProviderId =
   | 'anthropic'
   | 'gemini'
   | 'groq'
-  | 'local';      // OpenAI-compatible local endpoint (Ollama, LM Studio, vLLM, llama.cpp)
+  | 'local'        // OpenAI-compatible local endpoint (LM Studio, vLLM, llama.cpp)
+  | 'ollama';      // Native Ollama server (/api/chat, /api/tags)
 
 export type LlmRole = 'user' | 'assistant' | 'system' | 'tool';
 

@@ -31,6 +31,8 @@ export function buildProviders(configs: ProviderConfigs): Record<ProviderId, Llm
     gemini:     new GeminiProvider(configs.gemini?.apiKey),
     groq:       new GroqProvider(configs.groq?.apiKey),
     local:      new LocalProvider(configs.local?.baseUrl, configs.local?.apiKey),
+    // TODO(ollama task 6): swap LocalProvider for the real OllamaProvider once it lands.
+    ollama:     new LocalProvider(configs.ollama?.baseUrl, configs.ollama?.apiKey),
   };
 }
 
@@ -67,8 +69,8 @@ export class LlmRouter {
    */
   canRoute(): boolean {
     for (const [id, provider] of Object.entries(this.providers)) {
-      if (id === 'local') {
-        if (this.configs.local?.baseUrl) return true;
+      if (id === 'local' || id === 'ollama') {
+        if (this.configs[id]?.baseUrl) return true;
         continue;
       }
       if (provider.ready()) return true;
@@ -96,7 +98,7 @@ export class LlmRouter {
       return { provider: direct, providerModelId: model.providerModelId };
     }
 
-    if (model.providerId !== 'openrouter' && model.providerId !== 'local') {
+    if (model.providerId !== 'openrouter' && model.providerId !== 'local' && model.providerId !== 'ollama') {
       const orSlug = this.findOpenRouterSlugFor(model.providerId, model.providerModelId);
       const or = this.providers.openrouter;
       if (orSlug && or.ready()) {
@@ -142,7 +144,7 @@ export class LlmRouter {
   resolveOpenRouterFallback(modelId: string): { provider: LlmProvider; providerModelId: string } | null {
     const model = this.registry.findById(modelId);
     if (!model) return null;
-    if (model.providerId === 'openrouter' || model.providerId === 'local') return null;
+    if (model.providerId === 'openrouter' || model.providerId === 'local' || model.providerId === 'ollama') return null;
     const or = this.providers.openrouter;
     if (!or.ready()) return null;
     const slug = this.findOpenRouterSlugFor(model.providerId, model.providerModelId);
