@@ -58,7 +58,10 @@ export class RootStore {
     this.bridge = new BridgeStore();
     this.execStream = new ExecStreamStore();
     this.imageGen = new ImageGenStore(this.localRuntime);
-    this.imageJobs = new ImageJobStore();
+    this.imageJobs = new ImageJobStore({
+      bridge: this.bridge,
+      imageGen: this.imageGen,
+    });
 
     // Cross-thread awareness: ChatStore asks SummaryStore for the digest
     // list every time it composes a system prompt. Wiring is one-way
