@@ -10,6 +10,7 @@ import type { UserProfileStore } from './UserProfileStore';
 import type { BridgeStore } from './BridgeStore';
 import type { ExecStreamStore } from './ExecStreamStore';
 import type { ImageGenStore } from './ImageGenStore';
+import type { ImageJobStore } from './ImageJobStore';
 import type { OllamaStore } from './OllamaStore';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
 
@@ -63,6 +64,10 @@ export function useExecStreamStore(): ExecStreamStore {
 
 export function useImageGenStore(): ImageGenStore {
   return useRootStore().imageGen;
+}
+
+export function useImageJobStore(): ImageJobStore {
+  return useRootStore().imageJobs;
 }
 
 export function useOllamaStore(): OllamaStore {

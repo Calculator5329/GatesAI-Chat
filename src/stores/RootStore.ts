@@ -12,6 +12,7 @@ import { NotesStore } from './NotesStore';
 import { BridgeStore } from './BridgeStore';
 import { ExecStreamStore } from './ExecStreamStore';
 import { ImageGenStore } from './ImageGenStore';
+import { ImageJobStore } from './ImageJobStore';
 import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 
@@ -29,6 +30,7 @@ export class RootStore {
   readonly bridge: BridgeStore;
   readonly execStream: ExecStreamStore;
   readonly imageGen: ImageGenStore;
+  readonly imageJobs: ImageJobStore;
   readonly localRuntime: LocalRuntimeStore;
 
   constructor() {
@@ -56,6 +58,7 @@ export class RootStore {
     this.bridge = new BridgeStore();
     this.execStream = new ExecStreamStore();
     this.imageGen = new ImageGenStore(this.localRuntime);
+    this.imageJobs = new ImageJobStore();
 
     // Cross-thread awareness: ChatStore asks SummaryStore for the digest
     // list every time it composes a system prompt. Wiring is one-way
