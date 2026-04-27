@@ -15,6 +15,19 @@ interface OllamaWireMessage {
   }>;
 }
 
+interface OllamaStreamFrame {
+  message?: {
+    role?: string;
+    content?: string;
+    tool_calls?: Array<{
+      function?: { name?: string; arguments?: Record<string, unknown> };
+    }>;
+  };
+  done?: boolean;
+  done_reason?: string;
+  error?: string;
+}
+
 interface OllamaTool {
   type: 'function';
   function: {
@@ -105,9 +118,96 @@ export class OllamaProvider implements LlmProvider {
     return out;
   }
 
-  // Stub — replaced in Task 4 with real NDJSON parsing.
-  private async *parseNdjson(_body: ReadableStream<Uint8Array>, _signal: AbortSignal): AsyncIterable<LlmChunk> {
-    yield { type: 'done', finishReason: 'error', error: 'OllamaProvider: streaming parser not implemented yet (Task 4)' };
+  private async *parseNdjson(body: ReadableStream<Uint8Array>, signal: AbortSignal): AsyncIterable<LlmChunk> {
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let toolUseSeen = false;
+
+    try {
+      while (!signal.aborted) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let nl: number;
+        while ((nl = buffer.indexOf('\n')) >= 0) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line) continue;
+
+          let frame: OllamaStreamFrame;
+          try {
+            frame = JSON.parse(line);
+          } catch {
+            continue; // skip malformed line
+          }
+
+          if (frame.error) {
+            yield { type: 'done', finishReason: 'error', error: frame.error };
+            return;
+          }
+
+          const message = frame.message;
+          if (message?.content) {
+            yield { type: 'text', delta: message.content };
+          }
+
+          if (message?.tool_calls && message.tool_calls.length) {
+            for (let i = 0; i < message.tool_calls.length; i++) {
+              const tc = message.tool_calls[i];
+              const args = tc.function?.arguments && typeof tc.function.arguments === 'object'
+                ? tc.function.arguments
+                : {};
+              yield {
+                type: 'tool_call',
+                call: {
+                  id: `ollama-tool-${i}`,
+                  name: tc.function?.name ?? 'unknown',
+                  arguments: args as Record<string, unknown>,
+                },
+              };
+            }
+            toolUseSeen = true;
+          }
+
+          if (frame.done) {
+            yield { type: 'done', finishReason: toolUseSeen ? 'tool_use' : 'stop' };
+            return;
+          }
+        }
+      }
+      // Flush the decoder and try to parse any trailing complete frame.
+      buffer += decoder.decode();
+      const trailing = buffer.trim();
+      if (trailing) {
+        try {
+          const frame = JSON.parse(trailing) as OllamaStreamFrame;
+          if (frame.error) {
+            yield { type: 'done', finishReason: 'error', error: frame.error };
+            return;
+          }
+          if (frame.message?.content) {
+            yield { type: 'text', delta: frame.message.content };
+          }
+          if (frame.done) {
+            yield { type: 'done', finishReason: toolUseSeen ? 'tool_use' : 'stop' };
+            return;
+          }
+        } catch {
+          // Ignore — falls through to the missing-done error path below.
+        }
+      }
+      if (signal.aborted) {
+        yield { type: 'done', finishReason: 'cancelled' };
+      } else {
+        // Server closed the stream without sending a final done frame.
+        // Treat as an error so consumers don't hang in a streaming state.
+        yield { type: 'done', finishReason: 'error', error: 'Ollama stream ended without done frame' };
+      }
+    } finally {
+      reader.releaseLock();
+    }
   }
 }
 

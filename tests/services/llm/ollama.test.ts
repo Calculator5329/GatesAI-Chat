@@ -102,3 +102,151 @@ describe('OllamaProvider — request shape', () => {
     vi.unstubAllGlobals();
   });
 });
+
+function ndjsonResponse(lines: string[]): Response {
+  const enc = new TextEncoder();
+  return {
+    ok: true,
+    headers: new Headers({ 'content-type': 'application/x-ndjson' }),
+    body: new ReadableStream<Uint8Array>({
+      start(c) {
+        for (const line of lines) c.enqueue(enc.encode(line + '\n'));
+        c.close();
+      },
+    }),
+  } as unknown as Response;
+}
+
+describe('OllamaProvider — streaming response', () => {
+  it('emits text chunks as message.content arrives', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([
+      JSON.stringify({ message: { role: 'assistant', content: 'Hello' }, done: false }),
+      JSON.stringify({ message: { role: 'assistant', content: ' world' }, done: false }),
+      JSON.stringify({ message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' }),
+    ])));
+    const p = new OllamaProvider({ baseUrl: 'http://h:1' });
+    const chunks = [];
+    for await (const c of p.stream({ modelId: 'm', messages: [] }, new AbortController().signal)) chunks.push(c);
+    expect(chunks).toEqual([
+      { type: 'text', delta: 'Hello' },
+      { type: 'text', delta: ' world' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    vi.unstubAllGlobals();
+  });
+
+  it('emits tool_call chunks with synthesized ids', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([
+      JSON.stringify({ message: { role: 'assistant', content: '', tool_calls: [
+        { function: { name: 'get_time', arguments: {} } },
+        { function: { name: 'note', arguments: { text: 'hi' } } },
+      ] }, done: false }),
+      JSON.stringify({ done: true, done_reason: 'stop' }),
+    ])));
+    const p = new OllamaProvider({ baseUrl: 'http://h:1' });
+    const chunks = [];
+    for await (const c of p.stream({ modelId: 'm', messages: [] }, new AbortController().signal)) chunks.push(c);
+    expect(chunks).toContainEqual({ type: 'tool_call', call: { id: 'ollama-tool-0', name: 'get_time', arguments: {} } });
+    expect(chunks).toContainEqual({ type: 'tool_call', call: { id: 'ollama-tool-1', name: 'note', arguments: { text: 'hi' } } });
+    expect(chunks[chunks.length - 1]).toEqual({ type: 'done', finishReason: 'tool_use' });
+    vi.unstubAllGlobals();
+  });
+
+  it('surfaces Ollama JSON error frames', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([
+      JSON.stringify({ error: "model 'foo' not found, try pulling it first" }),
+    ])));
+    const p = new OllamaProvider({ baseUrl: 'http://h:1' });
+    const chunks = [];
+    for await (const c of p.stream({ modelId: 'foo', messages: [] }, new AbortController().signal)) chunks.push(c);
+    expect(chunks[chunks.length - 1]).toEqual({
+      type: 'done',
+      finishReason: 'error',
+      error: "model 'foo' not found, try pulling it first",
+    });
+    vi.unstubAllGlobals();
+  });
+
+  it('yields cancelled when the signal aborts mid-stream', async () => {
+    const enc = new TextEncoder();
+    let enqueueSecond: (() => void) | null = null;
+    const stream = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(enc.encode(JSON.stringify({ message: { role: 'assistant', content: 'Hi' }, done: false }) + '\n'));
+        // Delay the second frame so the test can abort between them.
+        enqueueSecond = () => {
+          c.enqueue(enc.encode(JSON.stringify({ done: true, done_reason: 'stop' }) + '\n'));
+          c.close();
+        };
+      },
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      headers: new Headers(),
+      body: stream,
+    } as unknown as Response)));
+
+    const controller = new AbortController();
+    const p = new OllamaProvider({ baseUrl: 'http://h:1' });
+    const chunks: Array<{ type: string; finishReason?: string; delta?: string }> = [];
+
+    const iter = p.stream({ modelId: 'm', messages: [] }, controller.signal);
+    for await (const c of iter) {
+      chunks.push(c as { type: string; finishReason?: string; delta?: string });
+      if ((c as { type: string }).type === 'text') {
+        controller.abort();
+        // Drain the deferred enqueue so the stream isn't left hanging on close.
+        (enqueueSecond as (() => void) | null)?.();
+      }
+    }
+
+    expect(chunks[0]).toEqual({ type: 'text', delta: 'Hi' });
+    expect(chunks[chunks.length - 1]).toEqual({ type: 'done', finishReason: 'cancelled' });
+    vi.unstubAllGlobals();
+  });
+
+  it('yields error done when the stream closes without a done frame', async () => {
+    const enc = new TextEncoder();
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      headers: new Headers(),
+      body: new ReadableStream<Uint8Array>({
+        start(c) {
+          c.enqueue(enc.encode(JSON.stringify({ message: { role: 'assistant', content: 'partial' }, done: false }) + '\n'));
+          c.close();
+        },
+      }),
+    } as unknown as Response)));
+    const p = new OllamaProvider({ baseUrl: 'http://h:1' });
+    const chunks = [];
+    for await (const c of p.stream({ modelId: 'm', messages: [] }, new AbortController().signal)) chunks.push(c);
+    expect(chunks[0]).toEqual({ type: 'text', delta: 'partial' });
+    expect(chunks[chunks.length - 1]).toMatchObject({ type: 'done', finishReason: 'error' });
+    expect((chunks[chunks.length - 1] as { error: string }).error).toMatch(/without done frame/);
+    vi.unstubAllGlobals();
+  });
+
+  it('handles split lines across reads', async () => {
+    const enc = new TextEncoder();
+    const part1 = JSON.stringify({ message: { role: 'assistant', content: 'Hel' }, done: false }) + '\n' + JSON.stringify({ message: { role: 'assistant', content: 'lo' }, done: false }).slice(0, 10);
+    const part2 = JSON.stringify({ message: { role: 'assistant', content: 'lo' }, done: false }).slice(10) + '\n' + JSON.stringify({ done: true, done_reason: 'stop' }) + '\n';
+
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      headers: new Headers(),
+      body: new ReadableStream<Uint8Array>({
+        start(c) {
+          c.enqueue(enc.encode(part1));
+          c.enqueue(enc.encode(part2));
+          c.close();
+        },
+      }),
+    } as unknown as Response)));
+    const p = new OllamaProvider({ baseUrl: 'http://h:1' });
+    const chunks = [];
+    for await (const c of p.stream({ modelId: 'm', messages: [] }, new AbortController().signal)) chunks.push(c);
+    const text = chunks.filter(c => c.type === 'text').map(c => c.delta).join('');
+    expect(text).toBe('Hello');
+    vi.unstubAllGlobals();
+  });
+});
