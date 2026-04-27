@@ -1,9 +1,18 @@
 import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, ToolDef } from '../../core/llm';
 import { ensureOk } from './sse';
 
+/**
+ * Default base URL for a local Ollama daemon. Single source of truth — used
+ * by `ollamaStorage` (defaults), `OllamaStore.setBaseUrl` (empty fallback),
+ * and `buildProviders` in the router (config absent fallback).
+ */
+export const DEFAULT_OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
+
 export interface OllamaProviderOptions {
   baseUrl: string;
   apiKey?: string;
+  /** When false, drop tools from every request (per-model overrides via supportsTools live in ChatStore). */
+  toolsEnabled?: boolean;
 }
 
 interface OllamaWireMessage {
@@ -52,10 +61,12 @@ export class OllamaProvider implements LlmProvider {
   readonly id = 'ollama' as const;
   private readonly baseUrl: string;
   private readonly apiKey?: string;
+  private readonly toolsEnabled: boolean;
 
   constructor(opts: OllamaProviderOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/+$/, '');
     this.apiKey = opts.apiKey;
+    this.toolsEnabled = opts.toolsEnabled !== false;
   }
 
   ready(): boolean {
@@ -66,12 +77,13 @@ export class OllamaProvider implements LlmProvider {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (this.apiKey) headers.Authorization = `Bearer ${this.apiKey}`;
 
+    const useTools = this.toolsEnabled && req.tools && req.tools.length > 0;
     const body = {
       model: req.modelId,
       messages: this.buildMessages(req.messages, req.systemPrompt),
       stream: true,
       keep_alive: '5m',
-      ...(req.tools && req.tools.length ? { tools: req.tools.map(toOllamaTool) } : {}),
+      ...(useTools ? { tools: req.tools!.map(toOllamaTool) } : {}),
       ...(typeof req.temperature === 'number' ? { options: { temperature: req.temperature } } : {}),
     };
 

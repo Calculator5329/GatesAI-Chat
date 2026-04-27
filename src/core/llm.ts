@@ -116,6 +116,8 @@ export interface LlmProvider {
 export interface ProviderConfig {
   apiKey?: string;
   baseUrl?: string;          // for OpenAI-compatible local endpoints
+  /** Ollama-specific: drop tools from every request when false. */
+  toolsEnabled?: boolean;
 }
 
 export type ProviderConfigs = Partial<Record<ProviderId, ProviderConfig>>;

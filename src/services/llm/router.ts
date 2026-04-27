@@ -6,6 +6,7 @@ import { OpenRouterProvider } from './openrouter';
 import { LocalProvider } from './local';
 import { AnthropicProvider } from './anthropic';
 import { GeminiProvider } from './gemini';
+import { OllamaProvider, DEFAULT_OLLAMA_BASE_URL } from './ollama';
 
 /**
  * Thrown by `LlmRouter.resolve` when no provider is ready to handle the
@@ -31,8 +32,11 @@ export function buildProviders(configs: ProviderConfigs): Record<ProviderId, Llm
     gemini:     new GeminiProvider(configs.gemini?.apiKey),
     groq:       new GroqProvider(configs.groq?.apiKey),
     local:      new LocalProvider(configs.local?.baseUrl, configs.local?.apiKey),
-    // TODO(ollama task 6): swap LocalProvider for the real OllamaProvider once it lands.
-    ollama:     new LocalProvider(configs.ollama?.baseUrl, configs.ollama?.apiKey),
+    ollama:     new OllamaProvider({
+      baseUrl: configs.ollama?.baseUrl ?? DEFAULT_OLLAMA_BASE_URL,
+      apiKey: configs.ollama?.apiKey,
+      toolsEnabled: configs.ollama?.toolsEnabled !== false,
+    }),
   };
 }
 
@@ -69,7 +73,14 @@ export class LlmRouter {
    */
   canRoute(): boolean {
     for (const [id, provider] of Object.entries(this.providers)) {
-      if (id === 'local' || id === 'ollama') {
+      if (id === 'ollama') {
+        // Ollama is "configured" only when at least one model is in the
+        // registry — which proves the user has reached the server and
+        // refreshed the catalog. Just having a default baseUrl isn't enough.
+        if (this.registry.all.some(m => m.providerId === 'ollama')) return true;
+        continue;
+      }
+      if (id === 'local') {
         if (this.configs[id]?.baseUrl) return true;
         continue;
       }

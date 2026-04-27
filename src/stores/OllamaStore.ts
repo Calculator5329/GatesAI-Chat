@@ -1,6 +1,7 @@
 import { autorun, makeAutoObservable, runInAction, toJS } from 'mobx';
 import type { Model } from '../core/types';
 import { mapOllamaTagsToModels } from '../services/llm/ollamaCatalog';
+import { DEFAULT_OLLAMA_BASE_URL } from '../services/llm/ollama';
 import {
   loadOllamaConfig,
   saveOllamaConfig,
@@ -64,7 +65,7 @@ export class OllamaStore {
 
   setBaseUrl(url: string): void {
     const trimmed = url.trim().replace(/\/+$/, '');
-    this.config = { ...this.config, baseUrl: trimmed || 'http://127.0.0.1:11434' };
+    this.config = { ...this.config, baseUrl: trimmed || DEFAULT_OLLAMA_BASE_URL };
   }
 
   setKey(key: string): void {

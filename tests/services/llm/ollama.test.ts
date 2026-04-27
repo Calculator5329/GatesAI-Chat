@@ -101,6 +101,19 @@ describe('OllamaProvider — request shape', () => {
     }]);
     vi.unstubAllGlobals();
   });
+
+  it('drops tools from the request when toolsEnabled is false', async () => {
+    const { fetchMock, getBody } = captureRequest();
+    vi.stubGlobal('fetch', fetchMock);
+    const provider = new OllamaProvider({ baseUrl: 'http://h:1', toolsEnabled: false });
+
+    const tools = [{ name: 't', description: 'd', parameters: { type: 'object' as const, properties: {}, required: [] } }];
+    for await (const _ of provider.stream({ modelId: 'm', messages: [], tools }, new AbortController().signal)) { /* */ }
+
+    const body = getBody();
+    expect(body).not.toHaveProperty('tools');
+    vi.unstubAllGlobals();
+  });
 });
 
 function ndjsonResponse(lines: string[]): Response {

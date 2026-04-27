@@ -44,6 +44,20 @@ export class RootStore {
     this.execStream = new ExecStreamStore();
     this.imageGen = new ImageGenStore();
 
+    // Mirror Ollama config into ProviderConfigs so LlmRouter sees baseUrl/apiKey/
+    // toolsEnabled updates without LlmRouter knowing about OllamaStore directly.
+    //
+    // MobX tracks this autorun on `this.ollama.config` as a whole because
+    // OllamaStore setters reassign the object via spread. Mutating individual
+    // fields in place would NOT re-fire this autorun.
+    autorun(() => {
+      this.providers.configs.ollama = {
+        baseUrl: this.ollama.config.baseUrl,
+        apiKey: this.ollama.config.apiKey,
+        toolsEnabled: this.ollama.config.toolsEnabled,
+      };
+    });
+
     // Cross-thread awareness: ChatStore asks SummaryStore for the digest
     // list every time it composes a system prompt. Wiring is one-way
     // (Chat → Summary read) so the dependency graph stays acyclic.
