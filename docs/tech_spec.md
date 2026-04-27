@@ -129,7 +129,7 @@ interface LlmProvider {
 #/                 → default (active thread)
 #/thread/<id>      → select thread
 #/menu/<section>   → open menu surface; section ∈
-                     profile|agent|settings|usage|local|api|appearance|workspace
+                     profile|agent|settings|usage|local|api|gallery|appearance|workspace
 ```
 
 ## Storage
@@ -144,6 +144,7 @@ interface LlmProvider {
 | `gatesai.openrouter.catalog.v1`  | OpenRouter catalog cache  | `OpenRouterStore`  |
 | `gatesai.ollama.v1`              | Ollama config + catalog   | `OllamaStore`      |
 | `gatesai.local.v1`               | runtime paths + toggles   | `LocalRuntimeStore`|
+| `gatesai.imagejobs.v1`           | completed-job history     | `ImageJobStore`    |
 
 Chat, provider, profile, notes, and UI preference snapshots are saved by their
 owning stores. Provider keys are deliberately stored under a separate key so
@@ -444,6 +445,39 @@ Chat-side wiring:
   is the UI-facing facade. The composer sends the resulting
   `DraftAttachment[]` to `ChatStore`, which formats a "📎 Attached files:"
   footer on the user message so the model has paths inline.
+
+## Image jobs
+
+`image_generate` does not block the chat turn. The tool builds an
+`ImageJobInput` from `args` (clamped `count` 1–10, dims from
+`aspect_ratio` or explicit `width`/`height`) and calls
+`imageJobs.enqueue(...)`, which returns a synthetic `jobId`. The tool
+result is `{ content, artifacts: [{ kind: 'image-job', jobId, count }] }`.
+
+`ImageJobStore` runs jobs serially:
+
+1. Pull the next pending job, mark `running`, set `startedAt`.
+2. Resolve the backend config (Comfy or A1111). For Comfy `final` mode,
+   fetch the user's workflow JSON via `bridge.fs.read`.
+3. Spin up a per-backend `JobProgress` adapter — Comfy WebSocket
+   (`/ws?clientId=...`) or A1111 poll (`/sdapi/v1/progress?skip_current_image=true`,
+   500ms cadence). Each event updates `job.progress`.
+4. Loop `count` times: derive a per-iteration seed (`seed + i` if the
+   user supplied one, else `Math.floor(Math.random() * 2**31)`),
+   dispatch through `dispatchImageGenerate`, and write the bytes via
+   `bridge.fs.write` into `/workspace/artifacts/`. Each saved path is
+   pushed onto `job.results`.
+5. Mark `done` and move into history.
+
+Cancel from the UI calls `imageJobs.cancel(jobId)`, which aborts the
+inflight `AbortController`, asks the progress adapter to POST
+`/interrupt` (Comfy) or `/sdapi/v1/interrupt` (A1111), and moves the job
+into history with `cancelled`. Per-iteration cancel checks bail out of
+the multi-image loop.
+
+History is persisted under `gatesai.imagejobs.v1` (capped at 200
+entries). Pending and running jobs do not persist — closing the app
+mid-render loses in-flight work.
 
 ## Local runtimes
 

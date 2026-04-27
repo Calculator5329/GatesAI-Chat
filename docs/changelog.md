@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-04-26 — Feature: Image-gen UX overhaul
+
+`image_generate` is now a background job. The tool returns immediately with a
+job id; the chat message renders a live progress card that fills in with the
+final image when the render completes. Switching threads, sending more turns,
+or kicking off a second image-gen call works fine — jobs run serially in the
+background.
+
+- New `ImageJobStore` owns the queue, the active job, and a persisted
+  completed-job history under `gatesai.imagejobs.v1`.
+- `image_generate` accepts a new `count` arg (1–10). Multi-image jobs land as
+  a uniform-tile grid in the chat message; click any tile to open in the
+  Lightbox with arrow navigation.
+- ComfyUI progress streams over its WebSocket (`/ws`); A1111 progress polls
+  `/sdapi/v1/progress` every 500ms. Both expose a Cancel button on the card.
+- New **Gallery** menu section shows every completed image across threads
+  with click-to-Lightbox.
+- Markdown links to `/workspace/...` paths now open in the OS viewer (the
+  `<a>` interceptor mirrors the existing inline-code workspace-path link).
+- The system prompt now tells models not to repeat tool results in their
+  prose when `image_generate` is in scope.
+- Removed the unused fal.ai cloud backend; cloud image-gen will route through
+  OpenRouter when that lands. `image_generate` is local-only for now
+  (ComfyUI / AUTOMATIC1111).
+
 ## 2026-04-26 — Refactor: Local runtime single source of truth
 
 `LocalRuntimeStore` is now the only owner of the Ollama and ComfyUI base URLs.

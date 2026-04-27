@@ -163,6 +163,27 @@ parsing the human-facing result string.
 `content` onto the assistant message's `toolResults`, and stashes
 `artifacts` next to it when present.
 
+## Image jobs
+
+`image_generate` is decoupled from the chat turn. The tool enqueues an
+`ImageJob` into `ImageJobStore` and returns immediately with an
+`{ kind: 'image-job', jobId, count }` artifact. `ImageJobStore` owns:
+
+- a serial **queue** + an **active** in-flight job
+- a **runner** that pulls one job, opens a per-backend progress adapter
+  (Comfy WebSocket `/ws` or A1111 `/sdapi/v1/progress` poll), dispatches
+  the configured number of renders through `dispatchImageGenerate`, and
+  writes each result into `/workspace/artifacts/` via `bridge.fs.write`
+- a **completed-job history** persisted under `gatesai.imagejobs.v1`
+  (capped at 200 entries) so the Gallery menu and ImageJobCards survive
+  reloads
+
+Cancel aborts the inflight controller and asks the progress adapter to
+hit the backend's `/interrupt` endpoint best-effort. The chat-side
+`ImageJobCard` observes the store and dispatches its render to a
+status-specific sub-card (running / done-single / done-grid /
+failed / cancelled), with a Lightbox for click-through.
+
 ## LLM provider abstraction
 
 Every provider in `src/services/llm/` implements the `LlmProvider` contract:
@@ -203,6 +224,7 @@ side-effecting `read/write/subscribeRoute` for `window.location.hash`.
 | `gatesai.uiprefs.v1`             | output style prefs       | `UiStore`          |
 | `gatesai.openrouter.catalog.v1`  | `{ fetchedAt, models[] }`| `OpenRouterStore`  |
 | `gatesai.ollama.v1`              | Ollama config + catalog  | `OllamaStore`      |
+| `gatesai.imagejobs.v1`           | completed-job history    | `ImageJobStore`    |
 
 Chat, provider, profile, notes, and UI preference snapshots are saved from
 their owning stores. OpenRouter cache writes happen on explicit
