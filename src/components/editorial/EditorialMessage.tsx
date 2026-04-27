@@ -199,6 +199,10 @@ function MarkdownBody({ content }: { content: string }) {
           // link the system handler can open. Block code (anything with
           // a language class from rehype-highlight) renders normally.
           code: (props) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
+          // Anchor links pointing at /workspace/ paths reroute to the OS
+          // viewer through the bridge — the same affordance as inline-code
+          // workspace paths. Other links open in a new tab.
+          a: (props) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,
         }}
       >
         {content}
@@ -220,6 +224,18 @@ function CodeOrWorkspaceLink({ bridge, className, children, ...rest }: CodeProps
     }
   }
   return <code className={className} {...rest}>{children}</code>;
+}
+
+interface AnchorProps extends ComponentPropsWithoutRef<'a'> {
+  bridge: BridgeStore;
+}
+
+function AnchorOrWorkspaceLink({ bridge, href, children, ...rest }: AnchorProps) {
+  const target = typeof href === 'string' ? href : '';
+  if (target && isWorkspacePath(target)) {
+    return <WorkspacePathLink path={target} bridge={bridge} />;
+  }
+  return <a href={href} {...rest} target="_blank" rel="noreferrer">{children}</a>;
 }
 
 function WorkspacePathLink({ path, bridge }: { path: string; bridge: BridgeStore }) {

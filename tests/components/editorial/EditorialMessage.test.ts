@@ -145,6 +145,32 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
   });
 
+  it('rewrites markdown anchors to /workspace/ paths into workspace-link buttons', () => {
+    const rendered = renderMessage({
+      id: 'm-anchor-workspace',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'See [the artifact](/workspace/artifacts/foo.png) for details.',
+    });
+
+    expect(rendered.querySelector('.workspace-path-link')).not.toBeNull();
+    expect(rendered.querySelector('a[href^="/workspace/"]')).toBeNull();
+  });
+
+  it('still renders external markdown anchors as anchor tags', () => {
+    const rendered = renderMessage({
+      id: 'm-anchor-external',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'See [the docs](https://example.com/foo) for details.',
+    });
+
+    const anchor = rendered.querySelector('a');
+    expect(anchor).not.toBeNull();
+    expect(anchor?.getAttribute('href')).toBe('https://example.com/foo');
+    expect(anchor?.getAttribute('target')).toBe('_blank');
+  });
+
   it('can label an empty streaming assistant message as compacting', () => {
     const rendered = renderMessage({
       id: 'm-compacting',
