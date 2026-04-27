@@ -190,6 +190,13 @@ export interface Model {
    * families. Explicit values override the heuristic.
    */
   supportsVision?: boolean;
+  /**
+   * Whether this model is known to handle tool calls reliably. When unset,
+   * callers should default to "yes" — false means the catalog flagged it as
+   * known-bad. Used today for Ollama models where tool support varies wildly
+   * between families.
+   */
+  supportsTools?: boolean;
 }
 
 export interface ChatSnapshot {

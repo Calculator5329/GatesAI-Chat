@@ -1,5 +1,8 @@
 import type { Model } from './types';
 
+/** Tag families that ship vision support across local runtimes (LM Studio, Ollama, llama.cpp). */
+const LOCAL_VISION_RE = /llava|qwen[^/]*vl|qwen-vl|llama-?3\.2-vision|minicpm-v|internvl|moondream|bakllava|pixtral/;
+
 /**
  * Whether a model accepts image inputs (vision). Pattern-matched against
  * provider + provider-model-id, with an explicit {@link Model.supportsVision}
@@ -47,7 +50,8 @@ export function modelSupportsVision(model: Pick<Model, 'providerId' | 'providerM
       );
 
     case 'local':
-      return /llava|qwen[^/]*vl|qwen-vl|llama-?3\.2-vision|minicpm-v|internvl|moondream|bakllava|pixtral/.test(id);
+    case 'ollama':
+      return LOCAL_VISION_RE.test(id);
 
     default:
       return false;
