@@ -36,6 +36,24 @@ describe('A1111Client', () => {
     expect(body.seed).toBe(42);
   });
 
+  it('uses explicit pixel dimensions when provided', async () => {
+    const { fetch: fakeFetch, calls } = makeFakeFetch(() =>
+      new Response(JSON.stringify({
+        images: ['aGVsbG8='],
+        info: JSON.stringify({ seed: 1234 }),
+      }), { status: 200, headers: { 'content-type': 'application/json' } }),
+    );
+
+    const client = new A1111Client({ baseUrl: 'http://127.0.0.1:7860/', fetch: fakeFetch });
+    const out = await client.generate({ prompt: 'a cat', aspectRatio: '1:1', width: 1360, height: 768, seed: 42 });
+
+    expect(out.width).toBe(1360);
+    expect(out.height).toBe(768);
+    const body = JSON.parse(calls[0].init!.body as string);
+    expect(body.width).toBe(1360);
+    expect(body.height).toBe(768);
+  });
+
   it('surfaces errors with body text', async () => {
     const { fetch: fakeFetch } = makeFakeFetch(() =>
       new Response('{"detail":"no checkpoint loaded"}', { status: 500, statusText: 'Internal Server Error' }),

@@ -7,6 +7,7 @@ import { AgentSection } from './sections/Agent';
 import { SettingsSection } from './sections/Settings';
 import { UsageSection } from './sections/Usage';
 import { ApiSection } from './sections/Api';
+import { LocalSection } from './sections/Local';
 import { AppearanceSection } from './sections/Appearance';
 import { WorkspaceSection } from './sections/Workspace';
 
@@ -22,6 +23,7 @@ const SECTIONS: MenuSectionDef[] = [
   { key: 'workspace',  label: 'Workspace',  component: WorkspaceSection },
   { key: 'settings',   label: 'Settings',   component: SettingsSection },
   { key: 'usage',      label: 'Usage',      component: UsageSection },
+  { key: 'local',      label: 'Local',      component: LocalSection },
   { key: 'api',        label: 'API',        component: ApiSection },
   { key: 'appearance', label: 'Appearance', component: AppearanceSection },
 ];

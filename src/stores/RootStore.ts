@@ -12,6 +12,7 @@ import { NotesStore } from './NotesStore';
 import { BridgeStore } from './BridgeStore';
 import { ExecStreamStore } from './ExecStreamStore';
 import { ImageGenStore } from './ImageGenStore';
+import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 
 export class RootStore {
@@ -28,35 +29,33 @@ export class RootStore {
   readonly bridge: BridgeStore;
   readonly execStream: ExecStreamStore;
   readonly imageGen: ImageGenStore;
+  readonly localRuntime: LocalRuntimeStore;
 
   constructor() {
+    let ollamaStore: OllamaStore | null = null;
     this.registry = new ModelRegistry();
-    this.providers = new ProviderStore(this.registry);
     this.profile = new UserProfileStore();
-    this.chat = new ChatStore(this.providers, this.registry, this.profile);
     this.ui = new UiStore();
     this.router = new RouterStore();
     this.openrouter = new OpenRouterStore(this.registry);
-    this.ollama = new OllamaStore(this.registry);
+    this.localRuntime = new LocalRuntimeStore({
+      getOllamaCatalog: () => ollamaStore?.catalog ?? [],
+    });
+    this.ollama = new OllamaStore(this.registry, this.localRuntime);
+    ollamaStore = this.ollama;
+    this.providers = new ProviderStore(this.registry, () => ({
+      ollama: {
+        baseUrl: this.localRuntime.ollamaBaseUrl,
+        apiKey: this.ollama.config.apiKey,
+        toolsEnabled: this.ollama.config.toolsEnabled,
+      },
+    }));
+    this.chat = new ChatStore(this.providers, this.registry, this.profile);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
     this.bridge = new BridgeStore();
     this.execStream = new ExecStreamStore();
-    this.imageGen = new ImageGenStore();
-
-    // Mirror Ollama config into ProviderConfigs so LlmRouter sees baseUrl/apiKey/
-    // toolsEnabled updates without LlmRouter knowing about OllamaStore directly.
-    //
-    // MobX tracks this autorun on `this.ollama.config` as a whole because
-    // OllamaStore setters reassign the object via spread. Mutating individual
-    // fields in place would NOT re-fire this autorun.
-    autorun(() => {
-      this.providers.configs.ollama = {
-        baseUrl: this.ollama.config.baseUrl,
-        apiKey: this.ollama.config.apiKey,
-        toolsEnabled: this.ollama.config.toolsEnabled,
-      };
-    });
+    this.imageGen = new ImageGenStore(this.localRuntime);
 
     // Cross-thread awareness: ChatStore asks SummaryStore for the digest
     // list every time it composes a system prompt. Wiring is one-way
@@ -73,10 +72,12 @@ export class RootStore {
       bridge: this.bridge,
       execStream: this.execStream,
       imageGen: this.imageGen,
+      localRuntime: this.localRuntime,
     }));
 
     // Boot the bridge poller — chat keeps working if it never connects.
     this.bridge.start();
+    void this.localRuntime.init();
 
     // Diagnostics: route per-thread log lines to /workspace/logs/<id>.log
     // through the bridge whenever it's online.

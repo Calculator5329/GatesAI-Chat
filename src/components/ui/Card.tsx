@@ -1,13 +1,14 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, HTMLAttributes, ReactNode } from 'react';
 
-interface CardProps {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   style?: CSSProperties;
 }
 
-export function Card({ children, style }: CardProps) {
+export function Card({ children, style, ...rest }: CardProps) {
   return (
     <div
+      {...rest}
       style={{
         border: '1px solid var(--border)',
         borderRadius: 8,

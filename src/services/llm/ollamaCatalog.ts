@@ -19,7 +19,7 @@ interface OllamaTagsResponse {
  * codellama). Matches the family name with optional version digits and
  * either a `:tag` suffix or end-of-string. Conservative — false positives
  * just mean a working tool model is briefly mis-flagged, which the user
- * can override globally via the OllamaCard "tool calls" toggle.
+ * can override globally via the Local menu's "tool calls" toggle.
  */
 const TOOL_BLOCKLIST = [
   /^gemma\d*(:|$)/i,
@@ -37,7 +37,7 @@ function isOllamaTagsResponse(v: unknown): v is OllamaTagsResponse {
  * Convert the body of `GET /api/tags` from a running Ollama server into
  * our `Model[]` shape. Stable ids prefixed with `ollama-` so the registry
  * can dedupe. Vision and tool-call support are inferred from the tag name;
- * users can override globally via the OllamaCard tools toggle.
+ * users can override globally via the Local menu tools toggle.
  */
 // TODO: filter out embedding-only models (nomic-embed-text, mxbai-embed-*) once Task 5 lands.
 export function mapOllamaTagsToModels(raw: unknown): Model[] {

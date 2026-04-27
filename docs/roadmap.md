@@ -46,6 +46,11 @@
 - [x] Ollama provider — local LLMs in the model picker via the Ollama runtime
       (native NDJSON `/api/chat`, catalog refresh, status pill, per-model
       `supportsTools` allowlist, global tool-calls toggle)
+- [x] Add local image-generation size controls: named aspect ratios plus
+      explicit pixel dimensions for ComfyUI/A1111
+- [x] Add a dedicated Local menu for Ollama, ComfyUI, and local vision setup
+      (auto-detect install paths, managed Start/Stop, live logs, ComfyUI CORS
+      flags, local vision `describe_image` tool)
 
 ## Near-term
 - [ ] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`

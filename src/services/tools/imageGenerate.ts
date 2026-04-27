@@ -1,6 +1,12 @@
 import type { FsReadResp, FsWriteResp } from '../../core/workspace';
 import { dispatchImageGenerate, type ImageBackendConfig } from '../image/imageBackend';
-import type { FluxVariant, ImageAspectRatio } from '../image/types';
+import { enhancePrompt } from '../image/promptEnhancer';
+import {
+  isImageAspectRatio,
+  isImageVariant,
+  isLocalImageBackend,
+  validateExplicitDimensions,
+} from '../image/types';
 import type { Tool } from './types';
 
 /**
@@ -30,12 +36,13 @@ export const imageGenerateTool: Tool = {
       'Use this when the user asks you to draw, render, create, or generate an image, picture, or illustration.',
       'Returns a workspace path the user can click to open the full-resolution file.',
       '',
-      'Backends (configured in Settings → API): fal.ai FLUX 2.x (cloud), ComfyUI (local), AUTOMATIC1111 (local).',
+      'Backends: fal.ai FLUX 2.x is configured in API; ComfyUI local generation is configured in Local.',
       'The model doesn\'t pick the backend — the user does. Local failures fall back to cloud automatically when a cloud key is configured.',
       '',
       'Parameters:',
       '  prompt — what to render (be specific about subject, style, lighting).',
-      '  aspect_ratio — 1:1 (default), 3:2, 2:3, 16:9, 9:16.',
+      '  aspect_ratio — 1:1 (default), 3:2, 2:3, 16:9, 9:16. Works on every backend.',
+      '  width + height — optional explicit local pixel dimensions, e.g. width=1360 height=768. Local ComfyUI/A1111 only; cloud backends keep aspect_ratio.',
       '  variant — flux-2-pro (highest quality, default), flux-2-flex, flux-2-dev. Cloud backends only; local backends ignore this.',
       '  filename — optional stem for the artifact; extension is appended. Defaults to a timestamp.',
       '  seed — optional integer for reproducibility.',
@@ -56,6 +63,14 @@ export const imageGenerateTool: Tool = {
         },
         filename: { type: 'string', description: 'Optional filename stem (without extension).' },
         seed: { type: 'number', description: 'Optional deterministic seed.' },
+        width: {
+          type: 'number',
+          description: 'Optional explicit output width in pixels for local ComfyUI/A1111. Must be supplied with height and be a multiple of 16.',
+        },
+        height: {
+          type: 'number',
+          description: 'Optional explicit output height in pixels for local ComfyUI/A1111. Must be supplied with width and be a multiple of 16.',
+        },
       },
       required: ['prompt'],
     },
@@ -89,16 +104,30 @@ export const imageGenerateTool: Tool = {
       config.comfyWorkflowTemplate = template;
     }
 
-    const aspect = typeof args.aspect_ratio === 'string' ? (args.aspect_ratio as ImageAspectRatio) : '1:1';
-    const variant: FluxVariant = typeof args.variant === 'string'
-      ? (args.variant as FluxVariant)
+    const aspect = isImageAspectRatio(args.aspect_ratio) ? args.aspect_ratio : '1:1';
+    const variant = isImageVariant(args.variant)
+      ? args.variant
       : (snapshot.defaultVariant ?? 'flux-2-pro');
     const seed = typeof args.seed === 'number' && Number.isFinite(args.seed) ? Math.floor(args.seed) : undefined;
+    const width = parseDimensionArg(args.width);
+    const height = parseDimensionArg(args.height);
+    const dimensionError = validateExplicitDimensions(width, height);
+    if (dimensionError) return `Error: ${dimensionError}`;
+    const localDimensions = isLocalImageBackend(snapshot.primary) && width !== undefined && height !== undefined
+      ? { width, height }
+      : {};
+    const effectivePrompt = snapshot.promptEnhancement === 'llm'
+      ? await enhancePrompt({
+          prompt,
+          stylePreset: snapshot.promptStylePreset ?? 'auto',
+          llmComplete: ctx.chat.llmComplete.bind(ctx.chat),
+        })
+      : prompt;
 
     let dispatchResult;
     try {
       dispatchResult = await dispatchImageGenerate(
-        { prompt, aspectRatio: aspect, variant, seed },
+        { prompt: effectivePrompt, aspectRatio: aspect, variant, seed, ...localDimensions },
         config,
       );
     } catch (err) {
@@ -122,8 +151,9 @@ export const imageGenerateTool: Tool = {
       const dims = result.width && result.height ? `${result.width}x${result.height}` : aspect;
       const seedStr = typeof result.seed === 'number' ? `, seed=${result.seed}` : '';
       const fallbackLine = fallbackNote ? `\nNote: ${fallbackNote}` : '';
+      const promptLine = effectivePrompt !== prompt ? `\nEnhanced prompt: ${effectivePrompt}` : '';
       return {
-        content: `Saved: ${resp.path} (${dims}${seedStr}, backend=${result.backend})${fallbackLine}`,
+        content: `Saved: ${resp.path} (${dims}${seedStr}, backend=${result.backend})${promptLine}${fallbackLine}`,
         artifacts: [{ kind: 'image', path: resp.path, mime: result.mime }],
       };
     } catch (err) {
@@ -180,3 +210,9 @@ function extensionForMime(mime: string): string {
   if (mime === 'image/gif') return '.gif';
   return '.png';
 }
+
+function parseDimensionArg(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  return value;
+}
+

@@ -11,6 +11,7 @@ import type { BridgeStore } from './BridgeStore';
 import type { ExecStreamStore } from './ExecStreamStore';
 import type { ImageGenStore } from './ImageGenStore';
 import type { OllamaStore } from './OllamaStore';
+import type { LocalRuntimeStore } from './LocalRuntimeStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -66,4 +67,8 @@ export function useImageGenStore(): ImageGenStore {
 
 export function useOllamaStore(): OllamaStore {
   return useRootStore().ollama;
+}
+
+export function useLocalRuntimeStore(): LocalRuntimeStore {
+  return useRootStore().localRuntime;
 }

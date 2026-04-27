@@ -1,4 +1,4 @@
-import type { ToolDef } from '../../core/llm';
+import type { LlmMessage, ToolDef } from '../../core/llm';
 import type { Note } from '../../core/notes';
 import type { Thread, ToolResultArtifact } from '../../core/types';
 
@@ -21,6 +21,7 @@ export interface ChatFacade {
   selectThread(id: string): void;
   renameThread(id: string, title: string): void;
   setThreadContext(id: string, context: string): void;
+  llmComplete(messages: Pick<LlmMessage, 'role' | 'content'>[], systemPrompt?: string): Promise<string>;
 }
 
 export interface NotesFacade {
@@ -59,13 +60,18 @@ import type { ImageBackendId, ImageBackendSnapshot } from '../image/types';
 export type { ImageBackendId, ImageBackendSnapshot };
 
 export interface ImageGenFacade {
-  readonly hasUsableBackend: boolean;
   readonly backend: ImageBackendId;
   getCredential(backend?: ImageBackendId): string | null;
   /** Plain snapshot consumed by the dispatcher. */
   toBackendConfig(): ImageBackendSnapshot;
   /** User-configured /workspace/ path to a ComfyUI workflow override. */
   readonly comfyWorkflowPath?: string;
+}
+
+export interface LocalRuntimeFacade {
+  readonly ollamaBaseUrl: string;
+  readonly comfyBaseUrl?: string;
+  readonly visionModel?: string;
 }
 
 export interface ExecStreamFacade {
@@ -82,12 +88,13 @@ export interface ToolContext {
   summary?: SummaryFacade;
   bridge?: BridgeFacade;
   imageGen?: ImageGenFacade;
+  localRuntime?: LocalRuntimeFacade;
   execStream?: ExecStreamFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;
 }
 
-export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'shell' | 'git' | 'thread' | 'notes' | 'time';
+export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision';
 
 export interface ToolResultPolicy {
   /** Default max chars returned to the model before compaction. */

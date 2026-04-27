@@ -1,8 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import { OllamaProvider } from '../../../src/services/llm/ollama';
 
-function captureRequest(): { fetchMock: ReturnType<typeof vi.fn>; getBody: () => any } {
-  let lastBody: any = null;
+interface CapturedOllamaBody {
+  model?: string;
+  stream?: boolean;
+  messages?: Array<{ role: string; content: string; images?: string[] }>;
+  tools?: unknown;
+}
+
+function captureRequest(): { fetchMock: ReturnType<typeof vi.fn>; getBody: () => CapturedOllamaBody } {
+  let lastBody: CapturedOllamaBody = {};
   const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
     lastBody = init.body ? JSON.parse(init.body as string) : null;
     return {
@@ -73,8 +80,8 @@ describe('OllamaProvider — request shape', () => {
     for await (const _ of iter) { /* */ }
 
     const body = getBody();
-    expect(body.messages[0].images).toEqual(['ABCD']);
-    expect(body.messages[0].content).toBe('what is this');
+    expect(body.messages?.[0].images).toEqual(['ABCD']);
+    expect(body.messages?.[0].content).toBe('what is this');
     vi.unstubAllGlobals();
   });
 

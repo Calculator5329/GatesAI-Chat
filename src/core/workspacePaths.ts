@@ -26,7 +26,7 @@ export function isWorkspacePath(value: string): boolean {
   const rel = trimmed.slice(WORKSPACE_PREFIX.length);
   if (!rel) return false;
   // Reject things that are obviously not paths (whitespace, control chars).
-  return !/[\s\x00-\x1f]/.test(rel);
+  return ![...rel].some(ch => ch.trim() === '' || ch.charCodeAt(0) < 32);
 }
 
 /**

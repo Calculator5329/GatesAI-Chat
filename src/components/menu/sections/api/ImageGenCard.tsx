@@ -1,13 +1,12 @@
 import { observer } from 'mobx-react-lite';
-import { tokens } from '../../../../core/styleTokens';
 import { useImageGenStore } from '../../../../stores/context';
-import { Card, Pill, SettingsRow, Input, Select, SecretKeyField } from '../../../ui';
+import { Card, Pill, SettingsRow, Select, SecretKeyField } from '../../../ui';
 import { ProviderAvatar } from './ProviderAvatar';
 
 export const ImageGenCard = observer(function ImageGenCard() {
   const store = useImageGenStore();
-  const backend = store.backend;
-  const connected = store.hasUsableBackend;
+  const backend = store.backend === 'bfl' ? 'bfl' : 'fal';
+  const connected = Boolean(store.getCredential(backend));
 
   return (
     <Card style={{ marginBottom: 12 }}>
@@ -17,8 +16,6 @@ export const ImageGenCard = observer(function ImageGenCard() {
           <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>
             {backend === 'fal' && 'fal.ai (FLUX 2)'}
             {backend === 'bfl' && 'Black Forest Labs'}
-            {backend === 'local-comfy' && 'ComfyUI (local)'}
-            {backend === 'local-a1111' && 'AUTOMATIC1111 (local)'}
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 1 }}>
             Text-to-image. Artifacts land in /workspace/artifacts/.
@@ -34,35 +31,51 @@ export const ImageGenCard = observer(function ImageGenCard() {
         <SettingsRow label="Backend">
           <Select
             value={backend}
-            onChange={e => store.setBackend(e.currentTarget.value as 'fal' | 'bfl' | 'local-comfy' | 'local-a1111')}
+            onChange={e => store.setBackend(e.currentTarget.value as 'fal' | 'bfl')}
           >
             <option value="fal">fal.ai (cloud, FLUX 2)</option>
-            <option value="local-comfy">ComfyUI (local)</option>
-            <option value="local-a1111">AUTOMATIC1111 (local)</option>
             <option value="bfl" disabled>Black Forest Labs (soon)</option>
           </Select>
         </SettingsRow>
 
         {backend === 'fal' && <FalBackendFields />}
-        {backend === 'local-comfy' && <ComfyBackendFields />}
-        {backend === 'local-a1111' && <A1111BackendFields />}
 
-        {(backend === 'local-comfy' || backend === 'local-a1111') && (
-          <SettingsRow label="Cloud fallback" last>
-            <Select
-              value={store.config.fallbackBackend ?? ''}
-              onChange={e => {
-                const v = e.currentTarget.value;
-                store.setFallbackBackend(v ? (v as 'fal' | 'bfl') : null);
-              }}
-            >
-              <option value="">Disabled (errors surface to the model)</option>
-              <option value="fal">fal.ai</option>
-            </Select>
-          </SettingsRow>
-        )}
+        <PromptEnhancementFields />
       </div>
     </Card>
+  );
+});
+
+const PromptEnhancementFields = observer(function PromptEnhancementFields() {
+  const store = useImageGenStore();
+  const enabled = store.config.promptEnhancement ?? 'off';
+
+  return (
+    <>
+      <SettingsRow label="Prompt enhancement">
+        <Select
+          value={enabled}
+          onChange={e => store.setPromptEnhancement(e.currentTarget.value as 'off' | 'llm')}
+        >
+          <option value="llm">On — rewrite prompts for image models</option>
+          <option value="off">Off — use prompt exactly as written</option>
+        </Select>
+      </SettingsRow>
+      {enabled === 'llm' && (
+        <SettingsRow label="Style preset">
+          <Select
+            value={store.config.promptStylePreset ?? 'auto'}
+            onChange={e => store.setPromptStylePreset(e.currentTarget.value as 'auto' | 'photorealistic' | 'concept-art' | 'abstract' | 'illustration')}
+          >
+            <option value="auto">Auto</option>
+            <option value="photorealistic">Photorealistic</option>
+            <option value="concept-art">Concept art</option>
+            <option value="abstract">Abstract</option>
+            <option value="illustration">Illustration</option>
+          </Select>
+        </SettingsRow>
+      )}
+    </>
   );
 });
 
@@ -97,64 +110,3 @@ const FalBackendFields = observer(function FalBackendFields() {
   );
 });
 
-const ComfyBackendFields = observer(function ComfyBackendFields() {
-  const store = useImageGenStore();
-  return (
-    <>
-      <SettingsRow label="Base URL">
-        <Input
-          placeholder="http://127.0.0.1:8188"
-          value={store.config.comfyBaseUrl ?? ''}
-          onChange={e => store.setComfyBaseUrl(e.currentTarget.value)}
-          style={{ ...tokens.mono, fontSize: 12, flex: 1 }}
-        />
-      </SettingsRow>
-      <SettingsRow label="Quality preset">
-        <Select
-          value={store.config.comfyQualityPreset ?? 'final'}
-          onChange={e => store.setComfyQualityPreset(e.currentTarget.value as 'final' | 'draft')}
-        >
-          <option value="draft">Draft — SDXL Lightning 4-step</option>
-          <option value="final">Final — custom / FLUX workflow</option>
-        </Select>
-      </SettingsRow>
-      <SettingsRow label="Workflow template">
-        <Input
-          placeholder="(built-in SDXL default) · e.g. /workspace/notes/flux-workflow.json"
-          value={store.config.comfyWorkflowPath ?? ''}
-          onChange={e => store.setComfyWorkflowPath(e.currentTarget.value)}
-          style={{ ...tokens.mono, fontSize: 12, flex: 1 }}
-        />
-      </SettingsRow>
-      <div style={{ fontSize: 11.5, color: 'var(--text-faint)', paddingLeft: 8 }}>
-        Draft mode expects <code style={tokens.mono}>sdxl_lightning_4step.safetensors</code> in ComfyUI checkpoints and ignores the custom workflow path. Final mode uses your workflow JSON with <code style={tokens.mono}>{'{{PROMPT}}'}</code>, <code style={tokens.mono}>{'{{WIDTH}}'}</code>, <code style={tokens.mono}>{'{{HEIGHT}}'}</code>, <code style={tokens.mono}>{'{{SEED}}'}</code> placeholders.
-      </div>
-    </>
-  );
-});
-
-const A1111BackendFields = observer(function A1111BackendFields() {
-  const store = useImageGenStore();
-  const existingKey = store.config.a1111ApiKey ?? '';
-  return (
-    <>
-      <SettingsRow label="Base URL">
-        <Input
-          placeholder="http://127.0.0.1:7860"
-          value={store.config.a1111BaseUrl ?? ''}
-          onChange={e => store.setA1111BaseUrl(e.currentTarget.value)}
-          style={{ ...tokens.mono, fontSize: 12, flex: 1 }}
-        />
-      </SettingsRow>
-      <SettingsRow label="API key (optional)">
-        <SecretKeyField
-          value={existingKey}
-          onSet={(k) => store.setA1111Key(k)}
-          onClear={() => store.setA1111Key('')}
-          placeholder="Only if you started A1111 with --api-auth"
-          connectLabel="Set"
-        />
-      </SettingsRow>
-    </>
-  );
-});

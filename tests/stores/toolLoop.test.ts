@@ -214,6 +214,49 @@ describe('Tool loop — scripted', () => {
     expect(chat.activeThread!.messages.at(-1)?.content).toContain('valid file action');
   });
 
+  it('passes LocalRuntimeStore context to describe_image tool calls', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ message: { content: 'A fox in snow.' } }), { status: 200 })
+    ) as unknown as typeof fetch;
+    const { chat, mock } = setupScripted([
+      [
+        {
+          type: 'tool_call',
+          call: {
+            id: 'vision-1',
+            name: 'describe_image',
+            arguments: { path: '/workspace/artifacts/fox.png', question: 'What is shown?' },
+          },
+        },
+        { type: 'done', finishReason: 'tool_use' },
+      ],
+      [{ type: 'text', delta: 'It is a fox.' }, { type: 'done', finishReason: 'stop' }],
+    ]);
+    chat.setToolStoresProvider(() => ({
+      bridge: {
+        isOnline: true,
+        client: { request: async () => ({}) },
+        readAttachmentBase64: async () => ({ base64: 'abc123', mime: 'image/png', size: 10 }),
+      },
+      localRuntime: {
+        ollamaBaseUrl: 'http://127.0.0.1:11434',
+        visionModel: 'qwen2.5-vl:7b',
+      },
+    }) as unknown as Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'localRuntime'>);
+    chat.createThread();
+
+    try {
+      chat.sendMessage('describe the image');
+      await flush(80);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+
+    const toolMsg = mock.calls[1].messages.find(m => m.role === 'tool');
+    expect(toolMsg?.content).toContain('A fox in snow.');
+  });
+
   it('logs structured details when a tool call fails', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { chat } = setupScripted([

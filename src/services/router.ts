@@ -1,6 +1,6 @@
 import type { MenuSectionKey } from '../core/types';
 
-const MENU_SECTIONS: MenuSectionKey[] = ['profile', 'agent', 'workspace', 'settings', 'usage', 'api', 'appearance'];
+const MENU_SECTIONS: MenuSectionKey[] = ['profile', 'agent', 'workspace', 'settings', 'usage', 'local', 'api', 'appearance'];
 
 export type Route =
   | { kind: 'thread'; threadId: string | null }

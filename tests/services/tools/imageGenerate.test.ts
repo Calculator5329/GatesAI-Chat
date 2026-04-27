@@ -21,10 +21,9 @@ function fakeBridge(opts: {
   } as unknown as ToolContext['bridge'];
 }
 
-function fakeImageGen(opts: { key?: string; backend?: 'fal' | 'local-comfy' | 'local-a1111'; comfyBaseUrl?: string; a1111BaseUrl?: string; fallback?: 'fal' | null; comfyWorkflowPath?: string; comfyQualityPreset?: 'final' | 'draft'; defaultVariant?: 'flux-2-pro' | 'flux-2-flex' | 'flux-2-dev' }): ToolContext['imageGen'] {
+function fakeImageGen(opts: { key?: string; backend?: 'fal' | 'local-comfy' | 'local-a1111'; comfyBaseUrl?: string; a1111BaseUrl?: string; fallback?: 'fal' | null; comfyWorkflowPath?: string; comfyQualityPreset?: 'final' | 'draft'; defaultVariant?: 'flux-2-pro' | 'flux-2-flex' | 'flux-2-dev'; promptEnhancement?: 'off' | 'llm'; promptStylePreset?: 'auto' | 'photorealistic' | 'concept-art' | 'abstract' | 'illustration' }): ToolContext['imageGen'] {
   const backend = opts.backend ?? 'fal';
   return {
-    hasUsableBackend: !!(opts.key ?? opts.comfyBaseUrl ?? opts.a1111BaseUrl),
     backend,
     comfyWorkflowPath: opts.comfyWorkflowPath,
     getCredential: (b) => {
@@ -39,6 +38,8 @@ function fakeImageGen(opts: { key?: string; backend?: 'fal' | 'local-comfy' | 'l
       falApiKey: opts.key,
       comfyBaseUrl: opts.comfyBaseUrl,
       comfyQualityPreset: opts.comfyQualityPreset,
+      promptEnhancement: opts.promptEnhancement,
+      promptStylePreset: opts.promptStylePreset,
       a1111BaseUrl: opts.a1111BaseUrl,
       fallback: opts.fallback ?? null,
       defaultVariant: opts.defaultVariant,
@@ -136,6 +137,62 @@ describe('image_generate tool', () => {
     expect(data.path).toBe('/workspace/artifacts/cathedral.png');
     expect(data.encoding).toBe('base64');
     expect(data.content.length).toBeGreaterThan(0);
+  });
+
+  it('enhances prompts when promptEnhancement is enabled', async () => {
+    const requests: FakeRequest[] = [];
+    const calls: Array<{ url: string; body?: unknown }> = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input.toString();
+      calls.push({ url, body: init?.body ? JSON.parse(init.body as string) : undefined });
+      if (url.startsWith('https://fal.run/')) {
+        return new Response(JSON.stringify({
+          images: [{ url: 'https://cdn.fal/img.png', width: 1024, height: 1024 }],
+          seed: 7,
+        }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url === 'https://cdn.fal/img.png') {
+        return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200, headers: { 'content-type': 'image/png' } });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    }) as unknown as typeof fetch;
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        requests,
+        respond: (_op, data) => ({ path: (data as { path: string }).path, bytes: 12345 }),
+      }),
+      chat: {
+        llmComplete: vi.fn(async () => 'cinematic neon city, blue and violet rim light, wide angle'),
+      } as unknown as ToolContext['chat'],
+      imageGen: fakeImageGen({
+        key: 'fal-key',
+        promptEnhancement: 'llm',
+        promptStylePreset: 'concept-art',
+      }),
+    });
+
+    const out = await imageGenerateTool.execute({ prompt: 'neon city', filename: 'enhanced' }, ctx);
+
+    expect(text(out)).toContain('Enhanced prompt: cinematic neon city');
+    const falCall = calls.find(c => c.url.startsWith('https://fal.run/'));
+    expect((falCall?.body as { prompt?: string }).prompt).toContain('cinematic neon city');
+  });
+
+  it('rejects incomplete explicit pixel dimensions', async () => {
+    const ctx = makeCtx({ bridge: fakeBridge({ online: true }), imageGen: fakeImageGen({ key: 'k' }) });
+
+    const out = await imageGenerateTool.execute({ prompt: 'a lake', width: 1360 }, ctx);
+
+    expect(text(out)).toMatch(/width and height/i);
+  });
+
+  it('rejects explicit pixel dimensions that are not multiples of 16', async () => {
+    const ctx = makeCtx({ bridge: fakeBridge({ online: true }), imageGen: fakeImageGen({ key: 'k' }) });
+
+    const out = await imageGenerateTool.execute({ prompt: 'a lake', width: 1361, height: 768 }, ctx);
+
+    expect(text(out)).toMatch(/multiples of 16/i);
   });
 
   it('defaults to a timestamped filename when none given', async () => {

@@ -1,10 +1,8 @@
 import type { Model } from '../core/types';
-import { DEFAULT_OLLAMA_BASE_URL } from './llm/ollama';
 
 const KEY = 'gatesai.ollama.v1';
 
 export interface OllamaPersistedConfig {
-  baseUrl: string;
   apiKey?: string;
   toolsEnabled: boolean;
   catalog: Model[];
@@ -12,7 +10,6 @@ export interface OllamaPersistedConfig {
 }
 
 export const OLLAMA_DEFAULTS: OllamaPersistedConfig = {
-  baseUrl: DEFAULT_OLLAMA_BASE_URL,
   apiKey: undefined,
   toolsEnabled: true,
   catalog: [],

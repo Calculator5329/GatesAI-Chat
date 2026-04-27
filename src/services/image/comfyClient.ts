@@ -1,12 +1,14 @@
 import {
   bytesToBase64,
-  dimsForAspect,
+  dimsForRequest,
   safeText,
   wrapGlobalFetch,
   type GenerateImageRequest,
   type GenerateImageResult,
   type ImageBackend,
 } from './types';
+import { FINAL_FLUX2_KLEIN_WORKFLOW } from './workflows/finalFlux2Klein';
+import { SDXL_LIGHTNING_HIRES_WORKFLOW } from './workflows/sdxlLightning';
 
 /**
  * Client for ComfyUI's `/prompt` API. ComfyUI runs arbitrary node
@@ -35,6 +37,12 @@ export interface ComfyClientDeps {
   workflowTemplate?: Record<string, unknown>;
   /** Built-in workflow choice when no explicit template is supplied. */
   qualityPreset?: 'final' | 'draft';
+  /**
+   * Checkpoint filename for the draft (Lightning) workflow.
+   * Substituted into {{CHECKPOINT}} in the built-in template.
+   * Defaults to 'sdxl_lightning_4step.safetensors'.
+   */
+  checkpoint?: string;
   /** How many times to poll /history. 120 × 500ms = 60s default. */
   maxPollAttempts?: number;
   pollIntervalMs?: number;
@@ -45,82 +53,6 @@ export interface ComfyClientDeps {
 
 const DEFAULT_POLL_ATTEMPTS = 120;
 const DEFAULT_POLL_INTERVAL = 500;
-
-/**
- * A minimal SDXL-compatible txt2img workflow. Node ids match ComfyUI
- * conventions; any SDXL checkpoint named `sd_xl_base_1.0.safetensors`
- * will light up out of the box. Users with different checkpoint
- * names should provide their own template.
- */
-const DEFAULT_SDXL_WORKFLOW: Record<string, unknown> = {
-  '3': {
-    class_type: 'KSampler',
-    inputs: {
-      seed: '{{SEED}}', steps: 25, cfg: 5, sampler_name: 'dpmpp_2m',
-      scheduler: 'karras', denoise: 1,
-      model: ['4', 0], positive: ['6', 0], negative: ['7', 0], latent_image: ['5', 0],
-    },
-  },
-  '4': {
-    class_type: 'CheckpointLoaderSimple',
-    inputs: { ckpt_name: 'sd_xl_base_1.0.safetensors' },
-  },
-  '5': {
-    class_type: 'EmptyLatentImage',
-    inputs: { width: '{{WIDTH}}', height: '{{HEIGHT}}', batch_size: 1 },
-  },
-  '6': {
-    class_type: 'CLIPTextEncode',
-    inputs: { text: '{{PROMPT}}', clip: ['4', 1] },
-  },
-  '7': {
-    class_type: 'CLIPTextEncode',
-    inputs: { text: 'blurry, low quality, watermark', clip: ['4', 1] },
-  },
-  '8': {
-    class_type: 'VAEDecode',
-    inputs: { samples: ['3', 0], vae: ['4', 2] },
-  },
-  '9': {
-    class_type: 'SaveImage',
-    inputs: { filename_prefix: 'gatesai', images: ['8', 0] },
-  },
-};
-
-const SDXL_LIGHTNING_4STEP_WORKFLOW: Record<string, unknown> = {
-  '3': {
-    class_type: 'KSampler',
-    inputs: {
-      seed: '{{SEED}}', steps: 4, cfg: 1,
-      sampler_name: 'euler', scheduler: 'sgm_uniform', denoise: 1,
-      model: ['4', 0], positive: ['6', 0], negative: ['7', 0], latent_image: ['5', 0],
-    },
-  },
-  '4': {
-    class_type: 'CheckpointLoaderSimple',
-    inputs: { ckpt_name: 'sdxl_lightning_4step.safetensors' },
-  },
-  '5': {
-    class_type: 'EmptyLatentImage',
-    inputs: { width: '{{WIDTH}}', height: '{{HEIGHT}}', batch_size: 1 },
-  },
-  '6': {
-    class_type: 'CLIPTextEncode',
-    inputs: { text: '{{PROMPT}}', clip: ['4', 1] },
-  },
-  '7': {
-    class_type: 'CLIPTextEncode',
-    inputs: { text: 'blurry, low quality, watermark', clip: ['4', 1] },
-  },
-  '8': {
-    class_type: 'VAEDecode',
-    inputs: { samples: ['3', 0], vae: ['4', 2] },
-  },
-  '9': {
-    class_type: 'SaveImage',
-    inputs: { filename_prefix: 'gatesai_sdxl_lightning', images: ['8', 0] },
-  },
-};
 
 interface PromptResp { prompt_id?: string; error?: string | { message?: string } }
 interface HistoryOutputImage { filename: string; subfolder: string; type: string }
@@ -134,6 +66,7 @@ export class ComfyClient implements ImageBackend {
   private readonly baseUrl: string;
   private readonly clientId: string;
   private readonly workflowTemplate: Record<string, unknown>;
+  private readonly checkpoint: string;
   private readonly fetchImpl: typeof fetch;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly maxPoll: number;
@@ -142,8 +75,9 @@ export class ComfyClient implements ImageBackend {
   constructor(deps: ComfyClientDeps) {
     this.baseUrl = deps.baseUrl.replace(/\/+$/, '');
     this.clientId = deps.clientId ?? 'gatesai-chat';
+    this.checkpoint = deps.checkpoint ?? 'sdxl_lightning_4step.safetensors';
     this.workflowTemplate = deps.workflowTemplate ?? (
-      deps.qualityPreset === 'draft' ? SDXL_LIGHTNING_4STEP_WORKFLOW : DEFAULT_SDXL_WORKFLOW
+      deps.qualityPreset === 'draft' ? SDXL_LIGHTNING_HIRES_WORKFLOW : FINAL_FLUX2_KLEIN_WORKFLOW
     );
     this.fetchImpl = wrapGlobalFetch(deps.fetch);
     this.sleep = deps.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
@@ -152,10 +86,11 @@ export class ComfyClient implements ImageBackend {
   }
 
   async generate(req: GenerateImageRequest): Promise<GenerateImageResult> {
-    const { width, height } = dimsForAspect(req.aspectRatio ?? '1:1');
+    const { width, height } = dimsForRequest(req);
     const seed = typeof req.seed === 'number' ? req.seed : Math.floor(Math.random() * 2 ** 31);
 
     const workflow = substituteWorkflow(this.workflowTemplate, {
+      '{{CHECKPOINT}}': this.checkpoint,
       '{{PROMPT}}': req.prompt,
       '{{WIDTH}}': width,
       '{{HEIGHT}}': height,

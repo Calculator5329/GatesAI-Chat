@@ -112,7 +112,7 @@ describe('ComfyClient', () => {
         return new Response(JSON.stringify({ prompt_id: 'p' }), { status: 200, headers: { 'content-type': 'application/json' } });
       }
       if (url.includes('/history/')) {
-        return new Response(JSON.stringify({ p: { outputs: { '9': { images: [{ filename: 'a.png', subfolder: '', type: 'output' }] } } } }), { status: 200, headers: { 'content-type': 'application/json' } });
+        return new Response(JSON.stringify({ p: { outputs: { '10': { images: [{ filename: 'a.png', subfolder: '', type: 'output' }] } } } }), { status: 200, headers: { 'content-type': 'application/json' } });
       }
       return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200 });
     };
@@ -134,6 +134,39 @@ describe('ComfyClient', () => {
     expect(submittedFirst.prompt.node.inputs.width).toBe(1344);
     expect(submittedFirst.prompt.node.inputs.height).toBe(768);
     expect('_comment' in submittedFirst.prompt).toBe(false);
+  });
+
+  it('uses explicit pixel dimensions when provided', async () => {
+    const submitted: unknown[] = [];
+    const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/prompt')) {
+        submitted.push(JSON.parse(init!.body as string));
+        return new Response(JSON.stringify({ prompt_id: 'p' }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url.includes('/history/')) {
+        return new Response(JSON.stringify({ p: { outputs: { '10': { images: [{ filename: 'a.png', subfolder: '', type: 'output' }] } } } }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200 });
+    };
+    const client = new ComfyClient({
+      baseUrl: 'http://h',
+      fetch: fetchImpl as typeof fetch,
+      sleep: async () => undefined,
+      maxPollAttempts: 3,
+      pollIntervalMs: 1,
+      workflowTemplate: {
+        node: { inputs: { width: '{{WIDTH}}', height: '{{HEIGHT}}' } },
+      },
+    });
+
+    const out = await client.generate({ prompt: 'wide lake', aspectRatio: '1:1', width: 1360, height: 768, seed: 7 });
+
+    expect(out.width).toBe(1360);
+    expect(out.height).toBe(768);
+    const submittedFirst = submitted[0] as { prompt: { node: { inputs: Record<string, unknown> } } };
+    expect(submittedFirst.prompt.node.inputs.width).toBe(1360);
+    expect(submittedFirst.prompt.node.inputs.height).toBe(768);
   });
 
   it('uses the SDXL Lightning workflow for draft quality', async () => {
@@ -161,9 +194,55 @@ describe('ComfyClient', () => {
     const submittedFirst = submitted[0] as {
       prompt: Record<string, { class_type?: string; inputs?: Record<string, unknown> }>;
     };
-    expect(submittedFirst.prompt['4'].class_type).toBe('CheckpointLoaderSimple');
-    expect(submittedFirst.prompt['4'].inputs?.ckpt_name).toBe('sdxl_lightning_4step.safetensors');
-    expect(submittedFirst.prompt['3'].inputs?.steps).toBe(4);
+    expect(submittedFirst.prompt['1'].class_type).toBe('CheckpointLoaderSimple');
+    expect(submittedFirst.prompt['1'].inputs?.ckpt_name).toBe('sdxl_lightning_4step.safetensors');
+    expect(submittedFirst.prompt['2'].class_type).toBe('VAELoader');
+    expect(submittedFirst.prompt['2'].inputs?.vae_name).toBe('sdxl_vae_fp16_fix.safetensors');
+    expect(submittedFirst.prompt['3'].class_type).toBe('CLIPTextEncode');
+    expect(submittedFirst.prompt['4'].class_type).toBe('CLIPTextEncode');
+    expect(submittedFirst.prompt['7'].class_type).toBe('LatentUpscaleBy');
+    expect(submittedFirst.prompt['8'].class_type).toBe('KSampler');
+    expect(submittedFirst.prompt['6'].inputs?.steps).toBe(4);
+    expect(submittedFirst.prompt['6'].inputs?.cfg).toBe(1);
+    expect(submittedFirst.prompt['6'].inputs?.sampler_name).toBe('euler');
+    expect(submittedFirst.prompt['6'].inputs?.scheduler).toBe('sgm_uniform');
+  });
+
+  it('uses the selected FLUX.2 Klein workflow for final quality by default', async () => {
+    const submitted: unknown[] = [];
+    const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/prompt')) {
+        submitted.push(JSON.parse(init!.body as string));
+        return new Response(JSON.stringify({ prompt_id: 'p' }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url.includes('/history/')) {
+        return new Response(JSON.stringify({ p: { outputs: { '94': { images: [{ filename: 'a.png', subfolder: '', type: 'output' }] } } } }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200 });
+    };
+    const client = new ComfyClient({
+      baseUrl: 'http://h',
+      fetch: fetchImpl as typeof fetch,
+      sleep: async () => undefined,
+      qualityPreset: 'final',
+    });
+
+    await client.generate({ prompt: 'abstract background', aspectRatio: '16:9', seed: 9 });
+
+    const submittedFirst = submitted[0] as {
+      prompt: Record<string, { class_type?: string; inputs?: Record<string, unknown> }>;
+    };
+    expect(submittedFirst.prompt['1'].class_type).toBe('UNETLoader');
+    expect(submittedFirst.prompt['1'].inputs?.unet_name).toBe('flux-2-klein-4b-fp8.safetensors');
+    expect(submittedFirst.prompt['2'].class_type).toBe('CLIPLoader');
+    expect(submittedFirst.prompt['2'].inputs?.clip_name).toBe('qwen_3_4b.safetensors');
+    expect(submittedFirst.prompt['9'].class_type).toBe('Flux2Scheduler');
+    expect(submittedFirst.prompt['10'].class_type).toBe('EmptyFlux2LatentImage');
+    expect(submittedFirst.prompt['11'].class_type).toBe('SamplerCustomAdvanced');
+    expect(submittedFirst.prompt['94'].class_type).toBe('SaveImage');
+    expect(submittedFirst.prompt['9'].inputs?.width).toBe(1344);
+    expect(submittedFirst.prompt['9'].inputs?.height).toBe(768);
   });
 
   it('times out with a clear error if history never reports outputs', async () => {

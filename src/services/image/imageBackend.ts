@@ -1,6 +1,7 @@
 import { A1111Client } from './a1111Client';
 import { ComfyClient } from './comfyClient';
 import { FluxClient } from './fluxClient';
+import { isLocalImageBackend } from './types';
 import type {
   GenerateImageRequest,
   GenerateImageResult,
@@ -34,13 +35,13 @@ export function resolveBackend(
   const fetchImpl = config.fetch;
   switch (id) {
     case 'fal': {
-      if (!config.falApiKey) return { error: 'no fal.ai API key configured. Open Settings → API and paste a key under "Image generation" to enable this backend.' };
+      if (!config.falApiKey) return { error: 'no fal.ai API key configured. Open API and paste a key under "Cloud image generation" to enable this backend.' };
       return { backend: new FluxClient({ apiKey: config.falApiKey, fetch: fetchImpl }) };
     }
     case 'bfl':
-      return { error: 'BFL backend is not implemented yet. Switch to fal.ai or a local backend in Settings → API.' };
+      return { error: 'BFL backend is not implemented yet. Switch to fal.ai in API or ComfyUI in Local.' };
     case 'local-comfy': {
-      if (!config.comfyBaseUrl) return { error: 'no ComfyUI base URL configured. Open Settings → API and set it (default http://127.0.0.1:8188).' };
+      if (!config.comfyBaseUrl) return { error: 'no ComfyUI base URL configured. Open Local and start/configure ComfyUI (default http://127.0.0.1:8188).' };
       return {
         backend: new ComfyClient({
           baseUrl: config.comfyBaseUrl,
@@ -51,7 +52,7 @@ export function resolveBackend(
       };
     }
     case 'local-a1111': {
-      if (!config.a1111BaseUrl) return { error: 'no AUTOMATIC1111 base URL configured. Open Settings → API and set it (default http://127.0.0.1:7860).' };
+      if (!config.a1111BaseUrl) return { error: 'no AUTOMATIC1111 base URL configured. Configure the local A1111 URL before selecting that backend (default http://127.0.0.1:7860).' };
       return {
         backend: new A1111Client({
           baseUrl: config.a1111BaseUrl,
@@ -92,7 +93,7 @@ export async function dispatchImageGenerate(
     const result = await primary.backend.generate(req);
     return { result };
   } catch (err) {
-    if (isLocalBackend(config.primary) && shouldAttemptFallback(config)) {
+    if (isLocalImageBackend(config.primary) && shouldAttemptFallback(config)) {
       return runFallback(req, config, (err as Error).message);
     }
     throw err;
@@ -115,10 +116,6 @@ async function runFallback(
     result,
     fallbackNote: `${config.primary} failed (${truncate(primaryError, 120)}); fell back to ${fallbackId}`,
   };
-}
-
-function isLocalBackend(id: ImageBackendId): boolean {
-  return id === 'local-comfy' || id === 'local-a1111';
 }
 
 function shouldAttemptFallback(config: ImageBackendConfig): boolean {

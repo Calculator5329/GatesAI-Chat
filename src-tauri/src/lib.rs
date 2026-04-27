@@ -4,20 +4,18 @@ use tauri::Manager;
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
+mod http_health;
+mod local_runtime;
+
+use http_health::probe_health;
+
 const BRIDGE_LISTEN: &str = "127.0.0.1:7331";
 const BRIDGE_HEALTH_URL: &str = "http://127.0.0.1:7331/health";
 
 struct BridgeChild(Mutex<Option<CommandChild>>);
 
 fn bridge_already_running() -> bool {
-  let client = reqwest::blocking::Client::builder()
-    .timeout(std::time::Duration::from_millis(500))
-    .build();
-  let Ok(client) = client else { return false };
-  matches!(
-    client.get(BRIDGE_HEALTH_URL).send(),
-    Ok(r) if r.status().is_success()
-  )
+  probe_health(BRIDGE_HEALTH_URL)
 }
 
 /// Open a filesystem path with the OS default handler (browser for .html,
@@ -39,8 +37,19 @@ fn open_path(path: String) -> Result<(), String> {
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_shell::init())
-    .invoke_handler(tauri::generate_handler![open_path])
+    .plugin(tauri_plugin_dialog::init())
+    .invoke_handler(tauri::generate_handler![
+      open_path,
+      local_runtime::spawn_runtime,
+      local_runtime::stop_runtime,
+      local_runtime::runtime_status,
+      local_runtime::path_exists,
+      local_runtime::pick_directory,
+      local_runtime::pick_file,
+      local_runtime::runtime_candidate_paths,
+    ])
     .manage(BridgeChild(Mutex::new(None)))
+    .manage(local_runtime::LocalRuntimeState::default())
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -95,6 +104,8 @@ pub fn run() {
           let _ = child.kill();
           log::info!("[gatesai] bridge sidecar killed");
         }
+        let runtime_state = app.state::<local_runtime::LocalRuntimeState>();
+        local_runtime::kill_all(&runtime_state);
       }
     })
     .run(tauri::generate_context!())

@@ -15,6 +15,7 @@ describe('router', () => {
 
   it('parses menu routes and rejects unknown sections', () => {
     expect(parseHash('#/menu/api'))  .toEqual({ kind: 'menu', section: 'api' });
+    expect(parseHash('#/menu/local')).toEqual({ kind: 'menu', section: 'local' });
     expect(parseHash('#/menu'))      .toEqual({ kind: 'menu', section: 'profile' });
     expect(parseHash('#/menu/wat'))  .toEqual({ kind: 'menu', section: 'profile' });
   });
@@ -28,6 +29,7 @@ describe('router', () => {
       { kind: 'thread' as const, threadId: 'abc' },
       { kind: 'thread' as const, threadId: null },
       { kind: 'menu' as const,   section: 'usage' as const },
+      { kind: 'menu' as const,   section: 'local' as const },
     ];
     for (const r of cases) expect(parseHash(formatHash(r))).toEqual(r);
   });

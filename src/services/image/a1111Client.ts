@@ -1,5 +1,5 @@
 import {
-  dimsForAspect,
+  dimsForRequest,
   safeText,
   wrapGlobalFetch,
   type GenerateImageRequest,
@@ -47,7 +47,7 @@ export class A1111Client implements ImageBackend {
   }
 
   async generate(req: GenerateImageRequest): Promise<GenerateImageResult> {
-    const { width, height } = dimsForAspect(req.aspectRatio ?? '1:1');
+    const { width, height } = dimsForRequest(req);
     const endpoint = `${this.baseUrl}/sdapi/v1/txt2img`;
 
     const body: Record<string, unknown> = {

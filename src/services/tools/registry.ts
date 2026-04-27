@@ -13,6 +13,7 @@ import { gitTool } from './git';
 import { workspaceTool } from './workspace';
 import { inspectFileTool } from './inspectFile';
 import { imageGenerateTool } from './imageGenerate';
+import { describeImageTool } from './describeImage';
 
 export interface ToolSelectionContext {
   userText: string;
@@ -55,6 +56,7 @@ export class ToolRegistry {
     const bridgeRelevant = ctx.bridgeOnline || /\b(file|files|attachment|attached|csv|json|data|dataset|text|txt|code|script|command|terminal|shell|git|build|test|workspace|artifact|artifacts|folder|directory|read|write)\b/.test(text);
     const notesRelevant = /\b(note|notes|plan|plans|document|documents|doc|docs|memory|remember|search|list|read|write)\b/.test(text);
     const imageGenRelevant = /\b(draw|drawing|paint|render|generate|make|create|design|illustrate|picture|image|photo|artwork|poster|logo|illustration|visual|scene|portrait|landscape|background|wallpaper)\b.*\b(image|picture|photo|art|artwork|drawing|poster|logo|illustration|scene|portrait|landscape|background|wallpaper)\b|\b(image[-_ ]?gen|imagegen|flux|stable ?diffusion|dall[-_ ]?e|midjourney|background|wallpaper)\b/i.test(text);
+    const imageVisionRelevant = /\b(describe|caption|inspect|analy[sz]e|what(?:'s| is)|read)\b.*\b(image|picture|photo|screenshot|attachment|visual)\b|\b(image|picture|photo|screenshot)\b.*\b(describe|caption|inspect|analy[sz]e|read)\b/i.test(text);
 
     if (bridgeRelevant) {
       selected.add('workspace');
@@ -68,6 +70,11 @@ export class ToolRegistry {
     }
     if (notesRelevant) selected.add('notes');
     if (imageGenRelevant) selected.add('image_generate');
+    if (imageVisionRelevant) {
+      selected.add('workspace');
+      selected.add('fs');
+      selected.add('describe_image');
+    }
 
     const out = this.list().filter(t => selected.has(t.def.name)).map(t => t.def);
     return out.length > 0 ? out : this.toolDefs();
@@ -107,3 +114,4 @@ toolRegistry.register(sqliteQueryTool);
 toolRegistry.register(queryScriptTool);
 toolRegistry.register(gitTool);
 toolRegistry.register(imageGenerateTool);
+toolRegistry.register(describeImageTool);

@@ -4,6 +4,8 @@ import { LlmRouter } from '../services/llm';
 import { loadProviderConfigs, saveProviderConfigs } from '../services/providerStorage';
 import type { ModelRegistry } from './ModelRegistry';
 
+type ProviderConfigOverlay = () => ProviderConfigs;
+
 /**
  * Owns provider credentials (API keys, base URLs) and the LLM router that
  * dispatches requests. Persisted under `gatesai.providers.v1` separately
@@ -12,21 +14,33 @@ import type { ModelRegistry } from './ModelRegistry';
 export class ProviderStore {
   configs: ProviderConfigs = {};
   readonly router: LlmRouter;
+  private readonly overlayConfigs: ProviderConfigOverlay;
 
-  constructor(registry: ModelRegistry) {
+  constructor(registry: ModelRegistry, overlayConfigs: ProviderConfigOverlay = () => ({})) {
     this.configs = loadProviderConfigs();
-    this.router = new LlmRouter(registry, this.configs);
-    makeAutoObservable<this, 'router'>(this, { router: false });
+    this.overlayConfigs = overlayConfigs;
+    this.router = new LlmRouter(registry, this.effectiveConfigs);
+    makeAutoObservable<this, 'router' | 'overlayConfigs'>(this, {
+      router: false,
+      overlayConfigs: false,
+    });
 
     autorun(() => {
       const snap = toJS(this.configs);
       saveProviderConfigs(snap);
-      this.router.updateConfigs(snap);
+      this.router.updateConfigs(this.effectiveConfigs);
     });
   }
 
+  get effectiveConfigs(): ProviderConfigs {
+    return {
+      ...this.configs,
+      ...this.overlayConfigs(),
+    };
+  }
+
   getConfig(id: ProviderId): ProviderConfig {
-    return this.configs[id] ?? {};
+    return this.effectiveConfigs[id] ?? {};
   }
 
   setKey(id: ProviderId, apiKey: string): void {

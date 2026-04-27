@@ -25,6 +25,8 @@ import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
 import type { ToolContext } from '../services/tools/types';
 
+type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'localRuntime'>;
+
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
@@ -94,7 +96,7 @@ export class ChatStore {
    * deps through every test that builds a ChatStore. Falls back to throwing
    * a clear error if a tool is called without it being set.
    */
-  private toolStoresProvider: (() => Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen'>) | null = null;
+  private toolStoresProvider: (() => ToolStoreContext) | null = null;
 
   constructor(providers: ProviderStore, registry: ModelRegistry, profile: UserProfileStore) {
     this.providers = providers;
@@ -241,7 +243,7 @@ export class ChatStore {
    * by RootStore after all stores exist. Tests that don't exercise tools
    * needing these stores can skip wiring entirely.
    */
-  setToolStoresProvider(fn: () => Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen'>): void {
+  setToolStoresProvider(fn: () => ToolStoreContext): void {
     this.toolStoresProvider = fn;
   }
 
@@ -815,7 +817,7 @@ export class ChatStore {
   }
 
   private async executeOneToolCall(call: ToolCall, threadId: string): Promise<ToolResult> {
-    const extras = this.toolStoresProvider?.() ?? ({} as Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen'>);
+    const extras = this.toolStoresProvider?.() ?? ({} as ToolStoreContext);
     const startedAt = Date.now();
     const { content, artifacts } = await toolRegistry.execute(call.name, call.arguments, {
       profile: this.profile,
@@ -825,6 +827,7 @@ export class ChatStore {
       bridge: extras.bridge,
       execStream: extras.execStream,
       imageGen: extras.imageGen,
+      localRuntime: extras.localRuntime,
       threadId,
     });
     if (isToolFailureContent(call.name, content)) {

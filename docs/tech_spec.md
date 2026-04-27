@@ -129,7 +129,7 @@ interface LlmProvider {
 #/                 → default (active thread)
 #/thread/<id>      → select thread
 #/menu/<section>   → open menu surface; section ∈
-                     profile|agent|settings|usage|api|appearance|workspace
+                     profile|agent|settings|usage|local|api|appearance|workspace
 ```
 
 ## Storage
@@ -143,13 +143,20 @@ interface LlmProvider {
 | `gatesai.uiprefs.v1`             | output style preferences  | `UiStore`          |
 | `gatesai.openrouter.catalog.v1`  | OpenRouter catalog cache  | `OpenRouterStore`  |
 | `gatesai.ollama.v1`              | Ollama config + catalog   | `OllamaStore`      |
+| `gatesai.local.v1`               | runtime paths + toggles   | `LocalRuntimeStore`|
 
 Chat, provider, profile, notes, and UI preference snapshots are saved by their
 owning stores. Provider keys are deliberately stored under a separate key so
 chat exports never include credentials. The OpenRouter catalog cache is written
-only when refreshed or cleared. The Ollama snapshot bundles config (base URL,
-optional bearer key, `toolsEnabled` toggle) with the cached `/api/tags`
-catalog so a fresh boot has a populated picker before the first probe.
+only when refreshed or cleared. The Ollama snapshot bundles auth (optional
+bearer key), the `toolsEnabled` toggle, and the cached `/api/tags` catalog so a
+fresh boot has a populated picker before the first probe. `gatesai.imagegen.v1`
+carries provider keys, the workflow override path, and prompt-enhancement
+settings only. `gatesai.local.v1` is the single source of truth for local
+runtime install paths, managed-process toggles, the Ollama and ComfyUI base
+URLs, and the selected local vision model. On first boot with no
+`gatesai.local.v1`, auto-detect populates default ports and paths; legacy URL
+fields on the Ollama / image-gen keys are no longer read.
 
 If a full chat snapshot exceeds the browser's `localStorage` quota, the
 chat persistence service retries once with an emergency-compacted snapshot.
@@ -374,6 +381,10 @@ Current tool catalog:
   `restore | restore_staged` require `confirm: "restore local changes"`.
   The tool deliberately exposes no push, pull, fetch, remote, reset, rebase,
   merge, or force operations.
+- `describe_image({ path, question? })` — reads an image from the workspace
+  through `BridgeStore.readAttachmentBase64` and sends it to the selected
+  Ollama vision model from `LocalRuntimeStore`. This lets non-vision chat
+  models delegate screenshot/artifact inspection to a local vision model.
 - `terminal({ cmd, args?, cwd?, stdin?, timeout_ms? })` — runs an
   allowlisted shell command via the bridge. Allowlist lives in
   `~/.gatesai/bridge.json`; defaults are read-mostly + safe writes
@@ -433,6 +444,43 @@ Chat-side wiring:
   is the UI-facing facade. The composer sends the resulting
   `DraftAttachment[]` to `ChatStore`, which formats a "📎 Attached files:"
   footer on the user message so the model has paths inline.
+
+## Local runtimes
+
+`LocalRuntimeStore` owns the app-facing state for Ollama and ComfyUI. It follows
+the normal UI → Store → Service direction:
+
+- UI: `components/menu/sections/Local.tsx` renders runtime rows, local LLM
+  controls, ComfyUI image-generation settings, and the local vision picker.
+- Store: `LocalRuntimeStore` persists install paths / managed flags under
+  `gatesai.local.v1`, runs auto-detect once, starts/stops runtimes, polls
+  `runtime_status`, and exposes `ollamaBaseUrl`, `comfyBaseUrl`, and
+  `visionModel` facades to other stores/tools.
+- Service: `services/local/localRuntimeService.ts` wraps Tauri invokes only;
+  `services/local/autoDetect.ts` contains deterministic path-candidate logic
+  seeded by host-side home/AppData paths.
+- Host: `src-tauri/src/local_runtime.rs` parses the runtime id into a
+  `RuntimeKind` enum (`Ollama` | `ComfyUI`) that owns the health URL and
+  process spec, spawns child processes, captures stdout/stderr into a bounded
+  log buffer, reports health via the shared `http_health::probe_health` helper,
+  and kills managed children when the app window is destroyed. The same probe
+  helper is reused by the bridge sidecar's "already running?" check in
+  `lib.rs`. Mutex poisoning recovers via `into_inner()` with a logged warning
+  rather than surfacing a string error to the WebView.
+
+Ollama is launched as `ollama serve` and health-checked at
+`http://127.0.0.1:11434/api/version`. ComfyUI is launched through the portable
+Python runtime with `--windows-standalone-build` and the WebView CORS origins
+appended automatically; health is `http://127.0.0.1:8188/system_stats`. Health
+URLs are derived in Rust from the runtime id, not accepted from the WebView.
+
+`ImageGenStore` keeps the image-generation backend contract but reads the
+ComfyUI base URL from `LocalRuntimeStore` at the point of use — the URL is no
+longer mirrored into `ImageGenConfig`. `OllamaStore` likewise reads
+`localRuntime.ollamaBaseUrl` on each request rather than persisting its own
+copy. `ProviderStore.effectiveConfigs` is a lazy getter that overlays the
+current Ollama base URL onto the persisted provider configs, so the LLM router
+sees a fresh URL without any autorun mirror chain.
 
 ## Auto-named threads
 

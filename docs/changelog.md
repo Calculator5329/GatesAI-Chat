@@ -1,12 +1,49 @@
 # Changelog
 
+## 2026-04-26 — Refactor: Local runtime single source of truth
+
+`LocalRuntimeStore` is now the only owner of the Ollama and ComfyUI base URLs.
+`OllamaStore.baseUrl`, `ImageGenConfig.comfyBaseUrl`, the legacy-migration
+helper, and the two `RootStore` autorun mirrors are gone; `ProviderStore`
+exposes an `effectiveConfigs` getter that overlays the live URL when the LLM
+router asks for it. The Settings → Local URL inputs write directly to
+`local.setBaseUrl(...)` and the legacy keys' URL fields are ignored on load.
+
+Hygiene pass alongside the SoT change: dead `OllamaStore` status-poll plumbing
+deleted, `LocalRuntimeStore.refreshStatus` coalesces in-flight calls,
+`isLocalBackend` consolidates to a single export, image-tool args validate via
+`IMAGE_ASPECT_RATIOS` / `IMAGE_VARIANTS` guards, and the ComfyUI workflow
+templates moved into `src/services/image/workflows/`. On the Rust side,
+`local_runtime.rs` introduces a `RuntimeKind` enum (no `""` fallback), shares
+`http_health::probe_health` with the bridge sidecar check, and recovers from
+mutex poisoning via `into_inner()` with a logged warning.
+
+## 2026-04-26 — Feature: Local runtime setup
+
+GatesAI now has a dedicated **Local** menu for setup and day-to-day control of
+Ollama, ComfyUI, and local vision. The app can auto-detect common install paths,
+store them under `gatesai.local.v1`, start/stop managed child processes, show
+live status and captured logs, and pass the correct ComfyUI CORS flags
+automatically.
+
+The API menu is now cloud-only: cloud LLM keys and fal.ai live there, while
+local LLM catalog refresh, ComfyUI workflow settings, and local vision-model
+selection live under Local. `RootStore` wires `LocalRuntimeStore` into the
+existing `OllamaStore` and `ImageGenStore` so the model picker and
+`image_generate` keep using the same ports and backend contracts.
+
+Added `describe_image`, a local vision helper tool that reads a workspace image
+through the bridge and sends it to the selected Ollama vision model. This lets a
+non-vision chat model ask a local vision model to inspect screenshots or image
+artifacts without changing the active chat model.
+
 ## 2026-04-26 — Feature: Ollama provider
 
-Local LLMs via Ollama are now first-class in the model picker. New
-**Ollama** card under Settings → API takes the base URL (default
-`http://127.0.0.1:11434`), an optional bearer key, and a global tool-
-calls toggle; clicking Refresh hits `/api/tags` and populates the
-picker with whatever models you've pulled.
+Local LLMs via Ollama are now first-class in the model picker. The **Local**
+menu owns Ollama setup: install path, managed Start/Stop, base URL (default
+`http://127.0.0.1:11434`), optional bearer key, catalog refresh, and the global
+tool-calls toggle. Refresh hits `/api/tags` and populates the picker with
+whatever models you've pulled.
 
 The `OllamaProvider` speaks Ollama's native NDJSON `/api/chat`, so
 streaming text, tool calls, and image inputs all work for capable
@@ -15,12 +52,39 @@ models. The catalog flags known-bad tool families (`gemma*`, `phi*`,
 the request for those models. The existing **Local endpoint** provider
 (LM Studio / vLLM / llama.cpp) is untouched.
 
-Status polls every 30s while the Settings → API panel is open;
-otherwise the pill is fixed at last-known state. The "configured"
-gate requires at least one model in the catalog (not just a baseUrl),
-so a fresh install with no Ollama server still surfaces the API-key
-banner correctly. Persistence under `gatesai.ollama.v1`, separate
-from the LLM-provider config.
+Runtime status now lives in Local alongside managed process logs. The model
+catalog and optional auth persist under `gatesai.ollama.v1`, separate from the
+LLM-provider config; local runtime paths and management flags persist under
+`gatesai.local.v1`.
+
+## 2026-04-26 — Image-gen quality overhaul
+
+Local ComfyUI now ships two opinionated lanes — a fast SDXL Lightning **Draft**
+preset for prototypes (built into `comfyClient.ts`) and a tuned FLUX.2 Klein
+FP8 **Final** workflow at `scripts/comfy-workflows/current-final-workflow.json`.
+`image_generate` accepts explicit `width`/`height` for local backends and an
+opt-in LLM-driven prompt enhancement step (configured under the Local menu and
+off by default for prompt adherence).
+
+### Added
+- Built-in ComfyUI **Draft** workflow uses SDXL Lightning with fp16-fix VAE,
+  4-step Lightning settings, a 1.5× latent hi-res fix, and a second
+  low-denoise sampler pass.
+- **Final** ComfyUI workflow: 4-step FLUX.2 Klein FP8 with a single 2× Ultimate
+  SD Upscale pass at denoise `0.20` and wide linear tiles. Lives in
+  `scripts/comfy-workflows/current-final-workflow.json`.
+- Optional LLM prompt enhancement for `image_generate` with a per-style preset,
+  exposed in the Local menu and disabled unless the user opts in.
+- Local-only explicit pixel dimensions on `image_generate` (ComfyUI and
+  AUTOMATIC1111). Cloud backends keep using named aspect-ratio buckets.
+- New doc: `docs/gatesai-local-image-prereqs.md` (download sheet for the
+  FLUX.2 Klein FP8 final workflow plus SDXL draft mode).
+
+### Changed
+- ComfyUI setup docs updated for the new checkpoints, VAE, upscaler, and
+  opt-in prompt-enhancement setting.
+- Settings copy frames ComfyUI as two lanes: Draft for SDXL prototypes and
+  Final for the selected workflow template.
 
 ## 2026-04-26 — Refactor: Multimodal feature cleanup
 
@@ -44,8 +108,8 @@ now clearly disabled with a Coming-soon pill.
   `services/imageGenStorage.ts` and `services/tools/types.ts` re-export.
   `ImageBackendConfig` extends the snapshot.
 - **`SecretKeyField` primitive.** New `components/ui/SecretKeyField`
-  consolidates three inline mask / reveal / connect / clear blocks in
-  Settings → API.
+  consolidates inline mask / reveal / connect / clear blocks in provider and
+  Local settings.
 - **`Api.tsx` split.** `components/menu/sections/api/{ApiSection,ProviderCard,
   ImageGenCard,OpenRouterCatalogRow,RoutingCard,ProviderAvatar}.tsx`. The
   outer `sections/Api.tsx` is a one-line re-export.
@@ -183,15 +247,15 @@ Architecture:
   artifacts flow through the same bridge jail as everything else.
   Returns a concise `Saved: /workspace/artifacts/<file>.png
   (WxH, seed=N, variant=...)` so the model never ingests raw base64.
-- Settings UI — new "Image generation" section in Settings → API
-  exposes the fal.ai key + default-variant selector. The field
+- Settings UI — the cloud image-generation section in API exposes the fal.ai
+  key + default-variant selector. The field
   re-uses the same masked/revealed key pattern as LLM providers.
 - Inline preview — when a message has an `image_generate` tool
   result, `EditorialMessage` renders a `WorkspaceImage` thumbnail
   right below the tool-result box so the generated artwork lands
   visibly in the chat flow, not just as a path string.
 - `ToolContext.imageGen` facade — `ImageGenFacade` exposes only the
-  minimum surface (`hasUsableBackend`, `backend`, `getCredential`),
+  minimum surface (`backend`, `getCredential`, `toBackendConfig`),
   keeping the tool decoupled from the full store.
 
 Tests:

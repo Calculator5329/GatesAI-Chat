@@ -5,19 +5,19 @@
  * without churning the LLM-provider shape.
  */
 
-import type { ImageBackendId, ComfyQualityPreset } from './image/types';
+import type {
+  ImageBackendId,
+  ComfyQualityPreset,
+  PromptEnhancementMode,
+  PromptStylePreset,
+} from './image/types';
 
-export type { ImageBackendId, ComfyQualityPreset };
-/** @deprecated Use {@link ImageBackendId} from `services/image/types`. */
-export type ImageGenBackend = ImageBackendId;
+export type { ImageBackendId, ComfyQualityPreset, PromptEnhancementMode, PromptStylePreset };
 
 export interface ImageGenConfig {
   backend: ImageBackendId;
   falApiKey?: string;
   bflApiKey?: string;
-
-  /** ComfyUI local server base URL, e.g. `http://127.0.0.1:8188`. */
-  comfyBaseUrl?: string;
 
   /**
    * Optional path inside `/workspace/` to a custom ComfyUI workflow
@@ -32,6 +32,11 @@ export interface ImageGenConfig {
    * SDXL default; `draft` uses the built-in SDXL Lightning 4-step workflow.
    */
   comfyQualityPreset?: ComfyQualityPreset;
+
+  /** Optional LLM pass that rewrites terse user prompts for SDXL/FLUX. */
+  promptEnhancement?: PromptEnhancementMode;
+  promptEnhancementOptIn?: boolean;
+  promptStylePreset?: PromptStylePreset;
 
   /** AUTOMATIC1111 local server base URL, e.g. `http://127.0.0.1:7860`. */
   a1111BaseUrl?: string;
@@ -50,10 +55,12 @@ export interface ImageGenConfig {
 export const DEFAULT_IMAGE_GEN_CONFIG: ImageGenConfig = {
   backend: 'fal',
   defaultVariant: 'flux-2-pro',
-  comfyBaseUrl: 'http://127.0.0.1:8188',
   a1111BaseUrl: 'http://127.0.0.1:7860',
   fallbackBackend: 'fal',
   comfyQualityPreset: 'draft',
+  promptEnhancement: 'off',
+  promptEnhancementOptIn: false,
+  promptStylePreset: 'auto',
 };
 
 const KEY = 'gatesai.imagegen.v1';
@@ -63,10 +70,10 @@ export function loadImageGenConfig(): ImageGenConfig {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT_IMAGE_GEN_CONFIG };
     const parsed = JSON.parse(raw) as Partial<ImageGenConfig>;
-    return {
+    return normalizeImageGenConfig({
       ...DEFAULT_IMAGE_GEN_CONFIG,
       ...(parsed && typeof parsed === 'object' ? parsed : {}),
-    };
+    });
   } catch {
     return { ...DEFAULT_IMAGE_GEN_CONFIG };
   }
@@ -78,4 +85,15 @@ export function saveImageGenConfig(config: ImageGenConfig): void {
   } catch {
     // ignore quota / privacy-mode failures
   }
+}
+
+function normalizeImageGenConfig(config: ImageGenConfig): ImageGenConfig {
+  const next = { ...config };
+  if (next.comfyWorkflowPath === 'notes/flux2-workflow.json') {
+    delete next.comfyWorkflowPath;
+  }
+  if (next.promptEnhancement === 'llm' && next.promptEnhancementOptIn !== true) {
+    next.promptEnhancement = 'off';
+  }
+  return next;
 }

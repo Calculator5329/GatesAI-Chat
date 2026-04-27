@@ -73,6 +73,27 @@ describe('FluxClient', () => {
     expect(body.image_size).toEqual({ width: 1344, height: 768 });
   });
 
+  it('ignores explicit pixel dimensions and keeps cloud aspect-ratio dims', async () => {
+    const bytes = pngBytes();
+    const { fetch: fakeFetch, calls } = makeFakeFetch([
+      {
+        match: (u) => u.includes('fal.run/fal-ai/flux-pro/v2'),
+        respond: () => new Response(JSON.stringify({ images: [{ url: 'https://cdn/img.png' }] }),
+          { status: 200, headers: { 'content-type': 'application/json' } }),
+      },
+      {
+        match: (u) => u === 'https://cdn/img.png',
+        respond: () => new Response(new Blob([bytes.buffer as ArrayBuffer]), { status: 200 }),
+      },
+    ]);
+
+    const client = new FluxClient({ apiKey: 'k', fetch: fakeFetch });
+    await client.generate({ prompt: 'x', aspectRatio: '16:9', width: 1536, height: 1024 });
+
+    const body = JSON.parse(calls[0].init!.body as string);
+    expect(body.image_size).toEqual({ width: 1344, height: 768 });
+  });
+
   it('surfaces fal error bodies in the thrown Error', async () => {
     const { fetch: fakeFetch } = makeFakeFetch([
       {

@@ -7,13 +7,17 @@
  * backends without touching the tool contract.
  */
 
-export type FluxVariant = 'flux-2-pro' | 'flux-2-flex' | 'flux-2-dev';
+export const IMAGE_VARIANTS = ['flux-2-pro', 'flux-2-flex', 'flux-2-dev'] as const;
+export type FluxVariant = typeof IMAGE_VARIANTS[number];
 
-export type ImageAspectRatio = '1:1' | '3:2' | '2:3' | '16:9' | '9:16';
+export const IMAGE_ASPECT_RATIOS = ['1:1', '3:2', '2:3', '16:9', '9:16'] as const;
+export type ImageAspectRatio = typeof IMAGE_ASPECT_RATIOS[number];
 
 export interface GenerateImageRequest {
   prompt: string;
   aspectRatio?: ImageAspectRatio;
+  width?: number;
+  height?: number;
   seed?: number;
   /**
    * Advisory hint for cloud backends. Local backends ignore this —
@@ -41,6 +45,15 @@ export type ImageBackendId = 'fal' | 'bfl' | 'local-comfy' | 'local-a1111';
 
 export type ComfyQualityPreset = 'final' | 'draft';
 
+export type PromptEnhancementMode = 'off' | 'llm';
+
+export type PromptStylePreset =
+  | 'auto'
+  | 'photorealistic'
+  | 'concept-art'
+  | 'abstract'
+  | 'illustration';
+
 /**
  * Plain JSON-serializable snapshot of the user's image-gen settings,
  * resolved at tool-call time and consumed by the dispatcher and tools.
@@ -56,6 +69,8 @@ export interface ImageBackendSnapshot {
   bflApiKey?: string;
   comfyBaseUrl?: string;
   comfyQualityPreset?: ComfyQualityPreset;
+  promptEnhancement?: PromptEnhancementMode;
+  promptStylePreset?: PromptStylePreset;
   a1111BaseUrl?: string;
   a1111ApiKey?: string;
   fallback?: ImageBackendId | null;
@@ -71,6 +86,18 @@ export interface ImageBackend {
   generate(req: GenerateImageRequest): Promise<GenerateImageResult>;
 }
 
+export function isImageAspectRatio(value: unknown): value is ImageAspectRatio {
+  return typeof value === 'string' && IMAGE_ASPECT_RATIOS.includes(value as ImageAspectRatio);
+}
+
+export function isImageVariant(value: unknown): value is FluxVariant {
+  return typeof value === 'string' && IMAGE_VARIANTS.includes(value as FluxVariant);
+}
+
+export function isLocalImageBackend(id: ImageBackendId): boolean {
+  return id === 'local-comfy' || id === 'local-a1111';
+}
+
 /** Concrete pixel dims for each aspect-ratio slug. */
 export function dimsForAspect(ratio: ImageAspectRatio): { width: number; height: number } {
   switch (ratio) {
@@ -80,6 +107,39 @@ export function dimsForAspect(ratio: ImageAspectRatio): { width: number; height:
     case '16:9': return { width: 1344, height: 768 };
     case '9:16': return { width: 768, height: 1344 };
   }
+}
+
+export interface ImageDimensions {
+  width: number;
+  height: number;
+}
+
+const MIN_IMAGE_DIMENSION = 64;
+const MAX_IMAGE_DIMENSION = 4096;
+
+export function validateExplicitDimensions(width: unknown, height: unknown): string | null {
+  if (width === undefined && height === undefined) return null;
+  if (width === undefined || height === undefined) return 'Both width and height are required when requesting explicit pixel dimensions.';
+  if (typeof width !== 'number' || typeof height !== 'number') return 'Image width and height must be numbers.';
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return 'Image width and height must be finite numbers.';
+  if (!Number.isInteger(width) || !Number.isInteger(height)) return 'Image width and height must be whole numbers.';
+  if (width < MIN_IMAGE_DIMENSION || height < MIN_IMAGE_DIMENSION) return `Image width and height must be at least ${MIN_IMAGE_DIMENSION}px.`;
+  if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) return `Image width and height must be at most ${MAX_IMAGE_DIMENSION}px.`;
+  if (width % 16 !== 0 || height % 16 !== 0) return 'Image width and height must be multiples of 16 for local image generation.';
+  return null;
+}
+
+export function dimsForRequest(
+  req: Pick<GenerateImageRequest, 'aspectRatio' | 'width' | 'height'>,
+  options: { allowExplicit?: boolean } = {},
+): ImageDimensions {
+  const allowExplicit = options.allowExplicit ?? true;
+  if (allowExplicit && req.width !== undefined && req.height !== undefined) {
+    const validationError = validateExplicitDimensions(req.width, req.height);
+    if (validationError) throw new Error(validationError);
+    return { width: req.width, height: req.height };
+  }
+  return dimsForAspect(req.aspectRatio ?? '1:1');
 }
 
 /** Encode a byte array as base64 without blowing the call stack on large images. */

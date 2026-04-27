@@ -1,6 +1,6 @@
 import {
   bytesToBase64,
-  dimsForAspect,
+  dimsForRequest,
   mimeFromUrl,
   safeText,
   wrapGlobalFetch,
@@ -64,8 +64,7 @@ export class FluxClient implements ImageBackend {
   async generate(req: GenerateImageRequest): Promise<GenerateImageResult> {
     const variant: FluxVariant = req.variant ?? 'flux-2-pro';
     const endpoint = req.endpointOverride ?? ENDPOINTS[variant];
-    const aspect = req.aspectRatio ?? '1:1';
-    const { width, height } = dimsForAspect(aspect);
+    const { width, height } = dimsForRequest(req, { allowExplicit: false });
 
     const body: Record<string, unknown> = {
       prompt: req.prompt,
