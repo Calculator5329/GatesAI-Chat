@@ -22,13 +22,6 @@ pub enum RuntimeKind {
 }
 
 impl RuntimeKind {
-  pub fn id(self) -> &'static str {
-    match self {
-      RuntimeKind::Ollama => "ollama",
-      RuntimeKind::ComfyUI => "comfyui",
-    }
-  }
-
   pub fn health_url(self) -> &'static str {
     match self {
       RuntimeKind::Ollama => OLLAMA_HEALTH_URL,

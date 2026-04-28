@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-04-27 — Harden Linux AppImage tool downloads
+
+- **`.github/workflows/build-linux.yml`:** Prefetches Tauri AppImage helper tools into **`~/.cache/tauri`** with retry/backoff before bundling. This avoids failing a successful Rust/Tauri build when GitHub returns a transient **502** for **`AppRun-x86_64`**.
+- **`.github/workflows/build-linux.yml`:** Caches **`~/.cache/tauri`** along with Cargo artifacts so later Linux builds can reuse the AppImage helper binaries.
+- **`src-tauri/src/local_runtime.rs`:** Removed the unused **`RuntimeKind::id`** method so release builds no longer emit that warning.
+
 ## 2026-04-27 — Linux AppImage CI readiness
 
 - **`tauri.conf.json`:** **`bundle.targets`** lists **`nsis`** and **`appimage`** so Linux releases declare AppImage alongside Windows NSIS (each OS still builds only compatible formats).

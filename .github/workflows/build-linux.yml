@@ -47,12 +47,43 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
+            ~/.cache/tauri
           key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Prefetch Tauri AppImage tools
+        # Tauri downloads these during AppImage bundling if they are absent.
+        # Prefetch with retries so transient GitHub 5xx responses do not fail
+        # an otherwise successful release build.
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.cache/tauri"
+
+          download_tool() {
+            local url="$1"
+            local output="$2"
+            if [ -x "$output" ]; then
+              echo "Using cached $(basename "$output")"
+              return
+            fi
+            curl --fail --location --retry 8 --retry-delay 10 --retry-all-errors --connect-timeout 30 \
+              --output "$output" "$url"
+            chmod +x "$output"
+          }
+
+          download_tool \
+            "https://github.com/tauri-apps/binary-releases/releases/download/apprun-old/AppRun-x86_64" \
+            "$HOME/.cache/tauri/AppRun-x86_64"
+          download_tool \
+            "https://github.com/tauri-apps/binary-releases/releases/download/linuxdeploy/linuxdeploy-x86_64.AppImage" \
+            "$HOME/.cache/tauri/linuxdeploy-x86_64.AppImage"
+          download_tool \
+            "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh" \
+            "$HOME/.cache/tauri/linuxdeploy-plugin-gtk.sh"
 
       - name: Build stub bridge binary for Linux
         # The real bridge source lives in a separate repo. This stub satisfies
