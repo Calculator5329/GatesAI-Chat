@@ -21,7 +21,7 @@ export function RoutingCard() {
       <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 14 }}>
         Today the model is chosen in the composer and there is no spend cap. These controls are placeholders for the upcoming router.
       </div>
-      <SettingsRow label="Default provider">
+      <SettingsRow label="Default provider" disabled>
         <Select disabled value="openrouter">
           <option value="openrouter">OpenRouter (auto-route)</option>
           <option value="anthropic">Anthropic direct</option>
@@ -31,10 +31,10 @@ export function RoutingCard() {
           <option value="local">Local endpoint</option>
         </Select>
       </SettingsRow>
-      <SettingsRow label="Fallback when no key">
+      <SettingsRow label="Fallback when no key" disabled>
         <span style={{ color: 'var(--text-dim)' }}>Use the built-in mock responder</span>
       </SettingsRow>
-      <SettingsRow label="Monthly spend cap" last>
+      <SettingsRow label="Monthly spend cap" disabled last>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={tokens.mono}>$</span>
           <Input disabled value="100.00" style={{ ...tokens.mono, width: 120 }} />
