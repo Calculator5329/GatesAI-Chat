@@ -1,8 +1,40 @@
 import { describe, expect, it, vi } from 'vitest';
 import { artifactTool } from '../../../src/services/tools/artifact';
+import type {
+  ArtifactsFacade,
+  ChatFacade,
+  ProfileFacade,
+  ToolContext,
+} from '../../../src/services/tools/types';
 
-function ctx(facade: any, threadId = 't1') {
-  return { profile: {}, chat: {}, threadId, artifacts: facade } as any;
+function stubProfile(): ProfileFacade {
+  return {
+    facts: [],
+    addFact: () => false,
+    removeFactAt: () => null,
+    removeFactMatching: () => null,
+    updateFactAt: () => null,
+    updateFactMatching: () => null,
+  };
+}
+
+function stubChat(): ChatFacade {
+  return {
+    threads: [],
+    selectThread: () => {},
+    renameThread: () => {},
+    setThreadContext: () => {},
+    llmComplete: async () => '',
+  };
+}
+
+function ctx(artifacts: ArtifactsFacade, threadId = 't1'): ToolContext {
+  return {
+    profile: stubProfile(),
+    chat: stubChat(),
+    threadId,
+    artifacts,
+  };
 }
 
 describe('artifact tool', () => {
@@ -32,9 +64,9 @@ describe('artifact tool', () => {
   });
 
   it('rejects unknown action / missing fields with a friendly error', async () => {
-    const r1 = await artifactTool.execute({ action: 'create', html: '<p/>' } as any, ctx({ create: vi.fn(), update: vi.fn() }));
+    const r1 = await artifactTool.execute({ action: 'create', html: '<p/>' } as Record<string, unknown>, ctx({ create: vi.fn(), update: vi.fn() }));
     expect(typeof r1 === 'string' ? r1 : r1.content).toMatch(/title/i);
-    const r2 = await artifactTool.execute({ action: 'update', html: 'x' } as any, ctx({ create: vi.fn(), update: vi.fn() }));
+    const r2 = await artifactTool.execute({ action: 'update', html: 'x' } as Record<string, unknown>, ctx({ create: vi.fn(), update: vi.fn() }));
     expect(typeof r2 === 'string' ? r2 : r2.content).toMatch(/artifact_id/i);
   });
 });

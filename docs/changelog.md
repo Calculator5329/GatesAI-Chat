@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-04-27 — Linux AppImage CI readiness
+
+- **`tauri.conf.json`:** **`bundle.targets`** lists **`nsis`** and **`appimage`** so Linux releases declare AppImage alongside Windows NSIS (each OS still builds only compatible formats).
+- **`.github/workflows/build-linux.yml`:** **`build-essential`** for toolchain parity; **`mkdir -p src-tauri/binaries`** before compiling the stub bridge; removed empty **`TAURI_SIGNING_PRIVATE_KEY`** env line.
+- **`ArtifactStorage` / `ArtifactStore`:** Replaced constructor parameter properties with explicit fields so **`erasableSyntaxOnly`** passes (**required for `npm run build`** inside Tauri **`beforeBuildCommand`**).
+- **Artifact tests:** Typed **`BridgeFacade`** / **`ToolContext`** stand-ins instead of **`any`** for ESLint compliance.
+
 ## 2026-04-27 — Fix Linux CI: Comfy Windows bootstrap isolation
 
 - **`src-tauri/src/local_runtime.rs`:** Moved the embedded Python bootstrap string and Windows-only Comfy args into **`#[cfg(windows)] fn comfy_windows_python_args`** (and **`#[cfg(not(windows))] fn comfy_unix_python_args`**). Non-Windows builds no longer resolve the Windows bootstrap symbol, fixing **`cargo`/Tauri builds on Linux** (e.g. AppImage CI).

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ArtifactStorage } from '../../src/services/artifactStorage';
 import type { ArtifactMeta } from '../../src/core/artifacts';
+import type { BridgeClientFacade, BridgeFacade } from '../../src/services/tools/types';
 
 function makeFakeBridge() {
   const calls: { op: string; data: unknown }[] = [];
@@ -15,8 +16,13 @@ function makeFakeBridge() {
       if (op === 'fs.list')  return { path: d.path, entries: [], truncated: false };
       throw new Error(`unexpected op ${op}`);
     }),
+  } as BridgeClientFacade;
+  const bridge: BridgeFacade = {
+    isOnline: true,
+    client,
+    readAttachmentBase64: vi.fn(async () => null),
   };
-  return { calls, files, bridge: { isOnline: true, client } as any };
+  return { calls, files, bridge };
 }
 
 describe('ArtifactStorage', () => {
@@ -32,7 +38,7 @@ describe('ArtifactStorage', () => {
     expect(files.get('/workspace/artifacts/foo-abc123/v1.html')).toBe('<html>hi</html>');
     const persistedMeta = JSON.parse(files.get('/workspace/artifacts/foo-abc123/meta.json')!);
     expect(persistedMeta.id).toBe('foo-abc123');
-    expect(calls.some(c => c.op === 'fs.mkdir' && (c.data as any).path === '/workspace/artifacts/foo-abc123/data')).toBe(true);
+    expect(calls.some(c => c.op === 'fs.mkdir' && (c.data as { path?: string }).path === '/workspace/artifacts/foo-abc123/data')).toBe(true);
   });
 
   it('readMeta parses meta.json or returns null if missing', async () => {

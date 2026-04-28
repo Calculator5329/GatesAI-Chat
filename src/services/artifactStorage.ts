@@ -6,7 +6,11 @@ import type { BridgeFacade } from './tools/types';
 import type { FsReadResp } from '../core/workspace';
 
 export class ArtifactStorage {
-  constructor(private readonly bridge: BridgeFacade) {}
+  private readonly bridge: BridgeFacade;
+
+  constructor(bridge: BridgeFacade) {
+    this.bridge = bridge;
+  }
 
   async writeNewVersion(meta: ArtifactMeta, html: string): Promise<void> {
     if (!this.bridge.isOnline) throw new Error('bridge offline');

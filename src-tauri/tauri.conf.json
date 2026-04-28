@@ -28,7 +28,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": ["nsis", "appimage"],
     "externalBin": ["binaries/gatesai-bridge"],
     "publisher": "Ethan Gates",
     "shortDescription": "GatesAI Chat — local-first AI chat with workspace tools",
