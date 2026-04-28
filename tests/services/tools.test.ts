@@ -548,7 +548,7 @@ describe('tool registry harness selection', () => {
       bridgeOnline: false,
     }).map(t => t.name);
 
-    expect(names).toEqual(['memory', 'thread']);
+    expect(names).toEqual(['memory', 'thread', 'artifact']);
     expect(names).not.toContain('time');
   });
 
