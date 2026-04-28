@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-04-27 — Fix Linux CI: Comfy Windows bootstrap isolation
+
+- **`src-tauri/src/local_runtime.rs`:** Moved the embedded Python bootstrap string and Windows-only Comfy args into **`#[cfg(windows)] fn comfy_windows_python_args`** (and **`#[cfg(not(windows))] fn comfy_unix_python_args`**). Non-Windows builds no longer resolve the Windows bootstrap symbol, fixing **`cargo`/Tauri builds on Linux** (e.g. AppImage CI).
+
 ## 2026-04-27 — Merge `feature/html-artifacts` to `master`
 
 - Fast-forward merged **`feature/html-artifacts`** into **`master`** and pushed to **`origin`**. **`.github/workflows/build-linux.yml`** is now on the default branch so GitHub Actions shows **Build Linux AppImage** (manual `workflow_dispatch` or push tags matching `v*`).

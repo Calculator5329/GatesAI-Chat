@@ -54,18 +54,6 @@ impl FromStr for RuntimeKind {
     }
   }
 }
-#[cfg(windows)]
-const COMFY_WINDOWS_PLATFORM_BOOTSTRAP: &str = r#"import collections, platform, runpy, sys
-U = collections.namedtuple('uname_result', 'system node release version machine processor')
-platform.win32_ver = lambda *a, **k: ('10', '10.0.26200', '', 'Multiprocessor Free')
-platform.system = lambda: 'Windows'
-platform.machine = lambda: 'AMD64'
-platform.processor = lambda: 'AMD64'
-platform.uname = lambda: U('Windows', 'localhost', '10', '10.0.26200', 'AMD64', 'AMD64')
-main = sys.argv[1]
-sys.argv = sys.argv[1:]
-runpy.run_path(main, run_name='__main__')"#;
-
 #[derive(Default)]
 pub struct LocalRuntimeState(pub Mutex<HashMap<String, RuntimeProcess>>);
 
@@ -285,6 +273,40 @@ fn ollama_spec(install_path: &str) -> Result<RuntimeSpec, String> {
   Ok(RuntimeSpec { program: exe, args: vec!["serve".to_string()], cwd })
 }
 
+#[cfg(windows)]
+fn comfy_windows_python_args(main: &Path) -> Vec<String> {
+  const BOOTSTRAP: &str = r#"import collections, platform, runpy, sys
+U = collections.namedtuple('uname_result', 'system node release version machine processor')
+platform.win32_ver = lambda *a, **k: ('10', '10.0.26200', '', 'Multiprocessor Free')
+platform.system = lambda: 'Windows'
+platform.machine = lambda: 'AMD64'
+platform.processor = lambda: 'AMD64'
+platform.uname = lambda: U('Windows', 'localhost', '10', '10.0.26200', 'AMD64', 'AMD64')
+main = sys.argv[1]
+sys.argv = sys.argv[1:]
+runpy.run_path(main, run_name='__main__')"#;
+  vec![
+    "-s".to_string(),
+    "-u".to_string(),
+    "-c".to_string(),
+    BOOTSTRAP.to_string(),
+    main.to_string_lossy().to_string(),
+    "--windows-standalone-build".to_string(),
+    "--enable-cors-header".to_string(),
+    "*".to_string(),
+  ]
+}
+
+#[cfg(not(windows))]
+fn comfy_unix_python_args(main: &Path) -> Vec<String> {
+  vec![
+    "-s".to_string(),
+    main.to_string_lossy().to_string(),
+    "--enable-cors-header".to_string(),
+    "*".to_string(),
+  ]
+}
+
 fn comfy_spec(install_path: &str) -> Result<RuntimeSpec, String> {
   let python_leaf = if cfg!(windows) { "python.exe" } else { "python" };
   let raw = PathBuf::from(install_path);
@@ -302,23 +324,9 @@ fn comfy_spec(install_path: &str) -> Result<RuntimeSpec, String> {
   let python = root.join("python_embeded").join(python_leaf);
   let main = root.join("ComfyUI").join("main.py");
   #[cfg(windows)]
-  let args = vec![
-    "-s".to_string(),
-    "-u".to_string(),
-    "-c".to_string(),
-    COMFY_WINDOWS_PLATFORM_BOOTSTRAP.to_string(),
-    main.to_string_lossy().to_string(),
-    "--windows-standalone-build".to_string(),
-    "--enable-cors-header".to_string(),
-    "*".to_string(),
-  ];
+  let args = comfy_windows_python_args(&main);
   #[cfg(not(windows))]
-  let args = vec![
-    "-s".to_string(),
-    main.to_string_lossy().to_string(),
-    "--enable-cors-header".to_string(),
-    "*".to_string(),
-  ];
+  let args = comfy_unix_python_args(&main);
   Ok(RuntimeSpec {
     program: python,
     cwd: root,
