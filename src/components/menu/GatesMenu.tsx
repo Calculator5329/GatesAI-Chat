@@ -1,7 +1,6 @@
 import { observer } from 'mobx-react-lite';
 import { useRouterStore } from '../../stores/context';
 import { MENU_SECTIONS } from './menuSectionMeta';
-import { AppearanceSection } from './sections/Appearance';
 
 const badgeStyle: React.CSSProperties = {
   fontSize: 9,
@@ -18,7 +17,8 @@ const badgeStyle: React.CSSProperties = {
 export const GatesMenu = observer(function GatesMenu() {
   const router = useRouterStore();
   const meta = MENU_SECTIONS.find(s => s.key === router.menuSection);
-  const ActiveSection = (meta?.supported ? meta.component : null) ?? AppearanceSection;
+  const fallback = MENU_SECTIONS.find(s => s.supported)!.component;
+  const ActiveSection = (meta?.supported ? meta.component : null) ?? fallback;
 
   return (
     <div style={{

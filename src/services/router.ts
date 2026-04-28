@@ -18,8 +18,8 @@ export function parseHash(hash: string): Route {
     return { kind: 'thread', threadId: id };
   }
   if (head === 'menu') {
-    const section = (rest[0] ?? 'profile') as MenuSectionKey;
-    return { kind: 'menu', section: MENU_SECTIONS.includes(section) ? section : 'profile' };
+    const section = (rest[0] ?? 'appearance') as MenuSectionKey;
+    return { kind: 'menu', section: MENU_SECTIONS.includes(section) ? section : 'appearance' };
   }
   return DEFAULT_ROUTE;
 }

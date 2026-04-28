@@ -29,7 +29,7 @@ export class RouterStore {
     writeRoute(next);
   }
 
-  goMenu(section: MenuSectionKey = 'profile'): void {
+  goMenu(section: MenuSectionKey = 'appearance'): void {
     const next: Route = { kind: 'menu', section };
     this.route = next;
     writeRoute(next);
@@ -37,7 +37,7 @@ export class RouterStore {
 
   get isMenu(): boolean { return this.route.kind === 'menu'; }
   get menuSection(): MenuSectionKey {
-    return this.route.kind === 'menu' ? this.route.section : 'profile';
+    return this.route.kind === 'menu' ? this.route.section : 'appearance';
   }
   get threadId(): string | null {
     return this.route.kind === 'thread' ? this.route.threadId : null;

@@ -20,7 +20,7 @@ export interface MenuSectionMeta {
 
 export const MENU_SECTIONS: MenuSectionMeta[] = [
   { key: 'profile',    label: 'Profile',    component: ProfileSection,    supported: false, badge: 'Coming soon' },
-  { key: 'agent',      label: 'Agent',      component: AgentSection,      supported: false, badge: 'Coming soon' },
+  { key: 'agent',      label: 'Agent',      component: AgentSection,      supported: true },
   { key: 'workspace',  label: 'Workspace',  component: WorkspaceSection,  supported: true },
   { key: 'settings',   label: 'Settings',   component: SettingsSection,   supported: true },
   { key: 'usage',      label: 'Usage',      component: UsageSection,      supported: false, badge: 'Coming soon' },
