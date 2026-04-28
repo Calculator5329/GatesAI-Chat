@@ -83,6 +83,16 @@ export class RootStore {
       execStream: this.execStream,
       imageGen: this.imageGen,
       imageJobs: this.imageJobs,
+      artifacts: {
+        create: async (i) => {
+          const m = await this.artifacts.create(i);
+          return { id: m.id, version: m.currentVersion };
+        },
+        update: async (i) => {
+          const m = await this.artifacts.update(i.id, i.html, i.changeNote);
+          return m ? { id: m.id, version: m.currentVersion } : null;
+        },
+      },
       localRuntime: this.localRuntime,
     }));
 

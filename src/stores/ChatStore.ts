@@ -26,7 +26,7 @@ import type { UserProfileStore } from './UserProfileStore';
 import type { ToolContext } from '../services/tools/types';
 import type { LocalComfyMode } from '../services/image/types';
 
-type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime'>;
+type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'artifacts' | 'localRuntime'>;
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -900,6 +900,7 @@ export class ChatStore {
       execStream: extras.execStream,
       imageGen: extras.imageGen,
       imageJobs: extras.imageJobs,
+      artifacts: extras.artifacts,
       localRuntime: extras.localRuntime,
       threadId,
     });
