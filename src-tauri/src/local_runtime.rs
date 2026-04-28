@@ -301,25 +301,24 @@ fn comfy_spec(install_path: &str) -> Result<RuntimeSpec, String> {
   ))?;
   let python = root.join("python_embeded").join(python_leaf);
   let main = root.join("ComfyUI").join("main.py");
-  let args = if cfg!(windows) {
-    vec![
-      "-s".to_string(),
-      "-u".to_string(),
-      "-c".to_string(),
-      COMFY_WINDOWS_PLATFORM_BOOTSTRAP.to_string(),
-      main.to_string_lossy().to_string(),
-      "--windows-standalone-build".to_string(),
-      "--enable-cors-header".to_string(),
-      "*".to_string(),
-    ]
-  } else {
-    vec![
-      "-s".to_string(),
-      main.to_string_lossy().to_string(),
-      "--enable-cors-header".to_string(),
-      "*".to_string(),
-    ]
-  };
+  #[cfg(windows)]
+  let args = vec![
+    "-s".to_string(),
+    "-u".to_string(),
+    "-c".to_string(),
+    COMFY_WINDOWS_PLATFORM_BOOTSTRAP.to_string(),
+    main.to_string_lossy().to_string(),
+    "--windows-standalone-build".to_string(),
+    "--enable-cors-header".to_string(),
+    "*".to_string(),
+  ];
+  #[cfg(not(windows))]
+  let args = vec![
+    "-s".to_string(),
+    main.to_string_lossy().to_string(),
+    "--enable-cors-header".to_string(),
+    "*".to_string(),
+  ];
   Ok(RuntimeSpec {
     program: python,
     cwd: root,
