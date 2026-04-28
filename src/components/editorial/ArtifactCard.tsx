@@ -177,12 +177,16 @@ export function makeArtifactMessageHandler(
     const iframe = getIframe();
     const target = iframe?.contentWindow;
     if (!target || ev.source !== target) return;
+    // Sandboxed iframe without allow-same-origin has opaque origin "null".
+    // Pin to that so we don't service spoofed frames or leak responses if
+    // the sandbox is ever loosened.
+    if (ev.origin !== 'null') return;
     const resp = await handleArtifactBridgeRequest(artifactId, bridge, {
       id: data.id,
       op: data.op,
       args: data.args,
     });
-    target.postMessage({ __gatesResp: true, ...resp }, '*');
+    target.postMessage({ __gatesResp: true, ...resp }, 'null');
   };
 }
 

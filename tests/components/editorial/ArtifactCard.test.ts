@@ -132,14 +132,16 @@ describe('makeArtifactMessageHandler', () => {
     const ev = {
       data: { __gates: true, id: 'r1', op: 'readFile', args: ['/workspace/x.txt'] },
       source: fakeContentWindow,
+      origin: 'null',
     } as unknown as MessageEvent;
 
     await handler(ev);
     expect(fakeContentWindow.postMessage).toHaveBeenCalledTimes(1);
-    const [payload] = fakeContentWindow.postMessage.mock.calls[0];
+    const [payload, targetOrigin] = fakeContentWindow.postMessage.mock.calls[0];
     expect(payload.__gatesResp).toBe(true);
     expect(payload.id).toBe('r1');
     expect(payload.ok).toBe(true);
+    expect(targetOrigin).toBe('null');
   });
 
   it('ignores frames not coming from the iframe contentWindow', async () => {
@@ -154,6 +156,25 @@ describe('makeArtifactMessageHandler', () => {
     await handler({
       data: { __gates: true, id: 'r1', op: 'readFile', args: ['/workspace/x.txt'] },
       source: { postMessage: vi.fn() }, // different window
+      origin: 'null',
+    } as unknown as MessageEvent);
+
+    expect(fakeContentWindow.postMessage).not.toHaveBeenCalled();
+  });
+
+  it('rejects frames whose origin is not "null" even if source matches', async () => {
+    const fakeContentWindow = { postMessage: vi.fn() };
+    const fakeIframe = { contentWindow: fakeContentWindow } as unknown as HTMLIFrameElement;
+    const bridge = {
+      isOnline: true,
+      client: { request: vi.fn(async () => ({ content: 'data', encoding: 'utf8' })) },
+    } as unknown as Parameters<typeof makeArtifactMessageHandler>[1];
+
+    const handler = makeArtifactMessageHandler('art-1', bridge, () => fakeIframe);
+    await handler({
+      data: { __gates: true, id: 'r1', op: 'readFile', args: ['/workspace/x.txt'] },
+      source: fakeContentWindow,
+      origin: 'https://evil.example',
     } as unknown as MessageEvent);
 
     expect(fakeContentWindow.postMessage).not.toHaveBeenCalled();
@@ -163,7 +184,7 @@ describe('makeArtifactMessageHandler', () => {
     const fakeContentWindow = { postMessage: vi.fn() };
     const fakeIframe = { contentWindow: fakeContentWindow } as unknown as HTMLIFrameElement;
     const handler = makeArtifactMessageHandler('art-1', undefined, () => fakeIframe);
-    await handler({ data: { hello: 'world' }, source: fakeContentWindow } as unknown as MessageEvent);
+    await handler({ data: { hello: 'world' }, source: fakeContentWindow, origin: 'null' } as unknown as MessageEvent);
     expect(fakeContentWindow.postMessage).not.toHaveBeenCalled();
   });
 });

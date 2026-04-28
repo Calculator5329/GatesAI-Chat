@@ -30,6 +30,7 @@ export async function handleArtifactBridgeRequest(
     }
     if (req.op === 'listDir') {
       const path = String(req.args[0] ?? '');
+      if (!path) return fail(req.id, 'path required');
       const resp = await bridge.client.request<FsListResp>('fs.list', { path });
       return { id: req.id, ok: true, value: (resp.entries ?? []).map(e => e.path) };
     }

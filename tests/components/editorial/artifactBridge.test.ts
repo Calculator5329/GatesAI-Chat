@@ -56,6 +56,16 @@ describe('handleArtifactBridgeRequest', () => {
     ]);
   });
 
+  it('listDir rejects empty path', async () => {
+    const { bridge } = makeFakeBridge();
+    const resp = await handleArtifactBridgeRequest('foo', bridge, {
+      id: 'r2e', op: 'listDir', args: [''],
+    });
+    expect(resp.id).toBe('r2e');
+    expect(resp.ok).toBe(false);
+    expect(resp.error).toMatch(/path required/);
+  });
+
   it('writeFile inside artifact data dir succeeds with no value', async () => {
     const { bridge, files } = makeFakeBridge();
     const resp = await handleArtifactBridgeRequest('foo', bridge, {
