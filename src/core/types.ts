@@ -87,6 +87,13 @@ export type ToolResultArtifact =
       jobId: string;
       /** Number of images this job is expected to produce. */
       count: number;
+    }
+  | {
+      kind: 'artifact';
+      /** Reference into ArtifactStore (also the on-disk folder under /workspace/artifacts/). */
+      id: string;
+      /** Which version of the artifact to display (1-based, monotonically increasing). */
+      version: number;
     };
 
 /**
