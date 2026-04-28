@@ -27,27 +27,68 @@ GatesAI talks to a local ComfyUI server for image generation. Use the official *
 
 ## 3. Drop in the model files
 
-GatesAI ships two preset image pipelines. You only need the files for the preset(s) you intend to use. Files go inside your ComfyUI folder.
+GatesAI ships three direct image modes. **Normal** and **Upscale** use the same FLUX.2 Klein files; **Draft** uses SDXL Lightning. Files go inside your ComfyUI folder and filenames must match exactly.
 
-### Quick preset (fastest) — SDXL Lightning
+First create the model folders:
 
-| File | Goes in |
-| --- | --- |
-| `sdxl_lightning_4step.safetensors` | `ComfyUI\models\checkpoints\` |
+```powershell
+$models = "C:\Tools\ComfyUI_windows_portable\ComfyUI\models"
+New-Item -ItemType Directory -Force -Path `
+  "$models\checkpoints", `
+  "$models\diffusion_models", `
+  "$models\text_encoders", `
+  "$models\vae" | Out-Null
+```
 
-That's it. Quick uses an all‑in‑one checkpoint.
+Change `$models` if you installed ComfyUI somewhere else.
 
-### Full preset (best quality) — FLUX.2 Klein
+### Draft mode — SDXL Lightning
 
-| File | Goes in |
-| --- | --- |
-| `flux-2-klein-4b-fp8.safetensors` | `ComfyUI\models\diffusion_models\` |
-| `qwen_3_4b.safetensors` (text encoder) | `ComfyUI\models\text_encoders\` |
-| `flux2-vae.safetensors` | `ComfyUI\models\vae\` |
+Fast preview lane, native size, no upscale.
 
-You can grab official copies of these from the FLUX.2 Klein release on Hugging Face. Filenames must match exactly — GatesAI's built‑in workflow looks them up by name.
+| File | Goes in | Download |
+| --- | --- | --- |
+| `sdxl_lightning_4step.safetensors` | `ComfyUI\models\checkpoints\` | `https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors` |
+| `sdxl_vae_fp16_fix.safetensors` | `ComfyUI\models\vae\` | `https://huggingface.co/madebyollin/sdxl-vae-fp16-fix/resolve/main/sdxl_vae.safetensors` |
 
-> The detailed checklist with download links lives in `docs/gatesai-local-image-prereqs.md` and `docs/comfyui-setup.md` if you need it.
+Resumable download commands:
+
+```powershell
+curl -L -C - -o "$models\checkpoints\sdxl_lightning_4step.safetensors" `
+  "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors"
+
+curl -L -C - -o "$models\vae\sdxl_vae_fp16_fix.safetensors" `
+  "https://huggingface.co/madebyollin/sdxl-vae-fp16-fix/resolve/main/sdxl_vae.safetensors"
+```
+
+### Normal mode — FLUX.2 Klein
+
+Default quality lane, native size, no upscale.
+
+### Upscale mode — FLUX.2 Klein 2x
+
+Same files as Normal, plus a built-in 2x hires-fix refinement pass. No extra upscaler model is required.
+
+| File | Goes in | Download |
+| --- | --- | --- |
+| `flux-2-klein-4b-fp8.safetensors` | `ComfyUI\models\diffusion_models\` | `https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b.safetensors` |
+| `qwen_3_4b.safetensors` | `ComfyUI\models\text_encoders\` | `https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors` |
+| `flux2-vae.safetensors` | `ComfyUI\models\vae\` | `https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/vae/flux2-vae.safetensors` |
+
+Resumable download commands:
+
+```powershell
+curl -L -C - -o "$models\diffusion_models\flux-2-klein-4b-fp8.safetensors" `
+  "https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b.safetensors"
+
+curl -L -C - -o "$models\text_encoders\qwen_3_4b.safetensors" `
+  "https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors"
+
+curl -L -C - -o "$models\vae\flux2-vae.safetensors" `
+  "https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/vae/flux2-vae.safetensors"
+```
+
+You may need to sign in to Hugging Face and accept the model terms before the FLUX.2 Klein download works. If a large download fails, re-run the same `curl -L -C -` command; it resumes instead of starting over.
 
 ---
 
@@ -59,7 +100,8 @@ Inside the app:
 2. Under **Runtimes → ComfyUI**, click **Auto‑detect** (or **Browse…** to your `ComfyUI_windows_portable` folder).
 3. Leave **Manage this process from GatesAI** ON. Click **Start**. Wait for the status to read **Online** (default URL `http://127.0.0.1:8188`).
 4. Under **Local image generation**:
-   - Pick **Quick** (SDXL Lightning) or **Full** (FLUX.2 Klein). Set **Upscale** to `1` for plain renders or `1.5–3` for hires‑fix on **Full**.
+   - Leave **Default local mode** on **Normal** for FLUX.2 Klein without upscale.
+   - Pick **Draft** for SDXL Lightning previews, or set **Flux upscale** to **2x** for Upscale-quality FLUX renders.
    - **Prompt enhancement: Off** (no LLM rewrite) is the simplest path — your text goes straight to the model.
    - Click **Set image_generate to ComfyUI**.
 
@@ -73,7 +115,10 @@ You have two ways to produce images. Pick whichever fits.
 
 **Direct image mode (no chat, no API key, fully offline):**
 
-1. In the **header model picker**, choose **ComfyUI (direct, no chat)**.
+1. In the **header model picker**, choose one of:
+   - **Draft image — SDXL**
+   - **Normal image — Flux 2 Klein**
+   - **Upscale image — Flux 2 Klein 2x**
 2. Type your prompt in the composer and send. Your message is the prompt — no LLM round‑trip.
 
 **Chat‑driven (via a chat model that can call tools):**

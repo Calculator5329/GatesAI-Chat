@@ -14,6 +14,8 @@
   local ComfyUI path, and old saved Quick/Draft defaults migrate to Normal.
 - Image jobs can carry a ComfyUI mode override, so direct-image models are
   independent from the Local menu's saved workflow defaults.
+- Root **`DIRECTIONS.md`** now embeds the ComfyUI model download checklist and
+  resumable `curl` commands directly instead of only linking to deeper docs.
 
 ## 2026-04-27 — v0.2.0 — Ship-ready setup guide
 
