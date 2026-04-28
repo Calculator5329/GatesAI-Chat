@@ -1,13 +1,7 @@
 # Changelog
 
-## 2026-04-27 — v0.2.0 — Remove secret-mode + ship-ready setup guide
+## 2026-04-27 — v0.2.0 — Ship-ready setup guide
 
-- Removed the **ComfyUI Secret (direct)** catalog entry, the
-  `comfyWorkflowMode` plumbing through `image_generate`, `ImageJobStore`,
-  `ChatStore`, the FLUX.2 Klein workflow builder, and all supporting tests.
-  The LoRA `.safetensors` files are untouched on disk; only the in-app code
-  paths and docs are gone. Existing `image_generate` calls and direct
-  ComfyUI runs use the normal FLUX.2 Klein / SDXL Lightning workflows.
 - Rewrote root **`DIRECTIONS.md`** as a self-contained one-page setup guide
   meant to ship next to the NSIS installer. Covers install, ComfyUI portable
   + model placement, Ollama (optional), API keys (optional), and a single
