@@ -17,8 +17,10 @@ export class ArtifactStore {
   private metas = new Map<string, ArtifactMeta>();
   /** `${id}:${version}` → html. Lazy-loaded; not all versions live here. */
   private htmlCache = new Map<string, string>();
+  private readonly storage: ArtifactStorage;
 
-  constructor(private readonly storage: ArtifactStorage) {
+  constructor(storage: ArtifactStorage) {
+    this.storage = storage;
     makeAutoObservable<this, 'storage'>(this, { storage: false }, { autoBind: true });
   }
 
