@@ -17,6 +17,7 @@ import { LiveExecTail } from './LiveExecTail';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
 import { WorkspaceImage } from './WorkspaceImage';
 import { ImageJobCard } from './ImageJobCard';
+import { ArtifactCard } from './ArtifactCard';
 
 interface MessageProps {
   message: Message;
@@ -148,6 +149,13 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
                     return (
                       <div key={`job-${artifact.jobId}-${idx}`} style={{ marginTop: 8 }}>
                         <ImageJobCard jobId={artifact.jobId} expectedCount={artifact.count} />
+                      </div>
+                    );
+                  }
+                  if (artifact.kind === 'artifact') {
+                    return (
+                      <div key={`art-${artifact.id}-${artifact.version}-${idx}`} style={{ marginTop: 8 }}>
+                        <ArtifactCard id={artifact.id} version={artifact.version} />
                       </div>
                     );
                   }
