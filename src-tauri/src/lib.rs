@@ -62,11 +62,18 @@ pub fn run() {
         eprintln!("[gatesai] bridge already running on 7331; reusing");
         return Ok(());
       }
-      let sidecar = app
+      let sidecar_result = app
         .shell()
-        .sidecar("gatesai-bridge")?
-        .args(["--listen", BRIDGE_LISTEN]);
-      let (mut rx, child) = sidecar.spawn()?;
+        .sidecar("gatesai-bridge")
+        .and_then(|s| Ok(s.args(["--listen", BRIDGE_LISTEN])))
+        .and_then(|s| s.spawn());
+      let (mut rx, child) = match sidecar_result {
+        Ok(pair) => pair,
+        Err(err) => {
+          eprintln!("[gatesai] bridge sidecar unavailable: {err}; workspace tools will be offline");
+          return Ok(());
+        }
+      };
       tauri::async_runtime::spawn(async move {
         while let Some(event) = rx.recv().await {
           match event {
