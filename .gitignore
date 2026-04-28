@@ -29,3 +29,6 @@ src-tauri/gen/
 src-tauri/binaries/*.exe
 src-tauri/binaries/*-darwin
 src-tauri/binaries/*-linux
+
+# Local release-staging output (zipped installer + DIRECTIONS bundle)
+release/
