@@ -27,9 +27,9 @@ class MockRouterStore {
 function buildStore(section: MenuSectionKey = 'appearance'): { store: RootStore; router: MockRouterStore } {
   const router = new MockRouterStore();
   router.goMenu(section);
-  const profile = new UserProfileStore({ bio: '', defaultSystemPrompt: '' });
-  const providers = new ProviderStore();
+  const profile = new UserProfileStore();
   const registry = new ModelRegistry();
+  const providers = new ProviderStore(registry);
   const openrouter = new OpenRouterStore(registry);
   const ui = new UiStore();
   const store = { router, profile, providers, registry, openrouter, ui } as unknown as RootStore;

@@ -51,8 +51,8 @@
 - [x] Add a dedicated Local menu for Ollama, ComfyUI, and local vision setup
       (auto-detect install paths, managed Start/Stop, live logs, ComfyUI CORS
       flags, local vision `describe_image` tool)
-- [x] Add ComfyUI direct-image mode plus FLUX.2 Klein `full` hires-fix upscale
-      controls for offline local image generation
+- [x] Add ComfyUI direct-image Draft / Normal / Upscale model choices plus
+      FLUX.2 Klein hires-fix controls for offline local image generation
 - [x] Add `image_generate` prompt-file batch mode for overnight queued local
       image runs
 
@@ -64,7 +64,7 @@
 - [ ] Continue architecture cleanup: split large tools/components and keep
       slimming `ChatStore` where helpers can move out safely
 - [ ] Persist theme keys alongside existing output style preferences
-- [ ] Wire the API / Settings / Agent menu sections to real state
+- [ ] Finish wiring unsupported settings sections; unsupported tabs (Profile, Agent, Usage) now render as Coming soon instead of appearing interactive
 - [ ] Add basic unit tests around `ChatStore` (send, stream, switch, stop)
 
 ## Later

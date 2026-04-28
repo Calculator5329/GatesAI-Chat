@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-04-27 — Unsupported settings states
+
+- Unsupported settings tabs (Profile, Agent, Usage) are now visibly dimmed and non-interactive, with a "Coming soon" badge.
+- Placeholder controls inside live sections (Routing card in API, Model defaults and Voice & tone in Agent) use the same muted treatment.
+- Live sections — Local, API provider keys, Appearance, Workspace, Gallery, Settings — remain fully interactive.
+
+## 2026-04-27 — Local image mode picker
+
+- Direct local image generation now appears as three model-picker choices:
+  **Draft** (SDXL Lightning), **Normal** (FLUX.2 Klein with no upscale), and
+  **Upscale** (FLUX.2 Klein with a 2× hires-fix pass). Normal is the default
+  local ComfyUI path, and old saved Quick/Draft defaults migrate to Normal.
+- Image jobs can carry a ComfyUI mode override, so direct-image models are
+  independent from the Local menu's saved workflow defaults.
+
 ## 2026-04-27 — v0.2.0 — Ship-ready setup guide
 
 - Rewrote root **`DIRECTIONS.md`** as a self-contained one-page setup guide
