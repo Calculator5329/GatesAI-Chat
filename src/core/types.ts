@@ -137,6 +137,13 @@ export interface Thread {
   modelId: string;
   messages: Message[];
   /**
+   * Set when the user dismisses the thread from the sidebar. Soft-deleted
+   * threads stay in storage (so an Undo can restore them) but are filtered
+   * out of every list. There's no hard-purge yet — graveyard cleanup is a
+   * future task.
+   */
+  deletedAt?: number;
+  /**
    * Optional per-thread context appended to the system prompt under
    * "About this conversation: …". Persists with the snapshot. No UI to edit
    * it yet — written by the model via tools and (eventually) by a thread

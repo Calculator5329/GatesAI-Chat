@@ -7,6 +7,7 @@ import { LocalProvider } from './local';
 import { AnthropicProvider } from './anthropic';
 import { GeminiProvider } from './gemini';
 import { OllamaProvider, DEFAULT_OLLAMA_BASE_URL } from './ollama';
+import { LocalImageProvider } from './localImage';
 
 /**
  * Thrown by `LlmRouter.resolve` when no provider is ready to handle the
@@ -37,6 +38,7 @@ export function buildProviders(configs: ProviderConfigs): Record<ProviderId, Llm
       apiKey: configs.ollama?.apiKey,
       toolsEnabled: configs.ollama?.toolsEnabled !== false,
     }),
+    'local-image': new LocalImageProvider(),
   };
 }
 
@@ -121,25 +123,35 @@ export class LlmRouter {
   }
 
   /**
-   * Look up an OpenRouter slug that points at the same underlying model. We
-   * prefer a dynamic catalog hit (`<vendor>/<id>`) so live pricing/context
-   * follow, then fall back to a curated `or-*` entry.
+   * Look up an OpenRouter slug that points at the same underlying model. The
+   * resolution order is:
+   *
+   *   1. Exact registry match on `<vendor>/<providerModelId>` — picked up
+   *      from either a curated `or-*` entry or a dynamic catalog hit, so
+   *      live pricing / context follow when available.
+   *   2. Tail-normalized registry match (handles `.` ↔ `-` and `:beta`
+   *      variants — e.g. `claude-sonnet-4.6` ↔ `claude-sonnet-4-6`).
+   *   3. Constructed slug `<vendor>/<providerModelId>` as a best-effort
+   *      fallback. This covers the cold-cache case where the user has
+   *      never refreshed the OpenRouter catalog and there's no curated
+   *      entry — OR may still accept the slug, and if it doesn't, the
+   *      error surfaces normally. Constructing rather than skipping keeps
+   *      every direct-provider model fallback-eligible.
    */
   private findOpenRouterSlugFor(providerId: ProviderId, providerModelId: string): string | null {
     const expectedPrefix = OR_VENDOR_PREFIX[providerId];
     if (!expectedPrefix) return null;
     const wanted = `${expectedPrefix}/${providerModelId}`;
+    const wantedNormalized = providerModelId.replace(/\./g, '-');
     for (const m of this.registry.all) {
       if (m.providerId !== 'openrouter') continue;
       if (m.providerModelId === wanted) return m.providerModelId;
-      // OpenRouter sometimes uses normalized ids (e.g. `claude-sonnet-4.6` →
-      // `claude-sonnet-4-6` or `claude-sonnet-4.6:beta`). Match on the tail.
       if (m.providerModelId.startsWith(`${expectedPrefix}/`)
-          && m.providerModelId.split('/')[1].split(':')[0].replace(/\./g, '-') === providerModelId.replace(/\./g, '-')) {
+          && m.providerModelId.split('/')[1].split(':')[0].replace(/\./g, '-') === wantedNormalized) {
         return m.providerModelId;
       }
     }
-    return null;
+    return wanted;
   }
 
   get(providerId: ProviderId): LlmProvider {

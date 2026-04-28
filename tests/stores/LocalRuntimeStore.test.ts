@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LocalRuntimeStore } from '../../src/stores/LocalRuntimeStore';
+import { LocalRuntimeStore, STARTING_WATCHDOG_MS } from '../../src/stores/LocalRuntimeStore';
 import { clearAppStorage } from '../helpers/storage';
 
 describe('LocalRuntimeStore', () => {
@@ -65,6 +65,153 @@ describe('LocalRuntimeStore', () => {
     expect(store.runtimes.ollama.installPath).toBe('C:\\Ollama\\ollama.exe');
     expect(store.runtimes.comfyui.installPath).toBe('C:\\ComfyUI_windows_portable');
     expect(store.runtimes.ollama.status).toBe('stopped');
+  });
+
+  it('records autoDetectAt on a successful auto-detect run', async () => {
+    const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService() });
+    expect(store.autoDetectAt).toBeUndefined();
+    const before = Date.now();
+    await store.autoDetect();
+    expect(store.autoDetectAt).toBeGreaterThanOrEqual(before);
+  });
+
+  describe('testConnection', () => {
+    it('returns ok when the probe responds 200', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('{"ok":true}', { status: 200 }),
+      );
+      const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService() });
+      const r = await store.testConnection('ollama');
+      expect(r.ok).toBe(true);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'http://127.0.0.1:11434/api/version',
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    });
+
+    it('reports an HTTP error when the probe responds non-2xx', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('nope', { status: 503 }));
+      const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService() });
+      const r = await store.testConnection('comfyui');
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error).toMatch(/HTTP 503/);
+    });
+
+    it('reports the error verbatim when fetch rejects (network unreachable)', async () => {
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('connect ECONNREFUSED'));
+      const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService() });
+      const r = await store.testConnection('ollama');
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error).toMatch(/ECONNREFUSED/);
+    });
+  });
+
+  describe('starting watchdog', () => {
+    it('flips a stuck "starting" runtime to "crashed" after the watchdog timeout', async () => {
+      vi.useFakeTimers();
+      try {
+        // Service start resolves but the status snapshot keeps reporting
+        // "starting" — simulating a process that came up but never became
+        // healthy (port collision, model load wedged, etc.).
+        const service = fakeService({
+          startRuntime: vi.fn(async () => undefined),
+          getRuntimeStatus: vi.fn(async () => ({ running: true, status: 'starting' as const, logs: [] })),
+        });
+        const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
+        store.setInstallPath('ollama', 'C:\\Ollama\\ollama.exe');
+        const startPromise = store.start('ollama');
+        // Drain awaited microtasks inside start() so we settle into 'starting'.
+        await vi.advanceTimersByTimeAsync(0);
+        await startPromise;
+        expect(store.runtimes.ollama.status).toBe('starting');
+
+        // Roll the wall clock past the watchdog threshold.
+        await vi.advanceTimersByTimeAsync(STARTING_WATCHDOG_MS + 100);
+
+        expect(store.runtimes.ollama.status).toBe('crashed');
+        expect(store.runtimes.ollama.lastError).toMatch(/did not become healthy/);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('keeps showing "starting" while in the start window even if the host reports "offline"', async () => {
+      // ComfyUI's bring-up sequence is "process spawned → CUDA init →
+      // model load → HTTP server up". During the model-load window the
+      // Rust host returns 'offline' (process exists, health endpoint
+      // not answering yet). Without the sticky-starting gate the UI
+      // would flick to "Offline" and the Start button would re-appear,
+      // making the user think nothing happened.
+      vi.useFakeTimers();
+      try {
+        const service = fakeService({
+          startRuntime: vi.fn(async () => undefined),
+          getRuntimeStatus: vi.fn(async () => ({ running: true, status: 'offline' as const, logs: [], pid: 7 })),
+        });
+        const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
+        store.setInstallPath('comfyui', 'C:\\ComfyUI');
+
+        await store.start('comfyui');
+
+        // The sticky gate: even though the host snapshot is 'offline',
+        // we're inside the watchdog window so the user sees 'starting'.
+        expect(store.runtimes.comfyui.status).toBe('starting');
+
+        // Subsequent polls during the same window keep showing 'starting'.
+        await store.refreshStatus('comfyui');
+        expect(store.runtimes.comfyui.status).toBe('starting');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('breaks out of "starting" once the host reports "online"', async () => {
+      vi.useFakeTimers();
+      try {
+        let nextStatus: 'offline' | 'online' = 'offline';
+        const service = fakeService({
+          startRuntime: vi.fn(async () => undefined),
+          getRuntimeStatus: vi.fn(async () => ({ running: true, status: nextStatus, logs: [], pid: 1 })),
+        });
+        const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
+        store.setInstallPath('comfyui', 'C:\\ComfyUI');
+
+        await store.start('comfyui');
+        expect(store.runtimes.comfyui.status).toBe('starting');
+
+        // Health probe finally answers — UI flips to online and the
+        // watchdog clears.
+        nextStatus = 'online';
+        await store.refreshStatus('comfyui');
+        expect(store.runtimes.comfyui.status).toBe('online');
+
+        // Watchdog cleared: rolling time forward must NOT flip to crashed.
+        await vi.advanceTimersByTimeAsync(STARTING_WATCHDOG_MS + 100);
+        expect(store.runtimes.comfyui.status).toBe('online');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('cancels the watchdog when status becomes online', async () => {
+      vi.useFakeTimers();
+      try {
+        const service = fakeService({
+          startRuntime: vi.fn(async () => undefined),
+          getRuntimeStatus: vi.fn(async () => ({ running: true, status: 'online' as const, logs: [], pid: 1 })),
+        });
+        const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
+        store.setInstallPath('ollama', 'C:\\Ollama\\ollama.exe');
+        await store.start('ollama');
+        expect(store.runtimes.ollama.status).toBe('online');
+
+        // Advance past the watchdog window — status must stay online, not flip to crashed.
+        await vi.advanceTimersByTimeAsync(STARTING_WATCHDOG_MS + 100);
+        expect(store.runtimes.ollama.status).toBe('online');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });
 

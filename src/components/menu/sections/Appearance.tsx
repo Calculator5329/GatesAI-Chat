@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import { Card, SettingsRow, Toggle, Select, SegmentedControl, ToolCallView, ToolResultView } from '../../ui';
@@ -13,15 +13,10 @@ import type {
 } from '../../../core/types';
 import type { ToolCall } from '../../../core/llm';
 
-const DENSITY = ['compact', 'comfortable', 'spacious'] as const;
-type Density = typeof DENSITY[number];
-
 const MARKDOWN_DENSITY: MarkdownDensityKey[] = ['compact', 'comfortable', 'spacious'];
 const CODE_SIZE: CodeSizeKey[] = ['small', 'medium', 'large'];
 
 export const AppearanceSection = observer(function AppearanceSection() {
-  const [density, setDensity] = useState<Density>('comfortable');
-
   return (
     <>
       <h1 style={tokens.h1}>Appearance</h1>
@@ -38,44 +33,44 @@ export const AppearanceSection = observer(function AppearanceSection() {
       <MarkdownStylePicker />
       <CodeStylePicker />
       <MarkdownCodeAdvanced />
-
-      <div style={tokens.section}>
-        <div style={tokens.sectionTitle}>Reading</div>
-        <SettingsRow label="Serif for AI voice">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Toggle on onChange={() => {}} />
-            <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>Source Serif 4 for responses</span>
-          </div>
-        </SettingsRow>
-        <SettingsRow label="Reading width">
-          <Select defaultValue="720">
-            <option value="640">Narrow (640px)</option>
-            <option value="720">Comfortable (720px)</option>
-            <option value="860">Wide (860px)</option>
-          </Select>
-        </SettingsRow>
-        <SettingsRow label="Font size" last>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <input type="range" min="14" max="20" step="1" defaultValue="17"
-              style={{ flex: 1, accentColor: 'var(--accent)' }} />
-            <span style={{ ...tokens.mono, color: 'var(--text-dim)', width: 32 }}>17px</span>
-          </div>
-        </SettingsRow>
-      </div>
-
-      <div style={tokens.section}>
-        <div style={tokens.sectionTitle}>Density</div>
-        <SettingsRow label="Layout">
-          <SegmentedControl options={DENSITY} value={density} onChange={setDensity} />
-        </SettingsRow>
-        <SettingsRow label="Animations" last>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Toggle on onChange={() => {}} />
-            <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>Subtle transitions</span>
-          </div>
-        </SettingsRow>
-      </div>
+      <ReadingTweaks />
     </>
+  );
+});
+
+const ReadingTweaks = observer(function ReadingTweaks() {
+  const ui = useUiStore();
+  return (
+    <div style={tokens.section}>
+      <div style={tokens.sectionTitle}>Reading</div>
+      <SettingsRow label="Reading width">
+        <Select
+          value={String(ui.readingWidthPx)}
+          onChange={e => ui.setReadingWidthPx(Number(e.currentTarget.value))}
+        >
+          <option value="640">Narrow (640px)</option>
+          <option value="720">Comfortable (720px)</option>
+          <option value="860">Wide (860px)</option>
+        </Select>
+      </SettingsRow>
+      <SettingsRow label="Font size">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <input
+            type="range" min="14" max="20" step="1"
+            value={ui.bodyFontSizePx}
+            onChange={e => ui.setBodyFontSizePx(Number(e.currentTarget.value))}
+            style={{ flex: 1, accentColor: 'var(--accent)' }}
+          />
+          <span style={{ ...tokens.mono, color: 'var(--text-dim)', width: 32 }}>{ui.bodyFontSizePx}px</span>
+        </div>
+      </SettingsRow>
+      <SettingsRow label="Animations" last>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Toggle on={ui.animationsEnabled} onChange={v => ui.setAnimationsEnabled(v)} />
+          <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>Subtle transitions across the UI</span>
+        </div>
+      </SettingsRow>
+    </div>
   );
 });
 

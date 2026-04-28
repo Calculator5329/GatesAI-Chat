@@ -36,16 +36,26 @@ export interface LocalRuntimeStoreDeps {
   getOllamaCatalog?: () => Model[];
 }
 
+/**
+ * If `status === 'starting'` for longer than this, we assume the spawn
+ * succeeded but the health check never came online (port collision, model
+ * load wedged, etc.) and flip the row into a 'crashed' state so the UI
+ * surfaces an actionable error instead of an indefinite spinner.
+ */
+export const STARTING_WATCHDOG_MS = 45_000;
+
 export class LocalRuntimeStore {
   runtimes: Record<LocalRuntimeId, RuntimeState>;
   visionModel: string | undefined;
   autoDetectComplete: boolean;
+  autoDetectAt: number | undefined;
   autoDetecting = false;
 
   private readonly service: LocalRuntimeService;
   private readonly detect: () => Promise<LocalRuntimeDetection>;
   private readonly getOllamaCatalog: () => Model[];
   private readonly statusRefreshes = new Map<LocalRuntimeId, Promise<void>>();
+  private readonly watchdogs = new Map<LocalRuntimeId, ReturnType<typeof setTimeout>>();
 
   constructor(deps: LocalRuntimeStoreDeps = {}) {
     const persisted = loadLocalRuntimeConfig();
@@ -55,15 +65,17 @@ export class LocalRuntimeStore {
     };
     this.visionModel = persisted.visionModel;
     this.autoDetectComplete = persisted.autoDetectComplete;
+    this.autoDetectAt = persisted.autoDetectAt;
     this.service = deps.service ?? localRuntimeService;
     this.detect = deps.autoDetect ?? detectLocalRuntimes;
     this.getOllamaCatalog = deps.getOllamaCatalog ?? (() => []);
 
-    makeAutoObservable<this, 'service' | 'detect' | 'getOllamaCatalog' | 'statusRefreshes'>(this, {
+    makeAutoObservable<this, 'service' | 'detect' | 'getOllamaCatalog' | 'statusRefreshes' | 'watchdogs'>(this, {
       service: false,
       detect: false,
       getOllamaCatalog: false,
       statusRefreshes: false,
+      watchdogs: false,
     });
 
     autorun(() => {
@@ -72,6 +84,7 @@ export class LocalRuntimeStore {
         comfyui: persistedStateFromRuntime(this.runtimes.comfyui),
         visionModel: this.visionModel,
         autoDetectComplete: this.autoDetectComplete,
+        autoDetectAt: this.autoDetectAt,
       };
       saveLocalRuntimeConfig(snap);
     });
@@ -130,6 +143,7 @@ export class LocalRuntimeStore {
           this.runtimes.comfyui.lastError = 'Auto-detect could not find a ComfyUI portable root — use Browse… to point at it.';
         }
         this.autoDetectComplete = true;
+        this.autoDetectAt = Date.now();
         this.autoDetecting = false;
       });
     } catch (err) {
@@ -162,12 +176,14 @@ export class LocalRuntimeStore {
 
     runtime.status = 'starting';
     runtime.lastError = undefined;
+    this.armWatchdog(id);
     try {
       await this.service.startRuntime(id, {
         installPath: runtime.installPath,
       });
       await this.refreshStatus(id);
     } catch (err) {
+      this.clearWatchdog(id);
       runInAction(() => {
         runtime.status = 'crashed';
         runtime.lastError = err instanceof Error ? err.message : String(err);
@@ -176,12 +192,59 @@ export class LocalRuntimeStore {
   }
 
   async stop(id: LocalRuntimeId): Promise<void> {
+    this.clearWatchdog(id);
     await this.service.stopRuntime(id);
     runInAction(() => {
       this.runtimes[id].status = 'stopped';
       this.runtimes[id].pid = undefined;
       this.runtimes[id].uptimeMs = undefined;
     });
+  }
+
+  /**
+   * Probe the runtime's base URL once and report whether it answered.
+   * Used by the Test button next to Base URL inputs so the user gets
+   * immediate feedback after editing rather than waiting on the next
+   * poll tick. Does NOT mutate runtime state — pure probe.
+   */
+  async testConnection(id: LocalRuntimeId): Promise<{ ok: true } | { ok: false; error: string }> {
+    const baseUrl = id === 'ollama' ? this.ollamaBaseUrl : this.comfyBaseUrl;
+    const probeUrl = id === 'ollama' ? `${baseUrl}/api/version` : `${baseUrl}/system_stats`;
+    try {
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(), 4000);
+      try {
+        const resp = await fetch(probeUrl, { signal: ac.signal });
+        if (!resp.ok) return { ok: false, error: `HTTP ${resp.status} from ${probeUrl}` };
+        return { ok: true };
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { ok: false, error: msg.includes('aborted') ? `No response from ${probeUrl} (timeout)` : `${msg} (${probeUrl})` };
+    }
+  }
+
+  private armWatchdog(id: LocalRuntimeId): void {
+    this.clearWatchdog(id);
+    const timer = setTimeout(() => {
+      runInAction(() => {
+        const runtime = this.runtimes[id];
+        if (runtime.status !== 'starting') return;
+        runtime.status = 'crashed';
+        runtime.lastError = `${id === 'ollama' ? 'Ollama' : 'ComfyUI'} did not become healthy within ${Math.round(STARTING_WATCHDOG_MS / 1000)}s. Open Logs to see why.`;
+      });
+    }, STARTING_WATCHDOG_MS);
+    this.watchdogs.set(id, timer);
+  }
+
+  private clearWatchdog(id: LocalRuntimeId): void {
+    const t = this.watchdogs.get(id);
+    if (t) {
+      clearTimeout(t);
+      this.watchdogs.delete(id);
+    }
   }
 
   async refreshStatus(id: LocalRuntimeId): Promise<void> {
@@ -198,12 +261,45 @@ export class LocalRuntimeStore {
     const snapshot = await this.service.getRuntimeStatus(id);
     runInAction(() => {
       const runtime = this.runtimes[id];
-      runtime.status = snapshot.status;
+      // Sticky-starting: while the user-initiated start watchdog is still
+      // armed, the host reports 'offline' for the entire boot window
+      // (process spawned but health endpoint not yet answering — totally
+      // normal for ComfyUI's 30–90s CUDA + model-load startup). Without
+      // this gate, the pill would flick straight to "Offline" and the
+      // Start button would re-appear, making it look like nothing happened.
+      // Only let 'online' (success) or 'crashed' (real failure) break out
+      // of the starting state. The watchdog itself still fires at the
+      // STARTING_WATCHDOG_MS timeout to flip stuck-starting → crashed.
+      const inStartWindow = this.watchdogs.has(id);
+      const reportedStatus = snapshot.status;
+      const effectiveStatus =
+        inStartWindow && (reportedStatus === 'offline' || reportedStatus === 'stopped')
+          ? 'starting'
+          : reportedStatus;
+
+      runtime.status = effectiveStatus;
       runtime.pid = snapshot.pid;
       runtime.uptimeMs = snapshot.uptimeMs;
       runtime.logs = snapshot.logs;
-      runtime.lastError = snapshot.lastError;
+      // Don't clobber the lastError we set ourselves on disabled-toggle /
+      // missing-path / spawn-failure paths with a stale `last_error`
+      // string from the host while we're still booting.
+      if (!(inStartWindow && (reportedStatus === 'offline' || reportedStatus === 'stopped'))) {
+        runtime.lastError = snapshot.lastError;
+      }
     });
+    if (snapshot.status === 'online' || snapshot.status === 'crashed') {
+      this.clearWatchdog(id);
+    }
+  }
+
+  /**
+   * Eagerly refresh both runtimes. Called by the panel on mount so the
+   * first paint reflects current state instead of the persisted snapshot.
+   */
+  refreshAll(): void {
+    void this.refreshStatus('ollama');
+    void this.refreshStatus('comfyui');
   }
 
   selectDefaultVisionModel(): void {

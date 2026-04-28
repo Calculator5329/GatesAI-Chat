@@ -35,7 +35,12 @@ export const App = observer(function App() {
     `markdown-density-${ui.markdownDensity}`,
     `code-${ui.codeStyle}`,
     `code-size-${ui.codeSize}`,
-  ].join(' ');
+    ui.animationsEnabled ? '' : 'no-animations',
+  ].filter(Boolean).join(' ');
+  const appearanceVars: CSSProperties = {
+    ['--md-body-font-size' as string]: `${ui.bodyFontSizePx}px`,
+    ['--reading-width' as string]: `${ui.readingWidthPx}px`,
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
@@ -53,7 +58,7 @@ export const App = observer(function App() {
 
   return (
     <div style={stageStyle}>
-      <div className={appearanceClassName} style={{ ...themeToCssVars(theme), ...rootStyle, fontFamily: theme.fontUi }}>
+      <div className={appearanceClassName} style={{ ...themeToCssVars(theme), ...appearanceVars, ...rootStyle, fontFamily: theme.fontUi }}>
         <EditorialSidebar headerKey={ui.headerKey} />
         {router.isMenu
           ? <GatesMenu />

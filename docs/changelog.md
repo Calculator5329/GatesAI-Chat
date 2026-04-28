@@ -1,5 +1,44 @@
 # Changelog
 
+## 2026-04-27 — v0.2.0 — Remove secret-mode + ship-ready setup guide
+
+- Removed the **ComfyUI Secret (direct)** catalog entry, the
+  `comfyWorkflowMode` plumbing through `image_generate`, `ImageJobStore`,
+  `ChatStore`, the FLUX.2 Klein workflow builder, and all supporting tests.
+  The LoRA `.safetensors` files are untouched on disk; only the in-app code
+  paths and docs are gone. Existing `image_generate` calls and direct
+  ComfyUI runs use the normal FLUX.2 Klein / SDXL Lightning workflows.
+- Rewrote root **`DIRECTIONS.md`** as a self-contained one-page setup guide
+  meant to ship next to the NSIS installer. Covers install, ComfyUI portable
+  + model placement, Ollama (optional), API keys (optional), and a single
+  troubleshooting table. Mirrors what the bundled app actually does.
+
+## 2026-04-27 — Desktop release hygiene + setup guide
+
+- Finished the ComfyUI `full` workflow path: `ImageGenStore` now persists and
+  passes the hires-fix upscale factor, `ComfyClient` feeds it into the FLUX.2
+  Klein workflow builder, and `{{SEED_PLUS_1}}` is substituted for the
+  refinement pass.
+- Added the offline **ComfyUI (direct, no chat)** model path: the catalog
+  includes the synthetic `local-image` model, `ChatStore.runTurn` enqueues an
+  image job without streaming an LLM provider, and the composer enables send
+  without requiring an API key when that model is selected.
+- Tightened direct-image mode so the context meter and ComfyUI enqueue path use
+  only the user-authored prompt body. Prior chat context, system prompt text,
+  tool schemas, reserved reply budget, and attachment footers are ignored.
+- Extended `image_generate` with `prompt_file` batch mode. The model can write a
+  `/workspace` JSON file of prompts, call the tool once, and fan out up to 500
+  prompt entries into existing queued image jobs.
+- Fixed Gallery image loading for ComfyUI outputs by fetching hosted `/view`
+  results and persisting them into `/workspace/artifacts/`; older hosted
+  history entries are converted to data URLs in Gallery/Lightbox before
+  rendering. The image viewer now shows the full prompt in a selectable field
+  with a one-click copy button.
+- Fixed TypeScript drift (`ModelRegistry.byProvider` includes `local-image`; removed unused Comfy import; tests use `quick` / `full` presets).
+- **`ChatStore.setThreadModel`** now replaces the thread object so MobX observes model changes — **ComfyUI (direct, no chat)** correctly clears the API-key banner and enables send.
+- Added root **`DIRECTIONS.md`**: end-user steps for bridge, Ollama vs API “Local”, ComfyUI **Quick** / **Full** image flow, direct-image mode, and build artifact paths.
+- Verified **`npm run ci`** and **`npm run tauri:build`** produce `GatesAI Chat_0.1.0_x64-setup.exe`.
+
 ## 2026-04-26 — Feature: Image-gen UX overhaul
 
 `image_generate` is now a background job. The tool returns immediately with a

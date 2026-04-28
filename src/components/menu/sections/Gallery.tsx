@@ -28,7 +28,7 @@ export const GallerySection = observer(function GallerySection() {
         : (
           <>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <Button onClick={() => { if (window.confirm('Clear gallery history? Image files in /workspace/artifacts/ are not deleted.')) jobs.clearHistory(); }}>
+              <Button onClick={() => { if (window.confirm('Clear gallery history? Image files on disk (ComfyUI output / workspace artifacts) are not deleted.')) jobs.clearHistory(); }}>
                 Clear history
               </Button>
             </div>
@@ -128,6 +128,7 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
 const cache = new Map<string, string>();
 
 async function loadImage(bridge: BridgeStore, path: string): Promise<string | null> {
+  if (/^https?:\/\//i.test(path)) return loadHostedImage(path);
   const cached = cache.get(path);
   if (cached) return cached;
   const result = await bridge.readAttachmentBase64(path);
@@ -135,4 +136,28 @@ async function loadImage(bridge: BridgeStore, path: string): Promise<string | nu
   const url = `data:${result.mime};base64,${result.base64}`;
   cache.set(path, url);
   return url;
+}
+
+async function loadHostedImage(url: string): Promise<string | null> {
+  const cached = cache.get(url);
+  if (cached) return cached;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const mime = resp.headers.get('content-type')?.split(';')[0] || 'image/png';
+    const dataUrl = `data:${mime};base64,${bytesToBase64(new Uint8Array(await resp.arrayBuffer()))}`;
+    cache.set(url, dataUrl);
+    return dataUrl;
+  } catch {
+    return null;
+  }
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
 }

@@ -124,4 +124,20 @@ describe('EditorialComposer API-key banner', () => {
     expect(sendWrapper!.style.opacity).toBe('1');
     expect(sendWrapper!.style.cursor).toBe('pointer');
   });
+
+  it('allows sending in direct-image mode without an LLM provider key', () => {
+    store = buildStore();
+    const threadId = store.chat.activeThreadId!;
+    store.chat.setThreadModel(threadId, 'image-direct-comfy');
+    const rendered = render(store);
+
+    act(() => store!.ui.setDraft('a neon greenhouse at night'));
+
+    expect(rendered.textContent).not.toContain('Add an API key to start chatting.');
+    const sendWrapper = Array.from(rendered.querySelectorAll('div'))
+      .find(d => (d as HTMLElement).getAttribute('title') === 'Send') as HTMLElement | undefined;
+    expect(sendWrapper).toBeDefined();
+    expect(sendWrapper!.style.opacity).toBe('1');
+    expect(sendWrapper!.style.cursor).toBe('pointer');
+  });
 });

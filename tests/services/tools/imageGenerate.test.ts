@@ -1,15 +1,25 @@
 import { describe, expect, it, vi } from 'vitest';
-import { imageGenerateTool } from '../../../src/services/tools/imageGenerate';
+import { imageGenerateTool, pickFilenamePrefix } from '../../../src/services/tools/imageGenerate';
 import type { ToolContext } from '../../../src/services/tools/types';
 
 interface FakeRequest { op: string; data: unknown }
 
-function fakeBridge(opts: { online: boolean; requests?: FakeRequest[] } = { online: true }): ToolContext['bridge'] {
+function fakeBridge(opts: { online: boolean; requests?: FakeRequest[]; files?: Record<string, string> } = { online: true }): ToolContext['bridge'] {
   return {
     isOnline: opts.online,
     client: {
       request: async (op: string, data: unknown) => {
         opts.requests?.push({ op, data });
+        if (op === 'fs.read') {
+          const path = (data as { path: string }).path;
+          return {
+            path,
+            content: opts.files?.[path] ?? '',
+            encoding: 'utf8',
+            size: (opts.files?.[path] ?? '').length,
+            mime: 'application/json',
+          };
+        }
         return { path: (data as { path: string }).path, bytes: 1 };
       },
     },
@@ -56,6 +66,10 @@ function makeCtx(overrides: Partial<ToolContext>): ToolContext {
 }
 
 describe('image_generate tool', () => {
+  it('allows either prompt or prompt_file at the tool-schema level', () => {
+    expect(imageGenerateTool.def.parameters.required).toBeUndefined();
+  });
+
   it('rejects empty prompts', async () => {
     const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }), imageJobs: fakeImageJobs().facade });
     const out = await imageGenerateTool.execute({ prompt: '   ' }, ctx);
@@ -129,5 +143,123 @@ describe('image_generate tool', () => {
     const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }), imageJobs: jobs.facade });
     await imageGenerateTool.execute({ prompt: 'x', seed: 42.7 }, ctx);
     expect(jobs.calls[0].seed).toBe(42);
+  });
+
+  it('passes the AI-supplied filename through, slugified', async () => {
+    const jobs = fakeImageJobs();
+    const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }), imageJobs: jobs.facade });
+    await imageGenerateTool.execute({ prompt: 'whatever', filename: 'Starfleet Mountain Crash' }, ctx);
+    expect(jobs.calls[0].filenamePrefix).toBe('starfleet-mountain-crash');
+  });
+
+  it('reads a prompt_file JSON and enqueues one job per prompt entry', async () => {
+    const jobs = fakeImageJobs();
+    const file = JSON.stringify({
+      defaults: {
+        count: 10,
+        aspect_ratio: '16:9',
+        seed: 1000,
+      },
+      prompts: [
+        { prompt: 'portrait prompt one', filename: 'Portrait 001' },
+        { prompt: 'portrait prompt two', count: 3, seed: 2000 },
+      ],
+    });
+    const ctx = makeCtx({
+      bridge: fakeBridge({ online: true, files: { '/workspace/artifacts/night-run.json': file } }),
+      imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }),
+      imageJobs: jobs.facade,
+    });
+
+    const out = await imageGenerateTool.execute({
+      prompt_file: '/workspace/artifacts/night-run.json',
+      batch_name: 'Night Run',
+    }, ctx);
+
+    expect(typeof out).toBe('string');
+    expect(out).toMatch(/Queued 2 jobs \/ 13 image renders/);
+    expect(jobs.calls).toEqual([
+      expect.objectContaining({
+        prompt: 'portrait prompt one',
+        count: 10,
+        width: 1344,
+        height: 768,
+        seed: 1000,
+        filenamePrefix: 'night-run-portrait-001',
+      }),
+      expect.objectContaining({
+        prompt: 'portrait prompt two',
+        count: 3,
+        width: 1344,
+        height: 768,
+        seed: 2000,
+        filenamePrefix: 'night-run-portrait-prompt-two',
+      }),
+    ]);
+  });
+
+  it('rejects prompt_file batches above the safety cap', async () => {
+    const jobs = fakeImageJobs();
+    const file = JSON.stringify({
+      prompts: Array.from({ length: 501 }, (_, i) => ({ prompt: `prompt ${i}` })),
+    });
+    const ctx = makeCtx({
+      bridge: fakeBridge({ online: true, files: { '/workspace/artifacts/too-big.json': file } }),
+      imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }),
+      imageJobs: jobs.facade,
+    });
+
+    const out = await imageGenerateTool.execute({ prompt_file: '/workspace/artifacts/too-big.json' }, ctx);
+
+    expect(typeof out === 'string' ? out : '').toMatch(/at most 500 prompts/i);
+    expect(jobs.calls).toHaveLength(0);
+  });
+
+  it('validates a prompt_file batch before enqueueing any jobs', async () => {
+    const jobs = fakeImageJobs();
+    const file = JSON.stringify({
+      prompts: [
+        { prompt: 'valid prompt' },
+        { prompt: 'bad dimensions', width: 123 },
+      ],
+    });
+    const ctx = makeCtx({
+      bridge: fakeBridge({ online: true, files: { '/workspace/artifacts/bad-batch.json': file } }),
+      imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }),
+      imageJobs: jobs.facade,
+    });
+
+    const out = await imageGenerateTool.execute({ prompt_file: '/workspace/artifacts/bad-batch.json' }, ctx);
+
+    expect(typeof out === 'string' ? out : '').toMatch(/width and height/i);
+    expect(jobs.calls).toHaveLength(0);
+  });
+
+  it('falls back to a prompt-derived slug when no filename is provided', async () => {
+    const jobs = fakeImageJobs();
+    const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }), imageJobs: jobs.facade });
+    await imageGenerateTool.execute({ prompt: 'A serene lake at dusk' }, ctx);
+    expect(jobs.calls[0].filenamePrefix).toBe('a-serene-lake-at-dusk');
+  });
+});
+
+describe('pickFilenamePrefix', () => {
+  it('slugifies an explicit filename, stripping punctuation and spaces', () => {
+    expect(pickFilenamePrefix('My  Name!! 2.png', 'fallback')).toBe('my-name-2-png');
+  });
+
+  it('falls back to the prompt slug when filename is empty / non-string', () => {
+    expect(pickFilenamePrefix(undefined, 'A serene lake')).toBe('a-serene-lake');
+    expect(pickFilenamePrefix('   ', 'foo bar')).toBe('foo-bar');
+    expect(pickFilenamePrefix(123, 'x y')).toBe('x-y');
+  });
+
+  it('returns "render" when both inputs would produce empty slugs', () => {
+    expect(pickFilenamePrefix('', '!!!')).toBe('render');
+  });
+
+  it('caps the slug at 60 characters', () => {
+    const long = 'a'.repeat(200);
+    expect(pickFilenamePrefix(long, 'fallback')).toHaveLength(60);
   });
 });

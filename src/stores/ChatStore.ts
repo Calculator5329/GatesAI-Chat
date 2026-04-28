@@ -2,7 +2,7 @@ import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
 import type { LlmProvider, LlmRequest, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
-import { formatAttachmentFooter, isImageMime, toMessageAttachmentRef } from '../core/attachments';
+import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
 import { loadSnapshot, saveSnapshot } from '../services/persistence';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, type TokenUsage } from '../core/tokens';
 import { flattenForWire } from '../services/llm/wireFormat';
@@ -171,6 +171,13 @@ export class ChatStore {
     const model = this.registry.findById(thread?.modelId ?? '');
     const window = contextWindowFor(model);
     if (!thread) return computeUsage(0, window);
+    if (model?.providerId === 'local-image') {
+      const prompt = (draftText.trim() || latestUserPromptBody(thread)).trim();
+      const used = prompt
+        ? estimateLlmPayloadTokens({ messages: [{ role: 'user', content: prompt }], reservedOutputTokens: 0 })
+        : 0;
+      return computeUsage(used, window);
+    }
     const latestUserText = latestUserMessageContent(thread);
     const extras = this.toolStoresProvider?.();
     const bridge = extras?.bridge;
@@ -179,6 +186,7 @@ export class ChatStore {
       ? toolRegistry.toolDefsForTurn({
           userText: [latestUserText, draftText].filter(Boolean).join('\n'),
           bridgeOnline: bridge?.isOnline ?? false,
+          imageGenAvailable: !!extras?.imageGen,
         })
       : [];
     const systemPrompt = this.profile.composeSystemPrompt({
@@ -225,8 +233,10 @@ export class ChatStore {
   }
 
   setThreadModel(threadId: string, modelId: string): void {
-    const thread = this.findThread(threadId);
-    if (thread) thread.modelId = modelId;
+    const idx = this.threads.findIndex(t => t.id === threadId);
+    if (idx < 0) return;
+    const thread = this.threads[idx];
+    this.threads[idx] = { ...thread, modelId };
   }
 
   /**
@@ -299,6 +309,42 @@ export class ChatStore {
     this.threads = [];
     this.activeThreadId = null;
     this.lastError = null;
+  }
+
+  /** Threads visible in the sidebar — soft-deleted ones are filtered out. */
+  get visibleThreads(): Thread[] {
+    return this.threads.filter(t => t.deletedAt == null);
+  }
+
+  /**
+   * Mark a thread as deleted. The thread stays in storage so undo can
+   * restore it; sidebar lists exclude soft-deleted rows. Aborts any
+   * in-flight stream on that thread first. If the deleted thread was
+   * active, switches to the next visible thread (or creates a new empty
+   * one if there are none left).
+   */
+  softDeleteThread(threadId: string): void {
+    const thread = this.findThread(threadId);
+    if (!thread || thread.deletedAt != null) return;
+    const controller = this.controllersByThread.get(threadId);
+    if (controller) {
+      controller.abort();
+      this.controllersByThread.delete(threadId);
+    }
+    this.textBuffer.cancel(threadId);
+    delete this.streamingByThread[threadId];
+    thread.deletedAt = Date.now();
+    if (this.activeThreadId === threadId) {
+      const next = this.visibleThreads[0];
+      this.activeThreadId = next ? next.id : this.createThread();
+    }
+  }
+
+  /** Restore a soft-deleted thread. No-op if it isn't deleted. */
+  restoreThread(threadId: string): void {
+    const thread = this.findThread(threadId);
+    if (!thread || thread.deletedAt == null) return;
+    thread.deletedAt = undefined;
   }
 
   /**
@@ -416,6 +462,16 @@ export class ChatStore {
       modelId: thread.modelId,
       lastUserText: latestUserMessageContent(thread).slice(0, 200),
     });
+
+    // Direct-image short-circuit: when the active model is the synthetic
+    // 'local-image' provider, skip the LLM entirely. The user's prompt
+    // becomes the image prompt; we enqueue a job and attach the artifact.
+    // This is the offline path — works with no internet at all.
+    const activeModel = this.registry.findById(thread.modelId);
+    if (activeModel?.providerId === 'local-image') {
+      this.runDirectImageTurn(thread, assistantMessage);
+      return;
+    }
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       if (signal.aborted) return;
@@ -645,7 +701,8 @@ export class ChatStore {
   }
 
   private buildTurnRequest(thread: Thread, providerModelId: string, recentSummaries: string[]): LlmRequest {
-    const bridge = this.toolStoresProvider?.().bridge;
+    const extras = this.toolStoresProvider?.();
+    const bridge = extras?.bridge;
     const systemPrompt = this.profile.composeSystemPrompt({
       runtimeContext: buildRuntimeContext({ bridge }),
       threadContext: thread.threadContext,
@@ -658,6 +715,7 @@ export class ChatStore {
       ? toolRegistry.toolDefsForTurn({
           userText: latestUserMessageContent(thread),
           bridgeOnline: bridge?.isOnline ?? false,
+          imageGenAvailable: !!extras?.imageGen,
         })
       : undefined;
     const finalSystemPrompt = appendImageGenAddendum(systemPrompt, tools);
@@ -851,6 +909,78 @@ export class ChatStore {
     };
   }
 
+  /**
+   * Direct-image-only turn: bypass the LLM and enqueue an image-job using
+   * the latest user message as the prompt. This is the path the synthetic
+   * `'local-image'` provider model uses — no network, no chat round-trip.
+   *
+   * The assistant message gets a brief one-line acknowledgment plus an
+   * `image-job` artifact that the existing `ImageJobCard` renders for live
+   * progress and the final image.
+   */
+  private runDirectImageTurn(thread: Thread, assistantMessage: AssistantMessage): void {
+    const stores = this.toolStoresProvider?.();
+    const imageJobs = stores?.imageJobs;
+    const imageGen = stores?.imageGen;
+    const prompt = latestUserPromptBody(thread).trim();
+
+    runInAction(() => {
+      const message = this.findMessage(thread.id, assistantMessage.id);
+      if (!message || message.role !== 'assistant') {
+        this.clearStreamingState(thread.id);
+        return;
+      }
+      if (!prompt) {
+        message.content = '_Direct image mode: no prompt found in your last message._';
+        this.touchMessage(thread.id, message.id);
+        this.clearStreamingState(thread.id);
+        return;
+      }
+      if (!imageJobs || !imageGen) {
+        message.content = '_Direct image mode: image-jobs subsystem not wired in this session._';
+        this.touchMessage(thread.id, message.id);
+        this.clearStreamingState(thread.id);
+        return;
+      }
+
+      const snapshot = imageGen.toBackendConfig();
+      const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'render';
+      const { jobId, count } = imageJobs.enqueue({
+        threadId: thread.id,
+        prompt,
+        count: 1,
+        // Local backends prefer their workflow's native res; let the
+        // backend decide its own dims when no explicit override is given.
+        // We pick a sensible default 1024x1024 — the workflow's
+        // EmptyFlux2LatentImage will use these.
+        width: 1024,
+        height: 1024,
+        backend: snapshot.primary,
+        filenamePrefix: slug,
+      });
+
+      // Attach the image-job artifact via a synthetic tool-call/result
+      // pair so EditorialMessage's existing artifact pipeline picks it up.
+      const callId = newId('tc');
+      message.content = `Sent straight to ${snapshot.primary === 'local-comfy' ? 'ComfyUI' : 'AUTOMATIC1111'}.`;
+      message.preTokenLabel = undefined;
+      message.toolCalls = [{
+        id: callId,
+        name: 'image_generate',
+        arguments: { prompt },
+      }];
+      message.toolResults = [{
+        toolCallId: callId,
+        toolName: 'image_generate',
+        content: `Queued an image render (job ${jobId}).`,
+        ranAt: Date.now(),
+        artifacts: [{ kind: 'image-job', jobId, count }],
+      }];
+      this.touchMessage(thread.id, message.id);
+      this.clearStreamingState(thread.id);
+    });
+  }
+
   private findThread(id: string): Thread | undefined {
     return this.threads.find(t => t.id === id);
   }
@@ -898,6 +1028,14 @@ function latestUserMessageContent(thread: Thread): string {
   for (let i = thread.messages.length - 1; i >= 0; i--) {
     const message = thread.messages[i];
     if (message.role === 'user') return message.content;
+  }
+  return '';
+}
+
+function latestUserPromptBody(thread: Thread): string {
+  for (let i = thread.messages.length - 1; i >= 0; i--) {
+    const message = thread.messages[i];
+    if (message.role === 'user') return splitAttachmentFooter(message.content).body;
   }
   return '';
 }

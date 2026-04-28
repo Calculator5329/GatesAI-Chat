@@ -13,6 +13,7 @@ import type {
   ImageJobInput,
 } from '../services/image/jobs/types';
 import type { ImageBackendId } from '../services/image/types';
+import { bytesToBase64, safeText } from '../services/image/types';
 import {
   clearImageJobsHistory,
   loadImageJobsHistory,
@@ -42,6 +43,8 @@ export interface ImageJobStoreDeps {
   imageGen: ImageJobImageGenFacade;
   /** Injectable for tests; defaults to the real dispatcher. */
   dispatcher?: ImageDispatcher;
+  /** Injectable for tests; defaults to global fetch. */
+  fetch?: typeof fetch;
   /** Injectable for tests; defaults to per-backend factories. */
   progressFactory?: (id: ImageBackendId, config: ImageBackendConfig) => JobProgress | null;
 }
@@ -130,6 +133,37 @@ export class ImageJobStore {
     });
   }
 
+  /**
+   * Re-run a previously failed or cancelled job in place. Keeps the same
+   * jobId so the chat-message artifact (which references that id) updates
+   * live without needing to mint a new one.
+   */
+  retry(jobId: string): void {
+    const idx = this.history.findIndex(j => j.id === jobId);
+    if (idx < 0) return;
+    const old = this.history[idx];
+    if (old.status !== 'failed' && old.status !== 'cancelled') return;
+    runInAction(() => {
+      this.history = this.history.filter((_, i) => i !== idx);
+    });
+    const reset: ImageJob = {
+      id: old.id,
+      threadId: old.threadId,
+      prompt: old.prompt,
+      count: old.count,
+      width: old.width,
+      height: old.height,
+      seed: old.seed,
+      backend: old.backend,
+      filenamePrefix: old.filenamePrefix,
+      status: 'pending',
+      results: [],
+      createdAt: old.createdAt,
+    };
+    runInAction(() => { this.queue.push(reset); });
+    void this.runNext();
+  }
+
   clearHistory(): void {
     runInAction(() => { this.history = []; });
     clearImageJobsHistory();
@@ -181,7 +215,7 @@ export class ImageJobStore {
 
     if (
       snapshot.primary === 'local-comfy'
-      && snapshot.comfyQualityPreset !== 'draft'
+      && snapshot.comfyQualityPreset !== 'quick'
       && deps.imageGen.comfyWorkflowPath
     ) {
       const template = await loadComfyWorkflow(deps.bridge, deps.imageGen.comfyWorkflowPath);
@@ -191,10 +225,30 @@ export class ImageJobStore {
       config.comfyWorkflowTemplate = template;
     }
 
+    // Progress is reported cumulatively across the whole job, not per
+    // iteration. Each iteration contributes 100 units to a `count * 100`
+    // total: iteration `i` starts at `i * 100`, and per-iteration backend
+    // events (which arrive on a 0..max scale) are normalized into the
+    // remaining 100-unit slice. Otherwise the bar would walk 0→100 once
+    // per image and visibly "snap back" between iterations.
+    const totalUnits = job.count * 100;
+    let currentIter = 0;
     const progressFactory = deps.progressFactory ?? defaultProgressFactory;
-    const progress = progressFactory(snapshot.primary, config);
+    // The progress factory builds a WebSocket / poller. A synchronous
+    // throw here (malformed URL, missing globalThis.WebSocket in some
+    // webviews) must not abort the render — HTTP polling in the
+    // backend client still drives the actual job. Surface it to the
+    // console and continue with a null progress object.
+    let progress: JobProgress | null = null;
+    try {
+      progress = progressFactory(snapshot.primary, config);
+    } catch (err) {
+      console.warn('[image-jobs] progress adapter failed to initialize; render will run without live progress.', err);
+    }
     const progressUnsub = progress?.subscribe((e) => {
-      runInAction(() => { job.progress = { value: e.value, max: e.max }; });
+      const fraction = e.max > 0 ? Math.min(1, Math.max(0, e.value / e.max)) : 0;
+      const cumulative = currentIter * 100 + fraction * 100;
+      runInAction(() => { job.progress = { value: cumulative, max: totalUnits }; });
     });
 
     const dispatcher = deps.dispatcher ?? dispatchImageGenerate;
@@ -210,25 +264,42 @@ export class ImageJobStore {
           ? job.seed + i
           : Math.floor(Math.random() * 2 ** 31);
 
-        runInAction(() => { job.progress = { value: 0, max: 100 }; });
+        currentIter = i;
+        runInAction(() => { job.progress = { value: i * 100, max: totalUnits }; });
 
+        const perIterPrefix = job.filenamePrefix
+          ? (job.count > 1 ? `${job.filenamePrefix}-${i + 1}` : job.filenamePrefix)
+          : undefined;
+        console.info(`[image-jobs] dispatch ${job.id} (${i + 1}/${job.count}) backend=${snapshot.primary} seed=${seed} dims=${job.width}x${job.height}${perIterPrefix ? ` prefix=${perIterPrefix}` : ''}`);
+        const t0 = performance.now();
         const { result } = await dispatcher(
-          { prompt: job.prompt, width: job.width, height: job.height, seed },
+          { prompt: job.prompt, width: job.width, height: job.height, seed, filenamePrefix: perIterPrefix },
           config,
         );
+        console.info(`[image-jobs] dispatch ${job.id} returned in ${Math.round(performance.now() - t0)}ms (mime=${result.mime})`);
 
         if (ac.signal.aborted) throw new Error('cancelled');
 
-        const filename = `${defaultFilenameStem(snapshot.primary)}-${i + 1}${extensionForMime(result.mime)}`;
-        const path = `/workspace/artifacts/${filename}`;
-        const resp = await deps.bridge.client.request<FsWriteResp>('fs.write', {
-          path,
-          content: result.base64,
-          encoding: 'base64',
-          append: false,
-        });
+        // Always persist final bytes into workspace artifacts. ComfyUI returns
+        // a transient /view URL, but Gallery should not depend on a live Comfy
+        // server or a WebView policy allowing direct localhost images.
+        let recordedPath: string;
+        if (result.url) {
+          const fetched = await fetchHostedImage(result.url, result.mime, deps.fetch);
+          recordedPath = await writeArtifact(deps.bridge, snapshot.primary, i, fetched.base64, fetched.mime);
+          console.info(`[image-jobs] fetched hosted url ${job.id} -> ${recordedPath}`);
+        } else if (result.base64) {
+          recordedPath = await writeArtifact(deps.bridge, snapshot.primary, i, result.base64, result.mime);
+          console.info(`[image-jobs] fs.write ${job.id} -> ${recordedPath}`);
+        } else {
+          throw new Error('backend returned neither url nor base64');
+        }
         runInAction(() => {
-          job.results.push(resp.path);
+          job.results.push(recordedPath);
+          // Advance the cumulative bar to the iteration boundary so it
+          // doesn't sit at the previous fraction during the gap between
+          // dispatch return and the next iteration's first progress event.
+          job.progress = { value: (i + 1) * 100, max: totalUnits };
         });
       }
 
@@ -303,6 +374,40 @@ function defaultFilenameStem(backend: ImageBackendId): string {
   const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
   const prefix = backend === 'local-comfy' ? 'comfy' : 'a1111';
   return `${prefix}-${stamp}`;
+}
+
+async function fetchHostedImage(url: string, fallbackMime: string, fetchImpl?: typeof fetch): Promise<{ base64: string; mime: string }> {
+  const fetchFn = fetchImpl ?? globalThis.fetch;
+  const resp = await fetchFn(url);
+  if (!resp.ok) {
+    const text = await safeText(resp);
+    throw new Error(`failed to fetch generated image ${resp.status} ${resp.statusText}: ${text || '(no body)'}`);
+  }
+  const bytes = new Uint8Array(await resp.arrayBuffer());
+  return {
+    base64: bytesToBase64(bytes),
+    mime: resp.headers.get('content-type')?.split(';')[0] || fallbackMime,
+  };
+}
+
+async function writeArtifact(
+  bridge: ImageJobBridgeFacade,
+  backend: ImageBackendId,
+  index: number,
+  base64: string,
+  mime: string,
+): Promise<string> {
+  const filename = `${defaultFilenameStem(backend)}-${index + 1}${extensionForMime(mime)}`;
+  const path = `/workspace/artifacts/${filename}`;
+  const tWrite = performance.now();
+  const resp = await bridge.client.request<FsWriteResp>('fs.write', {
+    path,
+    content: base64,
+    encoding: 'base64',
+    append: false,
+  });
+  console.info(`[image-jobs] fs.write -> ${resp.path} in ${Math.round(performance.now() - tWrite)}ms`);
+  return resp.path;
 }
 
 function extensionForMime(mime: string): string {

@@ -45,6 +45,8 @@ src/
       sections/
         Profile.tsx Agent.tsx Settings.tsx
         Usage.tsx Api.tsx Appearance.tsx Workspace.tsx
+        Local.tsx                 # local runtimes (Ollama + ComfyUI) + image-gen settings
+        Gallery.tsx               # completed image-job history
   stores/
     RootStore.ts                  # composes the store graph
     ChatStore.ts                  # threads, messages, streaming via LlmRouter
@@ -53,6 +55,10 @@ src/
     RouterStore.ts                # observable URL hash
     ModelRegistry.ts              # curated + dynamic model catalog (MobX)
     OpenRouterStore.ts            # live OpenRouter catalog: refresh / cache / errors
+    OllamaStore.ts                # Ollama config + /api/tags catalog
+    LocalRuntimeStore.ts          # Ollama + ComfyUI install paths, base URLs, vision model
+    ImageGenStore.ts              # image-gen backend selection + workflow override + prompt-enhance settings
+    ImageJobStore.ts              # image-job queue, runner, completed history
     UserProfileStore.ts           # bio, durable facts, base system prompt
     SummaryStore.ts               # lazy cross-thread summaries
     NotesStore.ts                 # durable user/model notes
@@ -66,6 +72,8 @@ src/
     notesStorage.ts               # notes localStorage
     uiPrefsStorage.ts             # output style prefs localStorage
     openrouterCache.ts            # gatesai.openrouter.catalog.v1 cache
+    imageGenStorage.ts            # gatesai.imagegen.v1 (backend + workflow override + prompt-enhance prefs)
+    imageJobsStorage.ts           # gatesai.imagejobs.v1 (completed-job history; in-flight discarded)
     router.ts                     # tiny hash-router parser/writer
     llm/
       router.ts                   # LlmRouter — picks a provider per Model
@@ -74,8 +82,24 @@ src/
       openrouterCatalog.ts        # fetch /api/v1/models → Model[]
       openai.ts groq.ts openrouter.ts local.ts
       anthropic.ts gemini.ts      # bespoke shapes
+      ollama.ts ollamaCatalog.ts  # Ollama provider + /api/tags → Model[] mapper
       sse.ts                      # shared SSE parser
+      wireFormat.ts               # storage shape ↔ provider wire shape
       index.ts                    # barrel
+    image/
+      types.ts                    # GenerateImageRequest/Result, dims/aspect helpers, validators
+      imageBackend.ts             # resolveBackend + dispatchImageGenerate
+      a1111Client.ts              # AUTOMATIC1111 txt2img adapter
+    comfyClient.ts              # ComfyUI workflow queue adapter
+      promptEnhancer.ts           # optional LLM-driven prompt rewrite
+      jobs/
+        types.ts                  # ImageJob, ImageJobInput, CompletedJob, status union
+        progress.ts               # JobProgress interface (open/cancel/onUpdate)
+        comfyProgress.ts          # ComfyUI WebSocket progress adapter
+        a1111Progress.ts          # A1111 /sdapi/v1/progress poll adapter
+      workflows/
+        finalFlux2Klein.ts        # FLUX.2 Klein FP8 ComfyUI workflow builder
+        sdxlLightning.ts          # SDXL Lightning draft workflow template
   core/
     types.ts                      # all domain interfaces & key unions
     llm.ts                        # provider-agnostic LLM contract
@@ -203,7 +227,11 @@ the resulting `AsyncIterable` with `for await` and uses `AbortController`
 to cancel on stop / thread switch.
 
 Supported providers (v1): OpenRouter, Anthropic, OpenAI, Gemini, Groq, Local
-(any OpenAI-compatible endpoint — Ollama, LM Studio, vLLM, llama.cpp).
+(any OpenAI-compatible endpoint — LM Studio, vLLM, llama.cpp), Ollama, and the
+synthetic `local-image` provider used by the direct ComfyUI image model. The
+`local-image` provider is registered only for catalog/router exhaustiveness;
+`ChatStore.runTurn` short-circuits before streaming and enqueues an image job
+directly.
 See `TODO.md` for the planned future list.
 
 ## Routing

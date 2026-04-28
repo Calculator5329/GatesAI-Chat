@@ -132,9 +132,13 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
   const streaming = chat.isStreaming;
   const hasText = value.trim().length > 0;
   const hasAttachments = ui.attachments.length > 0;
+  const directImageMode = currentModel?.providerId === 'local-image';
+  const routeReady = providers.hasUsableProvider || directImageMode;
   // Send is enabled whenever there's text or at least one attachment. While
   // streaming, sending interrupts the in-flight reply and starts a new turn.
-  const canSend = (hasText || hasAttachments) && providers.hasUsableProvider;
+  // Direct-image mode is offline and only needs text; attachments are ignored
+  // by the image job enqueue path.
+  const canSend = (hasText || (!directImageMode && hasAttachments)) && routeReady;
 
   const onSend = () => {
     if (!canSend) return;
@@ -188,7 +192,7 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
       onDrop={onDrop}
     >
       <div style={{ width: 'min(750px, 70%)', margin: '0 auto', paddingTop: 4 }}>
-        {!providers.hasUsableProvider && <ApiKeyBanner />}
+        {!routeReady && <ApiKeyBanner />}
         {hasAttachments && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             {ui.attachments.map(a => (

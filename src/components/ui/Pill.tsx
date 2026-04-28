@@ -1,21 +1,25 @@
 import type { CSSProperties, ReactNode } from 'react';
 
-type PillTone = 'accent' | 'muted';
+type PillTone = 'accent' | 'muted' | 'warning' | 'danger';
 
 interface PillProps {
   children: ReactNode;
   tone?: PillTone;
   style?: CSSProperties;
+  title?: string;
 }
 
 const TONE: Record<PillTone, CSSProperties> = {
-  accent: { background: 'rgba(62,207,142,0.1)', color: 'var(--accent)' },
-  muted:  { background: 'rgba(255,255,255,0.05)', color: 'var(--text-faint)' },
+  accent:  { background: 'rgba(62,207,142,0.1)', color: 'var(--accent)' },
+  muted:   { background: 'rgba(255,255,255,0.05)', color: 'var(--text-faint)' },
+  warning: { background: 'rgba(229,184,77,0.12)', color: '#e5b84d' },
+  danger:  { background: 'rgba(229,115,115,0.14)', color: '#e57373' },
 };
 
-export function Pill({ children, tone = 'accent', style }: PillProps) {
+export function Pill({ children, tone = 'accent', style, title }: PillProps) {
   return (
     <span
+      title={title}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '3px 8px', borderRadius: 99,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ComfyClient, stripWorkflowMetadata, substituteWorkflow } from '../../../src/services/image/comfyClient';
+import { applyFilenamePrefix, ComfyClient, stripWorkflowMetadata, substituteWorkflow } from '../../../src/services/image/comfyClient';
 
 function pngBytes(): Uint8Array {
   return new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -50,8 +50,28 @@ describe('stripWorkflowMetadata', () => {
   });
 });
 
+describe('applyFilenamePrefix', () => {
+  it('overrides filename_prefix on every SaveImage node', () => {
+    const out = applyFilenamePrefix({
+      '1': { class_type: 'KSampler', inputs: { steps: 4 } },
+      '2': { class_type: 'SaveImage', inputs: { filename_prefix: 'old_default', images: ['1', 0] } },
+      '3': { class_type: 'SaveImage', inputs: { filename_prefix: 'also_old' } },
+    }, 'gatesai/sunset-mountain') as Record<string, { class_type: string; inputs?: Record<string, unknown> }>;
+    expect(out['1'].inputs?.steps).toBe(4); // non-SaveImage untouched
+    expect(out['2'].inputs?.filename_prefix).toBe('gatesai/sunset-mountain');
+    expect(out['2'].inputs?.images).toEqual(['1', 0]);
+    expect(out['3'].inputs?.filename_prefix).toBe('gatesai/sunset-mountain');
+  });
+
+  it('returns workflow unchanged if no SaveImage node exists', () => {
+    const wf = { '1': { class_type: 'KSampler', inputs: {} } };
+    const out = applyFilenamePrefix(wf, 'whatever');
+    expect(out).toEqual(wf);
+  });
+});
+
 describe('ComfyClient', () => {
-  it('submits a prompt, polls /history, and fetches the image bytes', async () => {
+  it('submits a prompt, polls /history, and returns a /view URL pointing at the saved file', async () => {
     let pollCount = 0;
     const { fetch: fakeFetch, calls } = makeFakeFetch([
       {
@@ -69,15 +89,11 @@ describe('ComfyClient', () => {
           return new Response(JSON.stringify({
             abc123: {
               outputs: {
-                '9': { images: [{ filename: 'gatesai_00001_.png', subfolder: '', type: 'output' }] },
+                '9': { images: [{ filename: 'gatesai_00001_.png', subfolder: 'gatesai', type: 'output' }] },
               },
             },
           }), { status: 200, headers: { 'content-type': 'application/json' } });
         },
-      },
-      {
-        match: (u) => u.includes('/view'),
-        respond: () => new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200, headers: { 'content-type': 'image/png' } }),
       },
     ]);
 
@@ -94,13 +110,19 @@ describe('ComfyClient', () => {
     expect(result.backend).toBe('local-comfy');
     expect(result.mime).toBe('image/png');
     expect(result.seed).toBe(999);
-    expect(result.base64.length).toBeGreaterThan(0);
+    // Runner now records the hosted URL — no double-write to /workspace.
+    expect(result.base64).toBeUndefined();
+    expect(result.url).toContain('/view?');
+    expect(result.url).toContain('filename=gatesai_00001_.png');
+    expect(result.url).toContain('subfolder=gatesai');
+    expect(result.url).toContain('type=output');
 
     const promptCall = calls.find((c) => c.url.endsWith('/prompt'))!;
     expect(promptCall).toBeTruthy();
     // Poll happened at least once before success.
     expect(calls.filter((c) => c.url.includes('/history/')).length).toBeGreaterThanOrEqual(1);
-    expect(calls.some((c) => c.url.includes('/view'))).toBe(true);
+    // No /view fetch — the URL is returned for the UI to load directly.
+    expect(calls.some((c) => c.url.includes('/view'))).toBe(false);
   });
 
   it('substitutes PROMPT/WIDTH/HEIGHT/SEED into the submitted workflow', async () => {
@@ -169,7 +191,7 @@ describe('ComfyClient', () => {
     expect(submittedFirst.prompt.node.inputs.height).toBe(768);
   });
 
-  it('uses the SDXL Lightning workflow for draft quality', async () => {
+  it('uses the SDXL Lightning workflow for quick quality', async () => {
     const submitted: unknown[] = [];
     const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = typeof input === 'string' ? input : input.toString();
@@ -186,7 +208,7 @@ describe('ComfyClient', () => {
       baseUrl: 'http://h',
       fetch: fetchImpl as typeof fetch,
       sleep: async () => undefined,
-      qualityPreset: 'draft',
+      qualityPreset: 'quick',
     });
 
     await client.generate({ prompt: 'fast background', aspectRatio: '16:9', seed: 9 });
@@ -200,15 +222,24 @@ describe('ComfyClient', () => {
     expect(submittedFirst.prompt['2'].inputs?.vae_name).toBe('sdxl_vae_fp16_fix.safetensors');
     expect(submittedFirst.prompt['3'].class_type).toBe('CLIPTextEncode');
     expect(submittedFirst.prompt['4'].class_type).toBe('CLIPTextEncode');
-    expect(submittedFirst.prompt['7'].class_type).toBe('LatentUpscaleBy');
-    expect(submittedFirst.prompt['8'].class_type).toBe('KSampler');
+    // Quick is a true single-pass Lightning render (no hi-res second
+    // sampler) so users get a quick preview rather than a hi-res render
+    // taking the same wall-clock as full.
+    expect(submittedFirst.prompt['7'].class_type).toBe('VAEDecode');
+    expect(submittedFirst.prompt['8'].class_type).toBe('SaveImage');
     expect(submittedFirst.prompt['6'].inputs?.steps).toBe(4);
     expect(submittedFirst.prompt['6'].inputs?.cfg).toBe(1);
     expect(submittedFirst.prompt['6'].inputs?.sampler_name).toBe('euler');
     expect(submittedFirst.prompt['6'].inputs?.scheduler).toBe('sgm_uniform');
+    // Quick must not contain a hi-res upscale or second sampler pass.
+    for (const node of Object.values(submittedFirst.prompt)) {
+      expect(node.class_type).not.toBe('LatentUpscaleBy');
+    }
+    const ksamplers = Object.values(submittedFirst.prompt).filter(n => n.class_type === 'KSampler');
+    expect(ksamplers).toHaveLength(1);
   });
 
-  it('uses the selected FLUX.2 Klein workflow for final quality by default', async () => {
+  it('uses the selected FLUX.2 Klein workflow for full quality by default', async () => {
     const submitted: unknown[] = [];
     const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = typeof input === 'string' ? input : input.toString();
@@ -225,7 +256,7 @@ describe('ComfyClient', () => {
       baseUrl: 'http://h',
       fetch: fetchImpl as typeof fetch,
       sleep: async () => undefined,
-      qualityPreset: 'final',
+      qualityPreset: 'full',
     });
 
     await client.generate({ prompt: 'abstract background', aspectRatio: '16:9', seed: 9 });
@@ -240,7 +271,7 @@ describe('ComfyClient', () => {
     expect(submittedFirst.prompt['9'].class_type).toBe('Flux2Scheduler');
     expect(submittedFirst.prompt['10'].class_type).toBe('EmptyFlux2LatentImage');
     expect(submittedFirst.prompt['11'].class_type).toBe('SamplerCustomAdvanced');
-    expect(submittedFirst.prompt['94'].class_type).toBe('SaveImage');
+    expect(submittedFirst.prompt['13'].class_type).toBe('SaveImage');
     expect(submittedFirst.prompt['9'].inputs?.width).toBe(1344);
     expect(submittedFirst.prompt['9'].inputs?.height).toBe(768);
   });

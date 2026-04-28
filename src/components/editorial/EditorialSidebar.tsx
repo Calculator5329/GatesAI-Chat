@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { Thread, HeaderKey } from '../../core/types';
@@ -6,6 +6,8 @@ import { useChatStore, useRouterStore } from '../../stores/context';
 import { EDITORIAL_HEADERS } from './headers';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
+
+const UNDO_TIMEOUT_MS = 8000;
 
 const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
   root: {
@@ -38,7 +40,41 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
     fontSize: 11, color: 'var(--text-faint)', marginTop: 2, fontStyle: 'italic',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
   },
-  list: { flex: 1, overflowY: 'auto', paddingBottom: 16 },
+  // `scrollbarGutter: stable` reserves the scrollbar's space whether or not
+  // the bar is currently rendered, so thread titles don't reflow (and the
+  // history doesn't visibly jiggle) the moment the list grows past the
+  // viewport and a real scrollbar appears.
+  list: { flex: 1, overflowY: 'auto', paddingBottom: 16, scrollbarGutter: 'stable' as const },
+  xBtn: {
+    flex: 'none',
+    width: 18, height: 18, padding: 0,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--text-faint)',
+    cursor: 'pointer',
+    borderRadius: 3,
+    opacity: 0.7,
+  },
+  undo: {
+    margin: '8px 16px 4px',
+    padding: '8px 10px',
+    fontSize: 11.5,
+    color: 'var(--text-dim)',
+    background: 'color-mix(in srgb, var(--bg) 92%, var(--text) 8%)',
+    border: '1px solid var(--border)',
+    borderRadius: 4,
+    display: 'flex', alignItems: 'center', gap: 8,
+  },
+  undoBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--accent)',
+    cursor: 'pointer',
+    fontSize: 11.5,
+    fontWeight: 500,
+    padding: '2px 4px',
+  },
 };
 
 interface SidebarProps {
@@ -50,20 +86,45 @@ export const EditorialSidebar = observer(function EditorialSidebar({ headerKey }
   const router = useRouterStore();
   const onMenu = router.isMenu;
   const header = EDITORIAL_HEADERS[headerKey];
-  const pinned = chat.threads.filter(t => t.pinned);
-  const rest = chat.threads.filter(t => !t.pinned).slice(0, 20);
+  const visible = chat.visibleThreads;
+  const pinned = visible.filter(t => t.pinned);
+  const rest = visible.filter(t => !t.pinned).slice(0, 20);
+
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
+
+  useEffect(() => {
+    if (!undo) return;
+    const timer = setTimeout(() => setUndo(null), UNDO_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [undo]);
+
+  const onDelete = (t: Thread, e: MouseEvent): void => {
+    e.stopPropagation();
+    chat.softDeleteThread(t.id);
+    setUndo({ id: t.id, title: t.title });
+  };
+  const onUndo = (): void => {
+    if (!undo) return;
+    chat.restoreThread(undo.id);
+    router.goThread(undo.id);
+    setUndo(null);
+  };
 
   const renderItem = (t: Thread) => {
     const active = !onMenu && t.id === chat.activeThreadId;
     const streaming = chat.isThreadStreaming(t.id);
+    const showX = hoveredId === t.id && !streaming;
     return (
       <div
         key={t.id}
         style={(S.item as (a: boolean) => CSSProperties)(active)}
         onClick={() => router.goThread(t.id)}
+        onMouseEnter={() => setHoveredId(t.id)}
+        onMouseLeave={() => setHoveredId(prev => (prev === t.id ? null : prev))}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={(S.title as (a: boolean) => CSSProperties)(active)}>
+          <div style={{ ...(S.title as (a: boolean) => CSSProperties)(active), flex: 1, minWidth: 0 }}>
             <ThreadTitle title={t.title} naming={t.naming === true} />
           </div>
           {streaming && (
@@ -77,6 +138,25 @@ export const EditorialSidebar = observer(function EditorialSidebar({ headerKey }
                 flex: 'none',
               }}
             />
+          )}
+          {/* The X slot is always rendered to keep the title's flex slot
+              stable. Hover toggles visibility, not layout — otherwise
+              hovering a row would re-flow the title text. */}
+          {!streaming && (
+            <button
+              type="button"
+              onClick={e => onDelete(t, e)}
+              aria-label={`Delete "${t.title}"`}
+              title="Delete conversation"
+              tabIndex={showX ? 0 : -1}
+              style={{
+                ...(S.xBtn as CSSProperties),
+                visibility: showX ? 'visible' : 'hidden',
+                pointerEvents: showX ? 'auto' : 'none',
+              }}
+            >
+              <Icons.Close />
+            </button>
           )}
         </div>
         <div style={S.preview as CSSProperties}>{t.subtitle}</div>
@@ -107,6 +187,14 @@ export const EditorialSidebar = observer(function EditorialSidebar({ headerKey }
         <div style={S.group as CSSProperties}>Earlier</div>
         {rest.map(renderItem)}
       </div>
+      {undo && (
+        <div style={S.undo as CSSProperties} role="status">
+          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            Deleted "{undo.title}"
+          </span>
+          <button type="button" onClick={onUndo} style={S.undoBtn as CSSProperties}>Undo</button>
+        </div>
+      )}
       <BridgeStatusPill />
     </aside>
   );

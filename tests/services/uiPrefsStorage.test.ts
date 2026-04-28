@@ -2,17 +2,22 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { clearAppStorage } from '../helpers/storage';
 import { loadUiPrefs, saveUiPrefs } from '../../src/services/uiPrefsStorage';
 
+const DEFAULTS = {
+  toolCallStyle: 'aside',
+  markdownStyle: 'compact',
+  codeStyle: 'obsidian',
+  markdownDensity: 'compact',
+  codeSize: 'medium',
+  bodyFontSizePx: 17,
+  readingWidthPx: 720,
+  animationsEnabled: true,
+} as const;
+
 describe('uiPrefsStorage', () => {
   beforeEach(() => clearAppStorage());
 
   it('loads default markdown and code appearance preferences', () => {
-    expect(loadUiPrefs()).toEqual({
-      toolCallStyle: 'aside',
-      markdownStyle: 'compact',
-      codeStyle: 'obsidian',
-      markdownDensity: 'compact',
-      codeSize: 'medium',
-    });
+    expect(loadUiPrefs()).toEqual(DEFAULTS);
   });
 
   it('round-trips markdown and code appearance preferences', () => {
@@ -22,6 +27,9 @@ describe('uiPrefsStorage', () => {
       codeStyle: 'terminal',
       markdownDensity: 'compact',
       codeSize: 'large',
+      bodyFontSizePx: 19,
+      readingWidthPx: 860,
+      animationsEnabled: false,
     });
 
     expect(loadUiPrefs()).toEqual({
@@ -30,6 +38,9 @@ describe('uiPrefsStorage', () => {
       codeStyle: 'terminal',
       markdownDensity: 'compact',
       codeSize: 'large',
+      bodyFontSizePx: 19,
+      readingWidthPx: 860,
+      animationsEnabled: false,
     });
   });
 
@@ -40,14 +51,18 @@ describe('uiPrefsStorage', () => {
       codeStyle: 'neon',
       markdownDensity: 'tiny',
       codeSize: 'huge',
+      bodyFontSizePx: 'big',
+      readingWidthPx: 999,
+      animationsEnabled: 'sure',
     }));
 
-    expect(loadUiPrefs()).toEqual({
-      toolCallStyle: 'aside',
-      markdownStyle: 'compact',
-      codeStyle: 'obsidian',
-      markdownDensity: 'compact',
-      codeSize: 'medium',
-    });
+    expect(loadUiPrefs()).toEqual(DEFAULTS);
+  });
+
+  it('clamps font size to the supported range', () => {
+    saveUiPrefs({ ...DEFAULTS, bodyFontSizePx: 99 });
+    expect(loadUiPrefs().bodyFontSizePx).toBe(20);
+    saveUiPrefs({ ...DEFAULTS, bodyFontSizePx: 1 });
+    expect(loadUiPrefs().bodyFontSizePx).toBe(14);
   });
 });

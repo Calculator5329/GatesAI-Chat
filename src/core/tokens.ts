@@ -27,6 +27,9 @@ const DEFAULT_WINDOW_BY_PROVIDER: Record<ProviderId, number> = {
   groq: 32_000,
   local: 8_000,
   ollama: 8_000,
+  // Synthetic provider — never sent to a tokenizer. Pick a small window so
+  // any debug accounting that lands here doesn't allocate megabytes.
+  'local-image': 4_000,
 };
 
 export function estimateTokens(text: string): number {

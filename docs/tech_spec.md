@@ -23,7 +23,7 @@ type Message =
   | {
       id: string; role: 'assistant'; content: string; createdAt: number;
       model?: string;
-      preTokenLabel?: 'thinking' | 'responding' | 'compacting';
+      preTokenLabel?: 'thinking' | 'responding' | 'compacting' | 'generating';
       toolCalls?: ToolCall[];
       toolResults?: ToolResult[];     // paired to toolCalls by toolCallId
     };
@@ -42,11 +42,17 @@ interface ToolResult {
   artifacts?: ToolResultArtifact[];   // UI-only side channel (image thumbnails, ...)
 }
 
-interface ToolResultArtifact {
-  kind: 'image';
-  path: string;         // workspace path the UI can render
-  mime: string;
-}
+type ToolResultArtifact =
+  | {
+      kind: 'image';
+      path: string;     // workspace path the UI can render
+      mime: string;
+    }
+  | {
+      kind: 'image-job';
+      jobId: string;    // reference into ImageJobStore
+      count: number;    // expected number of images this job produces
+    };
 
 interface Thread {
   id: string;
@@ -86,7 +92,7 @@ interface Model {
 ```ts
 type ProviderId =
   | 'fake' | 'openrouter' | 'openai' | 'anthropic'
-  | 'gemini' | 'groq' | 'local' | 'ollama';
+  | 'gemini' | 'groq' | 'local' | 'ollama' | 'local-image';
 
 interface LlmRequest {
   modelId: string;            // provider-native id
@@ -212,6 +218,14 @@ for prose, lists, headings, inline code, and fenced code blocks.
      model's original call order, then loop.
 5. clears `streamingMessageId` (and the controller) when the turn ends
 
+When the selected model has provider `'local-image'`, `ChatStore.runTurn`
+does not call an LLM provider. It uses only the latest user-authored text body
+as an image prompt, strips attachment footer metadata, ignores prior messages
+and system context, enqueues one image job through `ImageJobStore`, and attaches
+the same `image-job` artifact shape that the `image_generate` tool uses. This
+keeps direct ComfyUI generation available offline and reuses the existing chat
+image card renderer.
+
 The same `AssistantMessage` is mutated across all rounds — one stored
 row per user turn, regardless of how many round trips happened. This
 keeps the renderer trivial (one speaker boundary per turn, no
@@ -273,10 +287,20 @@ Tools may return either a plain `string` (the common case — the string
 becomes the tool result the model sees next round) or
 `{ content: string; artifacts?: ToolResultArtifact[] }`. The `content`
 remains the model-facing payload; `artifacts` is a UI-only side channel
-the chat renderer reads to show rich outputs (e.g. the `image_generate`
-thumbnail). Concretely, `image_generate` returns
-`{ content: 'Saved: …', artifacts: [{ kind:'image', path, mime }] }`
-so the renderer never has to parse the tool result string for a path.
+the chat renderer reads to show rich outputs. Concretely, `image_generate`
+enqueues work into `ImageJobStore`. For a single prompt it returns immediately
+with `{ content: 'Queued … (job <id>).', artifacts: [{ kind:'image-job', jobId, count }] }`.
+The renderer mounts an `ImageJobCard` bound to that `jobId`, observes the store
+for live progress, and swaps to the rendered images (and the optional Lightbox
+click-through) once the runner persists results to `/workspace/artifacts/`.
+
+For overnight batches, `image_generate` also accepts `prompt_file`, a
+`/workspace` JSON file shaped as `{ defaults?: {...}, prompts: [...] }`. Each
+prompt entry fans out into its own queued image job, inheriting `count`,
+`aspect_ratio`, `width`/`height`, `seed`, and `filename` from `defaults` unless
+overridden per entry. The tool caps a single batch call at 500 prompts, returns
+a compact summary such as `Queued 120 jobs / 1200 image renders`, and does not
+attach hundreds of chat artifacts.
 
 `ToolContext` carries narrow facades tools may reach into: `profile`, `chat`,
 optional `notes`, optional `summary`, optional `bridge`, optional `execStream`,
@@ -457,16 +481,21 @@ result is `{ content, artifacts: [{ kind: 'image-job', jobId, count }] }`.
 `ImageJobStore` runs jobs serially:
 
 1. Pull the next pending job, mark `running`, set `startedAt`.
-2. Resolve the backend config (Comfy or A1111). For Comfy `final` mode,
-   fetch the user's workflow JSON via `bridge.fs.read`.
+2. Resolve the backend config (Comfy or A1111). For Comfy `full` mode,
+   pass the configured hires-fix upscale factor through to the built-in
+   FLUX.2 Klein workflow builder; if the user supplied a workflow path,
+   fetch that JSON via `bridge.fs.read`.
 3. Spin up a per-backend `JobProgress` adapter — Comfy WebSocket
    (`/ws?clientId=...`) or A1111 poll (`/sdapi/v1/progress?skip_current_image=true`,
    500ms cadence). Each event updates `job.progress`.
 4. Loop `count` times: derive a per-iteration seed (`seed + i` if the
    user supplied one, else `Math.floor(Math.random() * 2**31)`),
    dispatch through `dispatchImageGenerate`, and write the bytes via
-   `bridge.fs.write` into `/workspace/artifacts/`. Each saved path is
-   pushed onto `job.results`.
+   `bridge.fs.write` into `/workspace/artifacts/`. Backends such as ComfyUI
+   that return a hosted `/view` URL are fetched by the runner and persisted
+   the same way, so Gallery history does not depend on direct localhost image
+   loading or on ComfyUI keeping an output URL alive. Each saved path is pushed
+   onto `job.results`.
 5. Mark `done` and move into history.
 
 Cancel from the UI calls `imageJobs.cancel(jobId)`, which aborts the

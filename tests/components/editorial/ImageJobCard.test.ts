@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { pickCardVariant } from '../../../src/components/editorial/ImageJobCard';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { pickCardVariant, __imageCacheTestApi } from '../../../src/components/editorial/ImageJobCard';
 import type { ImageJob, CompletedJob } from '../../../src/services/image/jobs/types';
 
 const baseJob: ImageJob = {
@@ -39,5 +39,57 @@ describe('pickCardVariant', () => {
     expect(pickCardVariant(single)).toBe('done-single');
     expect(pickCardVariant(grid)).toBe('done-grid');
     expect(pickCardVariant(empty)).toBe('done-empty');
+  });
+});
+
+describe('imageCache (LRU bounded)', () => {
+  // The previous Map was unbounded. Each entry is a base64 data URL of an
+  // SDXL/FLUX render — typically 2–7 MB. After ~200–500 generated images
+  // a long session would balloon WebView memory past the per-process cap
+  // and crash the renderer with no visible warning. The cache is now
+  // bounded to {limit} entries with LRU eviction.
+  beforeEach(() => __imageCacheTestApi.reset());
+
+  it('evicts the oldest entry once the limit is exceeded', () => {
+    const limit = __imageCacheTestApi.limit;
+    expect(limit).toBeGreaterThan(0);
+
+    // Fill exactly to the cap.
+    for (let i = 0; i < limit; i++) {
+      __imageCacheTestApi.set(`/workspace/artifacts/img-${i}.png`, `data:image/png;base64,AAA${i}`);
+    }
+    expect(__imageCacheTestApi.size()).toBe(limit);
+    expect(__imageCacheTestApi.has('/workspace/artifacts/img-0.png')).toBe(true);
+
+    // Insert one more — oldest must be evicted, size stays at the cap.
+    __imageCacheTestApi.set('/workspace/artifacts/img-overflow.png', 'data:image/png;base64,ZZZ');
+    expect(__imageCacheTestApi.size()).toBe(limit);
+    expect(__imageCacheTestApi.has('/workspace/artifacts/img-0.png')).toBe(false);
+    expect(__imageCacheTestApi.has('/workspace/artifacts/img-overflow.png')).toBe(true);
+  });
+
+  it('refreshes recency on read so frequently-viewed images survive eviction', () => {
+    const limit = __imageCacheTestApi.limit;
+    for (let i = 0; i < limit; i++) {
+      __imageCacheTestApi.set(`/p-${i}.png`, `data:image/png;base64,${i}`);
+    }
+    // Touch the OLDEST entry — should bump it to most-recent.
+    expect(__imageCacheTestApi.get('/p-0.png')).toBeDefined();
+
+    // Insert a fresh entry, forcing one eviction.
+    __imageCacheTestApi.set('/new.png', 'data:image/png;base64,N');
+
+    // The actually-oldest is now `/p-1.png`, not `/p-0.png`, because we
+    // touched `/p-0.png` and that bumped its recency.
+    expect(__imageCacheTestApi.has('/p-0.png')).toBe(true);
+    expect(__imageCacheTestApi.has('/p-1.png')).toBe(false);
+    expect(__imageCacheTestApi.has('/new.png')).toBe(true);
+  });
+
+  it('overwriting an existing key keeps size stable (no double-counting)', () => {
+    __imageCacheTestApi.set('/p.png', 'data:image/png;base64,A');
+    __imageCacheTestApi.set('/p.png', 'data:image/png;base64,B');
+    expect(__imageCacheTestApi.size()).toBe(1);
+    expect(__imageCacheTestApi.get('/p.png')).toBe('data:image/png;base64,B');
   });
 });

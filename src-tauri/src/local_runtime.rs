@@ -22,6 +22,13 @@ pub enum RuntimeKind {
 }
 
 impl RuntimeKind {
+  pub fn id(self) -> &'static str {
+    match self {
+      RuntimeKind::Ollama => "ollama",
+      RuntimeKind::ComfyUI => "comfyui",
+    }
+  }
+
   pub fn health_url(self) -> &'static str {
     match self {
       RuntimeKind::Ollama => OLLAMA_HEALTH_URL,
@@ -330,16 +337,22 @@ fn pipe_logs<R: std::io::Read + Send + 'static>(label: String, reader: R, logs: 
 }
 
 fn push_log(logs: &Arc<Mutex<VecDeque<String>>>, line: String) {
-  if let Ok(mut guard) = logs.lock() {
-    if guard.len() >= MAX_LOG_LINES {
-      guard.pop_front();
-    }
-    guard.push_back(line);
+  let mut guard = logs.lock().unwrap_or_else(|poison| {
+    log::warn!("[gatesai] local runtime log buffer was poisoned; recovering");
+    poison.into_inner()
+  });
+  if guard.len() >= MAX_LOG_LINES {
+    guard.pop_front();
   }
+  guard.push_back(line);
 }
 
 fn snapshot_logs(logs: &Arc<Mutex<VecDeque<String>>>) -> Vec<String> {
-  logs.lock().map(|guard| guard.iter().cloned().collect()).unwrap_or_default()
+  let guard = logs.lock().unwrap_or_else(|poison| {
+    log::warn!("[gatesai] local runtime log buffer was poisoned during snapshot; recovering");
+    poison.into_inner()
+  });
+  guard.iter().cloned().collect()
 }
 
 #[cfg(test)]

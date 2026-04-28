@@ -1,5 +1,4 @@
 import {
-  bytesToBase64,
   dimsForRequest,
   safeText,
   wrapGlobalFetch,
@@ -7,8 +6,8 @@ import {
   type GenerateImageResult,
   type ImageBackend,
 } from './types';
-import { FINAL_FLUX2_KLEIN_WORKFLOW } from './workflows/finalFlux2Klein';
-import { SDXL_LIGHTNING_HIRES_WORKFLOW } from './workflows/sdxlLightning';
+import { buildFinalFlux2KleinWorkflow } from './workflows/finalFlux2Klein';
+import { SDXL_LIGHTNING_QUICK_WORKFLOW } from './workflows/sdxlLightning';
 
 /**
  * Client for ComfyUI's `/prompt` API. ComfyUI runs arbitrary node
@@ -36,9 +35,11 @@ export interface ComfyClientDeps {
   /** Override the default SDXL txt2img template. */
   workflowTemplate?: Record<string, unknown>;
   /** Built-in workflow choice when no explicit template is supplied. */
-  qualityPreset?: 'final' | 'draft';
+  qualityPreset?: 'full' | 'quick';
+  /** Hires-fix multiplier for `full` mode. `1` (default) = no hires pass. */
+  upscaleFactor?: number;
   /**
-   * Checkpoint filename for the draft (Lightning) workflow.
+   * Checkpoint filename for the quick (Lightning) workflow.
    * Substituted into {{CHECKPOINT}} in the built-in template.
    * Defaults to 'sdxl_lightning_4step.safetensors'.
    */
@@ -51,7 +52,10 @@ export interface ComfyClientDeps {
   sleep?: (ms: number) => Promise<void>;
 }
 
-const DEFAULT_POLL_ATTEMPTS = 120;
+// Default ceiling = 5 minutes. The previous 60s wasn't enough for slow
+// workflows like FluxKlein + UltimateSDUpscale, where a single prompt can
+// take 70-90s. The runner already lets the user cancel from the card.
+const DEFAULT_POLL_ATTEMPTS = 600;
 const DEFAULT_POLL_INTERVAL = 500;
 
 interface PromptResp { prompt_id?: string; error?: string | { message?: string } }
@@ -76,8 +80,11 @@ export class ComfyClient implements ImageBackend {
     this.baseUrl = deps.baseUrl.replace(/\/+$/, '');
     this.clientId = deps.clientId ?? 'gatesai-chat';
     this.checkpoint = deps.checkpoint ?? 'sdxl_lightning_4step.safetensors';
+    const isQuick = deps.qualityPreset === 'quick';
     this.workflowTemplate = deps.workflowTemplate ?? (
-      deps.qualityPreset === 'draft' ? SDXL_LIGHTNING_HIRES_WORKFLOW : FINAL_FLUX2_KLEIN_WORKFLOW
+      isQuick
+        ? SDXL_LIGHTNING_QUICK_WORKFLOW
+        : buildFinalFlux2KleinWorkflow({ upscaleFactor: deps.upscaleFactor })
     );
     this.fetchImpl = wrapGlobalFetch(deps.fetch);
     this.sleep = deps.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
@@ -89,13 +96,23 @@ export class ComfyClient implements ImageBackend {
     const { width, height } = dimsForRequest(req);
     const seed = typeof req.seed === 'number' ? req.seed : Math.floor(Math.random() * 2 ** 31);
 
-    const workflow = substituteWorkflow(this.workflowTemplate, {
+    let workflow = substituteWorkflow(this.workflowTemplate, {
       '{{CHECKPOINT}}': this.checkpoint,
       '{{PROMPT}}': req.prompt,
       '{{WIDTH}}': width,
       '{{HEIGHT}}': height,
       '{{SEED}}': seed,
+      // Used by the hires-fix refinement pass so the second sample uses
+      // independent noise from the base pass.
+      '{{SEED_PLUS_1}}': seed + 1,
     });
+    // If the caller provided a filename prefix, override the SaveImage node's
+    // filename_prefix in place. We organize chat-generated renders under a
+    // `gatesai/` subfolder so the user's manually-rendered Comfy outputs stay
+    // separate. This mutates a deep clone, never the original template.
+    if (req.filenamePrefix) {
+      workflow = applyFilenamePrefix(workflow, `gatesai/${req.filenamePrefix}`);
+    }
     const prompt = stripWorkflowMetadata(workflow);
 
     const promptResp = await this.fetchImpl(`${this.baseUrl}/prompt`, {
@@ -116,17 +133,14 @@ export class ComfyClient implements ImageBackend {
       throw new Error(`comfy /prompt rejected the workflow: ${err}`);
     }
 
-    // Poll history until the prompt completes or we give up.
+    // Poll history until the prompt completes or we give up. ComfyUI has
+    // already saved the image to its own output folder by this point — we
+    // just need the metadata so we can build the /view URL.
     const image = await this.waitForImage(promptId);
     const viewUrl = `${this.baseUrl}/view?filename=${encodeURIComponent(image.filename)}&subfolder=${encodeURIComponent(image.subfolder)}&type=${encodeURIComponent(image.type)}`;
-    const imgResp = await this.fetchImpl(viewUrl);
-    if (!imgResp.ok) {
-      throw new Error(`comfy /view ${imgResp.status} ${imgResp.statusText} for ${image.filename}`);
-    }
-    const bytes = new Uint8Array(await imgResp.arrayBuffer());
 
     return {
-      base64: bytesToBase64(bytes),
+      url: viewUrl,
       mime: 'image/png',
       width,
       height,
@@ -138,15 +152,33 @@ export class ComfyClient implements ImageBackend {
 
   private async waitForImage(promptId: string): Promise<HistoryOutputImage> {
     const historyUrl = `${this.baseUrl}/history/${encodeURIComponent(promptId)}`;
+    let loggedShape = false;
     for (let i = 0; i < this.maxPoll; i++) {
-      const resp = await this.fetchImpl(historyUrl);
-      if (resp.ok) {
+      let resp: Response | null = null;
+      try {
+        resp = await this.fetchImpl(historyUrl);
+      } catch {
+        // Transient network blip during a long render — keep polling instead
+        // of bubbling. /prompt already succeeded so the prompt is in flight.
+      }
+      if (resp?.ok) {
         const data = (await resp.json()) as Record<string, HistoryEntry>;
         const entry = data[promptId];
         if (entry?.outputs) {
           for (const nodeOut of Object.values(entry.outputs)) {
             const first = nodeOut.images?.[0];
             if (first) return first;
+          }
+          if (!loggedShape) {
+            // The prompt completed but no node exposed an `images` array. Most
+            // likely the workflow's terminal node uses a different output key
+            // (e.g. `gifs`, `latents`, or a custom-node payload). Surface the
+            // raw output keys so the user can spot what to change.
+            const nodeKeys = Object.keys(entry.outputs);
+            const sampleNode = nodeKeys[0];
+            const sampleKeys = sampleNode ? Object.keys(entry.outputs[sampleNode] ?? {}) : [];
+            console.warn(`[comfy] /history/${promptId} has outputs but no node exposed an "images" array. Nodes: [${nodeKeys.join(', ')}]; first node keys: [${sampleKeys.join(', ')}]. Likely a workflow output-node mismatch.`);
+            loggedShape = true;
           }
         }
       }
@@ -205,6 +237,37 @@ export function stripWorkflowMetadata(workflow: unknown): unknown {
   for (const [key, value] of Object.entries(workflow as Record<string, unknown>)) {
     if (key.startsWith('_')) continue;
     out[key] = value;
+  }
+  return out;
+}
+
+/**
+ * Walk a workflow object and override the `filename_prefix` of every
+ * `SaveImage` (and `SaveImageWebsocket`) node. Returns a new workflow object
+ * — the input is never mutated. If no save nodes are found, returns the
+ * input unchanged (the prompt will still run; it just won't honor the AI's
+ * naming hint).
+ */
+export function applyFilenamePrefix(workflow: unknown, prefix: string): unknown {
+  if (!workflow || typeof workflow !== 'object' || Array.isArray(workflow)) {
+    return workflow;
+  }
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(workflow as Record<string, unknown>)) {
+    if (
+      value
+      && typeof value === 'object'
+      && !Array.isArray(value)
+      && (value as { class_type?: string }).class_type === 'SaveImage'
+    ) {
+      const node = value as { class_type: string; inputs?: Record<string, unknown> };
+      out[key] = {
+        ...node,
+        inputs: { ...(node.inputs ?? {}), filename_prefix: prefix },
+      };
+    } else {
+      out[key] = value;
+    }
   }
   return out;
 }

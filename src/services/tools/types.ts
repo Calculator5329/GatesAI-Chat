@@ -77,6 +77,8 @@ export interface ImageJobsFacade {
     height: number;
     seed?: number;
     backend: ImageBackendId;
+    /** Slug used by local backends to control where the file lands. */
+    filenamePrefix?: string;
   }): { jobId: string; count: number };
 }
 

@@ -43,11 +43,11 @@ export const ImageJobCard = observer(function ImageJobCard({ jobId, expectedCoun
   }
 
   if (job.status === 'failed') {
-    return <FailedCard job={job as CompletedJob} onRetry={() => requeue(jobs, job)} />;
+    return <FailedCard job={job as CompletedJob} onRetry={() => jobs.retry(jobId)} />;
   }
 
   if (job.status === 'cancelled') {
-    return <CancelledCard job={job as CompletedJob} onRetry={() => requeue(jobs, job)} />;
+    return <CancelledCard job={job as CompletedJob} onRetry={() => jobs.retry(jobId)} />;
   }
 
   // status === 'done'
@@ -71,18 +71,6 @@ export const ImageJobCard = observer(function ImageJobCard({ jobId, expectedCoun
     </>
   );
 });
-
-function requeue(jobs: ReturnType<typeof useImageJobStore>, job: ImageJob | CompletedJob): void {
-  jobs.enqueue({
-    threadId: job.threadId,
-    prompt: job.prompt,
-    count: job.count,
-    width: job.width,
-    height: job.height,
-    seed: job.seed,
-    backend: job.backend,
-  });
-}
 
 const PlaceholderRect = observer(function PlaceholderRect({ label }: { label: string }) {
   return (
@@ -236,14 +224,61 @@ const inlineBtn: React.CSSProperties = {
   color: 'var(--text-dim)',
 };
 
+/**
+ * LRU image cache cap. Each entry holds a base64 data URL — typically
+ * 2–7 MB for an SDXL/FLUX render. With the previous unbounded Map, a
+ * single long session would balloon WebView memory past the per-process
+ * limit (~1–2 GB on Chromium) and crash the renderer with no visible
+ * warning. 32 × 7 MB ≈ 220 MB cap is a safe ceiling for a session that
+ * stays scrollable in the chat surface.
+ */
+const IMAGE_CACHE_LIMIT = 32;
+
+/**
+ * Map preserves insertion order, so we use it as an LRU: every cache
+ * read deletes-then-re-sets the entry to bump it to most-recent; every
+ * miss-eviction drops the oldest key once we exceed the cap.
+ */
 const imageCache = new Map<string, string>();
 
+function cacheGet(path: string): string | undefined {
+  const url = imageCache.get(path);
+  if (url === undefined) return undefined;
+  // Refresh recency: re-insert at the end.
+  imageCache.delete(path);
+  imageCache.set(path, url);
+  return url;
+}
+
+function cacheSet(path: string, url: string): void {
+  if (imageCache.has(path)) imageCache.delete(path);
+  imageCache.set(path, url);
+  while (imageCache.size > IMAGE_CACHE_LIMIT) {
+    const oldest = imageCache.keys().next().value;
+    if (oldest === undefined) break;
+    imageCache.delete(oldest);
+  }
+}
+
 async function loadImage(bridge: BridgeStore, path: string): Promise<string | null> {
-  const cached = imageCache.get(path);
+  // Hosted URLs (e.g. ComfyUI's /view) load directly via <img src> — skip
+  // the bridge round-trip and the data-URL cache entirely.
+  if (/^https?:\/\//i.test(path)) return path;
+  const cached = cacheGet(path);
   if (cached) return cached;
   const result = await bridge.readAttachmentBase64(path);
   if (!result) return null;
   const url = `data:${result.mime};base64,${result.base64}`;
-  imageCache.set(path, url);
+  cacheSet(path, url);
   return url;
 }
+
+/** Test/diagnostic hooks — exported for unit tests; not part of the public API. */
+export const __imageCacheTestApi = {
+  reset: () => imageCache.clear(),
+  size: () => imageCache.size,
+  has: (path: string) => imageCache.has(path),
+  set: (path: string, url: string) => cacheSet(path, url),
+  get: (path: string) => cacheGet(path),
+  limit: IMAGE_CACHE_LIMIT,
+};

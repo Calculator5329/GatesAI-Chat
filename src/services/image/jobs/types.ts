@@ -10,6 +10,12 @@ export interface ImageJobInput {
   height: number;
   seed?: number;
   backend: ImageBackendId;
+  /**
+   * Slug-form filename hint passed from the AI tool call (or derived from
+   * the prompt). Local backends use this to control where the file lands
+   * (e.g. ComfyUI's `SaveImage.filename_prefix`). Cloud backends ignore it.
+   */
+  filenamePrefix?: string;
 }
 
 export interface ImageJob extends ImageJobInput {
@@ -17,7 +23,12 @@ export interface ImageJob extends ImageJobInput {
   status: ImageJobStatus;
   /** Set while status === 'running'. */
   progress?: { value: number; max: number };
-  /** Workspace paths of completed images in the batch. Grows during a multi-image run. */
+  /**
+   * Recorded image references for completed images in the batch. Each entry
+   * is either a workspace path (`/workspace/...`) the bridge can read OR a
+   * hosted URL (`http://...`) the UI loads directly. The card / Lightbox
+   * / Gallery branch on `startsWith('http')`.
+   */
   results: string[];
   error?: string;
   createdAt: number;

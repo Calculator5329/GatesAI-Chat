@@ -43,6 +43,9 @@ export class UiStore {
   codeStyle: CodeStyleKey = 'obsidian';
   markdownDensity: MarkdownDensityKey = 'compact';
   codeSize: CodeSizeKey = 'medium';
+  bodyFontSizePx = 17;
+  readingWidthPx = 720;
+  animationsEnabled = true;
 
   constructor() {
     const prefs = loadUiPrefs();
@@ -51,6 +54,9 @@ export class UiStore {
     this.codeStyle = prefs.codeStyle;
     this.markdownDensity = prefs.markdownDensity;
     this.codeSize = prefs.codeSize;
+    this.bodyFontSizePx = prefs.bodyFontSizePx;
+    this.readingWidthPx = prefs.readingWidthPx;
+    this.animationsEnabled = prefs.animationsEnabled;
     makeAutoObservable(this);
     autorun(() => saveUiPrefs(toJS({
       toolCallStyle: this.toolCallStyle,
@@ -58,6 +64,9 @@ export class UiStore {
       codeStyle: this.codeStyle,
       markdownDensity: this.markdownDensity,
       codeSize: this.codeSize,
+      bodyFontSizePx: this.bodyFontSizePx,
+      readingWidthPx: this.readingWidthPx,
+      animationsEnabled: this.animationsEnabled,
     })));
   }
 
@@ -99,4 +108,9 @@ export class UiStore {
   setCodeStyle(value: CodeStyleKey): void { this.codeStyle = value; }
   setMarkdownDensity(value: MarkdownDensityKey): void { this.markdownDensity = value; }
   setCodeSize(value: CodeSizeKey): void { this.codeSize = value; }
+  setBodyFontSizePx(value: number): void {
+    this.bodyFontSizePx = Math.max(14, Math.min(20, Math.round(value)));
+  }
+  setReadingWidthPx(value: number): void { this.readingWidthPx = value; }
+  setAnimationsEnabled(value: boolean): void { this.animationsEnabled = value; }
 }

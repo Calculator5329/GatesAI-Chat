@@ -16,11 +16,28 @@ export interface GenerateImageRequest {
   width?: number;
   height?: number;
   seed?: number;
+  /**
+   * Optional filename hint. Local backends use this to control where the
+   * file lands in their own output folder (e.g. ComfyUI's SaveImage prefix).
+   * Cloud backends ignore it.
+   */
+  filenamePrefix?: string;
 }
 
+/**
+ * Generation result. Producers return EITHER a hosted URL the UI can render
+ * directly OR raw bytes the runner needs to persist. Local backends that
+ * already save to disk (ComfyUI) return a `url`; everything else returns
+ * `base64`. Exactly one of `{url, base64}` is set.
+ */
 export interface GenerateImageResult {
-  /** Raw image bytes, base64-encoded (no `data:` prefix). */
-  base64: string;
+  /** Raw image bytes, base64-encoded (no `data:` prefix). Set when the runner
+   *  needs to persist the image itself. Mutually exclusive with `url`. */
+  base64?: string;
+  /** Hosted URL the UI can use directly as `<img src>`. Set when the backend
+   *  already wrote the file to a server it controls. Mutually exclusive
+   *  with `base64`. */
+  url?: string;
   mime: string;
   width?: number;
   height?: number;
@@ -33,7 +50,23 @@ export interface GenerateImageResult {
 
 export type ImageBackendId = 'local-comfy' | 'local-a1111';
 
-export type ComfyQualityPreset = 'final' | 'draft';
+/**
+ * ComfyUI workflow preset.
+ * - `full` runs the bundled FLUX.2 Klein 4B FP8 4-step workflow. With
+ *   `upscaleFactor > 1` it appends a hires-fix pass.
+ * - `quick` runs the bundled SDXL Lightning 4-step workflow. Always native
+ *   resolution, no hires.
+ */
+export type ComfyQualityPreset = 'full' | 'quick';
+
+/**
+ * Hires-fix multiplier for `full` mode. `1` skips the hires-fix pass
+ * entirely (fastest path); `1.5`/`2`/`2.5`/`3` decode the base latent,
+ * pixel-upscale with lanczos, VAE-encode back, and run a partial-denoise
+ * refinement pass at the larger resolution.
+ */
+export type UpscaleFactor = 1 | 1.5 | 2 | 2.5 | 3;
+export const VALID_UPSCALE_FACTORS: readonly UpscaleFactor[] = [1, 1.5, 2, 2.5, 3];
 
 export type PromptEnhancementMode = 'off' | 'llm';
 
@@ -57,6 +90,7 @@ export interface ImageBackendSnapshot {
   primary: ImageBackendId;
   comfyBaseUrl?: string;
   comfyQualityPreset?: ComfyQualityPreset;
+  comfyUpscaleFactor?: UpscaleFactor;
   promptEnhancement?: PromptEnhancementMode;
   promptStylePreset?: PromptStylePreset;
   a1111BaseUrl?: string;

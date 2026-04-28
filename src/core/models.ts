@@ -80,6 +80,23 @@ export const MODELS: Model[] = [
   // Local (OpenAI-compatible) — model id depends on what's running
   // ─────────────────────────────────────────────────────────────────
   { id: 'local-default',          name: 'Local model',                    vendor: 'Local', providerId: 'local', providerModelId: 'local-model' },
+
+  // ─────────────────────────────────────────────────────────────────
+  // Direct image — synthetic "model" that bypasses any LLM and sends
+  // the user's prompt straight to ComfyUI. Useful offline (no wifi):
+  // pick this from the model menu and your message becomes the image
+  // prompt; no chat round-trip happens. Honors the configured Local →
+  // image-gen settings (preset, upscale factor, filename prefix).
+  // ─────────────────────────────────────────────────────────────────
+  {
+    id: 'image-direct-comfy',
+    name: 'ComfyUI (direct, no chat)',
+    vendor: 'Local image',
+    providerId: 'local-image',
+    providerModelId: 'comfy-direct',
+    description: 'Send the prompt straight to ComfyUI. No LLM call, no internet required.',
+    supportsTools: false,
+  },
 ];
 
 export const DEFAULT_MODEL_ID = 'gemini-3-flash';

@@ -1,9 +1,16 @@
 /**
- * Conservative Lightning workflow with:
- * - fp16-fix VAE to prevent washed-out colours on SDXL
- * - hi-res fix via 1.5x latent upscale and low-denoise second sampler pass
+ * Quick-prototype workflow: SDXL Lightning at base resolution, 4 sampling
+ * steps, no hi-res fix. Trades polished-image detail
+ * polish for speed — typically <10s per image on a mid-range GPU.
+ *
+ * The previous version added a 1.5x latent upscale plus a second
+ * 3-step sampler at 0.35 denoise, which roughly doubled wall-clock
+ * time. That defeated the point of the quick lane — users picking quick
+ * want a fast preview, not a polished hi-res render.
+ *
+ * Includes the fp16-fix VAE so SDXL renders don't come out washed-out.
  */
-export const SDXL_LIGHTNING_HIRES_WORKFLOW: Record<string, unknown> = {
+export const SDXL_LIGHTNING_QUICK_WORKFLOW: Record<string, unknown> = {
   '1': {
     class_type: 'CheckpointLoaderSimple',
     inputs: { ckpt_name: '{{CHECKPOINT}}' },
@@ -43,30 +50,11 @@ export const SDXL_LIGHTNING_HIRES_WORKFLOW: Record<string, unknown> = {
     },
   },
   '7': {
-    class_type: 'LatentUpscaleBy',
-    inputs: { samples: ['6', 0], upscale_method: 'bicubic', scale_by: 1.5 },
+    class_type: 'VAEDecode',
+    inputs: { samples: ['6', 0], vae: ['2', 0] },
   },
   '8': {
-    class_type: 'KSampler',
-    inputs: {
-      seed: '{{SEED}}',
-      steps: 3,
-      cfg: 1,
-      sampler_name: 'euler',
-      scheduler: 'sgm_uniform',
-      denoise: 0.35,
-      model: ['1', 0],
-      positive: ['3', 0],
-      negative: ['4', 0],
-      latent_image: ['7', 0],
-    },
-  },
-  '9': {
-    class_type: 'VAEDecode',
-    inputs: { samples: ['8', 0], vae: ['2', 0] },
-  },
-  '10': {
     class_type: 'SaveImage',
-    inputs: { filename_prefix: 'gatesai_hires', images: ['9', 0] },
+    inputs: { filename_prefix: 'gatesai_quick', images: ['7', 0] },
   },
 };

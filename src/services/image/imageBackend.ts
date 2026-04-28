@@ -39,6 +39,7 @@ export function resolveBackend(
           baseUrl: config.comfyBaseUrl,
           workflowTemplate: config.comfyWorkflowTemplate,
           qualityPreset: config.comfyQualityPreset,
+          upscaleFactor: config.comfyUpscaleFactor,
           fetch: fetchImpl,
         }),
       };

@@ -23,6 +23,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
   const [index, setIndex] = useState(startIndex);
   const current = images[index];
   const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!current) return;
@@ -45,6 +46,17 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
   }, [index, images.length, onClose]);
 
   if (!current) return null;
+
+  const copyPrompt = async () => {
+    if (!prompt) return;
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      // Clipboard may be unavailable in older WebViews; the prompt remains selectable.
+    }
+  };
 
   return (
     <div
@@ -86,14 +98,30 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'rgba(255,255,255,0.7)', fontSize: 12, maxWidth: '80vw' }}>
-          {prompt && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={prompt}>{prompt}</span>}
-          <button
-            type="button"
-            onClick={() => { void bridge.openWorkspacePath(current.path); }}
-            style={lbBtn}
-          >Open in OS</button>
-          <button type="button" onClick={onClose} style={lbBtn}>Close</button>
+        <div style={promptPanel}>
+          {prompt && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Prompt</span>
+                <button type="button" onClick={copyPrompt} style={lbBtn}>{copied ? 'Copied' : 'Copy prompt'}</button>
+              </div>
+              <textarea
+                aria-label="Full prompt"
+                readOnly
+                value={prompt}
+                style={promptText}
+                onClick={e => e.currentTarget.select()}
+              />
+            </>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              type="button"
+              onClick={() => { void bridge.openWorkspacePath(current.path); }}
+              style={lbBtn}
+            >Open in OS</button>
+            <button type="button" onClick={onClose} style={lbBtn}>Close</button>
+          </div>
         </div>
       </div>
     </div>
@@ -110,9 +138,39 @@ const lbBtn: React.CSSProperties = {
   cursor: 'pointer',
 };
 
+const promptPanel: React.CSSProperties = {
+  display: 'grid',
+  gap: 10,
+  width: 'min(760px, 88vw)',
+  padding: 12,
+  border: '1px solid rgba(255,255,255,0.14)',
+  borderRadius: 8,
+  background: 'rgba(10,10,12,0.72)',
+  boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+};
+
+const promptText: React.CSSProperties = {
+  width: '100%',
+  minHeight: 76,
+  maxHeight: 150,
+  resize: 'vertical',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 6,
+  background: 'rgba(255,255,255,0.05)',
+  color: 'rgba(255,255,255,0.9)',
+  padding: '10px 12px',
+  fontFamily: '"Geist Mono", ui-monospace, monospace',
+  fontSize: 12,
+  lineHeight: 1.5,
+};
+
 const cache = new Map<string, string>();
 
 async function loadImage(bridge: BridgeStore, path: string): Promise<string | null> {
+  // Older history entries may still contain hosted ComfyUI URLs. Convert them
+  // to data URLs before rendering so the viewer is not at the mercy of direct
+  // localhost image policies.
+  if (/^https?:\/\//i.test(path)) return loadHostedImage(path);
   const cached = cache.get(path);
   if (cached) return cached;
   const result = await bridge.readAttachmentBase64(path);
@@ -120,4 +178,28 @@ async function loadImage(bridge: BridgeStore, path: string): Promise<string | nu
   const url = `data:${result.mime};base64,${result.base64}`;
   cache.set(path, url);
   return url;
+}
+
+async function loadHostedImage(url: string): Promise<string | null> {
+  const cached = cache.get(url);
+  if (cached) return cached;
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const mime = resp.headers.get('content-type')?.split(';')[0] || 'image/png';
+    const dataUrl = `data:${mime};base64,${bytesToBase64(new Uint8Array(await resp.arrayBuffer()))}`;
+    cache.set(url, dataUrl);
+    return dataUrl;
+  } catch {
+    return null;
+  }
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
 }

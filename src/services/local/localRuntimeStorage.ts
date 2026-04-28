@@ -17,6 +17,8 @@ export interface LocalRuntimePersistedConfig {
   comfyui: RuntimePersistedState;
   visionModel?: string;
   autoDetectComplete: boolean;
+  /** Epoch ms of the last successful Auto-detect run; undefined = never. */
+  autoDetectAt?: number;
 }
 
 export const DEFAULT_LOCAL_RUNTIME_CONFIG: LocalRuntimePersistedConfig = {
@@ -24,6 +26,7 @@ export const DEFAULT_LOCAL_RUNTIME_CONFIG: LocalRuntimePersistedConfig = {
   comfyui: { installPath: '', managed: true, baseUrl: DEFAULT_COMFY_BASE_URL },
   visionModel: undefined,
   autoDetectComplete: false,
+  autoDetectAt: undefined,
 };
 
 export function loadLocalRuntimeConfig(): LocalRuntimePersistedConfig {
@@ -52,6 +55,7 @@ function mergeConfig(base: LocalRuntimePersistedConfig, parsed: Partial<LocalRun
     comfyui: { ...base.comfyui, ...(parsed.comfyui && typeof parsed.comfyui === 'object' ? parsed.comfyui : {}) },
     visionModel: typeof parsed.visionModel === 'string' ? parsed.visionModel : base.visionModel,
     autoDetectComplete: typeof parsed.autoDetectComplete === 'boolean' ? parsed.autoDetectComplete : base.autoDetectComplete,
+    autoDetectAt: typeof parsed.autoDetectAt === 'number' && Number.isFinite(parsed.autoDetectAt) ? parsed.autoDetectAt : base.autoDetectAt,
   };
 }
 

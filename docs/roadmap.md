@@ -51,6 +51,10 @@
 - [x] Add a dedicated Local menu for Ollama, ComfyUI, and local vision setup
       (auto-detect install paths, managed Start/Stop, live logs, ComfyUI CORS
       flags, local vision `describe_image` tool)
+- [x] Add ComfyUI direct-image mode plus FLUX.2 Klein `full` hires-fix upscale
+      controls for offline local image generation
+- [x] Add `image_generate` prompt-file batch mode for overnight queued local
+      image runs
 
 ## Near-term
 - [ ] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`

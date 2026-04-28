@@ -54,6 +54,10 @@ export class ImageGenStore {
     this.config = { ...this.config, comfyQualityPreset: preset };
   }
 
+  setComfyUpscaleFactor(factor: ImageGenConfig['comfyUpscaleFactor']): void {
+    this.config = { ...this.config, comfyUpscaleFactor: factor };
+  }
+
   setPromptEnhancement(mode: ImageGenConfig['promptEnhancement']): void {
     this.config = { ...this.config, promptEnhancement: mode, promptEnhancementOptIn: mode === 'llm' };
   }
@@ -98,7 +102,8 @@ export class ImageGenStore {
     return {
       primary: this.config.backend,
       comfyBaseUrl: this.localRuntime?.comfyBaseUrl,
-      comfyQualityPreset: this.config.comfyQualityPreset ?? 'final',
+      comfyQualityPreset: this.config.comfyQualityPreset ?? 'full',
+      comfyUpscaleFactor: this.config.comfyUpscaleFactor ?? 1,
       promptEnhancement: this.config.promptEnhancement ?? 'off',
       promptStylePreset: this.config.promptStylePreset ?? 'auto',
       a1111BaseUrl: this.config.a1111BaseUrl,

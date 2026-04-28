@@ -58,6 +58,7 @@ export const WorkspaceImage = observer(function WorkspaceImage({
 const imageCache = new Map<string, string>();
 
 async function loadImage(bridge: BridgeStore, path: string): Promise<string | null> {
+  if (/^https?:\/\//i.test(path)) return path;
   const cached = imageCache.get(path);
   if (cached) return cached;
   const result = await bridge.readAttachmentBase64(path);

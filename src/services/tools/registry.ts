@@ -18,6 +18,14 @@ import { describeImageTool } from './describeImage';
 export interface ToolSelectionContext {
   userText: string;
   bridgeOnline: boolean;
+  /**
+   * Whether a local image backend is configured for this session. When true we
+   * always expose `image_generate` to the model, because the common intent
+   * phrasings ("queue it", "run the batch", "use comfy") don't trip the
+   * image-specific keyword heuristic and the model otherwise falls back to the
+   * terminal tool and hits the bridge allowlist.
+   */
+  imageGenAvailable?: boolean;
 }
 
 /**
@@ -69,7 +77,7 @@ export class ToolRegistry {
       selected.add('git');
     }
     if (notesRelevant) selected.add('notes');
-    if (imageGenRelevant) selected.add('image_generate');
+    if (imageGenRelevant || ctx.imageGenAvailable) selected.add('image_generate');
     if (imageVisionRelevant) {
       selected.add('workspace');
       selected.add('fs');

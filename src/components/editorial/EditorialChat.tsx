@@ -34,7 +34,7 @@ export const EditorialChat = observer(function EditorialChat({ sendKey, threadHe
     }}>
       {activeThread && <EditorialThreadHeader variant={threadHeaderKey} thread={activeThread} />}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px' }}>
-        <div style={{ width: 'min(750px, 70%)', margin: '0 auto' }} className="editorial-stream">
+        <div style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
           {messages.length === 0 && (
             <div style={{
               fontFamily: '"Source Serif 4", Georgia, serif',

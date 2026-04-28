@@ -35,4 +35,15 @@ describe('curated model catalog', () => {
     expect(ids).not.toContain('or-gpt-5.5-mini');
     expect(ids).not.toContain('or-gpt-5.5-nano');
   });
+
+  it('includes the offline direct-image model', () => {
+    expect(MODELS).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'image-direct-comfy',
+        providerId: 'local-image',
+        providerModelId: 'comfy-direct',
+        supportsTools: false,
+      }),
+    ]));
+  });
 });

@@ -177,6 +177,16 @@ body {
 .md-body {
   color: var(--text);
   font-family: var(--md-body-font);
+  font-size: var(--md-body-font-size, 17px);
+}
+
+/* When the user disables animations, kill transitions/animations across the app. */
+.no-animations,
+.no-animations * {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
 }
 .md-body p { margin: 0 0 var(--md-p-gap); }
 .md-body p:last-child { margin-bottom: 0; }

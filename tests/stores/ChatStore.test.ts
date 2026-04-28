@@ -76,6 +76,36 @@ describe('ChatStore', () => {
     expect(chat.activeThreadId).toBe(id);
   });
 
+  it('softDeleteThread hides the thread from visibleThreads but keeps it in storage', () => {
+    const { chat } = setup();
+    const a = chat.createThread();
+    const b = chat.createThread();
+    chat.softDeleteThread(b);
+    expect(chat.visibleThreads.map(t => t.id)).not.toContain(b);
+    expect(chat.threads.map(t => t.id)).toContain(b);
+    expect(chat.threads.find(t => t.id === b)?.deletedAt).toBeTypeOf('number');
+    expect(chat.activeThreadId).not.toBe(b);
+    expect([a, chat.activeThreadId]).toContain(chat.activeThreadId);
+  });
+
+  it('restoreThread brings a soft-deleted thread back into visibleThreads', () => {
+    const { chat } = setup();
+    const id = chat.createThread();
+    chat.softDeleteThread(id);
+    chat.restoreThread(id);
+    expect(chat.threads.find(t => t.id === id)?.deletedAt).toBeUndefined();
+    expect(chat.visibleThreads.map(t => t.id)).toContain(id);
+  });
+
+  it('softDeleteThread on the only remaining thread spawns a fresh empty one', () => {
+    const { chat } = setup();
+    const only = chat.activeThreadId!;
+    chat.softDeleteThread(only);
+    expect(chat.visibleThreads).toHaveLength(1);
+    expect(chat.visibleThreads[0].id).not.toBe(only);
+    expect(chat.activeThreadId).toBe(chat.visibleThreads[0].id);
+  });
+
   it('sendMessage appends user + assistant messages and streams content', async () => {
     const { chat, mock } = setup([
       { type: 'text', delta: 'Hello ' },
@@ -542,6 +572,107 @@ describe('ChatStore', () => {
     const usage = chat.tokenUsage('');
 
     expect(usage.used).toBeGreaterThan(estimateLowerBound('x'.repeat(1000)));
+  });
+
+  it('direct-image model enqueues an image job without calling an LLM provider', async () => {
+    const { chat, mock } = setup();
+    const threadId = chat.createThread();
+    chat.setThreadModel(threadId, 'image-direct-comfy');
+    const enqueued: Parameters<NonNullable<ToolContext['imageJobs']>['enqueue']>[0][] = [];
+    chat.setToolStoresProvider(() => ({
+      imageGen: {
+        backend: 'local-comfy',
+        comfyWorkflowPath: undefined,
+        getCredential: () => 'http://127.0.0.1:8188',
+        toBackendConfig: () => ({
+          primary: 'local-comfy',
+          comfyBaseUrl: 'http://127.0.0.1:8188',
+          comfyQualityPreset: 'full',
+          comfyUpscaleFactor: 2,
+        }),
+      },
+      imageJobs: {
+        enqueue: (input) => {
+          enqueued.push(input);
+          return { jobId: 'job-1', count: input.count };
+        },
+      },
+    }));
+
+    chat.sendMessage('a glass city under rain');
+    await flush(10);
+
+    expect(mock.calls).toHaveLength(0);
+    expect(enqueued).toEqual([expect.objectContaining({
+      threadId,
+      prompt: 'a glass city under rain',
+      count: 1,
+      width: 1024,
+      height: 1024,
+      backend: 'local-comfy',
+    })]);
+    expect(chat.activeThread!.messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: 'Sent straight to ComfyUI.',
+    });
+  });
+
+  it('direct-image token usage counts only the pending prompt', () => {
+    const { chat } = setup();
+    const threadId = chat.createThread();
+    chat.setThreadModel(threadId, 'image-direct-comfy');
+    chat.setThreadContext(threadId, 'system-heavy context '.repeat(1000));
+    runInAction(() => {
+      chat.activeThread!.messages.push({
+        id: 'u-long',
+        role: 'user',
+        content: 'old chat context '.repeat(1000),
+        createdAt: Date.now(),
+      });
+      chat.activeThread!.messages.push({
+        id: 'a-long',
+        role: 'assistant',
+        content: 'old assistant context '.repeat(1000),
+        createdAt: Date.now(),
+      });
+    });
+
+    const usage = chat.tokenUsage('small image prompt');
+
+    expect(usage.used).toBeLessThan(100);
+  });
+
+  it('direct-image prompt uses only the user-authored body, not attachment footer context', async () => {
+    const { chat } = setup();
+    const threadId = chat.createThread();
+    chat.setThreadModel(threadId, 'image-direct-comfy');
+    const enqueued: Parameters<NonNullable<ToolContext['imageJobs']>['enqueue']>[0][] = [];
+    chat.setToolStoresProvider(() => ({
+      imageGen: {
+        backend: 'local-comfy',
+        comfyWorkflowPath: undefined,
+        getCredential: () => 'http://127.0.0.1:8188',
+        toBackendConfig: () => ({
+          primary: 'local-comfy',
+          comfyBaseUrl: 'http://127.0.0.1:8188',
+          comfyQualityPreset: 'full',
+          comfyUpscaleFactor: 1,
+        }),
+      },
+      imageJobs: {
+        enqueue: (input) => {
+          enqueued.push(input);
+          return { jobId: 'job-1', count: input.count };
+        },
+      },
+    }));
+
+    chat.sendMessage('a quiet forest shrine', [
+      { filename: 'notes.txt', path: '/workspace/attachments/notes.txt', size: 1000, mime: 'text/plain' },
+    ]);
+    await flush(10);
+
+    expect(enqueued[0]?.prompt).toBe('a quiet forest shrine');
   });
 });
 

@@ -14,4 +14,14 @@ describe('ImageGenStore', () => {
     store.setPromptEnhancement('llm');
     expect(store.toBackendConfig().promptEnhancement).toBe('llm');
   });
+
+  it('passes the ComfyUI upscale factor through the backend snapshot', () => {
+    const store = new ImageGenStore();
+
+    expect(store.toBackendConfig().comfyUpscaleFactor).toBe(1);
+
+    store.setComfyUpscaleFactor(2);
+
+    expect(store.toBackendConfig().comfyUpscaleFactor).toBe(2);
+  });
 });

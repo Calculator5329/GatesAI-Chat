@@ -12,7 +12,7 @@ describe('imageGenStorage', () => {
     expect(config.promptEnhancement).toBe('off');
   });
 
-  it('drops the stale FLUX 2-dev workspace workflow path on load', () => {
+  it('drops the stale FLUX 2-dev workspace workflow path and migrates old full preset name on load', () => {
     localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({
       backend: 'local-comfy',
       comfyQualityPreset: 'final',
@@ -22,8 +22,19 @@ describe('imageGenStorage', () => {
     const config = loadImageGenConfig();
 
     expect(config.backend).toBe('local-comfy');
-    expect(config.comfyQualityPreset).toBe('final');
+    expect(config.comfyQualityPreset).toBe('full');
     expect(config.comfyWorkflowPath).toBeUndefined();
+  });
+
+  it('migrates the old quick preset name on load', () => {
+    localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({
+      backend: 'local-comfy',
+      comfyQualityPreset: 'draft',
+    }));
+
+    const config = loadImageGenConfig();
+
+    expect(config.comfyQualityPreset).toBe('quick');
   });
 
   it('migrates the old implicit prompt enhancement default to off', () => {

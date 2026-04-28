@@ -51,7 +51,14 @@ export class ModelRegistry {
 
   byProvider(): Record<ProviderId, Model[]> {
     const out: Record<ProviderId, Model[]> = {
-      openrouter: [], openai: [], anthropic: [], gemini: [], groq: [], local: [], ollama: [],
+      openrouter: [],
+      openai: [],
+      anthropic: [],
+      gemini: [],
+      groq: [],
+      local: [],
+      ollama: [],
+      'local-image': [],
     };
     for (const m of this.all) out[m.providerId].push(m);
     return out;
