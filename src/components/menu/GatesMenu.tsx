@@ -1,38 +1,24 @@
-import type { ComponentType } from 'react';
 import { observer } from 'mobx-react-lite';
-import type { MenuSectionKey } from '../../core/types';
 import { useRouterStore } from '../../stores/context';
-import { ProfileSection } from './sections/Profile';
-import { AgentSection } from './sections/Agent';
-import { SettingsSection } from './sections/Settings';
-import { UsageSection } from './sections/Usage';
-import { ApiSection } from './sections/Api';
-import { LocalSection } from './sections/Local';
+import { MENU_SECTIONS } from './menuSectionMeta';
 import { AppearanceSection } from './sections/Appearance';
-import { WorkspaceSection } from './sections/Workspace';
-import { GallerySection } from './sections/Gallery';
 
-interface MenuSectionDef {
-  key: MenuSectionKey;
-  label: string;
-  component: ComponentType;
-}
-
-const SECTIONS: MenuSectionDef[] = [
-  { key: 'profile',    label: 'Profile',    component: ProfileSection },
-  { key: 'agent',      label: 'Agent',      component: AgentSection },
-  { key: 'workspace',  label: 'Workspace',  component: WorkspaceSection },
-  { key: 'settings',   label: 'Settings',   component: SettingsSection },
-  { key: 'usage',      label: 'Usage',      component: UsageSection },
-  { key: 'local',      label: 'Local',      component: LocalSection },
-  { key: 'api',        label: 'API',        component: ApiSection },
-  { key: 'gallery',    label: 'Gallery',    component: GallerySection },
-  { key: 'appearance', label: 'Appearance', component: AppearanceSection },
-];
+const badgeStyle: React.CSSProperties = {
+  fontSize: 9,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  background: 'var(--border)',
+  color: 'var(--text-faint)',
+  borderRadius: 3,
+  padding: '1px 5px',
+  marginLeft: 6,
+  verticalAlign: 'middle',
+};
 
 export const GatesMenu = observer(function GatesMenu() {
   const router = useRouterStore();
-  const ActiveSection = SECTIONS.find(s => s.key === router.menuSection)?.component ?? ProfileSection;
+  const meta = MENU_SECTIONS.find(s => s.key === router.menuSection);
+  const ActiveSection = (meta?.supported ? meta.component : null) ?? AppearanceSection;
 
   return (
     <div style={{
@@ -47,23 +33,29 @@ export const GatesMenu = observer(function GatesMenu() {
         borderBottom: '1px solid var(--border)',
         overflowX: 'auto',
       }}>
-        {SECTIONS.map(s => {
+        {MENU_SECTIONS.map(s => {
           const active = router.menuSection === s.key;
+          const onSelect = () => { if (s.supported) router.goMenu(s.key); };
           return (
             <div
               key={s.key}
-              onClick={() => router.goMenu(s.key)}
+              role="button"
+              aria-disabled={!s.supported}
+              onClick={onSelect}
               style={{
                 padding: '11px 18px 12px',
                 fontSize: 13,
-                color: active ? 'var(--text)' : 'var(--text-dim)',
+                color: active ? 'var(--text)' : s.supported ? 'var(--text-dim)' : 'var(--text-faint)',
+                opacity: s.supported ? 1 : 0.5,
                 borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
                 marginBottom: -1,
-                cursor: 'pointer',
+                cursor: s.supported ? 'pointer' : 'default',
                 whiteSpace: 'nowrap',
+                userSelect: 'none',
               }}
             >
-              {s.label}
+              <span>{s.label}</span>
+              {!s.supported && s.badge && <span style={badgeStyle}>{s.badge}</span>}
             </div>
           );
         })}
