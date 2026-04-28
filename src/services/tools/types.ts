@@ -56,8 +56,8 @@ export interface BridgeFacade {
   readAttachmentBase64(path: string): Promise<{ base64: string; mime: string; size: number } | null>;
 }
 
-import type { ImageBackendId, ImageBackendSnapshot } from '../image/types';
-export type { ImageBackendId, ImageBackendSnapshot };
+import type { ImageBackendId, ImageBackendSnapshot, LocalComfyMode } from '../image/types';
+export type { ImageBackendId, ImageBackendSnapshot, LocalComfyMode };
 
 export interface ImageGenFacade {
   readonly backend: ImageBackendId;
@@ -77,6 +77,8 @@ export interface ImageJobsFacade {
     height: number;
     seed?: number;
     backend: ImageBackendId;
+    /** Direct-image ComfyUI mode override, independent from Local defaults. */
+    comfyMode?: LocalComfyMode;
     /** Slug used by local backends to control where the file lands. */
     filenamePrefix?: string;
   }): { jobId: string; count: number };

@@ -242,34 +242,34 @@ const LocalImageCard = observer(function LocalImageCard() {
         <ProviderAvatar name="image" />
         <div style={{ flex: 1 }}>
           <div style={cardTitleStyle}>Local image generation</div>
-          <div style={cardDescStyle}>ComfyUI workflows behind the same image_generate tool.</div>
+          <div style={cardDescStyle}>Draft, Normal, and Upscale ComfyUI modes behind image_generate.</div>
         </div>
         {sectionPill(status, 'ComfyUI')}
       </div>
       <SettingsRow label="Base URL">
         <BaseUrlField id="comfyui" />
       </SettingsRow>
-      <SettingsRow label="Quality preset">
+      <SettingsRow label="Default local mode">
         <Select
           value={preset}
           onChange={e => image.setComfyQualityPreset(e.currentTarget.value as 'full' | 'quick')}
         >
-          <option value="quick">Quick — SDXL Lightning, ~1s, native resolution</option>
-          <option value="full">Full — FLUX.2 Klein, optional hires-fix upscale</option>
+          <option value="quick">Draft — SDXL Lightning, native resolution</option>
+          <option value="full">Normal — FLUX.2 Klein, optional upscale</option>
         </Select>
       </SettingsRow>
       {preset === 'full' && (
         <>
-          <SettingsRow label="Upscale">
+          <SettingsRow label="Flux upscale">
             <Select
               value={String(upscale)}
               onChange={e => image.setComfyUpscaleFactor(Number(e.currentTarget.value) as 1 | 1.5 | 2 | 2.5 | 3)}
             >
-              <option value="1">Off — native resolution (~1-2s)</option>
-              <option value="1.5">1.5× hires-fix (~+1-2s)</option>
-              <option value="2">2× hires-fix (~+2-3s, recommended)</option>
-              <option value="2.5">2.5× hires-fix (~+3-5s)</option>
-              <option value="3">3× hires-fix (~+5-8s, may soften)</option>
+              <option value="1">Normal — no upscale (~1-2s)</option>
+              <option value="1.5">Upscale — 1.5× hires-fix (~+1-2s)</option>
+              <option value="2">Upscale — 2× hires-fix (~+2-3s, recommended)</option>
+              <option value="2.5">Upscale — 2.5× hires-fix (~+3-5s)</option>
+              <option value="3">Upscale — 3× hires-fix (~+5-8s, may soften)</option>
             </Select>
           </SettingsRow>
           <SettingsRow label="Workflow template">

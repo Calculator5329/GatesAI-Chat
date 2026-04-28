@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import { useBridgeStore, useImageJobStore } from '../../../stores/context';
@@ -20,30 +20,34 @@ export const GallerySection = observer(function GallerySection() {
 
   return (
     <>
-      <h1 style={tokens.h1}>Gallery</h1>
-      <div style={tokens.kicker}>every image you've generated · click to open</div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: completed.length > 0 ? 16 : 0 }}>
+        <div>
+          <h1 style={{ ...tokens.h1, margin: 0 }}>Gallery</h1>
+          <div style={{ ...tokens.kicker, marginTop: 4 }}>every image you've generated · click to open</div>
+        </div>
+        {completed.length > 0 && (
+          <div style={{ flexShrink: 0 }}>
+            <Button onClick={() => { if (window.confirm('Clear gallery history? Image files on disk (ComfyUI output / workspace artifacts) are not deleted.')) jobs.clearHistory(); }}>
+              Clear history
+            </Button>
+          </div>
+        )}
+      </div>
 
       {completed.length === 0
         ? <EmptyState />
         : (
-          <>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <Button onClick={() => { if (window.confirm('Clear gallery history? Image files on disk (ComfyUI output / workspace artifacts) are not deleted.')) jobs.clearHistory(); }}>
-                Clear history
-              </Button>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
-              {completed.flatMap(job => job.results.map((path, i) => (
-                <GalleryTile
-                  key={`${job.id}-${i}`}
-                  path={path}
-                  prompt={job.prompt}
-                  onClick={() => setLightbox({ paths: job.results, index: i, prompt: job.prompt })}
-                  onDelete={() => jobs.delete(job.id)}
-                />
-              )))}
-            </div>
-          </>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+            {completed.flatMap(job => job.results.map((path, i) => (
+              <GalleryTile
+                key={`${job.id}-${i}`}
+                path={path}
+                prompt={job.prompt}
+                onClick={() => setLightbox({ paths: job.results, index: i, prompt: job.prompt })}
+                onDelete={() => jobs.delete(job.id)}
+              />
+            )))}
+          </div>
         )}
 
       {lightbox && (
@@ -78,15 +82,30 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
 }) {
   const bridge = useBridgeStore();
   const [dataUrl, setDataUrl] = useState<string | null>(() => cache.get(path) ?? null);
+  const ref = useRef<HTMLDivElement>(null);
+  const loadedRef = useRef(false);
+
   useEffect(() => {
-    if (dataUrl) return;
-    let cancelled = false;
-    void loadImage(bridge, path).then(url => { if (!cancelled && url) setDataUrl(url); });
-    return () => { cancelled = true; };
+    if (dataUrl) { loadedRef.current = true; return; }
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !loadedRef.current) {
+          loadedRef.current = true;
+          observer.disconnect();
+          void loadImage(bridge, path).then(url => { if (url) setDataUrl(url); });
+        }
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [bridge, path, dataUrl]);
 
   return (
-    <div style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+    <div ref={ref} style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
       <button
         type="button"
         onClick={onClick}
@@ -99,7 +118,7 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
       >
         {dataUrl
           ? <img src={dataUrl} alt={prompt} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)' }}>…</div>}
+          : <div style={{ width: '100%', height: '100%', background: 'var(--surface-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: 18 }}>⋯</div>}
       </button>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,

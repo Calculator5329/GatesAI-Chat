@@ -148,6 +148,85 @@ describe('ImageJobStore (runner)', () => {
     expect(job?.results[0]).toMatch(/\/workspace\/artifacts\//);
   });
 
+  it('applies a job-level ComfyUI mode override before dispatching', async () => {
+    const dispatchedConfigs: ImageBackendConfig[] = [];
+    const deps = makeDeps({
+      imageGen: {
+        comfyWorkflowPath: undefined,
+        toBackendConfig: () => ({
+          primary: 'local-comfy',
+          comfyBaseUrl: 'http://127.0.0.1:8188',
+          comfyQualityPreset: 'quick',
+          comfyUpscaleFactor: 3,
+        }),
+      },
+      dispatcher: async (req: GenerateImageRequest, config: ImageBackendConfig) => {
+        dispatchedConfigs.push(config);
+        return {
+          result: {
+            base64: 'AAAA',
+            mime: 'image/png',
+            width: req.width,
+            height: req.height,
+            seed: req.seed,
+            endpoint: 'mock',
+            backend: 'local-comfy',
+          } as GenerateImageResult,
+        };
+      },
+    });
+    const store = new ImageJobStore(deps);
+
+    store.enqueue({ ...INPUT, comfyMode: 'upscale' });
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(dispatchedConfigs[0]).toEqual(expect.objectContaining({
+      comfyQualityPreset: 'full',
+      comfyUpscaleFactor: 2,
+    }));
+  });
+
+  it('uses built-in ComfyUI workflows for direct-image modes even when a custom Local workflow is saved', async () => {
+    const dispatchedConfigs: ImageBackendConfig[] = [];
+    const bridge = fakeBridge();
+    const request = vi.spyOn(bridge.client, 'request');
+    const deps = makeDeps({
+      bridge,
+      imageGen: {
+        comfyWorkflowPath: '/workspace/custom.json',
+        toBackendConfig: () => ({
+          primary: 'local-comfy',
+          comfyBaseUrl: 'http://127.0.0.1:8188',
+          comfyQualityPreset: 'full',
+          comfyUpscaleFactor: 3,
+        }),
+      },
+      dispatcher: async (req: GenerateImageRequest, config: ImageBackendConfig) => {
+        dispatchedConfigs.push(config);
+        return {
+          result: {
+            base64: 'AAAA',
+            mime: 'image/png',
+            width: req.width,
+            height: req.height,
+            seed: req.seed,
+            endpoint: 'mock',
+            backend: 'local-comfy',
+          } as GenerateImageResult,
+        };
+      },
+    });
+    const store = new ImageJobStore(deps);
+
+    store.enqueue({ ...INPUT, comfyMode: 'normal' });
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(dispatchedConfigs[0]?.comfyWorkflowTemplate).toBeUndefined();
+    expect(request).not.toHaveBeenCalledWith('fs.read', expect.anything());
+  });
+
   it('persists hosted backend URLs into workspace artifacts for reliable gallery loading', async () => {
     const writes: Array<{ path: string; content: string; encoding: string }> = [];
     const bridge: ImageJobBridgeFacade = {

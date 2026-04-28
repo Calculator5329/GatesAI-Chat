@@ -156,6 +156,11 @@ source while keeping tests looser.
 - `ModelRegistry` is the single source of truth for "all known models" —
   curated entries from `core/models.ts` plus dynamic entries hydrated at
   runtime. Dedupes by `(providerId, providerModelId)`; dynamic wins.
+- Direct local image generation is represented as synthetic `local-image`
+  model entries: Draft maps to SDXL Lightning, Normal maps to FLUX.2 Klein
+  without upscale, and Upscale maps to FLUX.2 Klein with a 2× hires-fix pass.
+  `ChatStore` enqueues the selected mode on the image job; `ImageJobStore`
+  translates that mode into ComfyUI preset/upscale settings before dispatch.
 - `OpenRouterStore` owns the live OpenRouter catalog. It hydrates from
   `gatesai.openrouter.catalog.v1` on boot, exposes `refresh()` /
   `clearCache()` (no auto-TTL), writes cache on explicit refresh/clear, and

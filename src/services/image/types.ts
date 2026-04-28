@@ -60,6 +60,12 @@ export type ImageBackendId = 'local-comfy' | 'local-a1111';
 export type ComfyQualityPreset = 'full' | 'quick';
 
 /**
+ * User-facing local ComfyUI modes. These are exposed as direct-image
+ * "models"; the backend still consumes the existing preset/upscale fields.
+ */
+export type LocalComfyMode = 'draft' | 'normal' | 'upscale';
+
+/**
  * Hires-fix multiplier for `full` mode. `1` skips the hires-fix pass
  * entirely (fastest path); `1.5`/`2`/`2.5`/`3` decode the base latent,
  * pixel-upscale with lanczos, VAE-encode back, and run a partial-denoise
@@ -67,6 +73,17 @@ export type ComfyQualityPreset = 'full' | 'quick';
  */
 export type UpscaleFactor = 1 | 1.5 | 2 | 2.5 | 3;
 export const VALID_UPSCALE_FACTORS: readonly UpscaleFactor[] = [1, 1.5, 2, 2.5, 3];
+
+export function comfySettingsForMode(mode: LocalComfyMode): Pick<ImageBackendSnapshot, 'comfyQualityPreset' | 'comfyUpscaleFactor'> {
+  switch (mode) {
+    case 'draft':
+      return { comfyQualityPreset: 'quick', comfyUpscaleFactor: 1 };
+    case 'normal':
+      return { comfyQualityPreset: 'full', comfyUpscaleFactor: 1 };
+    case 'upscale':
+      return { comfyQualityPreset: 'full', comfyUpscaleFactor: 2 };
+  }
+}
 
 export type PromptEnhancementMode = 'off' | 'llm';
 

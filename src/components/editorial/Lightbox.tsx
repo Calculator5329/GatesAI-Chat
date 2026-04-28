@@ -12,18 +12,18 @@ interface LightboxProps {
   onClose: () => void;
 }
 
-/**
- * Modal image viewer used by ImageJobCard tiles and the Gallery menu.
- * Loads each image lazily on display, supports ESC + arrow-key
- * navigation, and exposes an "Open in OS" affordance that hands the
- * path to the bridge.
- */
 export const Lightbox = observer(function Lightbox({ images, startIndex, prompt, onClose }: LightboxProps) {
   const bridge = useBridgeStore();
   const [index, setIndex] = useState(startIndex);
   const current = images[index];
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(t);
+  }, []);
 
   useEffect(() => {
     if (!current) return;
@@ -38,12 +38,12 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
   useEffect(() => {
     function onKey(ev: KeyboardEvent) {
       if (ev.key === 'Escape') { ev.preventDefault(); onClose(); return; }
-      if (ev.key === 'ArrowRight' && index < images.length - 1) { ev.preventDefault(); setIndex(i => Math.min(images.length - 1, i + 1)); }
-      if (ev.key === 'ArrowLeft' && index > 0) { ev.preventDefault(); setIndex(i => Math.max(0, i - 1)); }
+      if (ev.key === 'ArrowRight') { ev.preventDefault(); setIndex(i => Math.min(images.length - 1, i + 1)); }
+      if (ev.key === 'ArrowLeft') { ev.preventDefault(); setIndex(i => Math.max(0, i - 1)); }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [index, images.length, onClose]);
+  }, [images.length, onClose]);
 
   if (!current) return null;
 
@@ -54,7 +54,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      // Clipboard may be unavailable in older WebViews; the prompt remains selectable.
+      // Clipboard may be unavailable in older WebViews.
     }
   };
 
@@ -67,109 +67,213 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.92)',
+        background: `rgba(0,0,0,${visible ? 0.88 : 0})`,
+        backdropFilter: visible ? 'blur(6px)' : 'none',
+        WebkitBackdropFilter: visible ? 'blur(6px)' : 'none',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1000,
+        transition: 'background 0.18s ease, backdrop-filter 0.18s ease',
       }}
     >
-      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, maxWidth: '92vw', maxHeight: '92vh' }}>
-        {dataUrl
-          ? <img src={dataUrl} alt={current.alt} style={{ maxWidth: '92vw', maxHeight: '78vh', objectFit: 'contain', borderRadius: 4 }} />
-          : <div style={{ color: 'rgba(255,255,255,0.6)', padding: 40 }}>Loading…</div>}
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={onClose}
+        title="Close"
+        aria-label="Close"
+        style={{
+          position: 'fixed',
+          top: 16,
+          right: 20,
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          border: '1px solid rgba(255,255,255,0.2)',
+          background: 'rgba(0,0,0,0.5)',
+          color: 'rgba(255,255,255,0.85)',
+          fontSize: 20,
+          lineHeight: 1,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1001,
+        }}
+      >×</button>
 
-        {images.length > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18, color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>
-            <button
-              type="button"
-              onClick={() => setIndex(i => Math.max(0, i - 1))}
-              disabled={index === 0}
-              style={lbBtn}
-            >‹</button>
-            <span>{index + 1} / {images.length}</span>
-            <button
-              type="button"
-              onClick={() => setIndex(i => Math.min(images.length - 1, i + 1))}
-              disabled={index === images.length - 1}
-              style={lbBtn}
-            >›</button>
-          </div>
-        )}
+      {/* Prev/Next arrows */}
+      {images.length > 1 && index > 0 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setIndex(i => Math.max(0, i - 1)); }}
+          aria-label="Previous image"
+          style={navArrow('left')}
+        >‹</button>
+      )}
+      {images.length > 1 && index < images.length - 1 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setIndex(i => Math.min(images.length - 1, i + 1)); }}
+          aria-label="Next image"
+          style={navArrow('right')}
+        >›</button>
+      )}
 
+      {/* Main content */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 14,
+          maxWidth: '90vw',
+          maxHeight: '95vh',
+          opacity: visible ? 1 : 0,
+          transform: visible ? 'scale(1)' : 'scale(0.97)',
+          transition: 'opacity 0.18s ease, transform 0.18s ease',
+        }}
+      >
+        {/* Image */}
+        <div style={{
+          position: 'relative',
+          borderRadius: 8,
+          overflow: 'hidden',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+          background: 'rgba(255,255,255,0.04)',
+          minWidth: 200,
+          minHeight: 100,
+        }}>
+          {dataUrl
+            ? <img
+                src={dataUrl}
+                alt={current.alt}
+                style={{ display: 'block', maxWidth: '88vw', maxHeight: '68vh', objectFit: 'contain' }}
+              />
+            : <div style={{ width: 320, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+                Loading…
+              </div>}
+
+          {images.length > 1 && (
+            <div style={{
+              position: 'absolute',
+              bottom: 10,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: 'rgba(0,0,0,0.55)',
+              backdropFilter: 'blur(4px)',
+              borderRadius: 12,
+              padding: '3px 10px',
+              color: 'rgba(255,255,255,0.8)',
+              fontSize: 12,
+              pointerEvents: 'none',
+            }}>
+              {index + 1} / {images.length}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom panel */}
         <div style={promptPanel}>
           {prompt && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Prompt</span>
-                <button type="button" onClick={copyPrompt} style={lbBtn}>{copied ? 'Copied' : 'Copy prompt'}</button>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Prompt</div>
+                <div style={promptText}>{prompt}</div>
               </div>
-              <textarea
-                aria-label="Full prompt"
-                readOnly
-                value={prompt}
-                style={promptText}
-                onClick={e => e.currentTarget.select()}
-              />
-            </>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 20, flexShrink: 0 }}>
+                <button type="button" onClick={copyPrompt} style={actionBtn}>
+                  {copied ? '✓ Copied' : 'Copy prompt'}
+                </button>
+                <button type="button" onClick={() => { void bridge.openWorkspacePath(current.path); }} style={actionBtn}>
+                  Open in OS
+                </button>
+              </div>
+            </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => { void bridge.openWorkspacePath(current.path); }}
-              style={lbBtn}
-            >Open in OS</button>
-            <button type="button" onClick={onClose} style={lbBtn}>Close</button>
-          </div>
+          {!prompt && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => { void bridge.openWorkspacePath(current.path); }} style={actionBtn}>
+                Open in OS
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 });
 
-const lbBtn: React.CSSProperties = {
+function navArrow(side: 'left' | 'right'): React.CSSProperties {
+  return {
+    position: 'fixed',
+    top: '50%',
+    [side]: 16,
+    transform: 'translateY(-50%)',
+    width: 44,
+    height: 72,
+    borderRadius: 8,
+    border: '1px solid rgba(255,255,255,0.15)',
+    background: 'rgba(0,0,0,0.45)',
+    backdropFilter: 'blur(4px)',
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 28,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1001,
+    transition: 'background 0.12s',
+  };
+}
+
+const actionBtn: React.CSSProperties = {
   background: 'rgba(255,255,255,0.08)',
-  color: 'rgba(255,255,255,0.9)',
-  border: '1px solid rgba(255,255,255,0.18)',
-  borderRadius: 4,
-  padding: '4px 12px',
-  fontSize: 13,
+  color: 'rgba(255,255,255,0.85)',
+  border: '1px solid rgba(255,255,255,0.15)',
+  borderRadius: 6,
+  padding: '6px 14px',
+  fontSize: 12,
   cursor: 'pointer',
+  whiteSpace: 'nowrap',
 };
 
 const promptPanel: React.CSSProperties = {
-  display: 'grid',
-  gap: 10,
-  width: 'min(760px, 88vw)',
-  padding: 12,
-  border: '1px solid rgba(255,255,255,0.14)',
-  borderRadius: 8,
-  background: 'rgba(10,10,12,0.72)',
-  boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+  width: 'min(720px, 88vw)',
+  padding: '14px 16px',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 10,
+  background: 'rgba(8,8,10,0.8)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
 };
 
 const promptText: React.CSSProperties = {
   width: '100%',
-  minHeight: 76,
-  maxHeight: 150,
-  resize: 'vertical',
-  border: '1px solid rgba(255,255,255,0.12)',
+  height: 90,
+  overflow: 'hidden',
+  display: '-webkit-box',
+  WebkitLineClamp: 5,
+  WebkitBoxOrient: 'vertical',
+  border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 6,
-  background: 'rgba(255,255,255,0.05)',
-  color: 'rgba(255,255,255,0.9)',
-  padding: '10px 12px',
+  background: 'rgba(255,255,255,0.04)',
+  color: 'rgba(255,255,255,0.85)',
+  padding: '8px 10px',
   fontFamily: '"Geist Mono", ui-monospace, monospace',
   fontSize: 12,
   lineHeight: 1.5,
+  boxSizing: 'border-box',
+  wordBreak: 'break-word',
 };
 
 const cache = new Map<string, string>();
 
 async function loadImage(bridge: BridgeStore, path: string): Promise<string | null> {
-  // Older history entries may still contain hosted ComfyUI URLs. Convert them
-  // to data URLs before rendering so the viewer is not at the mercy of direct
-  // localhost image policies.
   if (/^https?:\/\//i.test(path)) return loadHostedImage(path);
   const cached = cache.get(path);
   if (cached) return cached;

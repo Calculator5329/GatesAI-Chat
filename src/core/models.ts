@@ -82,19 +82,36 @@ export const MODELS: Model[] = [
   { id: 'local-default',          name: 'Local model',                    vendor: 'Local', providerId: 'local', providerModelId: 'local-model' },
 
   // ─────────────────────────────────────────────────────────────────
-  // Direct image — synthetic "model" that bypasses any LLM and sends
-  // the user's prompt straight to ComfyUI. Useful offline (no wifi):
-  // pick this from the model menu and your message becomes the image
-  // prompt; no chat round-trip happens. Honors the configured Local →
-  // image-gen settings (preset, upscale factor, filename prefix).
+  // Direct image — synthetic "models" that bypass any LLM and send the
+  // user's prompt straight to ComfyUI. Useful offline (no wifi): pick
+  // one from the model menu and your message becomes the image prompt;
+  // no chat round-trip happens.
   // ─────────────────────────────────────────────────────────────────
   {
+    id: 'image-direct-comfy-draft',
+    name: 'Draft image — SDXL',
+    vendor: 'Local image',
+    providerId: 'local-image',
+    providerModelId: 'comfy-direct-draft',
+    description: 'Fast SDXL Lightning draft render. Native size, no upscale, no LLM call.',
+    supportsTools: false,
+  },
+  {
     id: 'image-direct-comfy',
-    name: 'ComfyUI (direct, no chat)',
+    name: 'Normal image — Flux 2 Klein',
     vendor: 'Local image',
     providerId: 'local-image',
     providerModelId: 'comfy-direct',
-    description: 'Send the prompt straight to ComfyUI. No LLM call, no internet required.',
+    description: 'Default FLUX.2 Klein render. Native size, no upscale, no LLM call.',
+    supportsTools: false,
+  },
+  {
+    id: 'image-direct-comfy-upscale',
+    name: 'Upscale image — Flux 2 Klein 2x',
+    vendor: 'Local image',
+    providerId: 'local-image',
+    providerModelId: 'comfy-direct-upscale',
+    description: 'FLUX.2 Klein render with a 2x hires-fix refinement pass. No LLM call.',
     supportsTools: false,
   },
 ];

@@ -36,12 +36,24 @@ describe('curated model catalog', () => {
     expect(ids).not.toContain('or-gpt-5.5-nano');
   });
 
-  it('includes the offline direct-image model', () => {
+  it('includes the offline direct-image mode models', () => {
     expect(MODELS).toEqual(expect.arrayContaining([
       expect.objectContaining({
         id: 'image-direct-comfy',
         providerId: 'local-image',
         providerModelId: 'comfy-direct',
+        supportsTools: false,
+      }),
+      expect.objectContaining({
+        id: 'image-direct-comfy-draft',
+        providerId: 'local-image',
+        providerModelId: 'comfy-direct-draft',
+        supportsTools: false,
+      }),
+      expect.objectContaining({
+        id: 'image-direct-comfy-upscale',
+        providerId: 'local-image',
+        providerModelId: 'comfy-direct-upscale',
         supportsTools: false,
       }),
     ]));

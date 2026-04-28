@@ -24,6 +24,7 @@ import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
 import type { ToolContext } from '../services/tools/types';
+import type { LocalComfyMode } from '../services/image/types';
 
 type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime'>;
 
@@ -48,6 +49,18 @@ const COMPACTION_INSTRUCTION = [
   'Preserve workspace paths, schemas, counts, date ranges, and migration-relevant facts.',
   'Return concise plain text only. No markdown preamble.',
 ].join(' ');
+
+function directImageComfyMode(providerModelId: string | undefined): LocalComfyMode {
+  switch (providerModelId) {
+    case 'comfy-direct-draft':
+      return 'draft';
+    case 'comfy-direct-upscale':
+      return 'upscale';
+    case 'comfy-direct':
+    default:
+      return 'normal';
+  }
+}
 
 /**
  * Owns the chat domain: threads, the active selection, and live streaming.
@@ -944,6 +957,8 @@ export class ChatStore {
       }
 
       const snapshot = imageGen.toBackendConfig();
+      const activeModel = this.registry.findById(thread.modelId);
+      const comfyMode = directImageComfyMode(activeModel?.providerModelId);
       const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'render';
       const { jobId, count } = imageJobs.enqueue({
         threadId: thread.id,
@@ -956,6 +971,7 @@ export class ChatStore {
         width: 1024,
         height: 1024,
         backend: snapshot.primary,
+        comfyMode,
         filenamePrefix: slug,
       });
 

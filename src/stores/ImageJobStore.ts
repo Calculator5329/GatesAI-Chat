@@ -13,7 +13,7 @@ import type {
   ImageJobInput,
 } from '../services/image/jobs/types';
 import type { ImageBackendId } from '../services/image/types';
-import { bytesToBase64, safeText } from '../services/image/types';
+import { bytesToBase64, comfySettingsForMode, safeText } from '../services/image/types';
 import {
   clearImageJobsHistory,
   loadImageJobsHistory,
@@ -212,10 +212,14 @@ export class ImageJobStore {
   ): Promise<void> {
     const snapshot = deps.imageGen.toBackendConfig();
     const config: ImageBackendConfig = { ...snapshot };
+    if (job.backend === 'local-comfy' && job.comfyMode) {
+      Object.assign(config, comfySettingsForMode(job.comfyMode));
+    }
 
     if (
-      snapshot.primary === 'local-comfy'
-      && snapshot.comfyQualityPreset !== 'quick'
+      config.primary === 'local-comfy'
+      && config.comfyQualityPreset !== 'quick'
+      && !job.comfyMode
       && deps.imageGen.comfyWorkflowPath
     ) {
       const template = await loadComfyWorkflow(deps.bridge, deps.imageGen.comfyWorkflowPath);

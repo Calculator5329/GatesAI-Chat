@@ -1,4 +1,4 @@
-import type { ImageBackendId } from '../types';
+import type { ImageBackendId, LocalComfyMode } from '../types';
 
 export type ImageJobStatus = 'pending' | 'running' | 'done' | 'failed' | 'cancelled';
 
@@ -10,6 +10,8 @@ export interface ImageJobInput {
   height: number;
   seed?: number;
   backend: ImageBackendId;
+  /** Direct-image ComfyUI mode override, independent from Local defaults. */
+  comfyMode?: LocalComfyMode;
   /**
    * Slug-form filename hint passed from the AI tool call (or derived from
    * the prompt). Local backends use this to control where the file lands

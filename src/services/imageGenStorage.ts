@@ -55,7 +55,7 @@ export interface ImageGenConfig {
 export const DEFAULT_IMAGE_GEN_CONFIG: ImageGenConfig = {
   backend: 'local-comfy',
   a1111BaseUrl: 'http://127.0.0.1:7860',
-  comfyQualityPreset: 'quick',
+  comfyQualityPreset: 'full',
   comfyUpscaleFactor: 1,
   promptEnhancement: 'off',
   promptEnhancementOptIn: false,
@@ -97,13 +97,15 @@ function normalizeImageGenConfig(config: ImageGenConfig): ImageGenConfig {
   if (next.backend !== 'local-comfy' && next.backend !== 'local-a1111') {
     next.backend = 'local-comfy';
   }
-  // Migrate legacy preset names. The values were renamed for clarity:
-  //   'final' -> 'full' (the upscale-capable Klein workflow)
-  //   'draft' -> 'quick' (the SDXL Lightning workflow)
-  // Stored snapshots from before the rename still load cleanly.
+  // Migrate legacy/default preset names into the current normal default.
+  // Direct-image Draft is now selected from the model picker instead of
+  // being the stored Local default.
   const preset = next.comfyQualityPreset as unknown as string | undefined;
   if (preset === 'final') next.comfyQualityPreset = 'full';
-  else if (preset === 'draft') next.comfyQualityPreset = 'quick';
+  else if (preset === 'draft' || preset === 'quick') {
+    next.comfyQualityPreset = 'full';
+    next.comfyUpscaleFactor = 1;
+  }
   else if (preset !== 'full' && preset !== 'quick') {
     next.comfyQualityPreset = DEFAULT_IMAGE_GEN_CONFIG.comfyQualityPreset;
   }

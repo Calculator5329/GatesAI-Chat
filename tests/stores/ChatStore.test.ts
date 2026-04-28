@@ -617,6 +617,41 @@ describe('ChatStore', () => {
     });
   });
 
+  it.each([
+    ['image-direct-comfy-draft', 'draft'],
+    ['image-direct-comfy', 'normal'],
+    ['image-direct-comfy-upscale', 'upscale'],
+  ] as const)('direct-image model %s enqueues the matching ComfyUI mode', async (modelId, comfyMode) => {
+    const { chat } = setup();
+    const threadId = chat.createThread();
+    chat.setThreadModel(threadId, modelId);
+    const enqueued: Parameters<NonNullable<ToolContext['imageJobs']>['enqueue']>[0][] = [];
+    chat.setToolStoresProvider(() => ({
+      imageGen: {
+        backend: 'local-comfy',
+        comfyWorkflowPath: undefined,
+        getCredential: () => 'http://127.0.0.1:8188',
+        toBackendConfig: () => ({
+          primary: 'local-comfy',
+          comfyBaseUrl: 'http://127.0.0.1:8188',
+          comfyQualityPreset: 'quick',
+          comfyUpscaleFactor: 3,
+        }),
+      },
+      imageJobs: {
+        enqueue: (input) => {
+          enqueued.push(input);
+          return { jobId: 'job-1', count: input.count };
+        },
+      },
+    }));
+
+    chat.sendMessage('a tiny cabin in snow');
+    await flush(10);
+
+    expect(enqueued[0]).toEqual(expect.objectContaining({ comfyMode }));
+  });
+
   it('direct-image token usage counts only the pending prompt', () => {
     const { chat } = setup();
     const threadId = chat.createThread();
