@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-04-27 — `artifact` tool
+
+- Add `artifact` tool: model emits self-contained interactive HTML pages that render inline in chat as sandboxed iframes (`sandbox="allow-scripts allow-popups"`) with a `window.gates` bridge for workspace I/O. Versions are persisted under `workspace/artifacts/<id>/v<n>.html`; `action: 'update'` bumps the version and the chat message references the artifact by id+version.
+
 ## 2026-04-27 — Merge `feature/html-artifacts` to `master`
 
 - Fast-forward merged **`feature/html-artifacts`** into **`master`** and pushed to **`origin`**. **`.github/workflows/build-linux.yml`** is now on the default branch so GitHub Actions shows **Build Linux AppImage** (manual `workflow_dispatch` or push tags matching `v*`).

@@ -52,6 +52,11 @@ type ToolResultArtifact =
       kind: 'image-job';
       jobId: string;    // reference into ImageJobStore
       count: number;    // expected number of images this job produces
+    }
+  | {
+      kind: 'artifact';
+      id: string;       // artifact id under workspace/artifacts/<id>/
+      version: number;  // which v<n>.html this message rendered
     };
 
 interface Thread {

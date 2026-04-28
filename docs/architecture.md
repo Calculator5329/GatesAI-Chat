@@ -192,6 +192,35 @@ parsing the human-facing result string.
 `content` onto the assistant message's `toolResults`, and stashes
 `artifacts` next to it when present.
 
+## Artifacts
+
+An artifact is a self-contained interactive HTML document the model emits via
+the `artifact` tool — a single page with inline `<style>`/`<script>` (and
+optional CDN imports) that renders inline in the chat as a sandboxed iframe.
+
+Storage layout under the bridge workspace:
+
+```
+workspace/artifacts/<id>/
+  meta.json        # id, title, current version, history
+  v1.html          # initial version
+  v2.html          # subsequent versions, all retained
+  data/            # artifact-owned scratch (writable from inside the iframe)
+```
+
+`ArtifactCard` mounts a sandboxed `<iframe srcdoc>` with
+`sandbox="allow-scripts allow-popups"`. The `srcdoc` is the artifact's HTML
+prepended with a preamble script that wires `window.gates` through
+`postMessage` to a host-side router. Through the bridge,
+`gates.readFile` / `gates.listDir` are workspace-wide and read-only;
+`gates.writeFile` is restricted to the calling artifact's own
+`workspace/artifacts/<id>/data/` folder.
+
+`artifact({ action: 'update', id, html })` writes a new `v<n>.html`, bumps
+`meta.json`, and the assistant's tool result references the artifact by
+`{ kind: 'artifact', id, version }` so the chat message renders the exact
+version produced by that turn.
+
 ## Image jobs
 
 `image_generate` is decoupled from the chat turn. The tool enqueues an
