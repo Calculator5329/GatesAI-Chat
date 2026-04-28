@@ -11,6 +11,7 @@ import type { BridgeStore } from './BridgeStore';
 import type { ExecStreamStore } from './ExecStreamStore';
 import type { ImageGenStore } from './ImageGenStore';
 import type { ImageJobStore } from './ImageJobStore';
+import type { ArtifactStore } from './ArtifactStore';
 import type { OllamaStore } from './OllamaStore';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
 
@@ -68,6 +69,10 @@ export function useImageGenStore(): ImageGenStore {
 
 export function useImageJobStore(): ImageJobStore {
   return useRootStore().imageJobs;
+}
+
+export function useArtifactStore(): ArtifactStore {
+  return useRootStore().artifacts;
 }
 
 export function useOllamaStore(): OllamaStore {
