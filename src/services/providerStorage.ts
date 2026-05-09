@@ -1,32 +1,31 @@
 import type { ProviderConfigs } from '../core/llm';
+import { jsonSlot } from './storage/jsonSlot';
 
-const KEY = 'gatesai.providers.v1';
+/**
+ * Owns the provider-credentials slot. The parser is the migration boundary
+ * for the OpenRouter-only foundation: any historical shape (nested
+ * `openrouter`, top-level `openrouterApiKey`, `apiKeys.openRouter`, etc.)
+ * is reduced to the canonical `{ openrouter: { apiKey } }`. The legacy
+ * `gatesai.routing.v1` slot is cleaned up on every load so it doesn't
+ * resurface.
+ */
 const ROUTING_KEY = 'gatesai.routing.v1';
 
-export function loadProviderConfigs(): ProviderConfigs {
+const slot = jsonSlot<ProviderConfigs>('gatesai.providers.v1', raw => {
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as ProviderConfigs;
-    if (!parsed || typeof parsed !== 'object') return {};
-    localStorage.removeItem(ROUTING_KEY);
-    const next: ProviderConfigs = {};
-    const openrouterKey = extractOpenRouterKey(parsed);
-    if (openrouterKey) next.openrouter = { apiKey: openrouterKey };
-    return next;
-  } catch {
-    return {};
-  }
-}
-
-export function saveProviderConfigs(configs: ProviderConfigs): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(configs));
     localStorage.removeItem(ROUTING_KEY);
   } catch {
     // ignore quota / privacy-mode failures
   }
-}
+  if (!raw || typeof raw !== 'object') return {};
+  const next: ProviderConfigs = {};
+  const openrouterKey = extractOpenRouterKey(raw);
+  if (openrouterKey) next.openrouter = { apiKey: openrouterKey };
+  return next;
+});
+
+export const loadProviderConfigs = slot.load;
+export const saveProviderConfigs = slot.save;
 
 function extractOpenRouterKey(parsed: unknown): string | undefined {
   if (!parsed || typeof parsed !== 'object') return undefined;

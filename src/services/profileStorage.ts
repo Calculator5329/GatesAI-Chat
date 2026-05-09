@@ -4,31 +4,20 @@
  * provider keys, so it survives chat history clears.
  */
 
+import { jsonSlot } from './storage/jsonSlot';
+
 export interface UserProfileSnapshot {
   bio: string;
   defaultSystemPrompt: string;
 }
 
-const KEY = 'gatesai.profile.v1';
+const slot = jsonSlot<UserProfileSnapshot>('gatesai.profile.v1', raw => {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<UserProfileSnapshot>;
+  return {
+    bio: typeof r.bio === 'string' ? r.bio : '',
+    defaultSystemPrompt: typeof r.defaultSystemPrompt === 'string' ? r.defaultSystemPrompt : '',
+  };
+});
 
-export function loadProfile(): UserProfileSnapshot {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return { bio: '', defaultSystemPrompt: '' };
-    const parsed = JSON.parse(raw) as Partial<UserProfileSnapshot>;
-    return {
-      bio: typeof parsed.bio === 'string' ? parsed.bio : '',
-      defaultSystemPrompt: typeof parsed.defaultSystemPrompt === 'string' ? parsed.defaultSystemPrompt : '',
-    };
-  } catch {
-    return { bio: '', defaultSystemPrompt: '' };
-  }
-}
-
-export function saveProfile(snap: UserProfileSnapshot): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(snap));
-  } catch {
-    // ignore quota / privacy-mode failures
-  }
-}
+export const loadProfile = slot.load;
+export const saveProfile = slot.save;

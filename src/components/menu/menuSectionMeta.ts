@@ -4,7 +4,7 @@ import { AgentSection } from './sections/Agent';
 import { WorkspaceSection } from './sections/Workspace';
 import { SettingsSection } from './sections/Settings';
 import { LocalSection } from './sections/Local';
-import { ApiSection } from './sections/Api';
+import { ApiSection } from './sections/api/ApiSection';
 import { GallerySection } from './sections/Gallery';
 
 export interface MenuSectionMeta {

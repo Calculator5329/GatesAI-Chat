@@ -1,8 +1,6 @@
 import { DEFAULT_OLLAMA_BASE_URL } from '../llm/ollama';
 
 export const DEFAULT_COMFY_BASE_URL = 'http://127.0.0.1:8188';
-export const OLLAMA_HEALTH_URL = 'http://127.0.0.1:11434/api/version';
-export const COMFY_HEALTH_URL = `${DEFAULT_COMFY_BASE_URL}/system_stats`;
 
 const KEY = 'gatesai.local.v1';
 

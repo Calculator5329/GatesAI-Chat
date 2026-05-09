@@ -1,4 +1,5 @@
 import type { CompletedJob } from './image/jobs/types';
+import { jsonSlot } from './storage/jsonSlot';
 
 export const IMAGE_JOBS_KEY = 'gatesai.imagejobs.v1';
 
@@ -6,37 +7,18 @@ interface PersistedShape {
   history: CompletedJob[];
 }
 
-function isPersistedShape(v: unknown): v is PersistedShape {
-  if (!v || typeof v !== 'object') return false;
-  const arr = (v as { history?: unknown }).history;
-  return Array.isArray(arr);
-}
+const slot = jsonSlot<PersistedShape>(IMAGE_JOBS_KEY, raw => {
+  if (!raw || typeof raw !== 'object') return { history: [] };
+  const arr = (raw as { history?: unknown }).history;
+  return { history: Array.isArray(arr) ? (arr as CompletedJob[]) : [] };
+});
 
 export function loadImageJobsHistory(): CompletedJob[] {
-  try {
-    const raw = localStorage.getItem(IMAGE_JOBS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!isPersistedShape(parsed)) return [];
-    return parsed.history;
-  } catch {
-    return [];
-  }
+  return slot.load().history;
 }
 
 export function saveImageJobsHistory(history: CompletedJob[]): void {
-  try {
-    const payload: PersistedShape = { history };
-    localStorage.setItem(IMAGE_JOBS_KEY, JSON.stringify(payload));
-  } catch {
-    // ignore quota / privacy-mode failures
-  }
+  slot.save({ history });
 }
 
-export function clearImageJobsHistory(): void {
-  try {
-    localStorage.removeItem(IMAGE_JOBS_KEY);
-  } catch {
-    // ignore
-  }
-}
+export const clearImageJobsHistory = slot.clear;

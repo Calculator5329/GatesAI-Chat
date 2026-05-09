@@ -1,14 +1,33 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../../core/styleTokens';
-import type { PROVIDERS } from '../../../../core/providers';
+import type { ProviderId } from '../../../../core/llm';
 import { useProviderStore } from '../../../../stores/context';
 import { Card, Pill, Input, Button, SecretKeyField } from '../../../ui';
 import { ProviderAvatar } from './ProviderAvatar';
 import { OpenRouterCatalogRow } from './OpenRouterCatalogRow';
 
+export interface ProviderInfo {
+  id: ProviderId;
+  name: string;
+  desc: string;
+  needsKey: boolean;
+  needsBaseUrl: boolean;
+  defaultBaseUrl?: string;
+  keyUrl?: string;
+}
+
+export const OPENROUTER_PROVIDER_INFO: ProviderInfo = {
+  id: 'openrouter',
+  name: 'OpenRouter',
+  desc: 'Unified gateway — 300+ models',
+  needsKey: true,
+  needsBaseUrl: false,
+  keyUrl: 'https://openrouter.ai/keys',
+};
+
 interface ProviderCardProps {
-  info: typeof PROVIDERS[number];
+  info: ProviderInfo;
   providers: ReturnType<typeof useProviderStore>;
 }
 

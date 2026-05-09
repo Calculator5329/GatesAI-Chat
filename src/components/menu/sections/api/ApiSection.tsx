@@ -1,9 +1,8 @@
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../../core/styleTokens';
-import { PROVIDERS } from '../../../../core/providers';
 import { useProviderStore } from '../../../../stores/context';
 import { Card } from '../../../ui';
-import { ProviderCard } from './ProviderCard';
+import { ProviderCard, OPENROUTER_PROVIDER_INFO } from './ProviderCard';
 
 export const ApiSection = observer(function ApiSection() {
   const providers = useProviderStore();
@@ -21,9 +20,7 @@ export const ApiSection = observer(function ApiSection() {
         </div>
       </Card>
 
-      {PROVIDERS.map(p => (
-        <ProviderCard key={p.id} info={p} providers={providers} />
-      ))}
+      <ProviderCard info={OPENROUTER_PROVIDER_INFO} providers={providers} />
     </>
   );
 });

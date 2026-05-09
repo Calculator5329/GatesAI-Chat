@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LlmRouter, NoProviderConfiguredError } from '../../src/services/llm';
+import { LlmRouter, NoProviderConfiguredError } from '../../src/services/llm/router';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
 
 const reg = () => new ModelRegistry();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { observer } from 'mobx-react-lite';
 import remarkGfm from 'remark-gfm';
@@ -53,16 +53,22 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
   const imageJobs = useImageJobStore();
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const isUser = message.role === 'user';
-  const when = message.createdAt
-    ? new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : '';
+  const when = useMemo(
+    () => message.createdAt
+      ? new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : '',
+    [message.createdAt],
+  );
   const headLabel = isUser
     ? `You${when ? ' · ' + when : ''}`
     : `${modelName ?? 'Assistant'}${when ? ' · ' + when : ''}`;
 
   const calls = !isUser ? message.toolCalls ?? [] : [];
   const results = !isUser ? message.toolResults ?? [] : [];
-  const resultByCallId = new Map(results.map(r => [r.toolCallId, r]));
+  const resultByCallId = useMemo(
+    () => new Map(results.map(r => [r.toolCallId, r])),
+    [results],
+  );
   const hasContent = message.content.trim().length > 0;
   const hasCalls = calls.length > 0;
   const userContent = isUser && message.role === 'user' ? resolveUserAttachments(message) : null;

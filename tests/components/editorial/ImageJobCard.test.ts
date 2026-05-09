@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { pickCardVariant, __imageCacheTestApi } from '../../../src/components/editorial/ImageJobCard';
+import { pickCardVariant } from '../../../src/components/editorial/ImageJobCard';
+import { __imageCacheTestApi } from '../../../src/components/editorial/useImageDataUrl';
 import type { ImageJob, CompletedJob } from '../../../src/services/image/jobs/types';
 
 const baseJob: ImageJob = {

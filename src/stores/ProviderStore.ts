@@ -1,10 +1,7 @@
 import { autorun, makeAutoObservable, toJS } from 'mobx';
 import type { ProviderConfig, ProviderConfigs, ProviderId } from '../core/llm';
-import { LlmRouter } from '../services/llm';
-import {
-  loadProviderConfigs,
-  saveProviderConfigs,
-} from '../services/providerStorage';
+import { LlmRouter } from '../services/llm/router';
+import { loadProviderConfigs, saveProviderConfigs } from '../services/providerStorage';
 import type { ModelRegistry } from './ModelRegistry';
 
 type ProviderConfigOverlay = () => ProviderConfigs;
@@ -97,8 +94,7 @@ export class ProviderStore {
     // we add/remove inner keys (`configs[id] = …`), so we must also subscribe
     // to the key set of the inner object. Without this, observer components
     // subscribed to hasUsableProvider would not re-render when the user adds
-    // a key. The `void` reads are intentional — JS evaluators don't elide
-    // side-effecting Proxy access — and they document the why.
+    // a key.
     void this.configs;
     void Object.keys(this.configs).length;
     return this.router.canRoute();

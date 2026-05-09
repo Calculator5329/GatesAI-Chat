@@ -5,7 +5,7 @@ import { ProviderStore } from '../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../src/stores/UserProfileStore';
 import type { LlmProvider, LlmRequest } from '../../src/core/llm';
-import type { LlmRouter } from '../../src/services/llm';
+import type { LlmRouter } from '../../src/services/llm/router';
 import type { ToolContext } from '../../src/services/tools/types';
 import { MockProvider, flush, installMockProvider } from '../helpers/mockProvider';
 import { clearAppStorage } from '../helpers/storage';
@@ -461,6 +461,9 @@ describe('ChatStore', () => {
     const id = chat.createThread();
     chat.sendMessage('save me');
     await flush(20);
+    // ChatStore throttles snapshot writes to ~250ms; wait wall-clock for
+    // the trailing flush before re-reading from localStorage.
+    await new Promise(resolve => setTimeout(resolve, 320));
 
     // Build a brand-new store; it should pick up the snapshot.
     const registry2 = new ModelRegistry();

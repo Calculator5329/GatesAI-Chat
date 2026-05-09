@@ -128,14 +128,20 @@ export class BridgeStore {
       if (!res.ok) throw new Error(`health ${res.status}`);
       const data = (await res.json()) as HealthResponse;
       const wasOffline = this.state !== 'online';
+      const nextAllowlist = data.allowlist ?? [];
       runInAction(() => {
-        this.state = 'online';
-        this.version = data.version;
-        this.workspaceRoot = data.workspace_root;
-        this.platform = data.platform;
-        this.allowlist = data.allowlist ?? [];
+        // Diff-before-assign: this poll fires every 5s. Touching observable
+        // fields when nothing changed re-renders every observer of the
+        // bridge state — a frequent waste on a steady connection. Only
+        // `lastSeenAt` (timestamp) is updated unconditionally; downstream
+        // consumers don't read it.
+        if (this.state !== 'online') this.state = 'online';
+        if (this.version !== data.version) this.version = data.version;
+        if (this.workspaceRoot !== data.workspace_root) this.workspaceRoot = data.workspace_root;
+        if (this.platform !== data.platform) this.platform = data.platform;
+        if (!sameStringArray(this.allowlist, nextAllowlist)) this.allowlist = nextAllowlist;
         this.lastSeenAt = Date.now();
-        this.lastError = undefined;
+        if (this.lastError !== undefined) this.lastError = undefined;
       });
       if (wasOffline) {
         try {
@@ -158,4 +164,10 @@ export class BridgeStore {
       if (wasOnline) this.client.disconnect();
     }
   }
+}
+
+function sameStringArray(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useBridgeStore } from '../../stores/context';
-import type { BridgeStore } from '../../stores/BridgeStore';
+import { useImageDataUrl } from './useImageDataUrl';
 
 interface LightboxImage { path: string; alt: string }
 
@@ -16,7 +16,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
   const bridge = useBridgeStore();
   const [index, setIndex] = useState(startIndex);
   const current = images[index];
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const { src: dataUrl } = useImageDataUrl(current?.path ?? '');
   const [copied, setCopied] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -24,16 +24,6 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
     const t = requestAnimationFrame(() => setVisible(true));
     return () => cancelAnimationFrame(t);
   }, []);
-
-  useEffect(() => {
-    if (!current) return;
-    let cancelled = false;
-    setDataUrl(null);
-    void loadImage(bridge, current.path).then(url => {
-      if (!cancelled) setDataUrl(url);
-    });
-    return () => { cancelled = true; };
-  }, [bridge, current]);
 
   useEffect(() => {
     function onKey(ev: KeyboardEvent) {
@@ -275,39 +265,3 @@ const promptText: React.CSSProperties = {
   outline: 'none',
 };
 
-const cache = new Map<string, string>();
-
-async function loadImage(bridge: BridgeStore, path: string): Promise<string | null> {
-  if (/^https?:\/\//i.test(path)) return loadHostedImage(path);
-  const cached = cache.get(path);
-  if (cached) return cached;
-  const result = await bridge.readAttachmentBase64(path);
-  if (!result) return null;
-  const url = `data:${result.mime};base64,${result.base64}`;
-  cache.set(path, url);
-  return url;
-}
-
-async function loadHostedImage(url: string): Promise<string | null> {
-  const cached = cache.get(url);
-  if (cached) return cached;
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) return null;
-    const mime = resp.headers.get('content-type')?.split(';')[0] || 'image/png';
-    const dataUrl = `data:${mime};base64,${bytesToBase64(new Uint8Array(await resp.arrayBuffer()))}`;
-    cache.set(url, dataUrl);
-    return dataUrl;
-  } catch {
-    return null;
-  }
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
-}

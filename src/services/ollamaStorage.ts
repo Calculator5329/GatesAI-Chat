@@ -1,6 +1,5 @@
 import type { Model } from '../core/types';
-
-const KEY = 'gatesai.ollama.v1';
+import { jsonSlot } from './storage/jsonSlot';
 
 export interface OllamaPersistedConfig {
   apiKey?: string;
@@ -16,21 +15,11 @@ export const OLLAMA_DEFAULTS: OllamaPersistedConfig = {
   lastRefreshAt: null,
 };
 
-export function loadOllamaConfig(): OllamaPersistedConfig {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return { ...OLLAMA_DEFAULTS };
-    const parsed = JSON.parse(raw) as Partial<OllamaPersistedConfig>;
-    return { ...OLLAMA_DEFAULTS, ...(parsed && typeof parsed === 'object' ? parsed : {}) };
-  } catch {
-    return { ...OLLAMA_DEFAULTS };
-  }
-}
+const slot = jsonSlot<OllamaPersistedConfig>('gatesai.ollama.v1', raw => {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  return { ...OLLAMA_DEFAULTS, ...r };
+});
 
-export function saveOllamaConfig(c: OllamaPersistedConfig): void {
-  try { localStorage.setItem(KEY, JSON.stringify(c)); } catch { /* ignore */ }
-}
-
-export function clearOllamaConfig(): void {
-  try { localStorage.removeItem(KEY); } catch { /* ignore */ }
-}
+export const loadOllamaConfig = slot.load;
+export const saveOllamaConfig = slot.save;
+export const clearOllamaConfig = slot.clear;

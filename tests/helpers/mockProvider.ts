@@ -1,6 +1,6 @@
 import type { LlmChunk, LlmProvider, LlmRequest, ProviderId } from '../../src/core/llm';
 import type { ProviderStore } from '../../src/stores/ProviderStore';
-import type { LlmRouter } from '../../src/services/llm';
+import type { LlmRouter } from '../../src/services/llm/router';
 
 /**
  * A scriptable in-memory LlmProvider for tests. Records every call and

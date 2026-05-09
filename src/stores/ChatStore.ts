@@ -145,7 +145,47 @@ export class ChatStore {
       toolStoresProvider: false,
     });
 
-    autorun(() => saveSnapshot(this.snapshot));
+    // Leading-edge + trailing-throttle the snapshot save: streaming fires
+    // thousands of observable mutations per turn; an unthrottled autorun
+    // would JSON.stringify every thread on each one. The first save runs
+    // synchronously (so a fresh-thread create persists immediately and
+    // tests can read it back without waiting), then subsequent updates
+    // are coalesced to once per FLUSH_MS. Page teardown flushes any
+    // pending save.
+    const FLUSH_MS = 250;
+    let lastSaveAt = 0;
+    let pendingSnap: ChatSnapshot | null = null;
+    let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+    const flush = (): void => {
+      if (pendingTimer) {
+        clearTimeout(pendingTimer);
+        pendingTimer = null;
+      }
+      if (pendingSnap) {
+        saveSnapshot(pendingSnap);
+        lastSaveAt = Date.now();
+        pendingSnap = null;
+      }
+    };
+    autorun(() => {
+      const snap = this.snapshot;
+      const now = Date.now();
+      const elapsed = now - lastSaveAt;
+      if (elapsed >= FLUSH_MS) {
+        if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+        pendingSnap = null;
+        saveSnapshot(snap);
+        lastSaveAt = now;
+        return;
+      }
+      pendingSnap = snap;
+      if (pendingTimer) return;
+      pendingTimer = setTimeout(flush, FLUSH_MS - elapsed);
+    });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', flush);
+      window.addEventListener('beforeunload', flush);
+    }
   }
 
   get snapshot(): ChatSnapshot {
@@ -499,9 +539,7 @@ export class ChatStore {
       let provider: LlmProvider;
       let providerModelId: string;
       try {
-        const resolved = this.providers.router.resolve(thread.modelId);
-        provider = resolved.provider;
-        providerModelId = resolved.providerModelId;
+        ({ provider, providerModelId } = this.providers.router.resolve(thread.modelId));
       } catch (err) {
         const msg = (err as Error).message;
         logEvent(thread.id, 'round.resolveError', { round, modelId: thread.modelId, error: msg });

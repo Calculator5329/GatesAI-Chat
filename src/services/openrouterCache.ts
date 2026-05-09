@@ -1,37 +1,18 @@
 import type { Model } from '../core/types';
-
-const KEY = 'gatesai.openrouter.catalog.v1';
+import { jsonSlot } from './storage/jsonSlot';
 
 export interface OpenRouterCacheSnapshot {
   fetchedAt: number;
   models: Model[];
 }
 
-export function loadOpenRouterCache(): OpenRouterCacheSnapshot | null {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<OpenRouterCacheSnapshot>;
-    if (!parsed || typeof parsed !== 'object') return null;
-    if (typeof parsed.fetchedAt !== 'number' || !Array.isArray(parsed.models)) return null;
-    return { fetchedAt: parsed.fetchedAt, models: parsed.models };
-  } catch {
-    return null;
-  }
-}
+const slot = jsonSlot<OpenRouterCacheSnapshot | null>('gatesai.openrouter.catalog.v1', raw => {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Partial<OpenRouterCacheSnapshot>;
+  if (typeof r.fetchedAt !== 'number' || !Array.isArray(r.models)) return null;
+  return { fetchedAt: r.fetchedAt, models: r.models };
+});
 
-export function saveOpenRouterCache(snap: OpenRouterCacheSnapshot): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(snap));
-  } catch {
-    // ignore quota / privacy-mode failures
-  }
-}
-
-export function clearOpenRouterCache(): void {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    // ignore
-  }
-}
+export const loadOpenRouterCache = slot.load;
+export const saveOpenRouterCache = slot.save;
+export const clearOpenRouterCache = slot.clear;
