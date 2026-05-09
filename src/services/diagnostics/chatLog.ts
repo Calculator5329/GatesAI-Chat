@@ -30,7 +30,6 @@ export function logEvent(threadId: string | null | undefined, tag: string, paylo
     ...(payload !== undefined ? { payload } : {}),
   }) + '\n';
 
-  // eslint-disable-next-line no-console
   console.log(`[log:${threadId ?? 'global'}] ${tag}`, payload ?? '');
 
   if (!deps?.isOnline) return;

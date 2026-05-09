@@ -1,124 +1,215 @@
+import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
-import { Card, Pill } from '../../ui';
+import { Card } from '../../ui';
+import { useChatStore } from '../../../stores/context';
+import { estimateTokens } from '../../../core/tokens';
 
-interface ModelUsage {
-  name: string;
-  share: number;
-  cost: number;
-  calls: number;
-}
+/**
+ * Usage is derived live from the threads currently in memory. We don't have a
+ * pricing/cost layer yet, so this page reports activity (tokens, calls,
+ * messages, threads) — never dollars. When real cost telemetry lands, the
+ * tile labels swap.
+ */
 
-const MODEL_USAGE: ModelUsage[] = [
-  { name: 'claude-sonnet-4.6', share: 0.52, cost: 24.18, calls: 138 },
-  { name: 'gpt-5.4',           share: 0.24, cost: 11.42, calls:  52 },
-  { name: 'claude-opus-4.7',   share: 0.13, cost:  9.85, calls:  11 },
-  { name: 'gemini-3.1-pro',    share: 0.07, cost:  3.30, calls:  14 },
-  { name: 'or-grok-4.20',      share: 0.04, cost:  2.09, calls:   9 },
-];
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DAYS_BACK = 30;
 
-const INVOICES: Array<[string, string, string]> = [
-  ['Mar 2026', '$52.84', 'Paid'],
-  ['Feb 2026', '$38.19', 'Paid'],
-  ['Jan 2026', '$41.02', 'Paid'],
-];
-
-const DAYS = Array.from({ length: 30 }, (_, i) => ({
-  d: i + 1,
-  cost: 0.2 + Math.sin(i / 2.4) * 0.4 + Math.random() * 0.6 + (i / 30),
-}));
-
-export function UsageSection() {
-  const max = Math.max(...DAYS.map(d => d.cost));
+export const UsageSection = observer(function UsageSection() {
+  const chat = useChatStore();
+  const stats = computeStats(chat.threads);
 
   return (
     <>
       <h1 style={tokens.h1}>Usage</h1>
-      <div style={tokens.kicker}>billing period · apr 1 — apr 30 · 9 days left</div>
+      <div style={tokens.kicker}>
+        {stats.oldest
+          ? `all-time · since ${formatDate(stats.oldest)}`
+          : 'no activity yet'}
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 36 }}>
-        <Card><div style={tokens.number}>$47.12</div><div style={tokens.numberLabel}>This month</div></Card>
-        <Card><div style={tokens.number}>1.2M</div><div style={tokens.numberLabel}>Tokens in</div></Card>
-        <Card><div style={tokens.number}>384K</div><div style={tokens.numberLabel}>Tokens out</div></Card>
-        <Card><div style={tokens.number}>218</div><div style={tokens.numberLabel}>Messages</div></Card>
+        <Card><div style={tokens.number}>{compact(stats.tokensIn)}</div><div style={tokens.numberLabel}>Tokens in</div></Card>
+        <Card><div style={tokens.number}>{compact(stats.tokensOut)}</div><div style={tokens.numberLabel}>Tokens out</div></Card>
+        <Card><div style={tokens.number}>{stats.assistantCount.toLocaleString()}</div><div style={tokens.numberLabel}>Messages</div></Card>
+        <Card><div style={tokens.number}>{stats.threadCount.toLocaleString()}</div><div style={tokens.numberLabel}>Threads</div></Card>
       </div>
 
-      <div style={tokens.section}>
-        <div style={tokens.sectionTitle}>Daily spend · last 30 days</div>
-        <Card style={{ padding: '24px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 100 }}>
-            {DAYS.map((d, i) => (
-              <div key={i}
-                title={`Day ${d.d}: $${d.cost.toFixed(2)}`}
-                style={{
-                  flex: 1,
-                  height: `${(d.cost / max) * 100}%`,
-                  background: i === DAYS.length - 1 ? 'var(--accent)' : 'rgba(255,255,255,0.15)',
-                  borderRadius: '2px 2px 0 0',
-                  minHeight: 2,
-                }} />
-            ))}
-          </div>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', marginTop: 10,
-            fontSize: 10.5, color: 'var(--text-faint)',
-            fontFamily: '"Geist Mono", monospace', letterSpacing: '0.04em',
-          }}>
-            <span>Apr 1</span><span>Apr 15</span><span>Apr 30</span>
-          </div>
-        </Card>
-      </div>
-
-      <div style={tokens.section}>
-        <div style={tokens.sectionTitle}>By model</div>
-        {MODEL_USAGE.map((m, i) => {
-          const last = i === MODEL_USAGE.length - 1;
-          return (
-            <div
-              key={m.name}
-              style={{
-                display: 'grid', gridTemplateColumns: '180px 1fr',
-                gap: 24, padding: '12px 0',
-                borderBottom: last ? 'none' : '1px solid var(--border)',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ ...tokens.mono, color: 'var(--text)' }}>{m.name}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ width: `${m.share * 100}%`, height: '100%', background: 'var(--accent)' }} />
-                </div>
-                <div style={{ ...tokens.mono, color: 'var(--text-dim)', width: 60, textAlign: 'right' }}>${m.cost.toFixed(2)}</div>
-                <div style={{ ...tokens.mono, color: 'var(--text-faint)', width: 50, textAlign: 'right' }}>{m.calls} calls</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={tokens.section}>
-        <div style={tokens.sectionTitle}>Recent invoices</div>
-        {INVOICES.map(([m, c, s], i) => {
-          const last = i === INVOICES.length - 1;
-          return (
-            <div
-              key={m}
-              style={{
-                display: 'grid', gridTemplateColumns: '180px 1fr',
-                gap: 24, padding: '12px 0',
-                borderBottom: last ? 'none' : '1px solid var(--border)',
-                alignItems: 'center',
-              }}
-            >
-              <div style={{ fontSize: 12.5, color: 'var(--text-dim)' }}>{m}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <span style={tokens.mono}>{c}</span>
-                <Pill>● {s}</Pill>
-                <a style={{ color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer', fontSize: 12 }}>Download PDF</a>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <DailyChart days={stats.daily} />
+      <ByModel rows={stats.byModel} />
     </>
   );
+});
+
+function DailyChart({ days }: { days: number[] }) {
+  const max = Math.max(1, ...days);
+  return (
+    <div style={tokens.section}>
+      <div style={tokens.sectionTitle}>Daily messages · last {DAYS_BACK} days</div>
+      <Card style={{ padding: '24px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 100 }}>
+          {days.map((count, i) => (
+            <div
+              key={i}
+              title={count === 1 ? '1 message' : `${count} messages`}
+              style={{
+                flex: 1,
+                height: count > 0 ? `${(count / max) * 100}%` : 0,
+                background: i === days.length - 1 ? 'var(--accent)' : 'rgba(255,255,255,0.15)',
+                borderRadius: '2px 2px 0 0',
+                minHeight: count > 0 ? 2 : 0,
+              }}
+            />
+          ))}
+        </div>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', marginTop: 10,
+          fontSize: 10.5, color: 'var(--text-faint)',
+          fontFamily: '"Geist Mono", monospace', letterSpacing: '0.04em',
+        }}>
+          <span>{relativeDay(DAYS_BACK - 1)}</span>
+          <span>{relativeDay(Math.floor(DAYS_BACK / 2))}</span>
+          <span>today</span>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+interface ModelRow {
+  name: string;
+  share: number;
+  tokensOut: number;
+  calls: number;
+}
+
+function ByModel({ rows }: { rows: ModelRow[] }) {
+  if (rows.length === 0) {
+    return (
+      <div style={tokens.section}>
+        <div style={tokens.sectionTitle}>By model</div>
+        <div style={{
+          padding: '14px 16px', border: '1px dashed var(--border)', borderRadius: 4,
+          fontSize: 13, color: 'var(--text-faint)', fontStyle: 'italic',
+        }}>
+          No assistant messages yet.
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={tokens.section}>
+      <div style={tokens.sectionTitle}>By model</div>
+      {rows.map((m, i) => {
+        const last = i === rows.length - 1;
+        return (
+          <div
+            key={m.name}
+            style={{
+              display: 'grid', gridTemplateColumns: '220px 1fr',
+              gap: 24, padding: '12px 0',
+              borderBottom: last ? 'none' : '1px solid var(--border)',
+              alignItems: 'center',
+            }}
+          >
+            <div style={{ ...tokens.mono, color: 'var(--text)' }}>{m.name}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1, height: 3, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ width: `${m.share * 100}%`, height: '100%', background: 'var(--accent)' }} />
+              </div>
+              <div style={{ ...tokens.mono, color: 'var(--text-dim)', width: 90, textAlign: 'right' }}>{compact(m.tokensOut)} tok</div>
+              <div style={{ ...tokens.mono, color: 'var(--text-faint)', width: 70, textAlign: 'right' }}>
+                {m.calls} call{m.calls === 1 ? '' : 's'}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+interface UsageStats {
+  tokensIn: number;
+  tokensOut: number;
+  assistantCount: number;
+  threadCount: number;
+  oldest: number | null;
+  daily: number[];
+  byModel: ModelRow[];
+}
+
+interface ThreadShape {
+  messages: Array<
+    | { role: 'user'; content: string; createdAt: number }
+    | { role: 'assistant'; content: string; createdAt: number; model?: string }
+  >;
+}
+
+function computeStats(threads: ThreadShape[]): UsageStats {
+  let tokensIn = 0;
+  let tokensOut = 0;
+  let assistantCount = 0;
+  let oldest: number | null = null;
+  let threadCount = 0;
+  const byModelMap = new Map<string, { tokensOut: number; calls: number }>();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayMs = today.getTime();
+  const daily = new Array<number>(DAYS_BACK).fill(0);
+
+  for (const t of threads) {
+    if (!t.messages || t.messages.length === 0) continue;
+    threadCount += 1;
+    for (const m of t.messages) {
+      if (oldest === null || m.createdAt < oldest) oldest = m.createdAt;
+      if (m.role === 'user') {
+        tokensIn += estimateTokens(m.content ?? '');
+      } else if (m.role === 'assistant') {
+        const out = estimateTokens(m.content ?? '');
+        tokensOut += out;
+        assistantCount += 1;
+        const modelName = m.model ?? 'unknown';
+        const cur = byModelMap.get(modelName) ?? { tokensOut: 0, calls: 0 };
+        cur.tokensOut += out;
+        cur.calls += 1;
+        byModelMap.set(modelName, cur);
+        const dayIdx = Math.floor((todayMs - startOfDay(m.createdAt)) / DAY_MS);
+        if (dayIdx >= 0 && dayIdx < DAYS_BACK) {
+          daily[DAYS_BACK - 1 - dayIdx] += 1;
+        }
+      }
+    }
+  }
+
+  const totalShare = Math.max(1, assistantCount);
+  const byModel: ModelRow[] = [...byModelMap.entries()]
+    .map(([name, v]) => ({ name, share: v.calls / totalShare, tokensOut: v.tokensOut, calls: v.calls }))
+    .sort((a, b) => b.calls - a.calls);
+
+  return { tokensIn, tokensOut, assistantCount, threadCount, oldest, daily, byModel };
+}
+
+function startOfDay(ms: number): number {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function compact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString();
+}
+
+function formatDate(ms: number): string {
+  const d = new Date(ms);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function relativeDay(daysAgo: number): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - daysAgo);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }

@@ -19,32 +19,33 @@ describe('dispatchImageGenerate', () => {
     await expect(dispatchImageGenerate({ prompt: 'x' }, { primary: 'local-comfy' })).rejects.toThrow(/ComfyUI base URL/i);
   });
 
-  it('returns a descriptive error when A1111 base URL is not configured', async () => {
-    await expect(dispatchImageGenerate({ prompt: 'x' }, { primary: 'local-a1111' })).rejects.toThrow(/AUTOMATIC1111 base URL/i);
-  });
-
-  it('rethrows the underlying error when local backend fails (no auto fallback)', async () => {
-    const fetch = fakeFetchBuilder([
-      { match: (u) => u.endsWith('/sdapi/v1/txt2img'), respond: () => new Response('oops', { status: 500, statusText: 'Internal Server Error' }) },
-    ]);
-    await expect(dispatchImageGenerate(
-      { prompt: 'x' },
-      { primary: 'local-a1111', a1111BaseUrl: 'http://127.0.0.1:7860', fetch },
-    )).rejects.toThrow(/a1111 500/);
-  });
-
-  it('routes to A1111 backend successfully', async () => {
+  it('routes only to ComfyUI local image generation in the foundation', async () => {
     const fetch = fakeFetchBuilder([
       {
-        match: (u) => u.endsWith('/sdapi/v1/txt2img'),
-        respond: () => new Response(JSON.stringify({ images: [Buffer.from([1, 2, 3]).toString('base64')], info: '{}' }), { status: 200, headers: { 'content-type': 'application/json' } }),
+        match: (u) => u.endsWith('/prompt'),
+        respond: () => new Response(JSON.stringify({ prompt_id: 'p1' }), { status: 200, headers: { 'content-type': 'application/json' } }),
       },
-      { match: (u) => u.endsWith('/sdapi/v1/options'), respond: okPng },
+      {
+        match: (u) => u.endsWith('/history/p1'),
+        respond: () => new Response(JSON.stringify({
+          p1: {
+            outputs: {
+              '9': { images: [{ filename: 'x.png', subfolder: '', type: 'output' }] },
+            },
+          },
+        }), { status: 200, headers: { 'content-type': 'application/json' } }),
+      },
+      { match: (u) => u.includes('/view?'), respond: okPng },
     ]);
     const { result } = await dispatchImageGenerate(
       { prompt: 'x' },
-      { primary: 'local-a1111', a1111BaseUrl: 'http://127.0.0.1:7860', fetch },
+      {
+        primary: 'local-comfy',
+        comfyBaseUrl: 'http://127.0.0.1:8188',
+        comfyQualityPreset: 'quick',
+        fetch,
+      },
     );
-    expect(result.backend).toBe('local-a1111');
+    expect(result.backend).toBe('local-comfy');
   });
 });

@@ -22,7 +22,7 @@ export const imageGenerateTool: Tool = {
   def: {
     name: 'image_generate',
     description: [
-      'Generate an image using the configured local backend (ComfyUI or AUTOMATIC1111). Returns a workspace path the user can click to open.',
+      'Generate an image using the configured backend (ComfyUI or AUTOMATIC1111 locally; OpenRouter, OpenAI, or Gemini in the cloud). Returns a workspace path the user can click to open.',
       '',
       'Use this when the user asks you to draw, render, create, or generate an image, picture, or illustration.',
       'The call returns immediately while the render runs in the background — do not repeat the result back to the user; they already see the image inline.',

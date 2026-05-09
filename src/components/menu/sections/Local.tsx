@@ -282,29 +282,6 @@ const LocalImageCard = observer(function LocalImageCard() {
           </SettingsRow>
         </>
       )}
-      <SettingsRow label="Prompt enhancement">
-        <Select
-          value={image.config.promptEnhancement ?? 'off'}
-          onChange={e => image.setPromptEnhancement(e.currentTarget.value as 'off' | 'llm')}
-        >
-          <option value="off">Off — use prompt exactly as written</option>
-          <option value="llm">On — rewrite prompts for image models</option>
-        </Select>
-      </SettingsRow>
-      {(image.config.promptEnhancement ?? 'off') === 'llm' && (
-        <SettingsRow label="Style preset">
-          <Select
-            value={image.config.promptStylePreset ?? 'auto'}
-            onChange={e => image.setPromptStylePreset(e.currentTarget.value as 'auto' | 'photorealistic' | 'concept-art' | 'abstract' | 'illustration')}
-          >
-            <option value="auto">Auto</option>
-            <option value="photorealistic">Photorealistic</option>
-            <option value="concept-art">Concept art</option>
-            <option value="abstract">Abstract</option>
-            <option value="illustration">Illustration</option>
-          </Select>
-        </SettingsRow>
-      )}
       <SettingsRow label="Use for generation" last>
         {isActiveBackend ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

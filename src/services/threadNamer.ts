@@ -5,11 +5,9 @@ import type { LlmProvider, LlmRequest } from '../core/llm';
  *
  * Cascade (try each in order, fall through on missing key / failure):
  *
- *   1. gemini-2.5-flash-lite   ← cheapest, fastest
- *   2. gpt-5.4-nano
- *   3. gemini-3-flash
- *   4. gpt-5.4-mini
- *   5. <thread's own model>     ← guaranteed available since it just replied
+ *   1. or-gpt-5.4-mini
+ *   2. or-gpt-5.4
+ *   3. <thread's own model>     ← guaranteed available since it just replied
  *
  * The user picked this order. The thread's own model is the last resort:
  * if all the cheap models are missing keys, naming with the conversation
@@ -20,10 +18,8 @@ import type { LlmProvider, LlmRequest } from '../core/llm';
  */
 
 const NAMER_CASCADE: string[] = [
-  'gemini-2.5-flash-lite',
-  'gpt-5.4-nano',
-  'gemini-3-flash',
-  'gpt-5.4-mini',
+  'or-gpt-5.4-mini',
+  'or-gpt-5.4',
 ];
 
 const SYSTEM_PROMPT = [

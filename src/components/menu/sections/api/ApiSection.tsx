@@ -4,7 +4,6 @@ import { PROVIDERS } from '../../../../core/providers';
 import { useProviderStore } from '../../../../stores/context';
 import { Card } from '../../../ui';
 import { ProviderCard } from './ProviderCard';
-import { RoutingCard } from './RoutingCard';
 
 export const ApiSection = observer(function ApiSection() {
   const providers = useProviderStore();
@@ -21,11 +20,9 @@ export const ApiSection = observer(function ApiSection() {
         </div>
       </Card>
 
-      {PROVIDERS.filter(p => p.id !== 'local').map(p => (
+      {PROVIDERS.map(p => (
         <ProviderCard key={p.id} info={p} providers={providers} />
       ))}
-
-      <RoutingCard />
     </>
   );
 });

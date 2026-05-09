@@ -11,11 +11,6 @@
 
 export type ProviderId =
   | 'openrouter'
-  | 'openai'
-  | 'anthropic'
-  | 'gemini'
-  | 'groq'
-  | 'local'         // OpenAI-compatible local endpoint (LM Studio, vLLM, llama.cpp)
   | 'ollama'        // Native Ollama server (/api/chat, /api/tags)
   | 'local-image';  // Synthetic provider that bypasses the LLM and sends the
                     // user's prompt directly to the configured local image

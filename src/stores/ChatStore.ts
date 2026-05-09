@@ -37,12 +37,8 @@ const MAX_TOOL_ROUNDS = 16;
 const COMPACTION_TRIGGER_FRACTION = 0.9;
 const COMPACTION_MAX_TOKENS = 500;
 const COMPACTION_MODELS = [
-  'gemini-3-flash',
-  'gpt-5.4-nano',
-  'gpt-5.4-mini',
-  'groq-llama-3.1-8b',
-  'claude-haiku-4.5',
   'or-gpt-5.4-mini',
+  'or-gpt-5.4',
 ] as const;
 const COMPACTION_INSTRUCTION = [
   'Compact the tool result for future programmatic continuation.',

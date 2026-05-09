@@ -13,52 +13,48 @@ describe('ProviderStore', () => {
   it('starts empty and reports providers as not connected', () => {
     const store = make();
     expect(store.configs).toEqual({});
-    expect(store.isConnected('openai')).toBe(false);
-    // local doesn't need a key — always connected
-    expect(store.isConnected('local')).toBe(true);
+    expect(store.isConnected('openrouter')).toBe(false);
   });
 
-  it('setKey marks the provider connected and routes through the real impl', () => {
+  it('setKey marks OpenRouter connected and routes through the real impl', () => {
     const store = make();
-    store.setKey('openai', 'sk-test');
-    expect(store.isConnected('openai')).toBe(true);
-    expect(store.getConfig('openai').apiKey).toBe('sk-test');
+    store.setKey('openrouter', 'sk-test');
+    expect(store.isConnected('openrouter')).toBe(true);
+    expect(store.getConfig('openrouter').apiKey).toBe('sk-test');
   });
 
   it('setKey with empty string clears the key', () => {
     const store = make();
-    store.setKey('openai', 'sk-test');
-    store.setKey('openai', '');
-    expect(store.isConnected('openai')).toBe(false);
-    expect(store.getConfig('openai').apiKey).toBeUndefined();
+    store.setKey('openrouter', 'sk-test');
+    store.setKey('openrouter', '');
+    expect(store.isConnected('openrouter')).toBe(false);
+    expect(store.getConfig('openrouter').apiKey).toBeUndefined();
   });
 
   it('persists configs across instances', async () => {
     const a = make();
-    a.setKey('groq', 'gsk-test');
-    a.setBaseUrl('local', 'http://127.0.0.1:8080/v1');
+    a.setKey('openrouter', 'sk-or-test');
     await flush(2);
 
     const b = make();
-    expect(b.getConfig('groq').apiKey).toBe('gsk-test');
-    expect(b.getConfig('local').baseUrl).toBe('http://127.0.0.1:8080/v1');
+    expect(b.getConfig('openrouter').apiKey).toBe('sk-or-test');
   });
 
   it('hasUsableProvider reacts to key changes', async () => {
     const store = make();
     expect(store.hasUsableProvider).toBe(false);
-    store.setKey('openai', 'sk-test');
+    store.setKey('openrouter', 'sk-test');
     await flush(2);
     expect(store.hasUsableProvider).toBe(true);
-    store.setKey('openai', '');
+    store.setKey('openrouter', '');
     await flush(2);
     expect(store.hasUsableProvider).toBe(false);
   });
 
   it('remove deletes an entire provider entry', () => {
     const store = make();
-    store.setKey('gemini', 'g-test');
-    store.remove('gemini');
-    expect(store.configs.gemini).toBeUndefined();
+    store.setKey('openrouter', 'sk-test');
+    store.remove('openrouter');
+    expect(store.configs.openrouter).toBeUndefined();
   });
 });

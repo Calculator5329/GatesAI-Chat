@@ -8,13 +8,11 @@
 import type {
   ImageBackendId,
   ComfyQualityPreset,
-  PromptEnhancementMode,
-  PromptStylePreset,
   UpscaleFactor,
 } from './image/types';
-import { VALID_UPSCALE_FACTORS } from './image/types';
+import { isImageBackendId, VALID_UPSCALE_FACTORS } from './image/types';
 
-export type { ImageBackendId, ComfyQualityPreset, PromptEnhancementMode, PromptStylePreset, UpscaleFactor };
+export type { ImageBackendId, ComfyQualityPreset, UpscaleFactor };
 
 export interface ImageGenConfig {
   backend: ImageBackendId;
@@ -42,24 +40,12 @@ export interface ImageGenConfig {
    */
   comfyUpscaleFactor?: UpscaleFactor;
 
-  /** Optional LLM pass that rewrites terse user prompts for SDXL/FLUX. */
-  promptEnhancement?: PromptEnhancementMode;
-  promptEnhancementOptIn?: boolean;
-  promptStylePreset?: PromptStylePreset;
-
-  /** AUTOMATIC1111 local server base URL, e.g. `http://127.0.0.1:7860`. */
-  a1111BaseUrl?: string;
-  a1111ApiKey?: string;
 }
 
 export const DEFAULT_IMAGE_GEN_CONFIG: ImageGenConfig = {
   backend: 'local-comfy',
-  a1111BaseUrl: 'http://127.0.0.1:7860',
   comfyQualityPreset: 'full',
   comfyUpscaleFactor: 1,
-  promptEnhancement: 'off',
-  promptEnhancementOptIn: false,
-  promptStylePreset: 'auto',
 };
 
 const KEY = 'gatesai.imagegen.v1';
@@ -91,12 +77,18 @@ function normalizeImageGenConfig(config: ImageGenConfig): ImageGenConfig {
   if (next.comfyWorkflowPath === 'notes/flux2-workflow.json') {
     delete next.comfyWorkflowPath;
   }
-  if (next.promptEnhancement === 'llm' && next.promptEnhancementOptIn !== true) {
-    next.promptEnhancement = 'off';
-  }
-  if (next.backend !== 'local-comfy' && next.backend !== 'local-a1111') {
+  if (!isImageBackendId(next.backend)) {
     next.backend = 'local-comfy';
   }
+  delete (next as Partial<ImageGenConfig> & { promptEnhancement?: unknown }).promptEnhancement;
+  delete (next as Partial<ImageGenConfig> & { promptEnhancementOptIn?: unknown }).promptEnhancementOptIn;
+  delete (next as Partial<ImageGenConfig> & { promptStylePreset?: unknown }).promptStylePreset;
+  delete (next as Partial<ImageGenConfig> & { a1111BaseUrl?: unknown }).a1111BaseUrl;
+  delete (next as Partial<ImageGenConfig> & { a1111ApiKey?: unknown }).a1111ApiKey;
+  delete (next as Partial<ImageGenConfig> & { openRouterImageModelId?: unknown }).openRouterImageModelId;
+  delete (next as Partial<ImageGenConfig> & { openAiImageModelId?: unknown }).openAiImageModelId;
+  delete (next as Partial<ImageGenConfig> & { geminiImageModelId?: unknown }).geminiImageModelId;
+  delete (next as Partial<ImageGenConfig> & { openAiImageQuality?: unknown }).openAiImageQuality;
   // Migrate legacy/default preset names into the current normal default.
   // Direct-image Draft is now selected from the model picker instead of
   // being the stored Local default.

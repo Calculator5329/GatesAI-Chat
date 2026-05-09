@@ -16,8 +16,8 @@ describe('router', () => {
   it('parses menu routes and rejects unknown sections', () => {
     expect(parseHash('#/menu/api'))  .toEqual({ kind: 'menu', section: 'api' });
     expect(parseHash('#/menu/local')).toEqual({ kind: 'menu', section: 'local' });
-    expect(parseHash('#/menu'))      .toEqual({ kind: 'menu', section: 'profile' });
-    expect(parseHash('#/menu/wat'))  .toEqual({ kind: 'menu', section: 'profile' });
+    expect(parseHash('#/menu'))      .toEqual({ kind: 'menu', section: 'appearance' });
+    expect(parseHash('#/menu/wat'))  .toEqual({ kind: 'menu', section: 'appearance' });
   });
 
   it('falls back to default for unknown heads', () => {

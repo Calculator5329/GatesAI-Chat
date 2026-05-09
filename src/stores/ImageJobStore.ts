@@ -4,7 +4,6 @@ import {
   dispatchImageGenerate,
   type ImageBackendConfig,
 } from '../services/image/imageBackend';
-import { createA1111Progress } from '../services/image/jobs/a1111Progress';
 import { createComfyProgress } from '../services/image/jobs/comfyProgress';
 import type { JobProgress } from '../services/image/jobs/progress';
 import type {
@@ -52,9 +51,6 @@ export interface ImageJobStoreDeps {
 const defaultProgressFactory = (id: ImageBackendId, config: ImageBackendConfig): JobProgress | null => {
   if (id === 'local-comfy' && config.comfyBaseUrl) {
     return createComfyProgress({ baseUrl: config.comfyBaseUrl, clientId: 'gatesai-chat' });
-  }
-  if (id === 'local-a1111' && config.a1111BaseUrl) {
-    return createA1111Progress({ baseUrl: config.a1111BaseUrl, apiKey: config.a1111ApiKey });
   }
   return null;
 };
@@ -376,8 +372,14 @@ function defaultFilenameStem(backend: ImageBackendId): string {
   const d = new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
   const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  const prefix = backend === 'local-comfy' ? 'comfy' : 'a1111';
+  const prefix = backendFilePrefix(backend);
   return `${prefix}-${stamp}`;
+}
+
+function backendFilePrefix(backend: ImageBackendId): string {
+  switch (backend) {
+    case 'local-comfy': return 'comfy';
+  }
 }
 
 async function fetchHostedImage(url: string, fallbackMime: string, fetchImpl?: typeof fetch): Promise<{ base64: string; mime: string }> {

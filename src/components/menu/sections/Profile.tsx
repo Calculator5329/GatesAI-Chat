@@ -1,15 +1,14 @@
 import { useState, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
-import { Button, Input, Pill, SettingsRow } from '../../ui';
+import { Button, Input } from '../../ui';
 import { useChatStore, useUserProfileStore } from '../../../stores/context';
 
 /**
- * Profile is now the home for everything the AI knows about *you* — account
- * details, the bio (broken into editable rows), and the auto-generated
- * digests of recent conversations. The Agent section keeps system-prompt /
- * tool / voice settings; the two are split by question: "who am I?" vs
- * "how should the assistant behave?".
+ * Profile is the home for what the assistant knows about *you*: durable
+ * memory facts and one-line digests of recent conversations. The Agent
+ * section keeps system-prompt / tool / voice settings; the two are split
+ * by question: "who am I?" vs "how should the assistant behave?".
  */
 export const ProfileSection = observer(function ProfileSection() {
   const chat = useChatStore();
@@ -22,40 +21,11 @@ export const ProfileSection = observer(function ProfileSection() {
   return (
     <>
       <h1 style={tokens.h1}>Profile</h1>
-      <div style={tokens.kicker}>account · memory · recent conversations</div>
-
-      <div style={tokens.section}>
-        <div style={tokens.sectionTitle}>Account</div>
-        <SettingsRow label="Full name">Bill Gates</SettingsRow>
-        <SettingsRow label="Email">bill@gatesfoundation.org</SettingsRow>
-        <SettingsRow label="Username"><span style={tokens.mono}>@billg</span></SettingsRow>
-        <SettingsRow label="Workspace" last>
-          Personal · <span style={{ ...tokens.mono, color: 'var(--text-faint)' }}>t_5f9a21</span>
-        </SettingsRow>
-      </div>
+      <div style={tokens.kicker}>memory · recent conversations</div>
 
       <MemorySection />
 
       <RecentConversations summaries={recentSummaries} />
-
-      <div style={tokens.section}>
-        <div style={tokens.sectionTitle}>Plan</div>
-        <SettingsRow label="Current plan"><Pill>● Pro · $20/mo</Pill></SettingsRow>
-        <SettingsRow label="Renews">Jun 14, 2026</SettingsRow>
-        <SettingsRow label="Payment method" last>
-          Visa ending in 4242 · <a style={{ color: 'var(--accent)', textDecoration: 'none' }}>Manage</a>
-        </SettingsRow>
-      </div>
-
-      <div style={tokens.section}>
-        <div style={tokens.sectionTitle}>Sessions</div>
-        <SettingsRow label="MacBook Pro"><span style={{ color: 'var(--text-dim)' }}>Seattle · active now</span></SettingsRow>
-        <SettingsRow label="iPhone 15"><span style={{ color: 'var(--text-faint)' }}>Seattle · 2 hours ago</span></SettingsRow>
-        <SettingsRow label="Web — Safari" last>
-          <span style={{ color: 'var(--text-faint)' }}>New York · 3 days ago</span> ·{' '}
-          <a style={{ color: 'var(--accent)', textDecoration: 'none', cursor: 'pointer' }}>Revoke</a>
-        </SettingsRow>
-      </div>
     </>
   );
 });

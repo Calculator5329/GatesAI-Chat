@@ -21,11 +21,6 @@ export const DEFAULT_RESERVED_REPLY_TOKENS = 4096;
 /** Default context windows by provider, used when `model.contextLength` is unset. */
 const DEFAULT_WINDOW_BY_PROVIDER: Record<ProviderId, number> = {
   openrouter: 128_000,
-  openai: 128_000,
-  anthropic: 200_000,
-  gemini: 1_000_000,
-  groq: 32_000,
-  local: 8_000,
   ollama: 8_000,
   // Synthetic provider — never sent to a tokenizer. Pick a small window so
   // any debug accounting that lands here doesn't allocate megabytes.

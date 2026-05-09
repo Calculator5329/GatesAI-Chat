@@ -182,7 +182,12 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Prompt</div>
-                <div style={promptText}>{prompt}</div>
+                <textarea
+                  aria-label="Full prompt"
+                  readOnly
+                  value={prompt}
+                  style={promptText}
+                />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 20, flexShrink: 0 }}>
                 <button type="button" onClick={copyPrompt} style={actionBtn}>
@@ -255,10 +260,8 @@ const promptPanel: React.CSSProperties = {
 const promptText: React.CSSProperties = {
   width: '100%',
   height: 90,
-  overflow: 'hidden',
-  display: '-webkit-box',
-  WebkitLineClamp: 5,
-  WebkitBoxOrient: 'vertical',
+  resize: 'none',
+  overflow: 'auto',
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 6,
   background: 'rgba(255,255,255,0.04)',
@@ -269,6 +272,7 @@ const promptText: React.CSSProperties = {
   lineHeight: 1.5,
   boxSizing: 'border-box',
   wordBreak: 'break-word',
+  outline: 'none',
 };
 
 const cache = new Map<string, string>();

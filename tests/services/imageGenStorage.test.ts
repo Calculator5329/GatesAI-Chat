@@ -13,12 +13,6 @@ describe('imageGenStorage', () => {
     expect(config.comfyUpscaleFactor).toBe(1);
   });
 
-  it('defaults prompt enhancement to off so prompts are used verbatim', () => {
-    const config = loadImageGenConfig();
-
-    expect(config.promptEnhancement).toBe('off');
-  });
-
   it('drops the stale FLUX 2-dev workspace workflow path and migrates old full preset name on load', () => {
     localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({
       backend: 'local-comfy',
@@ -59,26 +53,28 @@ describe('imageGenStorage', () => {
     expect(config.comfyUpscaleFactor).toBe(1);
   });
 
-  it('migrates the old implicit prompt enhancement default to off', () => {
+  it('migrates retired image backends to ComfyUI', () => {
     localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({
-      backend: 'local-comfy',
-      promptEnhancement: 'llm',
+      backend: 'cloud-openai',
     }));
 
     const config = loadImageGenConfig();
 
-    expect(config.promptEnhancement).toBe('off');
+    expect(config.backend).toBe('local-comfy');
   });
 
-  it('preserves explicit prompt enhancement opt-in', () => {
+  it('drops old prompt enhancement fields on load', () => {
     localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({
       backend: 'local-comfy',
       promptEnhancement: 'llm',
       promptEnhancementOptIn: true,
+      promptStylePreset: 'photorealistic',
     }));
 
     const config = loadImageGenConfig();
 
-    expect(config.promptEnhancement).toBe('llm');
+    expect('promptEnhancement' in config).toBe(false);
+    expect('promptEnhancementOptIn' in config).toBe(false);
+    expect('promptStylePreset' in config).toBe(false);
   });
 });

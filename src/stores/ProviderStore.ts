@@ -1,7 +1,13 @@
 import { autorun, makeAutoObservable, toJS } from 'mobx';
 import type { ProviderConfig, ProviderConfigs, ProviderId } from '../core/llm';
 import { LlmRouter } from '../services/llm';
-import { loadProviderConfigs, saveProviderConfigs } from '../services/providerStorage';
+import {
+  loadProviderConfigs,
+  saveProviderConfigs,
+  loadDefaultProvider,
+  saveDefaultProvider,
+  type DefaultProvider,
+} from '../services/providerStorage';
 import type { ModelRegistry } from './ModelRegistry';
 
 type ProviderConfigOverlay = () => ProviderConfigs;
@@ -13,13 +19,16 @@ type ProviderConfigOverlay = () => ProviderConfigs;
  */
 export class ProviderStore {
   configs: ProviderConfigs = {};
+  defaultProvider: DefaultProvider = 'direct';
   readonly router: LlmRouter;
   private readonly overlayConfigs: ProviderConfigOverlay;
 
   constructor(registry: ModelRegistry, overlayConfigs: ProviderConfigOverlay = () => ({})) {
     this.configs = loadProviderConfigs();
+    this.defaultProvider = loadDefaultProvider();
     this.overlayConfigs = overlayConfigs;
     this.router = new LlmRouter(registry, this.effectiveConfigs);
+    this.router.setDefaultProvider(this.defaultProvider);
     makeAutoObservable<this, 'router' | 'overlayConfigs'>(this, {
       router: false,
       overlayConfigs: false,
@@ -29,7 +38,13 @@ export class ProviderStore {
       const snap = toJS(this.configs);
       saveProviderConfigs(snap);
       this.router.updateConfigs(this.effectiveConfigs);
+      this.router.setDefaultProvider(this.defaultProvider);
+      saveDefaultProvider(this.defaultProvider);
     });
+  }
+
+  setDefaultProvider(value: DefaultProvider): void {
+    this.defaultProvider = value;
   }
 
   get effectiveConfigs(): ProviderConfigs {

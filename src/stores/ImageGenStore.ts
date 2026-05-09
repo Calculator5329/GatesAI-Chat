@@ -26,7 +26,9 @@ export class ImageGenStore {
   constructor(localRuntime?: LocalRuntimeStore) {
     this.localRuntime = localRuntime;
     this.config = loadImageGenConfig();
-    makeAutoObservable<this, 'localRuntime'>(this, { localRuntime: false });
+    makeAutoObservable<this, 'localRuntime'>(this, {
+      localRuntime: false,
+    });
 
     autorun(() => {
       saveImageGenConfig(toJS(this.config));
@@ -58,24 +60,6 @@ export class ImageGenStore {
     this.config = { ...this.config, comfyUpscaleFactor: factor };
   }
 
-  setPromptEnhancement(mode: ImageGenConfig['promptEnhancement']): void {
-    this.config = { ...this.config, promptEnhancement: mode, promptEnhancementOptIn: mode === 'llm' };
-  }
-
-  setPromptStylePreset(preset: ImageGenConfig['promptStylePreset']): void {
-    this.config = { ...this.config, promptStylePreset: preset };
-  }
-
-  setA1111BaseUrl(url: string): void {
-    const trimmed = url.trim();
-    this.config = { ...this.config, a1111BaseUrl: trimmed || undefined };
-  }
-
-  setA1111Key(key: string): void {
-    const trimmed = key.trim();
-    this.config = { ...this.config, a1111ApiKey: trimmed || undefined };
-  }
-
   reset(): void {
     this.config = { ...DEFAULT_IMAGE_GEN_CONFIG };
   }
@@ -88,7 +72,6 @@ export class ImageGenStore {
   getCredential(backend: ImageBackendId = this.backend): string | null {
     switch (backend) {
       case 'local-comfy': return this.localRuntime?.comfyBaseUrl ?? null;
-      case 'local-a1111': return this.config.a1111BaseUrl ?? null;
     }
   }
 
@@ -104,10 +87,6 @@ export class ImageGenStore {
       comfyBaseUrl: this.localRuntime?.comfyBaseUrl,
       comfyQualityPreset: this.config.comfyQualityPreset ?? 'full',
       comfyUpscaleFactor: this.config.comfyUpscaleFactor ?? 1,
-      promptEnhancement: this.config.promptEnhancement ?? 'off',
-      promptStylePreset: this.config.promptStylePreset ?? 'auto',
-      a1111BaseUrl: this.config.a1111BaseUrl,
-      a1111ApiKey: this.config.a1111ApiKey,
     };
   }
 }

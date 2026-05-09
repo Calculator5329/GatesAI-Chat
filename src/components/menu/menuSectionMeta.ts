@@ -19,11 +19,11 @@ export interface MenuSectionMeta {
 }
 
 export const MENU_SECTIONS: MenuSectionMeta[] = [
-  { key: 'profile',    label: 'Profile',    component: ProfileSection,    supported: false, badge: 'Coming soon' },
+  { key: 'profile',    label: 'Profile',    component: ProfileSection,    supported: true },
   { key: 'agent',      label: 'Agent',      component: AgentSection,      supported: true },
   { key: 'workspace',  label: 'Workspace',  component: WorkspaceSection,  supported: true },
   { key: 'settings',   label: 'Settings',   component: SettingsSection,   supported: true },
-  { key: 'usage',      label: 'Usage',      component: UsageSection,      supported: false, badge: 'Coming soon' },
+  { key: 'usage',      label: 'Usage',      component: UsageSection,      supported: true },
   { key: 'local',      label: 'Local',      component: LocalSection,      supported: true },
   { key: 'api',        label: 'API',        component: ApiSection,        supported: true },
   { key: 'gallery',    label: 'Gallery',    component: GallerySection,    supported: true },

@@ -17,7 +17,6 @@ function measure(label: string, fn: () => void): number {
   const t0 = performance.now();
   fn();
   const elapsed = performance.now() - t0;
-  // eslint-disable-next-line no-console
   if (process.env.PERF_VERBOSE) console.log(`${label}: ${elapsed.toFixed(2)}ms`);
   return elapsed;
 }

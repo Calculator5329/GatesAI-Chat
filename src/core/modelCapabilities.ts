@@ -11,7 +11,7 @@ const LOCAL_VISION_RE = /llava|qwen[^/]*vl|qwen-vl|llama-?3\.2-vision|minicpm-v|
  *
  * The heuristic is intentionally conservative for families that only
  * partially support vision (Groq, local): we default to false and let
- * the user override via explicit flag in the model entry.
+   * the user override via explicit flag in the model entry.
  */
 export function modelSupportsVision(model: Pick<Model, 'providerId' | 'providerModelId' | 'supportsVision'>): boolean {
   if (typeof model.supportsVision === 'boolean') return model.supportsVision;
@@ -19,22 +19,6 @@ export function modelSupportsVision(model: Pick<Model, 'providerId' | 'providerM
   const id = (model.providerModelId || '').toLowerCase();
 
   switch (model.providerId) {
-    case 'anthropic':
-      return id.startsWith('claude-');
-
-    case 'openai':
-      return (
-        id.startsWith('gpt-5') ||
-        id.startsWith('gpt-4o') ||
-        id.startsWith('gpt-4.1') ||
-        id.startsWith('o1') ||
-        id.startsWith('o3') ||
-        id.startsWith('o4')
-      );
-
-    case 'gemini':
-      return id.startsWith('gemini-');
-
     case 'openrouter':
       return (
         id.startsWith('anthropic/claude-') ||
@@ -49,7 +33,6 @@ export function modelSupportsVision(model: Pick<Model, 'providerId' | 'providerM
         /\bvl\b|llava|vision|moondream|minicpm-v|internvl/.test(id)
       );
 
-    case 'local':
     case 'ollama':
       return LOCAL_VISION_RE.test(id);
 

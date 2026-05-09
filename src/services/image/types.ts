@@ -48,7 +48,39 @@ export interface GenerateImageResult {
   backend: ImageBackendId;
 }
 
-export type ImageBackendId = 'local-comfy' | 'local-a1111';
+export type ImageBackendId =
+  | 'local-comfy';
+
+export type OpenAIImageQuality = 'auto' | 'low' | 'medium' | 'high';
+export type OpenAIImageSize = '1024x1024' | '1024x1536' | '1536x1024' | 'auto';
+
+/**
+ * Map an aspect ratio to the nearest size supported by `gpt-image-2`. The
+ * model only takes square or 2:3 / 3:2 framing; wider 16:9 / 9:16 fall back
+ * to the closer landscape / portrait choice.
+ */
+export function openAIImageSizeForAspect(ratio: ImageAspectRatio): OpenAIImageSize {
+  switch (ratio) {
+    case '1:1': return '1024x1024';
+    case '3:2':
+    case '16:9': return '1536x1024';
+    case '2:3':
+    case '9:16': return '1024x1536';
+  }
+}
+
+/**
+ * Derive the closest cloud-supported size from explicit width/height. Cloud
+ * jobs go through {@link dispatchImageGenerate} with concrete pixel dims set
+ * by the tool (which already maps aspect → dims), so we infer back: square
+ * if the ratio is near 1, landscape if width > height, portrait otherwise.
+ */
+export function openAIImageSizeForDims(width: number | undefined, height: number | undefined): OpenAIImageSize {
+  if (!width || !height) return '1024x1024';
+  const ratio = width / height;
+  if (Math.abs(ratio - 1) < 0.05) return '1024x1024';
+  return ratio > 1 ? '1536x1024' : '1024x1536';
+}
 
 /**
  * ComfyUI workflow preset.
@@ -85,15 +117,6 @@ export function comfySettingsForMode(mode: LocalComfyMode): Pick<ImageBackendSna
   }
 }
 
-export type PromptEnhancementMode = 'off' | 'llm';
-
-export type PromptStylePreset =
-  | 'auto'
-  | 'photorealistic'
-  | 'concept-art'
-  | 'abstract'
-  | 'illustration';
-
 /**
  * Plain JSON-serializable snapshot of the user's image-gen settings,
  * resolved at tool-call time and consumed by the dispatcher and tools.
@@ -108,10 +131,6 @@ export interface ImageBackendSnapshot {
   comfyBaseUrl?: string;
   comfyQualityPreset?: ComfyQualityPreset;
   comfyUpscaleFactor?: UpscaleFactor;
-  promptEnhancement?: PromptEnhancementMode;
-  promptStylePreset?: PromptStylePreset;
-  a1111BaseUrl?: string;
-  a1111ApiKey?: string;
 }
 
 export interface ImageBackend {
@@ -124,7 +143,12 @@ export function isImageAspectRatio(value: unknown): value is ImageAspectRatio {
 }
 
 export function isLocalImageBackend(id: ImageBackendId): boolean {
-  return id === 'local-comfy' || id === 'local-a1111';
+  return id === 'local-comfy';
+}
+
+export function isImageBackendId(value: unknown): value is ImageBackendId {
+  return typeof value === 'string'
+    && value === 'local-comfy';
 }
 
 /** Concrete pixel dims for each aspect-ratio slug. */

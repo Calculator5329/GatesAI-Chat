@@ -40,13 +40,8 @@ const MAX_SUMMARY_TOKENS = 120;
  * `ready()` wins. Falls through to the thread's own model if none.
  */
 const FAST_SUMMARY_MODELS: string[] = [
-  'gemini-3-flash',
-  'gpt-5.4-nano',
-  'gpt-5.4-mini',
-  'groq-llama-3.1-8b',
-  'claude-haiku-4.5',
-  // Last-ditch via OpenRouter (works as long as OR is connected):
   'or-gpt-5.4-mini',
+  'or-gpt-5.4',
 ];
 
 const SUMMARY_INSTRUCTION =

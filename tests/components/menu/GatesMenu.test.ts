@@ -8,6 +8,7 @@ import { ProviderStore } from '../../../src/stores/ProviderStore';
 import { OpenRouterStore } from '../../../src/stores/OpenRouterStore';
 import { ModelRegistry } from '../../../src/stores/ModelRegistry';
 import { UiStore } from '../../../src/stores/UiStore';
+import { ImageGenStore } from '../../../src/stores/ImageGenStore';
 import { GatesMenu } from '../../../src/components/menu/GatesMenu';
 import type { RootStore } from '../../../src/stores/RootStore';
 import type { MenuSectionKey } from '../../../src/core/types';
@@ -32,7 +33,9 @@ function buildStore(section: MenuSectionKey = 'appearance'): { store: RootStore;
   const providers = new ProviderStore(registry);
   const openrouter = new OpenRouterStore(registry);
   const ui = new UiStore();
-  const store = { router, profile, providers, registry, openrouter, ui } as unknown as RootStore;
+  const imageGen = new ImageGenStore(undefined, providers);
+  const chat = { threads: [] };
+  const store = { router, profile, providers, registry, openrouter, ui, imageGen, chat } as unknown as RootStore;
   return { store, router };
 }
 
@@ -62,34 +65,36 @@ afterEach(() => {
 });
 
 describe('GatesMenu tab strip', () => {
-  it('renders unsupported menu tabs as disabled and non-clickable', () => {
+  it('renders Profile and Usage as supported menu tabs', () => {
     const { store, router } = buildStore('appearance');
     const rendered = renderMenu(store);
 
     const usageTab = findTab(rendered, 'Usage');
-    expect(usageTab?.getAttribute('aria-disabled')).toBe('true');
-    expect(usageTab?.style.cursor).toBe('default');
+    expect(usageTab?.getAttribute('aria-disabled')).toBe('false');
+    expect(usageTab?.style.cursor).toBe('pointer');
 
     act(() => usageTab?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(router.menuSection).toBe('appearance');
+    expect(router.menuSection).toBe('usage');
   });
 
-  it('shows a visual coming-soon treatment for unsupported tabs', () => {
+  it('removes the coming-soon treatment from Profile', () => {
     const { store } = buildStore('appearance');
     const rendered = renderMenu(store);
 
     const profileTab = findTab(rendered, 'Profile');
-    expect(profileTab?.textContent).toContain('Coming soon');
-    expect(profileTab?.style.opacity).toBe('0.5');
+    expect(profileTab?.textContent).not.toContain('Coming soon');
+    expect(profileTab?.style.opacity).toBe('1');
   });
 
-  it('renders placeholder controls with a disabled row style', () => {
+  it('renders live routing controls while spend cap remains a placeholder', () => {
     const { store } = buildStore('api');
     const rendered = renderMenu(store);
 
     expect(rendered.textContent).toContain('Routing');
     expect(rendered.textContent).toContain('Coming soon');
-    const disabledSelect = rendered.querySelector('select:disabled') as HTMLSelectElement | null;
-    expect(disabledSelect).not.toBeNull();
+    const liveSelect = rendered.querySelector('select:not(:disabled)') as HTMLSelectElement | null;
+    expect(liveSelect).not.toBeNull();
+    const disabledInput = rendered.querySelector('input:disabled') as HTMLInputElement | null;
+    expect(disabledInput).not.toBeNull();
   });
 });

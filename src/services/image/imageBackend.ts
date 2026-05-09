@@ -1,4 +1,3 @@
-import { A1111Client } from './a1111Client';
 import { ComfyClient } from './comfyClient';
 import type {
   GenerateImageRequest,
@@ -44,16 +43,6 @@ export function resolveBackend(
         }),
       };
     }
-    case 'local-a1111': {
-      if (!config.a1111BaseUrl) return { error: 'no AUTOMATIC1111 base URL configured. Configure the local A1111 URL before selecting that backend (default http://127.0.0.1:7860).' };
-      return {
-        backend: new A1111Client({
-          baseUrl: config.a1111BaseUrl,
-          apiKey: config.a1111ApiKey,
-          fetch: fetchImpl,
-        }),
-      };
-    }
   }
 }
 
@@ -62,9 +51,7 @@ export interface DispatchResult {
 }
 
 /**
- * Run the configured primary backend. Errors propagate to the caller —
- * there is no automatic cloud fallback (cloud image-gen will route
- * through OpenRouter when that lands).
+ * Run the configured ComfyUI backend. Errors propagate to the caller.
  */
 export async function dispatchImageGenerate(
   req: GenerateImageRequest,
