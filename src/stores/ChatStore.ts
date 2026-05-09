@@ -298,7 +298,19 @@ export class ChatStore {
   selectThread(id: string): void {
     if (this.activeThreadId === id) return;
     this.ensureThreadModel(id);
-    this.activeThreadId = id;
+    // Wrap the active-thread mutation in a View Transition when the browser
+    // supports it so the message list cross-fades instead of hard-cutting.
+    // The CSS rule for ::view-transition-* in index.css drives the 180ms
+    // cross-fade; browsers without support fall through to the direct call.
+    const apply = (): void => { this.activeThreadId = id; };
+    const doc = typeof document !== 'undefined'
+      ? (document as Document & { startViewTransition?: (cb: () => void) => unknown })
+      : null;
+    if (doc && typeof doc.startViewTransition === 'function') {
+      doc.startViewTransition(() => runInAction(apply));
+    } else {
+      apply();
+    }
   }
 
   createThread(): string {

@@ -313,10 +313,11 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             {ui.uploadError ?? 'Uploading…'}
           </div>
         )}
-        <div style={{
-          ...ROW_STYLE,
-          border: dragActive ? '1px dashed var(--accent)' : '1px solid var(--border)',
-        }}>
+        <div
+          className="composer-row"
+          data-drag-active={dragActive || undefined}
+          style={ROW_STYLE}
+        >
           <input
             ref={fileInputRef}
             type="file"

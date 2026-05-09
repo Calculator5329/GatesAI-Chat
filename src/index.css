@@ -33,6 +33,12 @@
   content-visibility: auto;
   contain-intrinsic-size: 0 200px;
   contain: layout style paint;
+  /* Brief fade-in/slide-up so the optimistic user message and the new
+     assistant placeholder both feel like they "arrive" rather than pop. */
+  animation: fadeIn 180ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .editorial-message { animation: none; }
 }
 .editorial-message:active {
   cursor: copy;
@@ -393,6 +399,30 @@ body {
    browsers (see EditorialComposer onInput handler). */
 .composer-textarea {
   field-sizing: content;
+}
+
+/* Composer wrapper border. Default = static border. While dragging files
+   over the composer, the wrapper goes dashed-accent. When the textarea is
+   focused AND has content (`:not(:placeholder-shown)`), shift to a more
+   saturated accent border — a subtle keystroke ack that costs zero JS. */
+.composer-row {
+  border: 1px solid var(--border);
+  transition: border-color 100ms ease;
+}
+.composer-row[data-drag-active] {
+  border: 1px dashed var(--accent);
+}
+.composer-row:not([data-drag-active]):has(.composer-textarea:focus:not(:placeholder-shown)) {
+  border-color: var(--accent);
+}
+
+/* View Transitions for thread switch — see ChatStore.selectThread. The
+   default UA cross-fade is too brisk; tune to ~180ms with an ease-out
+   curve so the new thread feels like it slides in rather than blinks. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+  animation-timing-function: ease-out;
 }
 
 /* Hover affordances for composer chrome — replaces per-event style mutation
