@@ -182,4 +182,22 @@ describe('EditorialComposer API-key banner', () => {
     expect(sendWrapper!.style.opacity).toBe('1');
     expect(sendWrapper!.style.cursor).toBe('pointer');
   });
+
+  it('shows a running cost estimate from a hydrated matching OpenRouter model', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    store.registry.setDynamicForProvider('openrouter', [{
+      id: 'google/gemini-3-flash-preview',
+      name: 'Gemini 3 Flash',
+      vendor: 'Google',
+      providerId: 'openrouter',
+      providerModelId: 'google/gemini-3-flash-preview',
+      contextLength: 128000,
+      pricing: { prompt: 0.5, completion: 3 },
+      dynamic: true,
+    }]);
+    const rendered = render(store);
+
+    expect(rendered.textContent).toMatch(/~\$\d/);
+  });
 });

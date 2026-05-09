@@ -5,6 +5,7 @@ import { useBridgeStore, useChatStore, useLocalRuntimeStore, useModelRegistry, u
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
+import { DEFAULT_RESERVED_REPLY_TOKENS } from '../../core/tokens';
 import { ModelPopover } from './ModelPopover';
 import { WorkspaceImage } from './WorkspaceImage';
 
@@ -413,7 +414,11 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
 const ContextMeter = observer(function ContextMeter() {
   const chat = useChatStore();
   const ui = useUiStore();
+  const registry = useModelRegistry();
   const usage = chat.tokenUsage(ui.draft);
+  const model = registry.findById(chat.activeThread?.modelId ?? '');
+  const pricing = model?.pricing ?? findHydratedPricing(registry.all, model);
+  const cost = estimateRunningCost(usage.used, pricing);
 
   const tone = usage.fraction >= 0.9
     ? 'var(--text)' : usage.fraction >= 0.75
@@ -447,6 +452,18 @@ const ContextMeter = observer(function ContextMeter() {
         }} />
       </div>
       <span>{formatTokens(usage.used)} / {formatTokens(usage.window)}</span>
+      {cost && (
+        <span
+          title="Estimated cost if sent now"
+          style={{
+            color: 'var(--text-faint)',
+            opacity: 0.72,
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {cost}
+        </span>
+      )}
     </div>
   );
 });
@@ -530,4 +547,41 @@ function formatTokens(n: number): string {
   if (n < 100_000) return `${(n / 1000).toFixed(1)}k`;
   if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
   return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
+function estimateRunningCost(
+  usedTokens: number,
+  pricing?: { prompt?: number; completion?: number },
+): string | null {
+  if (!pricing?.prompt && !pricing?.completion) return null;
+  const reservedOutput = Math.min(DEFAULT_RESERVED_REPLY_TOKENS, Math.max(0, usedTokens));
+  const promptTokens = Math.max(0, usedTokens - reservedOutput);
+  const inputCost = pricing.prompt ? (promptTokens * pricing.prompt) / 1_000_000 : 0;
+  const outputCost = pricing.completion ? (reservedOutput * pricing.completion) / 1_000_000 : 0;
+  const total = inputCost + outputCost;
+  if (!Number.isFinite(total) || total <= 0) return null;
+  return `~${formatUsd(total)}`;
+}
+
+function findHydratedPricing(
+  models: Array<{
+    providerId: string;
+    providerModelId: string;
+    pricing?: { prompt?: number; completion?: number };
+  }>,
+  model: { providerId: string; providerModelId: string } | undefined,
+): { prompt?: number; completion?: number } | undefined {
+  if (!model) return undefined;
+  return models.find(candidate =>
+    candidate.providerId === model.providerId
+    && candidate.providerModelId === model.providerModelId
+    && (candidate.pricing?.prompt != null || candidate.pricing?.completion != null)
+  )?.pricing;
+}
+
+function formatUsd(value: number): string {
+  if (value < 0.001) return `$${value.toFixed(5)}`;
+  if (value < 0.01) return `$${value.toFixed(4)}`;
+  if (value < 1) return `$${value.toFixed(3)}`;
+  return `$${value.toFixed(2)}`;
 }
