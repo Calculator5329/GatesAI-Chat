@@ -236,7 +236,7 @@ export class ChatStore {
       ? toolRegistry.toolDefsForTurn({
           userText: [latestUserText, draftText].filter(Boolean).join('\n'),
           bridgeOnline: bridge?.isOnline ?? false,
-          imageGenAvailable: extras?.localRuntime?.comfyReady ?? false,
+          imageGenAvailable: isImageGenerationAvailable(extras),
         })
       : [];
     const systemPrompt = this.profile.composeSystemPrompt({
@@ -710,7 +710,7 @@ export class ChatStore {
       ? toolRegistry.toolDefsForTurn({
           userText: latestUserMessageContent(thread),
           bridgeOnline: bridge?.isOnline ?? false,
-          imageGenAvailable: extras?.localRuntime?.comfyReady ?? false,
+          imageGenAvailable: isImageGenerationAvailable(extras),
         })
       : undefined;
     const finalSystemPrompt = appendImageGenAddendum(systemPrompt, tools);
@@ -934,7 +934,7 @@ export class ChatStore {
         return;
       }
 
-      const snapshot = imageGen.toBackendConfig();
+      const snapshot = { ...imageGen.toBackendConfig(), primary: 'local-comfy' as const };
       const activeModel = this.registry.findById(thread.modelId);
       const comfyMode = directImageComfyMode(activeModel?.providerModelId);
       const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'render';
@@ -956,7 +956,7 @@ export class ChatStore {
       // Attach the image-job artifact via a synthetic tool-call/result
       // pair so EditorialMessage's existing artifact pipeline picks it up.
       const callId = newId('tc');
-      message.content = `Sent straight to ${snapshot.primary === 'local-comfy' ? 'ComfyUI' : 'AUTOMATIC1111'}.`;
+      message.content = 'Sent straight to ComfyUI.';
       message.preTokenLabel = undefined;
       message.toolCalls = [{
         id: callId,
@@ -1016,6 +1016,13 @@ const IMAGE_GEN_ADDENDUM = 'When you call image_generate, don\'t repeat the tool
 function appendImageGenAddendum(systemPrompt: string | undefined, tools: { name: string }[] | undefined): string | undefined {
   if (!tools || !tools.some(t => t.name === 'image_generate')) return systemPrompt;
   return systemPrompt ? `${systemPrompt}\n\n${IMAGE_GEN_ADDENDUM}` : IMAGE_GEN_ADDENDUM;
+}
+
+function isImageGenerationAvailable(extras: ToolStoreContext | undefined): boolean {
+  return Boolean(
+    extras?.imageGen?.getCredential('openrouter-image')
+    || extras?.localRuntime?.comfyReady,
+  );
 }
 
 function latestUserMessageContent(thread: Thread): string {

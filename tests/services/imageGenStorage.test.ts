@@ -9,6 +9,7 @@ describe('imageGenStorage', () => {
   it('defaults local ComfyUI generation to normal FLUX.2 Klein without upscale', () => {
     const config = loadImageGenConfig();
 
+    expect(config.backend).toBe('openrouter-image');
     expect(config.comfyQualityPreset).toBe('full');
     expect(config.comfyUpscaleFactor).toBe(1);
   });
@@ -53,14 +54,14 @@ describe('imageGenStorage', () => {
     expect(config.comfyUpscaleFactor).toBe(1);
   });
 
-  it('migrates retired image backends to ComfyUI', () => {
+  it('migrates retired image backends to OpenRouter image generation', () => {
     for (const backend of ['local-a1111', 'cloud-openrouter', 'cloud-openai', 'cloud-gemini']) {
       clearAppStorage();
       localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({ backend }));
 
       const config = loadImageGenConfig();
 
-      expect(config.backend).toBe('local-comfy');
+      expect(config.backend).toBe('openrouter-image');
     }
   });
 

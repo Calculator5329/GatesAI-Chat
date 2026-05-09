@@ -1,9 +1,11 @@
 import {
   dimsForAspect,
   isImageAspectRatio,
+  isImageBackendId,
   isLocalImageBackend,
   validateExplicitDimensions,
   type ImageAspectRatio,
+  type ImageBackendId,
 } from '../image/types';
 import type { Tool } from './types';
 import type { FsReadResp } from '../../core/workspace';
@@ -22,7 +24,7 @@ export const imageGenerateTool: Tool = {
   def: {
     name: 'image_generate',
     description: [
-      'Generate an image using the configured local ComfyUI backend. Returns a workspace path the user can click to open.',
+      'Generate an image using the configured image backend. Returns a workspace path the user can click to open.',
       '',
       'Use this when the user asks you to draw, render, create, or generate an image, picture, or illustration.',
       'The call returns immediately while the render runs in the background — do not repeat the result back to the user; they already see the image inline.',
@@ -31,11 +33,12 @@ export const imageGenerateTool: Tool = {
       '  prompt — what to render (be specific about subject, style, lighting).',
       '  prompt_file — optional /workspace JSON file for overnight batches. Shape: { defaults?: {...}, prompts: [{ prompt, count?, aspect_ratio?, width?, height?, seed?, filename? }] }.',
       '  aspect_ratio — 1:1 (default), 3:2, 2:3, 16:9, 9:16.',
-      '  width + height — optional explicit pixel dimensions; must be supplied together and be multiples of 16.',
+      '  width + height — optional explicit pixel dimensions for local ComfyUI; ignored by OpenRouter image generation.',
       '  count — how many images to generate (1–10). Default 1.',
       '  seed — optional integer for reproducibility.',
       '  batch_name — optional slug prefix for prompt_file output filenames.',
       '  filename — optional short slug for the saved file (lowercase letters, numbers, dashes; e.g. "starfleet-mountain-crash"). If omitted, one is derived from the prompt. The final image is persisted under /workspace/artifacts/.',
+      '  backend — optional: auto (default), openrouter, or local-comfy.',
     ].join('\n'),
     parameters: {
       type: 'object',
@@ -68,6 +71,11 @@ export const imageGenerateTool: Tool = {
           type: 'string',
           description: 'Optional short slug for the saved file (lowercase, dashes). Falls back to a slug derived from the prompt if omitted.',
         },
+        backend: {
+          type: 'string',
+          enum: ['auto', 'openrouter', 'local-comfy'],
+          description: 'Optional backend override. auto uses the user-selected image backend.',
+        },
       },
     },
   },
@@ -85,7 +93,10 @@ export const imageGenerateTool: Tool = {
     if (!ctx.imageJobs) return 'Error: image-jobs subsystem is not available in this session.';
     if (!ctx.bridge?.isOnline) return 'Error: bridge is offline. Start the gatesai-bridge companion process and try again.';
 
-    const snapshot = ctx.imageGen.toBackendConfig();
+    const configuredSnapshot = ctx.imageGen.toBackendConfig();
+    const backend = resolveBackendOverride(args.backend, configuredSnapshot.primary);
+    if (!backend) return 'Error: `backend` must be one of auto, openrouter, or local-comfy.';
+    const snapshot = { ...configuredSnapshot, primary: backend };
 
     if (promptFile) {
       return enqueuePromptFileBatch(args, ctx, snapshot.primary, promptFile);
@@ -95,7 +106,9 @@ export const imageGenerateTool: Tool = {
     const seed = typeof args.seed === 'number' && Number.isFinite(args.seed) ? Math.floor(args.seed) : undefined;
     const explicitWidth = parseDimensionArg(args.width);
     const explicitHeight = parseDimensionArg(args.height);
-    const dimensionError = validateExplicitDimensions(explicitWidth, explicitHeight);
+    const dimensionError = isLocalImageBackend(snapshot.primary)
+      ? validateExplicitDimensions(explicitWidth, explicitHeight)
+      : null;
     if (dimensionError) return `Error: ${dimensionError}`;
 
     let width: number;
@@ -143,6 +156,7 @@ interface BatchPromptDefaults {
   width?: unknown;
   height?: unknown;
   filename?: unknown;
+  backend?: unknown;
 }
 
 interface BatchPromptFile {
@@ -159,6 +173,7 @@ interface PlannedBatchJob {
   height: number;
   seed?: number;
   filenamePrefix: string;
+  backend: ImageBackendId;
 }
 
 async function enqueuePromptFileBatch(
@@ -205,11 +220,13 @@ async function enqueuePromptFileBatch(
 
     const count = clampCount(item.count ?? defaults.count ?? args.count);
     const seed = parseSeedArg(item.seed ?? defaults.seed ?? args.seed);
+    const itemBackend = resolveBackendOverride(item.backend ?? defaults.backend ?? args.backend, backend);
+    if (!itemBackend) return `Error: prompt_file prompts[${i}]: backend must be one of auto, openrouter, or local-comfy.`;
     const dims = resolveDimensions({
       aspectRatio: item.aspect_ratio ?? defaults.aspect_ratio ?? args.aspect_ratio,
       width: item.width ?? defaults.width ?? args.width,
       height: item.height ?? defaults.height ?? args.height,
-      backend,
+      backend: itemBackend,
     });
     if ('error' in dims) return `Error: prompt_file prompts[${i}]: ${dims.error}`;
 
@@ -225,6 +242,7 @@ async function enqueuePromptFileBatch(
       height: dims.height,
       seed,
       filenamePrefix,
+      backend: itemBackend,
     });
   }
 
@@ -236,7 +254,7 @@ async function enqueuePromptFileBatch(
       width: job.width,
       height: job.height,
       seed: job.seed,
-      backend,
+      backend: job.backend,
       filenamePrefix: job.filenamePrefix,
     });
     jobIds.push(jobId);
@@ -250,11 +268,13 @@ function resolveDimensions(input: {
   aspectRatio: unknown;
   width: unknown;
   height: unknown;
-  backend: ReturnType<NonNullable<Parameters<Tool['execute']>[1]['imageGen']>['toBackendConfig']>['primary'];
+  backend: ImageBackendId;
 }): { width: number; height: number } | { error: string } {
   const explicitWidth = parseDimensionArg(input.width);
   const explicitHeight = parseDimensionArg(input.height);
-  const dimensionError = validateExplicitDimensions(explicitWidth, explicitHeight);
+  const dimensionError = isLocalImageBackend(input.backend)
+    ? validateExplicitDimensions(explicitWidth, explicitHeight)
+    : null;
   if (dimensionError) return { error: dimensionError };
   if (
     isLocalImageBackend(input.backend)
@@ -265,6 +285,13 @@ function resolveDimensions(input: {
   }
   const aspect: ImageAspectRatio = isImageAspectRatio(input.aspectRatio) ? input.aspectRatio : '1:1';
   return dimsForAspect(aspect);
+}
+
+function resolveBackendOverride(value: unknown, configured: ImageBackendId): ImageBackendId | null {
+  if (value === undefined || value === null || value === '' || value === 'auto') return configured;
+  if (value === 'openrouter') return 'openrouter-image';
+  if (isImageBackendId(value)) return value;
+  return null;
 }
 
 function clampCount(raw: unknown): number {

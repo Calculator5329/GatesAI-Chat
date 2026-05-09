@@ -84,7 +84,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
   const value = job.progress?.value ?? 0;
   const max = job.progress?.max ?? 100;
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
-  const backendLabel = job.backend === 'local-comfy' ? 'ComfyUI' : 'AUTOMATIC1111';
+  const backendLabel = job.backend === 'local-comfy' ? 'ComfyUI' : 'OpenRouter';
   return (
     <div style={{ ...rectBase, position: 'relative' }}>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: 12 }}>

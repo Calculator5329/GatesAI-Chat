@@ -207,7 +207,7 @@ export class ImageJobStore {
     ac: AbortController,
   ): Promise<void> {
     const snapshot = deps.imageGen.toBackendConfig();
-    const config: ImageBackendConfig = { ...snapshot };
+    const config: ImageBackendConfig = { ...snapshot, primary: job.backend };
     if (job.backend === 'local-comfy' && job.comfyMode) {
       Object.assign(config, comfySettingsForMode(job.comfyMode));
     }
@@ -241,7 +241,7 @@ export class ImageJobStore {
     // console and continue with a null progress object.
     let progress: JobProgress | null = null;
     try {
-      progress = progressFactory(snapshot.primary, config);
+      progress = progressFactory(job.backend, config);
     } catch (err) {
       console.warn('[image-jobs] progress adapter failed to initialize; render will run without live progress.', err);
     }
@@ -270,7 +270,7 @@ export class ImageJobStore {
         const perIterPrefix = job.filenamePrefix
           ? (job.count > 1 ? `${job.filenamePrefix}-${i + 1}` : job.filenamePrefix)
           : undefined;
-        console.info(`[image-jobs] dispatch ${job.id} (${i + 1}/${job.count}) backend=${snapshot.primary} seed=${seed} dims=${job.width}x${job.height}${perIterPrefix ? ` prefix=${perIterPrefix}` : ''}`);
+        console.info(`[image-jobs] dispatch ${job.id} (${i + 1}/${job.count}) backend=${job.backend} seed=${seed} dims=${job.width}x${job.height}${perIterPrefix ? ` prefix=${perIterPrefix}` : ''}`);
         const t0 = performance.now();
         const { result } = await dispatcher(
           { prompt: job.prompt, width: job.width, height: job.height, seed, filenamePrefix: perIterPrefix },
@@ -286,10 +286,10 @@ export class ImageJobStore {
         let recordedPath: string;
         if (result.url) {
           const fetched = await fetchHostedImage(result.url, result.mime, deps.fetch);
-          recordedPath = await writeArtifact(deps.bridge, snapshot.primary, i, fetched.base64, fetched.mime);
+          recordedPath = await writeArtifact(deps.bridge, job.backend, i, fetched.base64, fetched.mime);
           console.info(`[image-jobs] fetched hosted url ${job.id} -> ${recordedPath}`);
         } else if (result.base64) {
-          recordedPath = await writeArtifact(deps.bridge, snapshot.primary, i, result.base64, result.mime);
+          recordedPath = await writeArtifact(deps.bridge, job.backend, i, result.base64, result.mime);
           console.info(`[image-jobs] fs.write ${job.id} -> ${recordedPath}`);
         } else {
           throw new Error('backend returned neither url nor base64');
@@ -379,6 +379,7 @@ function defaultFilenameStem(backend: ImageBackendId): string {
 function backendFilePrefix(backend: ImageBackendId): string {
   switch (backend) {
     case 'local-comfy': return 'comfy';
+    case 'openrouter-image': return 'openrouter';
   }
 }
 

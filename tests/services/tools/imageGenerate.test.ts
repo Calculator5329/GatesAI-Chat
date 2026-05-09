@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { imageGenerateTool, pickFilenamePrefix } from '../../../src/services/tools/imageGenerate';
 import type { ToolContext } from '../../../src/services/tools/types';
+import type { ImageBackendId } from '../../../src/services/image/types';
 
 interface FakeRequest { op: string; data: unknown }
 
@@ -28,17 +29,22 @@ function fakeBridge(opts: { online: boolean; requests?: FakeRequest[]; files?: R
 }
 
 function fakeImageGen(opts: {
-  backend?: 'local-comfy';
+  backend?: ImageBackendId;
   comfyBaseUrl?: string;
+  openRouterApiKey?: string;
 } = {}): ToolContext['imageGen'] {
-  const backend = opts.backend ?? 'local-comfy';
+  const backend = opts.backend ?? 'openrouter-image';
   return {
     backend,
     comfyWorkflowPath: undefined,
-    getCredential: () => 'ok',
+    getCredential: (id = backend) => {
+      if (id === 'local-comfy') return opts.comfyBaseUrl ?? 'http://h:1';
+      return opts.openRouterApiKey ?? 'sk-or-test';
+    },
     toBackendConfig: () => ({
       primary: backend,
       comfyBaseUrl: opts.comfyBaseUrl,
+      openRouterApiKey: opts.openRouterApiKey ?? 'sk-or-test',
     }),
   };
 }
@@ -87,13 +93,13 @@ describe('image_generate tool', () => {
   });
 
   it('rejects incomplete explicit pixel dimensions', async () => {
-    const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }), imageJobs: fakeImageJobs().facade });
+    const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen({ backend: 'local-comfy', comfyBaseUrl: 'http://h:1' }), imageJobs: fakeImageJobs().facade });
     const out = await imageGenerateTool.execute({ prompt: 'a lake', width: 1360 }, ctx);
     expect(typeof out === 'string' ? out : '').toMatch(/width and height/i);
   });
 
   it('rejects explicit pixel dimensions that are not multiples of 16', async () => {
-    const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }), imageJobs: fakeImageJobs().facade });
+    const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen({ backend: 'local-comfy', comfyBaseUrl: 'http://h:1' }), imageJobs: fakeImageJobs().facade });
     const out = await imageGenerateTool.execute({ prompt: 'a lake', width: 1361, height: 768 }, ctx);
     expect(typeof out === 'string' ? out : '').toMatch(/multiples of 16/i);
   });
@@ -113,7 +119,7 @@ describe('image_generate tool', () => {
     expect(c.width).toBe(1344);
     expect(c.height).toBe(768);
     expect(c.count).toBe(1);
-    expect(c.backend).toBe('local-comfy');
+    expect(c.backend).toBe('openrouter-image');
   });
 
   it('clamps count to 1..10', async () => {
@@ -130,10 +136,26 @@ describe('image_generate tool', () => {
 
   it('honors explicit width/height for local backends', async () => {
     const jobs = fakeImageJobs();
-    const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }), imageJobs: jobs.facade });
+    const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen({ backend: 'local-comfy', comfyBaseUrl: 'http://h:1' }), imageJobs: jobs.facade });
     await imageGenerateTool.execute({ prompt: 'x', width: 1360, height: 768, aspect_ratio: '1:1' }, ctx);
     expect(jobs.calls[0].width).toBe(1360);
     expect(jobs.calls[0].height).toBe(768);
+  });
+
+  it('ignores explicit width/height for OpenRouter image generation', async () => {
+    const jobs = fakeImageJobs();
+    const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen(), imageJobs: jobs.facade });
+    await imageGenerateTool.execute({ prompt: 'x', width: 1360, height: 768, aspect_ratio: '1:1' }, ctx);
+    expect(jobs.calls[0].width).toBe(1024);
+    expect(jobs.calls[0].height).toBe(1024);
+  });
+
+  it('honors the backend override argument', async () => {
+    const jobs = fakeImageJobs();
+    const ctx = makeCtx({ bridge: fakeBridge(), imageGen: fakeImageGen(), imageJobs: jobs.facade });
+    await imageGenerateTool.execute({ prompt: 'x', backend: 'local-comfy' }, ctx);
+    await imageGenerateTool.execute({ prompt: 'x', backend: 'openrouter' }, ctx);
+    expect(jobs.calls.map(c => c.backend)).toEqual(['local-comfy', 'openrouter-image']);
   });
 
   it('forwards a rounded seed when provided', async () => {
@@ -184,6 +206,7 @@ describe('image_generate tool', () => {
         height: 768,
         seed: 1000,
         filenamePrefix: 'night-run-portrait-001',
+        backend: 'openrouter-image',
       }),
       expect.objectContaining({
         prompt: 'portrait prompt two',
@@ -192,6 +215,7 @@ describe('image_generate tool', () => {
         height: 768,
         seed: 2000,
         filenamePrefix: 'night-run-portrait-prompt-two',
+        backend: 'openrouter-image',
       }),
     ]);
   });
@@ -223,7 +247,7 @@ describe('image_generate tool', () => {
     });
     const ctx = makeCtx({
       bridge: fakeBridge({ online: true, files: { '/workspace/artifacts/bad-batch.json': file } }),
-      imageGen: fakeImageGen({ comfyBaseUrl: 'http://h:1' }),
+      imageGen: fakeImageGen({ backend: 'local-comfy', comfyBaseUrl: 'http://h:1' }),
       imageJobs: jobs.facade,
     });
 

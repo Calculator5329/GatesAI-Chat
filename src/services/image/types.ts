@@ -47,7 +47,8 @@ export interface GenerateImageResult {
 }
 
 export type ImageBackendId =
-  | 'local-comfy';
+  | 'local-comfy'
+  | 'openrouter-image';
 
 /**
  * ComfyUI workflow preset.
@@ -98,6 +99,7 @@ export interface ImageBackendSnapshot {
   comfyBaseUrl?: string;
   comfyQualityPreset?: ComfyQualityPreset;
   comfyUpscaleFactor?: UpscaleFactor;
+  openRouterApiKey?: string;
 }
 
 export interface ImageBackend {
@@ -115,7 +117,7 @@ export function isLocalImageBackend(id: ImageBackendId): boolean {
 
 export function isImageBackendId(value: unknown): value is ImageBackendId {
   return typeof value === 'string'
-    && value === 'local-comfy';
+    && (value === 'local-comfy' || value === 'openrouter-image');
 }
 
 /** Concrete pixel dims for each aspect-ratio slug. */

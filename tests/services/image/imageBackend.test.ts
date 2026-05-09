@@ -15,11 +15,45 @@ function okPng(): Response {
 }
 
 describe('dispatchImageGenerate', () => {
+  it('returns a descriptive error when OpenRouter API key is not configured', async () => {
+    await expect(dispatchImageGenerate({ prompt: 'x' }, { primary: 'openrouter-image' })).rejects.toThrow(/OpenRouter API key/i);
+  });
+
   it('returns a descriptive error when ComfyUI base URL is not configured', async () => {
     await expect(dispatchImageGenerate({ prompt: 'x' }, { primary: 'local-comfy' })).rejects.toThrow(/ComfyUI base URL/i);
   });
 
-  it('routes only to ComfyUI local image generation in the foundation', async () => {
+  it('routes to OpenRouter GPT-5.4 Image 2', async () => {
+    let body: { model?: string; modalities?: string[] } | null = null;
+    const fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({
+        choices: [{
+          message: {
+            content: [
+              { type: 'text', text: 'Done.' },
+              { type: 'image_url', image_url: { url: 'data:image/png;base64,aGVsbG8=' } },
+            ],
+          },
+        }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+
+    const { result } = await dispatchImageGenerate(
+      { prompt: 'x' },
+      { primary: 'openrouter-image', openRouterApiKey: 'sk-or-test', fetch },
+    );
+
+    expect(body).toMatchObject({
+      model: 'openai/gpt-5.4-image-2',
+      modalities: ['image', 'text'],
+    });
+    expect(result.backend).toBe('openrouter-image');
+    expect(result.mime).toBe('image/png');
+    expect(result.base64).toBe('aGVsbG8=');
+  });
+
+  it('routes to ComfyUI local image generation', async () => {
     const fetch = fakeFetchBuilder([
       {
         match: (u) => u.endsWith('/prompt'),

@@ -43,7 +43,7 @@ export interface ImageGenConfig {
 }
 
 export const DEFAULT_IMAGE_GEN_CONFIG: ImageGenConfig = {
-  backend: 'local-comfy',
+  backend: 'openrouter-image',
   comfyQualityPreset: 'full',
   comfyUpscaleFactor: 1,
 };
@@ -78,7 +78,7 @@ function normalizeImageGenConfig(config: ImageGenConfig): ImageGenConfig {
     delete next.comfyWorkflowPath;
   }
   if (!isImageBackendId(next.backend)) {
-    next.backend = 'local-comfy';
+    next.backend = 'openrouter-image';
   }
   delete (next as Partial<ImageGenConfig> & { promptEnhancement?: unknown }).promptEnhancement;
   delete (next as Partial<ImageGenConfig> & { promptEnhancementOptIn?: unknown }).promptEnhancementOptIn;

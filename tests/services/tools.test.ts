@@ -561,7 +561,7 @@ describe('tool registry harness selection', () => {
     expect(names).toEqual(expect.arrayContaining(['workspace', 'fs', 'inspect_file', 'terminal', 'python_inline', 'sqlite_query', 'query_script', 'git']));
   });
 
-  it('only exposes image generation when ComfyUI is available', () => {
+  it('only exposes image generation when an image backend is available', () => {
     const unavailable = toolRegistry.toolDefsForTurn({
       userText: 'generate an image of a glass greenhouse',
       bridgeOnline: false,

@@ -58,7 +58,7 @@ export class RootStore {
     this.notes = new NotesStore();
     this.bridge = new BridgeStore();
     this.execStream = new ExecStreamStore();
-    this.imageGen = new ImageGenStore(this.localRuntime);
+    this.imageGen = new ImageGenStore(this.localRuntime, () => this.providers.getConfig('openrouter').apiKey);
     this.imageJobs = new ImageJobStore({
       bridge: this.bridge,
       imageGen: this.imageGen,

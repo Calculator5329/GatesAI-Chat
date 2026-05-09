@@ -1,4 +1,5 @@
 import { ComfyClient } from './comfyClient';
+import { OpenRouterImageClient } from './openrouterImageClient';
 import type {
   GenerateImageRequest,
   GenerateImageResult,
@@ -42,6 +43,10 @@ export function resolveBackend(
           fetch: fetchImpl,
         }),
       };
+    }
+    case 'openrouter-image': {
+      if (!config.openRouterApiKey) return { error: 'OpenRouter API key is required for GPT-5.4 Image 2. Add one under Menu -> API -> OpenRouter.' };
+      return { backend: new OpenRouterImageClient({ apiKey: config.openRouterApiKey, fetch: fetchImpl }) };
     }
   }
 }

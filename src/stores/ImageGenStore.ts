@@ -22,12 +22,15 @@ import {
 export class ImageGenStore {
   config: ImageGenConfig;
   private readonly localRuntime?: LocalRuntimeStore;
+  private readonly getOpenRouterKey: () => string | undefined;
 
-  constructor(localRuntime?: LocalRuntimeStore) {
+  constructor(localRuntime?: LocalRuntimeStore, getOpenRouterKey: () => string | undefined = () => undefined) {
     this.localRuntime = localRuntime;
+    this.getOpenRouterKey = getOpenRouterKey;
     this.config = loadImageGenConfig();
-    makeAutoObservable<this, 'localRuntime'>(this, {
+    makeAutoObservable<this, 'localRuntime' | 'getOpenRouterKey'>(this, {
       localRuntime: false,
+      getOpenRouterKey: false,
     });
 
     autorun(() => {
@@ -72,6 +75,7 @@ export class ImageGenStore {
   getCredential(backend: ImageBackendId = this.backend): string | null {
     switch (backend) {
       case 'local-comfy': return this.localRuntime?.comfyBaseUrl ?? null;
+      case 'openrouter-image': return this.getOpenRouterKey() ?? null;
     }
   }
 
@@ -87,6 +91,7 @@ export class ImageGenStore {
       comfyBaseUrl: this.localRuntime?.comfyBaseUrl,
       comfyQualityPreset: this.config.comfyQualityPreset ?? 'full',
       comfyUpscaleFactor: this.config.comfyUpscaleFactor ?? 1,
+      openRouterApiKey: this.getOpenRouterKey(),
     };
   }
 }

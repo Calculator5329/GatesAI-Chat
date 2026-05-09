@@ -6,10 +6,11 @@ describe('ImageGenStore', () => {
   beforeEach(() => clearAppStorage());
   afterEach(() => clearAppStorage());
 
-  it('produces a ComfyUI-only backend snapshot', () => {
-    const store = new ImageGenStore();
+  it('defaults to an OpenRouter image backend snapshot using the shared OpenRouter key', () => {
+    const store = new ImageGenStore(undefined, () => 'sk-or-test');
 
-    expect(store.toBackendConfig().primary).toBe('local-comfy');
+    expect(store.toBackendConfig().primary).toBe('openrouter-image');
+    expect(store.toBackendConfig().openRouterApiKey).toBe('sk-or-test');
   });
 
   it('passes the ComfyUI upscale factor through the backend snapshot', () => {

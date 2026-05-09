@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
-import { useBridgeStore, useImageGenStore, useLocalRuntimeStore, useOllamaStore } from '../../../stores/context';
+import { useBridgeStore, useImageGenStore, useLocalRuntimeStore, useOllamaStore, useProviderStore } from '../../../stores/context';
 import type { LocalRuntimeId, RuntimeState } from '../../../stores/LocalRuntimeStore';
 import { Button, Card, Input, Pill, Select, SettingsRow, Toggle, SecretKeyField } from '../../ui';
 import { ProviderAvatar } from './api/ProviderAvatar';
@@ -38,6 +38,7 @@ export const LocalSection = observer(function LocalSection() {
 
       <RuntimeCard onOpenLogs={setLogRuntime} />
       <LocalLlmCard />
+      <OpenRouterImageCard />
       <LocalImageCard />
       <LocalVisionCard />
 
@@ -66,6 +67,43 @@ export const LocalSection = observer(function LocalSection() {
         }
       `}</style>
     </>
+  );
+});
+
+const OpenRouterImageCard = observer(function OpenRouterImageCard() {
+  const image = useImageGenStore();
+  const providers = useProviderStore();
+  const connected = providers.isConnected('openrouter');
+  const isActiveBackend = image.backend === 'openrouter-image';
+  return (
+    <Card style={{ marginBottom: 18 }}>
+      <div style={cardHeaderStyle}>
+        <ProviderAvatar name="OpenRouter" />
+        <div style={{ flex: 1 }}>
+          <div style={cardTitleStyle}>OpenRouter image generation</div>
+          <div style={cardDescStyle}>GPT-5.4 Image 2 behind image_generate, using your OpenRouter API key.</div>
+        </div>
+        {connected ? <Pill>● Ready</Pill> : <Pill tone="muted">No OpenRouter key</Pill>}
+      </div>
+      <SettingsRow label="Use for generation" last>
+        {isActiveBackend ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Pill>● Active backend</Pill>
+            <span style={hintStyle}>image_generate is routing to GPT-5.4 Image 2 through OpenRouter.</span>
+          </div>
+        ) : (
+          <Button
+            variant="accent"
+            onClick={() => image.setBackend('openrouter-image')}
+            disabled={!connected}
+            title={!connected ? 'Add an OpenRouter API key under API before routing image_generate to OpenRouter.' : undefined}
+          >
+            Set image_generate to OpenRouter
+          </Button>
+        )}
+      </SettingsRow>
+      <div style={footerHintStyle}>OpenRouter is the default image backend for new installs and requires no local runtime.</div>
+    </Card>
   );
 });
 
