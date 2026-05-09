@@ -3,7 +3,7 @@ import type { AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from
 import type { LlmProvider, LlmRequest, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
-import { loadSnapshot, saveSnapshot } from '../services/persistence';
+import { flushPendingSnapshot, loadSnapshot, saveSnapshot, scheduleSaveSnapshot } from '../services/persistence';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, estimateTokens, type TokenUsage } from '../core/tokens';
 import { flattenForWire } from '../services/llm/wireFormat';
 import { resolveWireImages } from '../services/llm/resolveImages';
@@ -162,7 +162,7 @@ export class ChatStore {
         pendingTimer = null;
       }
       if (pendingSnap) {
-        saveSnapshot(pendingSnap);
+        scheduleSaveSnapshot(pendingSnap);
         lastSaveAt = Date.now();
         pendingSnap = null;
       }
@@ -174,7 +174,7 @@ export class ChatStore {
       if (elapsed >= FLUSH_MS) {
         if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
         pendingSnap = null;
-        saveSnapshot(snap);
+        scheduleSaveSnapshot(snap);
         lastSaveAt = now;
         return;
       }
@@ -183,8 +183,19 @@ export class ChatStore {
       pendingTimer = setTimeout(flush, FLUSH_MS - elapsed);
     });
     if (typeof window !== 'undefined') {
-      window.addEventListener('pagehide', flush);
-      window.addEventListener('beforeunload', flush);
+      // Unload paths must persist synchronously — drain the throttle queue
+      // and flush any microtask-deferred write before the page tears down.
+      const syncFlush = (): void => {
+        if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+        if (pendingSnap) {
+          saveSnapshot(pendingSnap);
+          lastSaveAt = Date.now();
+          pendingSnap = null;
+        }
+        flushPendingSnapshot();
+      };
+      window.addEventListener('pagehide', syncFlush);
+      window.addEventListener('beforeunload', syncFlush);
     }
   }
 

@@ -7,7 +7,7 @@ import type {
   MarkdownStyleKey,
   ToolCallStyleKey,
 } from '../core/types';
-import { loadUiPrefs, saveUiPrefs } from '../services/uiPrefsStorage';
+import { loadUiPrefs, saveUiPrefs, type UiPrefsSnapshot } from '../services/uiPrefsStorage';
 import type { BridgeStore } from './BridgeStore';
 
 /**
@@ -42,16 +42,40 @@ export class UiStore {
     this.readingWidthPx = prefs.readingWidthPx;
     this.animationsEnabled = prefs.animationsEnabled;
     makeAutoObservable(this);
-    autorun(() => saveUiPrefs(toJS({
-      toolCallStyle: this.toolCallStyle,
-      markdownStyle: this.markdownStyle,
-      codeStyle: this.codeStyle,
-      markdownDensity: this.markdownDensity,
-      codeSize: this.codeSize,
-      bodyFontSizePx: this.bodyFontSizePx,
-      readingWidthPx: this.readingWidthPx,
-      animationsEnabled: this.animationsEnabled,
-    })));
+    // Debounce UI-prefs persistence: a slider drag (font size, reading width)
+    // can fire dozens of mutations per second; without debouncing each one
+    // would JSON.stringify + write to localStorage on the main thread.
+    // Trailing 500ms debounce coalesces a drag into one write. We flush on
+    // pagehide/beforeunload so a tab close mid-debounce doesn't lose the
+    // final value.
+    const DEBOUNCE_MS = 500;
+    let pendingPrefs: UiPrefsSnapshot | null = null;
+    let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+    const flushPrefs = (): void => {
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+      if (pendingPrefs) {
+        saveUiPrefs(pendingPrefs);
+        pendingPrefs = null;
+      }
+    };
+    autorun(() => {
+      pendingPrefs = toJS({
+        toolCallStyle: this.toolCallStyle,
+        markdownStyle: this.markdownStyle,
+        codeStyle: this.codeStyle,
+        markdownDensity: this.markdownDensity,
+        codeSize: this.codeSize,
+        bodyFontSizePx: this.bodyFontSizePx,
+        readingWidthPx: this.readingWidthPx,
+        animationsEnabled: this.animationsEnabled,
+      });
+      if (pendingTimer) clearTimeout(pendingTimer);
+      pendingTimer = setTimeout(flushPrefs, DEBOUNCE_MS);
+    });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pagehide', flushPrefs);
+      window.addEventListener('beforeunload', flushPrefs);
+    }
   }
 
   setDraft(value: string): void { this.draft = value; }

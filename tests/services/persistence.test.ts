@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadSnapshot, saveSnapshot } from '../../src/services/persistence';
+import { flushPendingSnapshot, loadSnapshot, saveSnapshot, scheduleSaveSnapshot } from '../../src/services/persistence';
 import { clearAppStorage } from '../helpers/storage';
 
 describe('persistence', () => {
@@ -211,6 +211,63 @@ describe('persistence', () => {
     expect(assistant.toolCalls?.[0].arguments.content).toContain('[persisted tool argument compacted]');
     expect(assistant.toolCalls?.[0].arguments.content).toContain('/workspace/artifacts/migration.json');
     expect(assistant.toolResults?.[0].content).toContain('Wrote 40010 bytes');
+  });
+
+  describe('scheduleSaveSnapshot', () => {
+    const mkSnap = (title: string) => ({
+      threads: [{
+        id: 't1', title, subtitle: '', pinned: false,
+        modelId: 'or-gpt-5.4-mini',
+        createdAt: 1, updatedAt: 2,
+        messages: [{ id: 'm1', role: 'user' as const, content: 'yo', createdAt: 3 }],
+      }],
+      activeThreadId: 't1',
+    });
+
+    it('defers the write until a microtask runs', async () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+      scheduleSaveSnapshot(mkSnap('A'));
+      expect(setItemSpy).not.toHaveBeenCalled();
+      await Promise.resolve();
+      expect(setItemSpy).toHaveBeenCalledTimes(1);
+      expect(loadSnapshot()?.threads[0].title).toBe('A');
+    });
+
+    it('coalesces multiple queued saves and writes only the LATEST snapshot', async () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+      scheduleSaveSnapshot(mkSnap('A'));
+      scheduleSaveSnapshot(mkSnap('B'));
+      scheduleSaveSnapshot(mkSnap('C'));
+      await Promise.resolve();
+      expect(setItemSpy).toHaveBeenCalledTimes(1);
+      expect(loadSnapshot()?.threads[0].title).toBe('C');
+    });
+
+    it('does not stale-write A on top of a later B (ordering preserved)', async () => {
+      // Queue A, let microtask drain (A persists). Queue B. The pending-save
+      // flag must reset so B fires its own microtask and lands LAST.
+      scheduleSaveSnapshot(mkSnap('A'));
+      await Promise.resolve();
+      expect(loadSnapshot()?.threads[0].title).toBe('A');
+      scheduleSaveSnapshot(mkSnap('B'));
+      await Promise.resolve();
+      expect(loadSnapshot()?.threads[0].title).toBe('B');
+    });
+
+    it('flushPendingSnapshot writes synchronously', () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+      scheduleSaveSnapshot(mkSnap('Z'));
+      expect(setItemSpy).not.toHaveBeenCalled();
+      flushPendingSnapshot();
+      expect(setItemSpy).toHaveBeenCalledTimes(1);
+      expect(loadSnapshot()?.threads[0].title).toBe('Z');
+    });
+
+    it('flushPendingSnapshot is a no-op when nothing is queued', () => {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+      flushPendingSnapshot();
+      expect(setItemSpy).not.toHaveBeenCalled();
+    });
   });
 });
 

@@ -26,6 +26,10 @@ export function saveSnapshot(snapshot: ChatSnapshot): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
   } catch {
+    // Emergency-save fallback only runs when the primary write fails (typically
+    // QuotaExceededError). It compacts large tool results / arguments to fit
+    // under the storage cap. Swallowed errors here are terminal — nothing more
+    // we can do.
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(compactSnapshotForEmergencySave(cleaned)));
       console.warn('[persistence] saved compacted chat snapshot after localStorage rejected full snapshot');
@@ -33,6 +37,37 @@ export function saveSnapshot(snapshot: ChatSnapshot): void {
       console.error('[persistence] failed to save chat snapshot', err);
     }
   }
+}
+
+/**
+ * Deferred snapshot save — wraps `saveSnapshot` in a microtask so the
+ * JSON.stringify + localStorage.setItem cost doesn't block the caller (e.g.
+ * the streaming-token autorun that triggered the save). Ordering is
+ * preserved by reading the LATEST queued snapshot at flush time, not the one
+ * captured when the call was scheduled. If save A is queued, the store
+ * mutates again, and save B is queued before the microtask fires, only B's
+ * snapshot is written — A is not stale-written on top of B.
+ */
+let pendingDeferredSnap: ChatSnapshot | null = null;
+let deferredScheduled = false;
+
+export function scheduleSaveSnapshot(snapshot: ChatSnapshot): void {
+  pendingDeferredSnap = snapshot;
+  if (deferredScheduled) return;
+  deferredScheduled = true;
+  queueMicrotask(() => {
+    deferredScheduled = false;
+    const snap = pendingDeferredSnap;
+    pendingDeferredSnap = null;
+    if (snap) saveSnapshot(snap);
+  });
+}
+
+/** Synchronously flush any pending deferred save. Call from unload handlers. */
+export function flushPendingSnapshot(): void {
+  const snap = pendingDeferredSnap;
+  pendingDeferredSnap = null;
+  if (snap) saveSnapshot(snap);
 }
 
 function cleanSnapshot(snapshot: ChatSnapshot): ChatSnapshot {
