@@ -1,42 +1,41 @@
+import { useState, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import {
+  Button,
+  Input,
   Textarea,
   Pill,
 } from '../../ui';
-import { useUserProfileStore } from '../../../stores/context';
+import { useChatStore, useUserProfileStore } from '../../../stores/context';
 
-interface AgentTool {
+interface AgentAbility {
   name: string;
   desc: string;
 }
 
-const AGENT_TOOLS: AgentTool[] = [
-  { name: 'memory',        desc: 'Add / remove / update / list user memories' },
-  { name: 'notes',         desc: 'Create / read / search long-form notes' },
-  { name: 'thread',        desc: 'Rename, set context, summarize, switch, or list threads' },
-  { name: 'time',          desc: 'Current date / time in your local timezone' },
-  { name: 'workspace',     desc: 'Inspect bridge state, limits, and workspace conventions' },
-  { name: 'fs',            desc: 'Read and write files inside the local workspace' },
-  { name: 'inspect_file',  desc: 'Profile CSV, JSON, and text files without dumping content' },
-  { name: 'terminal',      desc: 'Run allowlisted local commands through the bridge' },
-  { name: 'python_inline', desc: 'Run short scoped Python snippets' },
-  { name: 'sqlite_query',  desc: 'Run read-only SQLite queries against workspace databases' },
-  { name: 'query_script',  desc: 'Create reusable data-query scripts and artifacts' },
-  { name: 'git',           desc: 'Local status, diff, add, commit, and branch operations' },
+const AGENT_ABILITIES: AgentAbility[] = [
+  { name: 'Conversation memory', desc: 'Memory, notes, thread context, summaries, and time awareness.' },
+  { name: 'Workspace work', desc: 'Workspace inspection, file access, artifacts, terminal, Python, SQLite, query scripts, and git.' },
+  { name: 'Local media', desc: 'ComfyUI image generation and local Ollama vision tools when configured.' },
 ];
 
 export const AgentSection = observer(function AgentSection() {
   const profile = useUserProfileStore();
+  const chat = useChatStore();
 
   const promptLen = profile.defaultSystemPrompt.trim().length;
   const factCount = profile.facts.length;
+  const recentSummaries = chat.threads
+    .filter(t => !!t.summary?.trim())
+    .sort((a, b) => (b.summaryUpdatedAt ?? 0) - (a.summaryUpdatedAt ?? 0))
+    .slice(0, 15);
 
   return (
     <>
       <h1 style={tokens.h1}>Agent</h1>
       <div style={tokens.kicker}>
-        instructions {promptLen ? '· set' : '· empty'} · memory · {factCount} fact{factCount === 1 ? '' : 's'}
+        instructions {promptLen ? 'set' : 'empty'} · {factCount} memor{factCount === 1 ? 'y' : 'ies'} · {recentSummaries.length} summaries
       </div>
 
       <div style={tokens.section}>
@@ -57,20 +56,22 @@ export const AgentSection = observer(function AgentSection() {
         />
       </div>
 
+      <MemorySection />
+      <RecentConversations summaries={recentSummaries} />
 
       <div style={tokens.section}>
         <div style={tokens.sectionTitle}>
-          Tools · {AGENT_TOOLS.length} live
+          Capabilities
         </div>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 14, lineHeight: 1.55 }}>
-          The assistant always has access to every live tool — there are no
-          per-tool toggles. Manage what it remembers about you in <strong>Profile → Memory</strong>.
+          Tool access is selected per turn from the live registry, so this is a
+          summary of what the foundation can do rather than a toggle list.
         </div>
-        {AGENT_TOOLS.map((t, i) => {
-          const last = i === AGENT_TOOLS.length - 1;
+        {AGENT_ABILITIES.map((ability, i) => {
+          const last = i === AGENT_ABILITIES.length - 1;
           return (
             <div
-              key={t.name}
+              key={ability.name}
               style={{
                 display: 'grid', gridTemplateColumns: '180px 1fr auto',
                 gap: 24, padding: '12px 0',
@@ -79,8 +80,8 @@ export const AgentSection = observer(function AgentSection() {
               }}
             >
               <div>
-                <div style={{ ...tokens.mono, color: 'var(--text)' }}>{t.name}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 2 }}>{t.desc}</div>
+                <div style={{ ...tokens.mono, color: 'var(--text)' }}>{ability.name}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 2 }}>{ability.desc}</div>
               </div>
               <div />
               <div style={{ justifySelf: 'end' }}>
@@ -93,3 +94,213 @@ export const AgentSection = observer(function AgentSection() {
     </>
   );
 });
+
+const MemorySection = observer(function MemorySection() {
+  const profile = useUserProfileStore();
+  const facts = profile.facts;
+  const [draft, setDraft] = useState('');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editText, setEditText] = useState('');
+
+  const onAdd = () => {
+    if (!draft.trim()) return;
+    profile.addFact(draft);
+    setDraft('');
+  };
+
+  const startEdit = (index: number, value: string) => {
+    setEditingIndex(index);
+    setEditText(value);
+  };
+  const saveEdit = () => {
+    if (editingIndex === null) return;
+    profile.updateFactAt(editingIndex, editText);
+    setEditingIndex(null);
+    setEditText('');
+  };
+  const cancelEdit = () => { setEditingIndex(null); setEditText(''); };
+
+  return (
+    <div style={tokens.section}>
+      <div style={tokens.sectionTitle}>
+        Memory · {facts.length} fact{facts.length === 1 ? '' : 's'}
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 14, lineHeight: 1.55 }}>
+        Durable facts the assistant can use across conversations. You can edit
+        or delete anything here.
+      </div>
+
+      {facts.length === 0 ? (
+        <div style={emptyBoxStyle}>
+          No memories yet. Tell the assistant something to remember, or add one below.
+        </div>
+      ) : (
+        <div style={{ marginBottom: 14, display: 'flex', flexDirection: 'column' }}>
+          {facts.map((fact, i) => {
+            const isEditing = editingIndex === i;
+            return (
+              <div
+                key={i}
+                style={{
+                  display: 'grid', gridTemplateColumns: '24px 1fr auto',
+                  gap: 12, alignItems: 'center',
+                  padding: '10px 0',
+                  borderBottom: i === facts.length - 1 ? 'none' : '1px solid var(--border)',
+                }}
+              >
+                <span style={{ ...tokens.mono, color: 'var(--text-faint)', textAlign: 'right' }}>{i + 1}</span>
+                {isEditing ? (
+                  <Input
+                    autoFocus
+                    value={editText}
+                    onChange={e => setEditText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') saveEdit();
+                      else if (e.key === 'Escape') cancelEdit();
+                    }}
+                  />
+                ) : (
+                  <span style={{
+                    fontFamily: '"Source Serif 4", Georgia, serif',
+                    fontSize: 14.5, lineHeight: 1.5, color: 'var(--text)',
+                  }}>{fact}</span>
+                )}
+                <div style={rowActions}>
+                  {isEditing ? (
+                    <>
+                      <button style={iconBtn} onClick={saveEdit} title="Save">save</button>
+                      <button style={iconBtn} onClick={cancelEdit} title="Cancel">cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <button style={iconBtn} onClick={() => startEdit(i, fact)} title="Edit">edit</button>
+                      <button style={{ ...iconBtn, color: 'var(--text-faint)' }} onClick={() => profile.removeFactAt(i)} title="Delete">delete</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Input
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') onAdd(); }}
+          placeholder='Add a memory · "User prefers concise answers"'
+          style={{ flex: 1 }}
+        />
+        <Button onClick={onAdd}>Add</Button>
+      </div>
+
+      {facts.length > 0 && (
+        <div style={{ marginTop: 12, textAlign: 'right' }}>
+          <button
+            style={{ ...iconBtn, color: 'var(--text-faint)', fontSize: 11 }}
+            onClick={() => {
+              if (window.confirm(`Delete all ${facts.length} memories? This can't be undone.`)) {
+                profile.clearFacts();
+              }
+            }}
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+    </div>
+  );
+});
+
+interface RecentSummary {
+  id: string;
+  title: string;
+  summary?: string;
+  summaryUpdatedAt?: number;
+}
+
+function RecentConversations({ summaries }: { summaries: RecentSummary[] }) {
+  return (
+    <div style={tokens.section}>
+      <div style={tokens.sectionTitle}>
+        Recent conversations · {summaries.length} summarized
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 14, lineHeight: 1.55 }}>
+        One-line digests of recent threads. These help the assistant keep
+        project context without re-reading every message.
+      </div>
+      {summaries.length === 0 ? (
+        <div style={emptyBoxStyle}>
+          Summaries will appear here as conversations grow. Threads with at
+          least 4 messages get summarized when they go idle.
+        </div>
+      ) : (
+        <div>
+          {summaries.map((t, i) => (
+            <div
+              key={t.id}
+              style={{
+                padding: '12px 0',
+                borderBottom: i === summaries.length - 1 ? 'none' : '1px solid var(--border)',
+              }}
+            >
+              <div style={{
+                fontFamily: '"Source Serif 4", Georgia, serif',
+                fontSize: 14.5, color: 'var(--text)', marginBottom: 4,
+              }}>
+                {t.title}
+              </div>
+              <div style={{
+                fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.55,
+              }}>
+                {t.summary}
+              </div>
+              {t.summaryUpdatedAt && (
+                <div style={{
+                  ...tokens.mono, color: 'var(--text-faint)', fontSize: 10.5,
+                  marginTop: 4, letterSpacing: '0.05em',
+                }}>
+                  updated {relativeTime(t.summaryUpdatedAt)}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const emptyBoxStyle: CSSProperties = {
+  padding: '14px 16px',
+  border: '1px dashed var(--border)',
+  borderRadius: 4,
+  fontSize: 13,
+  color: 'var(--text-faint)',
+  fontStyle: 'italic',
+  marginBottom: 14,
+};
+
+const rowActions: CSSProperties = {
+  display: 'flex', gap: 8, alignItems: 'center',
+};
+
+const iconBtn: CSSProperties = {
+  background: 'none', border: 'none', cursor: 'pointer',
+  fontFamily: '"Geist Mono", monospace', fontSize: 11,
+  color: 'var(--text-dim)', padding: '4px 6px',
+  textTransform: 'lowercase', letterSpacing: '0.05em',
+};
+
+function relativeTime(ts: number): string {
+  const diffMs = Date.now() - ts;
+  const sec = Math.round(diffMs / 1000);
+  if (sec < 60) return 'just now';
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  return `${day}d ago`;
+}

@@ -1,5 +1,10 @@
 # Image-Gen UX Overhaul Implementation Plan
 
+> Superseded by `docs/plans/2026-05-08-foundation-trim.md`.
+> This file is historical design context only. Do not execute it as a current
+> plan; fal.ai, A1111, and prompt-enhancement surfaces were removed from the
+> foundation.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Detach `image_generate` from the chat turn into a background job with live progress, multi-image batches, a Gallery menu, a Lightbox, and a fixed workspace-link click-through. Remove the unused fal.ai backend on the way.

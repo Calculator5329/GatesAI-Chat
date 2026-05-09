@@ -1,10 +1,13 @@
 import type { ChatSnapshot, Message, ToolResult, Thread } from '../core/types';
 import type { ToolCall } from '../core/llm';
+import { DEFAULT_MODEL_ID, MODELS } from '../core/models';
 
 const STORAGE_KEY = 'gatesai.state.v1';
 const EMERGENCY_TOOL_RESULT_CHARS = 600;
 const EMERGENCY_TOOL_ARGUMENT_CHARS = 600;
 const LARGE_TOOL_ARGUMENT_KEYS = new Set(['body', 'content', 'stdin']);
+const SUPPORTED_MODEL_IDS = new Set(MODELS.map(model => model.id));
+const DYNAMIC_MODEL_PREFIXES = ['or-live-', 'ollama-'];
 
 export function loadSnapshot(): ChatSnapshot | null {
   try {
@@ -141,9 +144,15 @@ function compactLargeString(opts: {
 function migrate(snap: ChatSnapshot): ChatSnapshot {
   const threads: Thread[] = snap.threads.map(t => ({
     ...t,
+    modelId: isSupportedModelId(t.modelId) ? t.modelId : DEFAULT_MODEL_ID,
     messages: foldAssistantRuns(foldToolMessages(t.messages as LegacyMessage[])),
   }));
   return { ...snap, threads };
+}
+
+function isSupportedModelId(modelId: string): boolean {
+  return SUPPORTED_MODEL_IDS.has(modelId)
+    || DYNAMIC_MODEL_PREFIXES.some(prefix => modelId.startsWith(prefix));
 }
 
 /** Pre-migration message — `role: 'tool'` was a third union member. */

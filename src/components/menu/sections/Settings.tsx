@@ -25,8 +25,8 @@ export const SettingsSection = observer(function SettingsSection() {
 
       <Card style={{ padding: '14px 18px', marginBottom: 20 }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
-          Visual preferences live under <strong style={{ color: 'var(--text)' }}>Appearance</strong>.
-          Provider keys, models, and runtimes are under <strong style={{ color: 'var(--text)' }}>API</strong> and{' '}
+          General app settings will collect here over time. Model keys and catalog controls are under{' '}
+          <strong style={{ color: 'var(--text)' }}>Models</strong>; runtimes are under{' '}
           <strong style={{ color: 'var(--text)' }}>Local</strong>. This page is just shortcuts and the danger zone.
         </div>
       </Card>

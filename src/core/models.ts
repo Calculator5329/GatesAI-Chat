@@ -16,25 +16,25 @@ export const MODELS: Model[] = [
   // (Full catalog can be fetched live via /api/v1/models if needed)
   // ─────────────────────────────────────────────────────────────────
   // Frontier (re-exposed via OR for users with only an OR key)
-  { id: 'or-claude-opus-4.7',     name: 'Claude Opus 4.7 (OpenRouter)',   vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'anthropic/claude-opus-4.7' },
-  { id: 'or-claude-sonnet-4.6',   name: 'Claude Sonnet 4.6 (OpenRouter)', vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'anthropic/claude-sonnet-4.6' },
-  { id: 'or-gpt-5.5-pro',         name: 'GPT-5.5 Pro (OpenRouter)',       vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'openai/gpt-5.5-pro' },
-  { id: 'or-gpt-5.5',             name: 'GPT-5.5 (OpenRouter)',           vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'openai/gpt-5.5' },
-  { id: 'or-gpt-5.4',             name: 'GPT-5.4 (OpenRouter)',           vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'openai/gpt-5.4' },
-  { id: 'or-gpt-5.4-mini',        name: 'GPT-5.4 mini (OpenRouter)',      vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'openai/gpt-5.4-mini' },
-  { id: 'or-gemini-3.1-pro',      name: 'Gemini 3.1 Pro (OpenRouter)',    vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-pro-preview' },
-  { id: 'or-gemini-3-flash',      name: 'Gemini 3 Flash (OpenRouter)',    vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'google/gemini-3-flash-preview' },
-  { id: 'or-gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite (OpenRouter)', vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-flash-lite-preview' },
+  { id: 'or-claude-opus-4.7',     name: 'Claude Opus 4.7',   vendor: 'Anthropic', providerId: 'openrouter', providerModelId: 'anthropic/claude-opus-4.7' },
+  { id: 'or-claude-sonnet-4.6',   name: 'Claude Sonnet 4.6', vendor: 'Anthropic', providerId: 'openrouter', providerModelId: 'anthropic/claude-sonnet-4.6' },
+  { id: 'or-gpt-5.5-pro',         name: 'GPT-5.5 Pro',       vendor: 'OpenAI', providerId: 'openrouter', providerModelId: 'openai/gpt-5.5-pro' },
+  { id: 'or-gpt-5.5',             name: 'GPT-5.5',           vendor: 'OpenAI', providerId: 'openrouter', providerModelId: 'openai/gpt-5.5' },
+  { id: 'or-gpt-5.4',             name: 'GPT-5.4',           vendor: 'OpenAI', providerId: 'openrouter', providerModelId: 'openai/gpt-5.4' },
+  { id: 'or-gpt-5.4-mini',        name: 'GPT-5.4 mini',      vendor: 'OpenAI', providerId: 'openrouter', providerModelId: 'openai/gpt-5.4-mini' },
+  { id: 'or-gemini-3.1-pro',      name: 'Gemini 3.1 Pro',    vendor: 'Google', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-pro-preview' },
+  { id: 'or-gemini-3-flash',      name: 'Gemini 3 Flash',    vendor: 'Google', providerId: 'openrouter', providerModelId: 'google/gemini-3-flash-preview' },
+  { id: 'or-gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', vendor: 'Google', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-flash-lite-preview' },
 
   // xAI
-  { id: 'or-grok-4.20',                 name: 'Grok 4.20 (OpenRouter)',                vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'x-ai/grok-4.20' },
-  { id: 'or-grok-4.20-multi-agent',     name: 'Grok 4.20 Multi-Agent (OpenRouter)',    vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'x-ai/grok-4.20-multi-agent' },
+  { id: 'or-grok-4.20',                 name: 'Grok 4.20',                vendor: 'xAI', providerId: 'openrouter', providerModelId: 'x-ai/grok-4.20' },
+  { id: 'or-grok-4.20-multi-agent',     name: 'Grok 4.20 Multi-Agent',    vendor: 'xAI', providerId: 'openrouter', providerModelId: 'x-ai/grok-4.20-multi-agent' },
 
   // Open weights
-  { id: 'or-deepseek-v4-pro',     name: 'DeepSeek V4 Pro (OpenRouter)',   vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'deepseek/deepseek-v4-pro' },
-  { id: 'or-deepseek-v4-flash',   name: 'DeepSeek V4 Flash (OpenRouter)', vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'deepseek/deepseek-v4-flash' },
-  { id: 'or-kimi-k2.6',           name: 'Kimi K2.6 (OpenRouter)',         vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'moonshotai/kimi-k2.6' },
-  { id: 'or-mistral-small',       name: 'Mistral Small (OpenRouter)',     vendor: 'OpenRouter', providerId: 'openrouter', providerModelId: 'mistralai/mistral-small-2603' },
+  { id: 'or-deepseek-v4-pro',     name: 'DeepSeek V4 Pro',   vendor: 'DeepSeek', providerId: 'openrouter', providerModelId: 'deepseek/deepseek-v4-pro' },
+  { id: 'or-deepseek-v4-flash',   name: 'DeepSeek V4 Flash', vendor: 'DeepSeek', providerId: 'openrouter', providerModelId: 'deepseek/deepseek-v4-flash' },
+  { id: 'or-kimi-k2.6',           name: 'Kimi K2.6',         vendor: 'Moonshot', providerId: 'openrouter', providerModelId: 'moonshotai/kimi-k2.6' },
+  { id: 'or-mistral-small',       name: 'Mistral Small',     vendor: 'Mistral', providerId: 'openrouter', providerModelId: 'mistralai/mistral-small-2603' },
 
   // ─────────────────────────────────────────────────────────────────
   // Direct image — synthetic "models" that bypass any LLM and send the
@@ -71,4 +71,4 @@ export const MODELS: Model[] = [
   },
 ];
 
-export const DEFAULT_MODEL_ID = 'or-gpt-5.4-mini';
+export const DEFAULT_MODEL_ID = 'or-gemini-3-flash';

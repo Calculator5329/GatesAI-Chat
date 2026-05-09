@@ -1,17 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
-import type { SendKey, ThreadHeaderKey } from '../../core/types';
 import { useChatStore, useModelRegistry } from '../../stores/context';
 import { EditorialMessage } from './EditorialMessage';
 import { EditorialComposer } from './EditorialComposer';
-import { EditorialThreadHeader } from './EditorialThreadHeader';
 
-interface ChatProps {
-  sendKey: SendKey;
-  threadHeaderKey: ThreadHeaderKey;
-}
-
-export const EditorialChat = observer(function EditorialChat({ sendKey, threadHeaderKey }: ChatProps) {
+export const EditorialChat = observer(function EditorialChat() {
   const chat = useChatStore();
   const registry = useModelRegistry();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -32,7 +25,6 @@ export const EditorialChat = observer(function EditorialChat({ sendKey, threadHe
       flex: 1, display: 'flex', flexDirection: 'column',
       minWidth: 0, background: 'var(--bg)', position: 'relative',
     }}>
-      {activeThread && <EditorialThreadHeader variant={threadHeaderKey} thread={activeThread} />}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px' }}>
         <div style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
           {messages.length === 0 && (
@@ -60,7 +52,7 @@ export const EditorialChat = observer(function EditorialChat({ sendKey, threadHe
           })}
         </div>
       </div>
-      <EditorialComposer sendKey={sendKey} textareaRef={textareaRef} />
+      <EditorialComposer textareaRef={textareaRef} />
     </div>
   );
 });

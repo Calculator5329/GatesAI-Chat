@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MODELS } from '../../src/core/models';
+import { DEFAULT_MODEL_ID, MODELS } from '../../src/core/models';
 
 describe('curated model catalog', () => {
   it('only exposes OpenRouter chat models and local image models in the curated foundation', () => {
@@ -21,6 +21,10 @@ describe('curated model catalog', () => {
         providerModelId: 'openai/gpt-5.5-pro',
       }),
     ]));
+  });
+
+  it('defaults normal chat to Gemini 3 Flash via OpenRouter', () => {
+    expect(DEFAULT_MODEL_ID).toBe('or-gemini-3-flash');
   });
 
   it('does not invent GPT-5.5 mini or nano variants', () => {

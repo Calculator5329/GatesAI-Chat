@@ -68,6 +68,21 @@ describe('mapOllamaTagsToModels', () => {
     expect(tools('phind-codellama:34b')).toBe(true); // doesn't start with 'codellama'
   });
 
+  it('filters embedding-only tags out of the chat model catalog', () => {
+    const out = mapOllamaTagsToModels({
+      models: [
+        { name: 'nomic-embed-text:latest' },
+        { name: 'mxbai-embed-large:latest' },
+        { name: 'all-minilm:latest' },
+        { name: 'bge-m3:latest' },
+        { name: 'custom-embed:latest' },
+        { name: 'llama3.1:8b' },
+      ],
+    });
+
+    expect(out.map(m => m.providerModelId)).toEqual(['llama3.1:8b']);
+  });
+
   it('returns [] when the response is malformed', () => {
     expect(mapOllamaTagsToModels(null)).toEqual([]);
     expect(mapOllamaTagsToModels({})).toEqual([]);

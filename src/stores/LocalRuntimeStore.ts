@@ -79,6 +79,10 @@ export class LocalRuntimeStore {
     });
 
     autorun(() => {
+      if (this.visionModel && this.getOllamaCatalog().length > 0
+          && !this.visionModels.some(model => model.providerModelId === this.visionModel)) {
+        this.visionModel = undefined;
+      }
       const snap: LocalRuntimePersistedConfig = {
         ollama: persistedStateFromRuntime(this.runtimes.ollama),
         comfyui: persistedStateFromRuntime(this.runtimes.comfyui),
@@ -96,6 +100,11 @@ export class LocalRuntimeStore {
 
   get comfyBaseUrl(): string {
     return this.runtimes.comfyui.baseUrl || DEFAULT_COMFY_BASE_URL;
+  }
+
+  get comfyReady(): boolean {
+    const runtime = this.runtimes.comfyui;
+    return runtime.managed && runtime.status === 'online';
   }
 
   get visionModels(): Model[] {

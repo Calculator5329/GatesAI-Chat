@@ -15,14 +15,14 @@ import type { FsReadResp } from '../../core/workspace';
  * stream progress while the model continues talking.
  *
  * The tool contract is backend-agnostic by design: the model doesn't
- * know or care whether a request lands at ComfyUI or AUTOMATIC1111.
- * Routing lives in {@link ImageGenStore} / {@link dispatchImageGenerate}.
+ * know or care about ComfyUI workflow details. Routing lives in
+ * {@link ImageGenStore} / {@link dispatchImageGenerate}.
  */
 export const imageGenerateTool: Tool = {
   def: {
     name: 'image_generate',
     description: [
-      'Generate an image using the configured backend (ComfyUI or AUTOMATIC1111 locally; OpenRouter, OpenAI, or Gemini in the cloud). Returns a workspace path the user can click to open.',
+      'Generate an image using the configured local ComfyUI backend. Returns a workspace path the user can click to open.',
       '',
       'Use this when the user asks you to draw, render, create, or generate an image, picture, or illustration.',
       'The call returns immediately while the render runs in the background — do not repeat the result back to the user; they already see the image inline.',
@@ -35,7 +35,7 @@ export const imageGenerateTool: Tool = {
       '  count — how many images to generate (1–10). Default 1.',
       '  seed — optional integer for reproducibility.',
       '  batch_name — optional slug prefix for prompt_file output filenames.',
-      '  filename — optional short slug for the saved file (lowercase letters, numbers, dashes; e.g. "starfleet-mountain-crash"). If omitted, one is derived from the prompt. The actual file goes under ComfyUI\'s `output/gatesai/` folder.',
+      '  filename — optional short slug for the saved file (lowercase letters, numbers, dashes; e.g. "starfleet-mountain-crash"). If omitted, one is derived from the prompt. The final image is persisted under /workspace/artifacts/.',
     ].join('\n'),
     parameters: {
       type: 'object',

@@ -1,9 +1,9 @@
-import type { AccentKey, BgKey, ThemeConfig } from './types';
+import type { ThemeConfig } from './types';
 
 export type ThemeCssVars = Record<string, string>;
 
 interface BgPalette {
-  key: BgKey;
+  key: string;
   label: string;
   bg: string;
   panel: string;
@@ -12,7 +12,7 @@ interface BgPalette {
 }
 
 interface AccentPalette {
-  key: AccentKey;
+  key: string;
   label: string;
   accent: string;
   accent2: string;
@@ -43,17 +43,17 @@ export const FONTS = {
   mono: '"Geist Mono", ui-monospace, monospace',
 } as const;
 
-export function buildTheme(bgKey: BgKey, accentKey: AccentKey): ThemeConfig {
-  const bg = BGS.find(b => b.key === bgKey) ?? BGS[1];
-  const a = ACCENTS.find(x => x.key === accentKey) ?? ACCENTS[0];
+export function buildTheme(bg: string, accent: string): ThemeConfig {
+  const bgPalette = BGS.find(b => b.key === bg) ?? BGS[1];
+  const accentPalette = ACCENTS.find(x => x.key === accent) ?? ACCENTS[0];
   return {
-    accent: a.accent,
-    accent2: a.accent2,
-    accentGlow: a.glow,
-    bg: bg.bg,
-    panel: bg.panel,
-    panel2: bg.panel2,
-    panel3: bg.panel3,
+    accent: accentPalette.accent,
+    accent2: accentPalette.accent2,
+    accentGlow: accentPalette.glow,
+    bg: bgPalette.bg,
+    panel: bgPalette.panel,
+    panel2: bgPalette.panel2,
+    panel3: bgPalette.panel3,
     border: 'rgba(255,255,255,0.07)',
     text: '#e4e7ef',
     textDim: '#a0a9bd',

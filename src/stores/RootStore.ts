@@ -13,8 +13,6 @@ import { BridgeStore } from './BridgeStore';
 import { ExecStreamStore } from './ExecStreamStore';
 import { ImageGenStore } from './ImageGenStore';
 import { ImageJobStore } from './ImageJobStore';
-import { ArtifactStore } from './ArtifactStore';
-import { ArtifactStorage } from '../services/artifactStorage';
 import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 
@@ -33,7 +31,6 @@ export class RootStore {
   readonly execStream: ExecStreamStore;
   readonly imageGen: ImageGenStore;
   readonly imageJobs: ImageJobStore;
-  readonly artifacts: ArtifactStore;
   readonly localRuntime: LocalRuntimeStore;
 
   constructor() {
@@ -52,6 +49,7 @@ export class RootStore {
       ollama: {
         baseUrl: this.localRuntime.ollamaBaseUrl,
         apiKey: this.ollama.config.apiKey,
+        available: this.ollama.online,
         toolsEnabled: this.ollama.config.toolsEnabled,
       },
     }));
@@ -65,7 +63,6 @@ export class RootStore {
       bridge: this.bridge,
       imageGen: this.imageGen,
     });
-    this.artifacts = new ArtifactStore(new ArtifactStorage(this.bridge));
 
     // Cross-thread awareness: ChatStore asks SummaryStore for the digest
     // list every time it composes a system prompt. Wiring is one-way
@@ -83,16 +80,6 @@ export class RootStore {
       execStream: this.execStream,
       imageGen: this.imageGen,
       imageJobs: this.imageJobs,
-      artifacts: {
-        create: async (i) => {
-          const m = await this.artifacts.create(i);
-          return { id: m.id, version: m.currentVersion };
-        },
-        update: async (i) => {
-          const m = await this.artifacts.update(i.id, i.html, i.changeNote);
-          return m ? { id: m.id, version: m.currentVersion } : null;
-        },
-      },
       localRuntime: this.localRuntime,
     }));
 

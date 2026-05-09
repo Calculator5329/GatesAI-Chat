@@ -8,8 +8,8 @@
       small, focused components
 - [x] Document architecture, changelog, roadmap
 - [x] **Phase 1**: extract `components/ui/` design-system primitives
-- [x] **Phase 2**: `LlmProvider` interface + multi-provider router
-      (OpenRouter, Anthropic, OpenAI, Gemini, Groq, Local OpenAI-compatible)
+- [x] **Phase 2**: `LlmProvider` interface + simplified foundation router
+      (OpenRouter cloud chat, Ollama local chat, local-image direct ComfyUI)
 - [x] **Phase 3**: tiny hash router (`#/thread/<id>`, `#/menu/<section>`)
 - [x] **Phase 4**: Vitest suite under top-level `tests/` + lint + typecheck CI
 - [x] **Phase 5**: Live OpenRouter catalog (`ModelRegistry` + `OpenRouterStore`,
@@ -20,7 +20,6 @@
 - [x] Add `inspect_file` tool for compact CSV, JSON, and text inspection
 - [x] Smooth active assistant streaming with batched text updates and incremental markdown rendering
 - [x] Add Windows double-click launcher for chat + bridge
-- [x] Inject artifact README files into every turn's system prompt context
 - [x] Inject runtime time, timezone, and harness context into every turn
 - [x] Make `inspect_file` encoding-tolerant and add artifact-first query workflows
 - [x] Start architecture boundary cleanup: move icons out of `core/`, replace
@@ -29,7 +28,7 @@
 - [x] File attachments in the composer via the bridge workspace
 - [x] Move attachment upload behind a `BridgeStore` facade and promote UI
       service-import boundaries to lint errors
-- [x] Extract ChatStore runtime context, artifact README loading, and tool
+- [x] Extract ChatStore runtime context and tool
       failure logging helpers into focused services
 - [x] Multimodal cleanup (structured tool artifacts, facade-only bridge
       service, shared `SecretKeyField`, unified image-backend types,
@@ -47,7 +46,7 @@
       (native NDJSON `/api/chat`, catalog refresh, status pill, per-model
       `supportsTools` allowlist, global tool-calls toggle)
 - [x] Add local image-generation size controls: named aspect ratios plus
-      explicit pixel dimensions for ComfyUI/A1111
+      explicit pixel dimensions for ComfyUI
 - [x] Add a dedicated Local menu for Ollama, ComfyUI, and local vision setup
       (auto-detect install paths, managed Start/Stop, live logs, ComfyUI CORS
       flags, local vision `describe_image` tool)
@@ -55,21 +54,28 @@
       FLUX.2 Klein hires-fix controls for offline local image generation
 - [x] Add `image_generate` prompt-file batch mode for overnight queued local
       image runs
+- [x] Trim unfinished integrations back to a manual-test foundation:
+      OpenRouter, Ollama, ComfyUI, memory/notes/thread, and workspace tools
+- [x] Add model-picker Favorites with relative cost labels and provider-grouped
+      OpenRouter catalog organization
+- [x] Remove unfinished HTML artifact and dead theme/header/send variant
+      surfaces from the foundation
+- [x] Retire the Appearance tab and keep the foundation presentation fixed at
+      Aside tool calls, Compact markdown, Obsidian code, and animations on
+- [x] Slim the settings menu to Agent, Models, Local, Workspace, Gallery, and
+      Settings, with Profile folded into Agent and API renamed to Models
 
 ## Near-term
-- [ ] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`
+- [x] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`
       - [x] Phase 1: Vision input (cloud + local), content-parts at the wire boundary
-      - [x] Phase 2: FLUX 2.0 image generation via fal.ai, saved as workspace artifact
-      - [x] Phase 3: Local image-gen backend (ComfyUI / A1111) behind same `image_generate` tool
+      - [x] Phase 2: Historical fal.ai cloud image generation; later removed from the foundation
+      - [x] Phase 3: Local image-gen backend (ComfyUI) behind same `image_generate` tool
 - [ ] Continue architecture cleanup: split large tools/components and keep
       slimming `ChatStore` where helpers can move out safely
-- [ ] Persist theme keys alongside existing output style preferences
-- [ ] Finish wiring unsupported settings sections; unsupported tabs (Profile, Agent, Usage) now render as Coming soon instead of appearing interactive
+- [ ] Manually test the foundation surface before rebuilding optional integrations
 - [ ] Add basic unit tests around `ChatStore` (send, stream, switch, stop)
 
 ## Later
-- [ ] Move appearance controls out of the floating Tweaks panel and into
-      the Appearance menu section
 - [ ] Multi-window / split-thread layouts
 - [ ] Extend `inspect_file` to source-code structure (`py`, `js`, `ts`, `go`)
 - [ ] Extend `inspect_file` to document formats (`pdf`, `docx`, `xlsx`)

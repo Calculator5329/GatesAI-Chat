@@ -16,7 +16,7 @@ import type { MenuSectionKey } from '../../../src/core/types';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 class MockRouterStore {
-  private _section: MenuSectionKey = 'appearance';
+  private _section: MenuSectionKey = 'settings';
 
   constructor() { makeAutoObservable(this); }
 
@@ -25,7 +25,7 @@ class MockRouterStore {
   goMenu(section: MenuSectionKey): void { this._section = section; }
 }
 
-function buildStore(section: MenuSectionKey = 'appearance'): { store: RootStore; router: MockRouterStore } {
+function buildStore(section: MenuSectionKey = 'settings'): { store: RootStore; router: MockRouterStore } {
   const router = new MockRouterStore();
   router.goMenu(section);
   const profile = new UserProfileStore();
@@ -34,7 +34,12 @@ function buildStore(section: MenuSectionKey = 'appearance'): { store: RootStore;
   const openrouter = new OpenRouterStore(registry);
   const ui = new UiStore();
   const imageGen = new ImageGenStore();
-  const chat = { threads: [] };
+  const chat = {
+    threads: [],
+    visibleThreads: [],
+    clearAllThreads: () => {},
+    createThread: () => 'thread-1',
+  };
   const store = { router, profile, providers, registry, openrouter, ui, imageGen, chat } as unknown as RootStore;
   return { store, router };
 }
@@ -65,31 +70,41 @@ afterEach(() => {
 });
 
 describe('GatesMenu tab strip', () => {
-  it('renders Profile and Usage as supported menu tabs', () => {
-    const { store, router } = buildStore('appearance');
+  it('renders the trimmed top-level menu tabs', () => {
+    const { store, router } = buildStore('settings');
     const rendered = renderMenu(store);
 
-    const usageTab = findTab(rendered, 'Usage');
-    expect(usageTab?.getAttribute('aria-disabled')).toBe('false');
-    expect(usageTab?.style.cursor).toBe('pointer');
+    for (const label of ['Agent', 'Models', 'Local', 'Workspace', 'Gallery', 'Settings']) {
+      const tab = findTab(rendered, label);
+      expect(tab?.getAttribute('aria-disabled')).toBe('false');
+      expect(tab?.style.cursor).toBe('pointer');
+    }
 
-    act(() => usageTab?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(router.menuSection).toBe('usage');
+    act(() => findTab(rendered, 'Models')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(router.menuSection).toBe('models');
   });
 
-  it('removes the coming-soon treatment from Profile', () => {
-    const { store } = buildStore('appearance');
+  it('removes retired and renamed top-level tabs', () => {
+    const { store } = buildStore('settings');
     const rendered = renderMenu(store);
 
-    const profileTab = findTab(rendered, 'Profile');
-    expect(profileTab?.textContent).not.toContain('Coming soon');
-    expect(profileTab?.style.opacity).toBe('1');
+    expect(findTab(rendered, 'Profile')).toBeNull();
+    expect(findTab(rendered, 'Usage')).toBeNull();
+    expect(findTab(rendered, 'API')).toBeNull();
   });
 
-  it('renders only the OpenRouter API key surface', () => {
-    const { store } = buildStore('api');
+  it('does not render the retired Appearance tab', () => {
+    const { store } = buildStore('settings');
     const rendered = renderMenu(store);
 
+    expect(findTab(rendered, 'Appearance')).toBeNull();
+  });
+
+  it('renders only the OpenRouter model access surface', () => {
+    const { store } = buildStore('models');
+    const rendered = renderMenu(store);
+
+    expect(rendered.textContent).toContain('Models');
     expect(rendered.textContent).toContain('OpenRouter');
     expect(rendered.textContent).not.toContain('Routing');
     expect(rendered.textContent).not.toContain('Coming soon');

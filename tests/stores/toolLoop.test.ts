@@ -405,17 +405,15 @@ describe('UserProfileStore', () => {
       runtimeContext: 'local_time: Saturday, April 25, 2026 at 03:25 AM CDT',
       threadContext: 'Working on a billing migration.',
       recentSummaries: ['Auth refactor: shipped JWT login'],
-      artifactInstructions: '[/workspace/artifacts/report/README.md]\nUse the validated report.',
     });
     expect(composed).toBeDefined();
     const s = composed!;
-    // Order matters — base harness, runtime, head, bio, recent, artifact instructions, ctx, then nudge.
+    // Order matters — base harness, runtime, head, bio, recent, ctx, then nudge.
     const idxHarness = s.indexOf('Bridge workspace contract');
     const idxRuntime = s.indexOf('Runtime context');
     const idxHead   = s.indexOf('You are concise.');
     const idxBio    = s.indexOf('About the user');
     const idxRecent = s.indexOf('Recent conversations');
-    const idxArtifact = s.indexOf('Artifact instructions');
     const idxCtx    = s.indexOf('About this conversation');
     const idxNudge  = s.indexOf('memory` tool');
     expect(idxHarness).toBeGreaterThanOrEqual(0);
@@ -423,11 +421,9 @@ describe('UserProfileStore', () => {
     expect(idxHead).toBeGreaterThan(idxRuntime);
     expect(idxBio).toBeGreaterThan(idxHead);
     expect(idxRecent).toBeGreaterThan(idxBio);
-    expect(idxArtifact).toBeGreaterThan(idxRecent);
-    expect(idxCtx).toBeGreaterThan(idxArtifact);
+    expect(idxCtx).toBeGreaterThan(idxRecent);
     expect(idxNudge).toBeGreaterThan(idxCtx);
     expect(s).toContain('Auth refactor: shipped JWT login');
-    expect(s).toContain('Use the validated report.');
     expect(s).toContain('local_time: Saturday');
   });
 

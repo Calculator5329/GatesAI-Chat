@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ProviderStore } from '../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
+import { loadProviderConfigs } from '../../src/services/providerStorage';
 import { clearAppStorage } from '../helpers/storage';
 import { flush } from '../helpers/mockProvider';
 
@@ -38,6 +39,28 @@ describe('ProviderStore', () => {
 
     const b = make();
     expect(b.getConfig('openrouter').apiKey).toBe('sk-or-test');
+  });
+
+  it('strips retired direct-provider configs from legacy storage', () => {
+    localStorage.setItem('gatesai.providers.v1', JSON.stringify({
+      openrouter: { apiKey: 'sk-or' },
+      openai: { apiKey: 'sk-openai' },
+      anthropic: { apiKey: 'sk-anthropic' },
+      local: { baseUrl: 'http://127.0.0.1:8080/v1' },
+    }));
+    localStorage.setItem('gatesai.routing.v1', JSON.stringify({ defaultProvider: 'direct' }));
+
+    expect(loadProviderConfigs()).toEqual({ openrouter: { apiKey: 'sk-or' } });
+    expect(localStorage.getItem('gatesai.routing.v1')).toBeNull();
+  });
+
+  it('migrates older OpenRouter key shapes into the supported provider config', () => {
+    localStorage.setItem('gatesai.providers.v1', JSON.stringify({
+      openRouterApiKey: ' sk-legacy ',
+      openai: { apiKey: 'sk-openai' },
+    }));
+
+    expect(loadProviderConfigs()).toEqual({ openrouter: { apiKey: 'sk-legacy' } });
   });
 
   it('hasUsableProvider reacts to key changes', async () => {

@@ -20,28 +20,19 @@ describe('uiPrefsStorage', () => {
     expect(loadUiPrefs()).toEqual(DEFAULTS);
   });
 
-  it('round-trips markdown and code appearance preferences', () => {
+  it('normalizes persisted appearance preferences to the fixed foundation defaults', () => {
     saveUiPrefs({
-      toolCallStyle: 'aside',
+      toolCallStyle: 'hidden',
       markdownStyle: 'technical',
       codeStyle: 'terminal',
-      markdownDensity: 'compact',
+      markdownDensity: 'spacious',
       codeSize: 'large',
       bodyFontSizePx: 19,
       readingWidthPx: 860,
       animationsEnabled: false,
     });
 
-    expect(loadUiPrefs()).toEqual({
-      toolCallStyle: 'aside',
-      markdownStyle: 'technical',
-      codeStyle: 'terminal',
-      markdownDensity: 'compact',
-      codeSize: 'large',
-      bodyFontSizePx: 19,
-      readingWidthPx: 860,
-      animationsEnabled: false,
-    });
+    expect(loadUiPrefs()).toEqual(DEFAULTS);
   });
 
   it('falls back per field when persisted values are invalid', () => {
@@ -61,8 +52,8 @@ describe('uiPrefsStorage', () => {
 
   it('clamps font size to the supported range', () => {
     saveUiPrefs({ ...DEFAULTS, bodyFontSizePx: 99 });
-    expect(loadUiPrefs().bodyFontSizePx).toBe(20);
+    expect(loadUiPrefs().bodyFontSizePx).toBe(DEFAULTS.bodyFontSizePx);
     saveUiPrefs({ ...DEFAULTS, bodyFontSizePx: 1 });
-    expect(loadUiPrefs().bodyFontSizePx).toBe(14);
+    expect(loadUiPrefs().bodyFontSizePx).toBe(DEFAULTS.bodyFontSizePx);
   });
 });

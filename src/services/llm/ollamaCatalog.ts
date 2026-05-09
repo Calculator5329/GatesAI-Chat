@@ -27,6 +27,14 @@ const TOOL_BLOCKLIST = [
   /^codellama(:|$)/i,
 ];
 
+const EMBEDDING_BLOCKLIST = [
+  /^nomic-embed/i,
+  /^mxbai-embed/i,
+  /^all-minilm/i,
+  /^bge-/i,
+  /-embed(:|$)/i,
+];
+
 function isOllamaTagsResponse(v: unknown): v is OllamaTagsResponse {
   if (!v || typeof v !== 'object') return false;
   const arr = (v as { models?: unknown }).models;
@@ -39,13 +47,13 @@ function isOllamaTagsResponse(v: unknown): v is OllamaTagsResponse {
  * can dedupe. Vision and tool-call support are inferred from the tag name;
  * users can override globally via the Local menu tools toggle.
  */
-// TODO: filter out embedding-only models (nomic-embed-text, mxbai-embed-*) once Task 5 lands.
 export function mapOllamaTagsToModels(raw: unknown): Model[] {
   if (!isOllamaTagsResponse(raw)) return [];
   const out: Model[] = [];
   for (const tag of raw.models) {
     if (!tag || typeof tag.name !== 'string' || !tag.name) continue;
     const providerModelId = tag.name;
+    if (EMBEDDING_BLOCKLIST.some(re => re.test(providerModelId))) continue;
     out.push({
       id: `ollama-${providerModelId}`,
       providerId: 'ollama',

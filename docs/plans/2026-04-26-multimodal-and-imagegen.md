@@ -1,5 +1,9 @@
 # Multimodal + Image Generation Plan
 
+> Superseded by `docs/plans/2026-05-08-foundation-trim.md`.
+> This file is historical design context only. The current foundation keeps
+> OpenRouter chat, Ollama chat, and ComfyUI image generation only.
+
 > Owner: self. Status: Phase 1 complete (2026-04-26). Phase 2 next.
 > Track in `docs/roadmap.md` under Near-term; update `docs/changelog.md` at each phase boundary.
 

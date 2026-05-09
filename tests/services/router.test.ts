@@ -14,10 +14,17 @@ describe('router', () => {
   });
 
   it('parses menu routes and rejects unknown sections', () => {
-    expect(parseHash('#/menu/api'))  .toEqual({ kind: 'menu', section: 'api' });
+    expect(parseHash('#/menu/models')).toEqual({ kind: 'menu', section: 'models' });
     expect(parseHash('#/menu/local')).toEqual({ kind: 'menu', section: 'local' });
-    expect(parseHash('#/menu'))      .toEqual({ kind: 'menu', section: 'appearance' });
-    expect(parseHash('#/menu/wat'))  .toEqual({ kind: 'menu', section: 'appearance' });
+    expect(parseHash('#/menu'))      .toEqual({ kind: 'menu', section: 'settings' });
+    expect(parseHash('#/menu/wat'))  .toEqual({ kind: 'menu', section: 'settings' });
+    expect(parseHash('#/menu/appearance')).toEqual({ kind: 'menu', section: 'settings' });
+  });
+
+  it('redirects legacy menu hashes to their new homes', () => {
+    expect(parseHash('#/menu/profile')).toEqual({ kind: 'menu', section: 'agent' });
+    expect(parseHash('#/menu/api')).toEqual({ kind: 'menu', section: 'models' });
+    expect(parseHash('#/menu/usage')).toEqual({ kind: 'menu', section: 'settings' });
   });
 
   it('falls back to default for unknown heads', () => {
@@ -28,7 +35,7 @@ describe('router', () => {
     const cases = [
       { kind: 'thread' as const, threadId: 'abc' },
       { kind: 'thread' as const, threadId: null },
-      { kind: 'menu' as const,   section: 'usage' as const },
+      { kind: 'menu' as const,   section: 'models' as const },
       { kind: 'menu' as const,   section: 'local' as const },
     ];
     for (const r of cases) expect(parseHash(formatHash(r))).toEqual(r);

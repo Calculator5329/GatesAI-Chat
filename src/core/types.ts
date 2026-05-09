@@ -87,13 +87,6 @@ export type ToolResultArtifact =
       jobId: string;
       /** Number of images this job is expected to produce. */
       count: number;
-    }
-  | {
-      kind: 'artifact';
-      /** Reference into ArtifactStore (also the on-disk folder under /workspace/artifacts/). */
-      id: string;
-      /** Which version of the artifact to display (1-based, monotonically increasing). */
-      version: number;
     };
 
 /**
@@ -226,12 +219,7 @@ export interface ChatSnapshot {
   activeThreadId: string | null;
 }
 
-export type AccentKey = 'blue' | 'emerald' | 'violet' | 'amber' | 'rose' | 'cyan' | 'ivory';
-export type BgKey = 'graphite' | 'charcoal' | 'slate' | 'espresso' | 'pure';
-export type HeaderKey = 'reading' | 'wordmark' | 'monogram' | 'rule';
-export type SendKey = 'arrow' | 'ghost' | 'circle' | 'enter' | 'quill';
-export type ThreadHeaderKey = 'none' | 'topLeft' | 'topRight' | 'spine' | 'chip' | 'both';
-export type MenuSectionKey = 'profile' | 'agent' | 'workspace' | 'settings' | 'usage' | 'local' | 'api' | 'appearance' | 'gallery';
+export type MenuSectionKey = 'agent' | 'models' | 'local' | 'workspace' | 'gallery' | 'settings';
 
 /**
  * How the assistant's tool invocations and their results are rendered in

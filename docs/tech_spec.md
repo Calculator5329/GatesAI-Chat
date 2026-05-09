@@ -91,8 +91,7 @@ interface Model {
 
 ```ts
 type ProviderId =
-  | 'fake' | 'openrouter' | 'openai' | 'anthropic'
-  | 'gemini' | 'groq' | 'local' | 'ollama' | 'local-image';
+  | 'openrouter' | 'ollama' | 'local-image';
 
 interface LlmRequest {
   modelId: string;            // provider-native id
@@ -135,7 +134,7 @@ interface LlmProvider {
 #/                 → default (active thread)
 #/thread/<id>      → select thread
 #/menu/<section>   → open menu surface; section ∈
-                     profile|agent|settings|usage|local|api|gallery|appearance|workspace
+                     agent|models|local|workspace|gallery|settings
 ```
 
 ## Storage
@@ -154,12 +153,16 @@ interface LlmProvider {
 
 Chat, provider, profile, notes, and UI preference snapshots are saved by their
 owning stores. Provider keys are deliberately stored under a separate key so
-chat exports never include credentials. The OpenRouter catalog cache is written
+chat exports never include credentials. In the foundation build,
+`gatesai.providers.v1` persists only the OpenRouter key; older direct-provider
+entries are ignored on load, while older OpenRouter key field names normalize
+back to `openrouter.apiKey`. The OpenRouter catalog cache is written
 only when refreshed or cleared. The Ollama snapshot bundles auth (optional
 bearer key), the `toolsEnabled` toggle, and the cached `/api/tags` catalog so a
 fresh boot has a populated picker before the first probe. `gatesai.imagegen.v1`
-carries provider keys, the workflow override path, and prompt-enhancement
-settings only. `gatesai.local.v1` is the single source of truth for local
+carries only ComfyUI quality/upscale settings and the workflow override path.
+Older cloud/A1111/prompt-enhancement image settings migrate back to ComfyUI.
+`gatesai.local.v1` is the single source of truth for local
 runtime install paths, managed-process toggles, the Ollama and ComfyUI base
 URLs, and the selected local vision model. On first boot with no
 `gatesai.local.v1`, auto-detect populates default ports and paths; legacy URL
@@ -175,18 +178,17 @@ conversation back to the previous successful save.
 
 ## Theming
 
-`UiStore` holds theme keys (`bgKey`, `accentKey`, `headerKey`, `sendKey`,
-`threadHeaderKey`) plus persisted reading preferences for tool calls,
-markdown, and code output. `core/theme.ts:buildTheme(bg, accent)` turns the
-chosen keys into a `ThemeConfig`, and `themeToCssVars(theme)` emits a plain
-style object of `--bg`, `--accent`, etc. that `App` spreads onto the root
-container.
+`App` uses the fixed foundation theme (`charcoal` + `emerald`) from
+`core/theme.ts`. `themeToCssVars(theme)` emits a plain style object of
+`--bg`, `--accent`, etc. that `App` spreads onto the root container.
+`UiStore` owns the composer draft plus persisted reading preferences for tool
+calls, markdown, and code output.
 
-`gatesai.uiprefs.v1` persists set-and-forget output style choices:
-`toolCallStyle`, `markdownStyle`, `codeStyle`, `markdownDensity`, and
-`codeSize`. `App` maps those keys to root classes (`markdown-editorial`,
-`code-terminal`, etc.), while `.md-body` consumes the resulting CSS variables
-for prose, lists, headings, inline code, and fenced code blocks.
+`gatesai.uiprefs.v1` is normalized to the fixed foundation presentation:
+tool calls render as `aside`, markdown uses `compact`, code blocks use
+`obsidian`, compact density remains active, and animations stay enabled.
+`App` maps those keys to root classes while `.md-body` consumes the resulting
+CSS variables for prose, lists, headings, inline code, and fenced code blocks.
 
 ## Streaming contract
 
@@ -201,9 +203,6 @@ for prose, lists, headings, inline code, and fenced code blocks.
    - composes a fresh runtime section with local time, timezone, ISO
      timestamp, bridge state, model-facing workspace paths, and terminal cwd
      semantics
-   - when the bridge is online, reads `/workspace/artifacts/**/README.md`
-     files and appends their capped contents to the system prompt under
-     `Artifact instructions`
    - estimates the complete provider payload (system prompt, expanded wire
      messages, tool schemas, and reserved completion budget) against the
      selected model's context window
@@ -242,13 +241,6 @@ between the two.
 message (`*[interrupted]*`, or `*[no response]*` if zero tokens). `selectThread`
 no longer aborts — streams survive thread switches and continue writing into
 their original thread.
-
-Artifact README context is intentionally file-backed rather than persisted in
-chat state. `ChatStore` lists `/workspace/artifacts` recursively before each
-provider round, includes only files named `README.md` case-insensitively, sorts
-paths for deterministic prompt order, skips unreadable/non-UTF-8 files, and
-caps both per-file and total injected characters. The section is global across
-threads as long as the bridge can read the artifact files.
 
 Runtime context is regenerated for every provider request and sits directly
 under the bridge harness in the system prompt. It carries the user's local time
@@ -481,13 +473,12 @@ result is `{ content, artifacts: [{ kind: 'image-job', jobId, count }] }`.
 `ImageJobStore` runs jobs serially:
 
 1. Pull the next pending job, mark `running`, set `startedAt`.
-2. Resolve the backend config (Comfy or A1111). For Comfy `full` mode,
+2. Resolve the ComfyUI backend config. For Comfy `full` mode,
    pass the configured hires-fix upscale factor through to the built-in
    FLUX.2 Klein workflow builder; if the user supplied a workflow path,
    fetch that JSON via `bridge.fs.read`.
-3. Spin up a per-backend `JobProgress` adapter — Comfy WebSocket
-   (`/ws?clientId=...`) or A1111 poll (`/sdapi/v1/progress?skip_current_image=true`,
-   500ms cadence). Each event updates `job.progress`.
+3. Spin up the Comfy WebSocket progress adapter
+   (`/ws?clientId=...`). Each event updates `job.progress`.
 4. Loop `count` times: derive a per-iteration seed (`seed + i` if the
    user supplied one, else `Math.floor(Math.random() * 2**31)`),
    dispatch through `dispatchImageGenerate`, and write the bytes via
@@ -499,10 +490,9 @@ result is `{ content, artifacts: [{ kind: 'image-job', jobId, count }] }`.
 5. Mark `done` and move into history.
 
 Cancel from the UI calls `imageJobs.cancel(jobId)`, which aborts the
-inflight `AbortController`, asks the progress adapter to POST
-`/interrupt` (Comfy) or `/sdapi/v1/interrupt` (A1111), and moves the job
-into history with `cancelled`. Per-iteration cancel checks bail out of
-the multi-image loop.
+inflight `AbortController`, asks the Comfy progress adapter to POST
+`/interrupt`, and moves the job into history with `cancelled`.
+Per-iteration cancel checks bail out of the multi-image loop.
 
 History is persisted under `gatesai.imagejobs.v1` (capped at 200
 entries). Pending and running jobs do not persist — closing the app
@@ -571,7 +561,7 @@ layer, no embeddings store, no RAG. Memory is two layers stacked into the
 prompt:
 
 1. **`UserProfileStore.bio`** — durable, hand-curated facts. The `memory`
-   tool is the model's API into this; the Profile UI is the user's. Stored
+   tool is the model's API into this; the Agent UI is the user's. Stored
    as a newline-separated string for textarea round-trip; exposed as
    `facts: string[]` for tools and the UI.
 2. **`Thread.summary`** — one-line digest of each *other* thread, written

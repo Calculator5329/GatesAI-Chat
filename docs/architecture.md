@@ -37,27 +37,24 @@ src/
       EditorialChat.tsx
       EditorialMessage.tsx
       EditorialComposer.tsx
-      EditorialThreadHeader.tsx
       ModelPopover.tsx
-      headers.tsx                 # 4 brand-header treatments
     menu/                         # the GatesMenu surface
       GatesMenu.tsx
       sections/
-        Profile.tsx Agent.tsx Settings.tsx
-        Usage.tsx Api.tsx Appearance.tsx Workspace.tsx
+        Agent.tsx Settings.tsx Api.tsx Workspace.tsx
         Local.tsx                 # local runtimes (Ollama + ComfyUI) + image-gen settings
         Gallery.tsx               # completed image-job history
   stores/
     RootStore.ts                  # composes the store graph
     ChatStore.ts                  # threads, messages, streaming via LlmRouter
-    UiStore.ts                    # theme keys, draft text, persisted reading prefs
+    UiStore.ts                    # composer draft + persisted reading prefs
     ProviderStore.ts              # API keys + LlmRouter, persisted separately
     RouterStore.ts                # observable URL hash
     ModelRegistry.ts              # curated + dynamic model catalog (MobX)
     OpenRouterStore.ts            # live OpenRouter catalog: refresh / cache / errors
     OllamaStore.ts                # Ollama config + /api/tags catalog
     LocalRuntimeStore.ts          # Ollama + ComfyUI install paths, base URLs, vision model
-    ImageGenStore.ts              # image-gen backend selection + workflow override + prompt-enhance settings
+    ImageGenStore.ts              # image-gen backend selection + workflow override settings
     ImageJobStore.ts              # image-job queue, runner, completed history
     UserProfileStore.ts           # bio, durable facts, base system prompt
     SummaryStore.ts               # lazy cross-thread summaries
@@ -72,16 +69,14 @@ src/
     notesStorage.ts               # notes localStorage
     uiPrefsStorage.ts             # output style prefs localStorage
     openrouterCache.ts            # gatesai.openrouter.catalog.v1 cache
-    imageGenStorage.ts            # gatesai.imagegen.v1 (backend + workflow override + prompt-enhance prefs)
+    imageGenStorage.ts            # gatesai.imagegen.v1 (ComfyUI quality + workflow override)
     imageJobsStorage.ts           # gatesai.imagejobs.v1 (completed-job history; in-flight discarded)
     router.ts                     # tiny hash-router parser/writer
     llm/
       router.ts                   # LlmRouter — picks a provider per Model
-      fake.ts                     # canned offline responses (always ready)
       openaiCompat.ts             # base for any OpenAI-shaped /chat/completions
       openrouterCatalog.ts        # fetch /api/v1/models → Model[]
-      openai.ts groq.ts openrouter.ts local.ts
-      anthropic.ts gemini.ts      # bespoke shapes
+      openrouter.ts               # OpenRouter chat adapter
       ollama.ts ollamaCatalog.ts  # Ollama provider + /api/tags → Model[] mapper
       sse.ts                      # shared SSE parser
       wireFormat.ts               # storage shape ↔ provider wire shape
@@ -89,21 +84,19 @@ src/
     image/
       types.ts                    # GenerateImageRequest/Result, dims/aspect helpers, validators
       imageBackend.ts             # resolveBackend + dispatchImageGenerate
-      a1111Client.ts              # AUTOMATIC1111 txt2img adapter
-    comfyClient.ts              # ComfyUI workflow queue adapter
-      promptEnhancer.ts           # optional LLM-driven prompt rewrite
+      comfyClient.ts              # ComfyUI workflow queue adapter
       jobs/
         types.ts                  # ImageJob, ImageJobInput, CompletedJob, status union
         progress.ts               # JobProgress interface (open/cancel/onUpdate)
         comfyProgress.ts          # ComfyUI WebSocket progress adapter
-        a1111Progress.ts          # A1111 /sdapi/v1/progress poll adapter
       workflows/
         finalFlux2Klein.ts        # FLUX.2 Klein FP8 ComfyUI workflow builder
         sdxlLightning.ts          # SDXL Lightning draft workflow template
   core/
-    types.ts                      # all domain interfaces & key unions
+    types.ts                      # domain interfaces & persisted preference unions
     llm.ts                        # provider-agnostic LLM contract
     models.ts                     # curated Model catalog + DEFAULT_MODEL_ID
+    modelMenu.ts                  # favorite/provider ordering for the model picker
     providers.ts                  # ProviderInfo (name, desc, key URL, etc.)
     theme.ts                      # accent/bg palettes, CSS-var builder
     styleTokens.ts                # typography/layout style objects
@@ -144,9 +137,8 @@ source while keeping tests looser.
   exposes observable state, computed getters, and action methods.
 - `ChatStore` owns threads + the active selection + the in-flight stream.
   An `autorun` writes the snapshot to `localStorage` whenever it changes.
-- `UiStore` owns UI state (theme keys, draft text, reading preferences).
-  Draft/theme keys are ephemeral today; output style preferences persist under
-  `gatesai.uiprefs.v1`.
+- `UiStore` owns UI state (draft text, attachment upload state, and fixed
+  reading defaults). Output styling is normalized to the foundation defaults.
 - `ProviderStore` owns API keys + a long-lived `LlmRouter`. Persisted under
   `gatesai.providers.v1` separately from chat data so keys don't leak into
   thread exports.
@@ -199,8 +191,8 @@ parsing the human-facing result string.
 `{ kind: 'image-job', jobId, count }` artifact. `ImageJobStore` owns:
 
 - a serial **queue** + an **active** in-flight job
-- a **runner** that pulls one job, opens a per-backend progress adapter
-  (Comfy WebSocket `/ws` or A1111 `/sdapi/v1/progress` poll), dispatches
+- a **runner** that pulls one job, opens the ComfyUI progress adapter
+  (WebSocket `/ws`), dispatches
   the configured number of renders through `dispatchImageGenerate`, and
   writes each result into `/workspace/artifacts/` via `bridge.fs.write`
 - a **completed-job history** persisted under `gatesai.imagejobs.v1`
@@ -226,25 +218,25 @@ interface LlmProvider {
 ```
 
 `LlmRouter.resolve(modelId)` looks up the model in the catalog, finds its
-`providerId`, and either returns the configured provider or falls back to
-`FakeProvider` (offline canned responses). `ChatStore.sendMessage` consumes
-the resulting `AsyncIterable` with `for await` and uses `AbortController`
-to cancel on stop / thread switch.
+`providerId`, and returns the configured provider. There is no fake or
+direct-provider fallback in the foundation build. `ChatStore.sendMessage`
+consumes the resulting `AsyncIterable` with `for await` and uses
+`AbortController` to cancel on stop / thread switch.
 
-Supported providers (v1): OpenRouter, Anthropic, OpenAI, Gemini, Groq, Local
-(any OpenAI-compatible endpoint — LM Studio, vLLM, llama.cpp), Ollama, and the
-synthetic `local-image` provider used by the direct ComfyUI image model. The
-`local-image` provider is registered only for catalog/router exhaustiveness;
-`ChatStore.runTurn` short-circuits before streaming and enqueues an image job
-directly.
-See `TODO.md` for the planned future list.
+Supported providers in the foundation: OpenRouter, Ollama, and the synthetic
+`local-image` provider used by the direct ComfyUI image model. The `local-image`
+provider is registered only for catalog/router exhaustiveness; `ChatStore.runTurn`
+short-circuits before streaming and enqueues an image job directly.
 
 ## Routing
 
 Tiny hash router (`#/thread/<id>` and `#/menu/<section>`) implemented in
 `services/router.ts` — pure functions for `parseHash` / `formatHash` and
 side-effecting `read/write/subscribeRoute` for `window.location.hash`.
-`RouterStore` wraps the side effects in MobX observables.
+`RouterStore` wraps the side effects in MobX observables. Menu sections are
+`agent`, `models`, `local`, `workspace`, `gallery`, and `settings`; retired
+hashes such as `profile`, `api`, `usage`, and `appearance` redirect to the
+closest current section.
 
 ## Persistence
 

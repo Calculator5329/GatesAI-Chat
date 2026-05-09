@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
 import { Icons } from '../ui/icons';
-import { useModelRegistry } from '../../stores/context';
+import { useLocalRuntimeStore, useModelRegistry } from '../../stores/context';
+import { buildModelMenuSections } from '../../core/modelMenu';
 
 interface ModelPopoverProps {
   currentModelId: string | undefined;
@@ -14,40 +15,30 @@ interface ModelMeta {
   /** Short tag — keep under ~40 chars. */
   tag: string;
   capabilities: Array<'vision' | 'reasoning' | 'fast' | 'tools'>;
+  costLabel?: '$' | '$$' | '$$$' | 'LOCAL';
   starred?: boolean;
 }
 
 const META: Record<string, ModelMeta> = {
-  'claude-opus-4.7':       { tag: 'Frontier — best for hard work',    capabilities: ['vision', 'tools', 'reasoning'], starred: true },
-  'claude-sonnet-4.6':     { tag: 'Sonnet for real-world work',       capabilities: ['vision', 'tools', 'reasoning'], starred: true },
-  'claude-opus-4.6':       { tag: 'Prior frontier — still excellent', capabilities: ['vision', 'tools', 'reasoning'] },
-  'claude-haiku-4.5':      { tag: 'Snappy everyday model',            capabilities: ['vision', 'fast'] },
-  'claude-sonnet-4.5':     { tag: 'Stable Sonnet baseline',           capabilities: ['vision', 'tools'] },
-  'gpt-5.5':               { tag: 'Frontier for complex work',        capabilities: ['vision', 'tools', 'reasoning'], starred: true },
-  'gpt-5.5-pro':           { tag: 'Deep reasoning, highest accuracy', capabilities: ['vision', 'tools', 'reasoning'] },
-  'gpt-5.4':               { tag: 'Flagship for chat & code',         capabilities: ['vision', 'tools', 'reasoning'], starred: true },
-  'gpt-5.4-pro':           { tag: 'Pro tier — extended reasoning',    capabilities: ['vision', 'tools', 'reasoning'] },
-  'gpt-5.4-mini':          { tag: 'Fast everyday OpenAI',             capabilities: ['vision', 'fast'] },
-  'gpt-5.4-nano':          { tag: 'Cheapest GPT-5.4',                 capabilities: ['fast'] },
-  'gpt-5':                 { tag: 'Prior flagship',                   capabilities: ['vision', 'tools', 'reasoning'] },
-  'gemini-3.1-pro':        { tag: 'Frontier reasoning, 1M context',   capabilities: ['vision', 'tools', 'reasoning'], starred: true },
-  'gemini-3-flash':        { tag: 'Fast frontier — cheap & capable',  capabilities: ['vision', 'tools', 'fast'], starred: true },
-  'gemini-3.1-flash-image':{ tag: 'Nano Banana 2 — image gen',        capabilities: ['vision', 'fast'] },
-  'gemini-2.5-flash-lite': { tag: 'Cheapest Gemini, low-latency',     capabilities: ['fast'] },
-  'groq-llama-3.3-70b':    { tag: 'Llama on Groq — extreme speed',    capabilities: ['fast'] },
-  'groq-llama-3.1-8b':     { tag: 'Tiny Llama, instant',              capabilities: ['fast'] },
-  'groq-gpt-oss-120b':     { tag: 'GPT-OSS 120B on Groq',             capabilities: ['fast', 'reasoning'] },
-  'groq-gpt-oss-20b':      { tag: 'GPT-OSS 20B on Groq',              capabilities: ['fast'] },
-  'or-deepseek-v4-pro':    { tag: 'DeepSeek V4 Pro via OpenRouter',   capabilities: ['reasoning'] },
-  'or-deepseek-v4-flash':  { tag: 'DeepSeek V4 Flash via OpenRouter', capabilities: ['fast', 'reasoning'] },
-  'or-gpt-5.5':            { tag: 'GPT-5.5 via OpenRouter',           capabilities: ['vision', 'tools', 'reasoning'] },
-  'or-gpt-5.5-pro':        { tag: 'GPT-5.5 Pro via OpenRouter',       capabilities: ['vision', 'tools', 'reasoning'] },
-  'or-gemini-3.1-pro':     { tag: 'Gemini 3.1 Pro via OpenRouter',    capabilities: ['vision', 'tools', 'reasoning'] },
-  'or-gemini-3.1-flash-lite': { tag: 'Gemini 3.1 Flash Lite via OpenRouter', capabilities: ['vision', 'fast'] },
+  'or-gemini-3-flash':     { tag: 'Vision · fast',                    capabilities: ['vision', 'fast'], costLabel: '$', starred: true },
+  'or-deepseek-v4-flash':  { tag: 'Fast · reasoning',                  capabilities: ['fast', 'reasoning'], costLabel: '$', starred: true },
+  'or-gpt-5.5':            { tag: 'Vision · tools · reasoning',        capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$', starred: true },
+  'or-claude-opus-4.7':    { tag: 'Vision · tools · reasoning',       capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$$', starred: true },
+  'or-gemini-3.1-pro':     { tag: 'Vision · tools · reasoning',       capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$', starred: true },
+  'image-direct-comfy':    { tag: 'FLUX.2 Klein direct local image',   capabilities: ['fast'], costLabel: 'LOCAL', starred: true },
+  'or-deepseek-v4-pro':    { tag: 'Reasoning',                         capabilities: ['reasoning'] },
+  'or-gpt-5.5-pro':        { tag: 'Vision · tools · reasoning',       capabilities: ['vision', 'tools', 'reasoning'] },
+  'or-gemini-3.1-flash-lite': { tag: 'Vision · fast',                 capabilities: ['vision', 'fast'] },
 };
 
-const VENDOR_ORDER = ['OpenRouter', 'Local image', 'Ollama'] as const;
-const OR_CATALOG_GROUP = 'OpenRouter Catalog';
+const META_BY_PROVIDER_MODEL_ID: Record<string, ModelMeta> = {
+  'google/gemini-3-flash-preview': META['or-gemini-3-flash'],
+  'deepseek/deepseek-v4-flash': META['or-deepseek-v4-flash'],
+  'openai/gpt-5.5': META['or-gpt-5.5'],
+  'anthropic/claude-opus-4.7': META['or-claude-opus-4.7'],
+  'google/gemini-3.1-pro-preview': META['or-gemini-3.1-pro'],
+  'comfy-direct': META['image-direct-comfy'],
+};
 
 function VendorMark({ vendor, size = 12 }: { vendor: string; size?: number }) {
   const common: CSSProperties = {
@@ -57,17 +48,14 @@ function VendorMark({ vendor, size = 12 }: { vendor: string; size?: number }) {
     opacity: 0.85,
   };
   switch (vendor) {
-    case 'OpenAI':
-      return <img src="/openai_dark.svg" alt="" style={common} />;
     case 'Anthropic':
       return <img src="/anthropic_white.svg" alt="" style={common} />;
-    case 'Google':
-      return <img src="/gemini.svg" alt="" style={common} />;
-    case 'Groq':
+    case 'xAI':
+      return <img src="/xai_dark.svg" alt="" style={common} />;
+    case 'Favorites':
       return (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0, color: 'var(--text-dim)' }}>
-          <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 16a6 6 0 1 1 6-6 6 6 0 0 1-6 6z" />
-          <circle cx="12" cy="12" r="2.2" />
+        <svg width={size} height={size} viewBox="0 0 16 16" fill="var(--accent)" style={{ flexShrink: 0, opacity: 0.9 }}>
+          <path d="M8 1.5l2 4.5 5 .5-3.8 3.3 1.2 4.7L8 12l-4.4 2.5L4.8 9.8 1 6.5l5-.5z" />
         </svg>
       );
     case 'OpenRouter':
@@ -77,6 +65,7 @@ function VendorMark({ vendor, size = 12 }: { vendor: string; size?: number }) {
         </svg>
       );
     case 'Local':
+    case 'Local image':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--text-dim)' }}>
           <rect x="3" y="4" width="18" height="12" rx="1" />
@@ -134,36 +123,62 @@ function CapabilityIcon({ kind }: { kind: 'vision' | 'reasoning' | 'fast' | 'too
   return <span title={title} style={common}>{icon}</span>;
 }
 
+function CostPill({ label }: { label: NonNullable<ModelMeta['costLabel']> }) {
+  return (
+    <span
+      title={label === 'LOCAL' ? 'Local model' : 'Relative cost tier'}
+      style={{
+        color: label === '$$$' ? 'var(--accent)' : 'var(--text-faint)',
+        border: '1px solid var(--border)',
+        borderRadius: 2,
+        padding: '0 4px',
+        fontSize: 9,
+        lineHeight: '14px',
+        fontFamily: '"Geist Mono", monospace',
+        letterSpacing: '0.04em',
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
 interface RowProps {
   model: Model;
   meta: ModelMeta | null;
   selected: boolean;
   active: boolean;
+  disabledReason?: string;
   onPick: () => void;
   onHover: () => void;
 }
 
-function ModelRow({ model, meta, selected, active, onPick, onHover }: RowProps) {
-  const subline = meta ? meta.tag : describeDynamic(model);
+function ModelRow({ model, meta, selected, active, disabledReason, onPick, onHover }: RowProps) {
+  const disabled = !!disabledReason;
+  const subline = disabledReason ?? (meta ? meta.tag : describeDynamic(model));
   return (
     <div
-      onClick={onPick}
+      onClick={() => { if (!disabled) onPick(); }}
       onMouseEnter={onHover}
+      aria-disabled={disabled || undefined}
+      title={disabledReason}
       style={{
         position: 'relative',
         display: 'grid',
         gridTemplateColumns: '1fr auto',
         rowGap: 1,
         padding: '7px 14px 7px 18px',
-        cursor: 'pointer',
-        background: active ? 'var(--panel-2)' : 'transparent',
-        borderLeft: selected ? '2px solid var(--accent)' : '2px solid transparent',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.42 : 1,
+        filter: disabled ? 'grayscale(0.8)' : undefined,
+        background: active && !disabled ? 'var(--panel-2)' : 'transparent',
+        borderLeft: selected ? `2px solid ${disabled ? 'var(--text-faint)' : 'var(--accent)'}` : '2px solid transparent',
         transition: 'background 80ms ease',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
         <span style={{
-          color: selected ? 'var(--text)' : 'var(--text-dim)',
+          color: disabled ? 'var(--text-faint)' : selected ? 'var(--text)' : 'var(--text-dim)',
           fontSize: 13,
           fontWeight: 400,
           letterSpacing: '-0.005em',
@@ -176,11 +191,12 @@ function ModelRow({ model, meta, selected, active, onPick, onHover }: RowProps) 
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {meta?.costLabel && <CostPill label={meta.costLabel} />}
         {meta && meta.capabilities.map(c => <CapabilityIcon key={c} kind={c} />)}
       </div>
       <div style={{
         gridColumn: '1 / -1',
-        color: 'var(--text-faint)',
+        color: disabled ? 'var(--text-dim)' : 'var(--text-faint)',
         fontSize: 11,
         fontStyle: 'italic',
         fontFamily: '"Source Serif 4", Georgia, serif',
@@ -217,6 +233,7 @@ function formatPrice(usdPerMillion: number): string {
 
 export const ModelPopover = observer(function ModelPopover({ currentModelId, onPick, onClose }: ModelPopoverProps) {
   const registry = useModelRegistry();
+  const localRuntime = useLocalRuntimeStore();
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
@@ -250,23 +267,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   }, [all, query]);
 
   const grouped = useMemo(() => {
-    const curated = filtered.filter(m => !m.dynamic);
-    const dynamic = filtered.filter(m => m.dynamic);
-    const byVendor = new Map<string, Model[]>();
-    for (const m of curated) {
-      const arr = byVendor.get(m.vendor) ?? [];
-      arr.push(m);
-      byVendor.set(m.vendor, arr);
-    }
-    const ordered: Array<{ vendor: string; models: Model[] }> = [];
-    for (const v of VENDOR_ORDER) {
-      const ms = byVendor.get(v);
-      if (ms && ms.length) ordered.push({ vendor: v, models: ms });
-      byVendor.delete(v);
-    }
-    for (const [v, ms] of byVendor) ordered.push({ vendor: v, models: ms });
-    if (dynamic.length) ordered.push({ vendor: OR_CATALOG_GROUP, models: dynamic });
-    return ordered;
+    return buildModelMenuSections(filtered);
   }, [filtered]);
 
   const flat = useMemo(() => grouped.flatMap(g => g.models), [grouped]);
@@ -281,7 +282,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const m = flat[activeIdx];
-      if (m) {
+      if (m && !disabledReasonForModel(m, localRuntime.comfyReady)) {
         onPick(m.id);
         onClose();
       }
@@ -345,20 +346,20 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
             No models match “{query}”.
           </div>
         )}
-        {grouped.map(({ vendor, models }) => (
-          <div key={vendor}>
+        {grouped.map(({ title, models }) => (
+          <div key={title}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '12px 14px 6px 18px',
             }}>
-              <VendorMark vendor={vendor === OR_CATALOG_GROUP ? 'OpenRouter' : vendor} size={11} />
+              <VendorMark vendor={title} size={11} />
               <span style={{
                 fontSize: 10, fontWeight: 500,
                 color: 'var(--text-faint)',
                 textTransform: 'uppercase', letterSpacing: '0.12em',
                 fontFamily: '"Geist Mono", monospace',
-              }}>{vendor}</span>
-              {vendor === OR_CATALOG_GROUP && (
+              }}>{title}</span>
+              {models.some(model => model.dynamic) && (
                 <span style={{
                   fontSize: 9, color: 'var(--accent)',
                   border: '1px solid var(--accent)', opacity: 0.7,
@@ -369,8 +370,9 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
               )}
             </div>
             {models.map(m => {
-              const meta = META[m.id] ?? null;
+              const meta = META[m.id] ?? META_BY_PROVIDER_MODEL_ID[m.providerModelId] ?? null;
               const flatIdx = flat.findIndex(x => x.id === m.id);
+              const disabledReason = disabledReasonForModel(m, localRuntime.comfyReady);
               return (
                 <ModelRow
                   key={m.id}
@@ -378,6 +380,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
                   meta={meta}
                   selected={m.id === currentModelId}
                   active={flatIdx === activeIdx}
+                  disabledReason={disabledReason}
                   onPick={() => { onPick(m.id); onClose(); }}
                   onHover={() => setActiveIdx(flatIdx)}
                 />
@@ -406,6 +409,11 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     </div>
   );
 });
+
+function disabledReasonForModel(model: Model, comfyReady: boolean): string | undefined {
+  if (model.providerId !== 'local-image' || comfyReady) return undefined;
+  return 'Enable and connect ComfyUI in Local settings to use local image generation.';
+}
 
 function Kbd({ children }: { children: ReactNode }) {
   return (

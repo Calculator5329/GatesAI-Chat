@@ -1,5 +1,6 @@
 import { act, createElement, createRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { runInAction } from 'mobx';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { StoreProvider } from '../../../src/stores/context';
 import { ChatStore } from '../../../src/stores/ChatStore';
@@ -10,6 +11,7 @@ import { UiStore } from '../../../src/stores/UiStore';
 import { RouterStore } from '../../../src/stores/RouterStore';
 import { BridgeStore } from '../../../src/stores/BridgeStore';
 import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
+import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
 import { EditorialComposer } from '../../../src/components/editorial/EditorialComposer';
 import type { RootStore } from '../../../src/stores/RootStore';
 import { clearAppStorage } from '../../helpers/storage';
@@ -30,6 +32,7 @@ function buildStore(): RootStore {
   const router = new RouterStore();
   const bridge = new BridgeStore();
   const execStream = new ExecStreamStore();
+  const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
   return {
     registry,
     providers,
@@ -39,6 +42,7 @@ function buildStore(): RootStore {
     router,
     bridge,
     execStream,
+    localRuntime,
   } as RootStore;
 }
 
@@ -52,7 +56,6 @@ function render(s: RootStore): HTMLDivElement {
       createElement(StoreProvider, {
         store: s,
         children: createElement(EditorialComposer, {
-          sendKey: 'ghost',
           textareaRef,
         }),
       }),
@@ -125,7 +128,26 @@ describe('EditorialComposer API-key banner', () => {
     expect(sendWrapper!.style.cursor).toBe('pointer');
   });
 
-  it('allows sending in direct-image mode without an LLM provider key', () => {
+  it('falls back to Gemini 3 Flash when the active thread has no resolvable model', async () => {
+    store = buildStore();
+    store.chat.setThreadModel(store.chat.activeThreadId!, 'missing-model');
+    store.providers.setKey('openrouter', 'sk-test');
+    await flush(2);
+
+    const rendered = render(store);
+    act(() => store!.ui.setDraft('hello'));
+
+    expect(rendered.textContent).toContain('Gemini 3 Flash');
+    expect(rendered.textContent).not.toContain('Select model');
+    expect(rendered.textContent).not.toContain('Add an API key to start chatting.');
+    const sendWrapper = Array.from(rendered.querySelectorAll('div'))
+      .find(d => (d as HTMLElement).getAttribute('title') === 'Send') as HTMLElement | undefined;
+    expect(sendWrapper).toBeDefined();
+    expect(sendWrapper!.style.opacity).toBe('1');
+    expect(sendWrapper!.style.cursor).toBe('pointer');
+  });
+
+  it('disables direct-image mode until ComfyUI is ready', () => {
     store = buildStore();
     const threadId = store.chat.activeThreadId!;
     store.chat.setThreadModel(threadId, 'image-direct-comfy');
@@ -133,7 +155,27 @@ describe('EditorialComposer API-key banner', () => {
 
     act(() => store!.ui.setDraft('a neon greenhouse at night'));
 
+    expect(rendered.textContent).toContain('Start and connect ComfyUI');
+    const sendWrapper = Array.from(rendered.querySelectorAll('div'))
+      .find(d => (d as HTMLElement).getAttribute('title') === 'Send') as HTMLElement | undefined;
+    expect(sendWrapper).toBeDefined();
+    expect(sendWrapper!.style.opacity).toBe('0.45');
+    expect(sendWrapper!.style.cursor).toBe('default');
+  });
+
+  it('allows sending in direct-image mode once ComfyUI is ready', () => {
+    store = buildStore();
+    const threadId = store.chat.activeThreadId!;
+    store.chat.setThreadModel(threadId, 'image-direct-comfy');
+    runInAction(() => {
+      store!.localRuntime.runtimes.comfyui.status = 'online';
+    });
+    const rendered = render(store);
+
+    act(() => store!.ui.setDraft('a neon greenhouse at night'));
+
     expect(rendered.textContent).not.toContain('Add an API key to start chatting.');
+    expect(rendered.textContent).not.toContain('Start and connect ComfyUI');
     const sendWrapper = Array.from(rendered.querySelectorAll('div'))
       .find(d => (d as HTMLElement).getAttribute('title') === 'Send') as HTMLElement | undefined;
     expect(sendWrapper).toBeDefined();

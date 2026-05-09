@@ -46,7 +46,17 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
 
       {/* Workspace root */}
       <Card>
-        <div style={S.label}>Workspace root</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={S.label}>Workspace root</div>
+          <button
+            onClick={() => { void bridge.openWorkspacePath('/workspace'); }}
+            disabled={!bridge.isOnline}
+            title={bridge.isOnline ? 'Open the workspace folder' : 'Bridge must be online to open the workspace.'}
+            style={S.btn}
+          >
+            Open workspace
+          </button>
+        </div>
         <div style={S.code}>{bridge.workspaceRoot ?? '— (offline)'}</div>
         <div style={{ ...S.sub, marginTop: 8 }}>
           Three folders inside this root: <code style={S.inlineCode}>attachments/</code> (your uploads), <code style={S.inlineCode}>notes/</code> (model scratchpad), <code style={S.inlineCode}>artifacts/</code> (final outputs).
@@ -74,9 +84,19 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={S.label}>Workspace contents</div>
-          <button onClick={() => { void refresh(); }} style={S.btn}>
-            {loading ? 'Refreshing…' : 'Refresh'}
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => { void bridge.openWorkspacePath('/workspace'); }}
+              disabled={!bridge.isOnline}
+              title={bridge.isOnline ? 'Open the workspace folder' : 'Bridge must be online to open the workspace.'}
+              style={S.btn}
+            >
+              Open workspace
+            </button>
+            <button onClick={() => { void refresh(); }} style={S.btn}>
+              {loading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
         </div>
         {error && <div style={{ ...S.empty, color: '#c96a6a' }}>{error}</div>}
         {loading && !tree && <div style={S.empty}>Loading…</div>}

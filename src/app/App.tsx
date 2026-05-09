@@ -29,7 +29,7 @@ export const App = observer(function App() {
   const ui = useUiStore();
   const chat = useChatStore();
   const router = useRouterStore();
-  const theme = useMemo(() => buildTheme(ui.bgKey, ui.accentKey), [ui.bgKey, ui.accentKey]);
+  const theme = useMemo(() => buildTheme('charcoal', 'emerald'), []);
   const appearanceClassName = [
     `markdown-${ui.markdownStyle}`,
     `markdown-density-${ui.markdownDensity}`,
@@ -59,10 +59,10 @@ export const App = observer(function App() {
   return (
     <div style={stageStyle}>
       <div className={appearanceClassName} style={{ ...themeToCssVars(theme), ...appearanceVars, ...rootStyle, fontFamily: theme.fontUi }}>
-        <EditorialSidebar headerKey={ui.headerKey} />
+        <EditorialSidebar />
         {router.isMenu
           ? <GatesMenu />
-          : <EditorialChat sendKey={ui.sendKey} threadHeaderKey={ui.threadHeaderKey} />
+          : <EditorialChat />
         }
       </div>
     </div>

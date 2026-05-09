@@ -40,8 +40,8 @@ const MAX_SUMMARY_TOKENS = 120;
  * `ready()` wins. Falls through to the thread's own model if none.
  */
 const FAST_SUMMARY_MODELS: string[] = [
-  'or-gpt-5.4-mini',
-  'or-gpt-5.4',
+  'or-gemini-3.1-flash-lite',
+  'or-gemini-3-flash',
 ];
 
 const SUMMARY_INSTRUCTION =

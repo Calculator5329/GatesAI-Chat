@@ -10,8 +10,8 @@ import type { ToolCallStyleKey, ToolResult } from '../../core/types';
  * the conversation focused on prose and removes the two-row redundancy
  * the earlier designs all suffered from.
  *
- * Adding a sixth: append to the union in `core/types.ts`, register in
- * `VARIANTS`, and the picker in Appearance picks it up automatically.
+ * Adding a sixth: append to the union in `core/types.ts` and register in
+ * `VARIANTS`.
  */
 
 interface CallProps {

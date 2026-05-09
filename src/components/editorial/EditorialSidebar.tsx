@@ -1,9 +1,8 @@
 import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
-import type { Thread, HeaderKey } from '../../core/types';
+import type { Thread } from '../../core/types';
 import { useChatStore, useRouterStore } from '../../stores/context';
-import { EDITORIAL_HEADERS } from './headers';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
 
@@ -77,15 +76,10 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
   },
 };
 
-interface SidebarProps {
-  headerKey: HeaderKey;
-}
-
-export const EditorialSidebar = observer(function EditorialSidebar({ headerKey }: SidebarProps) {
+export const EditorialSidebar = observer(function EditorialSidebar() {
   const chat = useChatStore();
   const router = useRouterStore();
   const onMenu = router.isMenu;
-  const header = EDITORIAL_HEADERS[headerKey];
   const visible = chat.visibleThreads;
   const pinned = visible.filter(t => t.pinned);
   const rest = visible.filter(t => !t.pinned).slice(0, 20);
@@ -171,7 +165,10 @@ export const EditorialSidebar = observer(function EditorialSidebar({ headerKey }
         onClick={() => onMenu ? router.goThread(chat.activeThreadId) : router.goMenu()}
         title={onMenu ? 'Back to chat' : 'Open menu'}
       >
-        {header.render()}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <div style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 22, fontWeight: 500, color: 'var(--text)', letterSpacing: '-0.02em' }}>GatesAI</div>
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', alignSelf: 'center', marginBottom: 2 }} />
+        </div>
       </div>
       <div
         style={S.newBtn as CSSProperties}

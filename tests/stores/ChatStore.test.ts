@@ -21,34 +21,11 @@ function setup(chunks?: Parameters<MockProvider['setChunks']>[0]) {
   return { registry, providers, profile, mock, chat };
 }
 
-function bridgeWithArtifactReadmes(files: Record<string, string>): ToolContext['bridge'] {
+function onlineBridge(): ToolContext['bridge'] {
   return {
     isOnline: true,
     client: {
-      request: async (op: string, data: unknown) => {
-        if (op === 'fs.list') {
-          expect(data).toMatchObject({ path: '/workspace/artifacts', recursive: true });
-          return {
-            path: '/workspace/artifacts',
-            entries: Object.keys(files).map(path => ({
-              path,
-              name: path.split('/').pop() ?? path,
-              kind: 'file',
-              size: files[path].length,
-              mtime: 0,
-            })).reverse(),
-          };
-        }
-        if (op === 'fs.read') {
-          const path = (data as { path?: string }).path ?? '';
-          return {
-            path,
-            content: files[path] ?? '',
-            encoding: 'utf8',
-            size: files[path]?.length ?? 0,
-            mime: 'text/markdown',
-          };
-        }
+      request: async (op: string) => {
         throw new Error(`unexpected bridge op ${op}`);
       },
     },
@@ -65,6 +42,38 @@ describe('ChatStore', () => {
     expect(chat.threads[0].messages).toEqual([]);
     expect(chat.threads[0].title).toBe('New conversation');
     expect(chat.activeThreadId).toBe(chat.threads[0].id);
+  });
+
+  it('defaults persisted unresolved thread models back to Gemini 3 Flash', () => {
+    localStorage.setItem('gatesai.state.v1', JSON.stringify({
+      activeThreadId: 't-stale',
+      threads: [{
+        id: 't-stale',
+        title: 'Stale model',
+        subtitle: '',
+        createdAt: 1,
+        updatedAt: 1,
+        pinned: false,
+        modelId: 'or-live-provider/removed-model',
+        messages: [],
+      }],
+    }));
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+
+    const chat = new ChatStore(providers, registry, profile);
+
+    expect(chat.activeThread?.modelId).toBe('or-gemini-3-flash');
+  });
+
+  it('repairs a live unresolved active model before sending', () => {
+    const { chat } = setup();
+    chat.setThreadModel(chat.activeThreadId!, 'missing-model');
+
+    chat.sendMessage('hello');
+
+    expect(chat.activeThread?.modelId).toBe('or-gemini-3-flash');
   });
 
   it('createThread inserts a new thread at the top and selects it', () => {
@@ -144,40 +153,13 @@ describe('ChatStore', () => {
     expect(userMessage?.content).not.toContain('read with the `fs` tool');
   });
 
-  it('injects artifact README files into the system prompt across threads', async () => {
-    const { chat, mock } = setup([
-      { type: 'text', delta: 'ok' },
-      { type: 'done', finishReason: 'stop' },
-    ]);
-    chat.setToolStoresProvider(() => ({
-      bridge: bridgeWithArtifactReadmes({
-        '/workspace/artifacts/b/README.md': 'Prefer the reconciled totals in b/out.csv.',
-        '/workspace/artifacts/a/readme.md': 'Artifact A is the canonical billing export.',
-        '/workspace/artifacts/a/data.csv': 'not a readme',
-      }),
-    }) as unknown as Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream'>);
-    chat.createThread();
-
-    chat.sendMessage('use the latest artifacts');
-    await flush(40);
-
-    const sys = mock.calls[0].systemPrompt ?? '';
-    expect(sys).toContain('Artifact instructions:');
-    expect(sys).toContain('/workspace/artifacts/a/readme.md');
-    expect(sys).toContain('Artifact A is the canonical billing export.');
-    expect(sys).toContain('/workspace/artifacts/b/README.md');
-    expect(sys).toContain('Prefer the reconciled totals');
-    expect(sys.indexOf('/workspace/artifacts/a/readme.md')).toBeLessThan(sys.indexOf('/workspace/artifacts/b/README.md'));
-    expect(sys).not.toContain('not a readme');
-  });
-
   it('injects fresh runtime context into the system prompt', async () => {
     const { chat, mock } = setup([
       { type: 'text', delta: 'ok' },
       { type: 'done', finishReason: 'stop' },
     ]);
     chat.setToolStoresProvider(() => ({
-      bridge: bridgeWithArtifactReadmes({}),
+      bridge: onlineBridge(),
     }) as unknown as Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream'>);
     chat.createThread();
 
@@ -196,7 +178,7 @@ describe('ChatStore', () => {
   it('tokenUsage includes the composed system prompt and reserved reply budget', () => {
     const { chat, profile } = setup();
     const id = chat.createThread();
-    chat.setThreadModel(id, 'or-gpt-5.4-mini');
+    chat.setThreadModel(id, 'or-gpt-5.5');
     profile.setDefaultSystemPrompt('x'.repeat(40_000));
 
     const usage = chat.tokenUsage('');
@@ -240,7 +222,7 @@ describe('ChatStore', () => {
       { type: 'done', finishReason: 'stop' },
     ]);
     const id = chat.createThread();
-    chat.setThreadModel(id, 'or-gpt-5.4-mini');
+    chat.setThreadModel(id, 'or-gpt-5.5');
     profile.setDefaultSystemPrompt('z'.repeat(600_000));
 
     chat.sendMessage('hi');
@@ -259,7 +241,7 @@ describe('ChatStore', () => {
       { type: 'done', finishReason: 'stop' },
     ]);
     const id = chat.createThread();
-    chat.setThreadModel(id, 'or-gpt-5.4-mini');
+    chat.setThreadModel(id, 'or-gpt-5.5');
     const unavailableProvider: LlmProvider = {
       id: 'openrouter',
       ready: () => false,
@@ -269,7 +251,7 @@ describe('ChatStore', () => {
       resolve: (modelId: string) => { provider: LlmProvider; providerModelId: string };
     };
     router.resolve = (modelId: string) => {
-      if (modelId === 'or-gpt-5.4-mini') return { provider: mock, providerModelId: modelId };
+      if (modelId === 'or-gpt-5.5') return { provider: mock, providerModelId: modelId };
       return { provider: unavailableProvider, providerModelId: modelId };
     };
     runInAction(() => {
@@ -288,7 +270,7 @@ describe('ChatStore', () => {
         toolResults: [{
           toolCallId: 'call-big',
           toolName: 'fs',
-          content: 'path: /workspace/artifacts/huge.json\n' + 'd'.repeat(400_000),
+          content: 'path: /workspace/artifacts/huge.json\n' + 'd'.repeat(550_000),
           ranAt: Date.now(),
         }],
       });
@@ -329,13 +311,13 @@ describe('ChatStore', () => {
       resolve: (modelId: string) => { provider: LlmProvider; providerModelId: string };
     };
     router.resolve = (modelId: string) => {
-      if (modelId === 'or-gpt-5.4-mini') return { provider: compactorProvider, providerModelId: 'or-gpt-5.4-mini' };
+      if (modelId === 'or-gemini-3.1-flash-lite') return { provider: compactorProvider, providerModelId: 'google/gemini-3.1-flash-lite-preview' };
       if (modelId === chat.activeThread?.modelId) return { provider: mock, providerModelId: modelId };
       return { provider: unavailableProvider, providerModelId: modelId };
     };
 
     const id = chat.createThread();
-    chat.setThreadModel(id, 'or-gpt-5.4-mini');
+    chat.setThreadModel(id, 'or-gpt-5.5');
     runInAction(() => {
       chat.activeThread!.messages.push({
         id: 'u-cheap-compact',
@@ -352,7 +334,7 @@ describe('ChatStore', () => {
         toolResults: [{
           toolCallId: 'call-cheap',
           toolName: 'fs',
-          content: 'path: /workspace/artifacts/huge.json\n' + 'e'.repeat(400_000),
+          content: 'path: /workspace/artifacts/huge.json\n' + 'e'.repeat(550_000),
           ranAt: Date.now(),
         }],
       });
@@ -361,7 +343,7 @@ describe('ChatStore', () => {
     chat.sendMessage('continue');
     await flush(100);
 
-    expect(compactModelIds).toEqual(['or-gpt-5.4-mini']);
+    expect(compactModelIds).toEqual(['google/gemini-3.1-flash-lite-preview']);
     expect(mock.calls).toHaveLength(1);
     const compacted = chat.activeThread!.messages.find(m => m.id === 'a-cheap-compact');
     if (compacted?.role !== 'assistant') throw new Error('expected assistant');

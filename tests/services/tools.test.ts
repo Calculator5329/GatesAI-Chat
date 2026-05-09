@@ -548,7 +548,7 @@ describe('tool registry harness selection', () => {
       bridgeOnline: false,
     }).map(t => t.name);
 
-    expect(names).toEqual(['memory', 'thread', 'artifact']);
+    expect(names).toEqual(['memory', 'thread']);
     expect(names).not.toContain('time');
   });
 
@@ -559,6 +559,22 @@ describe('tool registry harness selection', () => {
     }).map(t => t.name);
 
     expect(names).toEqual(expect.arrayContaining(['workspace', 'fs', 'inspect_file', 'terminal', 'python_inline', 'sqlite_query', 'query_script', 'git']));
+  });
+
+  it('only exposes image generation when ComfyUI is available', () => {
+    const unavailable = toolRegistry.toolDefsForTurn({
+      userText: 'generate an image of a glass greenhouse',
+      bridgeOnline: false,
+      imageGenAvailable: false,
+    }).map(t => t.name);
+    const available = toolRegistry.toolDefsForTurn({
+      userText: 'generate an image of a glass greenhouse',
+      bridgeOnline: false,
+      imageGenAvailable: true,
+    }).map(t => t.name);
+
+    expect(unavailable).not.toContain('image_generate');
+    expect(available).toContain('image_generate');
   });
 });
 

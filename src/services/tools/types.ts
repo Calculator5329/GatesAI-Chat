@@ -84,16 +84,10 @@ export interface ImageJobsFacade {
   }): { jobId: string; count: number };
 }
 
-export interface ArtifactsFacade {
-  create(input: { title: string; html: string; threadId: string; originMessageId?: string }):
-    Promise<{ id: string; version: number }>;
-  update(input: { id: string; html: string; changeNote?: string }):
-    Promise<{ id: string; version: number } | null>;
-}
-
 export interface LocalRuntimeFacade {
   readonly ollamaBaseUrl: string;
   readonly comfyBaseUrl?: string;
+  readonly comfyReady: boolean;
   readonly visionModel?: string;
 }
 
@@ -112,7 +106,6 @@ export interface ToolContext {
   bridge?: BridgeFacade;
   imageGen?: ImageGenFacade;
   imageJobs?: ImageJobsFacade;
-  artifacts?: ArtifactsFacade;
   localRuntime?: LocalRuntimeFacade;
   execStream?: ExecStreamFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */

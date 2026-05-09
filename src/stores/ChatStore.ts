@@ -16,7 +16,6 @@ import {
 import { StreamingTextBuffer } from '../services/streaming/StreamingTextBuffer';
 import { toolRegistry } from '../services/tools/registry';
 import { generateThreadTitle } from '../services/threadNamer';
-import { loadArtifactReadmeInstructions } from '../services/chat/artifactReadmeContext';
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
 import { isToolFailureContent, logToolCallFailure } from '../services/chat/toolFailureLog';
 import { logEvent } from '../services/diagnostics/chatLog';
@@ -26,7 +25,7 @@ import type { UserProfileStore } from './UserProfileStore';
 import type { ToolContext } from '../services/tools/types';
 import type { LocalComfyMode } from '../services/image/types';
 
-type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'artifacts' | 'localRuntime'>;
+type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime'>;
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -37,8 +36,8 @@ const MAX_TOOL_ROUNDS = 16;
 const COMPACTION_TRIGGER_FRACTION = 0.9;
 const COMPACTION_MAX_TOKENS = 500;
 const COMPACTION_MODELS = [
-  'or-gpt-5.4-mini',
-  'or-gpt-5.4',
+  'or-gemini-3.1-flash-lite',
+  'or-gemini-3-flash',
 ] as const;
 const COMPACTION_INSTRUCTION = [
   'Compact the tool result for future programmatic continuation.',
@@ -91,7 +90,6 @@ export class ChatStore {
   private readonly profile: UserProfileStore;
   private readonly controllersByThread = new Map<string, AbortController>();
   private readonly textBuffer = new StreamingTextBuffer();
-  private artifactInstructions = '';
   /**
    * Late-bound source of "Recent conversations" digests. Wired by RootStore
    * to a SummaryStore call; left unset in tests that don't care about
@@ -113,7 +111,11 @@ export class ChatStore {
     this.profile = profile;
     const snapshot = loadSnapshot();
     if (snapshot) {
-      this.threads = snapshot.threads;
+      this.threads = snapshot.threads.map(thread =>
+        this.registry.findById(thread.modelId)
+          ? thread
+          : { ...thread, modelId: DEFAULT_MODEL_ID }
+      );
       this.activeThreadId = snapshot.activeThreadId;
     } else {
       // First run / cleared storage: land in one empty untitled thread so the
@@ -133,13 +135,12 @@ export class ChatStore {
       }];
       this.activeThreadId = id;
     }
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'artifactInstructions' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
       providers: false,
       registry: false,
       profile: false,
       controllersByThread: false,
       textBuffer: false,
-      artifactInstructions: false,
       recentSummariesProvider: false,
       toolStoresProvider: false,
     });
@@ -177,7 +178,7 @@ export class ChatStore {
 
   tokenUsage(draftText: string): TokenUsage {
     const thread = this.activeThread;
-    const model = this.registry.findById(thread?.modelId ?? '');
+    const model = this.registry.findById(thread?.modelId ?? '') ?? this.registry.findById(DEFAULT_MODEL_ID);
     const window = contextWindowFor(model);
     if (!thread) return computeUsage(0, window);
     if (model?.providerId === 'local-image') {
@@ -195,7 +196,7 @@ export class ChatStore {
       ? toolRegistry.toolDefsForTurn({
           userText: [latestUserText, draftText].filter(Boolean).join('\n'),
           bridgeOnline: bridge?.isOnline ?? false,
-          imageGenAvailable: !!extras?.imageGen,
+          imageGenAvailable: extras?.localRuntime?.comfyReady ?? false,
         })
       : [];
     const systemPrompt = this.profile.composeSystemPrompt({
@@ -221,6 +222,7 @@ export class ChatStore {
 
   selectThread(id: string): void {
     if (this.activeThreadId === id) return;
+    this.ensureThreadModel(id);
     this.activeThreadId = id;
   }
 
@@ -365,7 +367,7 @@ export class ChatStore {
    * stream is started for the new turn. Other threads' streams are untouched.
    */
   sendMessage(text: string, attachments: { filename: string; path: string; size: number; mime: string }[] = []): void {
-    const thread = this.activeThread;
+    const thread = this.ensureThreadModel(this.activeThreadId);
     const trimmed = text.trim();
     if (!thread || (!trimmed && attachments.length === 0)) return;
 
@@ -424,6 +426,15 @@ export class ChatStore {
   private clearStreamingState(threadId: string): void {
     delete this.streamingByThread[threadId];
     this.controllersByThread.delete(threadId);
+  }
+
+  private ensureThreadModel(threadId: string | null): Thread | null {
+    if (!threadId) return null;
+    const thread = this.findThread(threadId);
+    if (!thread) return null;
+    if (this.registry.findById(thread.modelId)) return thread;
+    thread.modelId = DEFAULT_MODEL_ID;
+    return thread;
   }
 
   /**
@@ -508,13 +519,6 @@ export class ChatStore {
       }
       logEvent(thread.id, 'round.start', { round, providerId: provider.id, providerModelId });
       const recentSummaries = this.recentSummariesProvider?.() ?? [];
-      const bridge = this.toolStoresProvider?.().bridge;
-      if (bridge?.isOnline) {
-        await this.refreshArtifactInstructions(bridge, signal);
-        if (signal.aborted) return;
-      } else {
-        this.artifactInstructions = '';
-      }
       let request = this.buildTurnRequest(thread, providerModelId, recentSummaries);
       if (hasAnyImageAttachment(thread.messages)) {
         await this.inlineImageAttachments(thread, request);
@@ -569,12 +573,10 @@ export class ChatStore {
 
       const collectedCalls: ToolCall[] = [];
       let errored = false;
-      let textCharsThisRound = 0;
       let errorMessage: string | undefined;
       try {
         for await (const chunk of provider.stream(request, signal)) {
           if (chunk.type === 'text') {
-            textCharsThisRound += chunk.delta.length;
             this.queueTextChunk(threadId, assistantMessage.id, chunk.delta);
           } else if (chunk.type === 'tool_call') {
             collectedCalls.push(chunk.call);
@@ -596,59 +598,6 @@ export class ChatStore {
         logEvent(thread.id, 'round.exception', { round, error: (err as Error).message, stack: (err as Error).stack });
         errored = true;
         errorMessage = (err as Error).message;
-      }
-
-      // Runtime fallback: if the direct provider failed before any text or
-      // tool calls landed (round 0 only — past that, partial state would
-      // make a re-run unsafe), and an OpenRouter slug exists for this
-      // model with an OR key configured, retry once through OR. This
-      // covers expired keys, transient 5xxs, and provider-side outages.
-      if (
-        errored &&
-        round === 0 &&
-        textCharsThisRound === 0 &&
-        collectedCalls.length === 0 &&
-        provider.id !== 'openrouter'
-      ) {
-        const fb = this.providers.router.resolveOpenRouterFallback(thread.modelId);
-        if (fb) {
-          logEvent(thread.id, 'round.fallback', {
-            from: { providerId: provider.id, providerModelId },
-            to: { providerId: fb.provider.id, providerModelId: fb.providerModelId },
-            reason: errorMessage,
-          });
-          provider = fb.provider;
-          providerModelId = fb.providerModelId;
-          request = { ...request, modelId: providerModelId };
-          errored = false;
-          errorMessage = undefined;
-          try {
-            for await (const chunk of provider.stream(request, signal)) {
-              if (chunk.type === 'text') {
-                textCharsThisRound += chunk.delta.length;
-                this.queueTextChunk(threadId, assistantMessage.id, chunk.delta);
-              } else if (chunk.type === 'tool_call') {
-                collectedCalls.push(chunk.call);
-              } else if (chunk.type === 'done') {
-                logEvent(thread.id, 'round.done', { round, viaFallback: true, finishReason: chunk.finishReason, error: chunk.error });
-                if (chunk.finishReason === 'error' && chunk.error) {
-                  errored = true;
-                  errorMessage = chunk.error;
-                }
-                break;
-              }
-            }
-          } catch (err) {
-            if (signal.aborted) {
-              this.textBuffer.flush(assistantMessage.id);
-              runInAction(() => this.clearStreamingState(threadId));
-              return;
-            }
-            logEvent(thread.id, 'round.fallbackException', { error: (err as Error).message });
-            errored = true;
-            errorMessage = (err as Error).message;
-          }
-        }
       }
 
       if (errored && errorMessage) {
@@ -716,7 +665,6 @@ export class ChatStore {
       runtimeContext: buildRuntimeContext({ bridge }),
       threadContext: thread.threadContext,
       recentSummaries,
-      artifactInstructions: this.artifactInstructions,
     });
     const model = this.registry.findById(thread.modelId);
     const toolsAllowed = model?.supportsTools !== false;
@@ -724,7 +672,7 @@ export class ChatStore {
       ? toolRegistry.toolDefsForTurn({
           userText: latestUserMessageContent(thread),
           bridgeOnline: bridge?.isOnline ?? false,
-          imageGenAvailable: !!extras?.imageGen,
+          imageGenAvailable: extras?.localRuntime?.comfyReady ?? false,
         })
       : undefined;
     const finalSystemPrompt = appendImageGenAddendum(systemPrompt, tools);
@@ -751,10 +699,6 @@ export class ChatStore {
     const model = this.registry.findById(thread.modelId);
     if (!bridge || !model || !modelSupportsVision(model)) return;
     await resolveWireImages(request.messages, thread.messages, bridge, true);
-  }
-
-  private async refreshArtifactInstructions(bridge: NonNullable<ToolContext['bridge']>, signal: AbortSignal): Promise<void> {
-    this.artifactInstructions = await loadArtifactReadmeInstructions(bridge, signal);
   }
 
   private async compactThreadContext(thread: Thread, signal: AbortSignal): Promise<void> {
@@ -896,7 +840,6 @@ export class ChatStore {
       execStream: extras.execStream,
       imageGen: extras.imageGen,
       imageJobs: extras.imageJobs,
-      artifacts: extras.artifacts,
       localRuntime: extras.localRuntime,
       threadId,
     });

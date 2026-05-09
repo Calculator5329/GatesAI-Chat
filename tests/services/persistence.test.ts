@@ -17,7 +17,7 @@ describe('persistence', () => {
     const snapshot = {
       threads: [{
         id: 't1', title: 'hi', subtitle: '', pinned: false,
-        modelId: 'claude-sonnet-4.5',
+        modelId: 'or-gpt-5.4-mini',
         createdAt: 1, updatedAt: 2,
         messages: [{ id: 'm1', role: 'user' as const, content: 'yo', createdAt: 3 }],
       }],
@@ -68,6 +68,7 @@ describe('persistence', () => {
     expect(loaded).not.toBeNull();
     const msgs = loaded!.threads[0].messages;
     expect(msgs.map(m => m.role)).toEqual(['user', 'assistant']);
+    expect(loaded!.threads[0].modelId).toBe('or-gemini-3-flash');
     const a = msgs[1];
     if (a.role !== 'assistant') throw new Error('expected assistant');
     // Identity comes from the first round's message (so external refs survive).
@@ -80,11 +81,39 @@ describe('persistence', () => {
     expect(a.content).toBe('done — saved.');
   });
 
+  it('preserves dynamic OpenRouter and Ollama model ids across migration', () => {
+    const snapshot = {
+      threads: [
+        {
+          id: 'or-dynamic', title: 'OpenRouter dynamic', subtitle: '', pinned: false,
+          modelId: 'or-live-google_gemini-3-flash-preview',
+          createdAt: 1, updatedAt: 2,
+          messages: [],
+        },
+        {
+          id: 'ollama-dynamic', title: 'Ollama dynamic', subtitle: '', pinned: false,
+          modelId: 'ollama-llama3.2:latest',
+          createdAt: 1, updatedAt: 2,
+          messages: [],
+        },
+      ],
+      activeThreadId: 'or-dynamic',
+    };
+    localStorage.setItem('gatesai.state.v1', JSON.stringify(snapshot));
+
+    const loaded = loadSnapshot();
+
+    expect(loaded?.threads.map(thread => thread.modelId)).toEqual([
+      'or-live-google_gemini-3-flash-preview',
+      'ollama-llama3.2:latest',
+    ]);
+  });
+
   it('migration is idempotent on already-clean snapshots', () => {
     const clean = {
       threads: [{
         id: 't1', title: 'x', subtitle: '', pinned: false,
-        modelId: 'm', createdAt: 1, updatedAt: 2,
+        modelId: 'or-gpt-5.4-mini', createdAt: 1, updatedAt: 2,
         messages: [
           { id: 'u', role: 'user' as const, content: 'hi', createdAt: 1 },
           {
@@ -106,7 +135,7 @@ describe('persistence', () => {
     const snapshot = {
       threads: [{
         id: 't1', title: 'migration work', subtitle: '', pinned: false,
-        modelId: 'm', createdAt: 1, updatedAt: 2,
+        modelId: 'or-gpt-5.4-mini', createdAt: 1, updatedAt: 2,
         messages: [
           { id: 'u', role: 'user' as const, content: 'convert this csv for migration', createdAt: 1 },
           {
@@ -145,7 +174,7 @@ describe('persistence', () => {
     const snapshot = {
       threads: [{
         id: 't1', title: 'artifact write', subtitle: '', pinned: false,
-        modelId: 'm', createdAt: 1, updatedAt: 2,
+        modelId: 'or-gpt-5.4-mini', createdAt: 1, updatedAt: 2,
         messages: [
           { id: 'u', role: 'user' as const, content: 'write the migration json', createdAt: 1 },
           {

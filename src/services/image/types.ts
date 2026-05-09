@@ -2,9 +2,8 @@
  * Shared request / response shapes for every image-generation backend.
  *
  * The `image_generate` tool speaks this vocabulary; individual backends
- * (ComfyUI, A1111, future cloud routes) adapt it to whatever their API
- * wants. Keeping the tool pinned to this shape is what lets us add
- * backends without touching the tool contract.
+ * ComfyUI adapts it to its API. Keeping the tool pinned to this shape is what
+ * lets us add future backends without touching the tool contract.
  */
 
 export const IMAGE_ASPECT_RATIOS = ['1:1', '3:2', '2:3', '16:9', '9:16'] as const;
@@ -17,9 +16,8 @@ export interface GenerateImageRequest {
   height?: number;
   seed?: number;
   /**
-   * Optional filename hint. Local backends use this to control where the
-   * file lands in their own output folder (e.g. ComfyUI's SaveImage prefix).
-   * Cloud backends ignore it.
+   * Optional filename hint. ComfyUI uses this to control where the file lands
+   * in its own output folder via the SaveImage prefix.
    */
   filenamePrefix?: string;
 }
@@ -50,37 +48,6 @@ export interface GenerateImageResult {
 
 export type ImageBackendId =
   | 'local-comfy';
-
-export type OpenAIImageQuality = 'auto' | 'low' | 'medium' | 'high';
-export type OpenAIImageSize = '1024x1024' | '1024x1536' | '1536x1024' | 'auto';
-
-/**
- * Map an aspect ratio to the nearest size supported by `gpt-image-2`. The
- * model only takes square or 2:3 / 3:2 framing; wider 16:9 / 9:16 fall back
- * to the closer landscape / portrait choice.
- */
-export function openAIImageSizeForAspect(ratio: ImageAspectRatio): OpenAIImageSize {
-  switch (ratio) {
-    case '1:1': return '1024x1024';
-    case '3:2':
-    case '16:9': return '1536x1024';
-    case '2:3':
-    case '9:16': return '1024x1536';
-  }
-}
-
-/**
- * Derive the closest cloud-supported size from explicit width/height. Cloud
- * jobs go through {@link dispatchImageGenerate} with concrete pixel dims set
- * by the tool (which already maps aspect → dims), so we infer back: square
- * if the ratio is near 1, landscape if width > height, portrait otherwise.
- */
-export function openAIImageSizeForDims(width: number | undefined, height: number | undefined): OpenAIImageSize {
-  if (!width || !height) return '1024x1024';
-  const ratio = width / height;
-  if (Math.abs(ratio - 1) < 0.05) return '1024x1024';
-  return ratio > 1 ? '1536x1024' : '1024x1536';
-}
 
 /**
  * ComfyUI workflow preset.

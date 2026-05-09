@@ -1,6 +1,13 @@
 import type { MenuSectionKey } from '../core/types';
 
-const MENU_SECTIONS: MenuSectionKey[] = ['profile', 'agent', 'workspace', 'settings', 'usage', 'local', 'api', 'appearance', 'gallery'];
+const DEFAULT_MENU_SECTION: MenuSectionKey = 'settings';
+const MENU_SECTIONS: MenuSectionKey[] = ['agent', 'models', 'local', 'workspace', 'gallery', 'settings'];
+const LEGACY_MENU_SECTIONS: Record<string, MenuSectionKey> = {
+  profile: 'agent',
+  api: 'models',
+  usage: 'settings',
+  appearance: 'settings',
+};
 
 export type Route =
   | { kind: 'thread'; threadId: string | null }
@@ -18,8 +25,10 @@ export function parseHash(hash: string): Route {
     return { kind: 'thread', threadId: id };
   }
   if (head === 'menu') {
-    const section = (rest[0] ?? 'appearance') as MenuSectionKey;
-    return { kind: 'menu', section: MENU_SECTIONS.includes(section) ? section : 'appearance' };
+    const raw = rest[0] ?? DEFAULT_MENU_SECTION;
+    const section = raw as MenuSectionKey;
+    if (MENU_SECTIONS.includes(section)) return { kind: 'menu', section };
+    return { kind: 'menu', section: LEGACY_MENU_SECTIONS[raw] ?? DEFAULT_MENU_SECTION };
   }
   return DEFAULT_ROUTE;
 }

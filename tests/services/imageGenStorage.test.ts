@@ -54,21 +54,28 @@ describe('imageGenStorage', () => {
   });
 
   it('migrates retired image backends to ComfyUI', () => {
-    localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({
-      backend: 'cloud-openai',
-    }));
+    for (const backend of ['local-a1111', 'cloud-openrouter', 'cloud-openai', 'cloud-gemini']) {
+      clearAppStorage();
+      localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({ backend }));
 
-    const config = loadImageGenConfig();
+      const config = loadImageGenConfig();
 
-    expect(config.backend).toBe('local-comfy');
+      expect(config.backend).toBe('local-comfy');
+    }
   });
 
-  it('drops old prompt enhancement fields on load', () => {
+  it('drops retired local/cloud/prompt enhancement fields on load', () => {
     localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({
       backend: 'local-comfy',
+      a1111BaseUrl: 'http://127.0.0.1:7860',
+      a1111ApiKey: 'a-key',
       promptEnhancement: 'llm',
       promptEnhancementOptIn: true,
       promptStylePreset: 'photorealistic',
+      openRouterImageModelId: 'openai/gpt-image',
+      openAiImageModelId: 'gpt-image-2',
+      geminiImageModelId: 'gemini-image',
+      openAiImageQuality: 'high',
     }));
 
     const config = loadImageGenConfig();
@@ -76,5 +83,11 @@ describe('imageGenStorage', () => {
     expect('promptEnhancement' in config).toBe(false);
     expect('promptEnhancementOptIn' in config).toBe(false);
     expect('promptStylePreset' in config).toBe(false);
+    expect('a1111BaseUrl' in config).toBe(false);
+    expect('a1111ApiKey' in config).toBe(false);
+    expect('openRouterImageModelId' in config).toBe(false);
+    expect('openAiImageModelId' in config).toBe(false);
+    expect('geminiImageModelId' in config).toBe(false);
+    expect('openAiImageQuality' in config).toBe(false);
   });
 });

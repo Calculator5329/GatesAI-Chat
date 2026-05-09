@@ -11,6 +11,7 @@ export const DEFAULT_OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
 export interface OllamaProviderOptions {
   baseUrl: string;
   apiKey?: string;
+  available?: boolean;
   /** When false, drop tools from every request (per-model overrides via supportsTools live in ChatStore). */
   toolsEnabled?: boolean;
 }
@@ -52,25 +53,23 @@ interface OllamaTool {
  *   - the proper streaming tool-call format
  *   - native `keep_alive` so the model isn't reloaded between turns
  *   - native `images` field on user messages (different shape than OpenAI parts)
- *
- * Task 3 ships the request side only; `parseNdjson` is a stub that yields an
- * explicit error so accidental routing through this provider before Task 4
- * lands fails loudly rather than silently truncating responses.
  */
 export class OllamaProvider implements LlmProvider {
   readonly id = 'ollama' as const;
   private readonly baseUrl: string;
   private readonly apiKey?: string;
+  private readonly available: boolean;
   private readonly toolsEnabled: boolean;
 
   constructor(opts: OllamaProviderOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/+$/, '');
     this.apiKey = opts.apiKey;
+    this.available = opts.available === true;
     this.toolsEnabled = opts.toolsEnabled !== false;
   }
 
   ready(): boolean {
-    return Boolean(this.baseUrl);
+    return Boolean(this.baseUrl) && this.available;
   }
 
   async *stream(req: LlmRequest, signal: AbortSignal): AsyncIterable<LlmChunk> {

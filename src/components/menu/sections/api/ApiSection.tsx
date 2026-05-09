@@ -10,13 +10,14 @@ export const ApiSection = observer(function ApiSection() {
 
   return (
     <>
-      <h1 style={tokens.h1}>API</h1>
-      <div style={tokens.kicker}>bring your own keys · byok · stored locally in your browser</div>
+      <h1 style={tokens.h1}>Models</h1>
+      <div style={tokens.kicker}>OpenRouter access · live catalog · keys stored locally</div>
 
       <Card style={{ padding: '14px 18px', marginBottom: 28, background: 'rgba(62,207,142,0.04)', borderColor: 'rgba(62,207,142,0.2)' }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
-          Keys are stored in <code style={tokens.mono}>localStorage</code> on this device only. They never leave your browser
-          except as the <code style={tokens.mono}>Authorization</code> header on requests to the chosen provider.
+          Connect OpenRouter to unlock the cloud model catalog. Your key is stored in{' '}
+          <code style={tokens.mono}>localStorage</code> on this device only and is used only as the
+          <code style={tokens.mono}> Authorization</code> header for model requests.
         </div>
       </Card>
 

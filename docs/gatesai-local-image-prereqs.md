@@ -213,10 +213,9 @@ GatesAI Chat -> Local -> Local image generation
 Set:
 
 ```text
-Quality preset: Final - selected workflow template
+Quality preset: Normal - FLUX.2 Klein
 Workflow template: /workspace/scripts/comfy-workflows/current-final-workflow.json
-Prompt enhancement: Off, unless you explicitly want the current chat model to rewrite prompts
-Cloud fallback: fal.ai, optional
+Upscale: optional ComfyUI hires-fix
 ```
 
 Click **Set image_generate to ComfyUI** once ComfyUI is online.

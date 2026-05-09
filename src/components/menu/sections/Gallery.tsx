@@ -16,6 +16,7 @@ interface LightboxState {
 export const GallerySection = observer(function GallerySection() {
   const jobs = useImageJobStore();
   const completed = jobs.history.filter(j => j.status === 'done' && j.results.length > 0) as CompletedJob[];
+  const imageCount = completed.reduce((sum, job) => sum + job.results.length, 0);
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
 
   return (
@@ -23,7 +24,11 @@ export const GallerySection = observer(function GallerySection() {
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: completed.length > 0 ? 16 : 0 }}>
         <div>
           <h1 style={{ ...tokens.h1, margin: 0 }}>Gallery</h1>
-          <div style={{ ...tokens.kicker, marginTop: 4 }}>every image you've generated · click to open</div>
+          <div style={{ ...tokens.kicker, marginTop: 4 }}>
+            {imageCount > 0
+              ? `${imageCount} image${imageCount === 1 ? '' : 's'} from ${completed.length} job${completed.length === 1 ? '' : 's'} · click to open`
+              : 'generated images appear here'}
+          </div>
         </div>
         {completed.length > 0 && (
           <div style={{ flexShrink: 0 }}>
@@ -65,11 +70,18 @@ export const GallerySection = observer(function GallerySection() {
 function EmptyState() {
   return (
     <div style={{
-      padding: '48px 24px', textAlign: 'center',
+      padding: '44px 28px', textAlign: 'center',
       color: 'var(--text-faint)', fontSize: 13,
       border: '1px dashed var(--border)', borderRadius: 8,
     }}>
-      No images generated yet. Ask the assistant to render something to fill this page.
+      <div style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 18, color: 'var(--text-dim)', marginBottom: 8 }}>
+        No images yet
+      </div>
+      <div style={{ lineHeight: 1.55, maxWidth: 420, margin: '0 auto' }}>
+        Pick the favorite <strong style={{ color: 'var(--text-dim)' }}>Normal image — Flux 2 Klein</strong> model
+        or ask the assistant to render an image. Finished images are kept here and saved under{' '}
+        <code style={tokens.mono}>/workspace/artifacts</code>.
+      </div>
     </div>
   );
 }

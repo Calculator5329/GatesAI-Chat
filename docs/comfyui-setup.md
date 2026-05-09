@@ -4,7 +4,8 @@ This guide gets local image generation working end-to-end in the GatesAI Chat
 desktop app using [ComfyUI](https://github.com/comfyanonymous/ComfyUI) as the
 backend and [FLUX 2-dev](https://huggingface.co/Comfy-Org/flux2-dev) as the
 model. After setup the app's `image_generate` tool will route to your local
-GPU (with optional cloud fallback to fal.ai on failure).
+GPU through ComfyUI. The foundation build does not include cloud fallback or
+AUTOMATIC1111 routing.
 
 Audience: another human, or an automated agent (Claude Code, Cursor, etc.)
 running on the target machine.

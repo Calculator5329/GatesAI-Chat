@@ -1,28 +1,18 @@
 import { autorun, makeAutoObservable, runInAction, toJS } from 'mobx';
 import type {
-  AccentKey,
-  BgKey,
   CodeSizeKey,
   CodeStyleKey,
   DraftAttachment,
-  HeaderKey,
   MarkdownDensityKey,
   MarkdownStyleKey,
-  SendKey,
-  ThreadHeaderKey,
   ToolCallStyleKey,
 } from '../core/types';
 import { loadUiPrefs, saveUiPrefs } from '../services/uiPrefsStorage';
 import type { BridgeStore } from './BridgeStore';
 
 /**
- * Owns ephemeral UI state: theme keys + composer draft.
+ * Owns ephemeral UI state: composer draft and reading preferences.
  * Surface routing (chat vs menu, which menu section) lives in RouterStore.
- *
- * Most fields here are intentionally not persisted — theme is "tuning"
- * that should reset cleanly. The `toolCallStyle` pick is the exception:
- * users want set-and-forget for that one, so it round-trips through
- * `gatesai.uiprefs.v1`.
  */
 export class UiStore {
   draft = '';
@@ -31,12 +21,6 @@ export class UiStore {
   uploading = false;
   /** Last upload error message. Cleared on each new upload attempt. */
   uploadError: string | null = null;
-
-  bgKey: BgKey = 'charcoal';
-  accentKey: AccentKey = 'emerald';
-  headerKey: HeaderKey = 'wordmark';
-  sendKey: SendKey = 'ghost';
-  threadHeaderKey: ThreadHeaderKey = 'none';
 
   toolCallStyle: ToolCallStyleKey = 'aside';
   markdownStyle: MarkdownStyleKey = 'compact';

@@ -92,9 +92,7 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
   return (
     <div
       className="editorial-message"
-      title="Ctrl/Cmd-click to copy this message"
       aria-label="Message. Ctrl or Command click to copy."
-      onMouseEnter={showCopyHint}
       onFocus={showCopyHint}
       onClick={(event) => {
         if (!shouldCopyMessageFromClick({

@@ -14,17 +14,13 @@ import { workspaceTool } from './workspace';
 import { inspectFileTool } from './inspectFile';
 import { imageGenerateTool } from './imageGenerate';
 import { describeImageTool } from './describeImage';
-import { artifactTool } from './artifact';
 
 export interface ToolSelectionContext {
   userText: string;
   bridgeOnline: boolean;
   /**
-   * Whether a local image backend is configured for this session. When true we
-   * always expose `image_generate` to the model, because the common intent
-   * phrasings ("queue it", "run the batch", "use comfy") don't trip the
-   * image-specific keyword heuristic and the model otherwise falls back to the
-   * terminal tool and hits the bridge allowlist.
+   * Whether ComfyUI is enabled and healthy for this session. The model should
+   * never see image generation tools unless the backend can actually run them.
    */
   imageGenAvailable?: boolean;
 }
@@ -61,7 +57,7 @@ export class ToolRegistry {
 
   toolDefsForTurn(ctx: ToolSelectionContext): ToolDef[] {
     const text = ctx.userText.toLowerCase();
-    const selected = new Set<string>(['memory', 'thread', 'artifact']);
+    const selected = new Set<string>(['memory', 'thread']);
     const bridgeRelevant = ctx.bridgeOnline || /\b(file|files|attachment|attached|csv|json|data|dataset|text|txt|code|script|command|terminal|shell|git|build|test|workspace|artifact|artifacts|folder|directory|read|write)\b/.test(text);
     const notesRelevant = /\b(note|notes|plan|plans|document|documents|doc|docs|memory|remember|search|list|read|write)\b/.test(text);
     const imageGenRelevant = /\b(draw|drawing|paint|render|generate|make|create|design|illustrate|picture|image|photo|artwork|poster|logo|illustration|visual|scene|portrait|landscape|background|wallpaper)\b.*\b(image|picture|photo|art|artwork|drawing|poster|logo|illustration|scene|portrait|landscape|background|wallpaper)\b|\b(image[-_ ]?gen|imagegen|flux|stable ?diffusion|dall[-_ ]?e|midjourney|background|wallpaper)\b/i.test(text);
@@ -78,7 +74,7 @@ export class ToolRegistry {
       selected.add('git');
     }
     if (notesRelevant) selected.add('notes');
-    if (imageGenRelevant || ctx.imageGenAvailable) selected.add('image_generate');
+    if (ctx.imageGenAvailable && imageGenRelevant) selected.add('image_generate');
     if (imageVisionRelevant) {
       selected.add('workspace');
       selected.add('fs');
@@ -124,4 +120,3 @@ toolRegistry.register(queryScriptTool);
 toolRegistry.register(gitTool);
 toolRegistry.register(imageGenerateTool);
 toolRegistry.register(describeImageTool);
-toolRegistry.register(artifactTool);

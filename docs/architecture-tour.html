@@ -3,654 +3,1217 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>GatesAI Chat — Architecture Tour</title>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/github-dark.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/common.min.js"></script>
+<title>GatesAI Chat - Architecture Tour</title>
 <style>
   :root {
-    --bg: #0b0d10;
-    --panel: #14181d;
-    --panel-2: #1b2027;
-    --line: #262d36;
-    --ink: #e6e9ee;
-    --mute: #98a2b3;
-    --accent: #7cc4ff;
-    --accent-2: #ffb86b;
-    --accent-3: #b692ff;
-    --good: #6ee7a7;
-    --warn: #ffd166;
-    --bad: #ff8a8a;
-    --code: #0f1318;
+    --bg: #0d0f12;
+    --surface: #15181d;
+    --surface-2: #1d2229;
+    --surface-3: #242a33;
+    --line: #343b46;
+    --text: #f1f4f8;
+    --muted: #aab4c1;
+    --soft: #cfd7e2;
+    --blue: #74b9ff;
+    --green: #78d6a3;
+    --gold: #f5c96b;
+    --pink: #ff8fb3;
+    --violet: #b8a2ff;
+    --code: #101317;
+    --shadow: 0 18px 60px rgba(0, 0, 0, .32);
   }
+
   * { box-sizing: border-box; }
-  html, body { background: var(--bg); color: var(--ink); }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
-    font-family: -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
-    line-height: 1.55;
+    color: var(--text);
+    background:
+      linear-gradient(180deg, rgba(116, 185, 255, .06), transparent 360px),
+      linear-gradient(135deg, rgba(120, 214, 163, .04), transparent 520px),
+      var(--bg);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 15px;
+    line-height: 1.55;
   }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
 
-  /* layout */
-  .shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
-  nav.side {
-    background: var(--panel);
-    border-right: 1px solid var(--line);
-    padding: 24px 18px;
-    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  a { color: inherit; text-decoration: none; }
+  code, .mono {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: .92em;
   }
-  nav.side h1 {
-    font-size: 16px; margin: 0 0 4px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-3));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-    font-weight: 700; letter-spacing: 0.2px;
-  }
-  nav.side .sub { color: var(--mute); font-size: 12px; margin-bottom: 18px; }
-  nav.side a {
-    display: block; padding: 7px 10px; border-radius: 6px; color: var(--ink);
-    font-size: 13px; margin-bottom: 2px; border-left: 2px solid transparent;
-  }
-  nav.side a:hover { background: var(--panel-2); text-decoration: none; }
-  nav.side a.active { background: var(--panel-2); border-left-color: var(--accent); color: var(--accent); }
-  nav.side .group { color: var(--mute); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 6px 10px; }
-
-  main { padding: 48px 56px 96px; max-width: 1080px; }
-  section { margin-bottom: 64px; scroll-margin-top: 16px; }
-  h2 {
-    font-size: 28px; margin: 0 0 6px;
-    background: linear-gradient(90deg, var(--ink), var(--accent));
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  h3 { font-size: 18px; margin: 28px 0 8px; color: var(--accent-2); }
-  h4 { font-size: 14px; margin: 18px 0 6px; color: var(--mute); text-transform: uppercase; letter-spacing: 1px; }
-  p { color: #cdd5df; }
-  code { background: var(--code); padding: 1px 6px; border-radius: 4px; font-size: 13px; color: var(--accent-2); border: 1px solid var(--line); }
-  pre { background: var(--code) !important; border: 1px solid var(--line); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font-size: 13px; }
-  pre code { background: transparent; border: 0; padding: 0; color: inherit; }
-
-  .lede { font-size: 17px; color: #d9e0ea; max-width: 760px; }
-
-  /* hero */
-  .hero {
+  code {
+    color: #ffd68a;
+    background: var(--code);
     border: 1px solid var(--line);
-    background: radial-gradient(800px 300px at 0% 0%, rgba(124,196,255,0.12), transparent 60%),
-                radial-gradient(700px 300px at 100% 100%, rgba(182,146,255,0.10), transparent 60%),
-                var(--panel);
-    padding: 36px 32px; border-radius: 14px; margin-bottom: 36px;
+    border-radius: 5px;
+    padding: 1px 5px;
   }
-  .badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
-  .badge {
-    background: var(--panel-2); border: 1px solid var(--line); color: var(--ink);
-    padding: 4px 10px; border-radius: 999px; font-size: 12px;
+  pre {
+    margin: 0;
+    padding: 14px;
+    overflow: auto;
+    background: var(--code);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: #dce6f2;
   }
-  .badge.accent { color: var(--accent); border-color: rgba(124,196,255,0.4); }
-  .badge.good { color: var(--good); border-color: rgba(110,231,167,0.4); }
-  .badge.warn { color: var(--warn); border-color: rgba(255,209,102,0.4); }
 
-  /* card grid */
-  .grid { display: grid; gap: 14px; }
-  .grid.c2 { grid-template-columns: repeat(2, 1fr); }
-  .grid.c3 { grid-template-columns: repeat(3, 1fr); }
-  @media (max-width: 900px) { .grid.c2, .grid.c3 { grid-template-columns: 1fr; } }
-  .card {
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 10px; padding: 16px 18px;
+  .app {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
   }
-  .card h4 { margin-top: 0; color: var(--accent); }
-  .card .k { color: var(--mute); font-size: 12px; }
-  .card .v { font-size: 22px; font-weight: 600; margin-top: 4px; }
 
-  /* tabs */
-  .tabs { display: flex; gap: 4px; margin: 16px 0 0; flex-wrap: wrap; }
-  .tabs button {
-    background: var(--panel); color: var(--mute); border: 1px solid var(--line);
-    padding: 8px 14px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 13px;
-    border-bottom: none; font-family: inherit;
+  .rail {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: auto;
+    padding: 20px 16px;
+    background: rgba(17, 20, 25, .92);
+    border-right: 1px solid var(--line);
+    backdrop-filter: blur(14px);
   }
-  .tabs button.active { background: var(--panel-2); color: var(--accent); border-color: var(--line); }
-  .tabbody { background: var(--panel-2); border: 1px solid var(--line); border-radius: 0 8px 8px 8px; padding: 18px 20px; }
-  .tabpane { display: none; }
-  .tabpane.active { display: block; }
 
-  /* mermaid container */
-  .diagram { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin: 14px 0; overflow-x: auto; }
-  .diagram .caption { color: var(--mute); font-size: 12px; margin-top: 6px; }
-
-  /* tool table */
-  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
-  th, td { padding: 9px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-  th { color: var(--mute); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-  tr:hover td { background: rgba(124,196,255,0.04); }
-  .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; background: var(--panel-2); border: 1px solid var(--line); }
-  .pill.ro { color: var(--good); border-color: rgba(110,231,167,0.3); }
-  .pill.write { color: var(--accent-2); border-color: rgba(255,184,107,0.3); }
-  .pill.danger { color: var(--bad); border-color: rgba(255,138,138,0.3); }
-
-  /* trim plan */
-  .trim { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
-  @media (max-width: 900px) { .trim { grid-template-columns: 1fr; } }
-  .trim .col {
-    border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px;
-    background: var(--panel);
+  .brand {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 8px 18px;
+    border-bottom: 1px solid var(--line);
   }
-  .trim .col.keep { border-left: 3px solid var(--good); }
-  .trim .col.drop { border-left: 3px solid var(--bad); }
-  .trim h4 { margin-top: 0; }
-  .trim ul { padding-left: 18px; margin: 6px 0; }
-  .trim li { margin: 4px 0; color: #d3dae4; }
+  .mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    color: #071014;
+    background: linear-gradient(135deg, var(--blue), var(--green));
+  }
+  .brand strong { display: block; font-size: 15px; }
+  .brand span { display: block; color: var(--muted); font-size: 12px; }
 
-  /* flow */
-  .flow ol { padding-left: 0; counter-reset: step; list-style: none; }
-  .flow li {
-    position: relative; padding: 10px 14px 10px 50px; margin: 8px 0;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  .search {
+    margin: 14px 0;
+    position: relative;
+  }
+  .search input {
+    width: 100%;
+    height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    padding: 0 12px;
+    outline: none;
+  }
+  .search input:focus { border-color: var(--blue); }
+
+  .nav-group {
+    margin: 18px 0 7px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 32px;
+    padding: 7px 9px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #dce4ee;
+    font-size: 13px;
+  }
+  .nav-link:hover,
+  .nav-link.active {
+    background: var(--surface-2);
+    border-color: var(--line);
+    color: var(--blue);
+  }
+  .nav-link small { color: var(--muted); }
+
+  main {
+    max-width: 1280px;
+    width: 100%;
+    padding: 38px clamp(20px, 4vw, 54px) 96px;
+  }
+
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr);
+    gap: 24px;
+    align-items: stretch;
+    margin-bottom: 28px;
+  }
+  .hero-panel, .side-panel, .card, .diagram, .table-wrap, details {
+    background: rgba(21, 24, 29, .9);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+  }
+  .hero-panel { padding: 28px; }
+  .eyebrow {
+    color: var(--green);
+    font-size: 12px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  h1, h2, h3 { margin: 0; line-height: 1.1; letter-spacing: 0; }
+  h1 { max-width: 760px; font-size: clamp(34px, 5vw, 58px); }
+  h2 { font-size: clamp(26px, 3vw, 38px); }
+  h3 { font-size: 18px; }
+  p { color: var(--soft); margin: 10px 0 0; }
+  .lede { max-width: 860px; font-size: 17px; color: #e5ebf3; }
+
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 14px;
+  }
+  .metric {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  .metric .k { color: var(--muted); font-size: 12px; }
+  .metric .v { margin-top: 3px; font-size: 22px; font-weight: 750; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .chip {
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: #e7edf5;
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+  .chip.blue { color: var(--blue); border-color: rgba(116, 185, 255, .48); }
+  .chip.green { color: var(--green); border-color: rgba(120, 214, 163, .48); }
+  .chip.gold { color: var(--gold); border-color: rgba(245, 201, 107, .48); }
+  .chip.pink { color: var(--pink); border-color: rgba(255, 143, 179, .48); }
+
+  section {
+    margin-top: 48px;
+    scroll-margin-top: 20px;
+  }
+  .section-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .section-head p { max-width: 760px; }
+
+  .grid { display: grid; gap: 12px; }
+  .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .card { padding: 16px; box-shadow: none; }
+  .card h3 { color: #f6f8fb; }
+  .card p { color: var(--muted); }
+  .card .path { display: inline-block; margin-top: 10px; color: var(--gold); }
+
+  .diagram {
+    padding: 16px;
+    overflow: auto;
+    box-shadow: none;
+  }
+  .flow {
+    min-width: 850px;
+    display: grid;
+    gap: 12px;
+  }
+  .flow-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap: 12px;
+    align-items: stretch;
+  }
+  .node {
+    position: relative;
+    min-height: 92px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-2);
+    padding: 12px;
+    cursor: pointer;
+  }
+  .node:hover,
+  .node.selected {
+    border-color: var(--blue);
+    outline: 2px solid rgba(116, 185, 255, .13);
+  }
+  .node .label { font-weight: 750; }
+  .node .hint { color: var(--muted); font-size: 12px; margin-top: 5px; }
+  .node.blue { border-top: 3px solid var(--blue); }
+  .node.violet { border-top: 3px solid var(--violet); }
+  .node.gold { border-top: 3px solid var(--gold); }
+  .node.green { border-top: 3px solid var(--green); }
+  .node.pink { border-top: 3px solid var(--pink); }
+  .arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin: -4px 0;
+  }
+
+  .inspector {
+    margin-top: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .inspector .card { background: var(--surface-2); }
+
+  .tabs, .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 12px 0;
+  }
+  button, .filter {
+    appearance: none;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    padding: 8px 11px;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button:hover, .filter:hover,
+  button.active, .filter.active {
+    border-color: var(--blue);
+    background: var(--surface-2);
+    color: var(--blue);
+  }
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .table-wrap { overflow: auto; box-shadow: none; }
+  th, td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    font-weight: 650;
+  }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: rgba(116, 185, 255, .05); }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 21px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 2px 8px;
+    color: var(--muted);
+    background: var(--surface-2);
+    font-size: 12px;
+  }
+  .tag.read { color: var(--green); border-color: rgba(120, 214, 163, .42); }
+  .tag.write { color: var(--gold); border-color: rgba(245, 201, 107, .42); }
+  .tag.exec { color: var(--pink); border-color: rgba(255, 143, 179, .42); }
+
+  .timeline {
+    counter-reset: step;
+    display: grid;
+    gap: 10px;
+  }
+  .step {
     counter-increment: step;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
   }
-  .flow li::before {
+  .step:before {
     content: counter(step);
-    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-    width: 26px; height: 26px; border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), var(--accent-3));
-    color: #0b0d10; font-weight: 700; font-size: 12px;
-    display: flex; align-items: center; justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    color: #081014;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--green), var(--blue));
   }
-  .flow li b { color: var(--accent); }
+  .step b { color: var(--text); }
 
-  details { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 8px 0; }
-  details > summary { cursor: pointer; color: var(--accent-2); }
-  details[open] { background: var(--panel-2); }
+  details {
+    padding: 12px 14px;
+    box-shadow: none;
+  }
+  details + details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--gold); font-weight: 700; }
 
-  .note { border-left: 3px solid var(--accent); background: rgba(124,196,255,0.06); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 14px; color: #d9e0ea; }
-  .warn { border-left: 3px solid var(--warn); background: rgba(255,209,102,0.06); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 14px; color: #ecd99c; }
+  .callout {
+    border: 1px solid rgba(245, 201, 107, .35);
+    border-left: 4px solid var(--gold);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: rgba(245, 201, 107, .07);
+    color: #f5dfae;
+  }
+  .ok {
+    border-color: rgba(120, 214, 163, .35);
+    border-left-color: var(--green);
+    background: rgba(120, 214, 163, .07);
+    color: #d6f3e1;
+  }
 
-  kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; font-size: 12px; font-family: ui-monospace, monospace; }
+  .code-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .code-card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .code-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface-2);
+  }
+  .code-head strong { font-size: 13px; }
+  .code-head span {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .code-card pre {
+    border: 0;
+    border-radius: 0;
+    max-height: 360px;
+  }
+
+  .recipe-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .recipe {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 14px;
+  }
+  .recipe .num {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 7px;
+    margin-bottom: 10px;
+    color: #081014;
+    background: var(--gold);
+    font-weight: 800;
+  }
+
+  .file-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .file-card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 12px;
+  }
+  .file-card strong { display: block; }
+  .file-card span { display: block; margin-top: 5px; color: var(--muted); font-size: 13px; }
+  .file-card[data-hidden="true"] { display: none; }
+
+  .footer {
+    margin-top: 56px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  @media (max-width: 1020px) {
+    .app { grid-template-columns: 1fr; }
+    .rail {
+      position: static;
+      height: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .hero, .inspector { grid-template-columns: 1fr; }
+    .grid.cols-3, .grid.cols-4, .grid.cols-2, .file-grid, .code-grid, .recipe-grid { grid-template-columns: 1fr; }
+  }
+
+  @media print {
+    body { background: #fff; color: #111; }
+    .rail, .search, .tabs, .filters { display: none; }
+    .app { display: block; }
+    main { max-width: none; padding: 0; }
+    .hero, .grid, .inspector, .file-grid { display: block; }
+    .card, .hero-panel, .side-panel, .diagram, .table-wrap, details { box-shadow: none; page-break-inside: avoid; }
+  }
 </style>
 </head>
 <body>
-<div class="shell">
-  <nav class="side">
-    <h1>GatesAI Chat</h1>
-    <div class="sub">Architecture Tour · v0</div>
-    <div class="group">Orientation</div>
-    <a href="#overview">Overview</a>
-    <a href="#stack">Stack & numbers</a>
-    <a href="#processes">Processes & ports</a>
-    <div class="group">The shape of it</div>
-    <a href="#layers">Layer map</a>
-    <a href="#stores">MobX stores</a>
-    <a href="#services">Service layer</a>
-    <a href="#tools">Tool registry</a>
-    <div class="group">How it runs</div>
-    <a href="#chatflow">Chat turn flow</a>
-    <a href="#imageflow">Image generation</a>
-    <a href="#routing">Provider routing</a>
-    <a href="#persistence">Persistence</a>
-    <div class="group">Today &amp; next</div>
-    <a href="#trim">The trim plan</a>
-    <a href="#risks">Risks</a>
-    <a href="#playbook">Onboarding playbook</a>
-  </nav>
+<div class="app">
+  <aside class="rail">
+    <div class="brand">
+      <div class="mark">G</div>
+      <div>
+        <strong>GatesAI Chat</strong>
+        <span>Current architecture tour</span>
+      </div>
+    </div>
+    <div class="search">
+      <input id="search" type="search" placeholder="Search this tour..." aria-label="Search this tour" />
+    </div>
+    <div class="nav-group">Start here</div>
+    <a class="nav-link" href="#overview">Overview <small>map</small></a>
+    <a class="nav-link" href="#truths">Current truths <small>now</small></a>
+    <a class="nav-link" href="#runtime">Runtime graph <small>ports</small></a>
+    <div class="nav-group">Codebase</div>
+    <a class="nav-link" href="#layers">Layers <small>imports</small></a>
+    <a class="nav-link" href="#stores">Stores <small>state</small></a>
+    <a class="nav-link" href="#services">Services <small>edges</small></a>
+    <a class="nav-link" href="#tools">Tools <small>agent</small></a>
+    <a class="nav-link" href="#flows">Flows <small>turns</small></a>
+    <a class="nav-link" href="#context">Context engine <small>prompt</small></a>
+    <a class="nav-link" href="#codebook">Code examples <small>copy</small></a>
+    <div class="nav-group">Developer path</div>
+    <a class="nav-link" href="#files">File atlas <small>search</small></a>
+    <a class="nav-link" href="#persistence">Persistence <small>keys</small></a>
+    <a class="nav-link" href="#tests">Tests <small>verify</small></a>
+    <a class="nav-link" href="#playbook">Read order <small>tour</small></a>
+  </aside>
 
   <main>
     <div class="hero">
-      <div style="color: var(--mute); font-size: 12px; letter-spacing: 2px; text-transform: uppercase;">Interactive tour</div>
-      <h2 style="font-size: 38px; margin: 6px 0 12px;">GatesAI Chat — how the codebase fits together</h2>
-      <p class="lede">A desktop-first LLM chat app: <b>React 19 + MobX</b> SPA wrapped in <b>Tauri</b>, talking to a bundled Go <b>bridge</b> for filesystem and tool execution, plus optional <b>Ollama</b> and <b>ComfyUI</b> sidecars. This page maps the layers, the data flow, and what the in-progress trim plan is removing.</p>
-      <div class="badges">
-        <span class="badge accent">React 19</span>
-        <span class="badge accent">MobX 6</span>
-        <span class="badge accent">Tauri 2</span>
-        <span class="badge">Vite 8</span>
-        <span class="badge">Vitest</span>
-        <span class="badge good">OpenRouter ✓ keep</span>
-        <span class="badge good">Ollama ✓ keep</span>
-        <span class="badge good">ComfyUI ✓ keep</span>
-        <span class="badge warn">A1111 / cloud images — dropping</span>
+      <div class="hero-panel">
+        <div class="eyebrow">Single-file codebase explorer</div>
+        <h1>Understand the entire app from one guided map.</h1>
+        <p class="lede">GatesAI Chat is a React 19 + MobX desktop chat app wrapped in Tauri. The current foundation routes model traffic through OpenRouter, Ollama, or a synthetic local-image provider, and sends privileged workspace operations through a separate bridge sidecar when it is available.</p>
+        <div class="chips">
+          <span class="chip blue">React 19 + Vite 8</span>
+          <span class="chip blue">MobX stores</span>
+          <span class="chip green">Tauri 2 shell</span>
+          <span class="chip gold">OpenRouter + Ollama</span>
+          <span class="chip pink">ComfyUI images only</span>
+          <span class="chip">Vitest + jsdom</span>
+        </div>
+      </div>
+      <div class="side-panel">
+        <div class="status-grid">
+          <div class="metric"><div class="k">frontend source areas</div><div class="v">5</div></div>
+          <div class="metric"><div class="k">MobX stores</div><div class="v">17</div></div>
+          <div class="metric"><div class="k">registered tools</div><div class="v">15</div></div>
+          <div class="metric"><div class="k">image backends</div><div class="v">1</div></div>
+          <div class="metric"><div class="k">Tauri runtime kinds</div><div class="v">2</div></div>
+          <div class="metric"><div class="k">test files</div><div class="v">57</div></div>
+        </div>
       </div>
     </div>
 
-    <section id="overview">
-      <h2>Overview</h2>
-      <p class="lede">The product is a single chat surface plus a settings menu. Messages stream from a model provider; the model can call <b>tools</b> that touch a real workspace on disk, run code, manage notes, or queue local image generation. Everything lives in a Tauri window, but the heavy lifting — file IO, terminal, git, python, sqlite — happens in a separate Go bridge process the app spawns.</p>
-
-      <div class="grid c3">
-        <div class="card"><div class="k">UI framework</div><div class="v">React 19</div><div class="k">+ React Compiler, mobx-react-lite</div></div>
-        <div class="card"><div class="k">State</div><div class="v">MobX 6</div><div class="k"><code>makeAutoObservable</code> + autoruns to localStorage</div></div>
-        <div class="card"><div class="k">Shell</div><div class="v">Tauri 2.10</div><div class="k">Rust window + spawns the Go bridge sidecar</div></div>
-        <div class="card"><div class="k">Tools / FS</div><div class="v">Go bridge</div><div class="k"><code>http://127.0.0.1:7331</code> + WebSocket</div></div>
-        <div class="card"><div class="k">Local LLM</div><div class="v">Ollama</div><div class="k">discovered + managed by LocalRuntimeStore</div></div>
-        <div class="card"><div class="k">Local images</div><div class="v">ComfyUI</div><div class="k">portable build, app starts/stops the process</div></div>
+    <section id="overview" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Overview</h2>
+          <p>Use this as the mental model before reading code: UI observes stores, stores call services, services talk to external systems or local storage, and core holds pure contracts.</p>
+        </div>
       </div>
-    </section>
 
-    <section id="stack">
-      <h2>Stack &amp; numbers</h2>
-      <div class="grid c3">
-        <div class="card"><div class="k">stores</div><div class="v">17</div><div class="k">RootStore wires them all</div></div>
-        <div class="card"><div class="k">tools</div><div class="v">~18</div><div class="k">memory, fs, terminal, python, git, image_generate, …</div></div>
-        <div class="card"><div class="k">LLM providers</div><div class="v">8 → 3</div><div class="k">trim drops direct cloud SDKs; keeps OpenRouter + Ollama + local-image</div></div>
-        <div class="card"><div class="k">image backends</div><div class="v">5 → 1</div><div class="k">trim drops A1111 + 3 cloud backends; keeps ComfyUI</div></div>
-        <div class="card"><div class="k">localStorage keys</div><div class="v">9</div><div class="k">chat, providers, profile, ui, notes, imageGen, imageJobs, ollama, openrouter</div></div>
-        <div class="card"><div class="k">tool rounds / turn</div><div class="v">MAX</div><div class="k">looped until model emits a final reply with no tool calls</div></div>
-      </div>
-    </section>
-
-    <section id="processes">
-      <h2>Processes &amp; ports</h2>
-      <p>Three to four OS processes cooperate at runtime. The app polls the bridge over HTTP every 5s and keeps a WebSocket open for streaming events.</p>
       <div class="diagram">
-        <pre class="mermaid">
-flowchart LR
-  subgraph DesktopApp["Tauri window (one process)"]
-    UI["React SPA<br/>(MobX stores)"]
-  end
-  Bridge["gatesai-bridge.exe<br/>Go · :7331 HTTP + WS"]
-  Ollama["ollama serve<br/>:11434"]
-  Comfy["ComfyUI<br/>:8188"]
+        <div class="flow" aria-label="Architecture flow">
+          <div class="flow-row">
+            <div class="node blue" data-node="ui"><div class="label">UI surfaces</div><div class="hint">app, editorial chat, menu, shared primitives</div></div>
+            <div class="node violet" data-node="stores"><div class="label">MobX stores</div><div class="hint">RootStore wires observable app state</div></div>
+            <div class="node gold" data-node="services"><div class="label">Services</div><div class="hint">LLM clients, bridge RPC, tools, image jobs, storage</div></div>
+            <div class="node green" data-node="external"><div class="label">External world</div><div class="hint">OpenRouter, Ollama, ComfyUI, bridge sidecar</div></div>
+          </div>
+          <div class="arrow">components read stores -> stores mutate state and call services -> services perform IO</div>
+          <div class="flow-row">
+            <div class="node blue" data-node="chat"><div class="label">Chat screen</div><div class="hint">threads, composer, messages, model picker</div></div>
+            <div class="node violet" data-node="chatstore"><div class="label">ChatStore</div><div class="hint">sendMessage, runTurn, stream buffers, tool loop</div></div>
+            <div class="node gold" data-node="router"><div class="label">LlmRouter</div><div class="hint">model id -> configured provider</div></div>
+            <div class="node green" data-node="provider"><div class="label">Provider stream</div><div class="hint">AsyncIterable text, tool_call, done chunks</div></div>
+          </div>
+        </div>
+      </div>
 
-  UI -- "GET /health (5s poll)" --> Bridge
-  UI -- "WS /ws (RPC + events)" --> Bridge
-  Bridge -- "fs / terminal / git / python / sqlite" --> OS[(workspace dir)]
-  UI -- "/api/chat, /api/tags" --> Ollama
-  UI -- "queue prompt, /history" --> Comfy
-  UI -- "HTTPS" --> OpenRouter[(OpenRouter)]
-        </pre>
-        <div class="caption">The Tauri shell launches the bridge sidecar; Ollama and ComfyUI are user-installed but lifecycle-managed by <code>LocalRuntimeStore</code>.</div>
+      <div class="inspector">
+        <div class="card" id="nodeTitle">
+          <h3>Click a node</h3>
+          <p>Select anything in the graph to see the exact code touchpoints and what to read next.</p>
+        </div>
+        <div class="card" id="nodeDetail">
+          <h3>Orientation</h3>
+          <p>The highest-value first read is <code>src/stores/RootStore.ts</code>, then <code>src/stores/ChatStore.ts</code>.</p>
+        </div>
       </div>
     </section>
 
-    <section id="layers">
-      <h2>Layer map</h2>
-      <p>Top to bottom — each layer talks only to the one below. UI subscribes to stores; stores call services; services hit external systems.</p>
+    <section id="truths" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Current Truths</h2>
+          <p>These are the facts this document verified against the current checkout, replacing older docs that still mention retired direct providers and image backends.</p>
+        </div>
+      </div>
+      <div class="grid cols-3">
+        <div class="card"><h3>Provider set</h3><p><code>ProviderId</code> is currently <code>openrouter</code>, <code>ollama</code>, and <code>local-image</code>. The router has no direct-provider fallback.</p><span class="path mono">src/core/llm.ts</span></div>
+        <div class="card"><h3>Image backend</h3><p><code>ImageBackendId</code> only accepts <code>local-comfy</code>. Image jobs dispatch through ComfyUI and then persist artifacts through the bridge.</p><span class="path mono">src/services/image/types.ts</span></div>
+        <div class="card"><h3>Bridge source</h3><p>The app expects a <code>gatesai-bridge</code> sidecar on port 7331, but this repository contains the client and Tauri launcher, not the Go bridge source.</p><span class="path mono">src-tauri/src/lib.rs</span></div>
+        <div class="card"><h3>Direct images</h3><p>Draft, Normal, and Upscale are synthetic local-image models. They bypass LLM streaming and enqueue ComfyUI jobs directly.</p><span class="path mono">src/core/models.ts</span></div>
+        <div class="card"><h3>Tools remain broad</h3><p>The active registry includes memory, notes, files, terminal, Python, SQLite, git, image generation, image description, and artifacts.</p><span class="path mono">src/services/tools/registry.ts</span></div>
+        <div class="card"><h3>Offline behavior</h3><p>Chat can render without the bridge; workspace tools and artifact storage become unavailable until <code>BridgeStore</code> reports online.</p><span class="path mono">src/stores/BridgeStore.ts</span></div>
+      </div>
+    </section>
+
+    <section id="runtime" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Runtime Graph</h2>
+          <p>The desktop app is a WebView plus helper processes. Tauri spawns the bridge sidecar if it is not already healthy; the Local menu can manage Ollama and ComfyUI.</p>
+        </div>
+      </div>
       <div class="diagram">
-        <pre class="mermaid">
-flowchart TD
-  classDef ui fill:#1b2230,stroke:#7cc4ff,color:#e6e9ee
-  classDef store fill:#1f1a2b,stroke:#b692ff,color:#e6e9ee
-  classDef svc fill:#2a2118,stroke:#ffb86b,color:#e6e9ee
-  classDef ext fill:#13241c,stroke:#6ee7a7,color:#e6e9ee
-
-  A["src/components<br/>editorial · menu · ui"]:::ui
-  B["src/stores<br/>RootStore + 16 children"]:::store
-  C["src/services<br/>llm · image · tools · bridge · diagnostics"]:::svc
-  D["External<br/>OpenRouter · Ollama · ComfyUI · bridge workspace"]:::ext
-
-  A --> B --> C --> D
-        </pre>
+        <div class="flow" style="min-width: 760px">
+          <div class="flow-row">
+            <div class="node blue"><div class="label">Tauri window</div><div class="hint">React SPA in a desktop WebView</div></div>
+            <div class="node gold"><div class="label">Bridge sidecar</div><div class="hint">127.0.0.1:7331 health + WebSocket RPC</div></div>
+            <div class="node green"><div class="label">Ollama</div><div class="hint">127.0.0.1:11434 /api/chat and /api/tags</div></div>
+            <div class="node pink"><div class="label">ComfyUI</div><div class="hint">127.0.0.1:8188 queue, history, progress</div></div>
+          </div>
+          <div class="arrow">React -> bridge for privileged workspace IO; React -> providers for model/image work</div>
+        </div>
       </div>
-
-      <h3>What's in each top-level folder</h3>
-      <table>
-        <tr><th>path</th><th>responsibility</th></tr>
-        <tr><td><code>src/app/App.tsx</code></td><td>Root observer; switches chat ↔ menu via <code>RouterStore</code>; injects theme CSS vars; global Esc handler.</td></tr>
-        <tr><td><code>src/components/editorial</code></td><td>The chat surface: sidebar, composer, message renderer, model popover, image job cards, lightbox, exec stream tail.</td></tr>
-        <tr><td><code>src/components/menu</code></td><td>Settings sections — Profile, Workspace, Usage, API, Local, Agent, Appearance.</td></tr>
-        <tr><td><code>src/core</code></td><td>Pure types and catalogs — <code>models.ts</code>, <code>providers.ts</code>, <code>llm.ts</code>, <code>modelCapabilities.ts</code>, <code>tools.ts</code>.</td></tr>
-        <tr><td><code>src/stores</code></td><td>MobX store classes. <b>Most of the app's behavior lives here.</b></td></tr>
-        <tr><td><code>src/services</code></td><td>Stateless-ish helpers: provider HTTP clients, image backends, tool implementations, bridge client, diagnostics, persistence.</td></tr>
-        <tr><td><code>src-tauri</code></td><td>Rust shell, ComfyUI/Ollama bootstrap (<code>local_runtime.rs</code>), tauri.conf.</td></tr>
-        <tr><td><code>tests</code></td><td>Vitest jsdom unit/integration tests; live model tests gated to <code>vitest.live.config.ts</code>.</td></tr>
-      </table>
+      <div class="grid cols-2">
+        <div class="card"><h3>Tauri responsibilities</h3><p><code>src-tauri/src/lib.rs</code> opens workspace paths, starts the bridge sidecar, kills managed child processes on window destroy, and exposes local runtime commands.</p></div>
+        <div class="card"><h3>Local runtime responsibilities</h3><p><code>src-tauri/src/local_runtime.rs</code> starts/stops Ollama and ComfyUI, probes health endpoints, records logs, provides file/folder pickers, and suggests install paths.</p></div>
+      </div>
     </section>
 
-    <section id="stores">
-      <h2>MobX stores</h2>
-      <p><code>RootStore</code> instantiates every child store and wires lazy provider functions to break circular deps. Tabs below group the 17 stores by concern.</p>
-
-      <div class="tabs" data-group="stores">
-        <button class="active" data-pane="s-domain">Domain</button>
-        <button data-pane="s-providers">Providers &amp; models</button>
-        <button data-pane="s-runtime">Runtime &amp; tools</button>
-        <button data-pane="s-ui">UI &amp; meta</button>
-      </div>
-      <div class="tabbody">
-        <div class="tabpane active" id="s-domain">
-          <table>
-            <tr><th>store</th><th>job</th></tr>
-            <tr><td><b>ChatStore</b></td><td>Threads, active selection, streaming text buffers, the tool-call loop. The largest file (~43KB).</td></tr>
-            <tr><td><b>UserProfileStore</b></td><td>User facts/memory and the <code>composeSystemPrompt()</code> assembler.</td></tr>
-            <tr><td><b>SummaryStore</b></td><td>Lazy cross-thread summaries; injected into ChatStore via provider fn to avoid cycles.</td></tr>
-            <tr><td><b>NotesStore</b></td><td>Persistent notes with tag/search; backs the <code>notes</code> tool.</td></tr>
-            <tr><td><b>ArtifactStore</b></td><td>Shareable HTML artifacts; storage backed by the bridge.</td></tr>
-          </table>
-        </div>
-        <div class="tabpane" id="s-providers">
-          <table>
-            <tr><th>store</th><th>job</th></tr>
-            <tr><td><b>ProviderStore</b></td><td>API keys + default-provider preference; owns <code>LlmRouter</code>; persisted under <code>gatesai.providers.v1</code>.</td></tr>
-            <tr><td><b>ModelRegistry</b></td><td>Static model catalog merged with dynamic feeds.</td></tr>
-            <tr><td><b>OpenRouterStore</b></td><td>Polls OpenRouter catalog; caches result.</td></tr>
-            <tr><td><b>OllamaStore</b></td><td>Pulls local model list from <code>/api/tags</code>.</td></tr>
-          </table>
-        </div>
-        <div class="tabpane" id="s-runtime">
-          <table>
-            <tr><th>store</th><th>job</th></tr>
-            <tr><td><b>BridgeStore</b></td><td>5s health poll on <code>:7331/health</code>; opens/closes the WS; exposes <code>online</code>.</td></tr>
-            <tr><td><b>LocalRuntimeStore</b></td><td>Auto-detects + spawns Ollama and ComfyUI; surfaces status to the Local menu.</td></tr>
-            <tr><td><b>ExecStreamStore</b></td><td>Live tail buffer for the <code>terminal</code> tool's running commands.</td></tr>
-            <tr><td><b>ImageGenStore</b></td><td>Selected image backend + per-backend creds + prompt-enhancement mode.</td></tr>
-            <tr><td><b>ImageJobStore</b></td><td>Async job queue for image generation; polls until complete; emits cards.</td></tr>
-          </table>
-        </div>
-        <div class="tabpane" id="s-ui">
-          <table>
-            <tr><th>store</th><th>job</th></tr>
-            <tr><td><b>UiStore</b></td><td>Theme, font size, markdown style, animations.</td></tr>
-            <tr><td><b>RouterStore</b></td><td>URL hash ↔ active thread id sync; <code>isMenu</code> flag.</td></tr>
-          </table>
+    <section id="layers" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Layers</h2>
+          <p>The repo follows a one-way dependency rule. When in doubt, move pure types down into <code>core</code>, IO into <code>services</code>, observable state into <code>stores</code>, and rendering into <code>components</code>.</p>
         </div>
       </div>
-
-      <h3>Persistence pattern</h3>
-      <p>Each persistable store has a MobX <code>autorun</code> that calls a per-key <code>save*</code> helper in <code>src/services/*Storage</code>. There's an emergency compaction path for the chat snapshot that trims tool result bodies to ~600 chars (edge-preserving) when localStorage throws a quota error.</p>
-      <pre><code class="language-ts">// Pattern repeated across stores
-makeAutoObservable(this)
-autorun(() =&gt; saveSnapshot(this.snapshot))   // observes .snapshot getter
-</code></pre>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Layer</th><th>Responsibilities</th><th>Key paths</th><th>Import posture</th></tr></thead>
+          <tbody>
+            <tr><td><b>app</b></td><td>Composition root; applies theme variables; switches between chat and menu routes.</td><td><code>src/app/App.tsx</code>, <code>src/main.tsx</code></td><td>May import all app layers.</td></tr>
+            <tr><td><b>components</b></td><td>React views: editorial chat, settings menu, and reusable UI primitives.</td><td><code>src/components/editorial</code>, <code>src/components/menu</code>, <code>src/components/ui</code></td><td>Use store hooks; keep business logic out.</td></tr>
+            <tr><td><b>stores</b></td><td>MobX classes, root wiring, persistence autoruns, user actions, async orchestration.</td><td><code>src/stores/*.ts</code></td><td>Import core and services; no React UI imports.</td></tr>
+            <tr><td><b>services</b></td><td>Provider clients, storage adapters, bridge client, tool execution, image dispatch, diagnostics.</td><td><code>src/services/**</code></td><td>Mostly stateless; no MobX, no React.</td></tr>
+            <tr><td><b>core</b></td><td>Pure contracts, model catalog, workspace paths, theme tokens, token estimation.</td><td><code>src/core/**</code></td><td>Should not import app/service/store code.</td></tr>
+            <tr><td><b>src-tauri</b></td><td>Rust desktop shell, process management, native commands, app packaging.</td><td><code>src-tauri/src/*.rs</code></td><td>Boundary with the operating system.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <section id="services">
-      <h2>Service layer</h2>
-      <div class="tabs" data-group="svc">
-        <button class="active" data-pane="svc-llm">llm/</button>
-        <button data-pane="svc-tools">tools/</button>
-        <button data-pane="svc-image">image/</button>
-        <button data-pane="svc-bridge">bridge/</button>
-        <button data-pane="svc-diag">diagnostics/</button>
+    <section id="stores" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Stores</h2>
+          <p><code>RootStore</code> creates the graph, then uses lazy provider functions where direct constructor dependencies would create cycles.</p>
+        </div>
       </div>
-      <div class="tabbody">
-        <div class="tabpane active" id="svc-llm">
-          <p>Each provider implements one interface and emits a streaming async iterable.</p>
-          <pre><code class="language-ts">interface LlmProvider {
-  ready(): boolean
-  stream(req: LlmRequest, signal: AbortSignal): AsyncIterable&lt;LlmChunk&gt;
+      <div class="tabs" data-tabs="stores">
+        <button class="active" data-pane="store-domain">Domain</button>
+        <button data-pane="store-provider">Providers</button>
+        <button data-pane="store-runtime">Runtime</button>
+        <button data-pane="store-ui">UI</button>
+      </div>
+      <div class="pane active" id="store-domain">
+        <div class="table-wrap"><table><tbody>
+          <tr><td><b>ChatStore</b></td><td>Threads, active selection, send/stop, stream loop, tool execution, direct image short-circuit, snapshot persistence.</td><td><code>src/stores/ChatStore.ts</code></td></tr>
+          <tr><td><b>UserProfileStore</b></td><td>User facts and durable system prompt composition.</td><td><code>src/stores/UserProfileStore.ts</code></td></tr>
+          <tr><td><b>SummaryStore</b></td><td>Lazy summaries for inactive threads so active prompts can include recent context.</td><td><code>src/stores/SummaryStore.ts</code></td></tr>
+          <tr><td><b>NotesStore</b></td><td>Durable notes, tags, search, and the backing state for the <code>notes</code> tool.</td><td><code>src/stores/NotesStore.ts</code></td></tr>
+          <tr><td><b>ArtifactStore</b></td><td>HTML artifact records and versions backed by bridge storage.</td><td><code>src/stores/ArtifactStore.ts</code></td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="pane" id="store-provider">
+        <div class="table-wrap"><table><tbody>
+          <tr><td><b>ProviderStore</b></td><td>OpenRouter credentials, legacy routing setting preservation, and the live <code>LlmRouter</code>.</td><td><code>src/stores/ProviderStore.ts</code></td></tr>
+          <tr><td><b>ModelRegistry</b></td><td>Curated models plus dynamic OpenRouter/Ollama catalog entries.</td><td><code>src/stores/ModelRegistry.ts</code></td></tr>
+          <tr><td><b>OpenRouterStore</b></td><td>Refreshes and caches OpenRouter catalog data.</td><td><code>src/stores/OpenRouterStore.ts</code></td></tr>
+          <tr><td><b>OllamaStore</b></td><td>Ollama config, <code>/api/tags</code> catalog refresh, and tools-enabled flag.</td><td><code>src/stores/OllamaStore.ts</code></td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="pane" id="store-runtime">
+        <div class="table-wrap"><table><tbody>
+          <tr><td><b>BridgeStore</b></td><td>Health polling, WebSocket client lifecycle, online/offline state.</td><td><code>src/stores/BridgeStore.ts</code></td></tr>
+          <tr><td><b>LocalRuntimeStore</b></td><td>Ollama/ComfyUI install paths, managed process toggles, base URLs, vision model selection.</td><td><code>src/stores/LocalRuntimeStore.ts</code></td></tr>
+          <tr><td><b>ExecStreamStore</b></td><td>Live terminal output tail rendered while terminal tool calls run.</td><td><code>src/stores/ExecStreamStore.ts</code></td></tr>
+          <tr><td><b>ImageGenStore</b></td><td>ComfyUI backend snapshot, workflow override path, local generation settings.</td><td><code>src/stores/ImageGenStore.ts</code></td></tr>
+          <tr><td><b>ImageJobStore</b></td><td>Serial image queue, active job, cancellation/retry, history, artifact writes.</td><td><code>src/stores/ImageJobStore.ts</code></td></tr>
+        </tbody></table></div>
+      </div>
+      <div class="pane" id="store-ui">
+        <div class="table-wrap"><table><tbody>
+          <tr><td><b>UiStore</b></td><td>Theme keys, markdown/code appearance, reading width, animations, send/header variants.</td><td><code>src/stores/UiStore.ts</code></td></tr>
+          <tr><td><b>RouterStore</b></td><td>Observable hash route, menu section navigation, thread route formatting.</td><td><code>src/stores/RouterStore.ts</code></td></tr>
+          <tr><td><b>context</b></td><td>React store provider and <code>use*Store()</code> hooks.</td><td><code>src/stores/context.tsx</code></td></tr>
+        </tbody></table></div>
+      </div>
+    </section>
+
+    <section id="services" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Services</h2>
+          <p>The service layer is where the app leaves pure state and does work: HTTP streaming, local storage, bridge RPC, tool handlers, image queue adapters, and diagnostics.</p>
+        </div>
+      </div>
+      <div class="grid cols-3">
+        <div class="card"><h3>LLM</h3><p><code>router.ts</code> resolves models to providers. <code>openrouter.ts</code> and <code>ollama.ts</code> implement the streaming contract; <code>localImage.ts</code> exists as the synthetic provider id for direct image models.</p></div>
+        <div class="card"><h3>Bridge</h3><p><code>client.ts</code> wraps the bridge WebSocket as typed request/response RPC. Attachments and image bytes are resolved through bridge helpers.</p></div>
+        <div class="card"><h3>Tools</h3><p>Each tool exports a JSON-schema definition and an <code>execute()</code> function. The registry chooses a per-turn subset from user text and runtime availability.</p></div>
+        <div class="card"><h3>Image</h3><p><code>imageBackend.ts</code> currently has one branch: <code>local-comfy</code>. <code>comfyClient.ts</code> queues workflows and reads outputs.</p></div>
+        <div class="card"><h3>Local runtime</h3><p><code>localRuntimeService.ts</code> calls Tauri commands; <code>autoDetect.ts</code> finds likely install paths; storage keeps local runtime settings.</p></div>
+        <div class="card"><h3>Persistence</h3><p>Storage helpers load, sanitize, migrate, and save JSON snapshots. The stores decide when to persist through MobX autoruns.</p></div>
+      </div>
+    </section>
+
+    <section id="tools" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Tool Registry</h2>
+          <p>The model never gets arbitrary app internals. It receives tool definitions from the registry, then <code>ChatStore</code> executes requested calls through a constrained context object.</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tool</th><th>Mode</th><th>Backed by</th><th>What it is for</th></tr></thead>
+          <tbody>
+            <tr><td><code>memory</code></td><td><span class="tag write">write</span></td><td>UserProfileStore</td><td>Remember or update durable user facts.</td></tr>
+            <tr><td><code>time</code></td><td><span class="tag read">read</span></td><td>browser runtime</td><td>Current time utility.</td></tr>
+            <tr><td><code>notes</code></td><td><span class="tag write">write</span></td><td>NotesStore</td><td>Create, search, read, and update durable notes.</td></tr>
+            <tr><td><code>thread</code></td><td><span class="tag write">write</span></td><td>ChatStore</td><td>Manage thread metadata or context.</td></tr>
+            <tr><td><code>workspace</code></td><td><span class="tag read">read</span></td><td>bridge</td><td>Inspect workspace state and paths.</td></tr>
+            <tr><td><code>fs</code></td><td><span class="tag write">write</span></td><td>bridge</td><td>Read and write workspace files.</td></tr>
+            <tr><td><code>inspect_file</code></td><td><span class="tag read">read</span></td><td>bridge</td><td>Structured file inspection for attachments/code.</td></tr>
+            <tr><td><code>terminal</code></td><td><span class="tag exec">exec</span></td><td>bridge + ExecStreamStore</td><td>Run allowlisted commands and stream output.</td></tr>
+            <tr><td><code>python_inline</code></td><td><span class="tag exec">exec</span></td><td>bridge</td><td>Run Python snippets in the workspace.</td></tr>
+            <tr><td><code>sqlite_query</code></td><td><span class="tag write">write</span></td><td>bridge</td><td>Query SQLite files.</td></tr>
+            <tr><td><code>query_script</code></td><td><span class="tag write">write</span></td><td>bridge</td><td>Run query scripts against local data.</td></tr>
+            <tr><td><code>git</code></td><td><span class="tag write">write</span></td><td>bridge</td><td>Repository status and version-control actions.</td></tr>
+            <tr><td><code>image_generate</code></td><td><span class="tag write">write</span></td><td>ImageJobStore -> ComfyUI</td><td>Queue local image renders and attach job artifacts.</td></tr>
+            <tr><td><code>describe_image</code></td><td><span class="tag read">read</span></td><td>Ollama vision model / image bytes</td><td>Caption or inspect image inputs.</td></tr>
+            <tr><td><code>artifact</code></td><td><span class="tag write">write</span></td><td>ArtifactStore</td><td>Create/update HTML artifacts.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout" style="margin-top: 12px;">Selection is heuristic, not a permissions boundary. <code>memory</code>, <code>thread</code>, and <code>artifact</code> are always offered; bridge tools appear for file/code/workspace cues; image tools appear for image cues or when image generation is available.</div>
+    </section>
+
+    <section id="flows" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Critical Flows</h2>
+          <p>These are the routes to trace when debugging most behavior: one normal chat turn and one local image job.</p>
+        </div>
+      </div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>Chat turn</h3>
+          <div class="timeline" style="margin-top: 12px">
+            <div class="step"><div><b>Composer sends</b><p><code>EditorialComposer</code> calls <code>chat.sendMessage(text, attachments)</code>.</p></div></div>
+            <div class="step"><div><b>ChatStore appends</b><p>A user message is added, streaming state is prepared, and an <code>AbortController</code> is stored per thread.</p></div></div>
+            <div class="step"><div><b>Router resolves</b><p><code>LlmRouter.resolve(modelId)</code> returns OpenRouter, Ollama, or local-image if the provider is ready.</p></div></div>
+            <div class="step"><div><b>Prompt is composed</b><p>System prompt, recent summaries, runtime context, messages, attachments, and tools become the provider request.</p></div></div>
+            <div class="step"><div><b>Provider streams</b><p>Text chunks feed <code>StreamingTextBuffer</code>; tool-call chunks are collected.</p></div></div>
+            <div class="step"><div><b>Tools execute</b><p>If calls exist, registry execution writes results back onto the same assistant message and the loop continues.</p></div></div>
+            <div class="step"><div><b>Snapshot saves</b><p>MobX autorun writes <code>gatesai.state.v1</code>, compacting huge tool results if localStorage rejects the full snapshot.</p></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Image job</h3>
+          <div class="timeline" style="margin-top: 12px">
+            <div class="step"><div><b>Entry</b><p>Either the user selects a direct image model or the model calls <code>image_generate</code>.</p></div></div>
+            <div class="step"><div><b>Queue</b><p><code>ImageJobStore.enqueue()</code> creates a pending job with prompt, dimensions, count, seed, and Comfy mode.</p></div></div>
+            <div class="step"><div><b>Runner</b><p>The serial runner promotes one job to active and builds a backend snapshot from <code>ImageGenStore</code>.</p></div></div>
+            <div class="step"><div><b>ComfyUI</b><p><code>dispatchImageGenerate()</code> resolves <code>local-comfy</code> and sends the workflow through <code>ComfyClient</code>.</p></div></div>
+            <div class="step"><div><b>Artifact write</b><p>The final image bytes are written to <code>/workspace/artifacts/</code> through bridge <code>fs.write</code>.</p></div></div>
+            <div class="step"><div><b>History</b><p>Done, failed, and cancelled jobs move into persisted history for Gallery and chat cards.</p></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="context" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Context Engine</h2>
+          <p>The app does more than stream messages. Each provider round rebuilds a fresh context envelope: runtime facts, user memory, recent summaries, artifact README instructions, tool schemas, attachments, and context-budget compaction.</p>
+        </div>
+      </div>
+      <div class="grid cols-3">
+        <div class="card"><h3>Runtime context</h3><p><code>buildRuntimeContext()</code> injects local time, timezone, ISO timestamp, bridge online/offline state, platform/version when known, workspace path semantics, and terminal cwd rules.</p><span class="path mono">src/services/chat/runtimeContext.ts</span></div>
+        <div class="card"><h3>Artifact README context</h3><p>When the bridge is online, <code>ChatStore</code> scans <code>/workspace/artifacts/**/README.md</code>, sorts paths, skips unreadable files, and caps both per-file and total injected text.</p><span class="path mono">src/services/chat/artifactReadmeContext.ts</span></div>
+        <div class="card"><h3>Memory layers</h3><p>The system prompt includes durable profile facts, recent summaries from other threads, and per-thread context. There is no embeddings/RAG layer today.</p><span class="path mono">src/stores/UserProfileStore.ts</span></div>
+        <div class="card"><h3>Wire expansion</h3><p>Storage keeps one assistant message per user turn; <code>flattenForWire()</code> expands it back into assistant/tool rows for providers.</p><span class="path mono">src/services/llm/wireFormat.ts</span></div>
+        <div class="card"><h3>Budget pressure</h3><p>Before each request, the store estimates system prompt + wire messages + tool schemas + reserved output. At about 90% of the model window, it compacts large tool results.</p><span class="path mono">src/services/llm/contextCompaction.ts</span></div>
+        <div class="card"><h3>Tool failure log</h3><p>Failures are detected centrally after execution and logged with call id, tool name, result preview, redacted args, read-only classification, bridge state, and duration.</p><span class="path mono">src/services/chat/toolFailureLog.ts</span></div>
+      </div>
+
+      <div class="diagram" style="margin-top: 12px">
+        <div class="flow" style="min-width: 920px">
+          <div class="flow-row">
+            <div class="node blue"><div class="label">Stored thread</div><div class="hint">one assistant row per user turn</div></div>
+            <div class="node violet"><div class="label">Prompt envelope</div><div class="hint">profile, summaries, runtime, artifact READMEs</div></div>
+            <div class="node gold"><div class="label">Wire request</div><div class="hint">flattened messages + selected tool schemas</div></div>
+            <div class="node green"><div class="label">Budget guard</div><div class="hint">compact oversized tool results before send</div></div>
+          </div>
+          <div class="arrow">storage shape stays simple; request shape is rebuilt every round from current runtime facts</div>
+        </div>
+      </div>
+
+      <div class="callout ok" style="margin-top: 12px;">A useful debugging rule: if the model seems confused about files, time, workspace paths, or old tool output, inspect the request-building path in <code>ChatStore.buildTurnRequest()</code>, <code>buildRuntimeContext()</code>, <code>loadArtifactReadmeInstructions()</code>, and <code>flattenForWire()</code> before changing UI code.</div>
+    </section>
+
+    <section id="codebook" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Code Examples</h2>
+          <p>These excerpts are intentionally small and pattern-shaped. They show how the codebase wants new work to plug in without forcing you to read every file first.</p>
+        </div>
+      </div>
+
+      <div class="code-grid">
+        <div class="code-card">
+          <div class="code-head"><strong>Provider contract</strong><span>src/core/llm.ts</span></div>
+          <pre><code>export type ProviderId =
+  | 'openrouter'
+  | 'ollama'
+  | 'local-image';
+
+export interface LlmProvider {
+  readonly id: ProviderId;
+  ready(): boolean;
+  stream(
+    request: LlmRequest,
+    signal: AbortSignal,
+  ): AsyncIterable&lt;LlmChunk&gt;;
+}</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Router shape</strong><span>src/services/llm/router.ts</span></div>
+          <pre><code>export function buildProviders(configs: ProviderConfigs) {
+  return {
+    openrouter: new OpenRouterProvider(configs.openrouter?.apiKey),
+    ollama: new OllamaProvider({
+      baseUrl: configs.ollama?.baseUrl ?? DEFAULT_OLLAMA_BASE_URL,
+      apiKey: configs.ollama?.apiKey,
+      toolsEnabled: configs.ollama?.toolsEnabled !== false,
+    }),
+    'local-image': new LocalImageProvider(),
+  };
+}</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Store graph pattern</strong><span>src/stores/RootStore.ts</span></div>
+          <pre><code>this.localRuntime = new LocalRuntimeStore({
+  getOllamaCatalog: () =&gt; ollamaStore?.catalog ?? [],
+});
+
+this.providers = new ProviderStore(this.registry, () =&gt; ({
+  ollama: {
+    baseUrl: this.localRuntime.ollamaBaseUrl,
+    apiKey: this.ollama.config.apiKey,
+    toolsEnabled: this.ollama.config.toolsEnabled,
+  },
+}));</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Tool facade pattern</strong><span>src/services/tools/types.ts</span></div>
+          <pre><code>export interface ToolContext {
+  profile: ProfileFacade;
+  chat: ChatFacade;
+  notes?: NotesFacade;
+  bridge?: BridgeFacade;
+  imageGen?: ImageGenFacade;
+  imageJobs?: ImageJobsFacade;
+  localRuntime?: LocalRuntimeFacade;
+  threadId: string;
+}</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Registering tools</strong><span>src/services/tools/registry.ts</span></div>
+          <pre><code>export const toolRegistry = new ToolRegistry();
+toolRegistry.register(memoryTool);
+toolRegistry.register(notesTool);
+toolRegistry.register(workspaceTool);
+toolRegistry.register(fsTool);
+toolRegistry.register(terminalTool);
+toolRegistry.register(imageGenerateTool);
+toolRegistry.register(describeImageTool);
+toolRegistry.register(artifactTool);</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Per-turn tool selection</strong><span>src/services/tools/registry.ts</span></div>
+          <pre><code>const selected = new Set(['memory', 'thread', 'artifact']);
+
+if (bridgeRelevant) {
+  selected.add('workspace');
+  selected.add('fs');
+  selected.add('inspect_file');
+  selected.add('terminal');
+  selected.add('python_inline');
+  selected.add('sqlite_query');
+  selected.add('query_script');
+  selected.add('git');
+}</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Wire-format expansion</strong><span>src/services/llm/wireFormat.ts</span></div>
+          <pre><code>out.push({ role: 'assistant', content: '', toolCalls: calls });
+
+for (const call of calls) {
+  const result = byId.get(call.id);
+  out.push({
+    role: 'tool',
+    content: result?.content ?? '[no result - execution interrupted]',
+    toolCallId: call.id,
+    toolName: result?.toolName ?? call.name,
+  });
+}</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Runtime prompt facts</strong><span>src/services/chat/runtimeContext.ts</span></div>
+          <pre><code>const lines = [
+  `local_time: ${local}`,
+  `timezone: ${tz}`,
+  `iso: ${now.toISOString()}`,
+  `bridge: ${bridge?.isOnline ? 'online' : 'offline'}`,
+];
+
+lines.push('workspace_paths: /workspace/attachments, /workspace/notes, /workspace/artifacts');
+lines.push('terminal_cwd: bridge workspace root');</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Artifact README scan</strong><span>src/services/chat/artifactReadmeContext.ts</span></div>
+          <pre><code>const paths = listed.entries
+  .filter(e =&gt; e.kind === 'file' &amp;&amp; isArtifactReadmePath(e.path))
+  .map(e =&gt; e.path)
+  .sort((a, b) =&gt; a.localeCompare(b));
+
+parts.push(`[${read.path}]\\n${capped}`);</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Direct image bypass</strong><span>src/stores/ChatStore.ts</span></div>
+          <pre><code>const activeModel = this.registry.findById(thread.modelId);
+if (activeModel?.providerId === 'local-image') {
+  this.runDirectImageTurn(thread, assistantMessage);
+  return;
+}</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Image backend resolver</strong><span>src/services/image/imageBackend.ts</span></div>
+          <pre><code>switch (id) {
+  case 'local-comfy':
+    if (!config.comfyBaseUrl) {
+      return { error: 'no ComfyUI base URL configured.' };
+    }
+    return { backend: new ComfyClient(config) };
+}</code></pre>
+        </div>
+
+        <div class="code-card">
+          <div class="code-head"><strong>Tauri runtime ids</strong><span>src-tauri/src/local_runtime.rs</span></div>
+          <pre><code>pub enum RuntimeKind {
+  Ollama,
+  ComfyUI,
 }
 
-type LlmChunk =
-  | { kind: 'text'; text: string }
-  | { kind: 'tool_call'; call: ToolCall }
-  | { kind: 'done' }</code></pre>
-          <p><code>router.ts</code> picks the provider for a model id. Direct keys preferred, OpenRouter as fallback. The trim plan reduces the routable surface to <code>openrouter</code>, <code>ollama</code>, and the synthetic <code>local-image</code> provider that bypasses the LLM and goes straight to ComfyUI.</p>
-          <p><code>wireFormat.ts</code> flattens internal messages (assistant rows carry their own <code>toolResults</code>) into the wire shape providers expect (separate <code>tool</code> role rows). <code>contextCompaction.ts</code> reduces oversized tool results when usage crosses ~90% of context window for opted-in models.</p>
-        </div>
-        <div class="tabpane" id="svc-tools">
-          <p>The registry exposes a single contract; ChatStore feeds the <code>ctx</code> at execute time, holding references to bridge, notes, summary, imageGen stores, and the active thread id.</p>
-          <pre><code class="language-ts">interface Tool {
-  def: ToolDef                                  // JSON-Schema for the model
-  execute(args, ctx): Promise&lt;string | ToolExecuteResult&gt;
-  meta?: { category, resultPolicy, isReadOnly }
+impl RuntimeKind {
+  pub fn health_url(self) -&gt; &amp;'static str {
+    match self {
+      RuntimeKind::Ollama =&gt; OLLAMA_HEALTH_URL,
+      RuntimeKind::ComfyUI =&gt; COMFY_HEALTH_URL,
+    }
+  }
 }</code></pre>
-          <p>Tool selection per turn is heuristic: <code>memory</code>, <code>thread</code>, and <code>artifact</code> always; bridge-y tools when the user text mentions files/code/etc.; image tools when a vision/draw cue is present. Falls open (all tools) if nothing matches — biased toward capability.</p>
         </div>
-        <div class="tabpane" id="svc-image">
-          <p>Today: 5 backends — <code>local-comfy</code>, <code>local-a1111</code>, <code>cloud-openrouter</code>, <code>cloud-openai</code>, <code>cloud-gemini</code>. Trim plan: keep only <code>local-comfy</code>. The dispatcher in <code>imageBackend.ts</code> will collapse to one branch; <code>ImageJobStore</code>, <code>ComfyClient</code>, and the workflow override path stay intact.</p>
-        </div>
-        <div class="tabpane" id="svc-bridge">
-          <p><code>BridgeClient</code> wraps the WS as a typed RPC: <code>request(op, data, onEvent?)</code> with optional streaming-event callback for things like terminal output. Disconnected calls reject with <code>BridgeOfflineError</code>; tools translate to friendly user messages. Attachments upload via multipart to <code>/upload</code> and the chat references them as workspace paths.</p>
-        </div>
-        <div class="tabpane" id="svc-diag">
-          <p><code>chatLog.ts</code> emits per-thread events (<code>turn.start</code>, <code>tool_call</code>, <code>tool_result</code>, <code>turn.end</code>). Routed through the bridge to <code>workspace/logs/&lt;threadId&gt;.log</code> when online; queues locally when offline.</p>
-        </div>
+      </div>
+
+      <h3 style="margin-top: 22px">Common Extension Recipes</h3>
+      <div class="recipe-grid" style="margin-top: 12px">
+        <div class="recipe"><div class="num">1</div><h3>Add a tool</h3><p>Create <code>src/services/tools/name.ts</code>, export a <code>Tool</code>, use only <code>ToolContext</code> facades, add one <code>toolRegistry.register()</code> line, then test through <code>tests/services/tools*</code> or a focused store test.</p></div>
+        <div class="recipe"><div class="num">2</div><h3>Add local runtime state</h3><p>Keep process work in Tauri/service wrappers, expose only a small store facade, persist under the runtime storage helper, and avoid mirroring URLs into unrelated stores.</p></div>
+        <div class="recipe"><div class="num">3</div><h3>Add a chat feature</h3><p>Start in <code>ChatStore</code> only if the feature changes turn orchestration. Otherwise add a service helper, store state, then render it through observer components.</p></div>
+        <div class="recipe"><div class="num">4</div><h3>Add persisted prefs</h3><p>Define a tiny storage helper, normalize unknown values on load, use a store autorun to save, and add migration behavior for old values rather than trusting localStorage.</p></div>
+        <div class="recipe"><div class="num">5</div><h3>Add provider behavior</h3><p>Implement the <code>LlmProvider</code> streaming contract, translate vendor chunks into <code>text</code>, <code>tool_call</code>, and <code>done</code>, and keep provider-specific quirks out of <code>ChatStore</code>.</p></div>
+        <div class="recipe"><div class="num">6</div><h3>Add image behavior</h3><p>Preserve the queue/artifact contract: image work should enqueue jobs, persist final files into <code>/workspace/artifacts</code>, and let <code>ImageJobCard</code> observe progress by job id.</p></div>
       </div>
     </section>
 
-    <section id="tools">
-      <h2>Tool registry</h2>
-      <p>The list below is the catalog the trim plan keeps in scope. Click a row to expand notes.</p>
-      <table>
-        <tr><th>tool</th><th>category</th><th>mode</th><th>backed by</th></tr>
-        <tr><td><code>memory</code></td><td>profile</td><td><span class="pill write">write</span></td><td><code>UserProfileStore</code></td></tr>
-        <tr><td><code>thread</code></td><td>chat</td><td><span class="pill write">write</span></td><td><code>ChatStore</code></td></tr>
-        <tr><td><code>notes</code></td><td>profile</td><td><span class="pill write">write</span></td><td><code>NotesStore</code></td></tr>
-        <tr><td><code>time</code></td><td>util</td><td><span class="pill ro">read</span></td><td>—</td></tr>
-        <tr><td><code>workspace</code></td><td>fs</td><td><span class="pill ro">read</span></td><td>bridge</td></tr>
-        <tr><td><code>fs</code></td><td>fs</td><td><span class="pill write">write</span></td><td>bridge</td></tr>
-        <tr><td><code>inspect_file</code></td><td>fs</td><td><span class="pill ro">read</span></td><td>bridge</td></tr>
-        <tr><td><code>terminal</code></td><td>exec</td><td><span class="pill danger">exec</span></td><td>bridge + allowlist</td></tr>
-        <tr><td><code>python_inline</code></td><td>exec</td><td><span class="pill danger">exec</span></td><td>bridge</td></tr>
-        <tr><td><code>sqlite_query</code> / <code>query_script</code></td><td>data</td><td><span class="pill write">write</span></td><td>bridge</td></tr>
-        <tr><td><code>git</code></td><td>vcs</td><td><span class="pill write">write</span></td><td>bridge</td></tr>
-        <tr><td><code>artifact</code></td><td>render</td><td><span class="pill write">write</span></td><td><code>ArtifactStore</code></td></tr>
-        <tr><td><code>image_generate</code></td><td>media</td><td><span class="pill write">write</span></td><td><code>ImageJobStore</code> → ComfyUI</td></tr>
-        <tr><td><code>describe_image</code></td><td>media</td><td><span class="pill ro">read</span></td><td>vision model (Ollama or fallback)</td></tr>
-      </table>
-      <div class="warn">After the trim, <code>describe_image</code> is the only path that needs an external vision model. If only OpenRouter+Ollama remain, ensure the user has a vision-capable Ollama model or an OpenRouter vision model selected.</div>
+    <section id="files" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>File Atlas</h2>
+          <p>Filter by area when you are hunting for the right entry point. These are the files that best explain their subsystem.</p>
+        </div>
+      </div>
+      <div class="filters" id="fileFilters">
+        <button class="active" data-filter="all">All</button>
+        <button data-filter="ui">UI</button>
+        <button data-filter="state">State</button>
+        <button data-filter="llm">LLM</button>
+        <button data-filter="tools">Tools</button>
+        <button data-filter="image">Image</button>
+        <button data-filter="native">Native</button>
+        <button data-filter="tests">Tests</button>
+      </div>
+      <div class="file-grid" id="fileGrid">
+        <div class="file-card" data-tags="ui state"><strong><code>src/app/App.tsx</code></strong><span>Top-level shell, theme variables, sidebar, and chat/menu switch.</span></div>
+        <div class="file-card" data-tags="state"><strong><code>src/stores/RootStore.ts</code></strong><span>The store dependency graph and cross-store wiring.</span></div>
+        <div class="file-card" data-tags="state llm tools image"><strong><code>src/stores/ChatStore.ts</code></strong><span>The main orchestration file: send, stream, tools, image-model bypass, persistence.</span></div>
+        <div class="file-card" data-tags="ui"><strong><code>src/components/editorial/EditorialChat.tsx</code></strong><span>Primary chat rendering surface.</span></div>
+        <div class="file-card" data-tags="ui"><strong><code>src/components/editorial/EditorialComposer.tsx</code></strong><span>User input, attachments, send behavior.</span></div>
+        <div class="file-card" data-tags="ui"><strong><code>src/components/editorial/EditorialMessage.tsx</code></strong><span>Assistant/user message rendering, tool results, image job cards.</span></div>
+        <div class="file-card" data-tags="ui"><strong><code>src/components/menu/GatesMenu.tsx</code></strong><span>Settings menu shell and section routing.</span></div>
+        <div class="file-card" data-tags="llm"><strong><code>src/core/llm.ts</code></strong><span>Provider-agnostic messages, chunks, tools, requests, and ProviderId union.</span></div>
+        <div class="file-card" data-tags="llm"><strong><code>src/core/models.ts</code></strong><span>Curated OpenRouter entries, local image models, and default model id.</span></div>
+        <div class="file-card" data-tags="llm"><strong><code>src/services/llm/router.ts</code></strong><span>Provider construction and model-to-provider resolution.</span></div>
+        <div class="file-card" data-tags="llm"><strong><code>src/services/llm/openrouter.ts</code></strong><span>OpenRouter streaming implementation.</span></div>
+        <div class="file-card" data-tags="llm"><strong><code>src/services/llm/ollama.ts</code></strong><span>Ollama streaming implementation and default base URL.</span></div>
+        <div class="file-card" data-tags="tools"><strong><code>src/services/tools/registry.ts</code></strong><span>Tool list, tool selection, execution wrapper, read-only detection.</span></div>
+        <div class="file-card" data-tags="tools native"><strong><code>src/services/bridge/client.ts</code></strong><span>WebSocket RPC client for bridge operations.</span></div>
+        <div class="file-card" data-tags="image"><strong><code>src/stores/ImageJobStore.ts</code></strong><span>Queue, active render, Comfy progress, artifact writes, history.</span></div>
+        <div class="file-card" data-tags="image"><strong><code>src/services/image/imageBackend.ts</code></strong><span>Single backend dispatcher for local ComfyUI.</span></div>
+        <div class="file-card" data-tags="image"><strong><code>src/services/image/comfyClient.ts</code></strong><span>ComfyUI API adapter.</span></div>
+        <div class="file-card" data-tags="native"><strong><code>src-tauri/src/lib.rs</code></strong><span>Tauri builder, bridge sidecar, native commands, shutdown cleanup.</span></div>
+        <div class="file-card" data-tags="native image llm"><strong><code>src-tauri/src/local_runtime.rs</code></strong><span>Ollama and ComfyUI process management.</span></div>
+        <div class="file-card" data-tags="tests"><strong><code>tests/stores/ChatStore.test.ts</code></strong><span>Executable documentation for chat behavior.</span></div>
+        <div class="file-card" data-tags="tests tools"><strong><code>tests/stores/toolLoop.test.ts</code></strong><span>Tool loop expectations.</span></div>
+        <div class="file-card" data-tags="tests image"><strong><code>tests/stores/ImageJobStore.test.ts</code></strong><span>Image queue and runner behavior.</span></div>
+      </div>
     </section>
 
-    <section id="chatflow">
-      <h2>Chat turn flow</h2>
-      <p>What happens when the user hits send. The loop is the heart of <code>ChatStore.runTurn()</code>.</p>
-
-      <div class="diagram">
-        <pre class="mermaid">
-sequenceDiagram
-  autonumber
-  participant U as User
-  participant C as Composer
-  participant CS as ChatStore
-  participant R as LlmRouter
-  participant P as Provider
-  participant T as ToolRegistry
-  participant B as Bridge
-  U-&gt;&gt;C: types message
-  C-&gt;&gt;CS: sendMessage(text, attachments)
-  CS-&gt;&gt;CS: append UserMessage, new AbortController
-  loop until no tool_calls (or MAX rounds)
-    CS-&gt;&gt;R: resolve(modelId)
-    R--&gt;&gt;CS: { provider, providerModelId }
-    CS-&gt;&gt;CS: composeSystemPrompt + flattenForWire
-    CS-&gt;&gt;P: stream(request, signal)
-    P--&gt;&gt;CS: text chunks → StreamingTextBuffer
-    P--&gt;&gt;CS: tool_call (buffered)
-    alt has tool_calls
-      CS-&gt;&gt;T: execute each (parallel)
-      T-&gt;&gt;B: fs / terminal / git / …
-      B--&gt;&gt;T: result
-      T--&gt;&gt;CS: toolResults[]
-    else no tool_calls
-      CS-&gt;&gt;CS: final reply, break
-    end
-  end
-  CS-&gt;&gt;CS: autorun → saveSnapshot()
-        </pre>
+    <section id="persistence" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Persistence</h2>
+          <p>Most persisted state lives in localStorage and is written from store autoruns. Bridge-backed artifacts and generated image files live in the workspace.</p>
+        </div>
       </div>
-
-      <h3>Step by step</h3>
-      <div class="flow">
-        <ol>
-          <li><b>Send.</b> <code>EditorialComposer</code> calls <code>chat.sendMessage(text, attachments)</code>. A <code>UserMessage</code> is appended; an <code>AbortController</code> is keyed by thread id so users can cancel without affecting other threads.</li>
-          <li><b>Resolve provider.</b> <code>router.resolve(modelId)</code> returns <code>{ provider, providerModelId }</code> or throws <code>NoProviderConfiguredError</code> (UI shows the "add an API key" banner).</li>
-          <li><b>Compose context.</b> <code>profile.composeSystemPrompt({ runtimeContext, threadContext, recentSummaries })</code>; messages flatten to wire format and image attachments resolve to base64 via the bridge.</li>
-          <li><b>Pick tools.</b> <code>toolRegistry.toolDefsForTurn({ userText, bridgeOnline, imageGenAvailable })</code> returns the JSON-Schema set the model gets to see this round.</li>
-          <li><b>Stream.</b> <code>StreamingTextBuffer</code> batches text chunks (~48 chars or 16ms) before mutating <code>message.content</code> — keeps React from re-rendering per character.</li>
-          <li><b>Collect tool calls.</b> When the stream ends with <code>tool_call</code> chunks, they're stored on the assistant message; tools execute in parallel via <code>Promise.all</code>; results land on the same message as <code>toolResults[]</code>.</li>
-          <li><b>Loop.</b> Same assistant message gets another round with the new tool results in scope, until the model produces a final reply.</li>
-          <li><b>Persist.</b> Mutation triggers the autorun in <code>ChatStore</code>; <code>saveSnapshot()</code> writes <code>gatesai.state.v1</code>; on quota error the emergency compactor kicks in.</li>
-        </ol>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Key</th><th>Owner</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>gatesai.state.v1</code></td><td>ChatStore</td><td>Threads, messages, active thread. Migrates old tool messages and unsupported model ids.</td></tr>
+            <tr><td><code>gatesai.providers.v1</code></td><td>ProviderStore</td><td>Provider configs and API keys. Saved separately from chat data.</td></tr>
+            <tr><td><code>gatesai.routing.v1</code></td><td>ProviderStore</td><td>Legacy direct/openrouter setting retained as no-op compatibility.</td></tr>
+            <tr><td><code>gatesai.profile.v1</code></td><td>UserProfileStore</td><td>User facts and profile prompt data.</td></tr>
+            <tr><td><code>gatesai.notes.v1</code></td><td>NotesStore</td><td>Durable note list.</td></tr>
+            <tr><td><code>gatesai.uiprefs.v1</code></td><td>UiStore</td><td>Markdown, code, density, reading width, and body font size preferences.</td></tr>
+            <tr><td><code>gatesai.openrouter.catalog.v1</code></td><td>OpenRouterStore</td><td>Cached OpenRouter model catalog.</td></tr>
+            <tr><td><code>gatesai.ollama.v1</code></td><td>OllamaStore</td><td>Ollama config and cached catalog.</td></tr>
+            <tr><td><code>gatesai.local.v1</code></td><td>LocalRuntimeStore</td><td>Ollama/ComfyUI install paths, managed flags, base URLs, selected vision model.</td></tr>
+            <tr><td><code>gatesai.imagegen.v1</code></td><td>ImageGenStore</td><td>ComfyUI backend settings and workflow override path.</td></tr>
+            <tr><td><code>gatesai.imagejobs.v1</code></td><td>ImageJobStore</td><td>Completed, failed, and cancelled image job history, capped at 200.</td></tr>
+          </tbody>
+        </table>
       </div>
+      <div class="callout ok" style="margin-top: 12px;">Important migration behavior: old saved threads whose <code>modelId</code> no longer exists are coerced to <code>DEFAULT_MODEL_ID</code>, currently <code>or-gpt-5.4-mini</code>.</div>
+    </section>
 
-      <details>
-        <summary>Why one assistant message per turn (not many)?</summary>
-        <p>Multi-round tool loops used to produce N assistant messages plus M <code>role: 'tool'</code> messages. Persistence migration collapses those into a single assistant message that owns its <code>toolCalls</code> and <code>toolResults</code> arrays. Renderer + wire-format conversion treat that as the source of truth.</p>
+    <section id="tests" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Tests And Verification</h2>
+          <p>The project uses Vitest with jsdom. Live model tests are separated behind <code>vitest.live.config.ts</code>.</p>
+        </div>
+      </div>
+      <div class="grid cols-3">
+        <div class="card"><h3>Typecheck</h3><p><code>npm run typecheck</code> runs app and test TypeScript checks.</p></div>
+        <div class="card"><h3>Lint</h3><p><code>npm run lint</code> enforces source and test import/style rules.</p></div>
+        <div class="card"><h3>Unit tests</h3><p><code>npm run test</code> runs Vitest once. <code>npm run ci</code> runs typecheck, lint, then tests.</p></div>
+      </div>
+      <details style="margin-top: 12px" open>
+        <summary>Where to look for behavioral examples</summary>
+        <p><code>tests/stores/ChatStore.test.ts</code> explains send/stream behavior; <code>tests/stores/toolLoop.test.ts</code> explains tool rounds; <code>tests/services/llmRouter.test.ts</code> explains routing; <code>tests/stores/ImageJobStore.test.ts</code> explains the image queue.</p>
       </details>
     </section>
 
-    <section id="imageflow">
-      <h2>Image generation</h2>
-      <p>Two entry paths converge on <code>ImageJobStore</code>:</p>
-      <div class="diagram">
-        <pre class="mermaid">
-flowchart LR
-  A["Direct image model<br/>(model picker)"] --&gt; J
-  B["Chat model calls<br/>image_generate tool"] --&gt; J
-  J["ImageJobStore.enqueue()"] --&gt; D{"Backend"}
-  D --&gt;|local-comfy| C["ComfyClient<br/>queue + poll /history"]
-  D -.x|cloud-* / a1111| X["being removed by trim"]
-  C --&gt; F[("ComfyUI/output/gatesai/")]
-  J --&gt; UI["EditorialMessage → ImageJobCard"]
-        </pre>
-        <div class="caption">After the trim there is exactly one branch: <code>local-comfy</code>.</div>
-      </div>
-      <p>Three direct-image modes ship today: <b>Draft</b> (SDXL Lightning, 4-step), <b>Normal</b> (FLUX.2 Klein), <b>Upscale</b> (FLUX.2 Klein 2x hires-fix). They appear in the model picker and short-circuit the LLM round-trip — your prompt is the prompt.</p>
-    </section>
-
-    <section id="routing">
-      <h2>Provider routing</h2>
-      <p>Today the router juggles direct keys for Anthropic / OpenAI / Gemini / Groq plus OpenRouter and Ollama. The trim plan flattens this:</p>
-      <div class="diagram">
-        <pre class="mermaid">
-flowchart TD
-  M["modelId"] --&gt; R{"router.resolve()"}
-  R --&gt;|catalog: openrouter:*| OR["OpenRouter provider"]
-  R --&gt;|catalog: ollama:*| OL["Ollama provider"]
-  R --&gt;|catalog: image-* / direct| LI["local-image (synthetic)<br/>→ ImageJobStore"]
-  R -. removed .-&gt; X1["anthropic / openai / gemini / groq direct<br/>local OpenAI-compat"]
-  OR --&gt; HTTP1["openrouter.ai/api"]
-  OL --&gt; HTTP2["http://127.0.0.1:11434"]
-  LI --&gt; CFY["ComfyUI :8188"]
-        </pre>
-      </div>
-      <p>UI surfaces (<code>menu/sections/api/RoutingCard.tsx</code>) lose their meaning when there is exactly one cloud provider and one local provider. The trim plan calls for collapsing or deleting that card.</p>
-    </section>
-
-    <section id="persistence">
-      <h2>Persistence map</h2>
-      <table>
-        <tr><th>localStorage key</th><th>owner</th><th>shape</th></tr>
-        <tr><td><code>gatesai.state.v1</code></td><td>ChatStore</td><td>threads, messages, activeThreadId; emergency-compactable</td></tr>
-        <tr><td><code>gatesai.providers.v1</code></td><td>ProviderStore</td><td>per-provider <code>{ apiKey, ... }</code> (excluded from any export)</td></tr>
-        <tr><td><code>gatesai.profile.v1</code></td><td>UserProfileStore</td><td>user facts / memory</td></tr>
-        <tr><td><code>gatesai.ui.v1</code></td><td>UiStore</td><td>theme, fonts, markdown style</td></tr>
-        <tr><td><code>gatesai.notes.v1</code></td><td>NotesStore</td><td>notes with tags</td></tr>
-        <tr><td><code>gatesai.imageGen.v1</code></td><td>ImageGenStore</td><td>backend id, per-backend config, enhancement mode</td></tr>
-        <tr><td><code>gatesai.imageJobs.v1</code></td><td>ImageJobStore</td><td>job queue + completed history</td></tr>
-        <tr><td><code>gatesai.ollama.config</code></td><td>OllamaStore</td><td>base URL, optional API key</td></tr>
-        <tr><td><code>gatesai.openrouter.catalog</code></td><td>OpenRouterStore</td><td>cached model list</td></tr>
-      </table>
-      <div class="note">Migration matters during the trim. Old saved values for removed providers/backends must normalize to a supported default (e.g. unknown image backend → <code>local-comfy</code>; unknown model id on a thread → <code>DEFAULT_MODEL_ID</code>) so existing user data still loads.</div>
-    </section>
-
-    <section id="trim">
-      <h2>The trim plan — what's keep / drop</h2>
-      <p>Side-by-side view of the foundation the other agent is shaping. Keep is what stays manually testable; drop is removed (not hidden) so the surface stays honest.</p>
-      <div class="trim">
-        <div class="col keep">
-          <h4 style="color: var(--good);">Keep ✓</h4>
-          <ul>
-            <li><b>Chat providers:</b> OpenRouter, Ollama</li>
-            <li><b>Local images:</b> ComfyUI (Draft / Normal / Upscale)</li>
-            <li><b>Direct-image models</b> in the model picker</li>
-            <li><b>Assistant context:</b> custom system prompt, memory, notes, thread mgmt, summaries</li>
-            <li><b>Workspace tools:</b> workspace, fs, inspect_file, terminal, python_inline, sqlite_query, query_script, git, artifacts</li>
-            <li><b>Surfaces:</b> threads, model picker, OpenRouter API key, Local (Ollama/Comfy), Workspace, Gallery, Appearance</li>
-          </ul>
-        </div>
-        <div class="col drop">
-          <h4 style="color: var(--bad);">Drop ✗</h4>
-          <ul>
-            <li><b>Direct cloud LLM SDKs:</b> Anthropic / OpenAI / Gemini / Groq direct adapters</li>
-            <li><b>Local OpenAI-compatible</b> chat backend</li>
-            <li><b>Cloud image backends:</b> CloudImageCard, openAi/openRouter/gemini image clients + tests</li>
-            <li><b>A1111</b> backend + progress adapter + UI</li>
-            <li><b>Prompt-enhancement</b> controls (unless wired this pass — recommend remove)</li>
-            <li>Agent menu's fake/non-persisted Model defaults, Voice &amp; tone, planned-tool rows</li>
-            <li><b>RoutingCard</b> (collapse to nothing useful with one cloud provider)</li>
-            <li>Stale plan/spec language about cloud images / fal / A1111</li>
-          </ul>
+    <section id="playbook" data-search-section>
+      <div class="section-head">
+        <div>
+          <h2>Developer Read Order</h2>
+          <p>Follow this path when onboarding. It keeps the big picture in your head while introducing details only when they become useful.</p>
         </div>
       </div>
-      <h3>Files the trim is creating or modifying</h3>
-      <p>From the working tree at the start of this session:</p>
-      <ul>
-        <li><b>Modifying:</b> <code>src/core/models.ts</code>, <code>src/services/llm/router.ts</code>, <code>src/services/image/imageBackend.ts</code>, <code>src/services/image/types.ts</code>, <code>src/services/imageGenStorage.ts</code>, <code>src/services/providerStorage.ts</code>, <code>src/services/tools/imageGenerate.ts</code>, <code>src/stores/{ImageGenStore,ImageJobStore,ProviderStore,RootStore}.ts</code>, plus matching tests and the <code>menu/sections/api/*</code> + <code>menu/sections/{Profile,Usage,Workspace}.tsx</code>.</li>
-        <li><b>New (untracked):</b> <code>docs/plans/2026-04-27-coming-soon-wiring-design.md</code>, <code>src/components/menu/sections/api/CloudImageCard.tsx</code>, <code>src/services/image/{geminiImageClient,openAiImageClient,openRouterImageClient}.ts</code> and their tests — these are part of the in-flight work and several of them are explicit removal targets.</li>
-      </ul>
-    </section>
-
-    <section id="risks">
-      <h2>Risks to watch during the trim</h2>
-      <div class="grid c2">
-        <div class="card"><h4>Saved threads with removed model ids</h4><p>Older threads carry <code>modelId</code> values pointing at direct-provider entries. The migration must fall back to <code>DEFAULT_MODEL_ID</code> so the renderer/composer don't blow up.</p></div>
-        <div class="card"><h4>Image backend value churn</h4><p><code>imageGenStorage</code> needs to coerce <code>cloud-*</code> and <code>local-a1111</code> to <code>local-comfy</code> on load. Any unhandled value will break the Local menu badge.</p></div>
-        <div class="card"><h4>Vision / describe_image</h4><p>With direct OpenAI/Anthropic gone, vision relies on Ollama or OpenRouter. The fallback chain in <code>describe_image</code> needs review so it doesn't crash when neither is configured.</p></div>
-        <div class="card"><h4>Tests of trimmed surface</h4><p><code>tests/services/{llmRouter,modelCatalog,router}.test.ts</code> and <code>tests/components/menu/GatesMenu.test.ts</code> will all need updates; they're already shown as modified — good signal.</p></div>
-        <div class="card"><h4>Bridge contract is in scope</h4><p>The trim does not touch the bridge protocol or the workspace tool stack. Don't accidentally edit shared types in <code>src/services/bridge/*</code>.</p></div>
-        <div class="card"><h4>Doc drift</h4><p><code>docs/tech_spec.md</code> and <code>docs/roadmap.md</code> still describe the larger surface. Mark removed pieces historical, not current.</p></div>
+      <div class="timeline">
+        <div class="step"><div><b><code>src/app/App.tsx</code></b><p>See the shell, theme variables, sidebar, and chat/menu route split.</p></div></div>
+        <div class="step"><div><b><code>src/stores/RootStore.ts</code></b><p>Read the actual dependency graph and lazy cross-store providers.</p></div></div>
+        <div class="step"><div><b><code>src/stores/ChatStore.ts</code></b><p>Trace <code>sendMessage</code>, <code>runTurn</code>, direct image handling, and persistence.</p></div></div>
+        <div class="step"><div><b><code>src/services/llm/router.ts</code></b><p>Understand how model ids become provider calls.</p></div></div>
+        <div class="step"><div><b><code>src/services/llm/openrouter.ts</code> and <code>ollama.ts</code></b><p>Compare the streaming provider implementations against the shared contract in <code>core/llm.ts</code>.</p></div></div>
+        <div class="step"><div><b><code>src/services/tools/registry.ts</code></b><p>See what capabilities the model is allowed to call and when.</p></div></div>
+        <div class="step"><div><b><code>src/services/bridge/client.ts</code></b><p>Learn the RPC boundary used by filesystem, terminal, git, and artifacts.</p></div></div>
+        <div class="step"><div><b><code>src/components/editorial/*.tsx</code></b><p>Return to the UI and connect observable state to what the user sees.</p></div></div>
+        <div class="step"><div><b><code>src/stores/ImageJobStore.ts</code></b><p>Finish with image generation, because it crosses stores, services, bridge, ComfyUI, and Gallery.</p></div></div>
       </div>
     </section>
 
-    <section id="playbook">
-      <h2>Onboarding playbook (read in this order)</h2>
-      <ol>
-        <li><code>src/app/App.tsx</code> — see how RootStore mounts and the menu/chat split works.</li>
-        <li><code>src/stores/RootStore.ts</code> — the wiring diagram in code form. Note the lazy provider injections.</li>
-        <li><code>src/stores/ChatStore.ts</code> — read <code>sendMessage</code> and <code>runTurn</code>; everything else is supporting cast.</li>
-        <li><code>src/services/llm/router.ts</code> — small file, makes the routing rules concrete.</li>
-        <li><code>src/services/llm/openrouter.ts</code> + <code>ollama.ts</code> — pick one provider impl to grok the streaming contract.</li>
-        <li><code>src/services/tools/registry.ts</code> + one tool (e.g. <code>fs.ts</code>, <code>terminal.ts</code>) — see the <code>def</code>/<code>execute</code> shape.</li>
-        <li><code>src/services/bridge/client.ts</code> — RPC wrapper over the WS.</li>
-        <li><code>src/components/editorial/EditorialChat.tsx</code> + <code>EditorialMessage.tsx</code> — render side; they're MobX observers reading store state.</li>
-        <li><code>src/services/image/imageBackend.ts</code> + <code>src/stores/ImageJobStore.ts</code> — the image path top-to-bottom.</li>
-        <li><code>tests/stores/ChatStore.test.ts</code> + <code>tests/stores/toolLoop.test.ts</code> — these double as executable docs for the loop.</li>
-      </ol>
-      <div class="note">Run order for verification (matches the trim plan): focused tests per layer (<code>npx vitest tests/services/llm</code> etc.) → full <code>npm run ci</code> → <code>npm run tauri:dev</code> for the manual smoke list (OpenRouter chat, Ollama chat, system prompt, memory, workspace tools, ComfyUI direct image, <code>image_generate</code>, Gallery/Lightbox).</div>
-    </section>
-
-    <p style="color: var(--mute); font-size: 12px; text-align: center; margin-top: 64px;">Generated <span id="ts"></span> · <a href="#overview">back to top</a></p>
+    <div class="footer">This tour is a standalone HTML app. It uses no external scripts, so it can be opened directly from <code>docs/architecture-tour.html</code>.</div>
   </main>
 </div>
 
 <script>
-  // mermaid
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: 'dark',
-    themeVariables: {
-      background: '#1b2027',
-      primaryColor: '#1b2230',
-      primaryTextColor: '#e6e9ee',
-      primaryBorderColor: '#7cc4ff',
-      lineColor: '#98a2b3',
-      secondaryColor: '#1f1a2b',
-      tertiaryColor: '#2a2118',
-      fontSize: '14px'
+  const nodeDetails = {
+    ui: {
+      title: 'UI surfaces',
+      detail: 'Read src/app/App.tsx first, then src/components/editorial for chat and src/components/menu for settings. Components should observe stores and render; they should not own provider or bridge logic.'
     },
-    flowchart: { curve: 'basis', htmlLabels: true },
-    sequence: { actorMargin: 50 }
-  });
+    stores: {
+      title: 'MobX stores',
+      detail: 'RootStore creates the graph. ChatStore is the behavioral center. ProviderStore, LocalRuntimeStore, ImageGenStore, and ImageJobStore connect chat to external systems.'
+    },
+    services: {
+      title: 'Services',
+      detail: 'Services perform IO and conversions: LLM streaming, bridge RPC, image backend dispatch, localStorage helpers, diagnostics, and tool implementations.'
+    },
+    external: {
+      title: 'External world',
+      detail: 'OpenRouter is cloud chat, Ollama is local chat and vision, ComfyUI is local image generation, and gatesai-bridge is the privileged workspace sidecar.'
+    },
+    chat: {
+      title: 'Chat screen',
+      detail: 'EditorialSidebar, EditorialChat, EditorialComposer, EditorialMessage, ModelPopover, ImageJobCard, Lightbox, and BridgeStatusPill form the user-facing chat surface.'
+    },
+    chatstore: {
+      title: 'ChatStore',
+      detail: 'sendMessage appends the user input and starts runTurn. runTurn resolves a provider, composes context, streams chunks, executes tool calls, loops, and lets autorun persist.'
+    },
+    router: {
+      title: 'LlmRouter',
+      detail: 'The current router builds OpenRouterProvider, OllamaProvider, and LocalImageProvider. If the selected model provider is not ready, it throws NoProviderConfiguredError.'
+    },
+    provider: {
+      title: 'Provider stream',
+      detail: 'Every provider implements stream(request, signal) as an AsyncIterable of text, tool_call, and done chunks. The store does not need provider-specific streaming code.'
+    }
+  };
 
-  // tabs
-  document.querySelectorAll('.tabs').forEach(group => {
-    group.addEventListener('click', e => {
-      const btn = e.target.closest('button[data-pane]');
-      if (!btn) return;
-      const pane = btn.dataset.pane;
-      group.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
-      const body = group.nextElementSibling;
-      body.querySelectorAll('.tabpane').forEach(p => p.classList.toggle('active', p.id === pane));
+  document.querySelectorAll('.node[data-node]').forEach((node) => {
+    node.addEventListener('click', () => {
+      document.querySelectorAll('.node[data-node]').forEach((n) => n.classList.remove('selected'));
+      node.classList.add('selected');
+      const info = nodeDetails[node.dataset.node];
+      if (!info) return;
+      document.getElementById('nodeTitle').innerHTML = '<h3>' + info.title + '</h3><p>' + info.detail + '</p>';
+      document.getElementById('nodeDetail').innerHTML = '<h3>Best next read</h3><p>' + nextReadFor(node.dataset.node) + '</p>';
     });
   });
 
-  // syntax highlight
-  if (window.hljs) hljs.highlightAll();
+  function nextReadFor(id) {
+    const map = {
+      ui: '<code>src/app/App.tsx</code>, then <code>src/components/editorial/EditorialChat.tsx</code>.',
+      stores: '<code>src/stores/RootStore.ts</code>, then <code>src/stores/ChatStore.ts</code>.',
+      services: '<code>src/services/llm/router.ts</code>, <code>src/services/tools/registry.ts</code>, and <code>src/services/bridge/client.ts</code>.',
+      external: '<code>src-tauri/src/lib.rs</code> and <code>src-tauri/src/local_runtime.rs</code>.',
+      chat: '<code>src/components/editorial/EditorialComposer.tsx</code> and <code>EditorialMessage.tsx</code>.',
+      chatstore: '<code>src/stores/ChatStore.ts</code>, especially <code>sendMessage</code> and <code>runTurn</code>.',
+      router: '<code>src/services/llm/router.ts</code> and <code>src/core/models.ts</code>.',
+      provider: '<code>src/services/llm/openrouter.ts</code> and <code>src/services/llm/ollama.ts</code>.'
+    };
+    return map[id] || 'Start with <code>src/stores/RootStore.ts</code>.';
+  }
 
-  // active section in side nav
-  const links = [...document.querySelectorAll('nav.side a')];
-  const sections = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
-  const obs = new IntersectionObserver(entries => {
-    entries.forEach(en => {
-      if (en.isIntersecting) {
-        links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + en.target.id));
-      }
+  document.querySelectorAll('[data-tabs]').forEach((group) => {
+    group.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-pane]');
+      if (!button) return;
+      const paneId = button.dataset.pane;
+      group.querySelectorAll('button').forEach((item) => item.classList.toggle('active', item === button));
+      group.parentElement.querySelectorAll('.pane').forEach((pane) => pane.classList.toggle('active', pane.id === paneId));
+    });
+  });
+
+  const filterButtons = document.querySelectorAll('#fileFilters button');
+  const fileCards = document.querySelectorAll('#fileGrid .file-card');
+  filterButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const filter = button.dataset.filter;
+      filterButtons.forEach((item) => item.classList.toggle('active', item === button));
+      fileCards.forEach((card) => {
+        const show = filter === 'all' || card.dataset.tags.split(' ').includes(filter);
+        card.dataset.hidden = show ? 'false' : 'true';
+      });
+    });
+  });
+
+  const navLinks = [...document.querySelectorAll('.nav-link')];
+  const sections = navLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      navLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id));
     });
   }, { rootMargin: '-30% 0px -60% 0px' });
-  sections.forEach(s => obs.observe(s));
+  sections.forEach((section) => observer.observe(section));
 
-  document.getElementById('ts').textContent = new Date().toISOString().slice(0,10);
+  const search = document.getElementById('search');
+  const searchable = [...document.querySelectorAll('[data-search-section]')];
+  search.addEventListener('input', () => {
+    const q = search.value.trim().toLowerCase();
+    searchable.forEach((section) => {
+      if (!q) {
+        section.style.display = '';
+        return;
+      }
+      section.style.display = section.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
 </script>
 </body>
 </html>

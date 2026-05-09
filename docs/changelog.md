@@ -1,5 +1,69 @@
 # Changelog
 
+## 2026-05-09 — Settings menu UX trim
+
+- Consolidated Profile into Agent, so instructions, durable memory facts,
+  recent summaries, and capability status now live in one assistant-focused
+  menu.
+- Renamed API to Models for OpenRouter key and catalog management, removed
+  Profile/API/Usage from the top-level menu, and redirected legacy menu hashes
+  to their current homes.
+- Added an explicit Workspace open action and clarified Gallery empty/populated
+  states while keeping Settings as the shortcuts and danger-zone home.
+- Removed the `(OpenRouter)` suffix from curated cloud model names; the model
+  picker uses short capability subtitles instead of repeating the gateway name.
+- Hid the `image_generate` agent tool unless ComfyUI is enabled and healthy, so
+  image prompts do not route to a tool that cannot run.
+
+## 2026-05-09 — Foundation trim follow-up
+
+- Removed the unfinished HTML artifact tool/store/storage path and its README
+  prompt injection, keeping workspace artifacts as file outputs for images and
+  query scripts.
+- Collapsed dead theme/header/send variants to the current fixed foundation
+  choices and removed misleading Appearance copy about a non-existent Tweaks
+  panel.
+- Retired the Appearance menu tab; menu fallbacks now land on Settings, and
+  saved UI preferences normalize to Aside tool calls, Compact markdown,
+  Obsidian code blocks, compact density, and animations on.
+- Filtered embedding-only Ollama tags out of the chat model catalog.
+- Default unresolved persisted thread model ids back to Gemini 3 Flash and gate
+  chat sending on the active model's provider readiness, so configured
+  OpenRouter keys are honored and stale model ids do not leave the composer in
+  a "Select model" state.
+- Also fall back to Gemini 3 Flash in the live composer path and repair an
+  unresolved active model before sending, covering already-mounted sessions
+  whose thread model has gone stale.
+
+## 2026-05-09 — Model menu favorites
+
+- Added a top Favorites model-picker section for Gemini 3 Flash, DeepSeek V4
+  Flash, GPT-5.5, Claude Opus 4.7, Gemini 3.1 Pro, and Normal FLUX.2 Klein
+  local image generation.
+- Added relative cost labels (`$`, `$$`, `$$$`, `LOCAL`) to favorite rows and
+  grouped the remaining OpenRouter catalog by underlying provider.
+
+## 2026-05-08 — Foundation polish
+
+- Set normal chat to Gemini 3 Flash via OpenRouter and summary/title helpers
+  to Gemini 3.1 Flash Lite via OpenRouter.
+- Removed dead routing/default-provider and direct-provider fallback code.
+- Preserved dynamic OpenRouter/Ollama model ids during snapshot migration and
+  gated Ollama routeability on a live refresh rather than a cached catalog.
+- Trimmed stale UI metadata and removed retired OpenAI image helper code.
+- Marked older image-generation plans as superseded by the foundation trim.
+
+## 2026-05-08 — Foundation trim
+
+- Reduced the shippable foundation to OpenRouter cloud chat, Ollama local chat,
+  ComfyUI local image generation, memory/notes/thread context, and the existing
+  bridge workspace tools.
+- Removed unfinished cloud image-generation paths (OpenRouter/OpenAI/Gemini
+  image clients), A1111, prompt-enhancement controls, direct cloud-provider
+  API cards, routing/spend placeholders, and non-persisted Agent settings.
+- Added migration hygiene so old provider keys, retired image backends, and
+  saved direct-provider model ids normalize to the supported foundation.
+
 ## 2026-04-27 — Harden Linux AppImage tool downloads
 
 - **`.github/workflows/build-linux.yml`:** Prefetches Tauri AppImage helper tools into **`~/.cache/tauri`** with retry/backoff before bundling. This avoids failing a successful Rust/Tauri build when GitHub returns a transient **502** for **`AppRun-x86_64`**.

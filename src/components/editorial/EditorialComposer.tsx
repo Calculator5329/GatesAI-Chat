@@ -1,15 +1,14 @@
 import { useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
-import type { SendKey } from '../../core/types';
-import { useBridgeStore, useChatStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
+import { useBridgeStore, useChatStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
+import { DEFAULT_MODEL_ID } from '../../core/models';
 import { ModelPopover } from './ModelPopover';
 import { WorkspaceImage } from './WorkspaceImage';
 
 interface ComposerProps {
-  sendKey: SendKey;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
 }
 
@@ -36,61 +35,14 @@ function AttachButton({
   );
 }
 
-function renderSendButton(sendKey: SendKey): ReactNode {
-  switch (sendKey) {
-    case 'arrow':
-      return (
-        <div style={{
-          width: 28, height: 28, borderRadius: 7,
-          background: 'var(--accent)', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 16px var(--accent-glow)',
-        }}><Icons.ArrowUp /></div>
-      );
-    case 'ghost':
-      return (
-        <div style={{
-          width: 28, height: 28,
-          color: 'var(--accent)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}><Icons.ArrowUp /></div>
-      );
-    case 'circle':
-      return (
-        <div style={{
-          width: 30, height: 30, borderRadius: '50%',
-          background: 'var(--accent)', color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 20px var(--accent-glow)',
-        }}><Icons.ArrowUp /></div>
-      );
-    case 'enter':
-      return (
-        <div style={{
-          height: 26, padding: '0 10px', borderRadius: 6,
-          background: 'transparent',
-          border: '1px solid var(--border)',
-          color: 'var(--accent)',
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontFamily: '"Geist Mono", monospace', fontSize: 11,
-          letterSpacing: '0.06em',
-        }}>
-          <span style={{ color: 'var(--text-faint)' }}>Send</span>
-          <span style={{ fontSize: 13 }}>↵</span>
-        </div>
-      );
-    case 'quill':
-      return (
-        <div style={{
-          height: 26, padding: '0 12px',
-          color: 'var(--accent)',
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontFamily: '"Source Serif 4", Georgia, serif',
-          fontStyle: 'italic', fontSize: 15,
-          borderBottom: '1px solid var(--accent)',
-        }}>send</div>
-      );
-  }
+function SendButton(): ReactNode {
+  return (
+    <div style={{
+      width: 28, height: 28,
+      color: 'var(--accent)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}><Icons.ArrowUp /></div>
+  );
 }
 
 /** Square stop control shown in place of the send button while streaming
@@ -116,24 +68,28 @@ function StopButton(): ReactNode {
   );
 }
 
-export const EditorialComposer = observer(function EditorialComposer({ sendKey, textareaRef }: ComposerProps) {
+export const EditorialComposer = observer(function EditorialComposer({ textareaRef }: ComposerProps) {
   const chat = useChatStore();
   const ui = useUiStore();
   const bridge = useBridgeStore();
   const registry = useModelRegistry();
   const providers = useProviderStore();
+  const localRuntime = useLocalRuntimeStore();
   const [modelOpen, setModelOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeThread = chat.activeThread;
-  const currentModel = registry.findById(activeThread?.modelId);
+  const currentModel = registry.findById(activeThread?.modelId) ?? registry.findById(DEFAULT_MODEL_ID);
   const value = ui.draft;
   const streaming = chat.isStreaming;
   const hasText = value.trim().length > 0;
   const hasAttachments = ui.attachments.length > 0;
   const directImageMode = currentModel?.providerId === 'local-image';
-  const routeReady = providers.hasUsableProvider || directImageMode;
+  const directImageReady = directImageMode && localRuntime.comfyReady;
+  const routeReady = currentModel
+    ? (directImageMode ? directImageReady : providers.isConnected(currentModel.providerId))
+    : false;
   // Send is enabled whenever there's text or at least one attachment. While
   // streaming, sending interrupts the in-flight reply and starts a new turn.
   // Direct-image mode is offline and only needs text; attachments are ignored
@@ -192,7 +148,7 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
       onDrop={onDrop}
     >
       <div style={{ width: 'min(750px, 70%)', margin: '0 auto', paddingTop: 4 }}>
-        {!routeReady && <ApiKeyBanner />}
+        {!routeReady && (directImageMode ? <LocalImageBanner /> : <ApiKeyBanner />)}
         {hasAttachments && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             {ui.attachments.map(a => (
@@ -313,7 +269,7 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
           >
             {streaming && !hasText
               ? <StopButton />
-              : renderSendButton(sendKey)}
+              : <SendButton />}
           </div>
         </div>
         <div style={{
@@ -334,7 +290,7 @@ export const EditorialComposer = observer(function EditorialComposer({ sendKey, 
             </span>
             {modelOpen && activeThread && (
               <ModelPopover
-                currentModelId={activeThread.modelId}
+                currentModelId={currentModel?.id ?? DEFAULT_MODEL_ID}
                 onPick={(modelId) => chat.setThreadModel(activeThread.id, modelId)}
                 onClose={() => setModelOpen(false)}
               />
@@ -423,7 +379,7 @@ const ApiKeyBanner = observer(function ApiKeyBanner() {
     }}>
       <span>Add an API key to start chatting.</span>
       <button
-        onClick={() => router.goMenu('api')}
+        onClick={() => router.goMenu('models')}
         style={{
           padding: '4px 10px',
           border: '1px solid var(--border)',
@@ -436,6 +392,41 @@ const ApiKeyBanner = observer(function ApiKeyBanner() {
         }}
       >
         Open API settings
+      </button>
+    </div>
+  );
+});
+
+const LocalImageBanner = observer(function LocalImageBanner() {
+  const router = useRouterStore();
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 12,
+      padding: '8px 12px',
+      marginBottom: 8,
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      background: 'var(--panel)',
+      color: 'var(--text-dim)',
+      fontSize: 13,
+      fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+    }}>
+      <span>Start and connect ComfyUI to use local image generation.</span>
+      <button
+        onClick={() => router.goMenu('local')}
+        style={{
+          padding: '4px 10px',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          background: 'transparent',
+          color: 'var(--accent)',
+          cursor: 'pointer',
+          fontSize: 12,
+          fontFamily: 'inherit',
+        }}
+      >
+        Open Local settings
       </button>
     </div>
   );

@@ -26,6 +26,7 @@ export function buildProviders(configs: ProviderConfigs): Record<ProviderId, Llm
     ollama:     new OllamaProvider({
       baseUrl: configs.ollama?.baseUrl ?? DEFAULT_OLLAMA_BASE_URL,
       apiKey: configs.ollama?.apiKey,
+      available: configs.ollama?.available,
       toolsEnabled: configs.ollama?.toolsEnabled !== false,
     }),
     'local-image': new LocalImageProvider(),
@@ -51,11 +52,6 @@ export class LlmRouter {
     this.providers = buildProviders(configs);
   }
 
-  setDefaultProvider(_value: 'direct' | 'openrouter'): void {
-    // Kept as a no-op so old store wiring and persisted routing settings do
-    // not matter in the simplified OpenRouter-first foundation.
-  }
-
   /**
    * Whether any provider is configured by the user. OpenRouter counts when it
    * has an API key; Ollama counts only after a catalog refresh proves at least
@@ -66,10 +62,7 @@ export class LlmRouter {
   canRoute(): boolean {
     for (const [id, provider] of Object.entries(this.providers)) {
       if (id === 'ollama') {
-        // Ollama is "configured" only when at least one model is in the
-        // registry — which proves the user has reached the server and
-        // refreshed the catalog. Just having a default baseUrl isn't enough.
-        if (this.registry.all.some(m => m.providerId === 'ollama')) return true;
+        if (provider.ready() && this.registry.all.some(m => m.providerId === 'ollama')) return true;
         continue;
       }
       if (provider.ready()) return true;
@@ -96,12 +89,5 @@ export class LlmRouter {
 
   get(providerId: ProviderId): LlmProvider {
     return this.providers[providerId];
-  }
-
-  /**
-   * Direct-provider fallback is retired in the foundation build.
-   */
-  resolveOpenRouterFallback(_modelId: string): { provider: LlmProvider; providerModelId: string } | null {
-    return null;
   }
 }

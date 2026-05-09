@@ -67,6 +67,21 @@ describe('LocalRuntimeStore', () => {
     expect(store.runtimes.ollama.status).toBe('stopped');
   });
 
+  it('only treats ComfyUI as ready when it is managed and online', async () => {
+    const store = new LocalRuntimeStore({
+      autoDetect: async () => ({}),
+      service: fakeService({
+        getRuntimeStatus: vi.fn(async () => ({ running: true, status: 'online' as const, logs: [] })),
+      }),
+    });
+
+    expect(store.comfyReady).toBe(false);
+    await store.refreshStatus('comfyui');
+    expect(store.comfyReady).toBe(true);
+    store.setManaged('comfyui', false);
+    expect(store.comfyReady).toBe(false);
+  });
+
   it('records autoDetectAt on a successful auto-detect run', async () => {
     const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService() });
     expect(store.autoDetectAt).toBeUndefined();

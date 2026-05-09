@@ -18,6 +18,7 @@ export class OllamaStore {
   config: { apiKey: string | undefined; toolsEnabled: boolean };
   catalog: Model[] = [];
   lastRefreshAt: number | null = null;
+  online = false;
   fetching = false;
   lastError: string | undefined;
 
@@ -82,6 +83,7 @@ export class OllamaStore {
       runInAction(() => {
         this.catalog = models;
         this.lastRefreshAt = Date.now();
+        this.online = true;
         this.fetching = false;
         this.registry.setDynamicForProvider('ollama', models);
       });
@@ -89,6 +91,7 @@ export class OllamaStore {
       if (ctrl.signal.aborted) return;
       runInAction(() => {
         this.lastError = err instanceof Error ? err.message : String(err);
+        this.online = false;
         this.fetching = false;
       });
     } finally {
@@ -100,6 +103,7 @@ export class OllamaStore {
     if (this.inflight) { this.inflight.abort(); this.inflight = null; }
     this.catalog = [];
     this.lastRefreshAt = null;
+    this.online = false;
     this.lastError = undefined;
     this.fetching = false;
     this.registry.clearDynamicForProvider('ollama');

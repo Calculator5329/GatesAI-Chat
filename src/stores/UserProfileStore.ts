@@ -116,8 +116,7 @@ export class UserProfileStore {
    *   3. Behavior — the global system prompt ("how you should respond")
    *   4. About the user — the persistent bio
    *   5. Recent conversations — short summaries of other threads (cross-chat awareness)
-   *   6. Artifact instructions — README files generated under /workspace/artifacts
-   *   7. About this conversation — the thread-scoped context (if any)
+   *   6. About this conversation — the thread-scoped context (if any)
    *
    * User-authored sections are omitted when empty. The base harness is always
    * present so models understand the local bridge contract before using tools.
@@ -127,13 +126,12 @@ export class UserProfileStore {
    * a curation tool available — keeps memory growing naturally without
    * the user having to ask "remember this" every time.
    */
-  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; artifactInstructions?: string }): string | undefined {
+  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[] }): string | undefined {
     const head = this.defaultSystemPrompt.trim();
     const bio = this.bio.trim();
     const runtime = (opts?.runtimeContext ?? '').trim();
     const ctx = (opts?.threadContext ?? '').trim();
     const recent = (opts?.recentSummaries ?? []).map(s => s.trim()).filter(Boolean);
-    const artifacts = (opts?.artifactInstructions ?? '').trim();
 
     const parts: string[] = [BRIDGE_HARNESS_PROMPT];
     if (runtime) parts.push(`Runtime context:\n${runtime}`);
@@ -142,7 +140,6 @@ export class UserProfileStore {
     if (recent.length) {
       parts.push(`Recent conversations:\n${recent.map(s => `· ${s}`).join('\n')}`);
     }
-    if (artifacts) parts.push(`Artifact instructions:\n${artifacts}`);
     if (ctx) parts.push(`About this conversation:\n${ctx}`);
 
     // Soft nudge for proactive memory use — only when memory is actually wired

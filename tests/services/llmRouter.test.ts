@@ -52,7 +52,7 @@ describe('LlmRouter', () => {
       expect(router.canRoute()).toBe(true);
     });
 
-    it('returns true when the Ollama catalog has at least one model', () => {
+    it('does not treat a cached Ollama catalog as routeable until the runtime is online', () => {
       const r = reg();
       r.setDynamicForProvider('ollama', [{
         id: 'ollama-llama3',
@@ -63,6 +63,8 @@ describe('LlmRouter', () => {
         dynamic: true,
       }]);
       const router = new LlmRouter(r, {});
+      expect(router.canRoute()).toBe(false);
+      router.updateConfigs({ ollama: { baseUrl: 'http://127.0.0.1:11434', available: true } });
       expect(router.canRoute()).toBe(true);
     });
 
@@ -71,17 +73,6 @@ describe('LlmRouter', () => {
       expect(router.canRoute()).toBe(false);
       router.updateConfigs({ openrouter: { apiKey: 'sk-a' } });
       expect(router.canRoute()).toBe(true);
-    });
-  });
-
-  describe('resolveOpenRouterFallback', () => {
-    it('returns null because the foundation has no direct providers to fall back from', () => {
-      const r = reg();
-      const router = new LlmRouter(r, { openrouter: { apiKey: 'sk-or' } });
-      const orModel = r.all.find(m => m.providerId === 'openrouter')!;
-      const imageModel = r.all.find(m => m.providerId === 'local-image')!;
-      expect(router.resolveOpenRouterFallback(orModel.id)).toBeNull();
-      expect(router.resolveOpenRouterFallback(imageModel.id)).toBeNull();
     });
   });
 

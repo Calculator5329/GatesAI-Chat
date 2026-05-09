@@ -5,8 +5,8 @@ import type { LlmProvider, LlmRequest } from '../core/llm';
  *
  * Cascade (try each in order, fall through on missing key / failure):
  *
- *   1. or-gpt-5.4-mini
- *   2. or-gpt-5.4
+ *   1. or-gemini-3.1-flash-lite
+ *   2. or-gemini-3-flash
  *   3. <thread's own model>     ← guaranteed available since it just replied
  *
  * The user picked this order. The thread's own model is the last resort:
@@ -18,8 +18,8 @@ import type { LlmProvider, LlmRequest } from '../core/llm';
  */
 
 const NAMER_CASCADE: string[] = [
-  'or-gpt-5.4-mini',
-  'or-gpt-5.4',
+  'or-gemini-3.1-flash-lite',
+  'or-gemini-3-flash',
 ];
 
 const SYSTEM_PROMPT = [
