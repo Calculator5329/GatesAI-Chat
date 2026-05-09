@@ -222,7 +222,13 @@ function MarkdownBody({ content }: { content: string }) {
   return (
     <div className="md-body">
       {chunks.map((chunk, idx) => (
-        <MarkdownChunk key={idx} content={chunk} bridge={bridge} />
+        // Skip whitespace-only chunks (e.g. a leading "\n\n" from the
+        // splitter); ReactMarkdown produces nothing for them and they'd just
+        // burn a render. The chunks themselves still preserve the original
+        // string so the splitter's join() invariant holds elsewhere.
+        chunk.trim() === '' ? null : (
+          <MarkdownChunk key={idx} content={chunk} bridge={bridge} />
+        )
       ))}
     </div>
   );

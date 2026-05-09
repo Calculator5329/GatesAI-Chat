@@ -23,24 +23,22 @@ export const EditorialChat = observer(function EditorialChat() {
 
   // Watch scroll position. Anything within STICKY_BOTTOM_PX of bottom counts
   // as "at bottom" — covers small offsets from images loading or trailing
-  // whitespace. rAF throttling keeps us off the layout thrashing path.
+  // whitespace. We measure synchronously in the passive scroll listener so a
+  // user scrolling up during streaming wins the race against the next token's
+  // sync `scrollTop = scrollHeight` write — if we deferred to rAF, the
+  // streaming effect could land first and re-pin them to the bottom. The
+  // single read of layout properties here is cheap; passive listeners can't
+  // block scrolling anyway.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    let rafId = 0;
-    const measure = () => {
-      rafId = 0;
+    const onScroll = () => {
       const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
       stickyRef.current = distance <= STICKY_BOTTOM_PX;
-    };
-    const onScroll = () => {
-      if (rafId) return;
-      rafId = requestAnimationFrame(measure);
     };
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       el.removeEventListener('scroll', onScroll);
-      if (rafId) cancelAnimationFrame(rafId);
     };
   }, []);
 

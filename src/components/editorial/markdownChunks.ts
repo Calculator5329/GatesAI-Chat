@@ -23,24 +23,35 @@ export function splitMarkdownChunks(content: string): string[] {
     // Find end of current line
     const nl = content.indexOf('\n', i);
     const lineEnd = nl === -1 ? content.length : nl;
-    const line = content.slice(i, lineEnd);
+    // Strip a trailing \r so CRLF inputs don't break fence detection.
+    const rawLine = content.slice(i, lineEnd);
+    const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+    // CommonMark: a line indented 4+ spaces is an indented code block, not
+    // a fence. Only toggle when indent < 4.
+    const indent = line.length - line.trimStart().length;
     const trimmed = line.trimStart();
-    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+    if (indent < 4 && (trimmed.startsWith('```') || trimmed.startsWith('~~~'))) {
       inFence = !inFence;
     }
-    // After processing this line, check for blank-line boundary:
-    // pattern is content[lineEnd] === '\n' && content[lineEnd+1] === '\n'
-    if (
-      !inFence &&
+    // After processing this line, check for blank-line boundary. The next
+    // line is "blank" if the next char is '\n' (LF) or '\r\n' (CRLF).
+    const nextIsBlank =
       nl !== -1 &&
       lineEnd + 1 < content.length &&
-      content[lineEnd + 1] === '\n'
-    ) {
-      // Consume all consecutive newlines as part of the boundary so the
-      // next chunk starts at real content.
-      let boundaryEnd = lineEnd + 2;
-      while (boundaryEnd < content.length && content[boundaryEnd] === '\n') {
-        boundaryEnd++;
+      (content[lineEnd + 1] === '\n' ||
+        content.startsWith('\r\n', lineEnd + 1));
+    if (!inFence && nextIsBlank) {
+      // Consume all consecutive newlines (LF or CRLF) as part of the
+      // boundary so the next chunk starts at real content.
+      let boundaryEnd = lineEnd + 1; // past the current line's '\n'
+      while (boundaryEnd < content.length) {
+        if (content[boundaryEnd] === '\n') {
+          boundaryEnd++;
+        } else if (content.startsWith('\r\n', boundaryEnd)) {
+          boundaryEnd += 2;
+        } else {
+          break;
+        }
       }
       chunks.push(content.slice(start, boundaryEnd));
       start = boundaryEnd;

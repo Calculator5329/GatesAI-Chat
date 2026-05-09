@@ -72,4 +72,28 @@ describe('splitMarkdownChunks', () => {
     // The fenced block stays as a single chunk
     expect(chunks).toEqual(['a\n\n', '  ```\nfoo\n\nbar\n  ```\n\n', 'b']);
   });
+
+  it('splits CRLF input on a blank line', () => {
+    const input = 'a\r\n\r\nb';
+    const chunks = splitMarkdownChunks(input);
+    expect(chunks.length).toBe(2);
+    expect(chunks.join('')).toBe(input);
+  });
+
+  it('does not split inside a CRLF fenced block', () => {
+    const input = 'intro\r\n\r\n```js\r\nconst x = 1;\r\n\r\nconst y = 2;\r\n```\r\n\r\nouter';
+    const chunks = splitMarkdownChunks(input);
+    expect(chunks.length).toBe(3);
+    expect(chunks.join('')).toBe(input);
+  });
+
+  it('does NOT treat a 4-space-indented ``` as a fence (CommonMark indented code)', () => {
+    // The ``` is part of an indented code block, not a fence; the blank lines
+    // around it should still split normally.
+    const input = 'a\n\n    ```\n\nb';
+    const chunks = splitMarkdownChunks(input);
+    expect(chunks.join('')).toBe(input);
+    // Three chunks because each blank line is a real boundary (no open fence).
+    expect(chunks).toEqual(['a\n\n', '    ```\n\n', 'b']);
+  });
 });
