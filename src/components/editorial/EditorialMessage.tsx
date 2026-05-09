@@ -66,8 +66,9 @@ function ensureKatex() {
 }
 
 const HAS_CODE_FENCE = (s: string) => s.includes('```');
-// Inline `$...$` (single-line, non-empty) or LaTeX-style \( \[ delimiters.
-const MATH_RE = /\$[^$\n]+\$|\\\(|\\\[/;
+// Block math `$$...$$` or LaTeX-style \( \[ delimiters. Single-dollar inline math
+// is disabled (`singleDollarTextMath: false` on remarkMath), so no `$...$` case here.
+const MATH_RE = /\$\$[\s\S]+?\$\$|\\\(|\\\[/;
 const HAS_MATH = (s: string) => MATH_RE.test(s);
 
 interface MessageProps {
