@@ -84,7 +84,7 @@ function EmptyState() {
       <div style={{ lineHeight: 1.55, maxWidth: 420, margin: '0 auto' }}>
         Ask the assistant to generate an image, or use <strong style={{ color: 'var(--text-dim)' }}>image_generate</strong>{' '}
         with the configured backend. Finished images are kept here and saved under{' '}
-        <code style={tokens.mono}>/workspace/artifacts</code>.
+        <code style={tokens.mono}>/workspace/artifacts/images</code>.
       </div>
     </div>
   );

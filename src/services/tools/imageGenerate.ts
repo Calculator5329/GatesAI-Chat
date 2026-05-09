@@ -24,10 +24,11 @@ export const imageGenerateTool: Tool = {
   def: {
     name: 'image_generate',
     description: [
-      'Generate an image using the configured image backend. Returns a workspace path the user can click to open.',
+      'Generate an image using the configured image backend. Returns an image-job artifact that resolves asynchronously.',
       '',
       'Use this when the user asks you to draw, render, create, or generate an image, picture, or illustration.',
-      'The call returns immediately while the render runs in the background — do not repeat the result back to the user; they already see the image inline.',
+      'The call returns immediately while the render runs in the background. The queued result is not proof of success.',
+      'Do not say the image was generated, completed, or successful just because this tool returned. The image-job card is the source of truth and will show success, failure, cancellation, and the failure reason.',
       '',
       'Parameters:',
       '  prompt — what to render (be specific about subject, style, lighting).',
@@ -37,7 +38,7 @@ export const imageGenerateTool: Tool = {
       '  count — how many images to generate (1–10). Default 1.',
       '  seed — optional integer for reproducibility.',
       '  batch_name — optional slug prefix for prompt_file output filenames.',
-      '  filename — optional short slug for the saved file (lowercase letters, numbers, dashes; e.g. "starfleet-mountain-crash"). If omitted, one is derived from the prompt. The final image is persisted under /workspace/artifacts/.',
+      '  filename — optional short slug for the saved file (lowercase letters, numbers, dashes; e.g. "starfleet-mountain-crash"). If omitted, one is derived from the prompt. Final images are persisted under /workspace/artifacts/images/api/ for OpenRouter or /workspace/artifacts/images/local/ for ComfyUI.',
       '  backend — optional: auto (default), openrouter, or local-comfy.',
     ].join('\n'),
     parameters: {
@@ -141,8 +142,11 @@ export const imageGenerateTool: Tool = {
     });
 
     const noun = scheduledCount === 1 ? 'an image render' : `${scheduledCount} image renders`;
+    const backendLabel = snapshot.primary === 'openrouter-image'
+      ? 'OpenRouter GPT-5.4 Image 2'
+      : 'local ComfyUI';
     return {
-      content: `Queued ${noun} (job ${jobId}).`,
+      content: `Queued ${noun} on ${backendLabel} (job ${jobId}). This only means the job started; the image-job artifact reports the final success or failure reason.`,
       artifacts: [{ kind: 'image-job', jobId, count: scheduledCount }],
     };
   },

@@ -22,6 +22,31 @@ export function pickCardVariant(job: ImageJob | CompletedJob | null): CardVarian
   return 'done-grid';
 }
 
+export function imageFailureAdvice(job: CompletedJob): string {
+  const error = (job.error ?? '').toLowerCase();
+  if (!error.trim()) return 'No error details were reported by the image backend.';
+  if (error.includes('api key') || error.includes('401') || error.includes('403') || error.includes('unauthorized')) {
+    return job.backend === 'openrouter-image'
+      ? 'Check the OpenRouter API key in Models, then retry.'
+      : 'Check the local backend credentials or proxy settings, then retry.';
+  }
+  if (error.includes('rate limit') || error.includes('429')) {
+    return 'The provider is rate limiting requests. Wait a little, then retry.';
+  }
+  if (error.includes('timed out') || error.includes('timeout') || error.includes('abort')) {
+    return 'The render timed out before the backend returned an image. Retry with a simpler prompt or smaller batch.';
+  }
+  if (error.includes('no generated image') || error.includes('no image')) {
+    return 'The provider answered, but did not include image data. Retry, or switch image backend.';
+  }
+  if (error.includes('base url') || error.includes('fetch') || error.includes('network') || error.includes('failed to fetch')) {
+    return job.backend === 'local-comfy'
+      ? 'Check that ComfyUI is online and reachable from Local settings.'
+      : 'Check network/provider availability, then retry.';
+  }
+  return 'The backend rejected or failed the render. Review the error, then retry or switch backend.';
+}
+
 /**
  * Embeds an image-generation job into a chat message. Observes the job
  * state from {@link ImageJobStore} and dispatches its rendering to a
@@ -85,10 +110,13 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
   const max = job.progress?.max ?? 100;
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
   const backendLabel = job.backend === 'local-comfy' ? 'ComfyUI' : 'OpenRouter';
+  const elapsedSeconds = job.startedAt ? Math.max(0, Math.floor((Date.now() - job.startedAt) / 1000)) : 0;
+  const remote = job.backend === 'openrouter-image';
   return (
     <div style={{ ...rectBase, position: 'relative' }}>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: 12 }}>
-        <span>generating · {pct}% · {backendLabel}</span>
+        <span>{remote ? 'waiting on' : 'generating'} · {pct}% · {backendLabel}</span>
+        {remote && <span style={{ marginTop: 4 }}>remote render · {elapsedSeconds}s elapsed</span>}
         {job.count > 1 && <span style={{ marginTop: 4 }}>{job.results.length} / {job.count} done</span>}
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--border)' }}>
@@ -106,11 +134,28 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
 });
 
 const FailedCard = observer(function FailedCard({ job, onRetry }: { job: CompletedJob; onRetry: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const advice = imageFailureAdvice(job);
+  const copyError = async () => {
+    try {
+      await navigator.clipboard.writeText(job.error ?? 'Unknown image render error');
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      // Clipboard may be unavailable; the visible error remains selectable.
+    }
+  };
   return (
-    <div style={{ ...rectBase, padding: 12, color: 'var(--text-dim)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
+    <div style={{ ...rectBase, padding: 12, color: 'var(--text-dim)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 7 }}>
       <div style={{ color: 'var(--text)' }}>Image render failed</div>
-      <div style={{ fontSize: 11.5, opacity: 0.85 }}>{job.error ?? 'Unknown error'}</div>
-      <div><button type="button" onClick={onRetry} style={inlineBtn}>↻ Retry</button></div>
+      <div style={{ fontSize: 11.5, opacity: 0.9 }}>{advice}</div>
+      <div title={job.error ?? 'Unknown error'} style={{ fontSize: 11, opacity: 0.75, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {job.error ?? 'Unknown error'}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" onClick={onRetry} style={inlineBtn}>Retry</button>
+        <button type="button" onClick={copyError} style={inlineBtn}>{copied ? 'Copied' : 'Copy error'}</button>
+      </div>
     </div>
   );
 });
@@ -120,7 +165,7 @@ const CancelledCard = observer(function CancelledCard({ job, onRetry }: { job: C
     <div style={{ ...rectBase, padding: 12, color: 'var(--text-faint)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
       <div>Render cancelled</div>
       {job.results.length > 0 && <div style={{ fontSize: 11.5 }}>({job.results.length} of {job.count} completed before cancel)</div>}
-      <div><button type="button" onClick={onRetry} style={inlineBtn}>↻ Retry</button></div>
+      <div><button type="button" onClick={onRetry} style={inlineBtn}>Retry</button></div>
     </div>
   );
 });

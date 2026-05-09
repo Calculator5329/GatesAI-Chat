@@ -31,6 +31,7 @@ export function buildRuntimeContext(opts: {
   if (bridge?.platform) lines.push(`platform: ${bridge.platform}`);
   if (bridge?.version) lines.push(`bridge_version: ${bridge.version}`);
   lines.push('workspace_paths: /workspace/attachments, /workspace/notes, /workspace/artifacts');
+  lines.push('artifact_layout: images/api for OpenRouter images, images/local for ComfyUI images, data for JSON/CSV/SQLite outputs, reports for docs/summaries, exports for other deliverables');
   lines.push('terminal_cwd: bridge workspace root');
   lines.push('/workspace/... is model-facing for tools and artifact references; scripts should use cwd-relative paths.');
   return lines.join('\n');

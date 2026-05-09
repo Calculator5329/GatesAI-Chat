@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { pickCardVariant } from '../../../src/components/editorial/ImageJobCard';
+import { imageFailureAdvice, pickCardVariant } from '../../../src/components/editorial/ImageJobCard';
 import { __imageCacheTestApi } from '../../../src/components/editorial/useImageDataUrl';
 import type { ImageJob, CompletedJob } from '../../../src/services/image/jobs/types';
 
@@ -40,6 +40,30 @@ describe('pickCardVariant', () => {
     expect(pickCardVariant(single)).toBe('done-single');
     expect(pickCardVariant(grid)).toBe('done-grid');
     expect(pickCardVariant(empty)).toBe('done-empty');
+  });
+});
+
+describe('imageFailureAdvice', () => {
+  it('points OpenRouter auth failures at Models settings', () => {
+    const failed: CompletedJob = {
+      ...baseJob,
+      backend: 'openrouter-image',
+      status: 'failed',
+      error: 'OpenRouter image generation failed 401 Unauthorized',
+    };
+
+    expect(imageFailureAdvice(failed)).toMatch(/OpenRouter API key in Models/i);
+  });
+
+  it('points local fetch failures at ComfyUI availability', () => {
+    const failed: CompletedJob = {
+      ...baseJob,
+      backend: 'local-comfy',
+      status: 'failed',
+      error: 'failed to fetch generated image',
+    };
+
+    expect(imageFailureAdvice(failed)).toMatch(/ComfyUI is online/i);
   });
 });
 

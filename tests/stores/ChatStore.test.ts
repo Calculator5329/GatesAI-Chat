@@ -598,7 +598,7 @@ describe('ChatStore', () => {
     })]);
     expect(chat.activeThread!.messages.at(-1)).toMatchObject({
       role: 'assistant',
-      content: 'Sent straight to ComfyUI.',
+      content: 'Sent to local image generation.',
     });
   });
 

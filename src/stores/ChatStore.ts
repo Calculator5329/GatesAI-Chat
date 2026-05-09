@@ -934,9 +934,11 @@ export class ChatStore {
         return;
       }
 
-      const snapshot = { ...imageGen.toBackendConfig(), primary: 'local-comfy' as const };
+      const snapshot = imageGen.toBackendConfig();
       const activeModel = this.registry.findById(thread.modelId);
-      const comfyMode = directImageComfyMode(activeModel?.providerModelId);
+      const comfyMode = snapshot.primary === 'local-comfy'
+        ? directImageComfyMode(activeModel?.providerModelId)
+        : undefined;
       const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'render';
       const { jobId, count } = imageJobs.enqueue({
         threadId: thread.id,
@@ -956,7 +958,9 @@ export class ChatStore {
       // Attach the image-job artifact via a synthetic tool-call/result
       // pair so EditorialMessage's existing artifact pipeline picks it up.
       const callId = newId('tc');
-      message.content = 'Sent straight to ComfyUI.';
+      message.content = snapshot.primary === 'openrouter-image'
+        ? 'Sent to OpenRouter image generation.'
+        : 'Sent to local image generation.';
       message.preTokenLabel = undefined;
       message.toolCalls = [{
         id: callId,
@@ -1011,7 +1015,7 @@ export class ChatStore {
   }
 }
 
-const IMAGE_GEN_ADDENDUM = 'When you call image_generate, don\'t repeat the tool result back. The user already sees the image inline. Just say briefly what you made.';
+const IMAGE_GEN_ADDENDUM = 'When you call image_generate, treat the tool result as queued, not successful. Do not say the image was generated, completed, or successful just because the tool returned. The inline image-job card is the source of truth for pending, success, failure, cancellation, and failure reason.';
 
 function appendImageGenAddendum(systemPrompt: string | undefined, tools: { name: string }[] | undefined): string | undefined {
   if (!tools || !tools.some(t => t.name === 'image_generate')) return systemPrompt;

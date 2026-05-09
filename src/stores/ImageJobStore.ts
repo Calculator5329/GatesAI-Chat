@@ -62,7 +62,9 @@ const defaultProgressFactory = (id: ImageBackendId, config: ImageBackendConfig):
  *
  * The runner pulls one job at a time, opens a backend-specific progress
  * stream, dispatches `count` renders against the configured backend,
- * and writes each finished image into `/workspace/artifacts/`.
+ * and writes each finished image into a backend-specific image artifact
+ * folder: API images under `/workspace/artifacts/images/api/`, local images
+ * under `/workspace/artifacts/images/local/`.
  */
 export class ImageJobStore {
   queue: ImageJob[] = [];
@@ -193,6 +195,7 @@ export class ImageJobStore {
       // Only record failure if the job is still active (not already cancelled).
       const stillActive = this.active as ImageJob | null;
       if (stillActive?.id === next.id) {
+        console.error(`[image-jobs] dispatch ${next.id} failed: ${reason}`);
         this.fail(next, reason);
       }
     } finally {
@@ -250,6 +253,15 @@ export class ImageJobStore {
       const cumulative = currentIter * 100 + fraction * 100;
       runInAction(() => { job.progress = { value: cumulative, max: totalUnits }; });
     });
+    const syntheticProgressTimer = progress || job.backend !== 'openrouter-image' ? null : setInterval(() => {
+      const active = this.active as ImageJob | null;
+      if (active?.id !== job.id || job.status !== 'running') return;
+      const elapsedMs = Date.now() - (job.startedAt ?? Date.now());
+      const fraction = Math.min(0.92, 0.04 + elapsedMs / 120_000);
+      runInAction(() => {
+        job.progress = { value: currentIter * 100 + fraction * 100, max: totalUnits };
+      });
+    }, 1000);
 
     const dispatcher = deps.dispatcher ?? dispatchImageGenerate;
 
@@ -286,10 +298,10 @@ export class ImageJobStore {
         let recordedPath: string;
         if (result.url) {
           const fetched = await fetchHostedImage(result.url, result.mime, deps.fetch);
-          recordedPath = await writeArtifact(deps.bridge, job.backend, i, fetched.base64, fetched.mime);
+          recordedPath = await writeArtifact(deps.bridge, job.backend, i, fetched.base64, fetched.mime, job.filenamePrefix);
           console.info(`[image-jobs] fetched hosted url ${job.id} -> ${recordedPath}`);
         } else if (result.base64) {
-          recordedPath = await writeArtifact(deps.bridge, job.backend, i, result.base64, result.mime);
+          recordedPath = await writeArtifact(deps.bridge, job.backend, i, result.base64, result.mime, job.filenamePrefix);
           console.info(`[image-jobs] fs.write ${job.id} -> ${recordedPath}`);
         } else {
           throw new Error('backend returned neither url nor base64');
@@ -311,6 +323,7 @@ export class ImageJobStore {
       });
       this.moveToHistory(job, 'done');
     } finally {
+      if (syntheticProgressTimer) clearInterval(syntheticProgressTimer);
       progressUnsub?.();
       progress?.dispose();
     }
@@ -369,11 +382,22 @@ async function loadComfyWorkflow(
 }
 
 function defaultFilenameStem(backend: ImageBackendId): string {
+  const prefix = backendFilePrefix(backend);
+  return `${prefix}-${timestampForFilename()}`;
+}
+
+function timestampForFilename(): string {
   const d = new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
-  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-  const prefix = backendFilePrefix(backend);
-  return `${prefix}-${stamp}`;
+  const ms = d.getMilliseconds().toString().padStart(3, '0');
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}${ms}`;
+}
+
+function artifactDirForBackend(backend: ImageBackendId): string {
+  switch (backend) {
+    case 'local-comfy': return '/workspace/artifacts/images/local';
+    case 'openrouter-image': return '/workspace/artifacts/images/api';
+  }
 }
 
 function backendFilePrefix(backend: ImageBackendId): string {
@@ -403,9 +427,11 @@ async function writeArtifact(
   index: number,
   base64: string,
   mime: string,
+  filenamePrefix?: string,
 ): Promise<string> {
-  const filename = `${defaultFilenameStem(backend)}-${index + 1}${extensionForMime(mime)}`;
-  const path = `/workspace/artifacts/${filename}`;
+  const stem = filenamePrefix ? `${filenamePrefix}-${timestampForFilename()}` : defaultFilenameStem(backend);
+  const filename = `${stem}-${index + 1}${extensionForMime(mime)}`;
+  const path = `${artifactDirForBackend(backend)}/${filename}`;
   const tWrite = performance.now();
   const resp = await bridge.client.request<FsWriteResp>('fs.write', {
     path,

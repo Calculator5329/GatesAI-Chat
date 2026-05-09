@@ -21,12 +21,12 @@ export const SettingsSection = observer(function SettingsSection() {
   return (
     <>
       <h1 style={tokens.h1}>Settings</h1>
-      <div style={tokens.kicker}>shortcuts and danger zone</div>
+      <div style={tokens.kicker}>app preferences · shortcuts · danger zone</div>
 
       <Card style={{ padding: '14px 18px', marginBottom: 20 }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
-          General app settings will collect here over time. Model keys and catalog controls are under{' '}
-          <strong style={{ color: 'var(--text)' }}>Models</strong>; runtimes are under{' '}
+          Cloud model keys, catalog controls, and OpenRouter image generation are under{' '}
+          <strong style={{ color: 'var(--text)' }}>Models</strong>. Installed runtimes live under{' '}
           <strong style={{ color: 'var(--text)' }}>Local</strong>. This page is just shortcuts and the danger zone.
         </div>
       </Card>

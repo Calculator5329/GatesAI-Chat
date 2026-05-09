@@ -81,7 +81,16 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
       return job?.status === 'pending' || job?.status === 'running';
     }) ?? false
   ));
-  const shouldDelayAssistantText = hasContent && hasLoadingImageJob;
+  const hasUnsuccessfulImageJob = !isUser && results.some(result => (
+    result.artifacts?.some(artifact => {
+      if (artifact.kind !== 'image-job') return false;
+      const job = imageJobs.findById(artifact.jobId);
+      return job?.status === 'failed'
+        || job?.status === 'cancelled'
+        || (job?.status === 'done' && job.results.length === 0);
+    }) ?? false
+  ));
+  const shouldHideAssistantTextForImageJob = hasContent && (hasLoadingImageJob || hasUnsuccessfulImageJob);
 
   useEffect(() => {
     if (copyState === 'idle') return;
@@ -182,7 +191,7 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
       }}>
         {isUser ? (
           <UserMessageContent body={userContent?.body ?? message.content} attachments={userContent?.attachments ?? []} />
-        ) : shouldDelayAssistantText ? (
+        ) : shouldHideAssistantTextForImageJob ? (
           null
         ) : hasContent && streaming ? (
           <>

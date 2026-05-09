@@ -145,7 +145,7 @@ describe('ImageJobStore (runner)', () => {
     const job = store.history.find(j => j.id === jobId);
     expect(job?.status).toBe('done');
     expect(job?.results).toHaveLength(1);
-    expect(job?.results[0]).toMatch(/\/workspace\/artifacts\//);
+    expect(job?.results[0]).toMatch(/\/workspace\/artifacts\/images\/local\//);
   });
 
   it('applies a job-level ComfyUI mode override before dispatching', async () => {
@@ -263,7 +263,7 @@ describe('ImageJobStore (runner)', () => {
 
     const job = store.history.find(j => j.id === jobId);
     expect(job?.status).toBe('done');
-    expect(job?.results[0]).toMatch(/^\/workspace\/artifacts\/comfy-/);
+    expect(job?.results[0]).toMatch(/^\/workspace\/artifacts\/images\/local\/comfy-/);
     expect(writes).toEqual([expect.objectContaining({
       encoding: 'base64',
       content: 'AQID',
@@ -290,6 +290,48 @@ describe('ImageJobStore (runner)', () => {
     expect(job?.status).toBe('done');
     expect(job?.results).toHaveLength(3);
     expect(writes).toHaveLength(3);
+  });
+
+  it('routes OpenRouter images into the API image artifacts folder', async () => {
+    const writes: string[] = [];
+    const bridge: ImageJobBridgeFacade = {
+      isOnline: true,
+      client: {
+        request: async <T = unknown>(_op: string, data: unknown): Promise<T> => {
+          const path = (data as { path: string }).path;
+          writes.push(path);
+          return { path, bytes: 10 } as T;
+        },
+      },
+    };
+    const deps = makeDeps({
+      bridge,
+      imageGen: {
+        comfyWorkflowPath: undefined,
+        toBackendConfig: () => ({
+          primary: 'openrouter-image',
+          openRouterApiKey: 'sk-or-test',
+        }),
+      },
+      dispatcher: async (req: GenerateImageRequest) => ({
+        result: {
+          base64: 'AAAA',
+          mime: 'image/png',
+          width: req.width,
+          height: req.height,
+          seed: req.seed,
+          endpoint: 'mock',
+          backend: 'openrouter-image',
+        } as GenerateImageResult,
+      }),
+    });
+    const store = new ImageJobStore(deps);
+    const { jobId } = store.enqueue({ ...INPUT, backend: 'openrouter-image', filenamePrefix: 'nebula-city' });
+    for (let i = 0; i < 10; i++) await flushMicrotasks();
+    const job = store.history.find(j => j.id === jobId);
+    expect(job?.status).toBe('done');
+    expect(job?.results[0]).toMatch(/^\/workspace\/artifacts\/images\/api\/nebula-city-\d{8}-\d{9}-1\.png$/);
+    expect(writes[0]).toBe(job?.results[0]);
   });
 
   it('failed dispatch lands the job in history with status=failed', async () => {

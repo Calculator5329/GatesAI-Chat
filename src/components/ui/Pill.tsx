@@ -26,6 +26,7 @@ export function Pill({ children, tone = 'accent', style, title }: PillProps) {
         fontSize: 11,
         fontFamily: '"Geist Mono", monospace',
         letterSpacing: '0.04em',
+        whiteSpace: 'nowrap',
         ...TONE[tone],
         ...style,
       }}
