@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { observer } from 'mobx-react-lite';
 import remarkGfm from 'remark-gfm';
@@ -17,6 +17,7 @@ import { LiveExecTail } from './LiveExecTail';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
 import { WorkspaceImage } from './WorkspaceImage';
 import { ImageJobCard } from './ImageJobCard';
+import { splitMarkdownChunks } from './markdownChunks';
 
 interface MessageProps {
   message: Message;
@@ -214,27 +215,48 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
 
 function MarkdownBody({ content }: { content: string }) {
   const bridge = useBridgeStore();
+  // Split on paragraph boundaries (respecting fenced code blocks) so closed
+  // chunks can be memoized. While streaming, only the trailing chunk's
+  // content string changes, so only it re-parses through remark/rehype.
+  const chunks = useMemo(() => splitMarkdownChunks(content), [content]);
   return (
     <div className="md-body">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
-        rehypePlugins={[rehypeHighlight, [rehypeKatex, { throwOnError: false, strict: 'ignore' }]]}
-        components={{
-          // Inline code that's a /workspace/... path becomes a clickable
-          // link the system handler can open. Block code (anything with
-          // a language class from rehype-highlight) renders normally.
-          code: (props) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
-          // Anchor links pointing at /workspace/ paths reroute to the OS
-          // viewer through the bridge — the same affordance as inline-code
-          // workspace paths. Other links open in a new tab.
-          a: (props) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,
-        }}
-      >
-        {content}
-      </ReactMarkdown>
+      {chunks.map((chunk, idx) => (
+        <MarkdownChunk key={idx} content={chunk} bridge={bridge} />
+      ))}
     </div>
   );
 }
+
+interface MarkdownChunkProps {
+  content: string;
+  bridge: BridgeStore;
+}
+
+/**
+ * Memoized by content string. React.memo's default shallow compare on a
+ * primitive `content` is exactly what we want: while streaming, closed
+ * chunks pass identical strings on every token flush and skip re-rendering
+ * the heavy remark/rehype tree (highlight + katex). The trailing chunk
+ * keeps re-parsing as tokens arrive — that cost is unavoidable.
+ *
+ * `bridge` is a stable store reference (singleton from context) so it never
+ * triggers re-renders in practice.
+ */
+const MarkdownChunk = memo(function MarkdownChunk({ content, bridge }: MarkdownChunkProps) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
+      rehypePlugins={[rehypeHighlight, [rehypeKatex, { throwOnError: false, strict: 'ignore' }]]}
+      components={{
+        code: (props) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
+        a: (props) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+});
 
 interface CodeProps extends ComponentPropsWithoutRef<'code'> {
   bridge: BridgeStore;

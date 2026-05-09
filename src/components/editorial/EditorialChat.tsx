@@ -4,21 +4,74 @@ import { useChatStore, useModelRegistry } from '../../stores/context';
 import { EditorialMessage } from './EditorialMessage';
 import { EditorialComposer } from './EditorialComposer';
 
+const STICKY_BOTTOM_PX = 100;
+
 export const EditorialChat = observer(function EditorialChat() {
   const chat = useChatStore();
   const registry = useModelRegistry();
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // Sticky-bottom: only auto-scroll when the user is parked near the bottom.
+  // If they've scrolled up to read history we leave them there. Updated by a
+  // rAF-throttled scroll listener so we're not measuring layout per token.
+  const stickyRef = useRef(true);
 
   const activeThread = chat.activeThread;
   const messages = activeThread?.messages ?? [];
+  const streamingId = chat.streamingMessageId;
+  const messageCount = messages.length;
 
-  // Auto-scroll when a new message row appears or the thread switches.
-  // Deliberately excludes streamingMessageId so the viewport stays put while
-  // the assistant streams tokens — the user can scroll freely mid-response.
+  // Watch scroll position. Anything within STICKY_BOTTOM_PX of bottom counts
+  // as "at bottom" — covers small offsets from images loading or trailing
+  // whitespace. rAF throttling keeps us off the layout thrashing path.
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [activeThread?.id, messages.length]);
+    const el = scrollRef.current;
+    if (!el) return;
+    let rafId = 0;
+    const measure = () => {
+      rafId = 0;
+      const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+      stickyRef.current = distance <= STICKY_BOTTOM_PX;
+    };
+    const onScroll = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(measure);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  // Thread switch: always reset to bottom and re-arm sticky.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    stickyRef.current = true;
+  }, [activeThread?.id]);
+
+  // New message arrived: scroll only if user was already at bottom.
+  useEffect(() => {
+    if (!stickyRef.current) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messageCount]);
+
+  // While streaming, follow the tail only if the user is parked at the
+  // bottom. The observer wrapper re-runs this effect each token flush
+  // because `streamingContent` (read from the live message) updates; we
+  // gate the scroll on stickyRef so a user who scrolled up is left alone.
+  const streamingContent = streamingId
+    ? messages.find(m => m.id === streamingId)?.content ?? ''
+    : '';
+  useEffect(() => {
+    if (!streamingId) return;
+    if (!stickyRef.current) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [streamingId, streamingContent]);
 
   return (
     <div style={{

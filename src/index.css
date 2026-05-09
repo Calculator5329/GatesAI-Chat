@@ -26,6 +26,13 @@
 
 .editorial-message {
   cursor: default;
+  /* Skip painting off-screen rows. Browser reserves intrinsic-size space
+     so the scrollbar stays stable, but the markdown subtree doesn't
+     paint until the row scrolls into view. `contain` isolates each row
+     so a streaming message can't invalidate sibling layout. */
+  content-visibility: auto;
+  contain-intrinsic-size: 0 200px;
+  contain: layout style paint;
 }
 .editorial-message:active {
   cursor: copy;
