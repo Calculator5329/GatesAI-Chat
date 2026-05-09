@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { imageFailureAdvice, pickCardVariant } from '../../../src/components/editorial/ImageJobCard';
-import { __imageCacheTestApi } from '../../../src/components/editorial/useImageDataUrl';
+import { __imageCacheTestApi, loadImageSource } from '../../../src/components/editorial/useImageDataUrl';
 import type { ImageJob, CompletedJob } from '../../../src/services/image/jobs/types';
 
 const baseJob: ImageJob = {
@@ -116,5 +116,26 @@ describe('imageCache (LRU bounded)', () => {
     __imageCacheTestApi.set('/p.png', 'data:image/png;base64,B');
     expect(__imageCacheTestApi.size()).toBe(1);
     expect(__imageCacheTestApi.get('/p.png')).toBe('data:image/png;base64,B');
+  });
+
+  it('dedupes concurrent bridge reads for the same image path', async () => {
+    let reads = 0;
+    const bridge = {
+      readAttachmentBase64: async () => {
+        reads++;
+        await Promise.resolve();
+        return { mime: 'image/png', base64: 'AAA=' };
+      },
+    };
+
+    const [a, b] = await Promise.all([
+      loadImageSource(bridge as never, '/workspace/artifacts/a.png'),
+      loadImageSource(bridge as never, '/workspace/artifacts/a.png'),
+    ]);
+
+    expect(a).toBe('data:image/png;base64,AAA=');
+    expect(b).toBe('data:image/png;base64,AAA=');
+    expect(reads).toBe(1);
+    expect(__imageCacheTestApi.inflightSize()).toBe(0);
   });
 });

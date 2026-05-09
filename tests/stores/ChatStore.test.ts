@@ -1,6 +1,6 @@
 import { runInAction } from 'mobx';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ChatStore } from '../../src/stores/ChatStore';
+import { ChatStore, threadLlmSpendUsd } from '../../src/stores/ChatStore';
 import { ProviderStore } from '../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../src/stores/UserProfileStore';
@@ -9,6 +9,7 @@ import type { LlmRouter } from '../../src/services/llm/router';
 import type { ToolContext } from '../../src/services/tools/types';
 import { MockProvider, flush, installMockProvider } from '../helpers/mockProvider';
 import { clearAppStorage } from '../helpers/storage';
+import { toolRegistry } from '../../src/services/tools/registry';
 
 function setup(chunks?: Parameters<MockProvider['setChunks']>[0]) {
   clearAppStorage();
@@ -67,6 +68,42 @@ describe('ChatStore', () => {
     expect(chat.activeThread?.modelId).toBe('or-gemini-3-flash');
   });
 
+  it('repairs a persisted active thread id that no longer points to a visible thread', () => {
+    localStorage.setItem('gatesai.state.v1', JSON.stringify({
+      activeThreadId: 'missing',
+      threads: [
+        {
+          id: 'deleted',
+          title: 'Deleted',
+          subtitle: '',
+          createdAt: 1,
+          updatedAt: 3,
+          pinned: false,
+          modelId: 'or-gemini-3-flash',
+          messages: [],
+          deletedAt: 4,
+        },
+        {
+          id: 'visible',
+          title: 'Visible',
+          subtitle: '',
+          createdAt: 1,
+          updatedAt: 2,
+          pinned: false,
+          modelId: 'or-gemini-3-flash',
+          messages: [],
+        },
+      ],
+    }));
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+
+    const chat = new ChatStore(providers, registry, profile);
+
+    expect(chat.activeThreadId).toBe('visible');
+  });
+
   it('repairs a live unresolved active model before sending', () => {
     const { chat } = setup();
     chat.setThreadModel(chat.activeThreadId!, 'missing-model');
@@ -83,6 +120,40 @@ describe('ChatStore', () => {
     expect(chat.threads).toHaveLength(before + 1);
     expect(chat.threads[0].id).toBe(id);
     expect(chat.activeThreadId).toBe(id);
+  });
+
+  it('selectThread updates synchronously even when View Transitions are available', () => {
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+    const original = doc.startViewTransition;
+    doc.startViewTransition = () => ({});
+    try {
+      const { chat } = setup();
+      const first = chat.activeThreadId!;
+      const second = chat.createThread();
+      expect(chat.activeThreadId).toBe(second);
+
+      chat.selectThread(first);
+
+      expect(chat.activeThreadId).toBe(first);
+    } finally {
+      if (original) {
+        doc.startViewTransition = original;
+      } else {
+        delete doc.startViewTransition;
+      }
+    }
+  });
+
+  it('selectThread rejects unknown and deleted thread ids', () => {
+    const { chat } = setup();
+    const original = chat.activeThreadId!;
+    const deleted = chat.createThread();
+    chat.softDeleteThread(deleted);
+
+    expect(chat.selectThread('missing')).toBe(false);
+    expect(chat.activeThreadId).toBe(original);
+    expect(chat.selectThread(deleted)).toBe(false);
+    expect(chat.activeThreadId).toBe(original);
   });
 
   it('softDeleteThread hides the thread from visibleThreads but keeps it in storage', () => {
@@ -133,6 +204,45 @@ describe('ChatStore', () => {
     expect(thread.messages[1].content).toBe('Hello world');
     expect(chat.streamingMessageId).toBeNull();
     expect(mock.calls).toHaveLength(1);
+  });
+
+  it('clearAllThreads leaves one fresh active thread', () => {
+    const { chat } = setup();
+    const old = chat.activeThreadId!;
+    chat.createThread();
+
+    chat.clearAllThreads();
+
+    expect(chat.visibleThreads).toHaveLength(1);
+    expect(chat.activeThreadId).toBe(chat.visibleThreads[0].id);
+    expect(chat.activeThreadId).not.toBe(old);
+    expect(chat.activeThread?.messages).toEqual([]);
+  });
+
+  it('stores provider-reported OpenRouter usage cost on assistant messages', async () => {
+    const { chat } = setup([
+      { type: 'text', delta: 'Hello' },
+      {
+        type: 'usage',
+        usage: {
+          providerId: 'openrouter',
+          modelId: 'google/gemini-3-flash-preview',
+          promptTokens: 100,
+          completionTokens: 20,
+          totalTokens: 120,
+          costUsd: 0.0042,
+        },
+      },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    chat.createThread();
+
+    chat.sendMessage('hi');
+    await flush(20);
+
+    const assistant = chat.activeThread!.messages.find(m => m.role === 'assistant');
+    expect(assistant?.role === 'assistant' ? assistant.usage?.[0].costUsd : undefined).toBe(0.0042);
+    expect(threadLlmSpendUsd(chat.activeThread)).toBe(0.0042);
   });
 
   it('attachment footer points data files toward inspect_file before fs', async () => {
@@ -437,6 +547,39 @@ describe('ChatStore', () => {
     expect(mock.abortedAt).not.toBeNull();
   });
 
+  it('does not append tool results that finish after the turn is interrupted', async () => {
+    let releaseTool: (() => void) | null = null;
+    toolRegistry.register({
+      def: {
+        name: 'slow_test_tool',
+        description: 'test-only slow tool',
+        parameters: { type: 'object', properties: {} },
+      },
+      meta: { category: 'time', hasSideEffects: () => true },
+      execute: async (_args, ctx) => {
+        await new Promise<void>(resolve => { releaseTool = resolve; });
+        return ctx.signal?.aborted ? 'aborted after release' : 'late result';
+      },
+    });
+    const { chat } = setup([
+      { type: 'tool_call', call: { id: 'call-slow', name: 'slow_test_tool', arguments: {} } },
+      { type: 'done', finishReason: 'tool_calls' },
+    ]);
+    chat.createThread();
+
+    chat.sendMessage('use slow tool');
+    await flush(10);
+    const assistant = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
+    expect(assistant.role === 'assistant' ? assistant.toolCalls?.[0]?.name : undefined).toBe('slow_test_tool');
+
+    chat.stopStreaming();
+    releaseTool?.();
+    await flush(10);
+
+    expect(assistant.role === 'assistant' ? assistant.toolResults : undefined).toBeUndefined();
+    expect(assistant.content).toContain('[no response]');
+  });
+
   it('interrupting a thinking (zero-token) reply leaves the no-response placeholder', async () => {
     // Stream that hangs forever without yielding any text.
     const hang: Parameters<MockProvider['setChunks']>[0] = [];
@@ -598,8 +741,68 @@ describe('ChatStore', () => {
     })]);
     expect(chat.activeThread!.messages.at(-1)).toMatchObject({
       role: 'assistant',
-      content: 'Sent to local image generation.',
+      content: expect.stringContaining('I queued an image through local ComfyUI'),
     });
+  });
+
+  it('posts an image completion follow-up to the originating thread even after switching threads', () => {
+    const { chat } = setup();
+    const imageThreadId = chat.createThread();
+    const otherThreadId = chat.createThread();
+
+    chat.notifyImageJobTerminal({
+      id: 'job-ready',
+      threadId: imageThreadId,
+      prompt: 'a glass city under rain',
+      count: 1,
+      width: 1024,
+      height: 1024,
+      backend: 'openrouter-image',
+      status: 'done',
+      results: ['/workspace/artifacts/images/api/glass-city-1.png'],
+      createdAt: 1,
+      startedAt: 1000,
+      completedAt: 45000,
+    });
+
+    expect(chat.activeThreadId).toBe(otherThreadId);
+    const imageThread = chat.threads.find(t => t.id === imageThreadId)!;
+    const followUp = imageThread.messages.at(-1);
+    expect(followUp).toMatchObject({
+      role: 'assistant',
+      content: expect.stringContaining('Here it is'),
+    });
+    expect(followUp?.role === 'assistant' ? followUp.toolResults?.[0].artifacts : undefined).toEqual([
+      { kind: 'image-job', jobId: 'job-ready', count: 1 },
+    ]);
+  });
+
+  it('deduplicates the same image terminal event but allows later retry events', () => {
+    const { chat } = setup();
+    const threadId = chat.createThread();
+    const base = {
+      id: 'job-retry',
+      threadId,
+      prompt: 'a moon base',
+      count: 1,
+      width: 1024,
+      height: 1024,
+      backend: 'openrouter-image' as const,
+      status: 'done' as const,
+      results: ['/workspace/artifacts/images/api/moon-1.png'],
+      createdAt: 1,
+      startedAt: 1000,
+    };
+
+    chat.notifyImageJobTerminal({ ...base, completedAt: 5000 });
+    chat.notifyImageJobTerminal({ ...base, completedAt: 5000 });
+    chat.notifyImageJobTerminal({ ...base, completedAt: 9000 });
+
+    const assistantFollowUps = chat.threads
+      .find(t => t.id === threadId)!
+      .messages
+      .filter(m => m.role === 'assistant' && m.toolCalls?.[0]?.name === 'image_generate_complete');
+    expect(assistantFollowUps).toHaveLength(2);
   });
 
   it.each([

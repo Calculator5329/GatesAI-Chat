@@ -145,8 +145,9 @@ export const imageGenerateTool: Tool = {
     const backendLabel = snapshot.primary === 'openrouter-image'
       ? 'OpenRouter GPT-5.4 Image 2'
       : 'local ComfyUI';
+    const estimate = estimatedImageDuration(snapshot.primary);
     return {
-      content: `Queued ${noun} on ${backendLabel} (job ${jobId}). This only means the job started; the image-job artifact reports the final success or failure reason.`,
+      content: `Queued ${noun} on ${backendLabel} (job ${jobId}). Expected time: ${estimate}. This only means the job started; the image-job artifact reports the final success or failure reason, and the app will post a follow-up when it finishes.`,
       artifacts: [{ kind: 'image-job', jobId, count: scheduledCount }],
     };
   },
@@ -260,6 +261,7 @@ async function enqueuePromptFileBatch(
       seed: job.seed,
       backend: job.backend,
       filenamePrefix: job.filenamePrefix,
+      notifyOnTerminal: false,
     });
     jobIds.push(jobId);
     totalImages += scheduledCount;
@@ -333,4 +335,10 @@ function slugify(input: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function estimatedImageDuration(backend: ImageBackendId): string {
+  return backend === 'openrouter-image'
+    ? 'about 30-90 seconds'
+    : 'about 10-60 seconds';
 }

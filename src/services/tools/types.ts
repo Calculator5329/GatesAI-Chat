@@ -18,7 +18,7 @@ export interface ProfileFacade {
 
 export interface ChatFacade {
   readonly threads: Thread[];
-  selectThread(id: string): void;
+  selectThread(id: string): boolean;
   renameThread(id: string, title: string): void;
   setThreadContext(id: string, context: string): void;
   llmComplete(messages: Pick<LlmMessage, 'role' | 'content'>[], systemPrompt?: string): Promise<string>;
@@ -81,6 +81,8 @@ export interface ImageJobsFacade {
     comfyMode?: LocalComfyMode;
     /** Slug used by local backends to control where the file lands. */
     filenamePrefix?: string;
+    /** Whether the chat should post a terminal follow-up when this job ends. */
+    notifyOnTerminal?: boolean;
   }): { jobId: string; count: number };
 }
 
@@ -110,6 +112,8 @@ export interface ToolContext {
   execStream?: ExecStreamFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;
+  /** Aborts when the calling assistant turn is interrupted. */
+  signal?: AbortSignal;
 }
 
 export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision';

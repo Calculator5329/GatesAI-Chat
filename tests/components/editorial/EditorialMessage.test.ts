@@ -1,5 +1,6 @@
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { runInAction } from 'mobx';
 import { afterEach, describe, expect, it } from 'vitest';
 import { StoreProvider } from '../../../src/stores/context';
 import { UiStore } from '../../../src/stores/UiStore';
@@ -18,6 +19,7 @@ function renderMessage(
   modelName = 'Assistant',
   streaming = false,
   preTokenLabel?: Parameters<typeof EditorialMessage>[0]['preTokenLabel'],
+  imageJobs = new ImageJobStore(),
 ): HTMLDivElement {
   host = document.createElement('div');
   document.body.appendChild(host);
@@ -26,7 +28,7 @@ function renderMessage(
   const store = {
     ui: new UiStore(),
     execStream: new ExecStreamStore(),
-    imageJobs: new ImageJobStore(),
+    imageJobs,
   } as RootStore;
 
   act(() => {
@@ -182,5 +184,41 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.textContent).toContain('compacting');
     expect(rendered.querySelector('[aria-label="Compacting"]')).not.toBeNull();
     expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+  });
+
+  it('keeps queued image text visible while the job card is pending', () => {
+    const imageJobs = new ImageJobStore();
+    runInAction(() => {
+      imageJobs.queue.push({
+        id: 'job-pending',
+        threadId: 't1',
+        prompt: 'a glass city',
+        count: 1,
+        width: 1024,
+        height: 1024,
+        backend: 'openrouter-image',
+        status: 'pending',
+        results: [],
+        createdAt: Date.now(),
+      });
+    });
+
+    const rendered = renderMessage({
+      id: 'm-image',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'I queued an image through OpenRouter GPT-5.4 Image 2.',
+      toolCalls: [{ id: 'tc-image', name: 'image_generate', arguments: { prompt: 'a glass city' } }],
+      toolResults: [{
+        toolCallId: 'tc-image',
+        toolName: 'image_generate',
+        content: 'Queued.',
+        ranAt: Date.now(),
+        artifacts: [{ kind: 'image-job', jobId: 'job-pending', count: 1 }],
+      }],
+    }, 'Assistant', false, undefined, imageJobs);
+
+    expect(rendered.textContent).toContain('I queued an image through OpenRouter');
+    expect(rendered.textContent).toContain('waiting on');
   });
 });

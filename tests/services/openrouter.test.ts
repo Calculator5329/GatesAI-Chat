@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { OpenRouterProvider } from '../../src/services/llm/openrouter';
-import type { LlmRequest } from '../../src/core/llm';
+import type { LlmChunk, LlmRequest } from '../../src/core/llm';
 
-async function drain(stream: AsyncIterable<unknown>): Promise<void> {
-  for await (const _chunk of stream) {
+async function drain(stream: AsyncIterable<LlmChunk>): Promise<LlmChunk[]> {
+  const chunks: LlmChunk[] = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
     // Drain the provider stream so the request is issued.
   }
+  return chunks;
 }
 
 function okSseResponse(): Response {
@@ -75,5 +78,38 @@ describe('OpenRouterProvider', () => {
     const messages = (body as { messages: Array<{ role: string; content: unknown }> }).messages;
     expect(messages.at(-1)?.role).toBe('tool');
     expect(messages.some(m => m.role === 'tool')).toBe(true);
+  });
+
+  it('emits provider usage and cost from OpenRouter stream chunks', async () => {
+    const fetchMock = vi.fn(async () => new Response([
+      'data: {"choices":[{"delta":{"content":"ok"}}]}',
+      '',
+      'data: {"model":"openai/gpt-5.5","usage":{"prompt_tokens":100,"completion_tokens":25,"total_tokens":125,"cost":0.0123},"choices":[{"delta":{},"finish_reason":"stop"}]}',
+      '',
+      'data: [DONE]',
+      '',
+    ].join('\n'), {
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new OpenRouterProvider('sk-or-test');
+    const chunks = await drain(provider.stream({
+      modelId: 'openai/gpt-5.5',
+      messages: [{ role: 'user', content: 'hi' }],
+    }, new AbortController().signal));
+
+    expect(chunks).toContainEqual({
+      type: 'usage',
+      usage: {
+        providerId: 'openrouter',
+        modelId: 'openai/gpt-5.5',
+        promptTokens: 100,
+        completionTokens: 25,
+        totalTokens: 125,
+        costUsd: 0.0123,
+      },
+    });
   });
 });

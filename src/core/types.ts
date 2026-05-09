@@ -1,4 +1,4 @@
-import type { ToolCall } from './llm';
+import type { LlmUsage, ToolCall } from './llm';
 
 export type Role = 'user' | 'assistant';
 
@@ -66,6 +66,8 @@ export interface AssistantMessage {
   toolCalls?: ToolCall[];
   /** Results from executing those tool calls. Length matches toolCalls; pair by id. */
   toolResults?: ToolResult[];
+  /** Provider-reported usage/cost for the LLM request(s) that produced this message. */
+  usage?: LlmUsage[];
 }
 
 /**

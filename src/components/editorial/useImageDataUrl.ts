@@ -16,6 +16,7 @@ import { useBridgeStore } from '../../stores/context';
 const IMAGE_CACHE_LIMIT = 32;
 
 const imageCache = new Map<string, string>();
+const inflightLoads = new Map<string, Promise<string | null>>();
 
 function cacheGet(key: string): string | undefined {
   const url = imageCache.get(key);
@@ -60,6 +61,18 @@ async function loadHostedImage(url: string): Promise<string | null> {
 }
 
 export async function loadImageSource(bridge: BridgeStore, path: string): Promise<string | null> {
+  const cached = cacheGet(path);
+  if (cached) return cached;
+  const inflight = inflightLoads.get(path);
+  if (inflight) return inflight;
+  const promise = loadImageSourceUncached(bridge, path).finally(() => {
+    inflightLoads.delete(path);
+  });
+  inflightLoads.set(path, promise);
+  return promise;
+}
+
+async function loadImageSourceUncached(bridge: BridgeStore, path: string): Promise<string | null> {
   if (/^https?:\/\//i.test(path)) {
     // Hosted URLs render directly via <img src> — but Lightbox's full-size
     // view needs the bytes inlined for cross-origin / WebView quirks, so
@@ -67,8 +80,6 @@ export async function loadImageSource(bridge: BridgeStore, path: string): Promis
     // (thumbnail) can short-circuit before calling.
     return loadHostedImage(path);
   }
-  const cached = cacheGet(path);
-  if (cached) return cached;
   const result = await bridge.readAttachmentBase64(path);
   if (!result) return null;
   const url = `data:${result.mime};base64,${result.base64}`;
@@ -110,8 +121,12 @@ export function useImageDataUrl(path: string): { src: string | null; failed: boo
 }
 
 export const __imageCacheTestApi = {
-  reset: () => imageCache.clear(),
+  reset: () => {
+    imageCache.clear();
+    inflightLoads.clear();
+  },
   size: () => imageCache.size,
+  inflightSize: () => inflightLoads.size,
   has: (path: string) => imageCache.has(path),
   set: (path: string, url: string) => cacheSet(path, url),
   get: (path: string) => cacheGet(path),

@@ -1,6 +1,6 @@
 import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
-import type { LlmProvider, LlmRequest, ToolCall } from '../core/llm';
+import type { LlmProvider, LlmRequest, LlmUsage, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
 import { flushPendingSnapshot, loadSnapshot, saveSnapshot, scheduleSaveSnapshot } from '../services/persistence';
@@ -23,12 +23,36 @@ import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
 import type { ToolContext } from '../services/tools/types';
-import type { LocalComfyMode } from '../services/image/types';
+import type { ImageBackendId, LocalComfyMode } from '../services/image/types';
+import type { CompletedJob } from '../services/image/jobs/types';
 
 type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime'>;
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function createEmptyThread(now = Date.now()): Thread {
+  return {
+    id: newId('t'),
+    title: 'New conversation',
+    subtitle: '',
+    createdAt: now,
+    updatedAt: now,
+    pinned: false,
+    modelId: DEFAULT_MODEL_ID,
+    messages: [],
+  };
+}
+
+function normalizeActiveThreadId(threads: Thread[], activeThreadId: string | null): string | null {
+  if (activeThreadId && threads.some(thread => thread.id === activeThreadId && thread.deletedAt == null)) {
+    return activeThreadId;
+  }
+  const visible = threads
+    .filter(thread => thread.deletedAt == null)
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+  return visible[0]?.id ?? null;
 }
 
 /** Hard cap on the number of tool-call rounds per user turn, to prevent infinite loops if a model keeps re-calling the same tool. */
@@ -116,24 +140,19 @@ export class ChatStore {
           ? thread
           : { ...thread, modelId: DEFAULT_MODEL_ID }
       );
-      this.activeThreadId = snapshot.activeThreadId;
+      this.activeThreadId = normalizeActiveThreadId(this.threads, snapshot.activeThreadId);
+      if (!this.activeThreadId) {
+        const thread = createEmptyThread();
+        this.threads = [thread];
+        this.activeThreadId = thread.id;
+      }
     } else {
       // First run / cleared storage: land in one empty untitled thread so the
       // user has somewhere to type. Composer is disabled by hasUsableProvider
       // until a key is configured.
-      const now = Date.now();
-      const id = newId('t');
-      this.threads = [{
-        id,
-        title: 'New conversation',
-        subtitle: '',
-        createdAt: now,
-        updatedAt: now,
-        pinned: false,
-        modelId: DEFAULT_MODEL_ID,
-        messages: [],
-      }];
-      this.activeThreadId = id;
+      const thread = createEmptyThread();
+      this.threads = [thread];
+      this.activeThreadId = thread.id;
     }
     makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
       providers: false,
@@ -295,36 +314,19 @@ export class ChatStore {
     return computeUsage(baseUsed + draftCost, window);
   }
 
-  selectThread(id: string): void {
-    if (this.activeThreadId === id) return;
-    this.ensureThreadModel(id);
-    // Wrap the active-thread mutation in a View Transition when the browser
-    // supports it so the message list cross-fades instead of hard-cutting.
-    // The CSS rule for ::view-transition-* in index.css drives the 180ms
-    // cross-fade; browsers without support fall through to the direct call.
-    const apply = (): void => { this.activeThreadId = id; };
-    const doc = typeof document !== 'undefined'
-      ? (document as Document & { startViewTransition?: (cb: () => void) => unknown })
-      : null;
-    if (doc && typeof doc.startViewTransition === 'function') {
-      doc.startViewTransition(() => runInAction(apply));
-    } else {
-      apply();
-    }
+  selectThread(id: string): boolean {
+    if (this.activeThreadId === id) return true;
+    const thread = this.ensureThreadModel(id);
+    if (!thread || thread.deletedAt != null) return false;
+    // Selection is part of URL synchronization, so it must be synchronous.
+    // Deferring this through View Transitions lets the router briefly see the
+    // old active thread and can bounce the sidebar between conversations.
+    this.activeThreadId = id;
+    return true;
   }
 
   createThread(): string {
-    const now = Date.now();
-    const thread: Thread = {
-      id: newId('t'),
-      title: 'New conversation',
-      subtitle: '',
-      createdAt: now,
-      updatedAt: now,
-      pinned: false,
-      modelId: DEFAULT_MODEL_ID,
-      messages: [],
-    };
+    const thread = createEmptyThread();
     this.threads.unshift(thread);
     this.activeThreadId = thread.id;
     return thread.id;
@@ -379,6 +381,51 @@ export class ChatStore {
     return text.trim();
   }
 
+  notifyImageJobTerminal(job: CompletedJob): void {
+    const thread = this.findThread(job.threadId);
+    if (!thread) return;
+    const terminalKey = imageTerminalKey(job);
+    const alreadyNotified = thread.messages.some(message =>
+      message.role === 'assistant'
+      && message.toolCalls?.some(call =>
+        call.name === 'image_generate_complete'
+        && call.arguments.jobId === job.id
+        && call.arguments.terminalKey === terminalKey
+      )
+    );
+    if (alreadyNotified) return;
+
+    const backend = imageBackendDisplayName(job.backend);
+    const elapsed = formatImageElapsed(job);
+    const message: AssistantMessage = {
+      id: newId('m'),
+      role: 'assistant',
+      content: imageTerminalMessage(job, backend, elapsed),
+      createdAt: Date.now(),
+      model: thread.modelId,
+    };
+
+    const callId = newId('tc');
+    message.toolCalls = [{
+      id: callId,
+      name: 'image_generate_complete',
+      arguments: { jobId: job.id, status: job.status, terminalKey },
+    }];
+    message.toolResults = [{
+      toolCallId: callId,
+      toolName: 'image_generate_complete',
+      content: imageTerminalToolResult(job, backend, elapsed),
+      ranAt: Date.now(),
+      ...(job.status === 'done' && job.results.length > 0
+        ? { artifacts: [{ kind: 'image-job' as const, jobId: job.id, count: job.count }] }
+        : {}),
+    }];
+
+    runInAction(() => {
+      this.appendMessage(job.threadId, message);
+    });
+  }
+
   /**
    * Per-thread context appended to the system prompt under "About this
    * conversation:". Persists with the thread snapshot. No editor UI yet.
@@ -404,8 +451,9 @@ export class ChatStore {
     this.controllersByThread.clear();
     this.textBuffer.cancelAll();
     this.streamingByThread = {};
-    this.threads = [];
-    this.activeThreadId = null;
+    const thread = createEmptyThread();
+    this.threads = [thread];
+    this.activeThreadId = thread.id;
     this.lastError = null;
   }
 
@@ -657,6 +705,7 @@ export class ChatStore {
       }
 
       const collectedCalls: ToolCall[] = [];
+      const collectedUsage: LlmUsage[] = [];
       let errored = false;
       let errorMessage: string | undefined;
       try {
@@ -665,6 +714,8 @@ export class ChatStore {
             this.queueTextChunk(threadId, assistantMessage.id, chunk.delta);
           } else if (chunk.type === 'tool_call') {
             collectedCalls.push(chunk.call);
+          } else if (chunk.type === 'usage') {
+            collectedUsage.push(chunk.usage);
           } else if (chunk.type === 'done') {
             logEvent(thread.id, 'round.done', { round, finishReason: chunk.finishReason, error: chunk.error });
             if (chunk.finishReason === 'error' && chunk.error) {
@@ -683,6 +734,15 @@ export class ChatStore {
         logEvent(thread.id, 'round.exception', { round, error: (err as Error).message, stack: (err as Error).stack });
         errored = true;
         errorMessage = (err as Error).message;
+      }
+
+      if (collectedUsage.length > 0) {
+        runInAction(() => {
+          const m = this.findMessage(threadId, assistantMessage.id);
+          if (m && m.role === 'assistant') {
+            m.usage = [...(m.usage ?? []), ...collectedUsage];
+          }
+        });
       }
 
       if (errored && errorMessage) {
@@ -709,6 +769,10 @@ export class ChatStore {
       // (e.g. "let me check that") so the final stored content is just the
       // model's closing reply. Append calls to the running list and execute.
       this.textBuffer.cancel(assistantMessage.id);
+      if (signal.aborted) {
+        runInAction(() => this.clearStreamingState(threadId));
+        return;
+      }
       runInAction(() => {
         const m = this.findMessage(threadId, assistantMessage.id);
         if (m && m.role === 'assistant') {
@@ -903,19 +967,30 @@ export class ChatStore {
           group.push(calls[index]);
           index += 1;
         }
-        const groupResults = await Promise.all(group.map(call => this.executeOneToolCall(call, threadId)));
+        const groupResults = await Promise.all(group.map(call => this.executeOneToolCall(call, threadId, signal)));
+        if (signal.aborted) break;
         groupResults.forEach((result, offset) => { results[groupStart + offset] = result; });
       } else {
-        results[index] = await this.executeOneToolCall(call, threadId);
+        const result = await this.executeOneToolCall(call, threadId, signal);
+        if (signal.aborted) break;
+        results[index] = result;
         index += 1;
       }
     }
     return results.filter(Boolean);
   }
 
-  private async executeOneToolCall(call: ToolCall, threadId: string): Promise<ToolResult> {
+  private async executeOneToolCall(call: ToolCall, threadId: string, signal: AbortSignal): Promise<ToolResult> {
     const extras = this.toolStoresProvider?.() ?? ({} as ToolStoreContext);
     const startedAt = Date.now();
+    if (signal.aborted) {
+      return {
+        toolCallId: call.id,
+        toolName: call.name,
+        content: 'Cancelled.',
+        ranAt: Date.now(),
+      };
+    }
     const { content, artifacts } = await toolRegistry.execute(call.name, call.arguments, {
       profile: this.profile,
       chat: this,
@@ -927,6 +1002,7 @@ export class ChatStore {
       imageJobs: extras.imageJobs,
       localRuntime: extras.localRuntime,
       threadId,
+      signal,
     });
     if (isToolFailureContent(call.name, content)) {
       logToolCallFailure({
@@ -1005,9 +1081,9 @@ export class ChatStore {
       // Attach the image-job artifact via a synthetic tool-call/result
       // pair so EditorialMessage's existing artifact pipeline picks it up.
       const callId = newId('tc');
-      message.content = snapshot.primary === 'openrouter-image'
-        ? 'Sent to OpenRouter image generation.'
-        : 'Sent to local image generation.';
+      const backendLabel = imageBackendDisplayName(snapshot.primary);
+      const estimate = estimatedImageDuration(snapshot.primary);
+      message.content = `I queued an image through ${backendLabel}. It usually takes ${estimate}; I’ll drop the finished image here when it’s ready.`;
       message.preTokenLabel = undefined;
       message.toolCalls = [{
         id: callId,
@@ -1017,7 +1093,7 @@ export class ChatStore {
       message.toolResults = [{
         toolCallId: callId,
         toolName: 'image_generate',
-        content: `Queued an image render (job ${jobId}).`,
+        content: `Queued an image render through ${backendLabel} (job ${jobId}). Expected time: ${estimate}.`,
         ranAt: Date.now(),
         artifacts: [{ kind: 'image-job', jobId, count }],
       }];
@@ -1062,7 +1138,19 @@ export class ChatStore {
   }
 }
 
-const IMAGE_GEN_ADDENDUM = 'When you call image_generate, treat the tool result as queued, not successful. Do not say the image was generated, completed, or successful just because the tool returned. The inline image-job card is the source of truth for pending, success, failure, cancellation, and failure reason.';
+export function threadLlmSpendUsd(thread: Thread | null): number {
+  if (!thread) return 0;
+  return thread.messages.reduce((sum, message) => {
+    if (message.role !== 'assistant') return sum;
+    return sum + (message.usage ?? []).reduce((inner, usage) => (
+      usage.providerId === 'openrouter' && typeof usage.costUsd === 'number' && Number.isFinite(usage.costUsd)
+        ? inner + usage.costUsd
+        : inner
+    ), 0);
+  }, 0);
+}
+
+const IMAGE_GEN_ADDENDUM = 'When you call image_generate, treat the tool result as queued, not successful. Tell the user the render is queued, name the backend if useful, and set expectation that it may take roughly a minute. Do not say the image was generated, completed, or successful just because the tool returned. The inline image-job card is the source of truth for pending, success, failure, cancellation, and failure reason; the app will post a completion follow-up when the job finishes.';
 
 function appendImageGenAddendum(systemPrompt: string | undefined, tools: { name: string }[] | undefined): string | undefined {
   if (!tools || !tools.some(t => t.name === 'image_generate')) return systemPrompt;
@@ -1074,6 +1162,55 @@ function isImageGenerationAvailable(extras: ToolStoreContext | undefined): boole
     extras?.imageGen?.getCredential('openrouter-image')
     || extras?.localRuntime?.comfyReady,
   );
+}
+
+function imageBackendDisplayName(backend: ImageBackendId): string {
+  return backend === 'openrouter-image'
+    ? 'OpenRouter GPT-5.4 Image 2'
+    : 'local ComfyUI';
+}
+
+function estimatedImageDuration(backend: ImageBackendId): string {
+  return backend === 'openrouter-image'
+    ? 'about 30-90 seconds'
+    : 'about 10-60 seconds';
+}
+
+function formatImageElapsed(job: CompletedJob): string {
+  if (!job.startedAt || !job.completedAt || job.completedAt <= job.startedAt) return '';
+  const seconds = Math.max(1, Math.round((job.completedAt - job.startedAt) / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest ? `${minutes}m ${rest}s` : `${minutes}m`;
+}
+
+function imageTerminalMessage(job: CompletedJob, backend: string, elapsed: string): string {
+  const elapsedPart = elapsed ? ` in ${elapsed}` : '';
+  if (job.status === 'done') {
+    const count = job.results.length;
+    const noun = count === 1 ? 'image is' : `${count} images are`;
+    return `Here ${count === 1 ? 'it is' : 'they are'} — your ${noun} ready from ${backend}${elapsedPart}.`;
+  }
+  if (job.status === 'cancelled') {
+    return `The image render through ${backend} was cancelled${elapsedPart}.`;
+  }
+  const detail = job.error ? ` ${job.error}` : '';
+  return `The image render through ${backend} failed${elapsedPart}.${detail}`;
+}
+
+function imageTerminalToolResult(job: CompletedJob, backend: string, elapsed: string): string {
+  if (job.status === 'done') {
+    return `Image render completed through ${backend}${elapsed ? ` in ${elapsed}` : ''}.`;
+  }
+  if (job.status === 'cancelled') {
+    return `Image render cancelled through ${backend}${elapsed ? ` after ${elapsed}` : ''}.`;
+  }
+  return `Image render failed through ${backend}${elapsed ? ` after ${elapsed}` : ''}: ${job.error ?? 'Unknown error'}`;
+}
+
+function imageTerminalKey(job: CompletedJob): string {
+  return `${job.id}:${job.status}:${job.completedAt ?? 0}:${job.results.length}:${job.error ?? ''}`;
 }
 
 function latestUserMessageContent(thread: Thread): string {

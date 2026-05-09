@@ -8,6 +8,7 @@ import {
 import type { ImageJobInput } from '../../src/services/image/jobs/types';
 import type { GenerateImageRequest, GenerateImageResult } from '../../src/services/image/types';
 import type { ImageBackendConfig } from '../../src/services/image/imageBackend';
+import { IMAGE_JOBS_KEY } from '../../src/services/imageJobsStorage';
 import { clearAppStorage } from '../helpers/storage';
 
 const INPUT: ImageJobInput = {
@@ -104,12 +105,51 @@ describe('ImageJobStore (queue management)', () => {
     expect(store.history.find(j => j.id === jobId)?.status).toBe('cancelled');
   });
 
+  it('retry preserves the local ComfyUI mode override', () => {
+    const store = new ImageJobStore(pendingDispatcherDeps());
+    const { jobId } = store.enqueue({ ...INPUT, comfyMode: 'upscale' });
+    store.cancel(jobId);
+
+    store.retry(jobId);
+
+    expect(store.findById(jobId)?.comfyMode).toBe('upscale');
+  });
+
   it('history rehydrates from localStorage on next construction', () => {
     const store = new ImageJobStore(pendingDispatcherDeps());
     const { jobId } = store.enqueue(INPUT);
     store.cancel(jobId);
     const store2 = new ImageJobStore();
     expect(store2.history.find(j => j.id === jobId)?.status).toBe('cancelled');
+  });
+
+  it('rehydrates interrupted active and queued jobs as retryable failures', () => {
+    localStorage.setItem(IMAGE_JOBS_KEY, JSON.stringify({
+      history: [],
+      active: {
+        ...INPUT,
+        id: 'running-job',
+        status: 'running',
+        results: [],
+        createdAt: 1,
+        startedAt: 2,
+      },
+      queue: [{
+        ...INPUT,
+        id: 'queued-job',
+        status: 'pending',
+        results: [],
+        createdAt: 3,
+      }],
+    }));
+
+    const store = new ImageJobStore();
+
+    expect(store.history.map(j => [j.id, j.status])).toEqual([
+      ['running-job', 'failed'],
+      ['queued-job', 'failed'],
+    ]);
+    expect(store.history[0].error).toContain('app restarted');
   });
 
   it('delete() removes a job from history', () => {
@@ -332,6 +372,66 @@ describe('ImageJobStore (runner)', () => {
     expect(job?.status).toBe('done');
     expect(job?.results[0]).toMatch(/^\/workspace\/artifacts\/images\/api\/nebula-city-\d{8}-\d{9}-1\.png$/);
     expect(writes[0]).toBe(job?.results[0]);
+  });
+
+  it('tracks provider image costs per thread', async () => {
+    const deps = makeDeps({
+      imageGen: {
+        comfyWorkflowPath: undefined,
+        toBackendConfig: () => ({
+          primary: 'openrouter-image',
+          openRouterApiKey: 'sk-or-test',
+        }),
+      },
+      dispatcher: async (req: GenerateImageRequest) => ({
+        result: {
+          base64: 'AAAA',
+          mime: 'image/png',
+          width: req.width,
+          height: req.height,
+          seed: req.seed,
+          endpoint: 'mock',
+          backend: 'openrouter-image',
+          costUsd: 0.015,
+        } as GenerateImageResult,
+      }),
+    });
+    const store = new ImageJobStore(deps);
+    const { jobId } = store.enqueue({ ...INPUT, backend: 'openrouter-image', count: 2 });
+    for (let i = 0; i < 10; i++) await flushMicrotasks();
+
+    expect(store.history.find(j => j.id === jobId)?.costUsd).toBeCloseTo(0.03);
+    expect(store.threadCostUsd('t1')).toBeCloseTo(0.03);
+  });
+
+  it('notifies when a job reaches a terminal state', async () => {
+    const terminal: string[] = [];
+    const store = new ImageJobStore(makeDeps({
+      onTerminal: job => terminal.push(`${job.id}:${job.status}:${job.results.length}`),
+    }));
+    const { jobId } = store.enqueue(INPUT);
+    for (let i = 0; i < 10; i++) await flushMicrotasks();
+
+    expect(terminal).toEqual([`${jobId}:done:1`]);
+  });
+
+  it('isolates terminal notification failures from queue completion', async () => {
+    const store = new ImageJobStore(makeDeps({
+      onTerminal: () => { throw new Error('notification boom'); },
+    }));
+    const { jobId } = store.enqueue(INPUT);
+    for (let i = 0; i < 10; i++) await flushMicrotasks();
+
+    expect(store.history.find(j => j.id === jobId)?.status).toBe('done');
+  });
+
+  it('does not notify chat for silent batch jobs', async () => {
+    const terminal = vi.fn();
+    const store = new ImageJobStore(makeDeps({ onTerminal: terminal }));
+    store.enqueue({ ...INPUT, notifyOnTerminal: false });
+    for (let i = 0; i < 10; i++) await flushMicrotasks();
+
+    expect(terminal).not.toHaveBeenCalled();
   });
 
   it('failed dispatch lands the job in history with status=failed', async () => {

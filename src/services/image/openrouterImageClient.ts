@@ -72,6 +72,7 @@ export class OpenRouterImageClient implements ImageBackend {
       const text = extractAssistantText(payload);
       throw new Error(`OpenRouter returned no generated image${text ? `: ${text}` : '.'}`);
     }
+    const costUsd = extractUsageCost(payload);
 
     return {
       base64: image.base64,
@@ -81,6 +82,7 @@ export class OpenRouterImageClient implements ImageBackend {
       width: req.width,
       height: req.height,
       seed: req.seed,
+      ...(costUsd !== undefined ? { costUsd } : {}),
     };
   }
 }
@@ -136,6 +138,12 @@ function extractAssistantText(value: unknown): string {
       .slice(0, 300);
   }
   return '';
+}
+
+function extractUsageCost(value: unknown): number | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const cost = (value as { usage?: { cost?: unknown } }).usage?.cost;
+  return typeof cost === 'number' && Number.isFinite(cost) ? cost : undefined;
 }
 
 function aspectRatioForRequest(req: GenerateImageRequest): string {

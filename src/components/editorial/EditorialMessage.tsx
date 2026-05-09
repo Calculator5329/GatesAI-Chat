@@ -134,16 +134,7 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
       return job?.status === 'pending' || job?.status === 'running';
     }) ?? false
   ));
-  const hasUnsuccessfulImageJob = !isUser && results.some(result => (
-    result.artifacts?.some(artifact => {
-      if (artifact.kind !== 'image-job') return false;
-      const job = imageJobs.findById(artifact.jobId);
-      return job?.status === 'failed'
-        || job?.status === 'cancelled'
-        || (job?.status === 'done' && job.results.length === 0);
-    }) ?? false
-  ));
-  const shouldHideAssistantTextForImageJob = hasContent && (hasLoadingImageJob || hasUnsuccessfulImageJob);
+  const shouldHideAssistantTextForImageJob = false;
 
   useEffect(() => {
     if (copyState === 'idle') return;
@@ -255,7 +246,7 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
           <MarkdownBody content={message.content} />
         ) : streaming ? (
           <ThinkingIndicator label={
-            imageJobs.active
+            hasLoadingImageJob
               ? 'generating'
               : (preTokenLabel ?? message.preTokenLabel ?? 'thinking')
           } />
@@ -312,12 +303,9 @@ const MarkdownChunk = memo(function MarkdownChunk({ content, bridge }: MarkdownC
   if (needsHighlight && !highlightPlugin) ensureHighlight();
   if (needsKatex && !katexPlugin) ensureKatex();
 
-  const rehypePlugins = useMemo<PluggableList>(() => {
-    const list: PluggableList = [];
-    if (needsHighlight && highlightPlugin) list.push(highlightPlugin);
-    if (needsKatex && katexPlugin) list.push(katexPlugin);
-    return list;
-  }, [needsHighlight, needsKatex, highlightPlugin, katexPlugin]);
+  const rehypePlugins: PluggableList = [];
+  if (needsHighlight && highlightPlugin) rehypePlugins.push(highlightPlugin);
+  if (needsKatex && katexPlugin) rehypePlugins.push(katexPlugin);
 
   return (
     <ReactMarkdown

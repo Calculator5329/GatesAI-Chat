@@ -207,6 +207,7 @@ describe('image_generate tool', () => {
         seed: 1000,
         filenamePrefix: 'night-run-portrait-001',
         backend: 'openrouter-image',
+        notifyOnTerminal: false,
       }),
       expect.objectContaining({
         prompt: 'portrait prompt two',
@@ -216,6 +217,7 @@ describe('image_generate tool', () => {
         seed: 2000,
         filenamePrefix: 'night-run-portrait-prompt-two',
         backend: 'openrouter-image',
+        notifyOnTerminal: false,
       }),
     ]);
   });

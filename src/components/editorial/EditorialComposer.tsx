@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type ClipboardEvent, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
-import { useBridgeStore, useChatStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
+import { useBridgeStore, useChatStore, useImageJobStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
+import { threadLlmSpendUsd } from '../../stores/ChatStore';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
-import { DEFAULT_RESERVED_REPLY_TOKENS } from '../../core/tokens';
 import { ModelPopover } from './ModelPopover';
 import { WorkspaceImage } from './WorkspaceImage';
 
@@ -15,6 +15,7 @@ const SUPPORTS_FIELD_SIZING = typeof CSS !== 'undefined'
   && CSS.supports('field-sizing', 'content');
 
 const DRAFT_FLUSH_MS = 120;
+const PASTED_IMAGE_NAME_PREFIX = 'pasted-image';
 
 const ATTACH_BTN_STYLE: CSSProperties = {
   width: 28, height: 28, borderRadius: 6,
@@ -211,6 +212,13 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     if (e.dataTransfer.files.length > 0) void ui.uploadFiles(e.dataTransfer.files, bridge);
   };
 
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = imageFilesFromClipboard(e.clipboardData);
+    if (files.length === 0) return;
+    e.preventDefault();
+    void ui.uploadFiles(files, bridge);
+  };
+
   const onStop = () => {
     chat.stopStreaming();
   };
@@ -341,6 +349,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             onChange={e => onDraftChange(e.target.value)}
             onBlur={flushDraft}
             onKeyDown={onKeyDown}
+            onPaste={onPaste}
             placeholder="Continue the thought…"
             rows={1}
             style={textareaStyle}
@@ -414,11 +423,11 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
 const ContextMeter = observer(function ContextMeter() {
   const chat = useChatStore();
   const ui = useUiStore();
-  const registry = useModelRegistry();
+  const imageJobs = useImageJobStore();
   const usage = chat.tokenUsage(ui.draft);
-  const model = registry.findById(chat.activeThread?.modelId ?? '');
-  const pricing = model?.pricing ?? findHydratedPricing(registry.all, model);
-  const cost = estimateRunningCost(usage.used, pricing);
+  const llmSpend = threadLlmSpendUsd(chat.activeThread);
+  const imageSpend = imageJobs.threadCostUsd(chat.activeThreadId);
+  const totalSpend = llmSpend + imageSpend;
 
   const tone = usage.fraction >= 0.9
     ? 'var(--text)' : usage.fraction >= 0.75
@@ -429,7 +438,7 @@ const ContextMeter = observer(function ContextMeter() {
 
   return (
     <div
-      title={`${formatTokens(usage.used)} of ${formatTokens(usage.window)} tokens used (estimated)`}
+      title={`${formatTokens(usage.used)} of ${formatTokens(usage.window)} tokens used (estimated)${totalSpend > 0 ? `; spent ${formatUsd(totalSpend)} in this chat` : ''}`}
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
         fontFamily: '"Geist Mono", monospace',
@@ -452,16 +461,16 @@ const ContextMeter = observer(function ContextMeter() {
         }} />
       </div>
       <span>{formatTokens(usage.used)} / {formatTokens(usage.window)}</span>
-      {cost && (
+      {totalSpend > 0 && (
         <span
-          title="Estimated cost if sent now"
+          title={`Spent in this chat: ${formatUsd(totalSpend)} (${formatUsd(llmSpend)} LLM, ${formatUsd(imageSpend)} images)`}
           style={{
-            color: 'var(--text-faint)',
-            opacity: 0.72,
+            color: 'var(--accent)',
+            opacity: 0.9,
             fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {cost}
+          spent {formatUsd(totalSpend)}
         </span>
       )}
     </div>
@@ -542,41 +551,45 @@ function hasImageAttachment(attachments: { mime: string }[]): boolean {
   return attachments.some(a => isImageMime(a.mime));
 }
 
+function imageFilesFromClipboard(data: DataTransfer): File[] {
+  const files: File[] = [];
+  for (const item of Array.from(data.items)) {
+    if (item.kind !== 'file' || !item.type.startsWith('image/')) continue;
+    const file = item.getAsFile();
+    if (!file) continue;
+    files.push(normalizePastedImageFile(file, files.length));
+  }
+  return files;
+}
+
+function normalizePastedImageFile(file: File, index: number): File {
+  if (file.name && file.name.trim()) return file;
+  const extension = extensionForImageMime(file.type);
+  const suffix = index > 0 ? `-${index + 1}` : '';
+  return new File([file], `${PASTED_IMAGE_NAME_PREFIX}-${timestampForPasteName()}${suffix}${extension}`, {
+    type: file.type || 'image/png',
+    lastModified: Date.now(),
+  });
+}
+
+function extensionForImageMime(mime: string): string {
+  if (mime === 'image/jpeg') return '.jpg';
+  if (mime === 'image/webp') return '.webp';
+  if (mime === 'image/gif') return '.gif';
+  return '.png';
+}
+
+function timestampForPasteName(): string {
+  const d = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
 function formatTokens(n: number): string {
   if (n < 1000) return `${n}`;
   if (n < 100_000) return `${(n / 1000).toFixed(1)}k`;
   if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
   return `${(n / 1_000_000).toFixed(1)}M`;
-}
-
-function estimateRunningCost(
-  usedTokens: number,
-  pricing?: { prompt?: number; completion?: number },
-): string | null {
-  if (!pricing?.prompt && !pricing?.completion) return null;
-  const reservedOutput = Math.min(DEFAULT_RESERVED_REPLY_TOKENS, Math.max(0, usedTokens));
-  const promptTokens = Math.max(0, usedTokens - reservedOutput);
-  const inputCost = pricing.prompt ? (promptTokens * pricing.prompt) / 1_000_000 : 0;
-  const outputCost = pricing.completion ? (reservedOutput * pricing.completion) / 1_000_000 : 0;
-  const total = inputCost + outputCost;
-  if (!Number.isFinite(total) || total <= 0) return null;
-  return `~${formatUsd(total)}`;
-}
-
-function findHydratedPricing(
-  models: Array<{
-    providerId: string;
-    providerModelId: string;
-    pricing?: { prompt?: number; completion?: number };
-  }>,
-  model: { providerId: string; providerModelId: string } | undefined,
-): { prompt?: number; completion?: number } | undefined {
-  if (!model) return undefined;
-  return models.find(candidate =>
-    candidate.providerId === model.providerId
-    && candidate.providerModelId === model.providerModelId
-    && (candidate.pricing?.prompt != null || candidate.pricing?.completion != null)
-  )?.pricing;
 }
 
 function formatUsd(value: number): string {

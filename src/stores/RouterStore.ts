@@ -24,12 +24,14 @@ export class RouterStore {
   }
 
   goThread(threadId: string | null): void {
+    if (this.route.kind === 'thread' && this.route.threadId === threadId) return;
     const next: Route = { kind: 'thread', threadId };
     this.route = next;
     writeRoute(next);
   }
 
   goMenu(section: MenuSectionKey = 'settings'): void {
+    if (this.route.kind === 'menu' && this.route.section === section) return;
     const next: Route = { kind: 'menu', section };
     this.route = next;
     writeRoute(next);

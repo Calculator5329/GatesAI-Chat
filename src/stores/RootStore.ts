@@ -53,6 +53,22 @@ export class RootStore {
         toolsEnabled: this.ollama.config.toolsEnabled,
       },
     }));
+    let attemptedOpenRouterCatalogHydrationForKey: string | null = null;
+    autorun(() => {
+      const key = this.providers.getConfig('openrouter').apiKey;
+      if (!key) {
+        attemptedOpenRouterCatalogHydrationForKey = null;
+        return;
+      }
+      if (
+        attemptedOpenRouterCatalogHydrationForKey !== key
+        && this.openrouter.count === 0
+        && !this.openrouter.fetching
+      ) {
+        attemptedOpenRouterCatalogHydrationForKey = key;
+        void this.openrouter.refresh();
+      }
+    });
     this.chat = new ChatStore(this.providers, this.registry, this.profile);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
@@ -62,6 +78,7 @@ export class RootStore {
     this.imageJobs = new ImageJobStore({
       bridge: this.bridge,
       imageGen: this.imageGen,
+      onTerminal: job => this.chat.notifyImageJobTerminal(job),
     });
 
     // Cross-thread awareness: ChatStore asks SummaryStore for the digest
@@ -115,9 +132,13 @@ export class RootStore {
       if (this.router.route.kind !== 'thread') return;
       const id = this.router.route.threadId;
       if (id && this.chat.threads.some(t => t.id === id)) {
-        if (this.chat.activeThreadId !== id) this.chat.selectThread(id);
+        if (this.chat.activeThreadId !== id && !this.chat.selectThread(id) && this.chat.activeThreadId) {
+          this.router.goThread(this.chat.activeThreadId);
+        }
       } else if (!id && this.chat.activeThreadId) {
         // bare `#/` → reflect current active thread back into the URL
+        this.router.goThread(this.chat.activeThreadId);
+      } else if (id && this.chat.activeThreadId) {
         this.router.goThread(this.chat.activeThreadId);
       }
     });

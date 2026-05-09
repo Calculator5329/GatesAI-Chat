@@ -46,7 +46,16 @@ export class ModelRegistry {
 
   findById(id: string | undefined): Model | undefined {
     if (!id) return undefined;
-    return this.all.find(m => m.id === id);
+    const direct = this.all.find(m => m.id === id);
+    if (direct) return direct;
+
+    const curated = this.curated.find(m => m.id === id);
+    if (!curated) return undefined;
+    const hydrated = this.dynamic.find(m =>
+      m.providerId === curated.providerId
+      && m.providerModelId === curated.providerModelId
+    );
+    return hydrated ? { ...curated, ...hydrated, id: curated.id } : curated;
   }
 
   byProvider(): Record<ProviderId, Model[]> {

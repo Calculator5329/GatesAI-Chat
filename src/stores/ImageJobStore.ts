@@ -15,11 +15,12 @@ import type { ImageBackendId } from '../services/image/types';
 import { bytesToBase64, comfySettingsForMode, safeText } from '../services/image/types';
 import {
   clearImageJobsHistory,
-  loadImageJobsHistory,
-  saveImageJobsHistory,
+  loadImageJobsSnapshot,
+  saveImageJobsSnapshot,
 } from '../services/imageJobsStorage';
 
 const HISTORY_LIMIT = 200;
+const RESTARTED_JOB_ERROR = 'The app restarted before this image render completed. Retry the job to run it again.';
 
 interface BridgeRequestFacade {
   request<T = unknown>(op: string, data: unknown): Promise<T>;
@@ -40,6 +41,8 @@ export type ImageDispatcher = typeof dispatchImageGenerate;
 export interface ImageJobStoreDeps {
   bridge: ImageJobBridgeFacade;
   imageGen: ImageJobImageGenFacade;
+  /** Called after a job enters history; used by ChatStore for thread-safe completion notes. */
+  onTerminal?: (job: CompletedJob) => void;
   /** Injectable for tests; defaults to the real dispatcher. */
   dispatcher?: ImageDispatcher;
   /** Injectable for tests; defaults to global fetch. */
@@ -77,14 +80,19 @@ export class ImageJobStore {
 
   constructor(deps?: ImageJobStoreDeps) {
     this.deps = deps;
-    this.history = loadImageJobsHistory();
+    const snapshot = loadImageJobsSnapshot();
+    this.history = recoverInterruptedJobs(snapshot.history, snapshot.active, snapshot.queue);
     makeAutoObservable<this, 'idCounter' | 'inflight' | 'deps'>(this, {
       idCounter: false,
       inflight: false,
       deps: false,
     });
     autorun(() => {
-      saveImageJobsHistory(toJS(this.history));
+      saveImageJobsSnapshot({
+        history: toJS(this.history),
+        queue: toJS(this.queue),
+        active: this.active ? toJS(this.active) : null,
+      });
     });
   }
 
@@ -125,6 +133,18 @@ export class ImageJobStore {
     return this.history.find(j => j.id === jobId) ?? null;
   }
 
+  threadCostUsd(threadId: string | null | undefined): number {
+    if (!threadId) return 0;
+    const fromActive = this.active?.threadId === threadId ? this.active.costUsd ?? 0 : 0;
+    const fromQueue = this.queue.reduce((sum, job) => (
+      job.threadId === threadId ? sum + (job.costUsd ?? 0) : sum
+    ), 0);
+    const fromHistory = this.history.reduce((sum, job) => (
+      job.threadId === threadId ? sum + (job.costUsd ?? 0) : sum
+    ), 0);
+    return fromActive + fromQueue + fromHistory;
+  }
+
   delete(jobId: string): void {
     runInAction(() => {
       this.history = this.history.filter(j => j.id !== jobId);
@@ -153,6 +173,7 @@ export class ImageJobStore {
       height: old.height,
       seed: old.seed,
       backend: old.backend,
+      comfyMode: old.comfyMode,
       filenamePrefix: old.filenamePrefix,
       status: 'pending',
       results: [],
@@ -307,6 +328,9 @@ export class ImageJobStore {
           throw new Error('backend returned neither url nor base64');
         }
         runInAction(() => {
+          if (typeof result.costUsd === 'number' && Number.isFinite(result.costUsd)) {
+            job.costUsd = (job.costUsd ?? 0) + result.costUsd;
+          }
           job.results.push(recordedPath);
           // Advance the cumulative bar to the iteration boundary so it
           // doesn't sit at the previous fraction during the gap between
@@ -341,21 +365,46 @@ export class ImageJobStore {
   }
 
   private moveToHistory(job: ImageJob, finalStatus: 'done' | 'failed' | 'cancelled'): void {
+    const completed: CompletedJob = {
+      ...toJS(job),
+      status: finalStatus,
+      completedAt: job.completedAt ?? Date.now(),
+      progress: undefined,
+    };
     runInAction(() => {
-      const completed: CompletedJob = {
-        ...toJS(job),
-        status: finalStatus,
-        completedAt: job.completedAt ?? Date.now(),
-        progress: undefined,
-      };
       this.history = [completed, ...this.history].slice(0, HISTORY_LIMIT);
     });
+    if (completed.notifyOnTerminal !== false) {
+      try {
+        this.deps?.onTerminal?.(completed);
+      } catch (err) {
+        console.warn('[image-jobs] terminal notification failed', err);
+      }
+    }
   }
 
   private nextId(): string {
     this.idCounter++;
     return `imgjob-${Date.now().toString(36)}-${this.idCounter.toString(36)}`;
   }
+}
+
+function recoverInterruptedJobs(
+  history: CompletedJob[],
+  active?: ImageJob | null,
+  queue: ImageJob[] = [],
+): CompletedJob[] {
+  const interrupted = [active, ...queue].filter(Boolean) as ImageJob[];
+  if (interrupted.length === 0) return history;
+  const now = Date.now();
+  const failed = interrupted.map(job => ({
+    ...job,
+    status: 'failed' as const,
+    error: job.error ?? RESTARTED_JOB_ERROR,
+    completedAt: now,
+    progress: undefined,
+  }));
+  return [...failed, ...history].slice(0, HISTORY_LIMIT);
 }
 
 async function loadComfyWorkflow(

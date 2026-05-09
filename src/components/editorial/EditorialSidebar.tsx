@@ -114,7 +114,10 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         key={t.id}
         className="editorial-sidebar__item"
         style={(S.item as (a: boolean) => CSSProperties)(active)}
-        onClick={() => router.goThread(t.id)}
+        onClick={() => {
+          chat.selectThread(t.id);
+          router.goThread(t.id);
+        }}
         onMouseEnter={() => setHoveredId(t.id)}
         onMouseLeave={() => setHoveredId(prev => (prev === t.id ? null : prev))}
       >

@@ -29,6 +29,19 @@ describe('OpenRouterImageClient', () => {
     await expect(client.generate({ prompt: 'x' })).rejects.toThrow(/no generated image: I could not create that image/i);
   });
 
+  it('returns OpenRouter usage cost when present', async () => {
+    const fakeFetch: typeof fetch = async () => new Response(JSON.stringify({
+      usage: { cost: 0.045 },
+      choices: [{ message: { images: [{ image_url: { url: 'data:image/png;base64,aGVsbG8=' } }] } }],
+    }), { status: 200 });
+    const client = new OpenRouterImageClient({ apiKey: 'sk-or-test', fetch: fakeFetch });
+
+    await expect(client.generate({ prompt: 'x' })).resolves.toMatchObject({
+      base64: 'aGVsbG8=',
+      costUsd: 0.045,
+    });
+  });
+
   it('surfaces HTTP failures', async () => {
     const fakeFetch: typeof fetch = async () => new Response('bad request', { status: 400, statusText: 'Bad Request' });
     const client = new OpenRouterImageClient({ apiKey: 'sk-or-test', fetch: fakeFetch });

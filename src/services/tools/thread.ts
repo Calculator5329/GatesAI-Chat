@@ -102,12 +102,16 @@ export const threadTool: Tool = {
         if (typeof args.id !== 'string' || !args.id) return 'Error: `id` is required for switch_to.';
         const thread = ctx.chat.threads.find(t => t.id === args.id);
         if (!thread) return `Error: no thread with id "${args.id}".`;
-        ctx.chat.selectThread(args.id);
+        if (thread.deletedAt != null) return `Error: thread "${args.id}" is deleted. Restore it before switching to it.`;
+        if (!ctx.chat.selectThread(args.id)) return `Error: could not switch to thread "${args.id}".`;
         return `Switched active thread to ${args.id} ("${thread.title}").`;
       }
       case 'list': {
         const limit = typeof args.limit === 'number' && args.limit > 0 ? Math.floor(args.limit) : 10;
-        const sorted = [...ctx.chat.threads].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, limit);
+        const sorted = ctx.chat.threads
+          .filter(t => t.deletedAt == null)
+          .sort((a, b) => b.updatedAt - a.updatedAt)
+          .slice(0, limit);
         if (sorted.length === 0) return 'No threads.';
         return sorted.map(formatThreadLine).join('\n');
       }

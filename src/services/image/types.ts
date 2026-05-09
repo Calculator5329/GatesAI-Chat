@@ -44,6 +44,8 @@ export interface GenerateImageResult {
   endpoint: string;
   /** Which backend produced this image. */
   backend: ImageBackendId;
+  /** Provider-reported charge for this render, when available. */
+  costUsd?: number;
 }
 
 export type ImageBackendId =

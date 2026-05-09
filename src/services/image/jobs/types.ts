@@ -18,6 +18,8 @@ export interface ImageJobInput {
    * (e.g. ComfyUI's `SaveImage.filename_prefix`). Cloud backends ignore it.
    */
   filenamePrefix?: string;
+  /** Whether the chat should post a terminal follow-up when this job ends. */
+  notifyOnTerminal?: boolean;
 }
 
 export interface ImageJob extends ImageJobInput {
@@ -32,6 +34,8 @@ export interface ImageJob extends ImageJobInput {
    * / Gallery branch on `startsWith('http')`.
    */
   results: string[];
+  /** Sum of provider-reported charges for this job, when available. */
+  costUsd?: number;
   error?: string;
   createdAt: number;
   startedAt?: number;
@@ -39,9 +43,9 @@ export interface ImageJob extends ImageJobInput {
 }
 
 /**
- * Subset of {@link ImageJob} that survives across app restarts. Pending /
- * running jobs are dropped on save — only terminal states (done, failed,
- * cancelled) make it to disk.
+ * Subset of {@link ImageJob} that survives in history across app restarts.
+ * Queued / running jobs are also snapshotted by the store so a reload can
+ * mark them as retryable failures instead of losing the chat card entirely.
  */
 export interface CompletedJob extends ImageJob {
   status: 'done' | 'failed' | 'cancelled';

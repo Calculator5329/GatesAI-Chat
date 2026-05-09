@@ -1,4 +1,4 @@
-import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, ProviderId, ToolCall, ToolDef } from '../../core/llm';
+import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ProviderId, ToolCall, ToolDef } from '../../core/llm';
 import { safeJsonObject } from './json';
 import { ensureOk, parseSse } from './sse';
 
@@ -25,10 +25,19 @@ interface ChatChoiceDelta {
 }
 
 interface ChatChunk {
+  model?: string;
+  usage?: OpenRouterUsage;
   choices?: Array<{
     delta?: ChatChoiceDelta;
     finish_reason?: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null;
   }>;
+}
+
+interface OpenRouterUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  cost?: number;
 }
 
 /**
@@ -128,6 +137,11 @@ export class OpenAiCompatProvider implements LlmProvider {
         if (data === '[DONE]') break;
         let chunk: ChatChunk;
         try { chunk = JSON.parse(data) as ChatChunk; } catch { continue; }
+        const usage = parseProviderUsage(chunk.usage, {
+          providerId: this.id,
+          modelId: chunk.model ?? req.modelId,
+        });
+        if (usage) yield { type: 'usage', usage };
         const choice = chunk.choices?.[0];
 
         const textDelta = choice?.delta?.content;
@@ -171,6 +185,32 @@ export class OpenAiCompatProvider implements LlmProvider {
   protected normalizeMessages(req: LlmRequest): LlmMessage[] {
     return req.messages;
   }
+}
+
+function parseProviderUsage(
+  usage: OpenRouterUsage | undefined,
+  context: Pick<LlmUsage, 'providerId' | 'modelId'>,
+): LlmUsage | null {
+  if (!usage || typeof usage !== 'object') return null;
+  const parsed: LlmUsage = { ...context };
+  if (typeof usage.prompt_tokens === 'number' && Number.isFinite(usage.prompt_tokens)) {
+    parsed.promptTokens = usage.prompt_tokens;
+  }
+  if (typeof usage.completion_tokens === 'number' && Number.isFinite(usage.completion_tokens)) {
+    parsed.completionTokens = usage.completion_tokens;
+  }
+  if (typeof usage.total_tokens === 'number' && Number.isFinite(usage.total_tokens)) {
+    parsed.totalTokens = usage.total_tokens;
+  }
+  if (typeof usage.cost === 'number' && Number.isFinite(usage.cost)) {
+    parsed.costUsd = usage.cost;
+  }
+  return parsed.promptTokens != null
+    || parsed.completionTokens != null
+    || parsed.totalTokens != null
+    || parsed.costUsd != null
+    ? parsed
+    : null;
 }
 
 function toOpenAiTool(t: ToolDef): { type: 'function'; function: { name: string; description: string; parameters: unknown } } {

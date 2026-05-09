@@ -134,7 +134,9 @@ describe('thread tool', () => {
         if (t) t.threadContext = ctx;
       },
       selectThread(id: string) {
-        if (threads.some(x => x.id === id)) (this as { activeThreadId: string }).activeThreadId = id;
+        if (!threads.some(x => x.id === id)) return false;
+        (this as { activeThreadId: string }).activeThreadId = id;
+        return true;
       },
     };
   }
@@ -196,6 +198,17 @@ describe('thread tool', () => {
     const out = await threadTool.execute({ action: 'switch_to', id: 't2' }, ctx);
     expect(out).toContain('Switched active thread to t2');
     expect(chat.activeThreadId).toBe('t2');
+  });
+
+  it('switch_to: rejects deleted threads', async () => {
+    const threads = [thread('t1'), thread('t2', { deletedAt: Date.now() })];
+    const chat = fakeChatStore(threads);
+    const ctx = makeCtx({ chat });
+
+    const out = await threadTool.execute({ action: 'switch_to', id: 't2' }, ctx);
+
+    expect(out).toMatch(/deleted/);
+    expect(chat.activeThreadId).toBe('t1');
   });
 
   it('list: returns recently-updated threads', async () => {

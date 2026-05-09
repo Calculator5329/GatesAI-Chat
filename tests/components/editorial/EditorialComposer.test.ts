@@ -1,7 +1,7 @@
 import { act, createElement, createRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { runInAction } from 'mobx';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StoreProvider } from '../../../src/stores/context';
 import { ChatStore } from '../../../src/stores/ChatStore';
 import { ProviderStore } from '../../../src/stores/ProviderStore';
@@ -12,6 +12,7 @@ import { RouterStore } from '../../../src/stores/RouterStore';
 import { BridgeStore } from '../../../src/stores/BridgeStore';
 import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
 import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
+import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { EditorialComposer } from '../../../src/components/editorial/EditorialComposer';
 import type { RootStore } from '../../../src/stores/RootStore';
 import { clearAppStorage } from '../../helpers/storage';
@@ -33,6 +34,7 @@ function buildStore(): RootStore {
   const bridge = new BridgeStore();
   const execStream = new ExecStreamStore();
   const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
+  const imageJobs = new ImageJobStore();
   return {
     registry,
     providers,
@@ -43,6 +45,7 @@ function buildStore(): RootStore {
     bridge,
     execStream,
     localRuntime,
+    imageJobs,
   } as RootStore;
 }
 
@@ -183,21 +186,79 @@ describe('EditorialComposer API-key banner', () => {
     expect(sendWrapper!.style.cursor).toBe('pointer');
   });
 
-  it('shows a running cost estimate from a hydrated matching OpenRouter model', () => {
+  it('does not show the gray estimated-send cost', () => {
     store = buildStore();
     store.providers.setKey('openrouter', 'sk-test');
-    store.registry.setDynamicForProvider('openrouter', [{
-      id: 'google/gemini-3-flash-preview',
-      name: 'Gemini 3 Flash',
-      vendor: 'Google',
-      providerId: 'openrouter',
-      providerModelId: 'google/gemini-3-flash-preview',
-      contextLength: 128000,
-      pricing: { prompt: 0.5, completion: 3 },
-      dynamic: true,
-    }]);
     const rendered = render(store);
 
-    expect(rendered.textContent).toMatch(/~\$\d/);
+    expect(rendered.textContent).not.toMatch(/~\$/);
+    expect(rendered.querySelector('[title="Estimated cost if sent now"]')).toBeNull();
+  });
+
+  it('keeps the green spent amount when the chat has recorded spend', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    runInAction(() => {
+      store!.chat.activeThread!.messages.push({
+        id: 'a-cost',
+        role: 'assistant',
+        content: 'done',
+        createdAt: Date.now(),
+        usage: [{
+          providerId: 'openrouter',
+          modelId: 'google/gemini-3-flash-preview',
+          promptTokens: 100,
+          completionTokens: 20,
+          totalTokens: 120,
+          costUsd: 0.0042,
+        }],
+      });
+    });
+    const rendered = render(store);
+
+    expect(rendered.textContent).toContain('spent $0.004');
+    expect(rendered.textContent).not.toMatch(/~\$/);
+  });
+
+  it('uploads pasted clipboard images as attachments', async () => {
+    store = buildStore();
+    runInAction(() => {
+      store!.bridge.state = 'online';
+    });
+    const upload = vi.fn(async (file: File) => ({
+      id: 'att-paste',
+      filename: file.name,
+      path: `/workspace/attachments/${file.name}`,
+      size: file.size,
+      mime: file.type,
+    }));
+    store.bridge.uploadAttachment = upload;
+    const rendered = render(store);
+    const textarea = rendered.querySelector('textarea')!;
+    const image = new File(['pixels'], '', { type: 'image/png' });
+    const text = new File(['hello'], 'note.txt', { type: 'text/plain' });
+    const event = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'clipboardData', {
+      value: {
+        items: [
+          { kind: 'file', type: 'image/png', getAsFile: () => image },
+          { kind: 'file', type: 'text/plain', getAsFile: () => text },
+        ],
+      },
+    });
+
+    await act(async () => {
+      textarea.dispatchEvent(event);
+      await flush(5);
+    });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(upload).toHaveBeenCalledTimes(1);
+    const pasted = upload.mock.calls[0][0] as File;
+    expect(pasted.name).toMatch(/^pasted-image-\d{8}-\d{6}\.png$/);
+    expect(store.ui.attachments[0]).toMatchObject({
+      filename: pasted.name,
+      mime: 'image/png',
+    });
   });
 });

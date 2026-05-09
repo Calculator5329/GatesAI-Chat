@@ -88,6 +88,16 @@ export interface LlmRequest {
   threadId?: string;
 }
 
+export interface LlmUsage {
+  providerId?: ProviderId;
+  modelId?: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  /** Provider-reported charge. OpenRouter reports this as account credits. */
+  costUsd?: number;
+}
+
 /**
  * A single streamed update from the provider.
  *
@@ -100,6 +110,7 @@ export interface LlmRequest {
 export type LlmChunk =
   | { type: 'text'; delta: string }
   | { type: 'tool_call'; call: ToolCall }
+  | { type: 'usage'; usage: LlmUsage }
   | { type: 'done'; finishReason?: 'stop' | 'length' | 'tool_use' | 'cancelled' | 'error'; error?: string };
 
 export interface LlmProvider {
