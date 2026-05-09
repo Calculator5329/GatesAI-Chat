@@ -1,11 +1,9 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { observer } from 'mobx-react-lite';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
-import rehypeHighlight from 'rehype-highlight';
-import rehypeKatex from 'rehype-katex';
-import 'katex/dist/katex.min.css';
+import type { PluggableList } from 'unified';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
 import type { AssistantMessage, Message } from '../../core/types';
 import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
@@ -18,6 +16,59 @@ import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCop
 import { WorkspaceImage } from './WorkspaceImage';
 import { ImageJobCard } from './ImageJobCard';
 import { splitMarkdownChunks } from './markdownChunks';
+
+/**
+ * Lazy plugin loader for the heavy rehype plugins. `rehype-highlight` pulls
+ * highlight.js (~120KB) and `rehype-katex` pulls katex (~56KB) plus its CSS
+ * and font assets. Most messages have no code fences or math, so we only
+ * load these when content actually needs them, then notify subscribed
+ * MarkdownChunks to re-render with the new plugin set.
+ *
+ * Until each plugin is loaded, markdown still renders correctly — code blocks
+ * just appear unstyled, and math renders as raw \\(...\\) text. The plugin
+ * promise is kicked off on first detection and cached forever.
+ */
+type RehypePlugin = PluggableList[number];
+let highlightPlugin: RehypePlugin | null = null;
+let highlightLoading: Promise<void> | null = null;
+let katexPlugin: RehypePlugin | null = null;
+let katexLoading: Promise<void> | null = null;
+let pluginVersion = 0;
+const pluginListeners = new Set<() => void>();
+
+function subscribePlugins(listener: () => void) {
+  pluginListeners.add(listener);
+  return () => { pluginListeners.delete(listener); };
+}
+function getPluginVersion() { return pluginVersion; }
+function bumpPluginVersion() {
+  pluginVersion += 1;
+  for (const l of pluginListeners) l();
+}
+
+function ensureHighlight() {
+  if (highlightPlugin || highlightLoading) return;
+  highlightLoading = import('rehype-highlight').then(mod => {
+    highlightPlugin = mod.default as RehypePlugin;
+    bumpPluginVersion();
+  }).catch(() => { /* swallow — markdown still renders without highlight */ });
+}
+
+function ensureKatex() {
+  if (katexPlugin || katexLoading) return;
+  katexLoading = Promise.all([
+    import('rehype-katex'),
+    import('katex/dist/katex.min.css'),
+  ]).then(([mod]) => {
+    katexPlugin = [mod.default, { throwOnError: false, strict: 'ignore' }] as RehypePlugin;
+    bumpPluginVersion();
+  }).catch(() => { /* swallow */ });
+}
+
+const HAS_CODE_FENCE = (s: string) => s.includes('```');
+// Inline `$...$` (single-line, non-empty) or LaTeX-style \( \[ delimiters.
+const MATH_RE = /\$[^$\n]+\$|\\\(|\\\[/;
+const HAS_MATH = (s: string) => MATH_RE.test(s);
 
 interface MessageProps {
   message: Message;
@@ -250,10 +301,27 @@ interface MarkdownChunkProps {
  * triggers re-renders in practice.
  */
 const MarkdownChunk = memo(function MarkdownChunk({ content, bridge }: MarkdownChunkProps) {
+  // Subscribe to plugin-loaded events so chunks needing a not-yet-loaded
+  // plugin re-render once it lands. The version itself is unused; we just
+  // need useSyncExternalStore to fire on bumpPluginVersion().
+  useSyncExternalStore(subscribePlugins, getPluginVersion, getPluginVersion);
+
+  const needsHighlight = HAS_CODE_FENCE(content);
+  const needsKatex = HAS_MATH(content);
+  if (needsHighlight && !highlightPlugin) ensureHighlight();
+  if (needsKatex && !katexPlugin) ensureKatex();
+
+  const rehypePlugins = useMemo<PluggableList>(() => {
+    const list: PluggableList = [];
+    if (needsHighlight && highlightPlugin) list.push(highlightPlugin);
+    if (needsKatex && katexPlugin) list.push(katexPlugin);
+    return list;
+  }, [needsHighlight, needsKatex, highlightPlugin, katexPlugin]);
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
-      rehypePlugins={[rehypeHighlight, [rehypeKatex, { throwOnError: false, strict: 'ignore' }]]}
+      rehypePlugins={rehypePlugins}
       components={{
         code: (props) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
         a: (props) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,

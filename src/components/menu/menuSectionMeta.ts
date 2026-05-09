@@ -1,11 +1,15 @@
-import type { ComponentType } from 'react';
+import { lazy, type ComponentType } from 'react';
 import type { MenuSectionKey } from '../../core/types';
 import { AgentSection } from './sections/Agent';
 import { WorkspaceSection } from './sections/Workspace';
 import { SettingsSection } from './sections/Settings';
-import { LocalSection } from './sections/Local';
 import { ApiSection } from './sections/api/ApiSection';
 import { GallerySection } from './sections/Gallery';
+
+// Local is the image-gen / runtime panel — heavy and off the critical path.
+// Lazy-load so the initial bundle stays lean; users only pay the cost when
+// they navigate to the Local tab.
+const LocalSection = lazy(() => import('./sections/Local').then(m => ({ default: m.LocalSection })));
 
 export interface MenuSectionMeta {
   key: MenuSectionKey;

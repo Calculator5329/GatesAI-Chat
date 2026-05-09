@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useRouterStore } from '../../stores/context';
 import { MENU_SECTIONS } from './menuSectionMeta';
@@ -62,7 +63,9 @@ export const GatesMenu = observer(function GatesMenu() {
       </div>
       <div className="gates-menu__body" style={{ flex: 1, overflowY: 'auto', padding: '32px 56px 60px' }}>
         <div className="gates-menu__inner" style={{ maxWidth: 720, margin: '0 auto' }}>
-          <ActiveSection />
+          <Suspense fallback={null}>
+            <ActiveSection />
+          </Suspense>
         </div>
       </div>
     </div>
