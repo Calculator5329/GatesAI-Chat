@@ -58,7 +58,7 @@ export class OpenAiCompatProvider implements LlmProvider {
   }
 
   ready(): boolean {
-    return this.id === 'local' ? true : Boolean(this.apiKey);
+    return Boolean(this.apiKey);
   }
 
   async *stream(req: LlmRequest, signal: AbortSignal): AsyncIterable<LlmChunk> {

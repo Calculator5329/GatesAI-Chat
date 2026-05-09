@@ -8,7 +8,7 @@ import type { LlmRouter } from '../../src/services/llm';
  * MobX reactions a chance to settle between yields.
  */
 export class MockProvider implements LlmProvider {
-  readonly id: ProviderId = 'openai';
+  readonly id: ProviderId = 'openrouter';
   calls: LlmRequest[] = [];
   abortedAt: number | null = null;
 

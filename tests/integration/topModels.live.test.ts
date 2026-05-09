@@ -6,7 +6,6 @@
  * These tests hit real provider APIs — they cost (a tiny amount of) money
  * and require network. Excluded from `npm run test`. Run on demand:
  *
- *   ANTHROPIC_API_KEY=...  OPENAI_API_KEY=...  GEMINI_API_KEY=...  \
  *   OPENROUTER_API_KEY=... npm run test:models
  *
  * Cases without their corresponding key set are skipped (not failed) so
@@ -19,18 +18,10 @@ import type { Model } from '../../src/core/types';
 import { MODELS } from '../../src/core/models';
 
 const KEYS = {
-  anthropic:  process.env.ANTHROPIC_API_KEY,
-  openai:     process.env.OPENAI_API_KEY,
-  // Accept either common name. Google's docs use GOOGLE_API_KEY; the
-  // Gemini quickstart uses GEMINI_API_KEY. Either works.
-  gemini:     process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY,
   openrouter: process.env.OPENROUTER_API_KEY,
 };
 
 const CONFIGS: ProviderConfigs = {
-  ...(KEYS.anthropic  ? { anthropic:  { apiKey: KEYS.anthropic  } } : {}),
-  ...(KEYS.openai     ? { openai:     { apiKey: KEYS.openai     } } : {}),
-  ...(KEYS.gemini     ? { gemini:     { apiKey: KEYS.gemini     } } : {}),
   ...(KEYS.openrouter ? { openrouter: { apiKey: KEYS.openrouter } } : {}),
 };
 
@@ -51,17 +42,6 @@ interface Case {
 }
 
 const CASES: Case[] = [
-  // Anthropic direct
-  { modelId: 'claude-opus-4.7',          requires: 'anthropic',  label: 'Claude Opus 4.7 (direct)' },
-  { modelId: 'claude-sonnet-4.6',        requires: 'anthropic',  label: 'Claude Sonnet 4.6 (direct)' },
-  // OpenAI direct
-  { modelId: 'gpt-5.5-pro',              requires: 'openai',     label: 'GPT-5.5 Pro (direct)' },
-  { modelId: 'gpt-5.5',                  requires: 'openai',     label: 'GPT-5.5 (direct)' },
-  // Gemini direct
-  { modelId: 'gemini-3.1-pro',           requires: 'gemini',     label: 'Gemini 3.1 Pro (direct)' },
-  { modelId: 'gemini-3-flash',           requires: 'gemini',     label: 'Gemini 3 Flash (direct)' },
-  // OpenRouter fallbacks — full coverage so a single OPENROUTER_API_KEY can
-  // exercise every top model end-to-end through the OR-compat path.
   { modelId: 'or-claude-opus-4.7',       requires: 'openrouter', label: 'Claude Opus 4.7 (via OR)' },
   { modelId: 'or-claude-sonnet-4.6',     requires: 'openrouter', label: 'Claude Sonnet 4.6 (via OR)' },
   { modelId: 'or-gpt-5.5-pro',           requires: 'openrouter', label: 'GPT-5.5 Pro (via OR)' },

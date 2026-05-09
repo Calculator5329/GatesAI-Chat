@@ -113,7 +113,7 @@ describe('EditorialComposer API-key banner', () => {
     expect(sendWrapper!.style.cursor).toBe('default');
 
     // Live transition: add a key after mount.
-    act(() => store!.providers.setKey('openai', 'sk-test'));
+    act(() => store!.providers.setKey('openrouter', 'sk-test'));
     await flush(2);
 
     // Post-condition: banner gone, send enabled.

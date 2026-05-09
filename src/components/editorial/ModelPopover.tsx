@@ -44,10 +44,9 @@ const META: Record<string, ModelMeta> = {
   'or-gpt-5.5-pro':        { tag: 'GPT-5.5 Pro via OpenRouter',       capabilities: ['vision', 'tools', 'reasoning'] },
   'or-gemini-3.1-pro':     { tag: 'Gemini 3.1 Pro via OpenRouter',    capabilities: ['vision', 'tools', 'reasoning'] },
   'or-gemini-3.1-flash-lite': { tag: 'Gemini 3.1 Flash Lite via OpenRouter', capabilities: ['vision', 'fast'] },
-  'local-default':         { tag: 'Whatever you have running',        capabilities: ['fast'] },
 };
 
-const VENDOR_ORDER = ['Anthropic', 'OpenAI', 'Google', 'Groq', 'OpenRouter', 'Local'] as const;
+const VENDOR_ORDER = ['OpenRouter', 'Local image', 'Ollama'] as const;
 const OR_CATALOG_GROUP = 'OpenRouter Catalog';
 
 function VendorMark({ vendor, size = 12 }: { vendor: string; size?: number }) {

@@ -39,38 +39,27 @@ export interface ModelCatalog {
 
 export class LlmRouter {
   private providers: Record<ProviderId, LlmProvider>;
-  private configs: ProviderConfigs;
   private readonly registry: ModelCatalog;
-  /**
-   * `'direct'` (default): try the model's direct provider first, fall back to
-   * OpenRouter. `'openrouter'`: prefer OpenRouter whenever a slug is mappable
-   * and OR is configured, even if the direct key works. Set by
-   * `ProviderStore` from the user's routing preference.
-   */
-  private defaultProvider: 'direct' | 'openrouter' = 'direct';
 
   constructor(registry: ModelCatalog, configs: ProviderConfigs = {}) {
     this.registry = registry;
-    this.configs = configs;
     this.providers = buildProviders(configs);
   }
 
   /** Hot-swap configs (e.g. when the user pastes a new key). */
   updateConfigs(configs: ProviderConfigs): void {
-    this.configs = configs;
     this.providers = buildProviders(configs);
   }
 
-  setDefaultProvider(value: 'direct' | 'openrouter'): void {
-    this.defaultProvider = value;
+  setDefaultProvider(_value: 'direct' | 'openrouter'): void {
+    // Kept as a no-op so old store wiring and persisted routing settings do
+    // not matter in the simplified OpenRouter-first foundation.
   }
 
   /**
-   * Whether any provider is configured by the user. This does NOT
-   * just check `provider.ready()` — `LocalProvider` is "ready" with a default
-   * baseUrl baked in, but we treat local as configured only when the user has
-   * explicitly set their own baseUrl. Other providers count as configured iff
-   * they have an API key.
+   * Whether any provider is configured by the user. OpenRouter counts when it
+   * has an API key; Ollama counts only after a catalog refresh proves at least
+   * one local model is reachable.
    *
    * When false, the UI must prevent sending — there's nothing real to route to.
    */
@@ -89,12 +78,6 @@ export class LlmRouter {
   }
 
   /**
-   * Resolve the right provider for a model id. The chain is:
-   *   1. Direct provider for the model, if it has a key.
-   *   2. OpenRouter, if the user has an OR key and we can map this model to
-   *      an OR slug (covers the BYOK-only-OpenRouter case — they pick Claude
-   *      direct, we transparently route through OR).
-   *
    * Throws `NoProviderConfiguredError` if neither path is available.
    */
   resolve(modelId: string): { provider: LlmProvider; providerModelId: string } {
@@ -116,14 +99,9 @@ export class LlmRouter {
   }
 
   /**
-   * Resolve an OpenRouter fallback for the given model id, even when the
-   * direct provider has a key. Returns null if there is no OR slug or the
-   * OR provider isn't configured. Used by `ChatStore` for runtime retry
-   * when a direct call errors out before producing any text.
+   * Direct-provider fallback is retired in the foundation build.
    */
-  resolveOpenRouterFallback(modelId: string): { provider: LlmProvider; providerModelId: string } | null {
-    const model = this.registry.findById(modelId);
-    if (!model) return null;
+  resolveOpenRouterFallback(_modelId: string): { provider: LlmProvider; providerModelId: string } | null {
     return null;
   }
 }

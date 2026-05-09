@@ -26,9 +26,8 @@ describe('isImageAspectRatio', () => {
 });
 
 describe('isLocalImageBackend', () => {
-  it('returns true for known local backends', () => {
+  it('returns true for the supported local backend', () => {
     expect(isLocalImageBackend('local-comfy')).toBe(true);
-    expect(isLocalImageBackend('local-a1111')).toBe(true);
   });
 });
 

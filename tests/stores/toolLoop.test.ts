@@ -14,7 +14,7 @@ import { clearAppStorage } from '../helpers/storage';
  * output.
  */
 class ScriptedProvider {
-  readonly id = 'openai' as const;
+  readonly id = 'openrouter' as const;
   readonly script: Array<Array<import('../../src/core/llm').LlmChunk>>;
   readonly calls: Array<import('../../src/core/llm').LlmRequest> = [];
   cursor = 0;

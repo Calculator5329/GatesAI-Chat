@@ -28,9 +28,8 @@ function fakeBridge(opts: { online: boolean; requests?: FakeRequest[]; files?: R
 }
 
 function fakeImageGen(opts: {
-  backend?: 'local-comfy' | 'local-a1111';
+  backend?: 'local-comfy';
   comfyBaseUrl?: string;
-  a1111BaseUrl?: string;
 } = {}): ToolContext['imageGen'] {
   const backend = opts.backend ?? 'local-comfy';
   return {
@@ -40,7 +39,6 @@ function fakeImageGen(opts: {
     toBackendConfig: () => ({
       primary: backend,
       comfyBaseUrl: opts.comfyBaseUrl,
-      a1111BaseUrl: opts.a1111BaseUrl,
     }),
   };
 }

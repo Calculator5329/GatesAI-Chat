@@ -6,13 +6,10 @@ describe('ImageGenStore', () => {
   beforeEach(() => clearAppStorage());
   afterEach(() => clearAppStorage());
 
-  it('keeps prompt enhancement off unless the user opts in', () => {
+  it('produces a ComfyUI-only backend snapshot', () => {
     const store = new ImageGenStore();
 
-    expect(store.toBackendConfig().promptEnhancement).toBe('off');
-
-    store.setPromptEnhancement('llm');
-    expect(store.toBackendConfig().promptEnhancement).toBe('llm');
+    expect(store.toBackendConfig().primary).toBe('local-comfy');
   });
 
   it('passes the ComfyUI upscale factor through the backend snapshot', () => {

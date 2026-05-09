@@ -196,7 +196,7 @@ describe('ChatStore', () => {
   it('tokenUsage includes the composed system prompt and reserved reply budget', () => {
     const { chat, profile } = setup();
     const id = chat.createThread();
-    chat.setThreadModel(id, 'local-default');
+    chat.setThreadModel(id, 'or-gpt-5.4-mini');
     profile.setDefaultSystemPrompt('x'.repeat(40_000));
 
     const usage = chat.tokenUsage('');
@@ -240,8 +240,8 @@ describe('ChatStore', () => {
       { type: 'done', finishReason: 'stop' },
     ]);
     const id = chat.createThread();
-    chat.setThreadModel(id, 'local-default');
-    profile.setDefaultSystemPrompt('z'.repeat(80_000));
+    chat.setThreadModel(id, 'or-gpt-5.4-mini');
+    profile.setDefaultSystemPrompt('z'.repeat(600_000));
 
     chat.sendMessage('hi');
     await flush(20);
@@ -259,9 +259,9 @@ describe('ChatStore', () => {
       { type: 'done', finishReason: 'stop' },
     ]);
     const id = chat.createThread();
-    chat.setThreadModel(id, 'local-default');
+    chat.setThreadModel(id, 'or-gpt-5.4-mini');
     const unavailableProvider: LlmProvider = {
-      id: 'openai',
+      id: 'openrouter',
       ready: () => false,
       async *stream() { /* never called */ },
     };
@@ -269,7 +269,7 @@ describe('ChatStore', () => {
       resolve: (modelId: string) => { provider: LlmProvider; providerModelId: string };
     };
     router.resolve = (modelId: string) => {
-      if (modelId === 'local-default') return { provider: mock, providerModelId: modelId };
+      if (modelId === 'or-gpt-5.4-mini') return { provider: mock, providerModelId: modelId };
       return { provider: unavailableProvider, providerModelId: modelId };
     };
     runInAction(() => {
@@ -288,7 +288,7 @@ describe('ChatStore', () => {
         toolResults: [{
           toolCallId: 'call-big',
           toolName: 'fs',
-          content: 'path: /workspace/artifacts/huge.json\n' + 'd'.repeat(80_000),
+          content: 'path: /workspace/artifacts/huge.json\n' + 'd'.repeat(400_000),
           ranAt: Date.now(),
         }],
       });
@@ -312,12 +312,12 @@ describe('ChatStore', () => {
     ]);
     const compactModelIds: string[] = [];
     const unavailableProvider: LlmProvider = {
-      id: 'openai',
+      id: 'openrouter',
       ready: () => false,
       async *stream() { /* never called */ },
     };
     const compactorProvider: LlmProvider = {
-      id: 'openai',
+      id: 'openrouter',
       ready: () => true,
       async *stream(req: LlmRequest) {
         compactModelIds.push(req.modelId);
@@ -329,13 +329,13 @@ describe('ChatStore', () => {
       resolve: (modelId: string) => { provider: LlmProvider; providerModelId: string };
     };
     router.resolve = (modelId: string) => {
-      if (modelId === 'gpt-5.4-mini') return { provider: compactorProvider, providerModelId: 'gpt-5.4-mini' };
+      if (modelId === 'or-gpt-5.4-mini') return { provider: compactorProvider, providerModelId: 'or-gpt-5.4-mini' };
       if (modelId === chat.activeThread?.modelId) return { provider: mock, providerModelId: modelId };
       return { provider: unavailableProvider, providerModelId: modelId };
     };
 
     const id = chat.createThread();
-    chat.setThreadModel(id, 'local-default');
+    chat.setThreadModel(id, 'or-gpt-5.4-mini');
     runInAction(() => {
       chat.activeThread!.messages.push({
         id: 'u-cheap-compact',
@@ -352,7 +352,7 @@ describe('ChatStore', () => {
         toolResults: [{
           toolCallId: 'call-cheap',
           toolName: 'fs',
-          content: 'path: /workspace/artifacts/huge.json\n' + 'e'.repeat(80_000),
+          content: 'path: /workspace/artifacts/huge.json\n' + 'e'.repeat(400_000),
           ranAt: Date.now(),
         }],
       });
@@ -361,7 +361,7 @@ describe('ChatStore', () => {
     chat.sendMessage('continue');
     await flush(100);
 
-    expect(compactModelIds).toEqual(['gpt-5.4-mini']);
+    expect(compactModelIds).toEqual(['or-gpt-5.4-mini']);
     expect(mock.calls).toHaveLength(1);
     const compacted = chat.activeThread!.messages.find(m => m.id === 'a-cheap-compact');
     if (compacted?.role !== 'assistant') throw new Error('expected assistant');

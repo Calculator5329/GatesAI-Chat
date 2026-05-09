@@ -33,7 +33,7 @@ function buildStore(section: MenuSectionKey = 'appearance'): { store: RootStore;
   const providers = new ProviderStore(registry);
   const openrouter = new OpenRouterStore(registry);
   const ui = new UiStore();
-  const imageGen = new ImageGenStore(undefined, providers);
+  const imageGen = new ImageGenStore();
   const chat = { threads: [] };
   const store = { router, profile, providers, registry, openrouter, ui, imageGen, chat } as unknown as RootStore;
   return { store, router };
@@ -86,15 +86,14 @@ describe('GatesMenu tab strip', () => {
     expect(profileTab?.style.opacity).toBe('1');
   });
 
-  it('renders live routing controls while spend cap remains a placeholder', () => {
+  it('renders only the OpenRouter API key surface', () => {
     const { store } = buildStore('api');
     const rendered = renderMenu(store);
 
-    expect(rendered.textContent).toContain('Routing');
-    expect(rendered.textContent).toContain('Coming soon');
-    const liveSelect = rendered.querySelector('select:not(:disabled)') as HTMLSelectElement | null;
-    expect(liveSelect).not.toBeNull();
-    const disabledInput = rendered.querySelector('input:disabled') as HTMLInputElement | null;
-    expect(disabledInput).not.toBeNull();
+    expect(rendered.textContent).toContain('OpenRouter');
+    expect(rendered.textContent).not.toContain('Routing');
+    expect(rendered.textContent).not.toContain('Coming soon');
+    expect(rendered.textContent).not.toContain('Anthropic');
+    expect(rendered.textContent).not.toContain('OpenAI');
   });
 });
