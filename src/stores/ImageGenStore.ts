@@ -42,6 +42,10 @@ export class ImageGenStore {
     return this.config.backend;
   }
 
+  get effectiveBackend(): ImageBackendId {
+    return this.resolveEffectiveBackend();
+  }
+
   get comfyWorkflowPath(): string | undefined {
     return this.config.comfyWorkflowPath;
   }
@@ -87,11 +91,25 @@ export class ImageGenStore {
    */
   toBackendConfig(): Omit<ImageBackendConfig, 'comfyWorkflowTemplate' | 'fetch'> {
     return {
-      primary: this.config.backend,
+      primary: this.resolveEffectiveBackend(),
       comfyBaseUrl: this.localRuntime?.comfyBaseUrl,
       comfyQualityPreset: this.config.comfyQualityPreset ?? 'full',
       comfyUpscaleFactor: this.config.comfyUpscaleFactor ?? 1,
       openRouterApiKey: this.getOpenRouterKey(),
     };
+  }
+
+  private resolveEffectiveBackend(): ImageBackendId {
+    const configured = this.config.backend;
+    const openRouterReady = !!this.getOpenRouterKey()?.trim();
+    const comfyReady = this.localRuntime?.runtimes.comfyui.status === 'online';
+
+    if (configured === 'local-comfy' && !comfyReady && openRouterReady) {
+      return 'openrouter-image';
+    }
+    if (configured === 'openrouter-image' && !openRouterReady && comfyReady) {
+      return 'local-comfy';
+    }
+    return configured;
   }
 }

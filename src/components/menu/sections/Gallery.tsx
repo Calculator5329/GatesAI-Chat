@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import { useBridgeStore, useImageJobStore } from '../../../stores/context';
-import type { BridgeStore } from '../../../stores/BridgeStore';
 import type { CompletedJob } from '../../../services/image/jobs/types';
 import { Button } from '../../ui';
 import { Lightbox } from '../../editorial/Lightbox';
+import { loadImageSource } from '../../editorial/useImageDataUrl';
 
 interface LightboxState {
   paths: string[];
@@ -17,6 +17,10 @@ export const GallerySection = observer(function GallerySection() {
   const jobs = useImageJobStore();
   const completed = jobs.history.filter(j => j.status === 'done' && j.results.length > 0) as CompletedJob[];
   const imageCount = completed.reduce((sum, job) => sum + job.results.length, 0);
+  const tiles = useMemo(
+    () => completed.flatMap(job => job.results.map((path, index) => ({ job, path, index }))),
+    [completed],
+  );
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
 
   return (
@@ -42,16 +46,16 @@ export const GallerySection = observer(function GallerySection() {
       {completed.length === 0
         ? <EmptyState />
         : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
-            {completed.flatMap(job => job.results.map((path, i) => (
+          <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+            {tiles.map(({ job, path, index }) => (
               <GalleryTile
-                key={`${job.id}-${i}`}
+                key={`${job.id}-${index}`}
                 path={path}
                 prompt={job.prompt}
-                onClick={() => setLightbox({ paths: job.results, index: i, prompt: job.prompt })}
+                onClick={() => setLightbox({ paths: job.results, index, prompt: job.prompt })}
                 onDelete={() => jobs.delete(job.id)}
               />
-            )))}
+            ))}
           </div>
         )}
 
@@ -78,8 +82,8 @@ function EmptyState() {
         No images yet
       </div>
       <div style={{ lineHeight: 1.55, maxWidth: 420, margin: '0 auto' }}>
-        Pick the favorite <strong style={{ color: 'var(--text-dim)' }}>Normal image — Flux 2 Klein</strong> model
-        or ask the assistant to render an image. Finished images are kept here and saved under{' '}
+        Ask the assistant to generate an image, or use <strong style={{ color: 'var(--text-dim)' }}>image_generate</strong>{' '}
+        with the configured backend. Finished images are kept here and saved under{' '}
         <code style={tokens.mono}>/workspace/artifacts</code>.
       </div>
     </div>
@@ -93,11 +97,17 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
   onDelete: () => void;
 }) {
   const bridge = useBridgeStore();
-  const [dataUrl, setDataUrl] = useState<string | null>(() => cache.get(path) ?? null);
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
 
   useEffect(() => {
+    setDataUrl(null);
+    loadedRef.current = false;
+  }, [path]);
+
+  useEffect(() => {
+    let cancelled = false;
     if (dataUrl) { loadedRef.current = true; return; }
     const el = ref.current;
     if (!el) return;
@@ -107,13 +117,18 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
         if (entries[0]?.isIntersecting && !loadedRef.current) {
           loadedRef.current = true;
           observer.disconnect();
-          void loadImage(bridge, path).then(url => { if (url) setDataUrl(url); });
+          void loadImageSource(bridge, path).then(url => {
+            if (!cancelled && url) setDataUrl(url);
+          });
         }
       },
       { rootMargin: '200px' },
     );
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
   }, [bridge, path, dataUrl]);
 
   return (
@@ -155,40 +170,3 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
     </div>
   );
 });
-
-const cache = new Map<string, string>();
-
-async function loadImage(bridge: BridgeStore, path: string): Promise<string | null> {
-  if (/^https?:\/\//i.test(path)) return loadHostedImage(path);
-  const cached = cache.get(path);
-  if (cached) return cached;
-  const result = await bridge.readAttachmentBase64(path);
-  if (!result) return null;
-  const url = `data:${result.mime};base64,${result.base64}`;
-  cache.set(path, url);
-  return url;
-}
-
-async function loadHostedImage(url: string): Promise<string | null> {
-  const cached = cache.get(url);
-  if (cached) return cached;
-  try {
-    const resp = await fetch(url);
-    if (!resp.ok) return null;
-    const mime = resp.headers.get('content-type')?.split(';')[0] || 'image/png';
-    const dataUrl = `data:${mime};base64,${bytesToBase64(new Uint8Array(await resp.arrayBuffer()))}`;
-    cache.set(url, dataUrl);
-    return dataUrl;
-  } catch {
-    return null;
-  }
-}
-
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
-}

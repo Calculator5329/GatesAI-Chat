@@ -7,7 +7,7 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
-import type { Message } from '../../core/types';
+import type { AssistantMessage, Message } from '../../core/types';
 import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
 import { isWorkspacePath } from '../../core/workspacePaths';
 import { ToolCallView, ToolResultView } from '../ui';
@@ -28,6 +28,8 @@ interface MessageProps {
 type CopyState = 'idle' | 'hint' | 'copied' | 'failed';
 
 let copyHintSeen = false;
+const EMPTY_TOOL_CALLS: NonNullable<AssistantMessage['toolCalls']> = [];
+const EMPTY_TOOL_RESULTS: NonNullable<AssistantMessage['toolResults']> = [];
 
 /**
  * One message = one user turn or one assistant turn (which may include
@@ -63,8 +65,8 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
     ? `You${when ? ' · ' + when : ''}`
     : `${modelName ?? 'Assistant'}${when ? ' · ' + when : ''}`;
 
-  const calls = !isUser ? message.toolCalls ?? [] : [];
-  const results = !isUser ? message.toolResults ?? [] : [];
+  const calls = !isUser ? message.toolCalls ?? EMPTY_TOOL_CALLS : EMPTY_TOOL_CALLS;
+  const results = !isUser ? message.toolResults ?? EMPTY_TOOL_RESULTS : EMPTY_TOOL_RESULTS;
   const resultByCallId = useMemo(
     () => new Map(results.map(r => [r.toolCallId, r])),
     [results],
@@ -72,6 +74,14 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
   const hasContent = message.content.trim().length > 0;
   const hasCalls = calls.length > 0;
   const userContent = isUser && message.role === 'user' ? resolveUserAttachments(message) : null;
+  const hasLoadingImageJob = !isUser && results.some(result => (
+    result.artifacts?.some(artifact => {
+      if (artifact.kind !== 'image-job') return false;
+      const job = imageJobs.findById(artifact.jobId);
+      return job?.status === 'pending' || job?.status === 'running';
+    }) ?? false
+  ));
+  const shouldDelayAssistantText = hasContent && hasLoadingImageJob;
 
   useEffect(() => {
     if (copyState === 'idle') return;
@@ -172,6 +182,8 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
       }}>
         {isUser ? (
           <UserMessageContent body={userContent?.body ?? message.content} attachments={userContent?.attachments ?? []} />
+        ) : shouldDelayAssistantText ? (
+          null
         ) : hasContent && streaming ? (
           <>
             <MarkdownBody content={message.content} />

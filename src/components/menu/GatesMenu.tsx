@@ -21,13 +21,13 @@ export const GatesMenu = observer(function GatesMenu() {
   const ActiveSection = (meta?.supported ? meta.component : null) ?? fallback;
 
   return (
-    <div style={{
+    <div className="gates-menu" style={{
       display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0,
       background: 'var(--bg)', color: 'var(--text)',
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
       animation: 'fadeIn 0.18s ease',
     }}>
-      <div style={{
+      <div className="gates-menu__tabs" style={{
         display: 'flex', alignItems: 'flex-end', gap: 2,
         padding: '22px 56px 0',
         borderBottom: '1px solid var(--border)',
@@ -60,8 +60,8 @@ export const GatesMenu = observer(function GatesMenu() {
           );
         })}
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '32px 56px 60px' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      <div className="gates-menu__body" style={{ flex: 1, overflowY: 'auto', padding: '32px 56px 60px' }}>
+        <div className="gates-menu__inner" style={{ maxWidth: 720, margin: '0 auto' }}>
           <ActiveSection />
         </div>
       </div>

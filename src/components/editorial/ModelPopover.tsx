@@ -3,7 +3,7 @@ import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
 import { Icons } from '../ui/icons';
 import { useLocalRuntimeStore, useModelRegistry } from '../../stores/context';
-import { buildModelMenuSections } from '../../core/modelMenu';
+import { buildModelMenuSections, type ModelMenuSection } from '../../core/modelMenu';
 
 interface ModelPopoverProps {
   currentModelId: string | undefined;
@@ -18,6 +18,9 @@ interface ModelMeta {
   costLabel?: '$' | '$$' | '$$$' | 'LOCAL';
   starred?: boolean;
 }
+
+const BROWSE_SECTION_LIMIT = 6;
+const SEARCH_RESULT_LIMIT = 80;
 
 const META: Record<string, ModelMeta> = {
   'or-gemini-3-flash':     { tag: 'Vision · fast',                    capabilities: ['vision', 'fast'], costLabel: '$', starred: true },
@@ -270,7 +273,16 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     return buildModelMenuSections(filtered);
   }, [filtered]);
 
-  const flat = useMemo(() => grouped.flatMap(g => g.models), [grouped]);
+  const displayGrouped = useMemo(() => {
+    return limitModelSections(grouped, query);
+  }, [grouped, query]);
+  const flat = useMemo(() => displayGrouped.flatMap(g => g.models), [displayGrouped]);
+  const flatIndexById = useMemo(() => new Map(flat.map((m, index) => [m.id, index])), [flat]);
+  const hiddenCount = filtered.length - flat.length;
+
+  useEffect(() => {
+    setActiveIdx(i => Math.min(i, Math.max(0, flat.length - 1)));
+  }, [flat.length]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowDown') {
@@ -295,6 +307,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   return (
     <div
       ref={ref}
+      className="model-popover"
       onKeyDown={onKeyDown}
       style={{
         position: 'absolute', bottom: 'calc(100% + 8px)', left: 0,
@@ -336,7 +349,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       </div>
 
       <div style={{ overflowY: 'auto', flex: 1, paddingBottom: 6 }}>
-        {grouped.length === 0 && (
+        {displayGrouped.length === 0 && (
           <div style={{
             padding: '24px 16px', textAlign: 'center',
             color: 'var(--text-faint)', fontSize: 12,
@@ -346,7 +359,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
             No models match “{query}”.
           </div>
         )}
-        {grouped.map(({ title, models }) => (
+        {displayGrouped.map(({ title, models }) => (
           <div key={title}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
@@ -371,7 +384,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
             </div>
             {models.map(m => {
               const meta = META[m.id] ?? META_BY_PROVIDER_MODEL_ID[m.providerModelId] ?? null;
-              const flatIdx = flat.findIndex(x => x.id === m.id);
+              const flatIdx = flatIndexById.get(m.id) ?? -1;
               const disabledReason = disabledReasonForModel(m, localRuntime.comfyReady);
               return (
                 <ModelRow
@@ -388,6 +401,21 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
             })}
           </div>
         ))}
+        {hiddenCount > 0 && (
+          <div style={{
+            padding: '10px 16px 12px',
+            color: 'var(--text-faint)',
+            fontSize: 11,
+            lineHeight: 1.4,
+            fontStyle: 'italic',
+            fontFamily: '"Source Serif 4", Georgia, serif',
+            borderTop: '1px solid var(--border)',
+          }}>
+            {query.trim()
+              ? `Showing the first ${flat.length} matches. Refine search to narrow ${hiddenCount} more.`
+              : `Showing favorites and top models. Search to find all ${filtered.length}.`}
+          </div>
+        )}
       </div>
 
       <div style={{
@@ -404,11 +432,33 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
           <span><Kbd>↵</Kbd> select</span>
           <span><Kbd>esc</Kbd> close</span>
         </span>
-        <span>{flat.length} models</span>
+        <span>{hiddenCount > 0 ? `${flat.length} of ${filtered.length}` : flat.length} models</span>
       </div>
     </div>
   );
 });
+
+function limitModelSections(sections: ModelMenuSection[], query: string): ModelMenuSection[] {
+  const searching = query.trim().length > 0;
+  if (searching) {
+    let remaining = SEARCH_RESULT_LIMIT;
+    const limited: ModelMenuSection[] = [];
+    for (const section of sections) {
+      if (remaining <= 0) break;
+      const models = section.models.slice(0, remaining);
+      if (models.length) limited.push({ ...section, models });
+      remaining -= models.length;
+    }
+    return limited;
+  }
+
+  return sections
+    .map(section => ({
+      ...section,
+      models: section.favorite ? section.models : section.models.slice(0, BROWSE_SECTION_LIMIT),
+    }))
+    .filter(section => section.models.length > 0);
+}
 
 function disabledReasonForModel(model: Model, comfyReady: boolean): string | undefined {
   if (model.providerId !== 'local-image' || comfyReady) return undefined;

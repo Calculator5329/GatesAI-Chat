@@ -25,7 +25,7 @@ export const EditorialChat = observer(function EditorialChat() {
       flex: 1, display: 'flex', flexDirection: 'column',
       minWidth: 0, background: 'var(--bg)', position: 'relative',
     }}>
-      <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px' }}>
+      <div ref={scrollRef} className="editorial-chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px' }}>
         <div style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
           {messages.length === 0 && (
             <div style={{

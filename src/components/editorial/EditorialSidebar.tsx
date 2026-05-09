@@ -112,6 +112,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     return (
       <div
         key={t.id}
+        className="editorial-sidebar__item"
         style={(S.item as (a: boolean) => CSSProperties)(active)}
         onClick={() => router.goThread(t.id)}
         onMouseEnter={() => setHoveredId(t.id)}
@@ -153,35 +154,37 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
             </button>
           )}
         </div>
-        <div style={S.preview as CSSProperties}>{t.subtitle}</div>
+        <div className="editorial-sidebar__preview" style={S.preview as CSSProperties}>{t.subtitle}</div>
       </div>
     );
   };
 
   return (
-    <aside style={S.root as CSSProperties}>
+    <aside className="editorial-sidebar" style={S.root as CSSProperties}>
       <div
+        className="editorial-sidebar__brand"
         style={S.head as CSSProperties}
         onClick={() => onMenu ? router.goThread(chat.activeThreadId) : router.goMenu()}
         title={onMenu ? 'Back to chat' : 'Open menu'}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <div style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 22, fontWeight: 500, color: 'var(--text)', letterSpacing: '-0.02em' }}>GatesAI</div>
+          <div className="editorial-sidebar__brand-text" style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 22, fontWeight: 500, color: 'var(--text)', letterSpacing: '-0.02em' }}>GatesAI</div>
           <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', alignSelf: 'center', marginBottom: 2 }} />
         </div>
       </div>
       <div
+        className="editorial-sidebar__new"
         style={S.newBtn as CSSProperties}
         onClick={() => router.goThread(chat.createThread())}
         role="button"
       >
         <Icons.Plus />
-        <span>Begin a new conversation</span>
+        <span className="editorial-sidebar__new-label">Begin a new conversation</span>
       </div>
-      <div style={S.list as CSSProperties}>
-        {pinned.length > 0 && <div style={S.group as CSSProperties}>Pinned</div>}
+      <div className="editorial-sidebar__list" style={S.list as CSSProperties}>
+        {pinned.length > 0 && <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Pinned</div>}
         {pinned.map(renderItem)}
-        <div style={S.group as CSSProperties}>Earlier</div>
+        <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Earlier</div>
         {rest.map(renderItem)}
       </div>
       {undo && (

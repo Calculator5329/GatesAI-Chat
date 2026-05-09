@@ -74,7 +74,7 @@ const OpenRouterImageCard = observer(function OpenRouterImageCard() {
   const image = useImageGenStore();
   const providers = useProviderStore();
   const connected = providers.isConnected('openrouter');
-  const isActiveBackend = image.backend === 'openrouter-image';
+  const isActiveBackend = image.effectiveBackend === 'openrouter-image';
   return (
     <Card style={{ marginBottom: 18 }}>
       <div style={cardHeaderStyle}>
@@ -89,7 +89,7 @@ const OpenRouterImageCard = observer(function OpenRouterImageCard() {
         {isActiveBackend ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Pill>● Active backend</Pill>
-            <span style={hintStyle}>image_generate is routing to GPT-5.4 Image 2 through OpenRouter.</span>
+            <span style={hintStyle}>image_generate is routing through OpenRouter.</span>
           </div>
         ) : (
           <Button
@@ -271,7 +271,7 @@ const LocalImageCard = observer(function LocalImageCard() {
   const image = useImageGenStore();
   const status = local.runtimes.comfyui.status;
   const online = status === 'online';
-  const isActiveBackend = image.backend === 'local-comfy';
+  const isActiveBackend = image.effectiveBackend === 'local-comfy';
   const preset = image.config.comfyQualityPreset ?? 'full';
   const upscale = image.config.comfyUpscaleFactor ?? 1;
   return (

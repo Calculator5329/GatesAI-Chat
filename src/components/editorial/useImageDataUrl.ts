@@ -84,27 +84,29 @@ export async function loadImageSource(bridge: BridgeStore, path: string): Promis
  */
 export function useImageDataUrl(path: string): { src: string | null; failed: boolean } {
   const bridge = useBridgeStore();
-  const [src, setSrc] = useState<string | null>(() => cacheGet(path) ?? null);
-  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState<{ path: string; src: string | null; failed: boolean }>(() => ({
+    path,
+    src: cacheGet(path) ?? null,
+    failed: false,
+  }));
+
+  const cached = cacheGet(path);
+  const current = loaded.path === path
+    ? loaded
+    : { path, src: cached ?? null, failed: false };
 
   useEffect(() => {
-    setFailed(false);
     const cached = cacheGet(path);
-    if (cached) {
-      setSrc(cached);
-      return;
-    }
-    setSrc(null);
+    if (cached) return;
     let cancelled = false;
     void loadImageSource(bridge, path).then(url => {
       if (cancelled) return;
-      if (url) setSrc(url);
-      else setFailed(true);
+      setLoaded({ path, src: url, failed: !url });
     });
     return () => { cancelled = true; };
   }, [bridge, path]);
 
-  return { src, failed };
+  return { src: current.src, failed: current.failed };
 }
 
 export const __imageCacheTestApi = {

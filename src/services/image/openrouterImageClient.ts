@@ -2,6 +2,7 @@ import type { GenerateImageRequest, GenerateImageResult, ImageBackend } from './
 import { safeText, wrapGlobalFetch } from './types';
 
 export const OPENROUTER_IMAGE_MODEL_ID = 'openai/gpt-5.4-image-2';
+const OPENROUTER_IMAGE_TIMEOUT_MS = 180_000;
 
 interface OpenRouterImageClientOptions {
   apiKey?: string;
@@ -29,21 +30,36 @@ export class OpenRouterImageClient implements ImageBackend {
     }
     const prompt = req.prompt.trim();
     if (!prompt) throw new Error('Image prompt is required.');
+    const ac = new AbortController();
+    const timeout = setTimeout(() => ac.abort(), OPENROUTER_IMAGE_TIMEOUT_MS);
 
-    const resp = await this.fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.apiKey}`,
-        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
-        'X-Title': 'GatesAI Chat',
-      },
-      body: JSON.stringify({
-        model: OPENROUTER_IMAGE_MODEL_ID,
-        modalities: ['image', 'text'],
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+    let resp: Response;
+    try {
+      resp = await this.fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.apiKey}`,
+          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
+          'X-Title': 'GatesAI Chat',
+        },
+        signal: ac.signal,
+        body: JSON.stringify({
+          model: OPENROUTER_IMAGE_MODEL_ID,
+          modalities: ['image', 'text'],
+          stream: false,
+          image_config: { aspect_ratio: aspectRatioForRequest(req) },
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      });
+    } catch (err) {
+      if (ac.signal.aborted) {
+        throw new Error(`OpenRouter image generation timed out after ${Math.round(OPENROUTER_IMAGE_TIMEOUT_MS / 1000)}s.`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!resp.ok) {
       const text = await safeText(resp);
@@ -70,11 +86,37 @@ export class OpenRouterImageClient implements ImageBackend {
 }
 
 export function extractFirstDataUrlImage(value: unknown): DataUrlImage | null {
+  const structured = extractStructuredImageUrl(value);
+  if (structured) return parseDataUrl(structured);
   const text = typeof value === 'string' ? value : JSON.stringify(value) ?? '';
+  return parseDataUrl(text);
+}
+
+function parseDataUrl(text: string): DataUrlImage | null {
   const match = /data:(image\/(?:png|jpe?g|webp|gif));base64,([A-Za-z0-9+/=]+)/i.exec(text);
   if (!match) return null;
   const mime = match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1].toLowerCase();
   return { mime, base64: match[2] };
+}
+
+function extractStructuredImageUrl(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null;
+  const choices = (value as { choices?: unknown }).choices;
+  if (!Array.isArray(choices)) return null;
+  for (const choice of choices) {
+    const message = (choice as { message?: unknown }).message;
+    if (!message || typeof message !== 'object') continue;
+    const images = (message as { images?: unknown }).images;
+    if (!Array.isArray(images)) continue;
+    for (const image of images) {
+      if (!image || typeof image !== 'object') continue;
+      const snake = (image as { image_url?: { url?: unknown } }).image_url?.url;
+      if (typeof snake === 'string') return snake;
+      const camel = (image as { imageUrl?: { url?: unknown } }).imageUrl?.url;
+      if (typeof camel === 'string') return camel;
+    }
+  }
+  return null;
 }
 
 function extractAssistantText(value: unknown): string {
@@ -94,4 +136,15 @@ function extractAssistantText(value: unknown): string {
       .slice(0, 300);
   }
   return '';
+}
+
+function aspectRatioForRequest(req: GenerateImageRequest): string {
+  if (req.aspectRatio) return req.aspectRatio;
+  if (!req.width || !req.height) return '1:1';
+  const ratio = req.width / req.height;
+  if (Math.abs(ratio - 1) < 0.05) return '1:1';
+  if (ratio > 1.5) return '16:9';
+  if (ratio > 1) return '3:2';
+  if (ratio < 0.7) return '9:16';
+  return '2:3';
 }

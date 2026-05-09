@@ -32,13 +32,14 @@ export const BridgeStatusPill = observer(function BridgeStatusPill() {
 
   return (
     <div
+      className="bridge-status-pill"
       onClick={() => { void bridge.poll(); }}
       title={title}
       style={S.root}
       role="button"
     >
       <span style={{ ...S.dot, background: dotColor }} />
-      <span style={S.label}>{label}</span>
+      <span className="bridge-status-pill__label" style={S.label}>{label}</span>
     </div>
   );
 });

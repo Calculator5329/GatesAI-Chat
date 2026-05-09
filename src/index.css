@@ -392,3 +392,112 @@ body {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+
+@media (max-width: 900px) {
+  .editorial-sidebar {
+    width: 196px !important;
+  }
+  .editorial-chat-scroll {
+    padding: 28px 28px 8px !important;
+  }
+  .editorial-stream,
+  .editorial-composer__inner {
+    width: min(var(--reading-width, 720px), 88%) !important;
+  }
+  .editorial-composer {
+    padding: 0 28px 14px !important;
+  }
+  .gates-menu__tabs {
+    padding: 18px 28px 0 !important;
+  }
+  .gates-menu__body {
+    padding: 28px 28px 48px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .editorial-sidebar {
+    width: 64px !important;
+  }
+  .editorial-sidebar__brand {
+    padding: 18px 12px 12px !important;
+  }
+  .editorial-sidebar__brand-text,
+  .editorial-sidebar__new-label,
+  .editorial-sidebar__group,
+  .editorial-sidebar__preview,
+  .bridge-status-pill__label {
+    display: none !important;
+  }
+  .editorial-sidebar__new {
+    margin: 4px 12px 12px !important;
+    padding: 8px !important;
+    justify-content: center !important;
+  }
+  .editorial-sidebar__list {
+    padding-bottom: 8px !important;
+  }
+  .editorial-sidebar__item {
+    padding: 10px 12px !important;
+  }
+  .editorial-sidebar__item button {
+    display: none !important;
+  }
+  .bridge-status-pill {
+    margin: 8px 12px 14px !important;
+    padding: 10px 0 0 !important;
+    justify-content: center !important;
+  }
+  .editorial-chat-scroll {
+    padding: 22px 16px 8px !important;
+  }
+  .editorial-stream,
+  .editorial-composer__inner {
+    width: 100% !important;
+  }
+  .editorial-composer {
+    padding: 0 16px 12px !important;
+  }
+  .editorial-composer__meta {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  .gates-menu__tabs {
+    padding: 14px 16px 0 !important;
+  }
+  .gates-menu__body {
+    padding: 24px 16px 40px !important;
+  }
+  .model-popover {
+    width: min(360px, calc(100vw - 96px)) !important;
+    max-height: 420px !important;
+  }
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .editorial-sidebar {
+    width: 56px !important;
+  }
+  .editorial-sidebar__brand {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  .editorial-sidebar__new,
+  .bridge-status-pill {
+    margin-left: 10px !important;
+    margin-right: 10px !important;
+  }
+  .editorial-sidebar__item {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+  .model-popover {
+    width: min(340px, calc(100vw - 76px)) !important;
+  }
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)) !important;
+  }
+}

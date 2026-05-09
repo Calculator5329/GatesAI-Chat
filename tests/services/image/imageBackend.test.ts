@@ -24,8 +24,8 @@ describe('dispatchImageGenerate', () => {
   });
 
   it('routes to OpenRouter GPT-5.4 Image 2', async () => {
-    let body: { model?: string; modalities?: string[] } | null = null;
-    const fetch = (async (_input: RequestInfo | URL, init?: RequestInit) => {
+    let body: { model?: string; modalities?: string[]; stream?: boolean; image_config?: { aspect_ratio?: string } } | null = null;
+    const fakeFetch: typeof fetch = async (_input: RequestInfo | URL, init?: RequestInit) => {
       body = JSON.parse(String(init?.body));
       return new Response(JSON.stringify({
         choices: [{
@@ -37,16 +37,18 @@ describe('dispatchImageGenerate', () => {
           },
         }],
       }), { status: 200, headers: { 'content-type': 'application/json' } });
-    }) as typeof fetch;
+    };
 
     const { result } = await dispatchImageGenerate(
       { prompt: 'x' },
-      { primary: 'openrouter-image', openRouterApiKey: 'sk-or-test', fetch },
+      { primary: 'openrouter-image', openRouterApiKey: 'sk-or-test', fetch: fakeFetch },
     );
 
     expect(body).toMatchObject({
       model: 'openai/gpt-5.4-image-2',
       modalities: ['image', 'text'],
+      stream: false,
+      image_config: { aspect_ratio: '1:1' },
     });
     expect(result.backend).toBe('openrouter-image');
     expect(result.mime).toBe('image/png');

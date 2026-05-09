@@ -142,12 +142,13 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
 
   return (
     <div
+      className="editorial-composer"
       style={{ padding: '0 48px 16px', fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif' }}
       onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
       onDragLeave={() => setDragActive(false)}
       onDrop={onDrop}
     >
-      <div style={{ width: 'min(750px, 70%)', margin: '0 auto', paddingTop: 4 }}>
+      <div className="editorial-composer__inner" style={{ width: 'min(750px, 70%)', margin: '0 auto', paddingTop: 4 }}>
         {!routeReady && (directImageMode ? <LocalImageBanner /> : <ApiKeyBanner />)}
         {hasAttachments && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
@@ -272,7 +273,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               : <SendButton />}
           </div>
         </div>
-        <div style={{
+        <div className="editorial-composer__meta" style={{
           display: 'flex', alignItems: 'center', gap: 10, marginTop: 6,
           fontSize: 11.5, color: 'var(--text-faint)',
           position: 'relative',
