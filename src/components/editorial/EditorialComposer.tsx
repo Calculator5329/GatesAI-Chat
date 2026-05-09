@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import { useBridgeStore, useChatStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
@@ -7,6 +7,79 @@ import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
 import { ModelPopover } from './ModelPopover';
 import { WorkspaceImage } from './WorkspaceImage';
+
+/** Browsers without `field-sizing: content` need the JS height-recalc fallback. */
+const SUPPORTS_FIELD_SIZING = typeof CSS !== 'undefined'
+  && typeof CSS.supports === 'function'
+  && CSS.supports('field-sizing', 'content');
+
+const DRAFT_FLUSH_MS = 120;
+
+const ATTACH_BTN_STYLE: CSSProperties = {
+  width: 28, height: 28, borderRadius: 6,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  color: 'var(--text-faint)',
+  flex: 'none',
+  alignSelf: 'flex-start',
+  transition: 'background 100ms ease',
+};
+
+const SEND_BTN_STYLE: CSSProperties = {
+  width: 28, height: 28,
+  color: 'var(--accent)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const STOP_BTN_OUTER_STYLE: CSSProperties = {
+  width: 28, height: 28, borderRadius: 7,
+  border: '1px solid var(--border)',
+  background: 'var(--panel-2)',
+  color: 'var(--text-dim)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+
+const STOP_BTN_INNER_STYLE: CSSProperties = {
+  width: 10, height: 10, borderRadius: 2,
+  background: 'currentColor', display: 'block',
+};
+
+const ROW_STYLE: CSSProperties = {
+  display: 'flex', alignItems: 'flex-end', gap: 8,
+  padding: '8px 14px 8px 8px',
+  background: 'var(--panel)',
+  borderRadius: 10,
+  transition: 'border-color 120ms ease',
+};
+
+const META_ROW_STYLE: CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 10, marginTop: 6,
+  fontSize: 11.5, color: 'var(--text-faint)',
+  position: 'relative',
+};
+
+const MODEL_LABEL_STYLE: CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 6,
+  cursor: 'pointer', padding: '2px 6px', borderRadius: 4,
+};
+
+const ACCENT_DOT_STYLE: CSSProperties = {
+  width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)',
+};
+
+const TEXTAREA_BASE_STYLE: CSSProperties = {
+  flex: 1,
+  background: 'transparent',
+  border: 'none',
+  outline: 'none',
+  resize: 'none',
+  color: 'var(--text)',
+  fontSize: 15,
+  fontFamily: '"Source Serif 4", Georgia, serif',
+  lineHeight: 1.5,
+  maxHeight: 200,
+  minHeight: 24,
+  padding: 0,
+};
 
 interface ComposerProps {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -17,32 +90,21 @@ function AttachButton({
 }: { onClick: () => void; disabled: boolean; title: string }) {
   return (
     <div
+      className="composer-attach-btn"
       onClick={onClick}
       title={title}
-      onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+      data-disabled={disabled || undefined}
       style={{
-        width: 28, height: 28, borderRadius: 6,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--text-faint)',
+        ...ATTACH_BTN_STYLE,
         opacity: disabled ? 0.35 : 0.85,
         cursor: disabled ? 'not-allowed' : 'pointer',
-        flex: 'none',
-        alignSelf: 'flex-start',
-        transition: 'background 100ms ease',
       }}
     ><Icons.Paperclip /></div>
   );
 }
 
 function SendButton(): ReactNode {
-  return (
-    <div style={{
-      width: 28, height: 28,
-      color: 'var(--accent)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}><Icons.ArrowUp /></div>
-  );
+  return <div style={SEND_BTN_STYLE}><Icons.ArrowUp /></div>;
 }
 
 /** Square stop control shown in place of the send button while streaming
@@ -51,19 +113,8 @@ function SendButton(): ReactNode {
  *  as interrupt-and-send). */
 function StopButton(): ReactNode {
   return (
-    <div
-      style={{
-        width: 28, height: 28, borderRadius: 7,
-        border: '1px solid var(--border)',
-        background: 'var(--panel-2)',
-        color: 'var(--text-dim)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}
-    >
-      <span style={{
-        width: 10, height: 10, borderRadius: 2,
-        background: 'currentColor', display: 'block',
-      }} />
+    <div style={STOP_BTN_OUTER_STYLE}>
+      <span style={STOP_BTN_INNER_STYLE} />
     </div>
   );
 }
@@ -81,7 +132,49 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
 
   const activeThread = chat.activeThread;
   const currentModel = registry.findById(activeThread?.modelId) ?? registry.findById(DEFAULT_MODEL_ID);
-  const value = ui.draft;
+
+  // Decouple textarea visual value from the MobX store: typing updates
+  // local state instantly (no observers fire), and a 120ms trailing debounce
+  // mirrors to ui.setDraft so the ContextMeter and any other observers see
+  // at most ~8 updates per second while typing. We resync from ui.draft
+  // when it changes externally (thread switch, programmatic clear after send).
+  const [localDraft, setLocalDraft] = useState(ui.draft);
+  const localDraftRef = useRef(localDraft);
+  localDraftRef.current = localDraft;
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushDraft = useCallback(() => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+    if (ui.draft !== localDraftRef.current) {
+      ui.setDraft(localDraftRef.current);
+    }
+  }, [ui]);
+
+  // Resync when the store changes externally (thread switch, send-clear, etc.)
+  useEffect(() => {
+    if (ui.draft !== localDraftRef.current) {
+      setLocalDraft(ui.draft);
+    }
+  }, [ui.draft]);
+
+  // Flush on unmount.
+  useEffect(() => {
+    return () => { flushDraft(); };
+  }, [flushDraft]);
+
+  const onDraftChange = (next: string) => {
+    setLocalDraft(next);
+    if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+    flushTimerRef.current = setTimeout(() => {
+      flushTimerRef.current = null;
+      if (ui.draft !== localDraftRef.current) ui.setDraft(localDraftRef.current);
+    }, DRAFT_FLUSH_MS);
+  };
+
+  const value = localDraft;
   const streaming = chat.isStreaming;
   const hasText = value.trim().length > 0;
   const hasAttachments = ui.attachments.length > 0;
@@ -98,9 +191,17 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
 
   const onSend = () => {
     if (!canSend) return;
+    // Cancel any pending flush; we're committing the final value now.
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
     chat.sendMessage(value, ui.attachments);
     ui.clearDraft();
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    setLocalDraft('');
+    if (!SUPPORTS_FIELD_SIZING && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -124,21 +225,10 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     ? (hasText ? 'Interrupt and send' : 'Stop')
     : 'Send';
 
-  const labelStyle: CSSProperties = {
-    flex: 1,
-    background: 'transparent',
-    border: 'none',
-    outline: 'none',
-    resize: 'none',
-    color: 'var(--text)',
-    fontSize: 15,
-    fontFamily: '"Source Serif 4", Georgia, serif',
-    fontStyle: value ? 'normal' : 'italic',
-    lineHeight: 1.5,
-    maxHeight: 200,
-    minHeight: 24,
-    padding: 0,
-  };
+  // The only per-render-derived bit: italic when empty (placeholder voice).
+  const textareaStyle: CSSProperties = value
+    ? TEXTAREA_BASE_STYLE
+    : { ...TEXTAREA_BASE_STYLE, fontStyle: 'italic' };
 
   return (
     <div
@@ -224,12 +314,8 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           </div>
         )}
         <div style={{
-          display: 'flex', alignItems: 'flex-end', gap: 8,
-          padding: '8px 14px 8px 8px',
-          background: 'var(--panel)',
+          ...ROW_STYLE,
           border: dragActive ? '1px dashed var(--accent)' : '1px solid var(--border)',
-          borderRadius: 10,
-          transition: 'border-color 120ms ease',
         }}>
           <input
             ref={fileInputRef}
@@ -248,17 +334,23 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           />
           <textarea
             ref={textareaRef}
+            className="composer-textarea"
             value={value}
-            onChange={e => ui.setDraft(e.target.value)}
+            onChange={e => onDraftChange(e.target.value)}
+            onBlur={flushDraft}
             onKeyDown={onKeyDown}
             placeholder="Continue the thought…"
             rows={1}
-            style={labelStyle}
-            onInput={(e) => {
-              const target = e.currentTarget;
-              target.style.height = 'auto';
-              target.style.height = Math.min(target.scrollHeight, 200) + 'px';
-            }}
+            style={textareaStyle}
+            // CSS field-sizing: content handles autoresize natively when
+            // supported. Older browsers fall back to JS height-recalc.
+            {...(SUPPORTS_FIELD_SIZING ? {} : {
+              onInput: (e: React.FormEvent<HTMLTextAreaElement>) => {
+                const target = e.currentTarget;
+                target.style.height = 'auto';
+                target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+              },
+            })}
           />
           <div
             onClick={streaming && !hasText ? onStop : onSend}
@@ -273,19 +365,14 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               : <SendButton />}
           </div>
         </div>
-        <div className="editorial-composer__meta" style={{
-          display: 'flex', alignItems: 'center', gap: 10, marginTop: 6,
-          fontSize: 11.5, color: 'var(--text-faint)',
-          position: 'relative',
-        }}>
+<div className="editorial-composer__meta" style={META_ROW_STYLE}>
           <div style={{ position: 'relative' }}>
             <span
+              className="composer-model-label"
               onClick={() => setModelOpen(o => !o)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '2px 6px', borderRadius: 4 }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              style={MODEL_LABEL_STYLE}
             >
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
+              <span style={ACCENT_DOT_STYLE} />
               {currentModel?.name ?? 'Select model'}
               <Icons.Chevron />
             </span>

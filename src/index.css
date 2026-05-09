@@ -388,6 +388,23 @@ body {
   object-fit: cover;
   display: block;
 }
+/* Composer textarea: prefer native field-sizing where supported (Chromium 123+,
+   Safari 17.4+, Firefox 138+); falls back to JS height-recalc on older
+   browsers (see EditorialComposer onInput handler). */
+.composer-textarea {
+  field-sizing: content;
+}
+
+/* Hover affordances for composer chrome — replaces per-event style mutation
+   so React doesn't have to re-render and the browser can compose hovers on
+   the GPU. */
+.composer-attach-btn:not([data-disabled="true"]):hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.composer-model-label:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .user-attachment-thumb-fallback {
   width: 100%;
   height: 100%;

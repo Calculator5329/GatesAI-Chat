@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
 import { Icons } from '../ui/icons';
@@ -126,25 +126,46 @@ function CapabilityIcon({ kind }: { kind: 'vision' | 'reasoning' | 'fast' | 'too
   return <span title={title} style={common}>{icon}</span>;
 }
 
+const COST_PILL_BASE_STYLE: CSSProperties = {
+  border: '1px solid var(--border)',
+  borderRadius: 2,
+  padding: '0 4px',
+  fontSize: 9,
+  lineHeight: '14px',
+  fontFamily: '"Geist Mono", monospace',
+  letterSpacing: '0.04em',
+};
+const COST_PILL_ACCENT_STYLE: CSSProperties = { ...COST_PILL_BASE_STYLE, color: 'var(--accent)' };
+const COST_PILL_FAINT_STYLE: CSSProperties = { ...COST_PILL_BASE_STYLE, color: 'var(--text-faint)' };
+
 function CostPill({ label }: { label: NonNullable<ModelMeta['costLabel']> }) {
   return (
     <span
       title={label === 'LOCAL' ? 'Local model' : 'Relative cost tier'}
-      style={{
-        color: label === '$$$' ? 'var(--accent)' : 'var(--text-faint)',
-        border: '1px solid var(--border)',
-        borderRadius: 2,
-        padding: '0 4px',
-        fontSize: 9,
-        lineHeight: '14px',
-        fontFamily: '"Geist Mono", monospace',
-        letterSpacing: '0.04em',
-      }}
+      style={label === '$$$' ? COST_PILL_ACCENT_STYLE : COST_PILL_FAINT_STYLE}
     >
       {label}
     </span>
   );
 }
+
+const ROW_LEFT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 };
+const ROW_RIGHT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 6 };
+const STAR_ICON_STYLE: CSSProperties = { flexShrink: 0, opacity: 0.85 };
+const NAME_STYLE_BASE: CSSProperties = {
+  fontSize: 13,
+  fontWeight: 400,
+  letterSpacing: '-0.005em',
+  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+};
+const SUBLINE_STYLE_BASE: CSSProperties = {
+  gridColumn: '1 / -1',
+  fontSize: 11,
+  fontStyle: 'italic',
+  fontFamily: '"Source Serif 4", Georgia, serif',
+  lineHeight: 1.35,
+  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+};
 
 interface RowProps {
   model: Model;
@@ -156,59 +177,54 @@ interface RowProps {
   onHover: () => void;
 }
 
-function ModelRow({ model, meta, selected, active, disabledReason, onPick, onHover }: RowProps) {
+const ModelRow = memo(function ModelRow({ model, meta, selected, active, disabledReason, onPick, onHover }: RowProps) {
   const disabled = !!disabledReason;
   const subline = disabledReason ?? (meta ? meta.tag : describeDynamic(model));
+  const rowStyle: CSSProperties = {
+    position: 'relative',
+    display: 'grid',
+    gridTemplateColumns: '1fr auto',
+    rowGap: 1,
+    padding: '7px 14px 7px 18px',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.42 : 1,
+    filter: disabled ? 'grayscale(0.8)' : undefined,
+    background: active && !disabled ? 'var(--panel-2)' : 'transparent',
+    borderLeft: selected ? `2px solid ${disabled ? 'var(--text-faint)' : 'var(--accent)'}` : '2px solid transparent',
+    transition: 'background 80ms ease',
+  };
+  const nameStyle: CSSProperties = {
+    ...NAME_STYLE_BASE,
+    color: disabled ? 'var(--text-faint)' : selected ? 'var(--text)' : 'var(--text-dim)',
+  };
+  const sublineStyle: CSSProperties = {
+    ...SUBLINE_STYLE_BASE,
+    color: disabled ? 'var(--text-dim)' : 'var(--text-faint)',
+  };
   return (
     <div
       onClick={() => { if (!disabled) onPick(); }}
       onMouseEnter={onHover}
       aria-disabled={disabled || undefined}
       title={disabledReason}
-      style={{
-        position: 'relative',
-        display: 'grid',
-        gridTemplateColumns: '1fr auto',
-        rowGap: 1,
-        padding: '7px 14px 7px 18px',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.42 : 1,
-        filter: disabled ? 'grayscale(0.8)' : undefined,
-        background: active && !disabled ? 'var(--panel-2)' : 'transparent',
-        borderLeft: selected ? `2px solid ${disabled ? 'var(--text-faint)' : 'var(--accent)'}` : '2px solid transparent',
-        transition: 'background 80ms ease',
-      }}
+      style={rowStyle}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
-        <span style={{
-          color: disabled ? 'var(--text-faint)' : selected ? 'var(--text)' : 'var(--text-dim)',
-          fontSize: 13,
-          fontWeight: 400,
-          letterSpacing: '-0.005em',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{model.name}</span>
+      <div style={ROW_LEFT_STYLE}>
+        <span style={nameStyle}>{model.name}</span>
         {meta?.starred && (
-          <svg width="9" height="9" viewBox="0 0 16 16" fill="var(--accent)" style={{ flexShrink: 0, opacity: 0.85 }}>
+          <svg width="9" height="9" viewBox="0 0 16 16" fill="var(--accent)" style={STAR_ICON_STYLE}>
             <path d="M8 1.5l2 4.5 5 .5-3.8 3.3 1.2 4.7L8 12l-4.4 2.5L4.8 9.8 1 6.5l5-.5z" />
           </svg>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={ROW_RIGHT_STYLE}>
         {meta?.costLabel && <CostPill label={meta.costLabel} />}
         {meta && meta.capabilities.map(c => <CapabilityIcon key={c} kind={c} />)}
       </div>
-      <div style={{
-        gridColumn: '1 / -1',
-        color: disabled ? 'var(--text-dim)' : 'var(--text-faint)',
-        fontSize: 11,
-        fontStyle: 'italic',
-        fontFamily: '"Source Serif 4", Georgia, serif',
-        lineHeight: 1.35,
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>{subline}</div>
+      <div style={sublineStyle}>{subline}</div>
     </div>
   );
-}
+});
 
 function describeDynamic(m: Model): string {
   const bits: string[] = [];

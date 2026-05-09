@@ -4,7 +4,7 @@ import type { LlmProvider, LlmRequest, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
 import { loadSnapshot, saveSnapshot } from '../services/persistence';
-import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, type TokenUsage } from '../core/tokens';
+import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, estimateTokens, type TokenUsage } from '../core/tokens';
 import { flattenForWire } from '../services/llm/wireFormat';
 import { resolveWireImages } from '../services/llm/resolveImages';
 import { modelSupportsVision } from '../core/modelCapabilities';
@@ -216,17 +216,29 @@ export class ChatStore {
     return threadId in this.streamingByThread;
   }
 
-  tokenUsage(draftText: string): TokenUsage {
+  /**
+   * Draft-independent intermediates for token usage. MobX caches this as long
+   * as the active thread, model, system-prompt deps, and tool-availability
+   * don't change. The keystroke-cascade hot path (`tokenUsage(draft)`) reuses
+   * this cache and only adds the draft's own token cost — turning a
+   * per-keystroke flatten + JSON.stringify(tools) into a cheap addition.
+   *
+   * Trade-off: tool gating uses only the latest sent user message, not the
+   * unsent draft. Tool availability rarely flips mid-typing, and the meter
+   * is already approximate; the saved work is worth a slightly stale tool
+   * count while typing.
+   */
+  private get tokenUsageBase(): {
+    window: number;
+    isLocalImage: boolean;
+    baseUsed: number;
+  } {
     const thread = this.activeThread;
     const model = this.registry.findById(thread?.modelId ?? '') ?? this.registry.findById(DEFAULT_MODEL_ID);
     const window = contextWindowFor(model);
-    if (!thread) return computeUsage(0, window);
+    if (!thread) return { window, isLocalImage: false, baseUsed: 0 };
     if (model?.providerId === 'local-image') {
-      const prompt = (draftText.trim() || latestUserPromptBody(thread)).trim();
-      const used = prompt
-        ? estimateLlmPayloadTokens({ messages: [{ role: 'user', content: prompt }], reservedOutputTokens: 0 })
-        : 0;
-      return computeUsage(used, window);
+      return { window, isLocalImage: true, baseUsed: 0 };
     }
     const latestUserText = latestUserMessageContent(thread);
     const extras = this.toolStoresProvider?.();
@@ -234,7 +246,7 @@ export class ChatStore {
     const toolsAllowed = model?.supportsTools !== false;
     const tools = toolsAllowed
       ? toolRegistry.toolDefsForTurn({
-          userText: [latestUserText, draftText].filter(Boolean).join('\n'),
+          userText: latestUserText,
           bridgeOnline: bridge?.isOnline ?? false,
           imageGenAvailable: isImageGenerationAvailable(extras),
         })
@@ -244,20 +256,32 @@ export class ChatStore {
       threadContext: thread.threadContext,
       recentSummaries: this.recentSummariesProvider?.() ?? [],
     });
-    const pendingMessages = draftText.trim()
-      ? [...thread.messages, {
-          id: 'draft',
-          role: 'user' as const,
-          content: draftText,
-          createdAt: Date.now(),
-        }]
-      : thread.messages;
-    const used = estimateLlmPayloadTokens({
+    const baseUsed = estimateLlmPayloadTokens({
       systemPrompt,
-      messages: flattenForWire(pendingMessages),
+      messages: flattenForWire(thread.messages),
       tools,
     });
-    return computeUsage(used, window);
+    return { window, isLocalImage: false, baseUsed };
+  }
+
+  tokenUsage(draftText: string): TokenUsage {
+    const { window, isLocalImage, baseUsed } = this.tokenUsageBase;
+    const thread = this.activeThread;
+    if (!thread) return computeUsage(0, window);
+    if (isLocalImage) {
+      const prompt = (draftText.trim() || latestUserPromptBody(thread)).trim();
+      const used = prompt
+        ? estimateLlmPayloadTokens({ messages: [{ role: 'user', content: prompt }], reservedOutputTokens: 0 })
+        : 0;
+      return computeUsage(used, window);
+    }
+    // Add only the draft message's marginal cost — base already covers the
+    // existing wire messages + system prompt + tools.
+    const draftCost = draftText.trim()
+      // 4 = MESSAGE_OVERHEAD_TOKENS in core/tokens. Kept in sync there.
+      ? estimateTokens(draftText) + 4
+      : 0;
+    return computeUsage(baseUsed + draftCost, window);
   }
 
   selectThread(id: string): void {
