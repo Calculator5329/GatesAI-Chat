@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-05-09 - 0.3.0 release prep
+
+- Bumped GatesAI Chat to `0.3.0` across npm, Tauri, and Cargo metadata.
+- Includes the recent tool reliability, structured validation feedback, redacted
+  diagnostics, HTML artifact preview, default workspace guide, user guide, and
+  image generation flow improvements.
+
 ## 2026-05-09 — Settings menu UX trim
 
 - Consolidated Profile into Agent, so instructions, durable memory facts,
