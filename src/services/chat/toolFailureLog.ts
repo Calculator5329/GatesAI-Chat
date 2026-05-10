@@ -2,6 +2,7 @@ import type { ToolCall } from '../../core/llm';
 
 export function isToolFailureContent(toolName: string, content: string): boolean {
   const trimmed = content.trim();
+  if (/^status:\s*error/im.test(trimmed)) return true;
   if (/^Error(?: executing [\w-]+)?:/i.test(trimmed)) return true;
   if ((toolName === 'terminal' || toolName === 'git') && /^\$ .+\n\[exit [1-9]\d*/m.test(trimmed)) return true;
   return false;
@@ -9,6 +10,8 @@ export function isToolFailureContent(toolName: string, content: string): boolean
 
 export function failureReason(content: string): string {
   const lines = content.trim().split('\n');
+  const summaryLine = lines.find(line => /^summary:\s*/i.test(line));
+  if (summaryLine) return summaryLine.replace(/^summary:\s*/i, '').slice(0, 500);
   const exitLine = lines.find(line => /^\[exit [1-9]\d*/.test(line));
   return (exitLine ?? lines[0])?.slice(0, 500) || 'Tool returned an empty error.';
 }

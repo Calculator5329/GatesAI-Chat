@@ -241,12 +241,73 @@ describe('Tool loop — scripted', () => {
 
       const toolMsgs = mock.calls[1].messages.filter(m => m.role === 'tool');
       expect(toolMsgs.map(m => m.toolCallId)).toEqual(['bad-write', 'fs-empty-1', 'fs-empty-2']);
+      expect(toolMsgs[0].content).toContain('error_code: unknown_tool');
       expect(toolMsgs[0].content).toContain('Use `fs` with `action: "write"`');
+      expect(toolMsgs[1].content).toContain('error_code: missing_required_argument');
       expect(toolMsgs[1].content).toContain('`action` is required for fs');
-      expect(toolMsgs[2].content).toContain('Skipped repeated invalid tool call');
+      expect(toolMsgs[2].content).toContain('error_code: repeated_invalid_tool_call');
     } finally {
       warn.mockRestore();
     }
+  });
+
+  it('runs valid calls in a mixed batch while returning validation feedback for invalid calls', async () => {
+    const bridgeRequest = vi.fn(async (op: string, data: unknown) => {
+      if (op === 'fs.stat') return { path: (data as { path: string }).path, kind: 'file', size: 42, mtime: 0, mime: 'application/json' };
+      throw new Error(`unexpected op ${op}`);
+    });
+    const { chat, mock } = setupScripted([
+      [
+        { type: 'tool_call', call: { id: 'valid-stat', name: 'fs', arguments: { action: 'stat', path: '/workspace/artifacts/a.json' } } },
+        { type: 'tool_call', call: { id: 'bad-read', name: 'fs', arguments: { action: 'read' } } },
+        { type: 'done', finishReason: 'tool_use' },
+      ],
+      [{ type: 'text', delta: 'I inspected the valid file and need a path for the read.' }, { type: 'done', finishReason: 'stop' }],
+    ]);
+    chat.setToolStoresProvider(() => ({
+      bridge: {
+        isOnline: true,
+        client: { request: bridgeRequest },
+      },
+    }) as unknown as Pick<ToolContext, 'bridge'>);
+    chat.createThread();
+
+    chat.sendMessage('stat one file and read another');
+    await flush(80);
+
+    expect(bridgeRequest).toHaveBeenCalledTimes(1);
+    const toolMsgs = mock.calls[1].messages.filter(m => m.role === 'tool');
+    expect(toolMsgs.map(m => m.toolCallId)).toEqual(['valid-stat', 'bad-read']);
+    expect(toolMsgs[0].content).toContain('size: 42');
+    expect(toolMsgs[1].content).toContain('`path` is required for fs action "read"');
+  });
+
+  it('returns malformed argument feedback instead of treating parse failures as empty arguments', async () => {
+    const { chat, mock } = setupScripted([
+      [
+        {
+          type: 'tool_call',
+          call: {
+            id: 'bad-json',
+            name: 'fs',
+            arguments: {},
+            argumentsError: 'Unexpected end of JSON input',
+            rawArguments: '{"action":"read"',
+          },
+        },
+        { type: 'done', finishReason: 'tool_use' },
+      ],
+      [{ type: 'text', delta: 'I will retry with complete JSON.' }, { type: 'done', finishReason: 'stop' }],
+    ]);
+    chat.createThread();
+
+    chat.sendMessage('read a file');
+    await flush(80);
+
+    const toolMsg = mock.calls[1].messages.find(m => m.role === 'tool');
+    expect(toolMsg?.content).toContain('error_code: malformed_arguments');
+    expect(toolMsg?.content).toContain('not valid JSON');
+    expect(toolMsg?.content).not.toContain('`action` is required');
   });
 
   it('keeps completed tool progress visible when the provider fails before final summary', async () => {

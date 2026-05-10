@@ -169,7 +169,7 @@ export class OllamaProvider implements LlmProvider {
               const tc = message.tool_calls[i];
               const rawArgs = tc.function?.arguments;
               const args = rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs)
-                ? tc.function.arguments
+                ? rawArgs
                 : {};
               yield {
                 type: 'tool_call',

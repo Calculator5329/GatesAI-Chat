@@ -4,6 +4,7 @@ import { isToolFailureContent, safeJsonPreview, logToolCallFailure } from '../..
 describe('tool failure logging helpers', () => {
   it('detects explicit tool errors and non-zero terminal/git exits', () => {
     expect(isToolFailureContent('memory', 'Error: nope')).toBe(true);
+    expect(isToolFailureContent('fs', 'status: error\ntool: fs\nsummary: bad')).toBe(true);
     expect(isToolFailureContent('terminal', '$ npm test\n[exit 1]\nfailed')).toBe(true);
     expect(isToolFailureContent('git', '$ git status\n[exit 2]\nfailed')).toBe(true);
     expect(isToolFailureContent('notes', 'Saved note')).toBe(false);

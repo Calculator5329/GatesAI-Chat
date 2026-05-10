@@ -110,6 +110,8 @@ describe('image_generate tool', () => {
     const out = await imageGenerateTool.execute({ prompt: 'a sunset', aspect_ratio: '16:9' }, ctx);
     expect(typeof out === 'string').toBe(false);
     if (typeof out === 'string') return;
+    expect('content' in out).toBe(true);
+    if (!('content' in out)) return;
     expect(out.artifacts).toEqual([{ kind: 'image-job', jobId: 'job-x', count: 1 }]);
     expect(out.content).toMatch(/Queued an image render/);
     expect(jobs.calls).toHaveLength(1);

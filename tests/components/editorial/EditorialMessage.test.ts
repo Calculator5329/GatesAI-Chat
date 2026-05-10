@@ -46,7 +46,7 @@ function renderMessage(
       },
       openWorkspacePath: vi.fn(async () => true),
     },
-  } as RootStore;
+  } as unknown as RootStore;
 
   act(() => {
     root!.render(

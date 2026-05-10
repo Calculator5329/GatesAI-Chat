@@ -123,7 +123,7 @@ describe('ChatStore', () => {
   });
 
   it('selectThread updates synchronously even when View Transitions are available', () => {
-    const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
+    const doc = document as unknown as { startViewTransition?: (cb: () => void) => unknown };
     const original = doc.startViewTransition;
     doc.startViewTransition = () => ({});
     try {
@@ -563,7 +563,7 @@ describe('ChatStore', () => {
     });
     const { chat } = setup([
       { type: 'tool_call', call: { id: 'call-slow', name: 'slow_test_tool', arguments: {} } },
-      { type: 'done', finishReason: 'tool_calls' },
+      { type: 'done', finishReason: 'tool_use' },
     ]);
     chat.createThread();
 
@@ -573,7 +573,7 @@ describe('ChatStore', () => {
     expect(assistant.role === 'assistant' ? assistant.toolCalls?.[0]?.name : undefined).toBe('slow_test_tool');
 
     chat.stopStreaming();
-    releaseTool?.();
+    (releaseTool as (() => void) | null)?.();
     await flush(10);
 
     expect(assistant.role === 'assistant' ? assistant.toolResults : undefined).toBeUndefined();

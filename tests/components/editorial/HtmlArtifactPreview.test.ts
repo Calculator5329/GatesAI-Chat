@@ -17,14 +17,14 @@ async function flushMicrotasks(): Promise<void> {
   await Promise.resolve();
 }
 
-function renderPreview(bridge: Partial<RootStore['bridge']>): HTMLDivElement {
+function renderPreview(bridge: unknown): HTMLDivElement {
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
   act(() => {
     root!.render(
       createElement(StoreProvider, {
-        store: { bridge } as RootStore,
+        store: { bridge } as unknown as RootStore,
         children: createElement(HtmlArtifactPreview, { path: HTML_PATH, label: 'Demo' }),
       }),
     );
@@ -99,7 +99,7 @@ describe('HtmlArtifactPreview', () => {
       isOnline: false,
       client: { request: vi.fn() },
       openWorkspacePath: vi.fn(async () => true),
-    } as Partial<RootStore['bridge']>);
+    });
 
     await act(async () => {
       await flushMicrotasks();

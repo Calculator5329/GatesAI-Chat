@@ -17,7 +17,7 @@ import { StreamingTextBuffer } from '../services/streaming/StreamingTextBuffer';
 import { toolRegistry, type ToolValidationResult } from '../services/tools/registry';
 import { generateThreadTitle } from '../services/threadNamer';
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
-import { isToolFailureContent, logToolCallFailure } from '../services/chat/toolFailureLog';
+import { isToolFailureContent, logToolCallFailure, safeJsonPreview } from '../services/chat/toolFailureLog';
 import { logEvent } from '../services/diagnostics/chatLog';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
@@ -1053,7 +1053,7 @@ export class ChatStore {
       ok: validation.ok,
       errorCode: validation.errorCode,
       retryable: validation.retryable,
-      argumentsPreview: safeStableJson(call.arguments),
+      argumentsPreview: safeJsonPreview(call.arguments),
       hasArgumentParseError: Boolean(call.argumentsError),
     });
   }
@@ -1121,7 +1121,7 @@ export class ChatStore {
       toolName: call.name,
       toolCallId: call.id,
       readOnly: toolRegistry.isReadOnlyCall(call.name, call.arguments),
-      argumentsPreview: safeStableJson(call.arguments),
+      argumentsPreview: safeJsonPreview(call.arguments),
       bridgeOnline: extras.bridge?.isOnline,
     });
     const { content, artifacts, ok, errorCode, retryable } = await toolRegistry.execute(call.name, call.arguments, {

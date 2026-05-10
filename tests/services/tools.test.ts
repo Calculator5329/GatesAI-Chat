@@ -133,6 +133,9 @@ describe('thread tool', () => {
         const t = threads.find(x => x.id === id);
         if (t) t.threadContext = ctx;
       },
+      async llmComplete() {
+        return '';
+      },
       selectThread(id: string) {
         if (!threads.some(x => x.id === id)) return false;
         (this as { activeThreadId: string }).activeThreadId = id;

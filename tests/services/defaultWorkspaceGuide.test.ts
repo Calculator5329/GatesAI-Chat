@@ -6,17 +6,17 @@ describe('ensureDefaultWorkspaceGuide', () => {
     const calls: Array<{ op: string; data: unknown }> = [];
     const existing = new Set<string>();
     const client = {
-      async request(op: string, data: unknown): Promise<unknown> {
+      async request<T = unknown>(op: string, data: unknown): Promise<T> {
         calls.push({ op, data });
         if (op === 'fs.stat') {
           const path = (data as { path: string }).path;
-          if (existing.has(path)) return { path, kind: 'file' };
+          if (existing.has(path)) return { path, kind: 'file' } as T;
           throw new Error('not found');
         }
         if (op === 'fs.write') {
           existing.add((data as { path: string }).path);
         }
-        return {};
+        return {} as T;
       },
     };
 
@@ -46,13 +46,13 @@ describe('ensureDefaultWorkspaceGuide', () => {
   it('does not overwrite an existing root README', async () => {
     const writes: unknown[] = [];
     const client = {
-      async request(op: string, data: unknown): Promise<unknown> {
+      async request<T = unknown>(op: string, data: unknown): Promise<T> {
         if (op === 'fs.stat' && (data as { path: string }).path === '/workspace/README.md') {
-          return { path: '/workspace/README.md', kind: 'file' };
+          return { path: '/workspace/README.md', kind: 'file' } as T;
         }
         if (op === 'fs.stat') throw new Error('not found');
         if (op === 'fs.write') writes.push(data);
-        return {};
+        return {} as T;
       },
     };
 

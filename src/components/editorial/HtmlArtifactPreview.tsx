@@ -51,12 +51,11 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
 
   useEffect(() => {
     const cached = cacheGet(path);
-    if (cached) {
-      setState({ status: 'ready', ...cached });
-      return;
-    }
     let cancelled = false;
-    void loadHtmlArtifact(bridge, path).then(next => {
+    const load = cached
+      ? Promise.resolve<HtmlLoadState>({ status: 'ready', ...cached })
+      : loadHtmlArtifact(bridge, path);
+    void load.then(next => {
       if (!cancelled) setState(next);
     });
     return () => { cancelled = true; };

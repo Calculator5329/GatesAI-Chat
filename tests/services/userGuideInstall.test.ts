@@ -19,9 +19,9 @@ describe('userGuideInstall', () => {
   it('creates the user guide html and asset files in workspace reports', async () => {
     const calls: Array<{ op: string; data: unknown }> = [];
     const client = {
-      async request(op: string, data: unknown): Promise<unknown> {
+      async request<T = unknown>(op: string, data: unknown): Promise<T> {
         calls.push({ op, data });
-        return {};
+        return {} as T;
       },
     };
 
@@ -54,8 +54,8 @@ describe('userGuideInstall', () => {
 
   it('opens the guide only once after it is seeded', async () => {
     const client = {
-      async request(): Promise<unknown> {
-        return {};
+      async request<T = unknown>(): Promise<T> {
+        return {} as T;
       },
     };
     const opened: string[] = [];
