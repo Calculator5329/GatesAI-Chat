@@ -1,5 +1,5 @@
 import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ProviderId, ToolCall, ToolDef } from '../../core/llm';
-import { safeJsonObject } from './json';
+import { parseJsonObject } from './json';
 import { ensureOk, parseSse } from './sse';
 
 export interface OpenAiCompatOptions {
@@ -168,13 +168,20 @@ export class OpenAiCompatProvider implements LlmProvider {
       return;
     }
 
-    // Drain accumulated tool calls (parse args as JSON; if parse fails, send empty object so the loop can still respond).
+    // Drain accumulated tool calls. Preserve malformed argument JSON so the
+    // tool loop can give the model a specific validation error instead of
+    // pretending the model intentionally sent `{}`.
     for (const slot of pending.values()) {
       if (!slot.name) continue;
+      const parsedArgs = parseJsonObject(slot.argsBuf);
       const call: ToolCall = {
         id: slot.id || `${slot.name}-${Math.random().toString(36).slice(2, 8)}`,
         name: slot.name,
-        arguments: safeJsonObject(slot.argsBuf),
+        arguments: parsedArgs.value,
+        ...(!parsedArgs.ok ? {
+          argumentsError: parsedArgs.error,
+          rawArguments: parsedArgs.rawPreview,
+        } : {}),
       };
       yield { type: 'tool_call', call };
     }
@@ -213,8 +220,8 @@ function parseProviderUsage(
     : null;
 }
 
-function toOpenAiTool(t: ToolDef): { type: 'function'; function: { name: string; description: string; parameters: unknown } } {
-  return { type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters } };
+function toOpenAiTool(t: ToolDef): { type: 'function'; function: { name: string; description: string; parameters: unknown; strict?: boolean } } {
+  return { type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters, ...(t.strict ? { strict: true } : {}) } };
 }
 
 /**

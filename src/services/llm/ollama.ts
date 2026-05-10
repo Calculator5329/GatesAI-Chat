@@ -167,7 +167,8 @@ export class OllamaProvider implements LlmProvider {
           if (message?.tool_calls && message.tool_calls.length) {
             for (let i = 0; i < message.tool_calls.length; i++) {
               const tc = message.tool_calls[i];
-              const args = tc.function?.arguments && typeof tc.function.arguments === 'object'
+              const rawArgs = tc.function?.arguments;
+              const args = rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs)
                 ? tc.function.arguments
                 : {};
               yield {
@@ -176,6 +177,14 @@ export class OllamaProvider implements LlmProvider {
                   id: `ollama-tool-${i}`,
                   name: tc.function?.name ?? 'unknown',
                   arguments: args as Record<string, unknown>,
+                  ...(
+                    rawArgs && (typeof rawArgs !== 'object' || Array.isArray(rawArgs))
+                      ? {
+                        argumentsError: 'Ollama returned tool arguments that were not a JSON object.',
+                        rawArguments: String(rawArgs).slice(0, 500),
+                      }
+                      : {}
+                  ),
                 },
               };
             }

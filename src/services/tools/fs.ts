@@ -79,13 +79,16 @@ export const fsTool: Tool = {
         max_chars: { type: 'number', description: 'For read, max characters returned to the model before truncating.' },
       },
       required: ['action'],
+      additionalProperties: false,
     },
+    strict: true,
   },
   meta: {
     category: 'filesystem',
     isReadOnly: args => ['read', 'list', 'stat', 'search'].includes(String(args.action ?? '')),
     hasSideEffects: args => !['read', 'list', 'stat', 'search'].includes(String(args.action ?? '')),
     resultPolicy: { maxChars: 12_000, summarizeLargeOutput: true },
+    validate: validateFsArgs,
   },
 
   async execute(args, ctx) {
@@ -116,6 +119,52 @@ export const fsTool: Tool = {
     }
   },
 };
+
+function validateFsArgs(args: Record<string, unknown>) {
+  const action = strArg(args, 'action').trim();
+  switch (action) {
+    case 'read':
+    case 'delete':
+    case 'mkdir':
+    case 'stat':
+      return requireStringArg(args, 'path', action);
+    case 'write':
+    case 'append':
+      return requireStringArg(args, 'path', action)
+        ?? requirePresentStringArg(args, 'content', action);
+    case 'move':
+    case 'copy':
+      return requireStringArg(args, 'from', action)
+        ?? requireStringArg(args, 'to', action);
+    case 'search':
+      return requireStringArg(args, 'query', action);
+    case 'list':
+      return null;
+    default:
+      return null;
+  }
+}
+
+function requireStringArg(args: Record<string, unknown>, key: string, action: string) {
+  const value = args[key];
+  if (typeof value === 'string' && value.trim() !== '') return null;
+  return {
+    errorCode: 'missing_required_argument',
+    summary: `\`${key}\` is required for fs action "${action}".`,
+    fix: `Retry fs with { "action": "${action}", "${key}": "..." } and include any other required fields for that action.`,
+    retryable: true,
+  };
+}
+
+function requirePresentStringArg(args: Record<string, unknown>, key: string, action: string) {
+  if (typeof args[key] === 'string') return null;
+  return {
+    errorCode: 'missing_required_argument',
+    summary: `\`${key}\` is required for fs action "${action}".`,
+    fix: `Retry fs with { "action": "${action}", "${key}": "..." } and include any other required fields for that action.`,
+    retryable: true,
+  };
+}
 
 async function doRead(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): Promise<string> {
   const path = strArg(args, 'path');

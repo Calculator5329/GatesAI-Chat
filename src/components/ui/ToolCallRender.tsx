@@ -43,11 +43,12 @@ function WhisperCall(_: { call: ToolCall }) {
 
 function WhisperResult({ result }: { result: ToolResult }) {
   const flat = oneLine(result.content);
+  const failed = isFailed(result);
   return (
     <div
       title={`${result.toolName}: ${flat}`}
       style={{
-        ...mono(11), color: 'var(--text-faint)',
+        ...mono(11), color: failed ? '#ff9a9a' : 'var(--text-faint)',
         letterSpacing: '0.02em',
         padding: '4px 0',
         whiteSpace: 'nowrap',
@@ -69,6 +70,7 @@ function DotCall(_: { call: ToolCall }) {
 }
 
 function DotResult({ result }: { result: ToolResult }) {
+  const failed = isFailed(result);
   return (
     <div
       title={oneLine(result.content)}
@@ -80,10 +82,10 @@ function DotResult({ result }: { result: ToolResult }) {
     >
       <span style={{
         width: 5, height: 5, borderRadius: '50%',
-        background: 'var(--accent)', opacity: 0.55,
+        background: failed ? '#ff7a7a' : 'var(--accent)', opacity: failed ? 0.85 : 0.55,
         flexShrink: 0,
       }} />
-      <span>{result.toolName}</span>
+      <span>{failed ? `${result.toolName} failed` : result.toolName}</span>
     </div>
   );
 }
@@ -95,16 +97,17 @@ function AsideCall(_: { call: ToolCall }) {
 }
 
 function AsideResult({ result }: { result: ToolResult }) {
+  const failed = isFailed(result);
   return (
     <div style={{
       fontFamily: '"Source Serif 4", Iowan Old Style, Georgia, serif',
       fontSize: 13, lineHeight: 1.5,
-      color: 'var(--text-faint)',
+      color: failed ? '#ffaaaa' : 'var(--text-faint)',
       fontStyle: 'italic',
       padding: '4px 0',
       whiteSpace: 'pre-wrap',
     }}>
-      {asideFor(result)}
+      {failed ? `${result.toolName} failed: ${failureSummary(result)}` : asideFor(result)}
     </div>
   );
 }
@@ -131,6 +134,7 @@ function MarkCall(_: { call: ToolCall }) {
 }
 
 function MarkResult({ result }: { result: ToolResult }) {
+  const failed = isFailed(result);
   return (
     <div
       title={`${result.toolName}: ${oneLine(result.content)}`}
@@ -138,9 +142,9 @@ function MarkResult({ result }: { result: ToolResult }) {
         height: 14,
         marginLeft: -2,
         paddingLeft: 4,
-        borderLeft: '2px solid color-mix(in srgb, var(--accent) 55%, transparent)',
+        borderLeft: `2px solid ${failed ? '#ff7a7a' : 'color-mix(in srgb, var(--accent) 55%, transparent)'}`,
       }}
-      aria-label={`${result.toolName} ran`}
+      aria-label={failed ? `${result.toolName} failed` : `${result.toolName} ran`}
     />
   );
 }
@@ -170,6 +174,20 @@ const VARIANTS: Record<ToolCallStyleKey, VariantSet> = {
 
 function oneLine(s: string): string {
   return s.replace(/\s+/g, ' ').trim();
+}
+
+function isFailed(result: ToolResult): boolean {
+  return result.ok === false
+    || Boolean(result.errorCode)
+    || /^status:\s*error/im.test(result.content)
+    || /^Error(?: executing [\w-]+)?:/i.test(result.content.trim());
+}
+
+function failureSummary(result: ToolResult): string {
+  const summary = result.content.match(/^summary:\s*(.+)$/im)?.[1]?.trim();
+  if (summary) return summary.length > 120 ? `${summary.slice(0, 117)}...` : summary;
+  const first = oneLine(result.content);
+  return first.length > 120 ? `${first.slice(0, 117)}...` : first;
 }
 
 function mono(size: number): CSSProperties {

@@ -555,6 +555,17 @@ describe('workspace tool', () => {
 });
 
 describe('tool registry harness selection', () => {
+  it('validates schema types, enums, unknown tools, and fs action-specific arguments before execution', () => {
+    expect(toolRegistry.validateCallDetailed('missing_tool', {}).content).toContain('error_code: unknown_tool');
+    expect(toolRegistry.validateCallDetailed('fs', {}).content).toContain('error_code: missing_required_argument');
+    expect(toolRegistry.validateCallDetailed('fs', { action: 'frobnicate' }).content).toContain('error_code: invalid_enum_value');
+    expect(toolRegistry.validateCallDetailed('fs', { action: 'read' }).content).toContain('`path` is required for fs action "read"');
+    expect(toolRegistry.validateCallDetailed('fs', { action: 'write', path: '/workspace/x.txt' }).content).toContain('`content` is required for fs action "write"');
+    expect(toolRegistry.validateCallDetailed('fs', { action: 'move', from: '/workspace/a.txt' }).content).toContain('`to` is required for fs action "move"');
+    expect(toolRegistry.validateCallDetailed('fs', { action: 'search', query: 'needle', max_hits: 'many' }).content).toContain('error_code: invalid_argument_type');
+    expect(toolRegistry.validateCallDetailed('fs', { action: 'read', path: '/workspace/x.txt' }).ok).toBe(true);
+  });
+
   it('keeps ordinary chat turns on the small always-on tool set', () => {
     const names = toolRegistry.toolDefsForTurn({
       userText: 'tell me a story',

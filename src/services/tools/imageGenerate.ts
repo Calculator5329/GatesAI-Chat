@@ -85,6 +85,19 @@ export const imageGenerateTool: Tool = {
     resultPolicy: { maxChars: 500 },
     hasSideEffects: () => true,
     isReadOnly: () => false,
+    validate: args => {
+      const prompt = typeof args.prompt === 'string' ? args.prompt.trim() : '';
+      const promptFile = typeof args.prompt_file === 'string' ? args.prompt_file.trim() : '';
+      if (!prompt && !promptFile) {
+        return {
+          errorCode: 'missing_required_argument',
+          summary: '`prompt` or `prompt_file` is required for image_generate.',
+          fix: 'Retry with `prompt` for one image request, or `prompt_file` pointing to a /workspace JSON batch file.',
+          retryable: true,
+        };
+      }
+      return null;
+    },
   },
   async execute(args, ctx) {
     const promptFile = typeof args.prompt_file === 'string' ? args.prompt_file.trim() : '';

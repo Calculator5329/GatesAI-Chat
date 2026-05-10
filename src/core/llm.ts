@@ -57,6 +57,8 @@ export interface ToolDef {
   name: string;
   description: string;
   parameters: JsonSchema;
+  /** Provider hint for strict tool-argument schema adherence when supported. */
+  strict?: boolean;
 }
 
 /** Minimal JSON-Schema subset we actually use. Loose on purpose. */
@@ -67,6 +69,7 @@ export type JsonSchema = {
   required?: string[];
   items?: JsonSchema;
   enum?: unknown[];
+  additionalProperties?: boolean;
 };
 
 /** A single tool invocation requested by the model. Arguments are already-parsed JSON. */
@@ -74,6 +77,10 @@ export interface ToolCall {
   id: string;                    // provider-supplied id; we echo it back on the result
   name: string;                  // matches a registered tool
   arguments: Record<string, unknown>;
+  /** Set by providers when streamed argument JSON was malformed or unusable. */
+  argumentsError?: string;
+  /** Short raw argument preview for diagnostics when parsing failed. */
+  rawArguments?: string;
 }
 
 export interface LlmRequest {

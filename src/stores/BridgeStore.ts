@@ -4,7 +4,9 @@ import type { BridgeConnectionState, BridgeStatus } from '../core/workspace';
 import { isWorkspacePath, resolveWorkspacePath } from '../core/workspacePaths';
 import { uploadAttachment } from '../services/bridge/attachments';
 import { BridgeClient, BridgeOfflineError } from '../services/bridge/client';
+import { ensureDefaultWorkspaceGuide } from '../services/bridge/defaultWorkspaceGuide';
 import { readAttachmentBase64 } from '../services/bridge/readAttachmentBytes';
+import { openUserGuideOnFirstInstall } from '../services/bridge/userGuideInstall';
 import { openExternal } from '../services/system/openExternal';
 
 const HEALTH_URL = 'http://127.0.0.1:7331/health';
@@ -41,11 +43,13 @@ export class BridgeStore {
 
   readonly client: BridgeClient;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private seededWorkspaceRoot: string | undefined;
 
   constructor() {
     this.client = new BridgeClient(WS_URL);
-    makeAutoObservable<this, 'pollTimer' | 'client'>(this, {
+    makeAutoObservable<this, 'pollTimer' | 'seededWorkspaceRoot' | 'client'>(this, {
       pollTimer: false,
+      seededWorkspaceRoot: false,
       client: false,
     });
   }
@@ -146,6 +150,11 @@ export class BridgeStore {
       if (wasOffline) {
         try {
           await this.client.connect();
+          if (this.seededWorkspaceRoot !== data.workspace_root) {
+            await ensureDefaultWorkspaceGuide(this.client);
+            await openUserGuideOnFirstInstall(this.client, path => this.openWorkspacePath(path));
+            this.seededWorkspaceRoot = data.workspace_root;
+          }
         } catch (err) {
           runInAction(() => {
             this.state = 'offline';

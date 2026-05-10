@@ -14,7 +14,7 @@ import {
   deterministicCompactToolResult,
 } from '../services/llm/contextCompaction';
 import { StreamingTextBuffer } from '../services/streaming/StreamingTextBuffer';
-import { toolRegistry } from '../services/tools/registry';
+import { toolRegistry, type ToolValidationResult } from '../services/tools/registry';
 import { generateThreadTitle } from '../services/threadNamer';
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
 import { isToolFailureContent, logToolCallFailure } from '../services/chat/toolFailureLog';
@@ -55,8 +55,24 @@ function normalizeActiveThreadId(threads: Thread[], activeThreadId: string | nul
   return visible[0]?.id ?? null;
 }
 
+function normalizeWorkNote(content: string): string | null {
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+  if (trimmed.length <= MAX_WORK_NOTE_CHARS) return trimmed;
+  return `${trimmed.slice(0, MAX_WORK_NOTE_CHARS).trimEnd()}\n\n[work note truncated]`;
+}
+
+function appendWorkNote(existing: string[] | undefined, note: string): string[] {
+  const notes = existing ?? [];
+  if (notes.some(item => item.trim() === note)) return notes;
+  return [...notes, note].slice(-MAX_WORK_NOTES);
+}
+
 /** Hard cap on the number of tool-call rounds per user turn, to prevent infinite loops if a model keeps re-calling the same tool. */
 const MAX_TOOL_ROUNDS = 16;
+const MAX_WORK_NOTES = 8;
+const MAX_WORK_NOTE_CHARS = 4000;
+const TOOL_BATCH_WARN_THRESHOLD = 6;
 const COMPACTION_TRIGGER_FRACTION = 0.9;
 const COMPACTION_MAX_TOKENS = 500;
 const COMPACTION_MODELS = [
@@ -584,13 +600,14 @@ export class ChatStore {
    *
    * Each round:
    *   1. wipe `content` to '' (so streamed prose from a non-final round
-   *      doesn't linger if the model decides to call another tool)
+   *      doesn't linger as the final answer if the model decides to call
+   *      another tool)
    *   2. stream from the provider; append tokens to `content`, collect
    *      tool calls
    *   3. if no calls came back: this WAS the final round, exit
-   *   4. otherwise: discard the round's prose (it was a "let me check"
-   *      preamble we don't want in the final message), append the calls
-   *      to `toolCalls`, execute them, append to `toolResults`, loop
+   *   4. otherwise: preserve the round's prose in `workNotes`, clear
+   *      `content` for the next round, append the calls to `toolCalls`,
+   *      execute them, append to `toolResults`, loop
    *
    * The loop exits when the model produces a round with no tool calls
    * (final reply), the request errors, the signal aborts, or we hit
@@ -749,7 +766,14 @@ export class ChatStore {
         this.textBuffer.flush(assistantMessage.id);
         runInAction(() => {
           this.lastError = errorMessage ?? 'unknown error';
-          this.appendChunk(threadId, assistantMessage.id, `\n\n_Error: ${errorMessage}_`);
+          const m = this.findMessage(threadId, assistantMessage.id);
+          if (m && m.role === 'assistant') {
+            const recovery = formatProviderErrorRecovery(m, errorMessage ?? 'unknown error');
+            m.content = m.content.trim()
+              ? `${m.content.trimEnd()}\n\n${recovery}`
+              : recovery;
+            this.touchMessage(threadId, assistantMessage.id);
+          }
         });
       }
 
@@ -765,10 +789,10 @@ export class ChatStore {
         return;
       }
 
-      // Mid-turn: the model called tools. Discard any round-preamble prose
-      // (e.g. "let me check that") so the final stored content is just the
-      // model's closing reply. Append calls to the running list and execute.
-      this.textBuffer.cancel(assistantMessage.id);
+      // Mid-turn: the model called tools. Keep any streamed pre-tool prose as
+      // quiet work notes, then clear `content` so the final answer remains the
+      // model's closing reply after tool results are available.
+      this.textBuffer.flush(assistantMessage.id);
       if (signal.aborted) {
         runInAction(() => this.clearStreamingState(threadId));
         return;
@@ -776,10 +800,13 @@ export class ChatStore {
       runInAction(() => {
         const m = this.findMessage(threadId, assistantMessage.id);
         if (m && m.role === 'assistant') {
+          const note = normalizeWorkNote(m.content);
+          if (note) m.workNotes = appendWorkNote(m.workNotes, note);
           m.content = '';
           m.toolCalls = [...(m.toolCalls ?? []), ...collectedCalls];
         }
       });
+      this.textBuffer.cancel(assistantMessage.id);
 
       const results = await this.executeToolCalls(collectedCalls, threadId, signal);
       if (signal.aborted) {
@@ -796,11 +823,11 @@ export class ChatStore {
 
     runInAction(() => {
       this.textBuffer.cancel(assistantMessage.id);
-      const message = `Stopped after ${MAX_TOOL_ROUNDS} tool rounds to avoid an infinite loop. You can ask me to continue from the latest tool results.`;
+      const current = this.findMessage(threadId, assistantMessage.id);
+      const message = formatToolRoundCapMessage(MAX_TOOL_ROUNDS, current && current.role === 'assistant' ? current : assistantMessage);
       this.lastError = message;
-      const m = this.findMessage(threadId, assistantMessage.id);
-      if (m && m.role === 'assistant') {
-        m.content = message;
+      if (current && current.role === 'assistant') {
+        current.content = message;
         this.touchMessage(threadId, assistantMessage.id);
       }
       this.clearStreamingState(threadId);
@@ -956,14 +983,38 @@ export class ChatStore {
 
   private async executeToolCalls(calls: ToolCall[], threadId: string, signal: AbortSignal): Promise<ToolResult[]> {
     const results = new Array<ToolResult>(calls.length);
+    const invalidSeen = new Set<string>();
+    const batchStartedAt = Date.now();
+    const largeBatchWarning = calls.length > TOOL_BATCH_WARN_THRESHOLD
+      ? `status: warning\ntool: tool_batch_policy\nsummary: Large tool batch detected (${calls.length} calls). Prefer ${TOOL_BATCH_WARN_THRESHOLD} or fewer independent calls; dependent file-generation work should be sequential.`
+      : null;
+    if (largeBatchWarning) {
+      logEvent(threadId, 'tool.batch.warning', {
+        count: calls.length,
+        threshold: TOOL_BATCH_WARN_THRESHOLD,
+        toolNames: calls.map(call => call.name),
+      });
+    }
     let index = 0;
     while (index < calls.length) {
       if (signal.aborted) break;
       const call = calls[index];
+      const validation = toolRegistry.validateToolCall(call);
+      this.logToolValidation(threadId, call, validation);
+      if (!validation.ok) {
+        results[index] = this.invalidToolCallResult(call, validation, invalidSeen, threadId);
+        index += 1;
+        continue;
+      }
       if (toolRegistry.isReadOnlyCall(call.name, call.arguments)) {
         const groupStart = index;
         const group: ToolCall[] = [];
-        while (index < calls.length && toolRegistry.isReadOnlyCall(calls[index].name, calls[index].arguments)) {
+        while (
+          index < calls.length
+          && toolRegistry.validateToolCall(calls[index]).ok
+          && toolRegistry.isReadOnlyCall(calls[index].name, calls[index].arguments)
+        ) {
+          if (index !== groupStart) this.logToolValidation(threadId, calls[index], { ok: true, toolName: calls[index].name });
           group.push(calls[index]);
           index += 1;
         }
@@ -977,21 +1028,103 @@ export class ChatStore {
         index += 1;
       }
     }
-    return results.filter(Boolean);
+    const finished = results.filter(Boolean);
+    if (largeBatchWarning && finished[0]) {
+      finished[0] = {
+        ...finished[0],
+        content: `${largeBatchWarning}\n\n${finished[0].content}`,
+        outputChars: `${largeBatchWarning}\n\n${finished[0].content}`.length,
+      };
+    }
+    logEvent(threadId, 'tool.batch.finished', {
+      count: calls.length,
+      results: finished.length,
+      invalid: finished.filter(result => result.ok === false).length,
+      durationMs: Date.now() - batchStartedAt,
+      largeBatch: Boolean(largeBatchWarning),
+    });
+    return finished;
+  }
+
+  private logToolValidation(threadId: string, call: ToolCall, validation: ToolValidationResult): void {
+    logEvent(threadId, 'tool.call.validated', {
+      toolName: call.name,
+      toolCallId: call.id,
+      ok: validation.ok,
+      errorCode: validation.errorCode,
+      retryable: validation.retryable,
+      argumentsPreview: safeStableJson(call.arguments),
+      hasArgumentParseError: Boolean(call.argumentsError),
+    });
+  }
+
+  private invalidToolCallResult(call: ToolCall, validation: ToolValidationResult, invalidSeen: Set<string>, threadId: string): ToolResult {
+    const validationError = validation.content ?? `status: error\ntool: ${call.name}\nsummary: invalid tool call`;
+    const key = `${call.name}:${validationError}:${safeStableJson(call.arguments)}`;
+    const repeated = invalidSeen.has(key);
+    invalidSeen.add(key);
+    const startedAt = Date.now();
+    if (!repeated) {
+      const extras = this.toolStoresProvider?.() ?? ({} as ToolStoreContext);
+      logToolCallFailure({
+        call,
+        threadId,
+        content: validationError,
+        startedAt: Date.now(),
+        bridgeOnline: extras.bridge?.isOnline,
+        readOnly: false,
+      });
+      logEvent(threadId, 'tool.call.failed', {
+        toolName: call.name,
+        toolCallId: call.id,
+        phase: 'validation',
+        errorCode: validation.errorCode,
+        retryable: validation.retryable,
+        durationMs: 0,
+        outputChars: validationError.length,
+      });
+    }
+    const content = repeated
+      ? `status: error\ntool: ${call.name}\nerror_code: repeated_invalid_tool_call\nsummary: Skipped repeated invalid tool call.\nfix: Correct the prior validation error before retrying.\nretryable: true\nprevious_error: ${validation.summary ?? validationError.replace(/\s+/g, ' ').slice(0, 300)}`
+      : validationError;
+    return {
+      toolCallId: call.id,
+      toolName: call.name,
+      content,
+      ok: false,
+      errorCode: repeated ? 'repeated_invalid_tool_call' : validation.errorCode,
+      retryable: repeated ? true : validation.retryable,
+      durationMs: Date.now() - startedAt,
+      outputChars: content.length,
+      ranAt: Date.now(),
+    };
   }
 
   private async executeOneToolCall(call: ToolCall, threadId: string, signal: AbortSignal): Promise<ToolResult> {
     const extras = this.toolStoresProvider?.() ?? ({} as ToolStoreContext);
     const startedAt = Date.now();
     if (signal.aborted) {
+      const content = 'Cancelled.';
       return {
         toolCallId: call.id,
         toolName: call.name,
-        content: 'Cancelled.',
+        content,
+        ok: false,
+        errorCode: 'cancelled',
+        retryable: true,
+        durationMs: 0,
+        outputChars: content.length,
         ranAt: Date.now(),
       };
     }
-    const { content, artifacts } = await toolRegistry.execute(call.name, call.arguments, {
+    logEvent(threadId, 'tool.call.started', {
+      toolName: call.name,
+      toolCallId: call.id,
+      readOnly: toolRegistry.isReadOnlyCall(call.name, call.arguments),
+      argumentsPreview: safeStableJson(call.arguments),
+      bridgeOnline: extras.bridge?.isOnline,
+    });
+    const { content, artifacts, ok, errorCode, retryable } = await toolRegistry.execute(call.name, call.arguments, {
       profile: this.profile,
       chat: this,
       notes: extras.notes,
@@ -1004,7 +1137,9 @@ export class ChatStore {
       threadId,
       signal,
     });
-    if (isToolFailureContent(call.name, content)) {
+    const durationMs = Date.now() - startedAt;
+    const failed = ok === false || isToolFailureContent(call.name, content);
+    if (failed) {
       logToolCallFailure({
         call,
         threadId,
@@ -1013,11 +1148,34 @@ export class ChatStore {
         bridgeOnline: extras.bridge?.isOnline,
         readOnly: toolRegistry.isReadOnlyCall(call.name, call.arguments),
       });
+      logEvent(threadId, 'tool.call.failed', {
+        toolName: call.name,
+        toolCallId: call.id,
+        phase: 'execution',
+        errorCode: errorCode ?? 'tool_error',
+        retryable,
+        durationMs,
+        outputChars: content.length,
+        bridgeOnline: extras.bridge?.isOnline,
+      });
+    } else {
+      logEvent(threadId, 'tool.call.finished', {
+        toolName: call.name,
+        toolCallId: call.id,
+        durationMs,
+        outputChars: content.length,
+        bridgeOnline: extras.bridge?.isOnline,
+      });
     }
     return {
       toolCallId: call.id,
       toolName: call.name,
       content,
+      ok: !failed,
+      ...(failed && errorCode ? { errorCode } : {}),
+      ...(failed && retryable != null ? { retryable } : {}),
+      durationMs,
+      outputChars: content.length,
       ranAt: Date.now(),
       ...(artifacts && artifacts.length ? { artifacts } : {}),
     };
@@ -1239,11 +1397,66 @@ function hasAnyImageAttachment(messages: Message[]): boolean {
   return false;
 }
 
+function formatProviderErrorRecovery(message: AssistantMessage, error: string): string {
+  const progress = summarizeToolProgress(message);
+  if (!progress) return `_Error: ${error}_`;
+  return [
+    'I completed local tool work, but the model provider failed before I could finish the final summary.',
+    `Provider error: ${error}`,
+    progress,
+    'You can continue from the completed tool results above without re-running the successful workspace steps.',
+  ].join('\n\n');
+}
+
+function formatToolRoundCapMessage(maxRounds: number, message: AssistantMessage): string {
+  const progress = summarizeToolProgress(message);
+  return [
+    `Stopped after ${maxRounds} tool rounds to avoid an infinite loop.`,
+    progress ?? 'No completed tool results were available in this turn.',
+    'You can ask me to continue from the latest tool results.',
+  ].join('\n\n');
+}
+
+function summarizeToolProgress(message: AssistantMessage): string | null {
+  const results = message.toolResults ?? [];
+  if (results.length === 0) return null;
+  const failures = results.filter(result => isToolFailureContent(result.toolName, result.content));
+  const artifactPaths = new Set<string>();
+  for (const result of results) {
+    for (const artifact of result.artifacts ?? []) {
+      if (artifact.kind === 'image') artifactPaths.add(artifact.path);
+      if (artifact.kind === 'image-job') artifactPaths.add(`image job ${artifact.jobId}`);
+    }
+    for (const match of result.content.matchAll(/\/workspace\/[^\s`)"']+/g)) {
+      artifactPaths.add(match[0].replace(/[.,;:]+$/, ''));
+    }
+  }
+  const lines = [
+    `Completed tool results: ${results.length}.`,
+    failures.length > 0 ? `Tool results with errors: ${failures.length}.` : '',
+  ].filter(Boolean);
+  const paths = [...artifactPaths].slice(0, 8);
+  if (paths.length > 0) {
+    lines.push('Artifacts/paths seen:');
+    lines.push(...paths.map(path => `- ${path}`));
+    if (artifactPaths.size > paths.length) lines.push(`- ...and ${artifactPaths.size - paths.length} more`);
+  }
+  return lines.join('\n');
+}
+
 function formatOversizedContextMessage(used: number, window: number): string {
   return [
     `This thread is too large to send safely (${formatTokens(used)} of ${formatTokens(window)} tokens estimated).`,
     'Large tool results are still in the conversation context. Compact the thread, start a fresh thread, or reference the generated artifact paths instead of re-reading full files.',
   ].join('\n\n');
+}
+
+function safeStableJson(value: unknown): string {
+  try {
+    return JSON.stringify(value, Object.keys(value && typeof value === 'object' ? value as Record<string, unknown> : {}).sort());
+  } catch {
+    return String(value);
+  }
 }
 
 function formatTokens(tokens: number): string {

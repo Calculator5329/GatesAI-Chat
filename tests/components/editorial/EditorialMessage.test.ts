@@ -1,18 +1,24 @@
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { runInAction } from 'mobx';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StoreProvider } from '../../../src/stores/context';
 import { UiStore } from '../../../src/stores/UiStore';
 import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
 import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { EditorialMessage } from '../../../src/components/editorial/EditorialMessage';
+import { __htmlArtifactPreviewTestApi } from '../../../src/components/editorial/HtmlArtifactPreview';
 import type { RootStore } from '../../../src/stores/RootStore';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
+
+async function flushMicrotasks(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
+}
 
 function renderMessage(
   message: Parameters<typeof EditorialMessage>[0]['message'],
@@ -29,6 +35,17 @@ function renderMessage(
     ui: new UiStore(),
     execStream: new ExecStreamStore(),
     imageJobs,
+    bridge: {
+      isOnline: true,
+      client: {
+        request: vi.fn(async (op: string) => {
+          if (op === 'fs.stat') return { path: '/workspace/artifacts/reports/demo.html', kind: 'file', size: 42, mtime: 1 };
+          if (op === 'fs.read') return { path: '/workspace/artifacts/reports/demo.html', content: '<h1>Artifact</h1>', encoding: 'utf8', size: 42, mime: 'text/html' };
+          throw new Error(`unexpected op ${op}`);
+        }),
+      },
+      openWorkspacePath: vi.fn(async () => true),
+    },
   } as RootStore;
 
   act(() => {
@@ -54,6 +71,8 @@ afterEach(() => {
   root = null;
   host?.remove();
   host = null;
+  __htmlArtifactPreviewTestApi.reset();
+  vi.restoreAllMocks();
 });
 
 describe('EditorialMessage markdown rendering', () => {
@@ -83,10 +102,32 @@ describe('EditorialMessage markdown rendering', () => {
 
     expect(body?.textContent).toBe('Normalize these files.');
     expect(body?.classList.contains('user-attachment-chip')).toBe(false);
-    expect(attachments?.textContent).toBe('CSV · 10.7KB');
+    expect(attachments?.textContent).toContain('CSV');
+    expect(attachments?.textContent).toContain('plan.csv');
+    expect(attachments?.textContent).toContain('10.7KB');
     expect(attachments?.textContent).not.toContain('Attached files');
     expect(attachments?.textContent).not.toContain('fs');
     expect(attachments?.textContent).not.toContain('/workspace/attachments/plan.csv');
+  });
+
+  it('groups overflow non-image attachments after the first four files', () => {
+    const rendered = renderMessage({
+      id: 'm-many-attachments',
+      role: 'user',
+      createdAt: Date.now(),
+      content: 'Use these files.',
+      attachments: Array.from({ length: 6 }, (_, index) => ({
+        path: `/workspace/attachments/file-${index + 1}.csv`,
+        name: `file-${index + 1}.csv`,
+        mime: 'text/csv',
+        size: 1024 + index,
+      })),
+    }, 'You');
+
+    expect(rendered.querySelectorAll('.user-attachment-chip')).toHaveLength(4);
+    expect(rendered.querySelector('.user-attachment-more')?.textContent).toContain('+2 files');
+    expect(rendered.textContent).toContain('file-1.csv');
+    expect(rendered.textContent).not.toContain('file-6.csv');
   });
 
   it('does not render a block caret after streamed markdown content', () => {
@@ -157,6 +198,39 @@ describe('EditorialMessage markdown rendering', () => {
 
     expect(rendered.querySelector('.workspace-path-link')).not.toBeNull();
     expect(rendered.querySelector('a[href^="/workspace/"]')).toBeNull();
+  });
+
+  it('renders markdown links to HTML workspace artifacts as inline previews', async () => {
+    const rendered = renderMessage({
+      id: 'm-anchor-html',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'Open [the artifact](/workspace/artifacts/reports/demo.html) for details.',
+    });
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    expect(rendered.querySelector('.html-artifact-preview')).not.toBeNull();
+    expect(rendered.querySelector('.workspace-path-link')).toBeNull();
+    expect(rendered.querySelector('iframe')?.getAttribute('srcdoc')).toContain('<h1>Artifact</h1>');
+  });
+
+  it('renders inline code HTML workspace artifacts as inline previews', async () => {
+    const rendered = renderMessage({
+      id: 'm-code-html',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'Saved it at `/workspace/artifacts/reports/demo.htm`.',
+    });
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    expect(rendered.querySelector('.html-artifact-preview')).not.toBeNull();
+    expect(rendered.querySelector('.workspace-path-link')).toBeNull();
   });
 
   it('still renders external markdown anchors as anchor tags', () => {

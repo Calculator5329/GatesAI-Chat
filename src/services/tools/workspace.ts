@@ -71,6 +71,7 @@ function formatInfo(ctx: Parameters<Tool['execute']>[1]): string {
     '- Scripts and terminal commands run from the real bridge workspace root.',
     '- Inside scripts, use cwd/relative paths rather than /workspace as an OS path.',
     '- The terminal tool passes cmd + argv directly; shell syntax only works through an allowlisted shell.',
+    '- Default docs: /workspace/README.md points to /workspace/notes/GatesAI-AI-Operating-Context.md for app/tool/user-visible environment details.',
   ].join('\n');
 }
 

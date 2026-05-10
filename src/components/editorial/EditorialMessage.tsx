@@ -16,6 +16,7 @@ import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCop
 import { WorkspaceImage } from './WorkspaceImage';
 import { ImageJobCard } from './ImageJobCard';
 import { splitMarkdownChunks } from './markdownChunks';
+import { HtmlArtifactPreview, isHtmlWorkspacePath } from './HtmlArtifactPreview';
 
 /**
  * Lazy plugin loader for the heavy rehype plugins. `rehype-highlight` pulls
@@ -83,6 +84,7 @@ type CopyState = 'idle' | 'hint' | 'copied' | 'failed';
 let copyHintSeen = false;
 const EMPTY_TOOL_CALLS: NonNullable<AssistantMessage['toolCalls']> = [];
 const EMPTY_TOOL_RESULTS: NonNullable<AssistantMessage['toolResults']> = [];
+const EMPTY_WORK_NOTES: NonNullable<AssistantMessage['workNotes']> = [];
 
 /**
  * One message = one user turn or one assistant turn (which may include
@@ -120,12 +122,14 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
 
   const calls = !isUser ? message.toolCalls ?? EMPTY_TOOL_CALLS : EMPTY_TOOL_CALLS;
   const results = !isUser ? message.toolResults ?? EMPTY_TOOL_RESULTS : EMPTY_TOOL_RESULTS;
+  const workNotes = !isUser ? visibleWorkNotes(message.workNotes ?? EMPTY_WORK_NOTES) : EMPTY_WORK_NOTES;
   const resultByCallId = useMemo(
     () => new Map(results.map(r => [r.toolCallId, r])),
     [results],
   );
   const hasContent = message.content.trim().length > 0;
   const hasCalls = calls.length > 0;
+  const hasWorkNotes = workNotes.length > 0;
   const userContent = isUser && message.role === 'user' ? resolveUserAttachments(message) : null;
   const hasLoadingImageJob = !isUser && results.some(result => (
     result.artifacts?.some(artifact => {
@@ -193,6 +197,13 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
           Ctrl/Cmd + click to copy
         </div>
       )}
+      {hasWorkNotes && (
+        <div style={{ marginBottom: hasCalls || hasContent || streaming ? 10 : 0 }}>
+          {workNotes.map((note, idx) => (
+            <WorkNote key={`${idx}-${note.slice(0, 24)}`} content={note} />
+          ))}
+        </div>
+      )}
       {hasCalls && (
         <div style={{ marginBottom: hasContent || streaming ? 10 : 0 }}>
           {calls.map(call => {
@@ -255,6 +266,31 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
     </div>
   );
 });
+
+function visibleWorkNotes(notes: readonly string[]): string[] {
+  return notes
+    .map(note => note.trim())
+    .filter(note => note.length > 0);
+}
+
+function WorkNote({ content }: { content: string }) {
+  return (
+    <div
+      style={{
+        borderLeft: '2px solid color-mix(in srgb, var(--accent) 38%, transparent)',
+        padding: '2px 0 2px 12px',
+        color: 'var(--text-dim)',
+        fontFamily: '"Source Serif 4", Iowan Old Style, Georgia, serif',
+        fontSize: 14,
+        fontStyle: 'italic',
+        lineHeight: 1.55,
+        opacity: 0.86,
+      }}
+    >
+      <MarkdownBody content={content} />
+    </div>
+  );
+}
 
 function MarkdownBody({ content }: { content: string }) {
   const bridge = useBridgeStore();
@@ -330,6 +366,9 @@ function CodeOrWorkspaceLink({ bridge, className, children, ...rest }: CodeProps
   if (isInline) {
     const text = childrenToString(children);
     if (isWorkspacePath(text)) {
+      if (isHtmlWorkspacePath(text)) {
+        return <HtmlArtifactPreview path={text} />;
+      }
       return <WorkspacePathLink path={text} bridge={bridge} />;
     }
   }
@@ -343,6 +382,9 @@ interface AnchorProps extends ComponentPropsWithoutRef<'a'> {
 function AnchorOrWorkspaceLink({ bridge, href, children, ...rest }: AnchorProps) {
   const target = typeof href === 'string' ? href : '';
   if (target && isWorkspacePath(target)) {
+    if (isHtmlWorkspacePath(target)) {
+      return <HtmlArtifactPreview path={target} label={childrenToString(children)} />;
+    }
     return <WorkspacePathLink path={target} bridge={bridge} />;
   }
   return <a href={href} {...rest} target="_blank" rel="noreferrer">{children}</a>;
@@ -373,25 +415,51 @@ function childrenToString(children: ReactNode): string {
 }
 
 function UserMessageContent({ body, attachments }: { body: string; attachments: RenderedAttachment[] }) {
+  const imageAttachments = attachments.filter(file => file.isImage);
+  const fileAttachments = attachments.filter(file => !file.isImage);
+  const visibleFiles = fileAttachments.slice(0, 4);
+  const hiddenFileCount = Math.max(0, fileAttachments.length - visibleFiles.length);
   return (
     <>
       {body.trim() && <p className="user-message-body">{body.trim()}</p>}
       {attachments.length > 0 && (
         <div className="user-attachments" aria-label="Attached files">
-          {attachments.map(file => (
-            file.isImage
-              ? <WorkspaceImage key={`${file.path}-${file.size}`} path={file.path} alt={file.name} kind={file.kind} />
-              : (
-                <div className="user-attachment-chip" key={`${file.path}-${file.size}`}>
-                  <span className="user-attachment-kind">{file.kind}</span>
-                  <span className="user-attachment-separator"> · </span>
-                  <span className="user-attachment-size">{file.size}</span>
-                </div>
-              )
+          {imageAttachments.map(file => (
+            <WorkspaceImage key={`${file.path}-${file.size}`} path={file.path} alt={file.name} kind={file.kind} />
           ))}
+          {visibleFiles.map(file => (
+            <FileAttachmentChip key={`${file.path}-${file.size}`} file={file} />
+          ))}
+          {hiddenFileCount > 0 && (
+            <div className="user-attachment-more" title={fileAttachments.slice(4).map(file => file.name).join('\n')}>
+              +{hiddenFileCount} files
+            </div>
+          )}
         </div>
       )}
     </>
+  );
+}
+
+function FileAttachmentChip({ file }: { file: RenderedAttachment }) {
+  const bridge = useBridgeStore();
+  return (
+    <button
+      type="button"
+      className="user-attachment-chip"
+      title={`${file.name}\n${file.path}`}
+      aria-label={`Open attached file ${file.name}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        void bridge.openWorkspacePath(file.path);
+      }}
+    >
+      <span className="user-attachment-kind">{file.kind}</span>
+      <span className="user-attachment-detail">
+        <span className="user-attachment-name">{file.name}</span>
+        <span className="user-attachment-size">{file.size}</span>
+      </span>
+    </button>
   );
 }
 

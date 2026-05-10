@@ -130,7 +130,31 @@ export interface ToolMetadata {
   resultPolicy?: ToolResultPolicy;
   isReadOnly?: (args: Record<string, unknown>) => boolean;
   hasSideEffects?: (args: Record<string, unknown>) => boolean;
+  validate?: (args: Record<string, unknown>) => ToolValidationIssue | null;
 }
+
+export interface ToolValidationIssue {
+  errorCode: string;
+  summary: string;
+  fix?: string;
+  retryable?: boolean;
+}
+
+export type ToolOutcome =
+  | {
+      ok: true;
+      summary: string;
+      data?: unknown;
+      artifacts?: ToolResultArtifact[];
+    }
+  | {
+      ok: false;
+      errorCode: string;
+      summary: string;
+      fix?: string;
+      retryable: boolean;
+      data?: unknown;
+    };
 
 /**
  * Structured tool output. Tools may return either a bare string (the common
@@ -140,6 +164,10 @@ export interface ToolMetadata {
 export interface ToolExecuteResult {
   content: string;
   artifacts?: ToolResultArtifact[];
+  ok?: boolean;
+  errorCode?: string;
+  retryable?: boolean;
+  data?: unknown;
 }
 
 /**
@@ -154,5 +182,5 @@ export interface ToolExecuteResult {
 export interface Tool {
   def: ToolDef;
   meta?: ToolMetadata;
-  execute(args: Record<string, unknown>, ctx: ToolContext): Promise<string | ToolExecuteResult>;
+  execute(args: Record<string, unknown>, ctx: ToolContext): Promise<string | ToolExecuteResult | ToolOutcome>;
 }

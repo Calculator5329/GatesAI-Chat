@@ -62,6 +62,11 @@ export interface AssistantMessage {
   model?: string;
   /** Label for the empty pre-token streaming state. Omitted means "thinking". */
   preTokenLabel?: 'thinking' | 'responding' | 'compacting' | 'generating';
+  /**
+   * Non-final prose streamed before the model decided to call tools. Kept so
+   * users do not see useful in-flight context vanish when a tool round begins.
+   */
+  workNotes?: string[];
   /** Tool calls the model made during this round. Empty / omitted when none. */
   toolCalls?: ToolCall[];
   /** Results from executing those tool calls. Length matches toolCalls; pair by id. */
@@ -104,6 +109,16 @@ export interface ToolResult {
   toolName: string;
   /** Result string the tool returned (and the model sees on its next round). */
   content: string;
+  /** Whether the tool execution produced a successful outcome. */
+  ok?: boolean;
+  /** Low-cardinality error code for invalid/failed tool calls. */
+  errorCode?: string;
+  /** Whether retrying with corrected inputs or later environment state may work. */
+  retryable?: boolean;
+  /** Execution duration for diagnostics and UI. */
+  durationMs?: number;
+  /** Size of the model-visible result payload. */
+  outputChars?: number;
   /** When the tool finished. */
   ranAt: number;
   /**

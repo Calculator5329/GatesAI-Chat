@@ -89,7 +89,9 @@ describe('Tool loop — scripted', () => {
     expect(assistant.toolCalls?.[0].arguments.action).toBe('add');
     expect(assistant.toolResults?.[0].toolCallId).toBe('call_xyz');
     expect(assistant.toolResults?.[0].content).toContain('Saved');
-    // Content holds the FINAL round's prose, not the preamble from round 1.
+    // Content holds the FINAL round's prose, while pre-tool text is preserved
+    // as work notes so it does not disappear from the UI mid-turn.
+    expect(assistant.workNotes?.[0]).toContain("I'll remember that");
     expect(assistant.content).toContain('Bill Evans');
     expect(assistant.content).not.toContain("Got it");
     expect(chat.streamingMessageId).toBeNull();
@@ -212,6 +214,75 @@ describe('Tool loop — scripted', () => {
     expect(toolMsg?.content).toMatch(/`action` is required for fs/i);
     expect(toolMsg?.content).not.toContain('unknown action ""');
     expect(chat.activeThread!.messages.at(-1)?.content).toContain('valid file action');
+  });
+
+  it('preflights unknown write tools and dedupes repeated invalid fs calls', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { chat, mock } = setupScripted([
+      [
+        { type: 'tool_call', call: { id: 'bad-write', name: 'functions.write', arguments: { path: '/workspace/notes/x.py', content: 'print(1)' } } },
+        { type: 'tool_call', call: { id: 'fs-empty-1', name: 'fs', arguments: {} } },
+        { type: 'tool_call', call: { id: 'fs-empty-2', name: 'fs', arguments: {} } },
+        { type: 'done', finishReason: 'tool_use' },
+      ],
+      [{ type: 'text', delta: 'I will retry with valid tools.' }, { type: 'done', finishReason: 'stop' }],
+    ]);
+    chat.setToolStoresProvider(() => ({
+      bridge: {
+        isOnline: true,
+        client: { request: vi.fn(async () => { throw new Error('should not dispatch invalid calls'); }) },
+      },
+    }) as unknown as Pick<ToolContext, 'bridge'>);
+    chat.createThread();
+
+    try {
+      chat.sendMessage('write and run a script');
+      await flush(80);
+
+      const toolMsgs = mock.calls[1].messages.filter(m => m.role === 'tool');
+      expect(toolMsgs.map(m => m.toolCallId)).toEqual(['bad-write', 'fs-empty-1', 'fs-empty-2']);
+      expect(toolMsgs[0].content).toContain('Use `fs` with `action: "write"`');
+      expect(toolMsgs[1].content).toContain('`action` is required for fs');
+      expect(toolMsgs[2].content).toContain('Skipped repeated invalid tool call');
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('keeps completed tool progress visible when the provider fails before final summary', async () => {
+    const { chat } = setupScripted([
+      [
+        { type: 'tool_call', call: { id: 'stat-artifact', name: 'fs', arguments: { action: 'stat', path: '/workspace/artifacts/data/net_worth.json' } } },
+        { type: 'done', finishReason: 'tool_use' },
+      ],
+      [{ type: 'done', finishReason: 'error', error: 'OpenRouter 402 Insufficient credits' }],
+    ]);
+    chat.setToolStoresProvider(() => ({
+      bridge: {
+        isOnline: true,
+        client: {
+          request: vi.fn(async () => ({
+            path: '/workspace/artifacts/data/net_worth.json',
+            kind: 'file',
+            size: 1234,
+            mtime: 1,
+            mime: 'application/json',
+          })),
+        },
+      },
+    }) as unknown as Pick<ToolContext, 'bridge'>);
+    chat.createThread();
+
+    chat.sendMessage('check the artifact');
+    await flush(80);
+
+    const assistant = chat.activeThread!.messages.at(-1);
+    expect(assistant?.role).toBe('assistant');
+    if (assistant?.role !== 'assistant') return;
+    expect(assistant.content).toContain('completed local tool work');
+    expect(assistant.content).toContain('OpenRouter 402 Insufficient credits');
+    expect(assistant.content).toContain('/workspace/artifacts/data/net_worth.json');
+    expect(assistant.content).toContain('without re-running');
   });
 
   it('passes LocalRuntimeStore context to describe_image tool calls', async () => {

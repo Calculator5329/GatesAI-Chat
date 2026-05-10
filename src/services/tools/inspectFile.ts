@@ -67,7 +67,7 @@ export const inspectFileTool: Tool = {
         column: { type: 'string', description: 'CSV column for aggregate operation.' },
         group_by: { type: 'string', description: 'Optional CSV grouping column for aggregate.' },
       },
-      required: ['action', 'path'],
+      required: ['action'],
     },
   },
   meta: {
@@ -75,6 +75,19 @@ export const inspectFileTool: Tool = {
     isReadOnly: () => true,
     hasSideEffects: () => false,
     resultPolicy: { maxChars: 16_000, summarizeLargeOutput: true },
+    validate: args => {
+      const action = typeof args.action === 'string' ? args.action : '';
+      const path = typeof args.path === 'string' ? args.path.trim() : '';
+      if (action !== 'workspace_profile' && !path) {
+        return {
+          errorCode: 'missing_required_argument',
+          summary: '`path` is required for inspect_file unless action is "workspace_profile".',
+          fix: 'Retry with a /workspace path, or use action "workspace_profile" to inspect workspace-level artifacts without a path.',
+          retryable: true,
+        };
+      }
+      return null;
+    },
   },
 
   async execute(args, ctx) {
