@@ -4,9 +4,11 @@ import { useBridgeStore } from '../../../stores/context';
 import type { FsEntry, FsListResp } from '../../../core/workspace';
 import { Card } from '../../ui/Card';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
+import { isWebLite } from '../../../services/system/runtime';
 
 export const WorkspaceSection = observer(function WorkspaceSection() {
   const bridge = useBridgeStore();
+  const webLite = isWebLite();
   const [tree, setTree] = useState<FsListResp | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <WebLiteNotice>
+      <WebLiteNotice show={webLite}>
         <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
         the local /workspace bridge is not available in Firebase Hosting. Chats and settings stay in this browser for now.
       </WebLiteNotice>

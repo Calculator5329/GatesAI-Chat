@@ -40,6 +40,10 @@ function renderMessage(
   streaming = false,
   preTokenLabel?: Parameters<typeof EditorialMessage>[0]['preTokenLabel'],
   imageJobs = new ImageJobStore(),
+  handlers: Pick<
+    Parameters<typeof EditorialMessage>[0],
+    'onRegenerate' | 'onBranch' | 'onEditAndResend'
+  > = {},
 ): HTMLDivElement {
   host = document.createElement('div');
   document.body.appendChild(host);
@@ -71,6 +75,7 @@ function renderMessage(
           streaming,
           preTokenLabel,
           message,
+          ...handlers,
         }),
       }),
     );
@@ -344,5 +349,46 @@ describe('EditorialMessage markdown rendering', () => {
 
     expect(rendered.textContent).not.toContain('I queued an image through OpenRouter');
     expect(rendered.textContent).toContain('waiting on');
+  });
+
+  it('wires assistant regenerate and branch actions', () => {
+    const onRegenerate = vi.fn();
+    const onBranch = vi.fn();
+    const rendered = renderMessage({
+      id: 'm-actions-assistant',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'Done.',
+    }, 'Assistant', false, undefined, new ImageJobStore(), { onRegenerate, onBranch });
+
+    act(() => {
+      (rendered.querySelector('[aria-label="Regenerate response"]') as HTMLButtonElement).click();
+      (rendered.querySelector('[aria-label="Branch conversation"]') as HTMLButtonElement).click();
+    });
+
+    expect(onRegenerate).toHaveBeenCalledWith('m-actions-assistant');
+    expect(onBranch).toHaveBeenCalledWith('m-actions-assistant');
+  });
+
+  it('opens user edit-and-resend and submits the draft text', () => {
+    const onEditAndResend = vi.fn();
+    const rendered = renderMessage({
+      id: 'm-actions-user',
+      role: 'user',
+      createdAt: Date.now(),
+      content: 'Original prompt',
+    }, 'You', false, undefined, new ImageJobStore(), { onEditAndResend });
+
+    act(() => {
+      (rendered.querySelector('[aria-label="Edit and resend"]') as HTMLButtonElement).click();
+    });
+
+    act(() => {
+      Array.from(rendered.querySelectorAll('.message-edit-panel button'))
+        .find(button => button.textContent === 'Send branch')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onEditAndResend).toHaveBeenCalledWith('m-actions-user', 'Original prompt');
   });
 });

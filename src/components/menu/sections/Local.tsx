@@ -40,7 +40,7 @@ export const LocalSection = observer(function LocalSection() {
       <>
         <h1 style={tokens.h1}>Local</h1>
         <div style={tokens.kicker}>desktop runtimes</div>
-        <WebLiteNotice>
+        <WebLiteNotice show={webLite}>
           <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
           Ollama, ComfyUI, local vision, and managed runtime controls are desktop-only.
           Use Models for OpenRouter/API chat in the hosted web app.
@@ -59,7 +59,7 @@ export const LocalSection = observer(function LocalSection() {
     <>
       <h1 style={tokens.h1}>Local</h1>
       <div style={tokens.kicker}>installed runtimes · Ollama · ComfyUI · local vision</div>
-      <WebLiteNotice>
+        <WebLiteNotice show={webLite}>
         <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
         local runtimes are desktop-only. Use Models for OpenRouter/API chat in the hosted web app.
       </WebLiteNotice>

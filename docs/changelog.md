@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-05-10 - GatesAI core hardening sprint
+
+- Added ChatStore workflows for pin/unpin, trimmed rename fallback, branching
+  from a message, regenerate-in-place, historical regenerate via branch, and
+  edit-and-resend via branch without mutating the original thread.
+- Added sidebar thread search plus inline thread actions for rename, pin/unpin,
+  and soft-delete with undo.
+- Added compact message actions for copy, regenerate, edit-and-resend, and
+  branch while preserving the existing Ctrl/Cmd-click copy gesture.
+- Kept the performance pass intact with memoized model rows, lazy markdown
+  rendering dependencies, sticky-scroll behavior, draft debounce, and
+  content-visibility for off-screen messages.
+- Expanded ChatStore and editorial component coverage around thread mutation,
+  branching, regeneration, composer debounce, markdown chunking, and message
+  action behavior.
+
+## 2026-05-10 — Firebase Hosting default project
+
+- Added `.firebaserc` with default project `ethan-488900` so Firebase CLI picks
+  a project automatically and `npm run deploy:firebase` does not stop with “No
+  currently active project”.
+
 ## 2026-05-09 - 0.3.0 release prep
 
 - Bumped GatesAI Chat to `0.3.0` across npm, Tauri, and Cargo metadata.

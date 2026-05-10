@@ -217,6 +217,8 @@ export interface Model {
   description?: string;
   /** Max input tokens, when known. */
   contextLength?: number;
+  /** Legacy alias used by a few cached Ollama catalog entries. */
+  contextWindow?: number;
   /** USD per 1M tokens. */
   pricing?: { prompt?: number; completion?: number };
   /** True for entries fetched at runtime (e.g. from OpenRouter). */

@@ -604,6 +604,69 @@ export class ChatStore {
     thread.deletedAt = undefined;
   }
 
+  toggleThreadPinned(threadId: string): void {
+    const thread = this.findThread(threadId);
+    if (!thread || thread.deletedAt != null) return;
+    thread.pinned = !thread.pinned;
+    thread.updatedAt = Date.now();
+  }
+
+  branchThreadFromMessage(threadId: string, messageId: string): string | null {
+    const source = this.findThread(threadId);
+    if (!source || source.deletedAt != null) return null;
+    const index = source.messages.findIndex(message => message.id === messageId);
+    if (index < 0) return null;
+    return this.createBranchThread(source, index);
+  }
+
+  regenerateFromMessage(threadId: string, messageId: string): string | null {
+    const thread = this.findThread(threadId);
+    if (!thread || thread.deletedAt != null) return null;
+    const index = thread.messages.findIndex(message => message.id === messageId);
+    const message = thread.messages[index];
+    if (!message || message.role !== 'assistant') return null;
+    const precedingUserIndex = findPrecedingUserIndex(thread.messages, index);
+    if (precedingUserIndex < 0) return null;
+
+    const isLatestAssistant = index === thread.messages.length - 1;
+    if (isLatestAssistant) {
+      if (this.isThreadStreaming(thread.id)) this.interruptThread(thread.id);
+      thread.messages.splice(index, 1);
+      thread.updatedAt = Date.now();
+      this.startTurn(thread.id, true);
+      return thread.id;
+    }
+
+    const branchId = this.createBranchThread(thread, precedingUserIndex);
+    if (!branchId) return null;
+    this.startTurn(branchId, true);
+    return branchId;
+  }
+
+  editAndResendFromMessage(threadId: string, messageId: string, text: string): string | null {
+    const source = this.findThread(threadId);
+    if (!source || source.deletedAt != null) return null;
+    const index = source.messages.findIndex(message => message.id === messageId);
+    const original = source.messages[index];
+    const trimmed = text.trim();
+    if (!original || original.role !== 'user' || !trimmed) return null;
+
+    const branchId = this.createBranchThread(source, index - 1);
+    if (!branchId) return null;
+    const branch = this.findThread(branchId);
+    if (!branch) return null;
+    const userMessage: Message = {
+      id: newId('m'),
+      role: 'user',
+      content: trimmed,
+      createdAt: Date.now(),
+      ...(original.attachments ? { attachments: original.attachments.map(attachment => ({ ...attachment })) } : {}),
+    };
+    this.appendMessage(branch.id, userMessage);
+    this.startTurn(branch.id, true);
+    return branch.id;
+  }
+
   /**
    * Send a user message on the active thread, then begin the model→tool loop.
    *
@@ -644,6 +707,21 @@ export class ChatStore {
       .catch(err => runInAction(() => {
         this.lastError = (err as Error).message;
         this.clearStreamingState(targetThreadId);
+      }));
+  }
+
+  private startTurn(threadId: string, isReplacingInterruptedReply = false): void {
+    const thread = this.ensureThreadModel(threadId);
+    if (!thread || thread.messages.length === 0) return;
+    if (this.isThreadStreaming(thread.id)) this.interruptThread(thread.id);
+    this.activeThreadId = thread.id;
+    this.lastError = null;
+    const controller = new AbortController();
+    this.controllersByThread.set(thread.id, controller);
+    this.runTurn(thread.id, controller.signal, isReplacingInterruptedReply)
+      .catch(err => runInAction(() => {
+        this.lastError = (err as Error).message;
+        this.clearStreamingState(thread.id);
       }));
   }
 
@@ -1435,6 +1513,27 @@ export class ChatStore {
     return this.findThread(threadId)?.messages.find(m => m.id === messageId);
   }
 
+  private createBranchThread(source: Thread, throughIndex: number): string | null {
+    const now = Date.now();
+    const through = Math.max(-1, Math.min(throughIndex, source.messages.length - 1));
+    const messages = through >= 0 ? cloneMessages(source.messages.slice(0, through + 1)) : [];
+    const branch: Thread = {
+      id: newId('t'),
+      title: branchTitle(source.title),
+      subtitle: source.subtitle,
+      createdAt: now,
+      updatedAt: now,
+      pinned: false,
+      modelId: source.modelId,
+      messages,
+      ...(source.contextMode ? { contextMode: source.contextMode } : {}),
+      ...(source.threadContext ? { threadContext: source.threadContext } : {}),
+    };
+    this.threads.unshift(branch);
+    this.activeThreadId = branch.id;
+    return branch.id;
+  }
+
   private appendMessage(threadId: string, message: Message): void {
     const thread = this.findThread(threadId);
     if (!thread) return;
@@ -1461,6 +1560,22 @@ export class ChatStore {
     const message = this.findMessage(threadId, messageId);
     if (message) message.createdAt = Date.now();
   }
+}
+
+function findPrecedingUserIndex(messages: Message[], beforeIndex: number): number {
+  for (let index = beforeIndex - 1; index >= 0; index--) {
+    if (messages[index].role === 'user') return index;
+  }
+  return -1;
+}
+
+function cloneMessages(messages: Message[]): Message[] {
+  return messages.map(message => JSON.parse(JSON.stringify(message)) as Message);
+}
+
+function branchTitle(title: string): string {
+  const base = title.trim() || 'Untitled conversation';
+  return base.endsWith(' (branch)') ? base : `${base} (branch)`;
 }
 
 export function threadLlmSpendUsd(thread: Thread | null): number {

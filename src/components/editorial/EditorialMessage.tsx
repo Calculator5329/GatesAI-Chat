@@ -4,7 +4,7 @@ import { observer } from 'mobx-react-lite';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import type { PluggableList } from 'unified';
-import type { ComponentPropsWithoutRef, ReactNode } from 'react';
+import type { ComponentPropsWithoutRef, ReactNode, MouseEvent } from 'react';
 import type { AssistantMessage, Message } from '../../core/types';
 import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
 import { isWorkspacePath } from '../../core/workspacePaths';
@@ -18,6 +18,7 @@ import { ImageJobCard } from './ImageJobCard';
 import { splitMarkdownChunks } from './markdownChunks';
 import { HtmlArtifactPreview, isHtmlWorkspacePath } from './HtmlArtifactPreview';
 import { MermaidDiagram } from './MermaidDiagram';
+import { Icons } from '../ui/icons';
 
 /**
  * Lazy plugin loader for the heavy rehype plugins. `rehype-highlight` pulls
@@ -78,6 +79,9 @@ interface MessageProps {
   modelName: string | undefined;
   streaming: boolean;
   preTokenLabel?: 'thinking' | 'responding' | 'compacting' | 'generating';
+  onRegenerate?: (messageId: string) => void;
+  onBranch?: (messageId: string) => void;
+  onEditAndResend?: (messageId: string, text: string) => void;
 }
 
 type CopyState = 'idle' | 'hint' | 'copied' | 'failed';
@@ -105,11 +109,21 @@ const EMPTY_WORK_NOTES: NonNullable<AssistantMessage['workNotes']> = [];
  * Wrapped in `observer` because `content`, `toolCalls`, and `toolResults`
  * all mutate in place during streaming.
  */
-export const EditorialMessage = observer(function EditorialMessage({ message, modelName, streaming, preTokenLabel }: MessageProps) {
+export const EditorialMessage = observer(function EditorialMessage({
+  message,
+  modelName,
+  streaming,
+  preTokenLabel,
+  onRegenerate,
+  onBranch,
+  onEditAndResend,
+}: MessageProps) {
   const ui = useUiStore();
   const execStream = useExecStreamStore();
   const imageJobs = useImageJobStore();
   const [copyState, setCopyState] = useState<CopyState>('idle');
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(message.content);
   const isUser = message.role === 'user';
   const when = useMemo(
     () => message.createdAt
@@ -162,6 +176,17 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
     }
   }
 
+  function onActionClick(event: MouseEvent) {
+    event.stopPropagation();
+  }
+
+  function submitEdit() {
+    const next = editText.trim();
+    if (!next) return;
+    onEditAndResend?.(message.id, next);
+    setEditing(false);
+  }
+
   return (
     <div
       className="editorial-message"
@@ -197,6 +222,45 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
           Ctrl/Cmd + click to copy
         </div>
       )}
+      <div className="message-actions" onClick={onActionClick}>
+        <button type="button" title="Copy message" aria-label="Copy message" onClick={() => void copyMessage()}>
+          <Icons.Copy />
+        </button>
+        {!isUser && (
+          <button
+            type="button"
+            title="Regenerate response"
+            aria-label="Regenerate response"
+            disabled={streaming || !onRegenerate}
+            onClick={() => onRegenerate?.(message.id)}
+          >
+            <Icons.Refresh />
+          </button>
+        )}
+        {isUser && (
+          <button
+            type="button"
+            title="Edit and resend"
+            aria-label="Edit and resend"
+            disabled={streaming || !onEditAndResend}
+            onClick={() => {
+              setEditText(message.content);
+              setEditing(true);
+            }}
+          >
+            <Icons.Edit />
+          </button>
+        )}
+        <button
+          type="button"
+          title="Branch conversation"
+          aria-label="Branch conversation"
+          disabled={streaming || !onBranch}
+          onClick={() => onBranch?.(message.id)}
+        >
+          <Icons.Branch />
+        </button>
+      </div>
       {hasWorkNotes && (
         <div style={{ marginBottom: hasCalls || hasContent || streaming ? 10 : 0 }}>
           {workNotes.map((note, idx) => (
@@ -244,7 +308,23 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
         color: 'var(--text)',
         letterSpacing: '-0.01em',
       }}>
-        {isUser ? (
+        {editing && isUser ? (
+          <div className="message-edit-panel" onClick={event => event.stopPropagation()}>
+            <textarea
+              value={editText}
+              autoFocus
+              onChange={event => setEditText(event.target.value)}
+              onKeyDown={event => {
+                if (event.key === 'Escape') setEditing(false);
+                if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submitEdit();
+              }}
+            />
+            <div>
+              <button type="button" onClick={() => setEditing(false)}>Cancel</button>
+              <button type="button" onClick={submitEdit}>Send branch</button>
+            </div>
+          </div>
+        ) : isUser ? (
           <UserMessageContent body={userContent?.body ?? message.content} attachments={userContent?.attachments ?? []} />
         ) : shouldHideAssistantTextForImageJob ? (
           null

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useChatStore, useModelRegistry } from '../../stores/context';
+import { useChatStore, useModelRegistry, useRouterStore } from '../../stores/context';
 import { EditorialMessage } from './EditorialMessage';
 import { EditorialComposer } from './EditorialComposer';
 
@@ -8,6 +8,7 @@ const STICKY_BOTTOM_PX = 100;
 
 export const EditorialChat = observer(function EditorialChat() {
   const chat = useChatStore();
+  const router = useRouterStore();
   const registry = useModelRegistry();
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -20,6 +21,7 @@ export const EditorialChat = observer(function EditorialChat() {
   const stickyRef = useRef(true);
 
   const activeThread = chat.activeThread;
+  const activeThreadId = activeThread?.id ?? null;
   const messages = useMemo(() => activeThread?.messages ?? [], [activeThread?.messages]);
   const streamingId = chat.streamingMessageId;
   const messageCount = messages.length;
@@ -32,6 +34,11 @@ export const EditorialChat = observer(function EditorialChat() {
       if (el) el.scrollTop = el.scrollHeight;
     });
   }, []);
+
+  const goResultThread = useCallback((threadId: string | null) => {
+    if (!threadId) return;
+    router.goThread(threadId);
+  }, [router]);
 
   useEffect(() => () => {
     if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
@@ -113,7 +120,7 @@ export const EditorialChat = observer(function EditorialChat() {
       <div ref={scrollRef} className="editorial-chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px' }}>
         <div style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
           {messages.length === 0 && (
-            <div style={{
+            <div className="editorial-empty-state" style={{
               fontFamily: '"Source Serif 4", Georgia, serif',
               fontStyle: 'italic',
               color: 'var(--text-faint)',
@@ -132,6 +139,18 @@ export const EditorialChat = observer(function EditorialChat() {
                 message={m}
                 modelName={modelId ? (registry.findById(modelId)?.name ?? modelId) : undefined}
                 streaming={m.id === chat.streamingMessageId}
+                onRegenerate={(messageId) => {
+                  if (!activeThreadId) return;
+                  goResultThread(chat.regenerateFromMessage(activeThreadId, messageId));
+                }}
+                onBranch={(messageId) => {
+                  if (!activeThreadId) return;
+                  goResultThread(chat.branchThreadFromMessage(activeThreadId, messageId));
+                }}
+                onEditAndResend={(messageId, text) => {
+                  if (!activeThreadId) return;
+                  goResultThread(chat.editAndResendFromMessage(activeThreadId, messageId, text));
+                }}
               />
             );
           })}

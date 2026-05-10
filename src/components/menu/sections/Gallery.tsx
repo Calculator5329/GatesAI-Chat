@@ -7,6 +7,7 @@ import { Button } from '../../ui';
 import { Lightbox } from '../../editorial/Lightbox';
 import { loadImageSource } from '../../editorial/useImageDataUrl';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
+import { isWebLite } from '../../../services/system/runtime';
 
 interface LightboxState {
   paths: string[];
@@ -16,6 +17,7 @@ interface LightboxState {
 
 export const GallerySection = observer(function GallerySection() {
   const jobs = useImageJobStore();
+  const webLite = isWebLite();
   const completed = jobs.history.filter(j => j.status === 'done' && j.results.length > 0) as CompletedJob[];
   const imageCount = completed.reduce((sum, job) => sum + job.results.length, 0);
   const tiles = useMemo(
@@ -26,7 +28,7 @@ export const GallerySection = observer(function GallerySection() {
 
   return (
     <>
-      <WebLiteNotice>
+      <WebLiteNotice show={webLite}>
         <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
         image artifacts need the desktop bridge today. Cloud image persistence can be added in the Firebase backend phase.
       </WebLiteNotice>

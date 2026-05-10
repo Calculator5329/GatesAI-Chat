@@ -73,7 +73,8 @@ function renderMenu(store: RootStore): HTMLDivElement {
 }
 
 function findTab(container: HTMLDivElement, label: string): HTMLElement | null {
-  const all = Array.from(container.querySelectorAll<HTMLElement>('[role="button"]'));
+  const tabStrip = container.querySelector('.gates-menu__tabs') ?? container;
+  const all = Array.from(tabStrip.querySelectorAll<HTMLElement>('button, [role="button"]'));
   return all.find(el => el.textContent?.includes(label)) ?? null;
 }
 
@@ -91,7 +92,7 @@ describe('GatesMenu tab strip', () => {
 
     for (const label of ['Agent', 'Models', 'Local', 'Workspace', 'Gallery', 'Settings']) {
       const tab = findTab(rendered, label);
-      expect(tab?.getAttribute('aria-disabled')).toBe('false');
+      expect(tab?.hasAttribute('disabled')).toBe(false);
       expect(tab?.style.cursor).toBe('pointer');
     }
 

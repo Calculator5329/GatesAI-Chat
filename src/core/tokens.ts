@@ -72,6 +72,7 @@ export function estimateLlmPayloadTokens(args: {
 export function contextWindowFor(model: Model | undefined | null): number {
   if (!model) return 32_000;
   if (model.contextLength && model.contextLength > 0) return model.contextLength;
+  if (model.contextWindow && model.contextWindow > 0) return model.contextWindow;
   return DEFAULT_WINDOW_BY_PROVIDER[model.providerId] ?? 32_000;
 }
 

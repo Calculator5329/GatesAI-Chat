@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type TouchEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
-import type { Thread } from '../../core/types';
+import type { MenuSectionKey, Thread } from '../../core/types';
 import { useChatStore, useRouterStore } from '../../stores/context';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
 
 const UNDO_TIMEOUT_MS = 8000;
+const MENU_LABELS: Record<MenuSectionKey, string> = {
+  agent: 'Agent',
+  models: 'Models',
+  local: 'Local',
+  workspace: 'Workspace',
+  gallery: 'Gallery',
+  settings: 'Settings',
+};
 
 const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
   root: {
@@ -74,13 +82,49 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
     fontWeight: 500,
     padding: '2px 4px',
   },
+  search: {
+    margin: '0 16px 10px',
+    height: 30,
+    padding: '0 9px',
+    border: '1px solid var(--border)',
+    borderRadius: 7,
+    background: 'var(--panel)',
+    color: 'var(--text)',
+    font: '12px "Geist", ui-sans-serif, system-ui, sans-serif',
+    outline: 'none',
+  },
+  rowActions: {
+    flex: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 2,
+  },
+  inlineInput: {
+    width: '100%',
+    boxSizing: 'border-box',
+    border: '1px solid var(--border)',
+    borderRadius: 5,
+    background: 'var(--panel)',
+    color: 'var(--text)',
+    font: '13px "Geist", ui-sans-serif, system-ui, sans-serif',
+    padding: '3px 5px',
+    outline: 'none',
+  },
 };
 
 export const EditorialSidebar = observer(function EditorialSidebar() {
   const chat = useChatStore();
   const router = useRouterStore();
   const onMenu = router.isMenu;
-  const visible = chat.visibleThreads;
+  const [query, setQuery] = useState('');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameText, setRenameText] = useState('');
+  const normalizedQuery = query.trim().toLowerCase();
+  const visible = normalizedQuery
+    ? chat.visibleThreads.filter(t =>
+        `${t.title} ${t.subtitle}`.toLowerCase().includes(normalizedQuery)
+      )
+    : chat.visibleThreads;
   const pinned = visible.filter(t => t.pinned);
   const rest = visible.filter(t => !t.pinned).slice(0, 20);
 
@@ -89,12 +133,13 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileShell, setMobileShell] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const mobileMenuTitle = MENU_LABELS[router.menuSection] ?? 'Menu';
   const mobileTitle = onMenu
-    ? 'Menu'
+    ? mobileMenuTitle
     : (chat.activeThread?.title || 'New conversation');
 
   useEffect(() => {
-    const query = window.matchMedia('(max-width: 480px) and (max-aspect-ratio: 1 / 2)');
+    const query = window.matchMedia('(max-width: 480px), (max-width: 960px) and (max-height: 480px)');
     const update = () => {
       setMobileShell(query.matches);
       if (!query.matches) setMobileOpen(false);
@@ -128,6 +173,17 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     e.stopPropagation();
     chat.softDeleteThread(t.id);
     setUndo({ id: t.id, title: t.title });
+  };
+  const startRename = (t: Thread, e: MouseEvent): void => {
+    e.stopPropagation();
+    setRenamingId(t.id);
+    setRenameText(t.title);
+  };
+  const commitRename = (): void => {
+    if (!renamingId) return;
+    chat.renameThread(renamingId, renameText);
+    setRenamingId(null);
+    setRenameText('');
   };
   const onUndo = (): void => {
     if (!undo) return;
@@ -174,7 +230,29 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ ...(S.title as (a: boolean) => CSSProperties)(active), flex: 1, minWidth: 0 }}>
-            <ThreadTitle title={t.title} naming={t.naming === true} />
+            {renamingId === t.id ? (
+              <input
+                style={S.inlineInput as CSSProperties}
+                value={renameText}
+                autoFocus
+                onClick={e => e.stopPropagation()}
+                onChange={e => setRenameText(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') {
+                    e.stopPropagation();
+                    setRenamingId(null);
+                    setRenameText('');
+                  }
+                  if (e.key === 'Enter') {
+                    e.stopPropagation();
+                    commitRename();
+                  }
+                }}
+              />
+            ) : (
+              <ThreadTitle title={t.title} naming={t.naming === true} />
+            )}
           </div>
           {streaming && (
             <span
@@ -192,20 +270,45 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
               stable. Hover toggles visibility, not layout — otherwise
               hovering a row would re-flow the title text. */}
           {!streaming && (
-            <button
-              type="button"
-              onClick={e => onDelete(t, e)}
-              aria-label={`Delete "${t.title}"`}
-              title="Delete conversation"
-              tabIndex={showX ? 0 : -1}
+            <div
               style={{
-                ...(S.xBtn as CSSProperties),
-                visibility: showX ? 'visible' : 'hidden',
-                pointerEvents: showX ? 'auto' : 'none',
+                ...(S.rowActions as CSSProperties),
+                visibility: showX || t.pinned || renamingId === t.id ? 'visible' : 'hidden',
+                pointerEvents: showX || t.pinned || renamingId === t.id ? 'auto' : 'none',
               }}
+              onClick={e => e.stopPropagation()}
             >
-              <Icons.Close />
-            </button>
+              <button
+                type="button"
+                onClick={() => chat.toggleThreadPinned(t.id)}
+                aria-label={t.pinned ? `Unpin "${t.title}"` : `Pin "${t.title}"`}
+                title={t.pinned ? 'Unpin conversation' : 'Pin conversation'}
+                tabIndex={showX || t.pinned ? 0 : -1}
+                style={{ ...(S.xBtn as CSSProperties), color: t.pinned ? 'var(--accent)' : 'var(--text-faint)' }}
+              >
+                <Icons.Pin />
+              </button>
+              <button
+                type="button"
+                onClick={e => startRename(t, e)}
+                aria-label={`Rename "${t.title}"`}
+                title="Rename conversation"
+                tabIndex={showX ? 0 : -1}
+                style={S.xBtn as CSSProperties}
+              >
+                <Icons.Edit />
+              </button>
+              <button
+                type="button"
+                onClick={e => onDelete(t, e)}
+                aria-label={`Delete "${t.title}"`}
+                title="Delete conversation"
+                tabIndex={showX ? 0 : -1}
+                style={S.xBtn as CSSProperties}
+              >
+                <Icons.Close />
+              </button>
+            </div>
           )}
         </div>
         <div className="editorial-sidebar__preview" style={S.preview as CSSProperties}>{t.subtitle}</div>
@@ -219,32 +322,55 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       <header className="editorial-mobile-topbar">
         <button
           type="button"
-          className="editorial-mobile-topbar__button"
-          aria-label="Open sidebar"
-          onClick={() => setMobileOpen(true)}
+          className={`editorial-mobile-topbar__button${onMenu ? ' editorial-mobile-topbar__back' : ''}`}
+          aria-label={onMenu ? 'Back to chat' : 'Open sidebar'}
+          onClick={() => {
+            if (onMenu) {
+              router.goThread(chat.activeThreadId);
+              setMobileOpen(false);
+              return;
+            }
+            setMobileOpen(true);
+          }}
         >
-          <span />
-          <span />
-          <span />
+          {onMenu ? <Icons.Back /> : (
+            <>
+              <span />
+              <span />
+              <span />
+            </>
+          )}
         </button>
         <button
           type="button"
           className="editorial-mobile-topbar__title"
-          onClick={() => setMobileOpen(true)}
+          onClick={() => {
+            if (!onMenu) setMobileOpen(true);
+          }}
           title={mobileTitle}
         >
           {mobileTitle}
         </button>
         <button
           type="button"
-          className="editorial-mobile-topbar__new"
-          aria-label="New conversation"
+          className={`editorial-mobile-topbar__new${onMenu ? ' editorial-mobile-topbar__menu' : ''}`}
+          aria-label={onMenu ? 'Open sidebar' : 'New conversation'}
           onClick={() => {
+            if (onMenu) {
+              setMobileOpen(true);
+              return;
+            }
             router.goThread(chat.createThread());
             setMobileOpen(false);
           }}
         >
-          <Icons.Plus />
+          {onMenu ? (
+            <>
+              <span />
+              <span />
+              <span />
+            </>
+          ) : <Icons.Plus />}
         </button>
       </header>
     )}
@@ -271,7 +397,8 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
             setMobileOpen(open => !open);
             return;
           }
-          onMenu ? router.goThread(chat.activeThreadId) : router.goMenu();
+          if (onMenu) router.goThread(chat.activeThreadId);
+          else router.goMenu();
         }}
         title={mobileShell ? (mobileOpen ? 'Collapse sidebar' : 'Expand sidebar') : (onMenu ? 'Back to chat' : 'Open menu')}
       >
@@ -293,22 +420,45 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         <span className="editorial-sidebar__new-label">Begin a new conversation</span>
       </div>
       {mobileShell && (
-        <button
-          type="button"
-          className="editorial-sidebar__menu-link"
-          onClick={() => {
-            router.goMenu();
-            setMobileOpen(false);
-          }}
-        >
-          Menu and settings
-        </button>
+        <div className="editorial-sidebar__mobile-actions">
+          <button
+            type="button"
+            onClick={() => {
+              router.goThread(chat.activeThreadId);
+              setMobileOpen(false);
+            }}
+          >
+            Back to chat
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              router.goMenu();
+              setMobileOpen(false);
+            }}
+          >
+            Menu and settings
+          </button>
+        </div>
       )}
+      <input
+        type="search"
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        placeholder="Search threads"
+        aria-label="Search threads"
+        style={S.search as CSSProperties}
+      />
       <div className="editorial-sidebar__list" style={S.list as CSSProperties}>
         {pinned.length > 0 && <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Pinned</div>}
         {pinned.map(renderItem)}
-        <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Earlier</div>
+        <div className="editorial-sidebar__group" style={S.group as CSSProperties}>{normalizedQuery ? 'Matches' : 'Earlier'}</div>
         {rest.map(renderItem)}
+        {visible.length === 0 && (
+          <div style={{ padding: '12px 20px', color: 'var(--text-faint)', fontSize: 12, fontStyle: 'italic' }}>
+            No conversations found.
+          </div>
+        )}
       </div>
       {undo && (
         <div style={S.undo as CSSProperties} role="status">

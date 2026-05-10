@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { isWebLite } from '../../services/system/runtime';
 
 const noticeStyle: CSSProperties = {
   padding: '10px 12px',
@@ -11,8 +10,8 @@ const noticeStyle: CSSProperties = {
   lineHeight: 1.5,
 };
 
-export function WebLiteNotice({ children }: { children?: ReactNode }) {
-  if (!isWebLite()) return null;
+export function WebLiteNotice({ children, show }: { children?: ReactNode; show: boolean }) {
+  if (!show) return null;
   return (
     <div style={noticeStyle} role="note">
       {children ?? (
@@ -25,4 +24,3 @@ export function WebLiteNotice({ children }: { children?: ReactNode }) {
     </div>
   );
 }
-
