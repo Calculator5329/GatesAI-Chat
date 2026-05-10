@@ -54,13 +54,14 @@ afterEach(() => {
   root = null;
   host?.remove();
   host = null;
+  document.querySelectorAll('[role="dialog"][aria-label="Image viewer"]').forEach(node => node.remove());
   vi.restoreAllMocks();
 });
 
 describe('Lightbox prompt controls', () => {
   it('shows the full prompt and copies it exactly', async () => {
     const prompt = 'A cinematic close-up portrait with many specific lighting, lens, wardrobe, and background details.';
-    const rendered = renderLightbox(prompt);
+    renderLightbox(prompt);
     await act(async () => {
       for (let i = 0; i < 5; i++) {
         await flushMicrotasks();
@@ -68,10 +69,10 @@ describe('Lightbox prompt controls', () => {
       }
     });
 
-    const promptField = rendered.querySelector('textarea[aria-label="Full prompt"]') as HTMLTextAreaElement | null;
+    const promptField = document.querySelector('textarea[aria-label="Full prompt"]') as HTMLTextAreaElement | null;
     expect(promptField?.value).toBe(prompt);
 
-    const copy = Array.from(rendered.querySelectorAll('button'))
+    const copy = Array.from(document.querySelectorAll('button'))
       .find(button => button.textContent === 'Copy prompt') as HTMLButtonElement | undefined;
     expect(copy).toBeDefined();
 
@@ -87,13 +88,13 @@ describe('Lightbox prompt controls', () => {
       status: 200,
       headers: { 'content-type': 'image/png' },
     }));
-    const rendered = renderLightbox('prompt', 'http://127.0.0.1:8188/view?filename=a.png&type=output');
+    renderLightbox('prompt', 'http://127.0.0.1:8188/view?filename=a.png&type=output');
 
     await act(async () => {
       await flushMicrotasks();
     });
 
-    const img = rendered.querySelector('img') as HTMLImageElement | null;
+    const img = document.querySelector('[role="dialog"][aria-label="Image viewer"] img') as HTMLImageElement | null;
     expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:8188/view?filename=a.png&type=output');
     expect(img?.src).toMatch(/^data:image\/png;base64,/);
   });

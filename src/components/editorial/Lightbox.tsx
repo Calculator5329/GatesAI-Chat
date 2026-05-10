@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { observer } from 'mobx-react-lite';
 import { useBridgeStore } from '../../stores/context';
 import { useImageDataUrl } from './useImageDataUrl';
@@ -48,7 +49,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
     }
   };
 
-  return (
+  const overlay = (
     <div
       role="dialog"
       aria-modal="true"
@@ -200,6 +201,8 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
       </div>
     </div>
   );
+
+  return createPortal(overlay, document.body);
 });
 
 function navArrow(side: 'left' | 'right'): React.CSSProperties {
@@ -238,6 +241,8 @@ const actionBtn: React.CSSProperties = {
 
 const promptPanel: React.CSSProperties = {
   width: 'min(720px, 88vw)',
+  maxHeight: '24vh',
+  overflow: 'hidden',
   padding: '14px 16px',
   border: '1px solid rgba(255,255,255,0.1)',
   borderRadius: 10,
@@ -249,7 +254,8 @@ const promptPanel: React.CSSProperties = {
 
 const promptText: React.CSSProperties = {
   width: '100%',
-  height: 90,
+  height: 'min(90px, 15vh)',
+  minHeight: 54,
   resize: 'none',
   overflow: 'auto',
   border: '1px solid rgba(255,255,255,0.1)',

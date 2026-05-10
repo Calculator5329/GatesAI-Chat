@@ -35,13 +35,15 @@ function renderPreview(bridge: unknown): HTMLDivElement {
 function onlineBridge(overrides: {
   stat?: Record<string, unknown>;
   read?: Record<string, unknown>;
+  files?: Record<string, string>;
   reject?: boolean;
 } = {}) {
-  const request = vi.fn(async (op: string) => {
+  const request = vi.fn(async (op: string, data?: unknown) => {
     if (overrides.reject) throw new Error('boom');
+    const path = (data as { path?: string } | undefined)?.path ?? HTML_PATH;
     if (op === 'fs.stat') {
       return {
-        path: HTML_PATH,
+        path,
         kind: 'file',
         size: 64,
         mtime: 1,
@@ -50,12 +52,12 @@ function onlineBridge(overrides: {
     }
     if (op === 'fs.read') {
       return {
-        path: HTML_PATH,
-        content: '<!doctype html><button id="x">Hi</button>',
-        encoding: 'utf8',
+        path,
+        content: overrides.files?.[path] ?? '<!doctype html><button id="x">Hi</button>',
+        encoding: path.endsWith('.png') ? 'base64' : 'utf8',
         size: 64,
-        mime: 'text/html',
-        ...overrides.read,
+        mime: path.endsWith('.png') ? 'image/png' : path.endsWith('.css') ? 'text/css' : path.endsWith('.js') ? 'text/javascript' : 'text/html',
+        ...(path === HTML_PATH ? overrides.read : {}),
       };
     }
     throw new Error(`unexpected op ${op}`);
@@ -92,6 +94,29 @@ describe('HtmlArtifactPreview', () => {
     expect(iframe?.getAttribute('srcdoc')).toContain('<button id="x">Hi</button>');
     expect(iframe?.getAttribute('sandbox')).toBe(__htmlArtifactPreviewTestApi.sandbox);
     expect(iframe?.getAttribute('sandbox')).not.toContain('allow-same-origin');
+  });
+
+  it('inlines workspace-relative CSS and JS assets for srcDoc previews', async () => {
+    const bridge = onlineBridge({
+      files: {
+        [HTML_PATH]: '<!doctype html><html><head><link rel="stylesheet" href="./demo.css"><script src="demo.js" defer></script></head><body><h1>Hi</h1><img src="chart.png"></body></html>',
+        '/workspace/artifacts/reports/demo.css': 'body { background: rgb(1, 2, 3); }',
+        '/workspace/artifacts/reports/demo.js': 'window.demoReady = true;',
+        '/workspace/artifacts/reports/chart.png': 'abc123',
+      },
+    });
+    const rendered = renderPreview(bridge);
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    const srcdoc = rendered.querySelector('iframe')?.getAttribute('srcdoc') ?? '';
+    expect(srcdoc).toContain('<style>body { background: rgb(1, 2, 3); }</style>');
+    expect(srcdoc).toContain('<script defer="">window.demoReady = true;</script>');
+    expect(srcdoc).toContain('src="data:image/png;base64,abc123"');
+    expect(srcdoc).not.toContain('href="./demo.css"');
+    expect(srcdoc).not.toContain('src="demo.js"');
   });
 
   it('shows a fallback when the bridge is offline', async () => {

@@ -21,7 +21,11 @@ export default defineConfig([
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true, allowExportNames: ['useRootStore', 'useChatStore', 'useUiStore', 'useProviderStore', 'useRouterStore', 'useModelRegistry', 'useOpenRouterStore', 'useUserProfileStore', 'useBridgeStore', 'useExecStreamStore', 'Icons'] }],
+      // Fast Refresh export-shape warnings are useful while authoring a
+      // small Vite demo, but this app intentionally colocates typed helpers,
+      // test APIs, and observer subcomponents. Keep production lint focused
+      // on correctness rules that affect shipped behavior.
+      'react-refresh/only-export-components': 'off',
     },
   },
   {

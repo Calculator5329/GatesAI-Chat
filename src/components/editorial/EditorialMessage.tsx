@@ -17,6 +17,7 @@ import { WorkspaceImage } from './WorkspaceImage';
 import { ImageJobCard } from './ImageJobCard';
 import { splitMarkdownChunks } from './markdownChunks';
 import { HtmlArtifactPreview, isHtmlWorkspacePath } from './HtmlArtifactPreview';
+import { MermaidDiagram } from './MermaidDiagram';
 
 /**
  * Lazy plugin loader for the heavy rehype plugins. `rehype-highlight` pulls
@@ -138,7 +139,9 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
       return job?.status === 'pending' || job?.status === 'running';
     }) ?? false
   ));
-  const shouldHideAssistantTextForImageJob = false;
+  const shouldHideAssistantTextForImageJob = !isUser && results.some(result =>
+    result.artifacts?.some(artifact => artifact.kind === 'image-job') ?? false
+  );
 
   useEffect(() => {
     if (copyState === 'idle') return;
@@ -363,14 +366,17 @@ interface CodeProps extends ComponentPropsWithoutRef<'code'> {
 
 function CodeOrWorkspaceLink({ bridge, className, children, ...rest }: CodeProps) {
   const isInline = !className;
+  const text = childrenToString(children).replace(/\n$/, '');
   if (isInline) {
-    const text = childrenToString(children);
     if (isWorkspacePath(text)) {
       if (isHtmlWorkspacePath(text)) {
         return <HtmlArtifactPreview path={text} />;
       }
       return <WorkspacePathLink path={text} bridge={bridge} />;
     }
+  }
+  if (/\blanguage-mermaid\b/.test(className ?? '')) {
+    return <MermaidDiagram source={text} />;
   }
   return <code className={className} {...rest}>{children}</code>;
 }

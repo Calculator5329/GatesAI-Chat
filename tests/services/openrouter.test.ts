@@ -112,4 +112,38 @@ describe('OpenRouterProvider', () => {
       },
     });
   });
+
+  it('does not send strict=true for action-based schemas with optional properties', async () => {
+    let body: unknown;
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return okSseResponse();
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new OpenRouterProvider('sk-or-test');
+    await drain(provider.stream({
+      modelId: 'openai/gpt-5.5',
+      messages: [{ role: 'user', content: 'Read a file.' }],
+      tools: [
+        {
+          name: 'fs',
+          description: 'filesystem',
+          strict: true,
+          parameters: {
+            type: 'object',
+            properties: {
+              action: { type: 'string', enum: ['read', 'list'] },
+              path: { type: 'string' },
+            },
+            required: ['action'],
+            additionalProperties: false,
+          },
+        },
+      ],
+    }, new AbortController().signal));
+
+    const tools = (body as { tools: Array<{ function: { strict?: boolean } }> }).tools;
+    expect(tools[0].function.strict).toBeUndefined();
+  });
 });

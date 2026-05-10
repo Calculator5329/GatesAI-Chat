@@ -312,6 +312,30 @@ body {
   line-height: 1.6;
   overflow-x: auto;
 }
+.mermaid-diagram {
+  margin: var(--md-block-gap) 0;
+  padding: 14px;
+  border: 1px solid var(--md-code-border);
+  border-radius: var(--md-code-radius);
+  background: var(--md-code-bg-block);
+  overflow-x: auto;
+}
+.mermaid-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+.mermaid-diagram--fallback {
+  color: var(--text-faint);
+}
+.mermaid-diagram--fallback code {
+  display: block;
+  padding: 0;
+  white-space: pre-wrap;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: var(--md-code-font-size);
+}
 .md-body table {
   border-collapse: collapse;
   margin: 14px 0;
@@ -480,6 +504,9 @@ body {
 .composer-attach-btn:not([data-disabled="true"]):hover {
   background: rgba(255, 255, 255, 0.06);
 }
+.composer-send-control:hover > div {
+  background: rgba(255, 255, 255, 0.045);
+}
 .composer-model-label:hover {
   background: rgba(255, 255, 255, 0.04);
 }
@@ -561,8 +588,9 @@ body {
 }
 .html-artifact-preview__frame {
   display: block;
-  height: 240px;
+  height: clamp(260px, 44vw, 420px);
   background: #ffffff;
+  overflow: hidden;
 }
 .html-artifact-preview__frame iframe {
   width: 100%;
@@ -583,7 +611,7 @@ body {
 }
 .html-artifact-fullscreen {
   position: fixed;
-  inset: 0 0 0 240px;
+  inset: 0;
   z-index: 1200;
   display: flex;
   flex-direction: column;
@@ -637,9 +665,6 @@ body {
   .editorial-sidebar {
     width: 196px !important;
   }
-  .html-artifact-fullscreen {
-    left: 196px;
-  }
   .editorial-chat-scroll {
     padding: 28px 28px 8px !important;
   }
@@ -661,9 +686,6 @@ body {
 @media (max-width: 640px) {
   .editorial-sidebar {
     width: 64px !important;
-  }
-  .html-artifact-fullscreen {
-    left: 64px;
   }
   .html-artifact-preview__bar {
     align-items: flex-start;
@@ -732,9 +754,6 @@ body {
 @media (max-width: 480px) {
   .editorial-sidebar {
     width: 56px !important;
-  }
-  .html-artifact-fullscreen {
-    left: 56px;
   }
   .html-artifact-fullscreen__bar {
     height: auto;

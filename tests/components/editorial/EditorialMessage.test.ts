@@ -12,6 +12,13 @@ import type { RootStore } from '../../../src/stores/RootStore';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+vi.mock('mermaid', () => ({
+  default: {
+    initialize: vi.fn(),
+    render: vi.fn(async () => ({ svg: '<svg role="img"><text>Diagram</text></svg>' })),
+  },
+}));
+
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
@@ -233,6 +240,22 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.querySelector('.workspace-path-link')).toBeNull();
   });
 
+  it('renders mermaid fences as diagrams instead of plain code blocks', async () => {
+    const rendered = renderMessage({
+      id: 'm-mermaid',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '```mermaid\ngraph TD\n  A[User] --> B[App]\n```',
+    });
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    expect(rendered.querySelector('.mermaid-diagram')).not.toBeNull();
+    expect(rendered.querySelector('.mermaid-diagram svg')).not.toBeNull();
+  });
+
   it('still renders external markdown anchors as anchor tags', () => {
     const rendered = renderMessage({
       id: 'm-anchor-external',
@@ -260,7 +283,7 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
   });
 
-  it('keeps queued image text visible while the job card is pending', () => {
+  it('hides queued image prose while the job card is pending', () => {
     const imageJobs = new ImageJobStore();
     runInAction(() => {
       imageJobs.queue.push({
@@ -292,7 +315,7 @@ describe('EditorialMessage markdown rendering', () => {
       }],
     }, 'Assistant', false, undefined, imageJobs);
 
-    expect(rendered.textContent).toContain('I queued an image through OpenRouter');
+    expect(rendered.textContent).not.toContain('I queued an image through OpenRouter');
     expect(rendered.textContent).toContain('waiting on');
   });
 });

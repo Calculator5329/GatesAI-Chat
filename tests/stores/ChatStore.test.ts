@@ -772,9 +772,7 @@ describe('ChatStore', () => {
       role: 'assistant',
       content: expect.stringContaining('Here it is'),
     });
-    expect(followUp?.role === 'assistant' ? followUp.toolResults?.[0].artifacts : undefined).toEqual([
-      { kind: 'image-job', jobId: 'job-ready', count: 1 },
-    ]);
+    expect(followUp?.role === 'assistant' ? followUp.toolResults?.[0].artifacts : undefined).toBeUndefined();
   });
 
   it('deduplicates the same image terminal event but allows later retry events', () => {

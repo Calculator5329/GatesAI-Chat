@@ -432,9 +432,6 @@ export class ChatStore {
       toolName: 'image_generate_complete',
       content: imageTerminalToolResult(job, backend, elapsed),
       ranAt: Date.now(),
-      ...(job.status === 'done' && job.results.length > 0
-        ? { artifacts: [{ kind: 'image-job' as const, jobId: job.id, count: job.count }] }
-        : {}),
     }];
 
     runInAction(() => {

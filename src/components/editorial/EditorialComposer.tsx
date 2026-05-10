@@ -22,14 +22,16 @@ const ATTACH_BTN_STYLE: CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   color: 'var(--text-faint)',
   flex: 'none',
-  alignSelf: 'flex-start',
+  alignSelf: 'flex-end',
+  marginBottom: 1,
   transition: 'background 100ms ease',
 };
 
 const SEND_BTN_STYLE: CSSProperties = {
-  width: 28, height: 28,
+  width: 28, height: 28, borderRadius: 6,
   color: 'var(--accent)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
+  transition: 'background 100ms ease, opacity 100ms ease',
 };
 
 const STOP_BTN_OUTER_STYLE: CSSProperties = {
@@ -47,16 +49,17 @@ const STOP_BTN_INNER_STYLE: CSSProperties = {
 
 const ROW_STYLE: CSSProperties = {
   display: 'flex', alignItems: 'flex-end', gap: 8,
-  padding: '8px 14px 8px 8px',
+  padding: '9px 13px 9px 8px',
   background: 'var(--panel)',
   borderRadius: 10,
   transition: 'border-color 120ms ease',
 };
 
 const META_ROW_STYLE: CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 10, marginTop: 6,
+  display: 'flex', alignItems: 'center', gap: 8, marginTop: 7,
   fontSize: 11.5, color: 'var(--text-faint)',
   position: 'relative',
+  minHeight: 18,
 };
 
 const MODEL_LABEL_STYLE: CSSProperties = {
@@ -80,7 +83,7 @@ const TEXTAREA_BASE_STYLE: CSSProperties = {
   lineHeight: 1.5,
   maxHeight: 200,
   minHeight: 24,
-  padding: 0,
+  padding: '2px 0 3px',
 };
 
 interface ComposerProps {
@@ -364,9 +367,12 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             })}
           />
           <div
+            className="composer-send-control"
             onClick={streaming && !hasText ? onStop : onSend}
             title={sendTitle}
             style={{
+              alignSelf: 'flex-end',
+              marginBottom: 1,
               cursor: (streaming || canSend) ? 'pointer' : 'default',
               opacity: (streaming || canSend) ? 1 : 0.45,
             }}
@@ -442,9 +448,11 @@ const ContextMeter = observer(function ContextMeter() {
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
         fontFamily: '"Geist Mono", monospace',
-        letterSpacing: '0.04em',
+        letterSpacing: '0.03em',
         fontSize: 11,
+        lineHeight: '16px',
         color: tone,
+        minWidth: 0,
       }}
     >
       <div style={{
@@ -460,14 +468,24 @@ const ContextMeter = observer(function ContextMeter() {
           transition: 'width 160ms ease, background-color 160ms ease',
         }} />
       </div>
-      <span>{formatTokens(usage.used)} / {formatTokens(usage.window)}</span>
+      <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        height: 16,
+        fontVariantNumeric: 'tabular-nums',
+        whiteSpace: 'nowrap',
+      }}>{formatTokens(usage.used)} / {formatTokens(usage.window)}</span>
       {totalSpend > 0 && (
         <span
           title={`Spent in this chat: ${formatUsd(totalSpend)} (${formatUsd(llmSpend)} LLM, ${formatUsd(imageSpend)} images)`}
           style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            height: 16,
             color: 'var(--accent)',
-            opacity: 0.9,
+            opacity: 0.86,
             fontVariantNumeric: 'tabular-nums',
+            whiteSpace: 'nowrap',
           }}
         >
           spent {formatUsd(totalSpend)}

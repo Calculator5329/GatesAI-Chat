@@ -221,7 +221,28 @@ function parseProviderUsage(
 }
 
 function toOpenAiTool(t: ToolDef): { type: 'function'; function: { name: string; description: string; parameters: unknown; strict?: boolean } } {
-  return { type: 'function', function: { name: t.name, description: t.description, parameters: t.parameters, ...(t.strict ? { strict: true } : {}) } };
+  return {
+    type: 'function',
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: t.parameters,
+      ...(t.strict && isProviderStrictSchemaSafe(t.parameters) ? { strict: true } : {}),
+    },
+  };
+}
+
+function isProviderStrictSchemaSafe(schema: ToolDef['parameters']): boolean {
+  if (schema.type !== 'object') return true;
+  if (schema.additionalProperties !== false) return false;
+  const propertyNames = Object.keys(schema.properties ?? {});
+  const required = new Set(schema.required ?? []);
+  if (propertyNames.some(name => !required.has(name))) return false;
+  return Object.values(schema.properties ?? {}).every(child => {
+    if (child.type === 'object') return isProviderStrictSchemaSafe(child);
+    if (child.type === 'array' && child.items?.type === 'object') return isProviderStrictSchemaSafe(child.items);
+    return true;
+  });
 }
 
 /**

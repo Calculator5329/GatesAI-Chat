@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useChatStore, useModelRegistry } from '../../stores/context';
 import { EditorialMessage } from './EditorialMessage';
@@ -20,7 +20,7 @@ export const EditorialChat = observer(function EditorialChat() {
   const stickyRef = useRef(true);
 
   const activeThread = chat.activeThread;
-  const messages = activeThread?.messages ?? [];
+  const messages = useMemo(() => activeThread?.messages ?? [], [activeThread?.messages]);
   const streamingId = chat.streamingMessageId;
   const messageCount = messages.length;
 
