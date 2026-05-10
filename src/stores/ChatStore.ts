@@ -1,6 +1,6 @@
 import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
-import type { LlmProvider, LlmRequest, LlmUsage, ToolCall } from '../core/llm';
+import type { LlmProvider, LlmRequest, LlmUsage, ToolCall, ToolDef } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
 import { flushPendingSnapshot, loadSnapshot, saveSnapshot, scheduleSaveSnapshot } from '../services/persistence';
@@ -27,6 +27,37 @@ import type { ImageBackendId, LocalComfyMode } from '../services/image/types';
 import type { CompletedJob } from '../services/image/jobs/types';
 
 type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime'>;
+export type ChatContextMode = NonNullable<Thread['contextMode']>;
+
+const MICRO_LOCAL_MAX_TOKENS = 512;
+const MICRO_LOCAL_SYSTEM_PROMPT = [
+  'Minimal local mode.',
+  'Answer briefly. No persona.',
+  'If a tool is available, call it with valid JSON. Do not print fake tool calls.',
+  'Workspace paths use /workspace. Put deliverables under /workspace/artifacts/.',
+  'After a successful write, stop calling tools and summarize the saved path.',
+].join('\n');
+
+const MICRO_FS_TOOL_DEF: ToolDef = {
+  name: 'fs',
+  description: 'Read/write/list/search files in /workspace. For edits call fs with JSON, e.g. {"action":"write","path":"/workspace/artifacts/reports/out.html","content":"..."}',
+  parameters: {
+    type: 'object',
+    properties: {
+      action: { type: 'string', enum: ['read', 'write', 'append', 'list', 'stat', 'search', 'mkdir'] },
+      path: { type: 'string' },
+      content: { type: 'string' },
+      encoding: { type: 'string', enum: ['utf8', 'utf-8', 'base64'] },
+      query: { type: 'string' },
+      recursive: { type: 'boolean' },
+      max_chars: { type: 'number' },
+      max_hits: { type: 'number' },
+    },
+    required: ['action'],
+    additionalProperties: false,
+  },
+  strict: true,
+};
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -68,11 +99,60 @@ function appendWorkNote(existing: string[] | undefined, note: string): string[] 
   return [...notes, note].slice(-MAX_WORK_NOTES);
 }
 
+function uniqueToolCallIds(calls: ToolCall[], message: AssistantMessage, round: number): ToolCall[] {
+  const seen = new Set<string>();
+  for (const call of message.toolCalls ?? []) seen.add(call.id);
+  for (const result of message.toolResults ?? []) seen.add(result.toolCallId);
+  return calls.map((call, index) => {
+    if (call.id && !seen.has(call.id)) {
+      seen.add(call.id);
+      return call;
+    }
+    const base = call.id || `${call.name || 'tool'}-call`;
+    let next = `${base}-r${round}-${index}`;
+    while (seen.has(next)) next = `${base}-r${round}-${index}-${Math.random().toString(36).slice(2, 5)}`;
+    seen.add(next);
+    return { ...call, id: next };
+  });
+}
+
+function sideEffectSignature(call: ToolCall): string | null {
+  if (call.name !== 'fs') return null;
+  const action = String(call.arguments.action ?? '').toLowerCase();
+  if (action !== 'write' && action !== 'append') return null;
+  const path = typeof call.arguments.path === 'string' ? call.arguments.path.trim() : '';
+  if (!path) return null;
+  return `fs:${action}:${path.replace(/\\/g, '/').toLowerCase()}`;
+}
+
+function repeatedSideEffectLoop(calls: ToolCall[], message: AssistantMessage): { path: string; action: string } | null {
+  const counts = new Map<string, number>();
+  for (const call of message.toolCalls ?? []) {
+    const signature = sideEffectSignature(call);
+    if (!signature) continue;
+    counts.set(signature, (counts.get(signature) ?? 0) + 1);
+  }
+  for (const call of calls) {
+    const signature = sideEffectSignature(call);
+    if (!signature) continue;
+    const nextCount = (counts.get(signature) ?? 0) + 1;
+    counts.set(signature, nextCount);
+    if (nextCount > REPEATED_SIDE_EFFECT_CALL_LIMIT) {
+      return {
+        path: typeof call.arguments.path === 'string' ? call.arguments.path : '/workspace/artifacts/',
+        action: String(call.arguments.action ?? 'write'),
+      };
+    }
+  }
+  return null;
+}
+
 /** Hard cap on the number of tool-call rounds per user turn, to prevent infinite loops if a model keeps re-calling the same tool. */
 const MAX_TOOL_ROUNDS = 16;
 const MAX_WORK_NOTES = 8;
 const MAX_WORK_NOTE_CHARS = 4000;
 const TOOL_BATCH_WARN_THRESHOLD = 6;
+const REPEATED_SIDE_EFFECT_CALL_LIMIT = 3;
 const COMPACTION_TRIGGER_FRACTION = 0.9;
 const COMPACTION_MAX_TOKENS = 500;
 const COMPACTION_MODELS = [
@@ -289,23 +369,26 @@ export class ChatStore {
     const latestUserText = latestUserMessageContent(thread);
     const extras = this.toolStoresProvider?.();
     const bridge = extras?.bridge;
-    const toolsAllowed = model?.supportsTools !== false;
-    const tools = toolsAllowed
-      ? toolRegistry.toolDefsForTurn({
-          userText: latestUserText,
-          bridgeOnline: bridge?.isOnline ?? false,
-          imageGenAvailable: isImageGenerationAvailable(extras),
-        })
-      : [];
-    const systemPrompt = this.profile.composeSystemPrompt({
-      runtimeContext: buildRuntimeContext({ bridge }),
-      threadContext: thread.threadContext,
-      recentSummaries: this.recentSummariesProvider?.() ?? [],
+    const mode = effectiveContextMode(thread, model);
+    const tools = toolsForContextMode({
+      mode,
+      toolsAllowed: model?.supportsTools !== false,
+      userText: latestUserText,
+      bridgeOnline: bridge?.isOnline ?? false,
+      imageGenAvailable: isImageGenerationAvailable(extras),
     });
+    const systemPrompt = systemPromptForContextMode(mode, () =>
+      this.profile.composeSystemPrompt({
+          runtimeContext: buildRuntimeContext({ bridge }),
+          threadContext: mode === 'full' ? thread.threadContext : undefined,
+          recentSummaries: mode === 'full' ? this.recentSummariesProvider?.() ?? [] : [],
+        })
+    );
     const baseUsed = estimateLlmPayloadTokens({
       systemPrompt,
-      messages: flattenForWire(thread.messages),
+      messages: wireMessagesForContextMode(thread, mode),
       tools,
+      reservedOutputTokens: reservedOutputTokensForContextMode(mode),
     });
     return { window, isLocalImage: false, baseUsed };
   }
@@ -353,6 +436,12 @@ export class ChatStore {
     if (idx < 0) return;
     const thread = this.threads[idx];
     this.threads[idx] = { ...thread, modelId };
+  }
+
+  setThreadContextMode(threadId: string, mode: ChatContextMode): void {
+    const thread = this.findThread(threadId);
+    if (!thread) return;
+    thread.contextMode = mode;
   }
 
   /**
@@ -468,6 +557,15 @@ export class ChatStore {
     this.threads = [thread];
     this.activeThreadId = thread.id;
     this.lastError = null;
+  }
+
+  clearThreadMemory(): void {
+    this.threads.forEach(thread => {
+      thread.threadContext = undefined;
+      thread.summary = undefined;
+      thread.summaryUpdatedAt = undefined;
+      thread.summaryMessageCount = undefined;
+    });
   }
 
   /** Threads visible in the sidebar — soft-deleted ones are filtered out. */
@@ -774,12 +872,81 @@ export class ChatStore {
         });
       }
 
+      if (!errored && collectedCalls.length === 0 && activeModel?.providerId === 'ollama' && request.tools?.length) {
+        this.textBuffer.flush(assistantMessage.id);
+        const m = this.findMessage(threadId, assistantMessage.id);
+        const rescuedCalls = m?.role === 'assistant'
+          ? uniqueToolCallIds(extractLocalPseudoToolCalls(m.content), m, round)
+          : [];
+        if (rescuedCalls.length > 0) {
+          const repeat = m?.role === 'assistant' ? repeatedSideEffectLoop(rescuedCalls, m) : null;
+          if (repeat) {
+            runInAction(() => {
+              if (m && m.role === 'assistant') {
+                const note = normalizeWorkNote(m.content);
+                if (note) m.workNotes = appendWorkNote(m.workNotes, note);
+                m.content = formatRepeatedSideEffectLoopMessage(repeat);
+                this.touchMessage(threadId, assistantMessage.id);
+                this.clearStreamingState(threadId);
+              }
+            });
+            return;
+          }
+          logEvent(thread.id, 'tool.rescue.detected', {
+            round,
+            count: rescuedCalls.length,
+            toolNames: rescuedCalls.map(call => call.name),
+          });
+          runInAction(() => {
+            if (m && m.role === 'assistant') {
+              const note = normalizeWorkNote(m.content);
+              if (note) m.workNotes = appendWorkNote(m.workNotes, note);
+              m.content = '';
+              m.toolCalls = [...(m.toolCalls ?? []), ...rescuedCalls];
+            }
+          });
+          this.textBuffer.cancel(assistantMessage.id);
+          const results = await this.executeToolCalls(rescuedCalls, threadId, signal);
+          if (signal.aborted) {
+            runInAction(() => this.clearStreamingState(threadId));
+            return;
+          }
+          runInAction(() => {
+            const current = this.findMessage(threadId, assistantMessage.id);
+            if (current && current.role === 'assistant') {
+              current.toolResults = [...(current.toolResults ?? []), ...results];
+            }
+          });
+          continue;
+        }
+      }
+
       if (errored || collectedCalls.length === 0) {
         this.textBuffer.flush(assistantMessage.id);
         // Final round (no calls) or terminal error — keep whatever prose
         // was streamed and stop.
         runInAction(() => {
           this.touchMessage(threadId, assistantMessage.id);
+          this.clearStreamingState(threadId);
+        });
+        this.maybeAutoName(threadId, assistantMessage);
+        return;
+      }
+
+      const currentForTools = this.findMessage(threadId, assistantMessage.id);
+      const toolMessage = currentForTools && currentForTools.role === 'assistant' ? currentForTools : assistantMessage;
+      const uniqueCollectedCalls = uniqueToolCallIds(collectedCalls, toolMessage, round);
+      const repeat = repeatedSideEffectLoop(uniqueCollectedCalls, toolMessage);
+      if (repeat) {
+        this.textBuffer.flush(assistantMessage.id);
+        runInAction(() => {
+          const m = this.findMessage(threadId, assistantMessage.id);
+          if (m && m.role === 'assistant') {
+            const note = normalizeWorkNote(m.content);
+            if (note) m.workNotes = appendWorkNote(m.workNotes, note);
+            m.content = formatRepeatedSideEffectLoopMessage(repeat);
+            this.touchMessage(threadId, assistantMessage.id);
+          }
           this.clearStreamingState(threadId);
         });
         this.maybeAutoName(threadId, assistantMessage);
@@ -800,12 +967,12 @@ export class ChatStore {
           const note = normalizeWorkNote(m.content);
           if (note) m.workNotes = appendWorkNote(m.workNotes, note);
           m.content = '';
-          m.toolCalls = [...(m.toolCalls ?? []), ...collectedCalls];
+          m.toolCalls = [...(m.toolCalls ?? []), ...uniqueCollectedCalls];
         }
       });
       this.textBuffer.cancel(assistantMessage.id);
 
-      const results = await this.executeToolCalls(collectedCalls, threadId, signal);
+      const results = await this.executeToolCalls(uniqueCollectedCalls, threadId, signal);
       if (signal.aborted) {
         runInAction(() => this.clearStreamingState(threadId));
         return;
@@ -834,26 +1001,29 @@ export class ChatStore {
   private buildTurnRequest(thread: Thread, providerModelId: string, recentSummaries: string[]): LlmRequest {
     const extras = this.toolStoresProvider?.();
     const bridge = extras?.bridge;
-    const systemPrompt = this.profile.composeSystemPrompt({
-      runtimeContext: buildRuntimeContext({ bridge }),
-      threadContext: thread.threadContext,
-      recentSummaries,
-    });
     const model = this.registry.findById(thread.modelId);
-    const toolsAllowed = model?.supportsTools !== false;
-    const tools = toolsAllowed
-      ? toolRegistry.toolDefsForTurn({
-          userText: latestUserMessageContent(thread),
-          bridgeOnline: bridge?.isOnline ?? false,
-          imageGenAvailable: isImageGenerationAvailable(extras),
+    const mode = effectiveContextMode(thread, model);
+    const systemPrompt = systemPromptForContextMode(mode, () =>
+      this.profile.composeSystemPrompt({
+          runtimeContext: buildRuntimeContext({ bridge }),
+          threadContext: mode === 'full' ? thread.threadContext : undefined,
+          recentSummaries: mode === 'full' ? recentSummaries : [],
         })
-      : undefined;
+    );
+    const tools = toolsForContextMode({
+      mode,
+      toolsAllowed: model?.supportsTools !== false,
+      userText: latestUserMessageContent(thread),
+      bridgeOnline: bridge?.isOnline ?? false,
+      imageGenAvailable: isImageGenerationAvailable(extras),
+    });
     const finalSystemPrompt = appendImageGenAddendum(systemPrompt, tools);
     return {
       modelId: providerModelId,
-      messages: flattenForWire(thread.messages),
+      messages: wireMessagesForContextMode(thread, mode),
       ...(finalSystemPrompt ? { systemPrompt: finalSystemPrompt } : {}),
       ...(tools ? { tools } : {}),
+      ...(reservedOutputTokensForContextMode(mode) != null ? { maxTokens: reservedOutputTokensForContextMode(mode) } : {}),
       threadId: thread.id,
     };
   }
@@ -1314,8 +1484,11 @@ function appendImageGenAddendum(systemPrompt: string | undefined, tools: { name:
 
 function isImageGenerationAvailable(extras: ToolStoreContext | undefined): boolean {
   return Boolean(
-    extras?.imageGen?.getCredential('openrouter-image')
-    || extras?.localRuntime?.comfyReady,
+    extras?.bridge?.isOnline
+    && (
+      extras?.imageGen?.getCredential('openrouter-image')
+      || extras?.localRuntime?.comfyReady
+    ),
   );
 }
 
@@ -1376,12 +1549,166 @@ function latestUserMessageContent(thread: Thread): string {
   return '';
 }
 
+function latestUserMessage(thread: Thread): Message | null {
+  for (let i = thread.messages.length - 1; i >= 0; i--) {
+    const message = thread.messages[i];
+    if (message.role === 'user') return message;
+  }
+  return null;
+}
+
 function latestUserPromptBody(thread: Thread): string {
   for (let i = thread.messages.length - 1; i >= 0; i--) {
     const message = thread.messages[i];
     if (message.role === 'user') return splitAttachmentFooter(message.content).body;
   }
   return '';
+}
+
+function effectiveContextMode(thread: Thread, model: { providerId: string } | undefined): ChatContextMode {
+  if (model?.providerId !== 'ollama') return 'full';
+  return thread.contextMode ?? 'micro';
+}
+
+function systemPromptForContextMode(mode: ChatContextMode, normalPrompt: () => string | undefined): string | undefined {
+  if (mode === 'bare') return undefined;
+  if (mode === 'micro') return MICRO_LOCAL_SYSTEM_PROMPT;
+  return normalPrompt();
+}
+
+function wireMessagesForContextMode(thread: Thread, mode: ChatContextMode) {
+  if (mode === 'full') return flattenForWire(thread.messages);
+  const latest = latestUserMessage(thread);
+  return latest ? flattenForWire([latest]) : [];
+}
+
+function toolsForContextMode(args: {
+  mode: ChatContextMode;
+  toolsAllowed: boolean;
+  userText: string;
+  bridgeOnline: boolean;
+  imageGenAvailable?: boolean;
+}): ToolDef[] | undefined {
+  if (!args.toolsAllowed || args.mode === 'bare') return undefined;
+  if (args.mode === 'micro') {
+    return args.bridgeOnline && isMicroFsRelevant(args.userText) ? [MICRO_FS_TOOL_DEF] : undefined;
+  }
+  return toolRegistry.toolDefsForTurn({
+    userText: args.userText,
+    bridgeOnline: args.bridgeOnline,
+    imageGenAvailable: args.imageGenAvailable,
+  });
+}
+
+function isMicroFsRelevant(userText: string): boolean {
+  return /\b(file|files|folder|workspace|artifact|html|css|js|json|csv|txt|md|code|script|read|write|create|make|edit|save|open)\b/i.test(userText);
+}
+
+function reservedOutputTokensForContextMode(mode: ChatContextMode): number | undefined {
+  return mode === 'micro' ? MICRO_LOCAL_MAX_TOKENS : undefined;
+}
+
+function extractLocalPseudoToolCalls(text: string): ToolCall[] {
+  const calls: ToolCall[] = [];
+  let searchFrom = 0;
+  while (calls.length < 3) {
+    const idx = text.indexOf('fs.write', searchFrom);
+    if (idx < 0) break;
+    const openParen = text.indexOf('(', idx + 'fs.write'.length);
+    if (openParen < 0) break;
+    const inner = readBalancedParens(text, openParen);
+    if (!inner) {
+      searchFrom = idx + 'fs.write'.length;
+      continue;
+    }
+    const path = readObjectStringProperty(inner, 'path');
+    const content =
+      readObjectStringProperty(inner, 'content') ??
+      readObjectStringProperty(inner, 'contents');
+    if (path && content != null) {
+      calls.push({
+        id: newId('tc-rescue'),
+        name: 'fs',
+        arguments: {
+          action: 'write',
+          path: normalizeRescuedWorkspacePath(path),
+          content,
+        },
+      });
+    }
+    searchFrom = inner.end + 1;
+  }
+  return calls;
+}
+
+function readBalancedParens(text: string, openIndex: number): { value: string; end: number } | null {
+  let depth = 0;
+  let quote: '"' | "'" | '`' | null = null;
+  let escaped = false;
+  for (let i = openIndex; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      continue;
+    }
+    if (ch === '(') depth += 1;
+    else if (ch === ')') {
+      depth -= 1;
+      if (depth === 0) return { value: text.slice(openIndex + 1, i), end: i };
+    }
+  }
+  return null;
+}
+
+function readObjectStringProperty(source: { value: string } | string, key: string): string | null {
+  const text = typeof source === 'string' ? source : source.value;
+  const keyMatch = new RegExp(`\\b${key}\\s*:`).exec(text);
+  if (!keyMatch) return null;
+  let i = keyMatch.index + keyMatch[0].length;
+  while (i < text.length && /\s/.test(text[i])) i += 1;
+  const quote = text[i];
+  if (quote !== '"' && quote !== "'" && quote !== '`') return null;
+  i += 1;
+  let out = '';
+  let escaped = false;
+  for (; i < text.length; i++) {
+    const ch = text[i];
+    if (escaped) {
+      out += decodeSimpleEscape(ch);
+      escaped = false;
+    } else if (ch === '\\') {
+      escaped = true;
+    } else if (ch === quote) {
+      return out;
+    } else {
+      out += ch;
+    }
+  }
+  return null;
+}
+
+function decodeSimpleEscape(ch: string): string {
+  if (ch === 'n') return '\n';
+  if (ch === 'r') return '\r';
+  if (ch === 't') return '\t';
+  return ch;
+}
+
+function normalizeRescuedWorkspacePath(path: string): string {
+  const trimmed = path.trim().replace(/\\/g, '/');
+  if (trimmed.startsWith('/workspace/')) return trimmed;
+  if (trimmed === '/workspace') return '/workspace';
+  return `/workspace/${trimmed.replace(/^\/+/, '')}`;
 }
 
 function hasAnyImageAttachment(messages: Message[]): boolean {
@@ -1411,6 +1738,15 @@ function formatToolRoundCapMessage(maxRounds: number, message: AssistantMessage)
     `Stopped after ${maxRounds} tool rounds to avoid an infinite loop.`,
     progress ?? 'No completed tool results were available in this turn.',
     'You can ask me to continue from the latest tool results.',
+  ].join('\n\n');
+}
+
+function formatRepeatedSideEffectLoopMessage(repeat: { path: string; action: string }): string {
+  const action = repeat.action === 'append' ? 'append to' : 'write';
+  return [
+    `Stopped the local tool loop after it tried to ${action} the same file repeatedly.`,
+    `Latest repeated path: ${repeat.path}`,
+    'The successful tool results above are still available, so you can open the artifact or ask me to continue from that file.',
   ].join('\n\n');
 }
 

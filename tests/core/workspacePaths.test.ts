@@ -6,7 +6,8 @@ import {
 } from '../../src/core/workspacePaths';
 
 describe('isWorkspacePath', () => {
-  it('matches paths under /workspace/', () => {
+  it('matches the workspace root and paths under /workspace/', () => {
+    expect(isWorkspacePath('/workspace')).toBe(true);
     expect(isWorkspacePath('/workspace/notes/foo.md')).toBe(true);
     expect(isWorkspacePath('/workspace/artifacts/pi_display.html')).toBe(true);
     expect(isWorkspacePath('/workspace/a')).toBe(true);
@@ -14,7 +15,6 @@ describe('isWorkspacePath', () => {
 
   it('rejects non-workspace paths and edge cases', () => {
     expect(isWorkspacePath('')).toBe(false);
-    expect(isWorkspacePath('/workspace')).toBe(false);
     expect(isWorkspacePath('/workspace/')).toBe(false);
     expect(isWorkspacePath('/workspaces/foo')).toBe(false);
     expect(isWorkspacePath('workspace/foo')).toBe(false);
@@ -49,6 +49,9 @@ describe('resolveWorkspacePath', () => {
   });
 
   it('strips trailing slashes from the root before joining', () => {
+    expect(
+      resolveWorkspacePath('/workspace', '/Users/me/workspace/', 'darwin'),
+    ).toBe('/Users/me/workspace');
     expect(
       resolveWorkspacePath('/workspace/notes/foo.md', '/Users/me/workspace/', 'darwin'),
     ).toBe('/Users/me/workspace/notes/foo.md');

@@ -1,4 +1,5 @@
 use serde::Serialize;
+use serde_json::Value;
 use std::collections::{HashMap, VecDeque};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -135,6 +136,9 @@ pub fn spawn_runtime(
   state: tauri::State<'_, LocalRuntimeState>,
 ) -> Result<(), String> {
   let kind = RuntimeKind::from_str(&id)?;
+  if probe_health(kind.health_url()) {
+    return Ok(());
+  }
 
   {
     let mut guard = lock_state(&state);
@@ -154,6 +158,11 @@ pub fn spawn_runtime(
     .stdout(Stdio::piped())
     .stderr(Stdio::piped())
     .stdin(Stdio::null());
+  if kind == RuntimeKind::Ollama {
+    command
+      .env("OLLAMA_HOST", "127.0.0.1:11434")
+      .env("OLLAMA_ORIGINS", "*");
+  }
 
   let mut child = command
     .spawn()
@@ -192,9 +201,19 @@ pub fn stop_runtime(id: String, state: tauri::State<'_, LocalRuntimeState>) -> R
 
 #[tauri::command]
 pub fn runtime_status(id: String, state: tauri::State<'_, LocalRuntimeState>) -> Result<RuntimeStatus, String> {
-  RuntimeKind::from_str(&id)?;
+  let kind = RuntimeKind::from_str(&id)?;
   let mut guard = lock_state(&state);
   let Some(process) = guard.get_mut(&id) else {
+    if probe_health(kind.health_url()) {
+      return Ok(RuntimeStatus {
+        running: true,
+        pid: None,
+        uptime_ms: None,
+        status: "online".to_string(),
+        logs: Vec::new(),
+        last_error: Some(format!("{id} is already running outside GatesAI.")),
+      });
+    }
     return Ok(RuntimeStatus {
       running: false,
       pid: None,
@@ -226,6 +245,52 @@ pub fn runtime_status(id: String, state: tauri::State<'_, LocalRuntimeState>) ->
     logs: snapshot_logs(&process.logs),
     last_error: process.last_error.clone(),
   })
+}
+
+#[tauri::command]
+pub fn probe_http(url: String) -> Result<(), String> {
+  ensure_local_http_url(&url)?;
+  let client = reqwest::blocking::Client::builder()
+    .timeout(std::time::Duration::from_secs(4))
+    .build()
+    .map_err(|err| err.to_string())?;
+  let resp = client.get(&url).send().map_err(|err| err.to_string())?;
+  if !resp.status().is_success() {
+    return Err(format!("HTTP {} from {url}", resp.status()));
+  }
+  Ok(())
+}
+
+#[tauri::command]
+pub fn ollama_tags(base_url: String, api_key: Option<String>) -> Result<Value, String> {
+  let base = base_url.trim().trim_end_matches('/');
+  let url = format!("{base}/api/tags");
+  ensure_local_http_url(&url)?;
+  let client = reqwest::blocking::Client::builder()
+    .timeout(std::time::Duration::from_secs(8))
+    .build()
+    .map_err(|err| err.to_string())?;
+  let mut req = client.get(&url);
+  if let Some(key) = api_key.as_ref().map(|k| k.trim()).filter(|k| !k.is_empty()) {
+    req = req.bearer_auth(key);
+  }
+  let resp = req.send().map_err(|err| err.to_string())?;
+  if !resp.status().is_success() {
+    return Err(format!("Ollama {}", resp.status()));
+  }
+  let body = resp.text().map_err(|err| err.to_string())?;
+  serde_json::from_str::<Value>(&body).map_err(|err| err.to_string())
+}
+
+fn ensure_local_http_url(url: &str) -> Result<(), String> {
+  let lower = url.to_ascii_lowercase();
+  let allowed = lower.starts_with("http://127.0.0.1:")
+    || lower.starts_with("http://localhost:")
+    || lower.starts_with("http://[::1]:");
+  if !allowed {
+    return Err("Only local HTTP runtime URLs are allowed.".to_string());
+  }
+  Ok(())
 }
 
 pub fn kill_all(state: &LocalRuntimeState) {

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { isTauri } from '../system/openExternal';
+import { isTauri } from '../system/runtime';
 
 export type LocalRuntimeId = 'ollama' | 'comfyui';
 export type LocalRuntimeStatus = 'stopped' | 'starting' | 'online' | 'offline' | 'crashed';
@@ -21,6 +21,8 @@ export interface LocalRuntimeService {
   startRuntime(id: LocalRuntimeId, options: RuntimeStartOptions): Promise<void>;
   stopRuntime(id: LocalRuntimeId): Promise<void>;
   getRuntimeStatus(id: LocalRuntimeId): Promise<RuntimeStatusSnapshot>;
+  probeHttp(url: string): Promise<void>;
+  fetchOllamaTags(baseUrl: string, apiKey?: string): Promise<unknown>;
   pathExists(path: string): Promise<boolean>;
   pickDirectory(): Promise<string | null>;
   pickFile(): Promise<string | null>;
@@ -48,6 +50,26 @@ export const localRuntimeService: LocalRuntimeService = {
   async getRuntimeStatus(id) {
     ensureTauri('read local runtime status');
     return await invoke<RuntimeStatusSnapshot>('runtime_status', { id });
+  },
+
+  async probeHttp(url) {
+    if (!isTauri()) {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} from ${url}`);
+      return;
+    }
+    await invoke('probe_http', { url });
+  },
+
+  async fetchOllamaTags(baseUrl, apiKey) {
+    if (!isTauri()) {
+      const headers: Record<string, string> = {};
+      if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+      const resp = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/tags`, { headers });
+      if (!resp.ok) throw new Error(`Ollama ${resp.status}`);
+      return await resp.json();
+    }
+    return await invoke('ollama_tags', { baseUrl, apiKey });
   },
 
   async pathExists(path) {

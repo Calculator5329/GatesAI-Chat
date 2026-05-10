@@ -38,9 +38,24 @@ function buildStore(section: MenuSectionKey = 'settings'): { store: RootStore; r
     threads: [],
     visibleThreads: [],
     clearAllThreads: () => {},
+    clearThreadMemory: () => {},
     createThread: () => 'thread-1',
   };
-  const store = { router, profile, providers, registry, openrouter, ui, imageGen, chat } as unknown as RootStore;
+  const store = {
+    router,
+    profile,
+    providers,
+    registry,
+    openrouter,
+    ui,
+    imageGen,
+    chat,
+    notes: { notes: [], clear: () => {} },
+    imageJobs: { history: [], clearHistory: () => {} },
+    ollama: { config: { apiKey: '' }, count: 0, setKey: () => {}, clearCatalog: () => {} },
+    localRuntime: { resetConfig: () => {} },
+    bridge: { isOnline: false, client: { request: async () => ({}) } },
+  } as unknown as RootStore;
   return { store, router };
 }
 

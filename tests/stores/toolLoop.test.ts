@@ -186,6 +186,48 @@ describe('Tool loop — scripted', () => {
     expect(chat.streamingMessageId).toBeNull();
   });
 
+  it('stops a repeated fs.write loop before the global tool-round cap', async () => {
+    const writeRound = (): import('../../src/core/llm').LlmChunk[] => [
+      {
+        type: 'tool_call',
+        call: {
+          id: 'ollama-tool-0',
+          name: 'fs',
+          arguments: {
+            action: 'write',
+            path: '/workspace/artifacts/cool_game.html',
+            content: '<html>game</html>',
+            encoding: 'utf-8',
+          },
+        },
+      },
+      { type: 'done', finishReason: 'tool_use' },
+    ];
+    const { chat, mock } = setupScripted(Array.from({ length: 8 }, writeRound));
+    const bridgeRequest = vi.fn(async () => ({ bytes: 17, path: '/workspace/artifacts/cool_game.html' }));
+    chat.setToolStoresProvider(() => ({
+      bridge: {
+        isOnline: true,
+        client: { request: bridgeRequest },
+      },
+    }) as unknown as Pick<ToolContext, 'bridge'>);
+    chat.createThread();
+
+    chat.sendMessage('make a cool game');
+    await flush(160);
+
+    const assistant = chat.activeThread!.messages.at(-1);
+    expect(assistant?.role).toBe('assistant');
+    if (assistant?.role !== 'assistant') return;
+    expect(bridgeRequest).toHaveBeenCalledTimes(3);
+    expect(mock.calls.length).toBe(4);
+    expect(assistant.toolCalls).toHaveLength(3);
+    expect(new Set(assistant.toolCalls?.map(call => call.id))).toHaveLength(3);
+    expect(assistant.content).toContain('Stopped the local tool loop');
+    expect(assistant.content).toContain('/workspace/artifacts/cool_game.html');
+    expect(chat.streamingMessageId).toBeNull();
+  });
+
   it('returns a clear tool result when fs is called without an action', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { chat, mock } = setupScripted([

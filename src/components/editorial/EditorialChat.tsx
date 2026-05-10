@@ -106,7 +106,7 @@ export const EditorialChat = observer(function EditorialChat() {
   }, [streamingId, scheduleScrollToBottom]);
 
   return (
-    <div style={{
+    <div className="editorial-chat-shell" style={{
       flex: 1, display: 'flex', flexDirection: 'column',
       minWidth: 0, background: 'var(--bg)', position: 'relative',
     }}>

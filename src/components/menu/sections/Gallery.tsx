@@ -6,6 +6,7 @@ import type { CompletedJob } from '../../../services/image/jobs/types';
 import { Button } from '../../ui';
 import { Lightbox } from '../../editorial/Lightbox';
 import { loadImageSource } from '../../editorial/useImageDataUrl';
+import { WebLiteNotice } from '../../ui/WebLiteNotice';
 
 interface LightboxState {
   paths: string[];
@@ -25,6 +26,10 @@ export const GallerySection = observer(function GallerySection() {
 
   return (
     <>
+      <WebLiteNotice>
+        <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
+        image artifacts need the desktop bridge today. Cloud image persistence can be added in the Firebase backend phase.
+      </WebLiteNotice>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: completed.length > 0 ? 16 : 0 }}>
         <div>
           <h1 style={{ ...tokens.h1, margin: 0 }}>Gallery</h1>

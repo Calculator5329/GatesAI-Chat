@@ -100,7 +100,7 @@ describe('EditorialComposer API-key banner', () => {
   });
 
   it('hides the banner once a provider key is set (live transition)', async () => {
-    // Mount with NO provider configured — banner should be visible and send
+    // Mount with NO provider configured ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â banner should be visible and send
     // disabled. Then mutate the store to add a real key and assert the UI
     // re-renders. This proves the MobX observer subscribed to a dep that
     // actually fires on configs mutation (the `void this.configs;` touch in
@@ -218,6 +218,111 @@ describe('EditorialComposer API-key banner', () => {
 
     expect(rendered.textContent).toContain('spent $0.004');
     expect(rendered.textContent).not.toMatch(/~\$/);
+  });
+
+  it('shows API source guidance in the composer footer', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    const rendered = render(store);
+
+    expect(rendered.textContent).toContain('auto · Gemini 3 Flash API');
+  });
+
+  it('shows local source guidance with the selected context mode', () => {
+    store = buildStore();
+    store.registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3',
+      name: 'Llama 3 Local',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3',
+      contextLength: 8000,
+    }]);
+    store.chat.setThreadModel(store.chat.activeThreadId!, 'ollama-llama3');
+    runInAction(() => {
+      store!.localRuntime.runtimes.ollama.status = 'online';
+    });
+
+    const rendered = render(store);
+    expect((rendered.querySelector('select') as HTMLSelectElement | null)?.value).toBe('micro');
+    expect(rendered.textContent).toContain('local');
+    expect(rendered.textContent).not.toContain('local Ã‚· micro tools');
+  });
+
+  it('model picker auto row selects Gemini 3 Flash API', () => {
+    store = buildStore();
+    store.registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3',
+      name: 'Llama 3 Local',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3',
+    }]);
+    store.chat.setThreadModel(store.chat.activeThreadId!, 'ollama-llama3');
+    const rendered = render(store);
+
+    act(() => {
+      rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(rendered.textContent).toContain('Auto: Gemini 3 Flash API');
+    act(() => {
+      rendered.querySelector('[data-model-row="auto-gemini-3-flash"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(store.chat.activeThread?.modelId).toBe('or-gemini-3-flash');
+  });
+
+  it('model picker source filters show local rows and Ollama readiness badges', () => {
+    store = buildStore();
+    store.registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3',
+      name: 'Llama 3 Local',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3',
+      supportsTools: false,
+    }]);
+    const rendered = render(store);
+
+    act(() => {
+      rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    act(() => {
+      rendered.querySelector('[data-source-filter="local"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(rendered.textContent).toContain('Llama 3 Local');
+    expect(rendered.textContent).toContain('LOCAL');
+    expect(rendered.textContent).toContain('offline');
+    expect(rendered.textContent).toContain('tools off');
+    expect(rendered.textContent).not.toContain('Auto: Gemini 3 Flash API');
+  });
+
+  it('model picker keeps recent selections without changing the active model until picked', () => {
+    store = buildStore();
+    const rendered = render(store);
+
+    act(() => {
+      rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    act(() => {
+      rendered.querySelector('[data-source-filter="cloud"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    act(() => {
+      rendered.querySelector('[data-model-row="or-gpt-5.5"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(store.chat.activeThread?.modelId).toBe('or-gpt-5.5');
+
+    act(() => {
+      store!.chat.setThreadModel(store!.chat.activeThreadId!, 'or-gemini-3-flash');
+    });
+    act(() => {
+      rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(rendered.textContent).toContain('Recent');
+    expect(rendered.textContent).toContain('GPT-5.5');
+    expect(store.chat.activeThread?.modelId).toBe('or-gemini-3-flash');
   });
 
   it('uploads pasted clipboard images as attachments', async () => {

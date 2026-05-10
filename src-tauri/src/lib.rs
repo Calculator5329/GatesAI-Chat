@@ -43,6 +43,8 @@ pub fn run() {
       local_runtime::spawn_runtime,
       local_runtime::stop_runtime,
       local_runtime::runtime_status,
+      local_runtime::probe_http,
+      local_runtime::ollama_tags,
       local_runtime::path_exists,
       local_runtime::pick_directory,
       local_runtime::pick_file,

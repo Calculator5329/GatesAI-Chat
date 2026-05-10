@@ -656,6 +656,7 @@ describe('ChatStore', () => {
         // supportsTools undefined => allow tools (positive control)
       },
     ]);
+    chat.setToolStoresProvider(() => ({ bridge: onlineBridge() }));
 
     // Negative case: tools dropped for supportsTools=false
     const noToolsId = chat.createThread();
@@ -669,12 +670,193 @@ describe('ChatStore', () => {
     // Positive control: a normal model still receives tools.
     const withToolsId = chat.createThread();
     chat.setThreadModel(withToolsId, 'ollama-llama3.1');
-    chat.sendMessage('hi');
+    chat.sendMessage('create an html file');
     await flush(20);
     const llamaCall = mock.calls.find(c => c.modelId === 'ollama-llama3.1');
     expect(llamaCall).toBeDefined();
     expect(Array.isArray(llamaCall!.tools)).toBe(true);
     expect((llamaCall!.tools ?? []).length).toBeGreaterThan(0);
+  });
+
+  it('can send local Ollama turns with system/tools but without prior chat history', async () => {
+    const { chat, mock, registry } = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3.1',
+      name: 'Llama 3.1 (Ollama)',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3.1',
+    }]);
+    chat.setThreadModel(chat.activeThreadId!, 'ollama-llama3.1');
+    chat.setThreadContextMode(chat.activeThreadId!, 'system-tools');
+    runInAction(() => {
+      chat.activeThread!.messages.push({ id: 'u-old', role: 'user', content: 'old user context', createdAt: 1 });
+      chat.activeThread!.messages.push({ id: 'a-old', role: 'assistant', content: 'old assistant context', createdAt: 2 });
+    });
+
+    chat.sendMessage('current prompt');
+    await flush(20);
+
+    expect(mock.calls).toHaveLength(1);
+    expect(mock.calls[0].messages).toEqual([{ role: 'user', content: 'current prompt' }]);
+    expect(mock.calls[0].systemPrompt).toBeTruthy();
+    expect((mock.calls[0].tools ?? []).length).toBeGreaterThan(0);
+  });
+
+  it('can send local Ollama turns as a bare current prompt with no tools or system prompt', async () => {
+    const { chat, mock, registry } = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-tiny',
+      name: 'Tiny (Ollama)',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'tiny',
+    }]);
+    chat.setThreadModel(chat.activeThreadId!, 'ollama-tiny');
+    chat.setThreadContextMode(chat.activeThreadId!, 'bare');
+    runInAction(() => {
+      chat.activeThread!.messages.push({ id: 'u-old', role: 'user', content: 'old user context', createdAt: 1 });
+      chat.activeThread!.messages.push({ id: 'a-old', role: 'assistant', content: 'old assistant context', createdAt: 2 });
+    });
+
+    chat.sendMessage('fit this');
+    await flush(20);
+
+    expect(mock.calls).toHaveLength(1);
+    expect(mock.calls[0].messages).toEqual([{ role: 'user', content: 'fit this' }]);
+    expect(mock.calls[0].systemPrompt).toBeUndefined();
+    expect(mock.calls[0].tools).toBeUndefined();
+  });
+
+  it('can send local Ollama turns in micro mode with tiny prompt, fs only, and small output reserve', async () => {
+    const { chat, mock, registry } = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-micro',
+      name: 'Micro (Ollama)',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'micro',
+    }]);
+    chat.setToolStoresProvider(() => ({ bridge: onlineBridge() }));
+    chat.setThreadModel(chat.activeThreadId!, 'ollama-micro');
+    chat.setThreadContextMode(chat.activeThreadId!, 'micro');
+    runInAction(() => {
+      chat.activeThread!.threadContext = 'remembered context that should not be sent';
+      chat.activeThread!.messages.push({ id: 'u-old', role: 'user', content: 'old user context', createdAt: 1 });
+      chat.activeThread!.messages.push({ id: 'a-old', role: 'assistant', content: 'old assistant context', createdAt: 2 });
+    });
+
+    chat.sendMessage('create an html file');
+    await flush(20);
+
+    expect(mock.calls).toHaveLength(1);
+    expect(mock.calls[0].messages).toEqual([{ role: 'user', content: 'create an html file' }]);
+    expect(mock.calls[0].systemPrompt).toContain('Minimal local mode.');
+    expect(mock.calls[0].systemPrompt).not.toContain('remembered context');
+    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['fs']);
+    expect(mock.calls[0].maxTokens).toBe(512);
+  });
+
+  it('defaults local Ollama turns to micro mode when no context mode was selected', async () => {
+    const { chat, mock, registry } = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-default-micro',
+      name: 'Default Micro (Ollama)',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'default-micro',
+    }]);
+    chat.setToolStoresProvider(() => ({ bridge: onlineBridge() }));
+    chat.setThreadModel(chat.activeThreadId!, 'ollama-default-micro');
+
+    chat.sendMessage('create an html file');
+    await flush(20);
+
+    expect(mock.calls).toHaveLength(1);
+    expect(mock.calls[0].messages).toEqual([{ role: 'user', content: 'create an html file' }]);
+    expect(mock.calls[0].systemPrompt).toContain('Minimal local mode.');
+    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['fs']);
+    expect(mock.calls[0].maxTokens).toBe(512);
+  });
+
+  it('rescues Ollama pseudo fs.write prose into a real tool call', async () => {
+    const { chat, providers, registry } = setup();
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-gemma3',
+      name: 'Gemma 3 (Ollama)',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'gemma3',
+      contextLength: 128000,
+    }]);
+    const requests: LlmRequest[] = [];
+    let streamCount = 0;
+    const localProvider: LlmProvider = {
+      id: 'ollama',
+      ready: () => true,
+      async *stream(req: LlmRequest) {
+        requests.push(req);
+        streamCount += 1;
+        if (streamCount === 1) {
+          yield {
+            type: 'text',
+            delta: 'I will do it:\n```js\nfs.write({ path: "/workspace/game.html", contents: `<html><body>play</body></html>` })\n```',
+          };
+        } else {
+          yield { type: 'text', delta: 'Created the game file.' };
+        }
+        yield { type: 'done', finishReason: 'stop' };
+      },
+    };
+    const router = providers.router as LlmRouter & {
+      resolve: (modelId: string) => { provider: LlmProvider; providerModelId: string };
+      canRoute: () => boolean;
+    };
+    router.resolve = modelId => ({ provider: localProvider, providerModelId: modelId });
+    router.canRoute = () => true;
+    const writes: unknown[] = [];
+    chat.setToolStoresProvider(() => ({
+      bridge: {
+        isOnline: true,
+        client: {
+          request: async (op: string, data: unknown) => {
+            writes.push({ op, data });
+            return { bytes: 30, path: '/workspace/game.html' };
+          },
+        },
+      },
+    }) as unknown as Pick<ToolContext, 'bridge'>);
+    chat.setThreadModel(chat.activeThreadId!, 'ollama-gemma3');
+
+    chat.sendMessage('use the fs tool to create a cool game as an html file');
+    await flush(40);
+
+    expect(requests.length).toBeGreaterThanOrEqual(2);
+    expect(writes).toEqual([{
+      op: 'fs.write',
+      data: expect.objectContaining({
+        path: '/workspace/game.html',
+        content: '<html><body>play</body></html>',
+      }),
+    }]);
+    const assistant = chat.activeThread!.messages.findLast(m => m.role === 'assistant');
+    expect(assistant?.role === 'assistant' ? assistant.toolCalls?.[0] : undefined).toEqual(expect.objectContaining({
+      name: 'fs',
+      arguments: expect.objectContaining({ action: 'write', path: '/workspace/game.html' }),
+    }));
+    expect(assistant?.content).toBe('Created the game file.');
   });
 
   it('tokenUsage counts serialized tool calls, tool results, and selected tool schemas', () => {

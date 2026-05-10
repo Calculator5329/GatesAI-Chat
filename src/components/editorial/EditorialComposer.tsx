@@ -2,12 +2,13 @@ import { useCallback, useEffect, useRef, useState, type ClipboardEvent, type CSS
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import { useBridgeStore, useChatStore, useImageJobStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
-import { threadLlmSpendUsd } from '../../stores/ChatStore';
+import { threadLlmSpendUsd, type ChatContextMode } from '../../stores/ChatStore';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
 import { ModelPopover } from './ModelPopover';
 import { WorkspaceImage } from './WorkspaceImage';
+import type { Model } from '../../core/types';
 
 /** Browsers without `field-sizing: content` need the JS height-recalc fallback. */
 const SUPPORTS_FIELD_SIZING = typeof CSS !== 'undefined'
@@ -22,8 +23,7 @@ const ATTACH_BTN_STYLE: CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   color: 'var(--text-faint)',
   flex: 'none',
-  alignSelf: 'flex-end',
-  marginBottom: 1,
+  alignSelf: 'center',
   transition: 'background 100ms ease',
 };
 
@@ -48,7 +48,7 @@ const STOP_BTN_INNER_STYLE: CSSProperties = {
 };
 
 const ROW_STYLE: CSSProperties = {
-  display: 'flex', alignItems: 'flex-end', gap: 8,
+  display: 'flex', alignItems: 'center', gap: 8,
   padding: '9px 13px 9px 8px',
   background: 'var(--panel)',
   borderRadius: 10,
@@ -60,15 +60,31 @@ const META_ROW_STYLE: CSSProperties = {
   fontSize: 11.5, color: 'var(--text-faint)',
   position: 'relative',
   minHeight: 18,
+  minWidth: 0,
 };
 
 const MODEL_LABEL_STYLE: CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 6,
   cursor: 'pointer', padding: '2px 6px', borderRadius: 4,
+  maxWidth: 220,
+  minWidth: 0,
 };
 
 const ACCENT_DOT_STYLE: CSSProperties = {
   width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)',
+};
+
+const LOCAL_CONTEXT_SELECT_STYLE: CSSProperties = {
+  appearance: 'none',
+  background: 'var(--panel)',
+  border: '1px solid var(--border)',
+  borderRadius: 5,
+  color: 'var(--text-faint)',
+  fontFamily: '"Geist Mono", monospace',
+  fontSize: 10.5,
+  height: 22,
+  padding: '0 7px',
+  outline: 'none',
 };
 
 const TEXTAREA_BASE_STYLE: CSSProperties = {
@@ -113,7 +129,7 @@ function SendButton(): ReactNode {
 }
 
 /** Square stop control shown in place of the send button while streaming
- *  with an empty composer — a clear "halt the model" affordance. Once the
+ *  with an empty composer - a clear "halt the model" affordance. Once the
  *  user types, this swaps back to the normal send button (which now behaves
  *  as interrupt-and-send). */
 function StopButton(): ReactNode {
@@ -137,6 +153,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
 
   const activeThread = chat.activeThread;
   const currentModel = registry.findById(activeThread?.modelId) ?? registry.findById(DEFAULT_MODEL_ID);
+  const localContextMode = activeThread?.contextMode ?? (currentModel?.providerId === 'ollama' ? 'micro' : 'full');
 
   // Decouple textarea visual value from the MobX store: typing updates
   // local state instantly (no observers fire), and a 120ms trailing debounce
@@ -282,7 +299,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                       lineHeight: 1,
                       fontSize: 13,
                     }}
-                  >×</button>
+                  >Ã—</button>
                 </span>
               ) : (
                 <span
@@ -304,7 +321,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                     onClick={() => ui.removeAttachment(a.id)}
                     style={{ cursor: 'pointer', opacity: 0.5, marginLeft: 2 }}
                     title="Remove"
-                  >×</span>
+                  >Ã—</span>
                 </span>
               )
             ))}
@@ -317,12 +334,12 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             color: 'var(--text-faint)',
             marginBottom: 6,
           }}>
-            {currentModel.name} is text-only — the image won't be sent as vision input. Switch to a vision-capable model to have it described.
+            {currentModel.name} is text-only - the image won't be sent as vision input. Switch to a vision-capable model to have it described.
           </div>
         )}
         {(ui.uploadError || ui.uploading) && (
           <div style={{ fontSize: 11, color: ui.uploadError ? '#c96a6a' : 'var(--text-faint)', marginBottom: 6 }}>
-            {ui.uploadError ?? 'Uploading…'}
+            {ui.uploadError ?? 'Uploading...'}
           </div>
         )}
         <div
@@ -343,7 +360,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           <AttachButton
             onClick={() => bridge.isOnline && fileInputRef.current?.click()}
             disabled={!bridge.isOnline}
-            title={bridge.isOnline ? 'Attach file' : 'Bridge offline — cannot attach files'}
+            title={bridge.isOnline ? 'Attach file' : 'Bridge offline - cannot attach files'}
           />
           <textarea
             ref={textareaRef}
@@ -353,7 +370,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             onBlur={flushDraft}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
-            placeholder="Continue the thought…"
+            placeholder="Continue the thought..."
             rows={1}
             style={textareaStyle}
             // CSS field-sizing: content handles autoresize natively when
@@ -371,8 +388,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             onClick={streaming && !hasText ? onStop : onSend}
             title={sendTitle}
             style={{
-              alignSelf: 'flex-end',
-              marginBottom: 1,
+              alignSelf: 'center',
               cursor: (streaming || canSend) ? 'pointer' : 'default',
               opacity: (streaming || canSend) ? 1 : 0.45,
             }}
@@ -390,7 +406,9 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               style={MODEL_LABEL_STYLE}
             >
               <span style={ACCENT_DOT_STYLE} />
-              {currentModel?.name ?? 'Select model'}
+              <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {currentModel?.name ?? 'Select model'}
+              </span>
               <Icons.Chevron />
             </span>
             {modelOpen && activeThread && (
@@ -401,17 +419,34 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               />
             )}
           </div>
-          <span style={{ color: 'var(--text-faint)', opacity: 0.5 }}>·</span>
+          <span style={{ color: 'var(--text-faint)', opacity: 0.5, flex: 'none' }}>·</span>
+          {activeThread && currentModel?.providerId === 'ollama' && (
+            <>
+              <select
+                value={localContextMode}
+                onChange={e => chat.setThreadContextMode(activeThread.id, e.currentTarget.value as ChatContextMode)}
+                title="Local context mode"
+                style={LOCAL_CONTEXT_SELECT_STYLE}
+              >
+                <option value="full">full context</option>
+                <option value="system-tools">system + tools</option>
+                <option value="bare">bare prompt</option>
+                <option value="micro">micro tools</option>
+              </select>
+              <span style={{ color: 'var(--text-faint)', opacity: 0.5, flex: 'none' }}>·</span>
+            </>
+          )}
           <ContextMeter />
           <span style={{
             marginLeft: 'auto',
+            flex: 'none',
             fontFamily: '"Geist Mono", monospace',
             color: streaming ? 'var(--accent)' : 'var(--text-faint)',
             opacity: streaming ? 0.85 : 0,
             transition: 'opacity 160ms ease',
             letterSpacing: '0.06em',
           }}>
-            {streaming ? (hasText ? '↵ to interrupt' : 'streaming…') : ''}
+            {streaming ? (hasText ? 'Enter to interrupt' : 'streaming...') : ''}
           </span>
         </div>
       </div>
@@ -421,7 +456,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
 
 /**
  * Live context-window usage for the active thread, including the unsent draft.
- * Replaces the static "↵ send · ⇧↵ newline" hint — the meter teaches the same
+ * Replaces the static "Enter send · Shift+Enter newline" hint - the meter teaches the same
  * keyboard idiom implicitly (you'll learn Enter sends because the bar grows
  * when you type and resets when you send), while surfacing genuinely useful
  * info: how close you are to the model's context limit.
@@ -430,10 +465,20 @@ const ContextMeter = observer(function ContextMeter() {
   const chat = useChatStore();
   const ui = useUiStore();
   const imageJobs = useImageJobStore();
+  const registry = useModelRegistry();
+  const localRuntime = useLocalRuntimeStore();
   const usage = chat.tokenUsage(ui.draft);
   const llmSpend = threadLlmSpendUsd(chat.activeThread);
   const imageSpend = imageJobs.threadCostUsd(chat.activeThreadId);
   const totalSpend = llmSpend + imageSpend;
+  const model = registry.findById(chat.activeThread?.modelId) ?? registry.findById(DEFAULT_MODEL_ID);
+  const contextMode = chat.activeThread?.contextMode ?? (model?.providerId === 'ollama' ? 'micro' : 'full');
+  const sourceStatus = model
+    ? sourceStatusForFooter(model, contextMode, localRuntime.runtimes.ollama.status === 'online')
+    : '';
+  const localSuggestion = model?.providerId === 'ollama' && usage.fraction >= 0.75
+    ? (contextMode === 'micro' ? 'use Auto' : 'switch to micro tools')
+    : '';
 
   const tone = usage.fraction >= 0.9
     ? 'var(--text)' : usage.fraction >= 0.75
@@ -444,18 +489,21 @@ const ContextMeter = observer(function ContextMeter() {
 
   return (
     <div
-      title={`${formatTokens(usage.used)} of ${formatTokens(usage.window)} tokens used (estimated)${totalSpend > 0 ? `; spent ${formatUsd(totalSpend)} in this chat` : ''}`}
+      className="context-meter"
+      title={`${formatTokens(usage.used)} of ${formatTokens(usage.window)} tokens used (estimated)${sourceStatus ? `; ${sourceStatus}` : ''}${totalSpend > 0 ? `; spent ${formatUsd(totalSpend)} in this chat` : ''}`}
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
+        flex: '1 1 auto',
         fontFamily: '"Geist Mono", monospace',
         letterSpacing: '0.03em',
         fontSize: 11,
         lineHeight: '16px',
         color: tone,
         minWidth: 0,
+        overflow: 'hidden',
       }}
     >
-      <div style={{
+      <div className="context-meter__bar" style={{
         width: 90, height: 4, borderRadius: 2,
         background: 'rgba(255,255,255,0.06)',
         overflow: 'hidden',
@@ -468,15 +516,35 @@ const ContextMeter = observer(function ContextMeter() {
           transition: 'width 160ms ease, background-color 160ms ease',
         }} />
       </div>
-      <span style={{
+      <span className="context-meter__tokens" style={{
         display: 'inline-flex',
         alignItems: 'center',
         height: 16,
         fontVariantNumeric: 'tabular-nums',
         whiteSpace: 'nowrap',
       }}>{formatTokens(usage.used)} / {formatTokens(usage.window)}</span>
+      {sourceStatus && (
+        <span
+          className="context-meter__source"
+          title={sourceStatus}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            height: 16,
+            color: 'var(--text-faint)',
+            opacity: 0.78,
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {sourceStatus}
+        </span>
+      )}
       {totalSpend > 0 && (
         <span
+          className="context-meter__spend"
           title={`Spent in this chat: ${formatUsd(totalSpend)} (${formatUsd(llmSpend)} LLM, ${formatUsd(imageSpend)} images)`}
           style={{
             display: 'inline-flex',
@@ -489,6 +557,22 @@ const ContextMeter = observer(function ContextMeter() {
           }}
         >
           spent {formatUsd(totalSpend)}
+        </span>
+      )}
+      {localSuggestion && (
+        <span
+          className="context-meter__suggestion"
+          title="Local model context is getting tight"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            height: 16,
+            color: '#d19a66',
+            opacity: 0.82,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {localSuggestion}
         </span>
       )}
     </div>
@@ -601,6 +685,30 @@ function timestampForPasteName(): string {
   const d = new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+function sourceStatusForFooter(
+  model: Model,
+  contextMode: ChatContextMode,
+  ollamaOnline: boolean,
+): string {
+  if (model.id === DEFAULT_MODEL_ID) return 'auto · Gemini 3 Flash API';
+  if (model.providerId === 'openrouter') return 'api';
+  if (model.providerId === 'ollama') {
+    if (!ollamaOnline) return 'local offline';
+    if (contextMode === 'micro') return 'local';
+    return `local · ${contextModeLabel(contextMode)}`;
+  }
+  return 'image · local ComfyUI';
+}
+
+function contextModeLabel(mode: ChatContextMode): string {
+  switch (mode) {
+    case 'system-tools': return 'system + tools';
+    case 'bare': return 'bare prompt';
+    case 'micro': return 'micro tools';
+    default: return 'full context';
+  }
 }
 
 function formatTokens(n: number): string {

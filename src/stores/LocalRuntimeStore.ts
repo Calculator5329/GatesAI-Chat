@@ -192,10 +192,24 @@ export class LocalRuntimeStore {
       });
       await this.refreshStatus(id);
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (isAddressInUseError(message)) {
+        const probe = await this.testConnection(id);
+        if (probe.ok) {
+          this.clearWatchdog(id);
+          runInAction(() => {
+            runtime.status = 'online';
+            runtime.pid = undefined;
+            runtime.uptimeMs = undefined;
+            runtime.lastError = `${runtimeLabel(id)} is already running on ${id === 'ollama' ? this.ollamaBaseUrl : this.comfyBaseUrl}; GatesAI will use that existing server.`;
+          });
+          return;
+        }
+      }
       this.clearWatchdog(id);
       runInAction(() => {
         runtime.status = 'crashed';
-        runtime.lastError = err instanceof Error ? err.message : String(err);
+        runtime.lastError = message;
       });
     }
   }
@@ -220,19 +234,16 @@ export class LocalRuntimeStore {
     const baseUrl = id === 'ollama' ? this.ollamaBaseUrl : this.comfyBaseUrl;
     const probeUrl = id === 'ollama' ? `${baseUrl}/api/version` : `${baseUrl}/system_stats`;
     try {
-      const ac = new AbortController();
-      const timer = setTimeout(() => ac.abort(), 4000);
-      try {
-        const resp = await fetch(probeUrl, { signal: ac.signal });
-        if (!resp.ok) return { ok: false, error: `HTTP ${resp.status} from ${probeUrl}` };
-        return { ok: true };
-      } finally {
-        clearTimeout(timer);
-      }
+      await this.service.probeHttp(probeUrl);
+      return { ok: true };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { ok: false, error: msg.includes('aborted') ? `No response from ${probeUrl} (timeout)` : `${msg} (${probeUrl})` };
     }
+  }
+
+  fetchOllamaTags(apiKey?: string): Promise<unknown> {
+    return this.service.fetchOllamaTags(this.ollamaBaseUrl, apiKey);
   }
 
   private armWatchdog(id: LocalRuntimeId): void {
@@ -311,6 +322,18 @@ export class LocalRuntimeStore {
     void this.refreshStatus('comfyui');
   }
 
+  resetConfig(): void {
+    this.watchdogs.forEach(timer => clearTimeout(timer));
+    this.watchdogs.clear();
+    this.runtimes = {
+      ollama: toRuntimeState(DEFAULT_LOCAL_RUNTIME_CONFIG.ollama),
+      comfyui: toRuntimeState(DEFAULT_LOCAL_RUNTIME_CONFIG.comfyui),
+    };
+    this.visionModel = DEFAULT_LOCAL_RUNTIME_CONFIG.visionModel;
+    this.autoDetectComplete = DEFAULT_LOCAL_RUNTIME_CONFIG.autoDetectComplete;
+    this.autoDetectAt = DEFAULT_LOCAL_RUNTIME_CONFIG.autoDetectAt;
+  }
+
   selectDefaultVisionModel(): void {
     if (this.visionModel) return;
     const first = this.visionModels[0];
@@ -331,6 +354,19 @@ function toRuntimeState(persisted: LocalRuntimePersistedConfig['ollama']): Runti
 function persistedStateFromRuntime(runtime: RuntimeState): LocalRuntimePersistedConfig['ollama'] {
   const { installPath, managed, baseUrl } = toJS(runtime);
   return { installPath, managed, baseUrl };
+}
+
+function isAddressInUseError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('address already in use')
+    || lower.includes('only one usage of each socket address')
+    || lower.includes('cannot assign requested address')
+    || lower.includes('bind:')
+    || lower.includes('eaddrinuse');
+}
+
+function runtimeLabel(id: LocalRuntimeId): string {
+  return id === 'ollama' ? 'Ollama' : 'ComfyUI';
 }
 
 export function localRuntimeDefaults(): LocalRuntimePersistedConfig {

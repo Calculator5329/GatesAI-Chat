@@ -14,6 +14,8 @@ function makeLocalRuntime(): LocalRuntimeStore {
       startRuntime: async () => {},
       stopRuntime: async () => {},
       getRuntimeStatus: async () => ({ running: false, status: 'stopped', logs: [] }),
+      probeHttp: async () => {},
+      fetchOllamaTags: async () => ({ models: [] }),
       pathExists: async () => false,
       pickDirectory: async () => null,
       pickFile: async () => null,
@@ -35,36 +37,39 @@ describe('OllamaStore', () => {
     expect(store.config.toolsEnabled).toBe(true);
   });
 
-  it('refresh() hits /api/tags using LocalRuntimeStore.ollamaBaseUrl', async () => {
-    const fetchMock = vi.fn(async (_url: string) => ({ ok: true, json: async () => TAGS_OK }) as Response);
-    vi.stubGlobal('fetch', fetchMock);
+  it('refresh() loads /api/tags through LocalRuntimeStore', async () => {
+    const fetchTags = vi.fn(async () => TAGS_OK);
     const reg = new ModelRegistry();
     const local = makeLocalRuntime();
+    (local as unknown as { service: { fetchOllamaTags: typeof fetchTags } }).service.fetchOllamaTags = fetchTags;
     local.setBaseUrl('ollama', 'http://10.0.0.5:11434');
     const store = new OllamaStore(reg, local);
     await store.refresh();
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://10.0.0.5:11434/api/tags');
+    expect(fetchTags).toHaveBeenCalledWith('http://10.0.0.5:11434', undefined);
     expect(store.catalog).toHaveLength(1);
     expect(store.lastError).toBeUndefined();
     expect(reg.all.some(m => m.providerId === 'ollama' && m.providerModelId === 'llama3.1:8b')).toBe(true);
   });
 
   it('refresh() captures network errors into lastError', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('ECONNREFUSED'); }));
-    const store = new OllamaStore(new ModelRegistry(), makeLocalRuntime());
+    const local = makeLocalRuntime();
+    (local as unknown as { service: { fetchOllamaTags: () => Promise<unknown> } }).service.fetchOllamaTags = async () => { throw new Error('ECONNREFUSED'); };
+    const store = new OllamaStore(new ModelRegistry(), local);
     await store.refresh();
     expect(store.lastError).toMatch(/ECONNREFUSED/);
   });
 
   it('persists auth/catalog; new store rehydrates without a fetch', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => TAGS_OK }) as Response));
+    const local = makeLocalRuntime();
+    (local as unknown as { service: { fetchOllamaTags: () => Promise<unknown> } }).service.fetchOllamaTags = async () => TAGS_OK;
     const reg = new ModelRegistry();
-    const store = new OllamaStore(reg, makeLocalRuntime());
+    const store = new OllamaStore(reg, local);
     await store.refresh();
 
-    vi.stubGlobal('fetch', vi.fn(() => { throw new Error('should not be called'); }));
+    const local2 = makeLocalRuntime();
+    (local2 as unknown as { service: { fetchOllamaTags: () => Promise<unknown> } }).service.fetchOllamaTags = async () => { throw new Error('should not be called'); };
     const reg2 = new ModelRegistry();
-    const store2 = new OllamaStore(reg2, makeLocalRuntime());
+    const store2 = new OllamaStore(reg2, local2);
     expect(store2.catalog).toHaveLength(1);
     expect(reg2.all.some(m => m.providerId === 'ollama')).toBe(true);
   });
@@ -80,9 +85,10 @@ describe('OllamaStore', () => {
   });
 
   it('clearCatalog() empties the registry slice and storage', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => TAGS_OK }) as Response));
+    const local = makeLocalRuntime();
+    (local as unknown as { service: { fetchOllamaTags: () => Promise<unknown> } }).service.fetchOllamaTags = async () => TAGS_OK;
     const reg = new ModelRegistry();
-    const store = new OllamaStore(reg, makeLocalRuntime());
+    const store = new OllamaStore(reg, local);
     await store.refresh();
     store.clearCatalog();
     expect(store.catalog).toEqual([]);

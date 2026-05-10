@@ -21,6 +21,7 @@ interface OllamaWireMessage {
   content: string;
   images?: string[];
   tool_calls?: Array<{
+    id?: string;
     function: { name: string; arguments: Record<string, unknown> };
   }>;
 }
@@ -30,6 +31,7 @@ interface OllamaStreamFrame {
     role?: string;
     content?: string;
     tool_calls?: Array<{
+      id?: string;
       function?: { name?: string; arguments?: Record<string, unknown> };
     }>;
   };
@@ -60,6 +62,7 @@ export class OllamaProvider implements LlmProvider {
   private readonly apiKey?: string;
   private readonly available: boolean;
   private readonly toolsEnabled: boolean;
+  private toolCallSeq = 0;
 
   constructor(opts: OllamaProviderOptions) {
     this.baseUrl = opts.baseUrl.replace(/\/+$/, '');
@@ -121,6 +124,7 @@ export class OllamaProvider implements LlmProvider {
       }
       if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length) {
         wire.tool_calls = m.toolCalls.map(c => ({
+          id: c.id,
           function: { name: c.name, arguments: c.arguments },
         }));
       }
@@ -174,7 +178,7 @@ export class OllamaProvider implements LlmProvider {
               yield {
                 type: 'tool_call',
                 call: {
-                  id: `ollama-tool-${i}`,
+                  id: tc.id ?? this.nextToolCallId(i),
                   name: tc.function?.name ?? 'unknown',
                   arguments: args as Record<string, unknown>,
                   ...(
@@ -228,6 +232,11 @@ export class OllamaProvider implements LlmProvider {
     } finally {
       reader.releaseLock();
     }
+  }
+
+  private nextToolCallId(index: number): string {
+    const seq = this.toolCallSeq++;
+    return `ollama-tool-${seq}-${index}`;
   }
 }
 

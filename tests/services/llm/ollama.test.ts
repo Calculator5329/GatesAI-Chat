@@ -166,8 +166,10 @@ describe('OllamaProvider — streaming response', () => {
     const p = new OllamaProvider({ baseUrl: 'http://h:1' });
     const chunks = [];
     for await (const c of p.stream({ modelId: 'm', messages: [] }, new AbortController().signal)) chunks.push(c);
-    expect(chunks).toContainEqual({ type: 'tool_call', call: { id: 'ollama-tool-0', name: 'get_time', arguments: {} } });
-    expect(chunks).toContainEqual({ type: 'tool_call', call: { id: 'ollama-tool-1', name: 'note', arguments: { text: 'hi' } } });
+    const calls = chunks.filter(c => c.type === 'tool_call').map(c => c.call);
+    expect(calls[0]).toMatchObject({ id: expect.stringMatching(/^ollama-tool-\d+-0$/), name: 'get_time', arguments: {} });
+    expect(calls[1]).toMatchObject({ id: expect.stringMatching(/^ollama-tool-\d+-1$/), name: 'note', arguments: { text: 'hi' } });
+    expect(calls[0].id).not.toBe(calls[1].id);
     expect(chunks[chunks.length - 1]).toEqual({ type: 'done', finishReason: 'tool_use' });
     vi.unstubAllGlobals();
   });

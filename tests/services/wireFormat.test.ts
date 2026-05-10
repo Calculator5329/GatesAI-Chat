@@ -51,4 +51,26 @@ describe('flattenForWire', () => {
       content: '[no result — execution interrupted]',
     });
   });
+
+  it('pairs duplicate tool call ids by occurrence instead of collapsing to the last result', () => {
+    const wire = flattenForWire([
+      {
+        id: 'a1',
+        role: 'assistant',
+        content: '',
+        createdAt: 1,
+        toolCalls: [
+          { id: 'dup', name: 'fs', arguments: { action: 'write', path: '/workspace/a.html' } },
+          { id: 'dup', name: 'fs', arguments: { action: 'write', path: '/workspace/b.html' } },
+        ],
+        toolResults: [
+          { toolCallId: 'dup', toolName: 'fs', content: 'first write', ranAt: 2 },
+          { toolCallId: 'dup', toolName: 'fs', content: 'second write', ranAt: 3 },
+        ],
+      },
+    ]);
+
+    expect(wire[1]).toMatchObject({ role: 'tool', toolCallId: 'dup', content: 'first write' });
+    expect(wire[2]).toMatchObject({ role: 'tool', toolCallId: 'dup', content: 'second write' });
+  });
 });

@@ -124,10 +124,7 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
   const calls = !isUser ? message.toolCalls ?? EMPTY_TOOL_CALLS : EMPTY_TOOL_CALLS;
   const results = !isUser ? message.toolResults ?? EMPTY_TOOL_RESULTS : EMPTY_TOOL_RESULTS;
   const workNotes = !isUser ? visibleWorkNotes(message.workNotes ?? EMPTY_WORK_NOTES) : EMPTY_WORK_NOTES;
-  const resultByCallId = useMemo(
-    () => new Map(results.map(r => [r.toolCallId, r])),
-    [results],
-  );
+  const pairedResults = useMemo(() => pairToolResults(calls, results), [calls, results]);
   const hasContent = message.content.trim().length > 0;
   const hasCalls = calls.length > 0;
   const hasWorkNotes = workNotes.length > 0;
@@ -209,12 +206,12 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
       )}
       {hasCalls && (
         <div style={{ marginBottom: hasContent || streaming ? 10 : 0 }}>
-          {calls.map(call => {
-            const result = resultByCallId.get(call.id);
+          {calls.map((call, idx) => {
+            const result = pairedResults[idx];
             const showLiveTail = !result && call.name === 'terminal';
             const artifacts = result?.artifacts ?? [];
             return (
-              <div key={call.id}>
+              <div key={`${call.id}-${idx}`}>
                 <ToolCallView call={call} style={ui.toolCallStyle} />
                 {result && <ToolResultView result={result} style={ui.toolCallStyle} />}
                 {artifacts.map((artifact, idx) => {
@@ -269,6 +266,19 @@ export const EditorialMessage = observer(function EditorialMessage({ message, mo
     </div>
   );
 });
+
+function pairToolResults(
+  calls: NonNullable<AssistantMessage['toolCalls']>,
+  results: NonNullable<AssistantMessage['toolResults']>,
+): Array<NonNullable<AssistantMessage['toolResults']>[number] | undefined> {
+  const used = new Set<number>();
+  return calls.map(call => {
+    const index = results.findIndex((result, idx) => !used.has(idx) && result.toolCallId === call.id);
+    if (index < 0) return undefined;
+    used.add(index);
+    return results[index];
+  });
+}
 
 function visibleWorkNotes(notes: readonly string[]): string[] {
   return notes

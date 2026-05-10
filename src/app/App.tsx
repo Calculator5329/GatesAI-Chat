@@ -5,9 +5,10 @@ import { useChatStore, useRouterStore, useUiStore } from '../stores/context';
 import { EditorialSidebar } from '../components/editorial/EditorialSidebar';
 import { EditorialChat } from '../components/editorial/EditorialChat';
 import { GatesMenu } from '../components/menu/GatesMenu';
+import { runtimeMode } from '../services/system/runtime';
 
 const stageStyle: CSSProperties = {
-  height: '100vh', width: '100vw',
+  height: '100dvh', width: '100vw',
   display: 'flex',
   background:
     'radial-gradient(ellipse at 20% 0%, rgba(91,140,255,0.06), transparent 60%), ' +
@@ -31,6 +32,7 @@ export const App = observer(function App() {
   const router = useRouterStore();
   const theme = useMemo(() => buildTheme('charcoal', 'emerald'), []);
   const appearanceClassName = [
+    `runtime-${runtimeMode()}`,
     `markdown-${ui.markdownStyle}`,
     `markdown-density-${ui.markdownDensity}`,
     `code-${ui.codeStyle}`,

@@ -27,6 +27,13 @@ async function flushMicrotasks(): Promise<void> {
   await Promise.resolve();
 }
 
+function htmlFromPreviewFrame(frame: HTMLIFrameElement | null | undefined): string {
+  const src = frame?.getAttribute('src') ?? '';
+  if (!src.startsWith('data:text/html')) return frame?.getAttribute('srcdoc') ?? '';
+  const encoded = src.split(',', 2)[1] ?? '';
+  return decodeURIComponent(encoded);
+}
+
 function renderMessage(
   message: Parameters<typeof EditorialMessage>[0]['message'],
   modelName = 'Assistant',
@@ -221,7 +228,7 @@ describe('EditorialMessage markdown rendering', () => {
 
     expect(rendered.querySelector('.html-artifact-preview')).not.toBeNull();
     expect(rendered.querySelector('.workspace-path-link')).toBeNull();
-    expect(rendered.querySelector('iframe')?.getAttribute('srcdoc')).toContain('<h1>Artifact</h1>');
+    expect(htmlFromPreviewFrame(rendered.querySelector('iframe'))).toContain('<h1>Artifact</h1>');
   });
 
   it('renders inline code HTML workspace artifacts as inline previews', async () => {
@@ -281,6 +288,26 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.textContent).toContain('compacting');
     expect(rendered.querySelector('[aria-label="Compacting"]')).not.toBeNull();
     expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+  });
+
+  it('pairs duplicate tool result ids by occurrence in the transcript', () => {
+    const rendered = renderMessage({
+      id: 'm-duplicate-tools',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'Done.',
+      toolCalls: [
+        { id: 'dup', name: 'fs', arguments: { action: 'write', path: '/workspace/artifacts/one.html' } },
+        { id: 'dup', name: 'fs', arguments: { action: 'write', path: '/workspace/artifacts/two.html' } },
+      ],
+      toolResults: [
+        { toolCallId: 'dup', toolName: 'fs', content: 'Wrote 100 bytes to /workspace/artifacts/one.html', ranAt: Date.now() },
+        { toolCallId: 'dup', toolName: 'fs', content: 'Wrote 200 bytes to /workspace/artifacts/two.html', ranAt: Date.now() },
+      ],
+    });
+
+    expect(rendered.textContent).toContain('Wrote 100 bytes to /workspace/artifacts/one.html');
+    expect(rendered.textContent).toContain('Wrote 200 bytes to /workspace/artifacts/two.html');
   });
 
   it('hides queued image prose while the job card is pending', () => {

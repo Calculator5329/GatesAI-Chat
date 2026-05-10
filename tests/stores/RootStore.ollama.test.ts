@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { runInAction } from 'mobx';
 import { RootStore } from '../../src/stores/RootStore';
 import { clearAppStorage } from '../helpers/storage';
 
@@ -44,5 +45,24 @@ describe('RootStore — Ollama config bridge', () => {
     expect(root.providers.effectiveConfigs.ollama?.apiKey).toBe('hunter2');
     root.ollama.setKey('');
     expect(root.providers.effectiveConfigs.ollama?.apiKey).toBeUndefined();
+  });
+
+  it('treats a cached Ollama catalog as locally available', () => {
+    const root = new RootStore();
+    runInAction(() => {
+      root.ollama.online = false;
+      root.ollama.catalog = [{
+        id: 'ollama-gpt-oss:20b',
+        name: 'gpt-oss:20b',
+        providerId: 'ollama',
+        providerModelId: 'gpt-oss:20b',
+        vendor: 'Ollama',
+        contextWindow: 8000,
+      }];
+      root.registry.setDynamicForProvider('ollama', root.ollama.catalog);
+    });
+
+    expect(root.providers.effectiveConfigs.ollama?.available).toBe(true);
+    expect(root.providers.isConnected('ollama')).toBe(true);
   });
 });

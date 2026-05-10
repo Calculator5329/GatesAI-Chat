@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useBridgeStore } from '../../stores/context';
+import { isWebLite } from '../../services/system/runtime';
 
 /**
  * Tiny status indicator at the bottom of the sidebar. Three states:
@@ -15,11 +16,16 @@ import { useBridgeStore } from '../../stores/context';
  */
 export const BridgeStatusPill = observer(function BridgeStatusPill() {
   const bridge = useBridgeStore();
+  const webLite = isWebLite();
 
   let dotColor = 'var(--text-faint)';
   let label = 'checking…';
   let title = 'Polling gatesai-bridge…';
-  if (bridge.state === 'online') {
+  if (webLite) {
+    dotColor = '#5b8cff';
+    label = 'web lite';
+    title = 'Firebase/Web Lite mode. Desktop workspace tools and local runtimes are unavailable in the browser.';
+  } else if (bridge.state === 'online') {
     dotColor = '#5fbf7a';
     label = 'workspace ready';
     const root = bridge.workspaceRoot ? `\n${bridge.workspaceRoot}` : '';
@@ -33,7 +39,7 @@ export const BridgeStatusPill = observer(function BridgeStatusPill() {
   return (
     <div
       className="bridge-status-pill"
-      onClick={() => { void bridge.poll(); }}
+      onClick={() => { if (!webLite) void bridge.poll(); }}
       title={title}
       style={S.root}
       role="button"

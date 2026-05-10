@@ -3,6 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { useBridgeStore } from '../../../stores/context';
 import type { FsEntry, FsListResp } from '../../../core/workspace';
 import { Card } from '../../ui/Card';
+import { WebLiteNotice } from '../../ui/WebLiteNotice';
 
 export const WorkspaceSection = observer(function WorkspaceSection() {
   const bridge = useBridgeStore();
@@ -28,6 +29,10 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <WebLiteNotice>
+        <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
+        the local /workspace bridge is not available in Firebase Hosting. Chats and settings stay in this browser for now.
+      </WebLiteNotice>
       {/* Bridge status */}
       <Card>
         <div style={S.row}>

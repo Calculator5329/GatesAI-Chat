@@ -154,6 +154,11 @@ export interface Thread {
   modelId: string;
   messages: Message[];
   /**
+   * Controls how much chat history is sent on the next model request.
+   * Useful for small local Ollama models that cannot fit long threads.
+   */
+  contextMode?: 'full' | 'system-tools' | 'bare' | 'micro';
+  /**
    * Set when the user dismisses the thread from the sidebar. Soft-deleted
    * threads stay in storage (so an Undo can restore them) but are filtered
    * out of every list. There's no hard-purge yet — graveyard cleanup is a

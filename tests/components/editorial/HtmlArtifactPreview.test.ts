@@ -32,6 +32,13 @@ function renderPreview(bridge: unknown): HTMLDivElement {
   return host;
 }
 
+function htmlFromPreviewFrame(frame: HTMLIFrameElement | null | undefined): string {
+  const src = frame?.getAttribute('src') ?? '';
+  if (!src.startsWith('data:text/html')) return frame?.getAttribute('srcdoc') ?? '';
+  const encoded = src.split(',', 2)[1] ?? '';
+  return decodeURIComponent(encoded);
+}
+
 function onlineBridge(overrides: {
   stat?: Record<string, unknown>;
   read?: Record<string, unknown>;
@@ -51,10 +58,11 @@ function onlineBridge(overrides: {
       };
     }
     if (op === 'fs.read') {
+      const isImage = /\.(png|svg)$/i.test(path);
       return {
         path,
         content: overrides.files?.[path] ?? '<!doctype html><button id="x">Hi</button>',
-        encoding: path.endsWith('.png') ? 'base64' : 'utf8',
+        encoding: isImage ? 'base64' : 'utf8',
         size: 64,
         mime: path.endsWith('.png') ? 'image/png' : path.endsWith('.css') ? 'text/css' : path.endsWith('.js') ? 'text/javascript' : 'text/html',
         ...(path === HTML_PATH ? overrides.read : {}),
@@ -80,7 +88,7 @@ afterEach(() => {
 });
 
 describe('HtmlArtifactPreview', () => {
-  it('reads HTML through fs.stat and fs.read, then renders sandboxed srcDoc', async () => {
+  it('reads HTML through fs.stat and fs.read, then renders a sandboxed document preview', async () => {
     const bridge = onlineBridge();
     const rendered = renderPreview(bridge);
 
@@ -91,12 +99,14 @@ describe('HtmlArtifactPreview', () => {
     expect(bridge.client.request).toHaveBeenNthCalledWith(1, 'fs.stat', { path: HTML_PATH });
     expect(bridge.client.request).toHaveBeenNthCalledWith(2, 'fs.read', { path: HTML_PATH, encoding: 'utf8' });
     const iframe = rendered.querySelector('iframe');
-    expect(iframe?.getAttribute('srcdoc')).toContain('<button id="x">Hi</button>');
+    expect(htmlFromPreviewFrame(iframe)).toContain('<button id="x">Hi</button>');
+    expect(iframe?.getAttribute('srcdoc')).toBeNull();
+    expect(iframe?.getAttribute('src')).toMatch(/^(data:text\/html|blob:)/);
     expect(iframe?.getAttribute('sandbox')).toBe(__htmlArtifactPreviewTestApi.sandbox);
     expect(iframe?.getAttribute('sandbox')).not.toContain('allow-same-origin');
   });
 
-  it('inlines workspace-relative CSS and JS assets for srcDoc previews', async () => {
+  it('inlines workspace-relative CSS and JS assets for document previews', async () => {
     const bridge = onlineBridge({
       files: {
         [HTML_PATH]: '<!doctype html><html><head><link rel="stylesheet" href="./demo.css"><script src="demo.js" defer></script></head><body><h1>Hi</h1><img src="chart.png"></body></html>',
@@ -111,12 +121,42 @@ describe('HtmlArtifactPreview', () => {
       await flushMicrotasks();
     });
 
-    const srcdoc = rendered.querySelector('iframe')?.getAttribute('srcdoc') ?? '';
-    expect(srcdoc).toContain('<style>body { background: rgb(1, 2, 3); }</style>');
-    expect(srcdoc).toContain('<script defer="">window.demoReady = true;</script>');
-    expect(srcdoc).toContain('src="data:image/png;base64,abc123"');
-    expect(srcdoc).not.toContain('href="./demo.css"');
-    expect(srcdoc).not.toContain('src="demo.js"');
+    const previewHtml = htmlFromPreviewFrame(rendered.querySelector('iframe'));
+    expect(previewHtml).toContain('<style>body { background: rgb(1, 2, 3); }</style>');
+    expect(previewHtml).toContain('<script defer="">window.demoReady = true;</script>');
+    expect(previewHtml).toContain('src="data:image/png;base64,abc123"');
+    expect(previewHtml).not.toContain('href="./demo.css"');
+    expect(previewHtml).not.toContain('src="demo.js"');
+  });
+
+  it('keeps inline styles and inlines parent-directory SVG assets', async () => {
+    const htmlPath = '/workspace/artifacts/reports/portfolio_dashboard/index.html';
+    const bridge = onlineBridge({
+      files: {
+        [htmlPath]: '<!doctype html><html><head><style>body { background: #0f0f1a; color: white; }</style></head><body><img src="../../images/local/dashboard_hero.svg"><h1>Project Portfolio</h1></body></html>',
+        '/workspace/artifacts/images/local/dashboard_hero.svg': 'PHN2Zz48L3N2Zz4=',
+      },
+    });
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    act(() => {
+      root!.render(
+        createElement(StoreProvider, {
+          store: { bridge } as unknown as RootStore,
+          children: createElement(HtmlArtifactPreview, { path: htmlPath, label: 'Portfolio' }),
+        }),
+      );
+    });
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    const previewHtml = htmlFromPreviewFrame(host.querySelector('iframe'));
+    expect(previewHtml).toContain('<style>body { background: #0f0f1a; color: white; }</style>');
+    expect(previewHtml).toContain('src="data:image/svg+xml;base64,PHN2Zz48L3N2Zz4="');
+    expect(previewHtml).toContain('<h1>Project Portfolio</h1>');
   });
 
   it('shows a fallback when the bridge is offline', async () => {
@@ -157,7 +197,7 @@ describe('HtmlArtifactPreview', () => {
       (rendered.querySelector('.html-artifact-preview') as HTMLElement).click();
     });
 
-    expect(document.querySelector('.html-artifact-fullscreen iframe')?.getAttribute('srcdoc')).toContain('Hi');
+    expect(htmlFromPreviewFrame(document.querySelector('.html-artifact-fullscreen iframe'))).toContain('Hi');
 
     await act(async () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));

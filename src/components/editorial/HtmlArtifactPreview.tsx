@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import type { FsReadResp, FsStatResp } from '../../core/workspace';
 import { isWorkspacePath } from '../../core/workspacePaths';
@@ -13,6 +13,8 @@ type HtmlLoadState =
   | { status: 'loading' }
   | { status: 'ready'; html: string; size: number }
   | { status: 'error'; reason: string };
+
+type PreviewDocumentUrl = { url: string; revoke?: () => void };
 
 const htmlCache = new Map<string, { html: string; size: number }>();
 const inflightLoads = new Map<string, Promise<HtmlLoadState>>();
@@ -48,6 +50,13 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
   });
   const [fullscreen, setFullscreen] = useState(false);
   const name = fileNameFromPath(path);
+  const readyHtml = state.status === 'ready' ? state.html : null;
+  const previewDocument = useMemo(
+    () => readyHtml ? createPreviewDocumentUrl(readyHtml) : null,
+    [readyHtml],
+  );
+
+  useEffect(() => () => previewDocument?.revoke?.(), [previewDocument]);
 
   useEffect(() => {
     const cached = cacheGet(path);
@@ -95,7 +104,7 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
           {state.status === 'ready' ? (
             <iframe
               title={`Preview of ${name}`}
-              srcDoc={state.html}
+              src={previewDocument?.url}
               sandbox={HTML_SANDBOX}
               loading="lazy"
             />
@@ -133,6 +142,10 @@ function HtmlArtifactFullscreen({
   onClose: () => void;
   onOpenOs: () => void;
 }) {
+  const previewDocument = useMemo(() => createPreviewDocumentUrl(html), [html]);
+
+  useEffect(() => () => previewDocument.revoke?.(), [previewDocument]);
+
   useEffect(() => {
     function onKey(event: KeyboardEvent): void {
       if (event.key === 'Escape') {
@@ -158,11 +171,24 @@ function HtmlArtifactFullscreen({
       </div>
       <iframe
         title={`Fullscreen preview of ${name}`}
-        srcDoc={html}
+        src={previewDocument.url}
         sandbox={HTML_SANDBOX}
       />
     </div>
   );
+}
+
+function createPreviewDocumentUrl(html: string): PreviewDocumentUrl {
+  if (
+    typeof Blob !== 'undefined'
+    && typeof URL !== 'undefined'
+    && typeof URL.createObjectURL === 'function'
+  ) {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    return { url, revoke: () => URL.revokeObjectURL(url) };
+  }
+  return { url: `data:text/html;charset=utf-8,${encodeURIComponent(html)}` };
 }
 
 async function loadHtmlArtifact(bridge: BridgeStore, path: string): Promise<HtmlLoadState> {
@@ -245,7 +271,7 @@ async function inlineMediaAssets(bridge: BridgeStore, htmlPath: string, doc: Doc
     try {
       const read = await bridge.client.request<FsReadResp>('fs.read', { path: assetPath, encoding: 'base64' });
       if (read.encoding !== 'base64') return;
-      node.setAttribute('src', `data:${read.mime || 'application/octet-stream'};base64,${read.content}`);
+      node.setAttribute('src', `data:${mimeForWorkspaceAsset(assetPath, read.mime)};base64,${read.content}`);
     } catch {
       // Keep the original src if the bridge cannot read it.
     }
@@ -294,6 +320,18 @@ function resolveWorkspaceAssetPath(htmlPath: string, rawRef: string): string | n
   return resolved.startsWith('/workspace/') ? resolved : null;
 }
 
+function mimeForWorkspaceAsset(path: string, mime?: string): string {
+  const clean = path.split(/[?#]/, 1)[0]?.toLowerCase() ?? path.toLowerCase();
+  if (clean.endsWith('.svg')) return 'image/svg+xml';
+  if (clean.endsWith('.png')) return 'image/png';
+  if (clean.endsWith('.jpg') || clean.endsWith('.jpeg')) return 'image/jpeg';
+  if (clean.endsWith('.webp')) return 'image/webp';
+  if (clean.endsWith('.gif')) return 'image/gif';
+  if (clean.endsWith('.avif')) return 'image/avif';
+  if (mime && mime !== 'application/octet-stream') return mime;
+  return mime || 'application/octet-stream';
+}
+
 function fileNameFromPath(path: string): string {
   const clean = path.split(/[?#]/, 1)[0] ?? path;
   return clean.split('/').filter(Boolean).pop() || 'artifact.html';
@@ -309,5 +347,7 @@ export const __htmlArtifactPreviewTestApi = {
   size: () => htmlCache.size,
   limit: HTML_CACHE_LIMIT,
   sandbox: HTML_SANDBOX,
+  createPreviewDocumentUrl,
   resolveWorkspaceAssetPath,
+  mimeForWorkspaceAsset,
 };

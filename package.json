@@ -1,11 +1,13 @@
 {
   "name": "gatesai-chat",
   "private": true,
-  "version": "3.2.0",
+  "version": "3.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:web": "tsc -b && vite build --mode firebase",
+    "deploy:firebase": "npm run build:web && firebase deploy --only hosting",
     "lint": "eslint .",
     "typecheck": "tsc -b && tsc -p tsconfig.test.json --noEmit",
     "test": "vitest run",

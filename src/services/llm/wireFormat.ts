@@ -43,9 +43,11 @@ export function flattenForWire(messages: Message[]): LlmMessage[] {
 
     out.push({ role: 'assistant', content: '', toolCalls: calls });
 
-    const byId = new Map(results.map(r => [r.toolCallId, r]));
+    const usedResultIndexes = new Set<number>();
     for (const call of calls) {
-      const r = byId.get(call.id);
+      const resultIndex = results.findIndex((r, index) => !usedResultIndexes.has(index) && r.toolCallId === call.id);
+      const r = resultIndex >= 0 ? results[resultIndex] : undefined;
+      if (resultIndex >= 0) usedResultIndexes.add(resultIndex);
       out.push({
         role: 'tool',
         content: r?.content ?? '[no result — execution interrupted]',

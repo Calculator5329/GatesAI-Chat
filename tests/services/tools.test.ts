@@ -315,6 +315,42 @@ describe('fs tool', () => {
     expect(out).toMatch(/`content` is required/);
   });
 
+  it('accepts utf-8 as a model-facing alias and writes canonical utf8 to the bridge', async () => {
+    const requests: FakeRequest[] = [];
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        requests,
+        respond: () => ({ path: '/workspace/artifacts/reports/game.html', bytes: 16 }),
+      }),
+    });
+
+    expect(toolRegistry.validateCallDetailed('fs', {
+      action: 'write',
+      path: '/workspace/artifacts/reports/game.html',
+      content: '<html></html>',
+      encoding: 'utf-8',
+    }).ok).toBe(true);
+
+    const out = await fsTool.execute({
+      action: 'write',
+      path: '/workspace/artifacts/reports/game.html',
+      content: '<html></html>',
+      encoding: 'utf-8',
+    }, ctx);
+
+    expect(out).toContain('Wrote 16 bytes');
+    expect(requests[0]).toEqual({
+      op: 'fs.write',
+      data: {
+        path: '/workspace/artifacts/reports/game.html',
+        content: '<html></html>',
+        encoding: 'utf8',
+        append: false,
+      },
+    });
+  });
+
   it('list formats entries with kind + size + path', async () => {
     const ctx = makeCtx({
       bridge: fakeBridge({

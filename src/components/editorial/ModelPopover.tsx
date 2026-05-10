@@ -1,9 +1,10 @@
 import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
+import { DEFAULT_MODEL_ID } from '../../core/models';
+import { modelSupportsVision } from '../../core/modelCapabilities';
 import { Icons } from '../ui/icons';
 import { useLocalRuntimeStore, useModelRegistry } from '../../stores/context';
-import { buildModelMenuSections, type ModelMenuSection } from '../../core/modelMenu';
 
 interface ModelPopoverProps {
   currentModelId: string | undefined;
@@ -11,27 +12,48 @@ interface ModelPopoverProps {
   onClose: () => void;
 }
 
+type SourceFilter = 'auto' | 'cloud' | 'local' | 'image';
+
 interface ModelMeta {
-  /** Short tag — keep under ~40 chars. */
   tag: string;
   capabilities: Array<'vision' | 'reasoning' | 'fast' | 'tools'>;
   costLabel?: '$' | '$$' | '$$$' | 'LOCAL';
   starred?: boolean;
 }
 
-const BROWSE_SECTION_LIMIT = 6;
+interface PickerSection {
+  title: string;
+  models: Model[];
+  favorite?: boolean;
+}
+
+const SOURCE_FILTER_STORAGE_KEY = 'gatesai.modelPicker.source.v1';
+const RECENT_MODELS_STORAGE_KEY = 'gatesai.modelPicker.recent.v1';
+const BROWSE_SECTION_LIMIT = 8;
 const SEARCH_RESULT_LIMIT = 80;
+const MAX_RECENT_MODELS = 6;
+
+const AUTO_MODEL: Model = {
+  id: 'auto-gemini-3-flash',
+  name: 'Auto: Gemini 3 Flash API',
+  vendor: 'Recommended',
+  providerId: 'openrouter',
+  providerModelId: 'google/gemini-3-flash-preview',
+  description: 'default API chat, vision, reliable tools',
+  supportsVision: true,
+};
 
 const META: Record<string, ModelMeta> = {
-  'or-gemini-3-flash':     { tag: 'Vision · fast',                    capabilities: ['vision', 'fast'], costLabel: '$', starred: true },
-  'or-deepseek-v4-flash':  { tag: 'Fast · reasoning',                  capabilities: ['fast', 'reasoning'], costLabel: '$', starred: true },
-  'or-gpt-5.5':            { tag: 'Vision · tools · reasoning',        capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$', starred: true },
-  'or-claude-opus-4.7':    { tag: 'Vision · tools · reasoning',       capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$$', starred: true },
-  'or-gemini-3.1-pro':     { tag: 'Vision · tools · reasoning',       capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$', starred: true },
-  'image-direct-comfy':    { tag: 'FLUX.2 Klein direct local image',   capabilities: ['fast'], costLabel: 'LOCAL', starred: true },
-  'or-deepseek-v4-pro':    { tag: 'Reasoning',                         capabilities: ['reasoning'] },
-  'or-gpt-5.5-pro':        { tag: 'Vision · tools · reasoning',       capabilities: ['vision', 'tools', 'reasoning'] },
-  'or-gemini-3.1-flash-lite': { tag: 'Vision · fast',                 capabilities: ['vision', 'fast'] },
+  'auto-gemini-3-flash': { tag: 'default API chat, vision, reliable tools', capabilities: ['vision', 'tools', 'fast'], costLabel: '$', starred: true },
+  'or-gemini-3-flash': { tag: 'default API chat, vision, reliable tools', capabilities: ['vision', 'tools', 'fast'], costLabel: '$', starred: true },
+  'or-deepseek-v4-flash': { tag: 'fast low-cost reasoning', capabilities: ['fast', 'reasoning'], costLabel: '$', starred: true },
+  'or-gpt-5.5': { tag: 'strong API tools and reasoning', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$', starred: true },
+  'or-claude-opus-4.7': { tag: 'premium API reasoning', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$$', starred: true },
+  'or-gemini-3.1-pro': { tag: 'large API reasoning and vision', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$', starred: true },
+  'image-direct-comfy': { tag: 'local ComfyUI image generation', capabilities: ['fast'], costLabel: 'LOCAL', starred: true },
+  'or-deepseek-v4-pro': { tag: 'reasoning', capabilities: ['reasoning'] },
+  'or-gpt-5.5-pro': { tag: 'premium API tools and reasoning', capabilities: ['vision', 'tools', 'reasoning'] },
+  'or-gemini-3.1-flash-lite': { tag: 'cheap fast API vision', capabilities: ['vision', 'fast'], costLabel: '$' },
 };
 
 const META_BY_PROVIDER_MODEL_ID: Record<string, ModelMeta> = {
@@ -51,16 +73,14 @@ function VendorMark({ vendor, size = 12 }: { vendor: string; size?: number }) {
     opacity: 0.85,
   };
   switch (vendor) {
-    case 'Anthropic':
-      return <img src="/anthropic_white.svg" alt="" style={common} />;
-    case 'xAI':
-      return <img src="/xai_dark.svg" alt="" style={common} />;
-    case 'Favorites':
+    case 'Recommended':
+    case 'Recent':
       return (
         <svg width={size} height={size} viewBox="0 0 16 16" fill="var(--accent)" style={{ flexShrink: 0, opacity: 0.9 }}>
           <path d="M8 1.5l2 4.5 5 .5-3.8 3.3 1.2 4.7L8 12l-4.4 2.5L4.8 9.8 1 6.5l5-.5z" />
         </svg>
       );
+    case 'Cloud':
     case 'OpenRouter':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--text-dim)' }}>
@@ -68,7 +88,7 @@ function VendorMark({ vendor, size = 12 }: { vendor: string; size?: number }) {
         </svg>
       );
     case 'Local':
-    case 'Local image':
+    case 'Image':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--text-dim)' }}>
           <rect x="3" y="4" width="18" height="12" rx="1" />
@@ -80,82 +100,35 @@ function VendorMark({ vendor, size = 12 }: { vendor: string; size?: number }) {
   }
 }
 
-function CapabilityIcon({ kind }: { kind: 'vision' | 'reasoning' | 'fast' | 'tools' }) {
-  const common: CSSProperties = {
-    width: 16, height: 16,
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    color: 'var(--text-faint)',
-    flexShrink: 0,
-  };
-  let title = '';
-  let icon: ReactNode = null;
-  switch (kind) {
-    case 'vision':
-      title = 'Vision';
-      icon = (
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5S1 8 1 8z" /><circle cx="8" cy="8" r="2" />
-        </svg>
-      );
-      break;
-    case 'reasoning':
-      title = 'Reasoning';
-      icon = (
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M8 2a4 4 0 0 0-2.5 7.1V12h5V9.1A4 4 0 0 0 8 2z" /><path d="M6 14h4" />
-        </svg>
-      );
-      break;
-    case 'fast':
-      title = 'Fast';
-      icon = (
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9 1L3 9h4l-1 6 6-8H8l1-6z" />
-        </svg>
-      );
-      break;
-    case 'tools':
-      title = 'Tool use';
-      icon = (
-        <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M10.5 2.5a3 3 0 0 0-3.8 3.8L2 11l3 3 4.7-4.7a3 3 0 0 0 3.8-3.8L11 8 8 5z" />
-        </svg>
-      );
-      break;
-  }
-  return <span title={title} style={common}>{icon}</span>;
-}
-
-const COST_PILL_BASE_STYLE: CSSProperties = {
-  border: '1px solid var(--border)',
-  borderRadius: 2,
-  padding: '0 4px',
-  fontSize: 9,
-  lineHeight: '14px',
-  fontFamily: '"Geist Mono", monospace',
-  letterSpacing: '0.04em',
+const SEGMENT_WRAP_STYLE: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, 1fr)',
+  gap: 3,
+  padding: 4,
+  borderBottom: '1px solid var(--border)',
+  background: 'rgba(255,255,255,0.02)',
 };
-const COST_PILL_ACCENT_STYLE: CSSProperties = { ...COST_PILL_BASE_STYLE, color: 'var(--accent)' };
-const COST_PILL_FAINT_STYLE: CSSProperties = { ...COST_PILL_BASE_STYLE, color: 'var(--text-faint)' };
 
-function CostPill({ label }: { label: NonNullable<ModelMeta['costLabel']> }) {
-  return (
-    <span
-      title={label === 'LOCAL' ? 'Local model' : 'Relative cost tier'}
-      style={label === '$$$' ? COST_PILL_ACCENT_STYLE : COST_PILL_FAINT_STYLE}
-    >
-      {label}
-    </span>
-  );
-}
+const SEGMENT_STYLE: CSSProperties = {
+  height: 24,
+  border: '1px solid transparent',
+  borderRadius: 5,
+  background: 'transparent',
+  color: 'var(--text-faint)',
+  fontFamily: '"Geist Mono", monospace',
+  fontSize: 10,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  cursor: 'pointer',
+};
 
 const ROW_LEFT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 };
-const ROW_RIGHT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 6 };
+const ROW_RIGHT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, minWidth: 0, flexWrap: 'wrap' };
 const STAR_ICON_STYLE: CSSProperties = { flexShrink: 0, opacity: 0.85 };
 const NAME_STYLE_BASE: CSSProperties = {
   fontSize: 13,
   fontWeight: 400,
-  letterSpacing: '-0.005em',
+  letterSpacing: 0,
   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
 };
 const SUBLINE_STYLE_BASE: CSSProperties = {
@@ -167,23 +140,49 @@ const SUBLINE_STYLE_BASE: CSSProperties = {
   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
 };
 
+function Badge({ children, tone = 'muted', title }: { children: ReactNode; tone?: 'muted' | 'accent' | 'warn'; title?: string }) {
+  const color = tone === 'accent' ? 'var(--accent)' : tone === 'warn' ? '#d19a66' : 'var(--text-faint)';
+  return (
+    <span
+      title={title}
+      style={{
+        border: '1px solid var(--border)',
+        borderRadius: 3,
+        padding: '0 4px',
+        fontSize: 9,
+        lineHeight: '14px',
+        fontFamily: '"Geist Mono", monospace',
+        letterSpacing: '0.04em',
+        color,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 interface RowProps {
   model: Model;
   meta: ModelMeta | null;
   selected: boolean;
   active: boolean;
   disabledReason?: string;
+  ollamaOnline: boolean;
+  comfyReady: boolean;
   onPick: () => void;
   onHover: () => void;
 }
 
-const ModelRow = memo(function ModelRow({ model, meta, selected, active, disabledReason, onPick, onHover }: RowProps) {
+const ModelRow = memo(function ModelRow({
+  model, meta, selected, active, disabledReason, ollamaOnline, comfyReady, onPick, onHover,
+}: RowProps) {
   const disabled = !!disabledReason;
-  const subline = disabledReason ?? (meta ? meta.tag : describeDynamic(model));
+  const subline = disabledReason ?? bestForLine(model, meta);
   const rowStyle: CSSProperties = {
     position: 'relative',
     display: 'grid',
-    gridTemplateColumns: '1fr auto',
+    gridTemplateColumns: 'minmax(0, 1fr) minmax(90px, auto)',
     rowGap: 1,
     padding: '7px 14px 7px 18px',
     cursor: disabled ? 'not-allowed' : 'pointer',
@@ -203,6 +202,7 @@ const ModelRow = memo(function ModelRow({ model, meta, selected, active, disable
   };
   return (
     <div
+      data-model-row={model.id}
       onClick={() => { if (!disabled) onPick(); }}
       onMouseEnter={onHover}
       aria-disabled={disabled || undefined}
@@ -218,37 +218,14 @@ const ModelRow = memo(function ModelRow({ model, meta, selected, active, disable
         )}
       </div>
       <div style={ROW_RIGHT_STYLE}>
-        {meta?.costLabel && <CostPill label={meta.costLabel} />}
-        {meta && meta.capabilities.map(c => <CapabilityIcon key={c} kind={c} />)}
+        {badgesForModel(model, ollamaOnline, comfyReady).map(badge => (
+          <Badge key={badge.label} tone={badge.tone} title={badge.title}>{badge.label}</Badge>
+        ))}
       </div>
       <div style={sublineStyle}>{subline}</div>
     </div>
   );
 });
-
-function describeDynamic(m: Model): string {
-  const bits: string[] = [];
-  if (m.contextLength) bits.push(`${formatContext(m.contextLength)} ctx`);
-  if (m.pricing?.prompt != null && m.pricing.completion != null) {
-    bits.push(`$${formatPrice(m.pricing.prompt)} / $${formatPrice(m.pricing.completion)} per 1M`);
-  } else if (m.pricing?.prompt != null) {
-    bits.push(`$${formatPrice(m.pricing.prompt)} / 1M in`);
-  }
-  if (bits.length === 0) return m.providerModelId;
-  return bits.join(' · ');
-}
-
-function formatContext(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
-  return String(n);
-}
-
-function formatPrice(usdPerMillion: number): string {
-  if (usdPerMillion === 0) return '0';
-  if (usdPerMillion < 1) return usdPerMillion.toFixed(2);
-  return usdPerMillion.toFixed(2);
-}
 
 export const ModelPopover = observer(function ModelPopover({ currentModelId, onPick, onClose }: ModelPopoverProps) {
   const registry = useModelRegistry();
@@ -257,6 +234,8 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
+  const [source, setSource] = useState<SourceFilter>(() => loadSourceFilter());
+  const [recentIds, setRecentIds] = useState<string[]>(() => loadRecentModelIds());
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -271,34 +250,43 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   }, [onClose]);
 
   const all = registry.all;
+  const currentModel = registry.findById(currentModelId);
+  const ollamaOnline = localRuntime.runtimes.ollama.status === 'online';
+  const comfyReady = localRuntime.comfyReady;
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return all.filter(m => {
-      if (!q) return true;
-      return (
-        m.name.toLowerCase().includes(q) ||
-        m.vendor.toLowerCase().includes(q) ||
-        m.id.toLowerCase().includes(q) ||
-        m.providerModelId.toLowerCase().includes(q)
-      );
+  const sections = useMemo(() => {
+    return buildPickerSections({
+      all,
+      currentModel,
+      query,
+      source,
+      recentIds,
     });
-  }, [all, query]);
+  }, [all, currentModel, query, source, recentIds]);
 
-  const grouped = useMemo(() => {
-    return buildModelMenuSections(filtered);
-  }, [filtered]);
-
-  const displayGrouped = useMemo(() => {
-    return limitModelSections(grouped, query);
-  }, [grouped, query]);
-  const flat = useMemo(() => displayGrouped.flatMap(g => g.models), [displayGrouped]);
+  const displaySections = useMemo(() => limitModelSections(sections, query), [sections, query]);
+  const flat = useMemo(() => displaySections.flatMap(g => g.models), [displaySections]);
   const flatIndexById = useMemo(() => new Map(flat.map((m, index) => [m.id, index])), [flat]);
-  const hiddenCount = filtered.length - flat.length;
+  const totalMatching = sections.reduce((sum, section) => sum + section.models.length, 0);
+  const hiddenCount = totalMatching - flat.length;
 
   useEffect(() => {
     setActiveIdx(i => Math.min(i, Math.max(0, flat.length - 1)));
   }, [flat.length]);
+
+  const setSourceAndPersist = (next: SourceFilter) => {
+    setSource(next);
+    setActiveIdx(0);
+    try { localStorage.setItem(SOURCE_FILTER_STORAGE_KEY, next); } catch { /* ignore */ }
+  };
+
+  const pickModel = (model: Model) => {
+    const resolvedId = model.id === AUTO_MODEL.id ? DEFAULT_MODEL_ID : model.id;
+    saveRecentModelId(resolvedId);
+    setRecentIds(loadRecentModelIds());
+    onPick(resolvedId);
+    onClose();
+  };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowDown') {
@@ -310,10 +298,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const m = flat[activeIdx];
-      if (m && !disabledReasonForModel(m, localRuntime.comfyReady)) {
-        onPick(m.id);
-        onClose();
-      }
+      if (m && !disabledReasonForModel(m, comfyReady)) pickModel(m);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
@@ -327,17 +312,37 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       onKeyDown={onKeyDown}
       style={{
         position: 'absolute', bottom: 'calc(100% + 8px)', left: 0,
-        width: 360, maxHeight: 460,
+        width: 390, maxHeight: 500,
         display: 'flex', flexDirection: 'column',
         background: 'var(--panel)',
         border: '1px solid var(--border)',
-        borderRadius: 2,
+        borderRadius: 6,
         boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
         overflow: 'hidden',
         zIndex: 30,
         fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
       }}
     >
+      <div style={SEGMENT_WRAP_STYLE} role="tablist" aria-label="Model source">
+        {(['auto', 'cloud', 'local', 'image'] as const).map(value => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setSourceAndPersist(value)}
+            data-source-filter={value}
+            aria-selected={source === value}
+            style={{
+              ...SEGMENT_STYLE,
+              background: source === value ? 'var(--panel-2)' : 'transparent',
+              borderColor: source === value ? 'var(--border)' : 'transparent',
+              color: source === value ? 'var(--text-dim)' : 'var(--text-faint)',
+            }}
+          >
+            {value}
+          </button>
+        ))}
+      </div>
+
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '10px 14px',
@@ -348,12 +353,12 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
           ref={inputRef}
           value={query}
           onChange={e => { setQuery(e.target.value); setActiveIdx(0); }}
-          placeholder="Search models…"
+          placeholder="Search models..."
           style={{
             flex: 1, background: 'transparent', border: 'none', outline: 'none',
             color: 'var(--text)', fontSize: 13,
             fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-            letterSpacing: '-0.005em',
+            letterSpacing: 0,
           }}
         />
         {query && (
@@ -365,17 +370,17 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       </div>
 
       <div style={{ overflowY: 'auto', flex: 1, paddingBottom: 6 }}>
-        {displayGrouped.length === 0 && (
+        {displaySections.length === 0 && (
           <div style={{
             padding: '24px 16px', textAlign: 'center',
             color: 'var(--text-faint)', fontSize: 12,
             fontStyle: 'italic',
             fontFamily: '"Source Serif 4", Georgia, serif',
           }}>
-            No models match “{query}”.
+            No models match "{query}".
           </div>
         )}
-        {displayGrouped.map(({ title, models }) => (
+        {displaySections.map(({ title, models, favorite }) => (
           <div key={title}>
             <div style={{
               display: 'flex', alignItems: 'center', gap: 8,
@@ -388,29 +393,34 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
                 textTransform: 'uppercase', letterSpacing: '0.12em',
                 fontFamily: '"Geist Mono", monospace',
               }}>{title}</span>
-              {models.some(model => model.dynamic) && (
+              {favorite && (
                 <span style={{
                   fontSize: 9, color: 'var(--accent)',
                   border: '1px solid var(--accent)', opacity: 0.7,
                   borderRadius: 2, padding: '0 4px',
                   fontFamily: '"Geist Mono", monospace',
                   letterSpacing: '0.08em',
-                }}>LIVE</span>
+                }}>PICK</span>
               )}
             </div>
             {models.map(m => {
               const meta = META[m.id] ?? META_BY_PROVIDER_MODEL_ID[m.providerModelId] ?? null;
               const flatIdx = flatIndexById.get(m.id) ?? -1;
-              const disabledReason = disabledReasonForModel(m, localRuntime.comfyReady);
+              const disabledReason = disabledReasonForModel(m, comfyReady);
+              const selected = m.id === AUTO_MODEL.id
+                ? currentModelId === DEFAULT_MODEL_ID
+                : m.id === currentModelId;
               return (
                 <ModelRow
-                  key={m.id}
+                  key={`${title}-${m.id}`}
                   model={m}
                   meta={meta}
-                  selected={m.id === currentModelId}
+                  selected={selected}
                   active={flatIdx === activeIdx}
                   disabledReason={disabledReason}
-                  onPick={() => { onPick(m.id); onClose(); }}
+                  ollamaOnline={ollamaOnline}
+                  comfyReady={comfyReady}
+                  onPick={() => pickModel(m)}
                   onHover={() => setActiveIdx(flatIdx)}
                 />
               );
@@ -429,7 +439,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
           }}>
             {query.trim()
               ? `Showing the first ${flat.length} matches. Refine search to narrow ${hiddenCount} more.`
-              : `Showing favorites and top models. Search to find all ${filtered.length}.`}
+              : `Showing top ${source} models. Search to find all ${totalMatching}.`}
           </div>
         )}
       </div>
@@ -444,21 +454,125 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
         textTransform: 'uppercase',
       }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span><Kbd>↑↓</Kbd> nav</span>
-          <span><Kbd>↵</Kbd> select</span>
+          <span><Kbd>up/down</Kbd> nav</span>
+          <span><Kbd>enter</Kbd> select</span>
           <span><Kbd>esc</Kbd> close</span>
         </span>
-        <span>{hiddenCount > 0 ? `${flat.length} of ${filtered.length}` : flat.length} models</span>
+        <span>{hiddenCount > 0 ? `${flat.length} of ${totalMatching}` : flat.length} models</span>
       </div>
     </div>
   );
 });
 
-function limitModelSections(sections: ModelMenuSection[], query: string): ModelMenuSection[] {
+function buildPickerSections(args: {
+  all: readonly Model[];
+  currentModel: Model | undefined;
+  query: string;
+  source: SourceFilter;
+  recentIds: string[];
+}): PickerSection[] {
+  const q = args.query.trim().toLowerCase();
+  const allById = new Map(args.all.map(model => [model.id, model]));
+  const sourceModels = args.all.filter(model => sourceMatches(model, args.source));
+  const base = q ? args.all.filter(model => matchesQuery(model, q)) : sourceModels;
+  const sections: PickerSection[] = [];
+
+  const rawRecommended = dedupeModels([
+    AUTO_MODEL,
+    ...(args.currentModel ? [args.currentModel] : []),
+    firstLocalModel(args.all),
+  ]).filter(model => !q || matchesQuery(model, q));
+  const recommended = args.source === 'auto'
+    ? rawRecommended
+    : rawRecommended.filter(model => sourceMatches(model, args.source));
+
+  if (args.source === 'auto' && recommended.length) {
+    sections.push({ title: 'Recommended', models: recommended, favorite: true });
+    const recent = args.recentIds
+      .map(id => allById.get(id))
+      .filter((model): model is Model => Boolean(model))
+      .filter(model => !q || matchesQuery(model, q));
+    if (recent.length) sections.push({ title: 'Recent', models: dedupeModels(recent) });
+    return removeDuplicateRowsAcrossSections(sections);
+  }
+
+  if (!q && recommended.length) {
+    sections.push({ title: 'Recommended', models: recommended, favorite: true });
+  }
+
+  const sourceTitle = titleForSource(args.source);
+  const sourceSectionModels = base.filter(model => sourceMatches(model, args.source));
+  if (sourceSectionModels.length) {
+    sections.push({ title: sourceTitle, models: sourceSectionModels });
+  }
+
+  const recent = args.recentIds
+    .map(id => allById.get(id))
+    .filter((model): model is Model => Boolean(model))
+    .filter(model => sourceMatches(model, args.source))
+    .filter(model => !q || matchesQuery(model, q));
+  if (recent.length) sections.push({ title: 'Recent', models: dedupeModels(recent) });
+
+  return removeDuplicateRowsAcrossSections(sections);
+}
+
+function sourceMatches(model: Model, source: SourceFilter): boolean {
+  if (source === 'auto') return true;
+  if (source === 'cloud') return model.providerId === 'openrouter';
+  if (source === 'local') return model.providerId === 'ollama';
+  return model.providerId === 'local-image';
+}
+
+function titleForSource(source: SourceFilter): string {
+  if (source === 'cloud') return 'Cloud';
+  if (source === 'local') return 'Local';
+  if (source === 'image') return 'Image';
+  return 'Recommended';
+}
+
+function matchesQuery(model: Model, q: string): boolean {
+  return (
+    model.name.toLowerCase().includes(q) ||
+    model.vendor.toLowerCase().includes(q) ||
+    model.id.toLowerCase().includes(q) ||
+    model.providerModelId.toLowerCase().includes(q)
+  );
+}
+
+function firstLocalModel(models: readonly Model[]): Model | undefined {
+  return models.find(model => model.providerId === 'ollama');
+}
+
+function dedupeModels(models: Array<Model | undefined>): Model[] {
+  const seen = new Set<string>();
+  const out: Model[] = [];
+  for (const model of models) {
+    if (!model || seen.has(model.id)) continue;
+    seen.add(model.id);
+    out.push(model);
+  }
+  return out;
+}
+
+function removeDuplicateRowsAcrossSections(sections: PickerSection[]): PickerSection[] {
+  const seen = new Set<string>();
+  return sections.map(section => {
+    if (section.title === 'Recent') return section;
+    const models = section.models.filter(model => {
+      const key = model.id;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return { ...section, models };
+  }).filter(section => section.models.length > 0);
+}
+
+function limitModelSections(sections: PickerSection[], query: string): PickerSection[] {
   const searching = query.trim().length > 0;
   if (searching) {
     let remaining = SEARCH_RESULT_LIMIT;
-    const limited: ModelMenuSection[] = [];
+    const limited: PickerSection[] = [];
     for (const section of sections) {
       if (remaining <= 0) break;
       const models = section.models.slice(0, remaining);
@@ -476,9 +590,89 @@ function limitModelSections(sections: ModelMenuSection[], query: string): ModelM
     .filter(section => section.models.length > 0);
 }
 
+function bestForLine(model: Model, meta: ModelMeta | null): string {
+  if (model.description) return model.description;
+  if (meta?.tag) return meta.tag;
+  if (model.providerId === 'ollama') {
+    const ctx = model.contextLength ? `${formatContext(model.contextLength)} context` : 'unknown context';
+    const tools = model.supportsTools === false ? 'tools off' : 'micro tools recommended';
+    return `private local chat; ${ctx}; ${tools}`;
+  }
+  if (model.providerId === 'local-image') return 'local ComfyUI image generation';
+  return describeDynamic(model);
+}
+
+function badgesForModel(model: Model, ollamaOnline: boolean, comfyReady: boolean): Array<{ label: string; tone?: 'muted' | 'accent' | 'warn'; title?: string }> {
+  const badges: Array<{ label: string; tone?: 'muted' | 'accent' | 'warn'; title?: string }> = [];
+  if (model.id === AUTO_MODEL.id) badges.push({ label: 'AUTO', tone: 'accent' });
+  else if (model.providerId === 'openrouter') badges.push({ label: 'API' });
+  else if (model.providerId === 'ollama') badges.push({ label: 'LOCAL' });
+  else badges.push({ label: 'IMAGE' });
+
+  if (model.providerId === 'ollama') {
+    badges.push({ label: ollamaOnline ? 'online' : 'offline', tone: ollamaOnline ? 'accent' : 'warn' });
+    badges.push({ label: model.supportsTools === false ? 'tools off' : 'tools', tone: model.supportsTools === false ? 'warn' : 'muted' });
+  } else if (model.providerId === 'local-image') {
+    badges.push({ label: comfyReady ? 'online' : 'offline', tone: comfyReady ? 'accent' : 'warn' });
+  } else {
+    badges.push({ label: modelSupportsVision(model) ? 'vision' : 'text' });
+    badges.push({ label: model.supportsTools === false ? 'tools off' : 'tools', tone: model.supportsTools === false ? 'warn' : 'muted' });
+  }
+
+  if (model.pricing?.prompt != null && model.pricing.prompt <= 0.5) badges.push({ label: 'cheap' });
+  if (model.contextLength && model.contextLength >= 128000) badges.push({ label: 'large ctx' });
+  return badges.slice(0, 5);
+}
+
+function describeDynamic(m: Model): string {
+  const bits: string[] = [];
+  if (m.contextLength) bits.push(`${formatContext(m.contextLength)} ctx`);
+  if (m.pricing?.prompt != null && m.pricing.completion != null) {
+    bits.push(`$${formatPrice(m.pricing.prompt)} / $${formatPrice(m.pricing.completion)} per 1M`);
+  } else if (m.pricing?.prompt != null) {
+    bits.push(`$${formatPrice(m.pricing.prompt)} / 1M in`);
+  }
+  if (bits.length === 0) return m.providerModelId;
+  return bits.join(' - ');
+}
+
+function formatContext(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return String(n);
+}
+
+function formatPrice(usdPerMillion: number): string {
+  if (usdPerMillion === 0) return '0';
+  return usdPerMillion.toFixed(2);
+}
+
 function disabledReasonForModel(model: Model, comfyReady: boolean): string | undefined {
   if (model.providerId !== 'local-image' || comfyReady) return undefined;
   return 'Enable and connect ComfyUI in Local settings to use local image generation.';
+}
+
+function loadSourceFilter(): SourceFilter {
+  try {
+    const raw = localStorage.getItem(SOURCE_FILTER_STORAGE_KEY);
+    if (raw === 'auto' || raw === 'cloud' || raw === 'local' || raw === 'image') return raw;
+  } catch { /* ignore */ }
+  return 'auto';
+}
+
+function loadRecentModelIds(): string[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(RECENT_MODELS_STORAGE_KEY) || '[]');
+    if (Array.isArray(parsed)) return parsed.filter((id): id is string => typeof id === 'string').slice(0, MAX_RECENT_MODELS);
+  } catch { /* ignore */ }
+  return [];
+}
+
+function saveRecentModelId(modelId: string): void {
+  try {
+    const next = [modelId, ...loadRecentModelIds().filter(id => id !== modelId)].slice(0, MAX_RECENT_MODELS);
+    localStorage.setItem(RECENT_MODELS_STORAGE_KEY, JSON.stringify(next));
+  } catch { /* ignore */ }
 }
 
 function Kbd({ children }: { children: ReactNode }) {

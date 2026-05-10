@@ -9,6 +9,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
+import { isTauri } from './runtime';
 
 export async function openExternal(absolutePath: string): Promise<void> {
   if (!isTauri()) {
@@ -18,7 +19,3 @@ export async function openExternal(absolutePath: string): Promise<void> {
   await invoke('open_path', { path: absolutePath });
 }
 
-export function isTauri(): boolean {
-  return typeof window !== 'undefined'
-    && typeof (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== 'undefined';
-}

@@ -51,6 +51,42 @@ describe('LocalRuntimeStore', () => {
     expect(store.runtimes.ollama.logs).toEqual(['ready']);
   });
 
+  it('treats an address-in-use start error as online when the existing server responds', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('{"version":"0.12.0"}', { status: 200 }),
+    );
+    const service = fakeService({
+      startRuntime: vi.fn(async () => {
+        throw new Error('listen tcp 127.0.0.1:11434: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted');
+      }),
+      probeHttp: vi.fn(async () => undefined),
+    });
+    const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
+    store.setInstallPath('ollama', 'C:\\Ollama\\ollama.exe');
+
+    await store.start('ollama');
+
+    expect(store.runtimes.ollama.status).toBe('online');
+    expect(store.runtimes.ollama.lastError).toContain('already running');
+    expect(store.runtimes.ollama.lastError).toContain('127.0.0.1:11434');
+  });
+
+  it('keeps an address-in-use start error as crashed when the existing server does not respond', async () => {
+    const service = fakeService({
+      startRuntime: vi.fn(async () => {
+        throw new Error('bind: address already in use');
+      }),
+      probeHttp: vi.fn(async () => { throw new Error('connection refused'); }),
+    });
+    const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
+    store.setInstallPath('ollama', 'C:\\Ollama\\ollama.exe');
+
+    await store.start('ollama');
+
+    expect(store.runtimes.ollama.status).toBe('crashed');
+    expect(store.runtimes.ollama.lastError).toBe('bind: address already in use');
+  });
+
   it('auto-detect stores discovered install paths without duplicating runtime state', async () => {
     const store = new LocalRuntimeStore({
       autoDetect: async () => ({
@@ -92,29 +128,28 @@ describe('LocalRuntimeStore', () => {
 
   describe('testConnection', () => {
     it('returns ok when the probe responds 200', async () => {
-      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-        new Response('{"ok":true}', { status: 200 }),
-      );
-      const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService() });
+      const probeHttp = vi.fn(async () => undefined);
+      const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService({ probeHttp }) });
       const r = await store.testConnection('ollama');
       expect(r.ok).toBe(true);
-      expect(fetchSpy).toHaveBeenCalledWith(
-        'http://127.0.0.1:11434/api/version',
-        expect.objectContaining({ signal: expect.any(AbortSignal) }),
-      );
+      expect(probeHttp).toHaveBeenCalledWith('http://127.0.0.1:11434/api/version');
     });
 
     it('reports an HTTP error when the probe responds non-2xx', async () => {
-      vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('nope', { status: 503 }));
-      const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService() });
+      const store = new LocalRuntimeStore({
+        autoDetect: async () => ({}),
+        service: fakeService({ probeHttp: vi.fn(async () => { throw new Error('HTTP 503 from http://127.0.0.1:8188/system_stats'); }) }),
+      });
       const r = await store.testConnection('comfyui');
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.error).toMatch(/HTTP 503/);
     });
 
-    it('reports the error verbatim when fetch rejects (network unreachable)', async () => {
-      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('connect ECONNREFUSED'));
-      const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService() });
+    it('reports the error verbatim when probe rejects (network unreachable)', async () => {
+      const store = new LocalRuntimeStore({
+        autoDetect: async () => ({}),
+        service: fakeService({ probeHttp: vi.fn(async () => { throw new Error('connect ECONNREFUSED'); }) }),
+      });
       const r = await store.testConnection('ollama');
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.error).toMatch(/ECONNREFUSED/);
@@ -235,6 +270,8 @@ function fakeService(overrides: Partial<LocalRuntimeStore['service']> = {}): Loc
     startRuntime: vi.fn(async () => undefined),
     stopRuntime: vi.fn(async () => undefined),
     getRuntimeStatus: vi.fn(async () => ({ running: false, status: 'stopped' as const, logs: [] })),
+    probeHttp: vi.fn(async () => undefined),
+    fetchOllamaTags: vi.fn(async () => ({ models: [] })),
     pathExists: vi.fn(async () => false),
     pickDirectory: vi.fn(async () => null),
     pickFile: vi.fn(async () => null),

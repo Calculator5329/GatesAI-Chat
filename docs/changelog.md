@@ -21,6 +21,8 @@
   picker uses short capability subtitles instead of repeating the gateway name.
 - Hid the `image_generate` agent tool unless ComfyUI is enabled and healthy, so
   image prompts do not route to a tool that cannot run.
+- Built the Firebase web bundle and deployed web mode to
+  `https://ethan-488900.web.app`.
 
 ## 2026-05-09 — Foundation trim follow-up
 

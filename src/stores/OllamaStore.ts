@@ -73,11 +73,7 @@ export class OllamaStore {
     runInAction(() => { this.fetching = true; this.lastError = undefined; });
 
     try {
-      const headers: Record<string, string> = {};
-      if (this.config.apiKey) headers.Authorization = `Bearer ${this.config.apiKey}`;
-      const resp = await fetch(`${this.localRuntime.ollamaBaseUrl}/api/tags`, { headers, signal: ctrl.signal });
-      if (!resp.ok) throw new Error(`Ollama ${resp.status}`);
-      const json = await resp.json() as unknown;
+      const json = await this.localRuntime.fetchOllamaTags(this.config.apiKey);
       if (ctrl.signal.aborted) return;
       const models = mapOllamaTagsToModels(json);
       runInAction(() => {

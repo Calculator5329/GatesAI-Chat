@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type TouchEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { Thread } from '../../core/types';
@@ -86,12 +86,43 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileShell, setMobileShell] = useState(false);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const mobileTitle = onMenu
+    ? 'Menu'
+    : (chat.activeThread?.title || 'New conversation');
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 480px) and (max-aspect-ratio: 1 / 2)');
+    const update = () => {
+      setMobileShell(query.matches);
+      if (!query.matches) setMobileOpen(false);
+    };
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     if (!undo) return;
     const timer = setTimeout(() => setUndo(null), UNDO_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [undo]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileShell) return;
+    setMobileOpen(false);
+  }, [chat.activeThreadId, router.isMenu, mobileShell]);
 
   const onDelete = (t: Thread, e: MouseEvent): void => {
     e.stopPropagation();
@@ -103,6 +134,25 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     chat.restoreThread(undo.id);
     router.goThread(undo.id);
     setUndo(null);
+    setMobileOpen(false);
+  };
+
+  const onMobileTouchStart = (e: TouchEvent<HTMLElement>): void => {
+    if (!mobileShell) return;
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+
+  const onMobileTouchEnd = (e: TouchEvent<HTMLElement>): void => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!mobileShell || !start) return;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dy) > 48 || Math.abs(dx) < 44) return;
+    if (!mobileOpen && start.x <= 28 && dx > 0) setMobileOpen(true);
+    if (mobileOpen && dx < 0) setMobileOpen(false);
   };
 
   const renderItem = (t: Thread) => {
@@ -117,6 +167,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         onClick={() => {
           chat.selectThread(t.id);
           router.goThread(t.id);
+          setMobileOpen(false);
         }}
         onMouseEnter={() => setHoveredId(t.id)}
         onMouseLeave={() => setHoveredId(prev => (prev === t.id ? null : prev))}
@@ -163,12 +214,66 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   };
 
   return (
-    <aside className="editorial-sidebar" style={S.root as CSSProperties}>
+    <>
+    {mobileShell && (
+      <header className="editorial-mobile-topbar">
+        <button
+          type="button"
+          className="editorial-mobile-topbar__button"
+          aria-label="Open sidebar"
+          onClick={() => setMobileOpen(true)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <button
+          type="button"
+          className="editorial-mobile-topbar__title"
+          onClick={() => setMobileOpen(true)}
+          title={mobileTitle}
+        >
+          {mobileTitle}
+        </button>
+        <button
+          type="button"
+          className="editorial-mobile-topbar__new"
+          aria-label="New conversation"
+          onClick={() => {
+            router.goThread(chat.createThread());
+            setMobileOpen(false);
+          }}
+        >
+          <Icons.Plus />
+        </button>
+      </header>
+    )}
+    {mobileShell && mobileOpen && (
+      <button
+        type="button"
+        className="editorial-sidebar__scrim"
+        aria-label="Close sidebar"
+        onClick={() => setMobileOpen(false)}
+      />
+    )}
+    <aside
+      className="editorial-sidebar"
+      data-mobile-open={mobileOpen || undefined}
+      style={S.root as CSSProperties}
+      onTouchStart={onMobileTouchStart}
+      onTouchEnd={onMobileTouchEnd}
+    >
       <div
         className="editorial-sidebar__brand"
         style={S.head as CSSProperties}
-        onClick={() => onMenu ? router.goThread(chat.activeThreadId) : router.goMenu()}
-        title={onMenu ? 'Back to chat' : 'Open menu'}
+        onClick={() => {
+          if (mobileShell) {
+            setMobileOpen(open => !open);
+            return;
+          }
+          onMenu ? router.goThread(chat.activeThreadId) : router.goMenu();
+        }}
+        title={mobileShell ? (mobileOpen ? 'Collapse sidebar' : 'Expand sidebar') : (onMenu ? 'Back to chat' : 'Open menu')}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
           <div className="editorial-sidebar__brand-text" style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 22, fontWeight: 500, color: 'var(--text)', letterSpacing: '-0.02em' }}>GatesAI</div>
@@ -178,12 +283,27 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       <div
         className="editorial-sidebar__new"
         style={S.newBtn as CSSProperties}
-        onClick={() => router.goThread(chat.createThread())}
+        onClick={() => {
+          router.goThread(chat.createThread());
+          setMobileOpen(false);
+        }}
         role="button"
       >
         <Icons.Plus />
         <span className="editorial-sidebar__new-label">Begin a new conversation</span>
       </div>
+      {mobileShell && (
+        <button
+          type="button"
+          className="editorial-sidebar__menu-link"
+          onClick={() => {
+            router.goMenu();
+            setMobileOpen(false);
+          }}
+        >
+          Menu and settings
+        </button>
+      )}
       <div className="editorial-sidebar__list" style={S.list as CSSProperties}>
         {pinned.length > 0 && <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Pinned</div>}
         {pinned.map(renderItem)}
@@ -200,5 +320,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       )}
       <BridgeStatusPill />
     </aside>
+    </>
   );
 });

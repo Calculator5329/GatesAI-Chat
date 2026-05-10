@@ -5,15 +5,19 @@ import { useBridgeStore, useImageGenStore, useLocalRuntimeStore, useOllamaStore 
 import type { LocalRuntimeId, RuntimeState } from '../../../stores/LocalRuntimeStore';
 import { Button, Card, Input, Pill, Select, SettingsRow, Toggle, SecretKeyField } from '../../ui';
 import { ProviderAvatar } from './api/ProviderAvatar';
+import { WebLiteNotice } from '../../ui/WebLiteNotice';
+import { isWebLite } from '../../../services/system/runtime';
 
 export const LocalSection = observer(function LocalSection() {
   const local = useLocalRuntimeStore();
   const bridge = useBridgeStore();
   const [logRuntime, setLogRuntime] = useState<LocalRuntimeId | null>(null);
+  const webLite = isWebLite();
 
   // Eagerly refresh both runtimes on first paint so we don't show stale
   // 'stopped' chips while the underlying service is actually online.
   useEffect(() => {
+    if (webLite) return;
     local.refreshAll();
     const timer = setInterval(() => {
       for (const id of ['ollama', 'comfyui'] as const) {
@@ -22,7 +26,7 @@ export const LocalSection = observer(function LocalSection() {
       }
     }, 3000);
     return () => clearInterval(timer);
-  }, [local]);
+  }, [local, webLite]);
 
   useEffect(() => {
     if (!logRuntime) return;
@@ -31,10 +35,34 @@ export const LocalSection = observer(function LocalSection() {
     return () => window.removeEventListener('keydown', onKey);
   }, [logRuntime]);
 
+  if (webLite) {
+    return (
+      <>
+        <h1 style={tokens.h1}>Local</h1>
+        <div style={tokens.kicker}>desktop runtimes</div>
+        <WebLiteNotice>
+          <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
+          Ollama, ComfyUI, local vision, and managed runtime controls are desktop-only.
+          Use Models for OpenRouter/API chat in the hosted web app.
+        </WebLiteNotice>
+        <Card style={{ marginTop: 18, padding: '16px 18px' }}>
+          <div style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.55 }}>
+            The Firebase-hosted app runs entirely in the browser for now. A future cloud backend can add server-side tools,
+            cloud artifact storage, and hosted image generation without requiring a local bridge.
+          </div>
+        </Card>
+      </>
+    );
+  }
+
   return (
     <>
       <h1 style={tokens.h1}>Local</h1>
       <div style={tokens.kicker}>installed runtimes · Ollama · ComfyUI · local vision</div>
+      <WebLiteNotice>
+        <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
+        local runtimes are desktop-only. Use Models for OpenRouter/API chat in the hosted web app.
+      </WebLiteNotice>
 
       <RuntimeCard onOpenLogs={setLogRuntime} />
       <LocalLlmCard />

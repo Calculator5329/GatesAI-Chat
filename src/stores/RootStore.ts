@@ -15,6 +15,7 @@ import { ImageGenStore } from './ImageGenStore';
 import { ImageJobStore } from './ImageJobStore';
 import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
+import { isWebLite } from '../services/system/runtime';
 
 export class RootStore {
   readonly registry: ModelRegistry;
@@ -49,7 +50,7 @@ export class RootStore {
       ollama: {
         baseUrl: this.localRuntime.ollamaBaseUrl,
         apiKey: this.ollama.config.apiKey,
-        available: this.ollama.online,
+        available: this.ollama.online || this.ollama.catalog.length > 0,
         toolsEnabled: this.ollama.config.toolsEnabled,
       },
     }));
@@ -100,17 +101,19 @@ export class RootStore {
       localRuntime: this.localRuntime,
     }));
 
-    // Boot the bridge poller — chat keeps working if it never connects.
-    this.bridge.start();
-    void this.localRuntime.init();
+    if (!isWebLite()) {
+      // Boot the bridge poller - chat keeps working if it never connects.
+      this.bridge.start();
+      void this.localRuntime.init();
 
-    // Diagnostics: route per-thread log lines to /workspace/logs/<id>.log
-    // through the bridge whenever it's online.
-    const bridge = this.bridge;
-    configureChatLog({
-      get isOnline() { return bridge.isOnline; },
-      client: bridge.client,
-    });
+      // Diagnostics: route per-thread log lines to /workspace/logs/<id>.log
+      // through the bridge whenever it's online.
+      const bridge = this.bridge;
+      configureChatLog({
+        get isOnline() { return bridge.isOnline; },
+        client: bridge.client,
+      });
+    }
 
     // Boot the lazy summarizer.
     this.summary.start();
