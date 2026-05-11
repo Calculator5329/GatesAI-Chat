@@ -38,14 +38,17 @@ export const GatesMenu = observer(function GatesMenu() {
           const active = router.menuSection === s.key;
           const onSelect = () => { if (s.supported) router.goMenu(s.key); };
           return (
-            <div
+            <button
+              type="button"
               key={s.key}
-              role="button"
-              aria-disabled={!s.supported}
+              disabled={!s.supported}
               onClick={onSelect}
               style={{
                 padding: '11px 18px 12px',
                 fontSize: 13,
+                fontFamily: 'inherit',
+                background: 'transparent',
+                border: 0,
                 color: active ? 'var(--text)' : s.supported ? 'var(--text-dim)' : 'var(--text-faint)',
                 opacity: s.supported ? 1 : 0.5,
                 borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
@@ -57,7 +60,7 @@ export const GatesMenu = observer(function GatesMenu() {
             >
               <span>{s.label}</span>
               {!s.supported && s.badge && <span style={badgeStyle}>{s.badge}</span>}
-            </div>
+            </button>
           );
         })}
       </div>

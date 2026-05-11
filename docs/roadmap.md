@@ -64,6 +64,9 @@
       Aside tool calls, Compact markdown, Obsidian code, and animations on
 - [x] Slim the settings menu to Agent, Models, Local, Workspace, Gallery, and
       Settings, with Profile folded into Agent and API renamed to Models
+- [x] Add a `PersistenceProvider<T>` boundary around local storage slots so
+      future IndexedDB / Firestore work can swap repositories without store
+      rewrites
 
 ## Near-term
 - [x] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`

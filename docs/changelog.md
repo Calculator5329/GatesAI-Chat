@@ -16,6 +16,16 @@
   branching, regeneration, composer debounce, markdown chunking, and message
   action behavior.
 
+## 2026-05-10 — Mobile sidebar cleanup
+
+- Removed redundant in-drawer "Back to chat" / "Menu and settings" buttons; the
+  fixed top bar already handles those navigations.
+- Replaced the `Close` text affordance on the brand row with a real close icon
+  button on mobile.
+- Reworked thread rows on mobile from centered pills into full-width list rows
+  with the existing accent rail for the active thread, and tightened spacing
+  for the New conversation button and search input.
+
 ## 2026-05-10 — Firebase Hosting default project
 
 - Added `.firebaserc` with default project `ethan-488900` so Firebase CLI picks

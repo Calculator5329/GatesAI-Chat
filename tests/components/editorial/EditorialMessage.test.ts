@@ -42,7 +42,7 @@ function renderMessage(
   imageJobs = new ImageJobStore(),
   handlers: Pick<
     Parameters<typeof EditorialMessage>[0],
-    'onRegenerate' | 'onBranch' | 'onEditAndResend'
+    'onRegenerate' | 'onBranch' | 'onEditAndResend' | 'actionsDisabled'
   > = {},
 ): HTMLDivElement {
   host = document.createElement('div');
@@ -368,6 +368,25 @@ describe('EditorialMessage markdown rendering', () => {
 
     expect(onRegenerate).toHaveBeenCalledWith('m-actions-assistant');
     expect(onBranch).toHaveBeenCalledWith('m-actions-assistant');
+  });
+
+  it('disables mutating message actions while the thread is busy', () => {
+    const onRegenerate = vi.fn();
+    const onBranch = vi.fn();
+    const rendered = renderMessage({
+      id: 'm-actions-disabled',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'Done.',
+    }, 'Assistant', false, undefined, new ImageJobStore(), {
+      actionsDisabled: true,
+      onRegenerate,
+      onBranch,
+    });
+
+    expect((rendered.querySelector('[aria-label="Copy message"]') as HTMLButtonElement).disabled).toBe(false);
+    expect((rendered.querySelector('[aria-label="Regenerate response"]') as HTMLButtonElement).disabled).toBe(true);
+    expect((rendered.querySelector('[aria-label="Branch conversation"]') as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('opens user edit-and-resend and submits the draft text', () => {

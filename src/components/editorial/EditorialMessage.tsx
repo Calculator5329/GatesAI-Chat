@@ -82,6 +82,7 @@ interface MessageProps {
   onRegenerate?: (messageId: string) => void;
   onBranch?: (messageId: string) => void;
   onEditAndResend?: (messageId: string, text: string) => void;
+  actionsDisabled?: boolean;
 }
 
 type CopyState = 'idle' | 'hint' | 'copied' | 'failed';
@@ -117,6 +118,7 @@ export const EditorialMessage = observer(function EditorialMessage({
   onRegenerate,
   onBranch,
   onEditAndResend,
+  actionsDisabled = false,
 }: MessageProps) {
   const ui = useUiStore();
   const execStream = useExecStreamStore();
@@ -231,7 +233,7 @@ export const EditorialMessage = observer(function EditorialMessage({
             type="button"
             title="Regenerate response"
             aria-label="Regenerate response"
-            disabled={streaming || !onRegenerate}
+            disabled={actionsDisabled || streaming || !onRegenerate}
             onClick={() => onRegenerate?.(message.id)}
           >
             <Icons.Refresh />
@@ -242,7 +244,7 @@ export const EditorialMessage = observer(function EditorialMessage({
             type="button"
             title="Edit and resend"
             aria-label="Edit and resend"
-            disabled={streaming || !onEditAndResend}
+            disabled={actionsDisabled || streaming || !onEditAndResend}
             onClick={() => {
               setEditText(message.content);
               setEditing(true);
@@ -255,7 +257,7 @@ export const EditorialMessage = observer(function EditorialMessage({
           type="button"
           title="Branch conversation"
           aria-label="Branch conversation"
-          disabled={streaming || !onBranch}
+          disabled={actionsDisabled || streaming || !onBranch}
           onClick={() => onBranch?.(message.id)}
         >
           <Icons.Branch />
@@ -311,6 +313,7 @@ export const EditorialMessage = observer(function EditorialMessage({
         {editing && isUser ? (
           <div className="message-edit-panel" onClick={event => event.stopPropagation()}>
             <textarea
+              aria-label="Edited message"
               value={editText}
               autoFocus
               onChange={event => setEditText(event.target.value)}

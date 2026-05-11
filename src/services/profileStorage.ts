@@ -11,7 +11,7 @@ export interface UserProfileSnapshot {
   defaultSystemPrompt: string;
 }
 
-const slot = jsonSlot<UserProfileSnapshot>('gatesai.profile.v1', raw => {
+export const profilePersistence = jsonSlot<UserProfileSnapshot>('gatesai.profile.v1', raw => {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<UserProfileSnapshot>;
   return {
     bio: typeof r.bio === 'string' ? r.bio : '',
@@ -19,5 +19,5 @@ const slot = jsonSlot<UserProfileSnapshot>('gatesai.profile.v1', raw => {
   };
 });
 
-export const loadProfile = slot.load;
-export const saveProfile = slot.save;
+export const loadProfile = profilePersistence.load;
+export const saveProfile = profilePersistence.save;

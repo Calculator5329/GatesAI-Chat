@@ -614,6 +614,7 @@ export class ChatStore {
   branchThreadFromMessage(threadId: string, messageId: string): string | null {
     const source = this.findThread(threadId);
     if (!source || source.deletedAt != null) return null;
+    if (this.isThreadStreaming(source.id)) return null;
     const index = source.messages.findIndex(message => message.id === messageId);
     if (index < 0) return null;
     return this.createBranchThread(source, index);
@@ -629,6 +630,7 @@ export class ChatStore {
     if (precedingUserIndex < 0) return null;
 
     const isLatestAssistant = index === thread.messages.length - 1;
+    if (this.isThreadStreaming(thread.id) && !isLatestAssistant) return null;
     if (isLatestAssistant) {
       if (this.isThreadStreaming(thread.id)) this.interruptThread(thread.id);
       thread.messages.splice(index, 1);
@@ -646,6 +648,7 @@ export class ChatStore {
   editAndResendFromMessage(threadId: string, messageId: string, text: string): string | null {
     const source = this.findThread(threadId);
     if (!source || source.deletedAt != null) return null;
+    if (this.isThreadStreaming(source.id)) return null;
     const index = source.messages.findIndex(message => message.id === messageId);
     const original = source.messages[index];
     const trimmed = text.trim();

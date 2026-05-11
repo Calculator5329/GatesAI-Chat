@@ -1,6 +1,7 @@
 import type { ChatSnapshot, Message, ToolResult, Thread } from '../core/types';
 import type { ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID, MODELS } from '../core/models';
+import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';
 
 const STORAGE_KEY = 'gatesai.state.v1';
 const EMERGENCY_TOOL_RESULT_CHARS = 600;
@@ -9,19 +10,61 @@ const LARGE_TOOL_ARGUMENT_KEYS = new Set(['body', 'content', 'stdin']);
 const SUPPORTED_MODEL_IDS = new Set(MODELS.map(model => model.id));
 const DYNAMIC_MODEL_PREFIXES = ['or-live-', 'ollama-'];
 
+export type ChatSnapshotPersistenceProvider = PersistenceProvider<ChatSnapshot | null>;
+
+export function createLocalChatSnapshotPersistenceProvider(
+  storage: KeyValuePersistence = browserLocalStorage(),
+): ChatSnapshotPersistenceProvider {
+  return {
+    load(): ChatSnapshot | null {
+      try {
+        const raw = storage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as ChatSnapshot;
+        if (!parsed || !Array.isArray(parsed.threads)) return null;
+        return migrate(parsed);
+      } catch {
+        return null;
+      }
+    },
+    save(snapshot: ChatSnapshot | null): void {
+      if (!snapshot) {
+        this.clear();
+        return;
+      }
+      const cleaned = cleanSnapshot(snapshot);
+      try {
+        storage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      } catch {
+        try {
+          storage.setItem(STORAGE_KEY, JSON.stringify(compactSnapshotForEmergencySave(cleaned)));
+          console.warn('[persistence] saved compacted chat snapshot after localStorage rejected full snapshot');
+        } catch (err) {
+          console.error('[persistence] failed to save chat snapshot', err);
+        }
+      }
+    },
+    clear(): void {
+      try {
+        storage.removeItem(STORAGE_KEY);
+      } catch {
+        // ignore
+      }
+    },
+  };
+}
+
+export const chatSnapshotPersistence = createLocalChatSnapshotPersistenceProvider();
+
 export function loadSnapshot(): ChatSnapshot | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as ChatSnapshot;
-    if (!parsed || !Array.isArray(parsed.threads)) return null;
-    return migrate(parsed);
-  } catch {
-    return null;
-  }
+  return chatSnapshotPersistence.load();
 }
 
 export function saveSnapshot(snapshot: ChatSnapshot): void {
+  chatSnapshotPersistence.save(snapshot);
+}
+
+export function saveSnapshotToLocalStorage(snapshot: ChatSnapshot): void {
   const cleaned = cleanSnapshot(snapshot);
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));

@@ -1,5 +1,6 @@
 import type { ProviderConfigs } from '../core/llm';
 import { jsonSlot } from './storage/jsonSlot';
+import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';
 
 /**
  * Owns the provider-credentials slot. The parser is the migration boundary
@@ -11,21 +12,27 @@ import { jsonSlot } from './storage/jsonSlot';
  */
 const ROUTING_KEY = 'gatesai.routing.v1';
 
-const slot = jsonSlot<ProviderConfigs>('gatesai.providers.v1', raw => {
-  try {
-    localStorage.removeItem(ROUTING_KEY);
-  } catch {
-    // ignore quota / privacy-mode failures
-  }
-  if (!raw || typeof raw !== 'object') return {};
-  const next: ProviderConfigs = {};
-  const openrouterKey = extractOpenRouterKey(raw);
-  if (openrouterKey) next.openrouter = { apiKey: openrouterKey };
-  return next;
-});
+export function createProviderConfigsPersistence(
+  storage: KeyValuePersistence = browserLocalStorage(),
+): PersistenceProvider<ProviderConfigs> {
+  return jsonSlot<ProviderConfigs>('gatesai.providers.v1', raw => {
+    try {
+      storage.removeItem(ROUTING_KEY);
+    } catch {
+      // ignore quota / privacy-mode failures
+    }
+    if (!raw || typeof raw !== 'object') return {};
+    const next: ProviderConfigs = {};
+    const openrouterKey = extractOpenRouterKey(raw);
+    if (openrouterKey) next.openrouter = { apiKey: openrouterKey };
+    return next;
+  }, storage);
+}
 
-export const loadProviderConfigs = slot.load;
-export const saveProviderConfigs = slot.save;
+export const providerConfigsPersistence = createProviderConfigsPersistence();
+
+export const loadProviderConfigs = providerConfigsPersistence.load;
+export const saveProviderConfigs = providerConfigsPersistence.save;
 
 function extractOpenRouterKey(parsed: unknown): string | undefined {
   if (!parsed || typeof parsed !== 'object') return undefined;

@@ -152,7 +152,11 @@ interface LlmProvider {
 | `gatesai.imagejobs.v1`           | completed-job history     | `ImageJobStore`    |
 
 Chat, provider, profile, notes, and UI preference snapshots are saved by their
-owning stores. Provider keys are deliberately stored under a separate key so
+owning stores through the `PersistenceProvider<T>` boundary in
+`services/storage/persistenceProvider.ts`. The shipped providers are
+localStorage-backed JSON slots, but the storage dependency is injectable so a
+future Firestore or IndexedDB implementation can preserve the existing store
+surface. Provider keys are deliberately stored under a separate key so
 chat exports never include credentials. In the foundation build,
 `gatesai.providers.v1` persists only the OpenRouter key; older direct-provider
 entries are ignored on load, while older OpenRouter key field names normalize

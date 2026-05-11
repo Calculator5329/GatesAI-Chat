@@ -1,4 +1,5 @@
 import { DEFAULT_OLLAMA_BASE_URL } from '../llm/ollama';
+import { createJsonPersistenceProvider } from '../storage/persistenceProvider';
 
 export const DEFAULT_COMFY_BASE_URL = 'http://127.0.0.1:8188';
 
@@ -27,24 +28,21 @@ export const DEFAULT_LOCAL_RUNTIME_CONFIG: LocalRuntimePersistedConfig = {
   autoDetectAt: undefined,
 };
 
-export function loadLocalRuntimeConfig(): LocalRuntimePersistedConfig {
-  const defaults = structuredCloneSafe(DEFAULT_LOCAL_RUNTIME_CONFIG);
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return defaults;
-    const parsed = JSON.parse(raw) as Partial<LocalRuntimePersistedConfig>;
+export const localRuntimePersistence = createJsonPersistenceProvider<LocalRuntimePersistedConfig>({
+  key: KEY,
+  parse: raw => {
+    const defaults = structuredCloneSafe(DEFAULT_LOCAL_RUNTIME_CONFIG);
+    const parsed = raw && typeof raw === 'object' ? raw as Partial<LocalRuntimePersistedConfig> : {};
     return mergeConfig(defaults, parsed);
-  } catch {
-    return defaults;
-  }
+  },
+});
+
+export function loadLocalRuntimeConfig(): LocalRuntimePersistedConfig {
+  return localRuntimePersistence.load();
 }
 
 export function saveLocalRuntimeConfig(config: LocalRuntimePersistedConfig): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(config));
-  } catch {
-    // ignore quota / privacy-mode failures
-  }
+  localRuntimePersistence.save(config);
 }
 
 function mergeConfig(base: LocalRuntimePersistedConfig, parsed: Partial<LocalRuntimePersistedConfig>): LocalRuntimePersistedConfig {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import { Button, Card, SettingsRow } from '../../ui';
-import { useRootStore } from '../../../stores/context';
+import { useRootStore, useRouterStore } from '../../../stores/context';
 import { isWebLite } from '../../../services/system/runtime';
 import {
   clearLocalDataExceptCredentials,
@@ -24,12 +24,20 @@ const SHORTCUTS: Array<[string, string]> = [
 ];
 
 export const SettingsSection = observer(function SettingsSection() {
+  const router = useRouterStore();
   return (
-    <>
+    <div className="settings-page">
       <h1 style={tokens.h1}>Settings</h1>
       <div style={tokens.kicker}>app preferences · shortcuts · danger zone</div>
 
-      <Card style={{ padding: '14px 18px', marginBottom: 20 }}>
+      <div className="settings-quick-actions">
+        <button type="button" onClick={() => router.goMenu('models')}>API keys</button>
+        <button type="button" onClick={() => router.goMenu('local')}>Local runtimes</button>
+        <button type="button" onClick={() => router.goMenu('workspace')}>Workspace</button>
+        <button type="button" onClick={() => router.goMenu('gallery')}>Gallery</button>
+      </div>
+
+      <Card className="settings-intro-card" style={{ padding: '14px 18px', marginBottom: 20 }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
           Cloud model keys, catalog controls, and OpenRouter image generation are under{' '}
           <strong style={{ color: 'var(--text)' }}>Models</strong>. Installed runtimes live under{' '}
@@ -40,19 +48,20 @@ export const SettingsSection = observer(function SettingsSection() {
       <WebLiteBrowserData />
       <ShortcutsList />
       <DangerZone />
-    </>
+    </div>
   );
 });
 
 function ShortcutsList() {
   return (
-    <div style={tokens.section}>
-      <div style={tokens.sectionTitle}>Shortcuts</div>
+    <div className="settings-section settings-shortcuts" style={tokens.section}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Shortcuts</div>
       {SHORTCUTS.map(([label, keys], i) => {
         const last = i === SHORTCUTS.length - 1;
         return (
           <div
             key={label}
+            className="settings-shortcut-row"
             style={{
               display: 'grid', gridTemplateColumns: '220px 1fr',
               gap: 24, padding: '12px 0',
@@ -245,9 +254,9 @@ const DangerZone = observer(function DangerZone() {
   ];
 
   return (
-    <div style={tokens.section}>
-      <div style={tokens.sectionTitle}>Danger zone</div>
-      <div style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 12, lineHeight: 1.55 }}>
+    <div className="settings-section settings-danger-zone" style={tokens.section}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Danger zone</div>
+      <div className="settings-muted-copy" style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 12, lineHeight: 1.55 }}>
         App resets only affect local GatesAI data unless the row explicitly names a
         <code style={{ ...tokens.mono, margin: '0 4px' }}>/workspace</code>
         folder.
@@ -260,11 +269,11 @@ const DangerZone = observer(function DangerZone() {
       {actions.map((action, index) => (
         <SettingsRow key={action.id} label={action.label} last={index === actions.length - 1}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-            <div style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
+            <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
               {action.detail}
             </div>
             {confirming === action.id ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div className="settings-action-controls" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{action.confirm}</span>
                 <Button
                   variant="danger"
@@ -310,15 +319,15 @@ function WebLiteBrowserData() {
   };
 
   return (
-    <div style={{ ...tokens.section, marginBottom: 28 }}>
-      <div style={tokens.sectionTitle}>Web Lite browser data</div>
-      <Card style={{ padding: '14px 18px' }}>
+    <div className="settings-section settings-browser-data" style={{ ...tokens.section, marginBottom: 28 }}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Web Lite browser data</div>
+      <Card className="settings-browser-card" style={{ padding: '14px 18px' }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
           Conversations, memories, notes, preferences, model catalog cache, and image history stay in this browser's
           <code style={{ ...tokens.mono, margin: '0 4px' }}>localStorage</code>.
           Firebase Hosting only serves the static app; it does not receive this local app data.
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, marginTop: 12, fontSize: 12 }}>
+        <div className="settings-data-summary" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, marginTop: 12, fontSize: 12 }}>
           <div style={{ color: 'var(--text-dim)' }}>Tracked local data</div>
           <div style={{ ...tokens.mono, color: 'var(--text-faint)' }}>{formatBytes(total)}</div>
           <div style={{ color: 'var(--text-dim)' }}>Provider key slot</div>
@@ -326,7 +335,7 @@ function WebLiteBrowserData() {
             {keySlot?.present ? 'present' : 'empty'}
           </div>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+        <div className="settings-data-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
           {usage.filter(slot => slot.present).map(slot => (
             <span
               key={slot.key}
@@ -350,7 +359,7 @@ function WebLiteBrowserData() {
             Browser cache cleared. Refresh to boot into a completely clean local state.
           </div>
         )}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, marginTop: 14 }}>
+        <div className="settings-action-controls" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, marginTop: 14 }}>
           {confirming ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>

@@ -25,6 +25,7 @@ export const EditorialChat = observer(function EditorialChat() {
   const messages = useMemo(() => activeThread?.messages ?? [], [activeThread?.messages]);
   const streamingId = chat.streamingMessageId;
   const messageCount = messages.length;
+  const activeThreadStreaming = activeThreadId ? chat.isThreadStreaming(activeThreadId) : false;
 
   const scheduleScrollToBottom = useCallback(() => {
     if (scrollRafRef.current !== null) return;
@@ -139,6 +140,7 @@ export const EditorialChat = observer(function EditorialChat() {
                 message={m}
                 modelName={modelId ? (registry.findById(modelId)?.name ?? modelId) : undefined}
                 streaming={m.id === chat.streamingMessageId}
+                actionsDisabled={activeThreadStreaming}
                 onRegenerate={(messageId) => {
                   if (!activeThreadId) return;
                   goResultThread(chat.regenerateFromMessage(activeThreadId, messageId));

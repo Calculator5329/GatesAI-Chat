@@ -11,6 +11,7 @@ import type {
   UpscaleFactor,
 } from './image/types';
 import { isImageBackendId, VALID_UPSCALE_FACTORS } from './image/types';
+import { createJsonPersistenceProvider } from './storage/persistenceProvider';
 
 export type { ImageBackendId, ComfyQualityPreset, UpscaleFactor };
 
@@ -50,26 +51,23 @@ export const DEFAULT_IMAGE_GEN_CONFIG: ImageGenConfig = {
 
 const KEY = 'gatesai.imagegen.v1';
 
-export function loadImageGenConfig(): ImageGenConfig {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return { ...DEFAULT_IMAGE_GEN_CONFIG };
-    const parsed = JSON.parse(raw) as Partial<ImageGenConfig>;
+export const imageGenPersistence = createJsonPersistenceProvider<ImageGenConfig>({
+  key: KEY,
+  parse: raw => {
+    const parsed = raw && typeof raw === 'object' ? raw as Partial<ImageGenConfig> : {};
     return normalizeImageGenConfig({
       ...DEFAULT_IMAGE_GEN_CONFIG,
-      ...(parsed && typeof parsed === 'object' ? parsed : {}),
+      ...parsed,
     });
-  } catch {
-    return { ...DEFAULT_IMAGE_GEN_CONFIG };
-  }
+  },
+});
+
+export function loadImageGenConfig(): ImageGenConfig {
+  return imageGenPersistence.load();
 }
 
 export function saveImageGenConfig(config: ImageGenConfig): void {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(config));
-  } catch {
-    // ignore quota / privacy-mode failures
-  }
+  imageGenPersistence.save(config);
 }
 
 function normalizeImageGenConfig(config: ImageGenConfig): ImageGenConfig {

@@ -71,7 +71,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 ## Architecture
 
-- [ ] Promote `services/persistence.ts` to a `PersistenceProvider` interface
+- [x] Promote `services/persistence.ts` to a `PersistenceProvider` interface
       so we can swap localStorage ↔ Firestore without touching `ChatStore`
 - [ ] Per-thread `MessageStore` once histories get big (>500 messages)
 - [ ] IndexedDB fallback for very large local-only setups

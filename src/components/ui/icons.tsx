@@ -36,5 +36,7 @@ export const Icons = {
   Refresh:   () => <Ico d={<><path d="M13 5.5A5 5 0 1 0 14 8" /><path d="M13 2.5v3h-3" /></>} />,
   Branch:    () => <Ico d={<><circle cx="4" cy="4" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="4" cy="12" r="1.5" /><path d="M4 5.5V12M5.4 4.6c3.2.7 5.2 2.7 6 5.9" /></>} />,
   Pin:       () => <Ico d={<><path d="M5.5 2.8h5l-.8 4 2.1 2.1v1H8.7L8 14" /><path d="M7.3 10.2L3 14.5" /></>} />,
+  Share:     () => <Ico d={<><circle cx="5" cy="8" r="1.7" /><circle cx="12" cy="4" r="1.7" /><circle cx="12" cy="12" r="1.7" /><path d="M6.5 7.1l4-2.2M6.5 8.9l4 2.2" /></>} />,
+  More:      () => <Ico d={<><circle cx="8" cy="3.8" r=".7" fill="currentColor" stroke="none" /><circle cx="8" cy="8" r=".7" fill="currentColor" stroke="none" /><circle cx="8" cy="12.2" r=".7" fill="currentColor" stroke="none" /></>} />,
   Close:     () => <Ico d="M4 4l8 8M12 4l-8 8" />,
 };

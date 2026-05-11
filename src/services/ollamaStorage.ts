@@ -15,11 +15,11 @@ export const OLLAMA_DEFAULTS: OllamaPersistedConfig = {
   lastRefreshAt: null,
 };
 
-const slot = jsonSlot<OllamaPersistedConfig>('gatesai.ollama.v1', raw => {
+export const ollamaPersistence = jsonSlot<OllamaPersistedConfig>('gatesai.ollama.v1', raw => {
   const r = raw && typeof raw === 'object' ? raw : {};
   return { ...OLLAMA_DEFAULTS, ...r };
 });
 
-export const loadOllamaConfig = slot.load;
-export const saveOllamaConfig = slot.save;
-export const clearOllamaConfig = slot.clear;
+export const loadOllamaConfig = ollamaPersistence.load;
+export const saveOllamaConfig = ollamaPersistence.save;
+export const clearOllamaConfig = ollamaPersistence.clear;

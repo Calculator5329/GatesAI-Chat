@@ -4,6 +4,7 @@
  */
 
 import type { CodeSizeKey, CodeStyleKey, MarkdownDensityKey, MarkdownStyleKey, ToolCallStyleKey } from '../core/types';
+import { createJsonPersistenceProvider } from './storage/persistenceProvider';
 
 export interface UiPrefsSnapshot {
   toolCallStyle: ToolCallStyleKey;
@@ -28,10 +29,15 @@ const DEFAULT: UiPrefsSnapshot = {
   animationsEnabled: true,
 };
 
+export const uiPrefsPersistence = createJsonPersistenceProvider<UiPrefsSnapshot>({
+  key: KEY,
+  parse: () => DEFAULT,
+});
+
 export function loadUiPrefs(): UiPrefsSnapshot {
-  return DEFAULT;
+  return uiPrefsPersistence.load();
 }
 
 export function saveUiPrefs(snap: UiPrefsSnapshot): void {
-  try { localStorage.setItem(KEY, JSON.stringify({ ...snap, ...DEFAULT })); } catch { /* quota / privacy */ }
+  uiPrefsPersistence.save({ ...snap, ...DEFAULT });
 }

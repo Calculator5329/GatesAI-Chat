@@ -71,6 +71,9 @@ src/
     openrouterCache.ts            # gatesai.openrouter.catalog.v1 cache
     imageGenStorage.ts            # gatesai.imagegen.v1 (ComfyUI quality + workflow override)
     imageJobsStorage.ts           # gatesai.imagejobs.v1 (completed-job history; in-flight discarded)
+    storage/
+      persistenceProvider.ts      # injectable persistence ports + localStorage adapter
+      jsonSlot.ts                 # compatibility wrapper for JSON-backed slots
     router.ts                     # tiny hash-router parser/writer
     llm/
       router.ts                   # LlmRouter — picks a provider per Model
@@ -252,7 +255,11 @@ closest current section.
 | `gatesai.imagejobs.v1`           | completed-job history    | `ImageJobStore`    |
 
 Chat, provider, profile, notes, and UI preference snapshots are saved from
-their owning stores. OpenRouter cache writes happen on explicit
+their owning stores through small `PersistenceProvider<T>` ports in
+`services/storage/persistenceProvider.ts`. The current production adapters
+still use localStorage, but the storage backend is injectable at the slot
+boundary so future IndexedDB or Firestore repositories can replace local slots
+without changing store APIs. OpenRouter cache writes happen on explicit
 `refresh()`/`clearCache()` instead of on every observable mutation. The
 Ollama snapshot persists on every config mutation so a fresh boot has
 a populated picker before the first `/api/tags` probe completes. Provider

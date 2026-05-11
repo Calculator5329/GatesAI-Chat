@@ -9,7 +9,7 @@ interface PersistedShape {
   active?: ImageJob | null;
 }
 
-const slot = jsonSlot<PersistedShape>(IMAGE_JOBS_KEY, raw => {
+export const imageJobsPersistence = jsonSlot<PersistedShape>(IMAGE_JOBS_KEY, raw => {
   if (!raw || typeof raw !== 'object') return { history: [] };
   const shape = raw as { history?: unknown; queue?: unknown; active?: unknown };
   return {
@@ -20,23 +20,23 @@ const slot = jsonSlot<PersistedShape>(IMAGE_JOBS_KEY, raw => {
 });
 
 export function loadImageJobsHistory(): CompletedJob[] {
-  return slot.load().history;
+  return imageJobsPersistence.load().history;
 }
 
 export function loadImageJobsSnapshot(): PersistedShape {
-  return slot.load();
+  return imageJobsPersistence.load();
 }
 
 export function saveImageJobsHistory(history: CompletedJob[]): void {
-  slot.save({ history });
+  imageJobsPersistence.save({ history });
 }
 
 export function saveImageJobsSnapshot(snapshot: PersistedShape): void {
-  slot.save({
+  imageJobsPersistence.save({
     history: snapshot.history,
     queue: snapshot.queue ?? [],
     active: snapshot.active ?? null,
   });
 }
 
-export const clearImageJobsHistory = slot.clear;
+export const clearImageJobsHistory = imageJobsPersistence.clear;

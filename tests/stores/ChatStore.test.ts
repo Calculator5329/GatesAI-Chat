@@ -222,6 +222,22 @@ describe('ChatStore', () => {
     expect(chat.activeThreadId).toBe(branchId);
   });
 
+  it('does not branch or edit-and-resend while the source thread is streaming', () => {
+    const { chat } = setup();
+    const id = chat.createThread();
+    runInAction(() => {
+      chat.activeThread!.messages.push(
+        { id: 'u1', role: 'user', content: 'one', createdAt: 1 },
+        { id: 'a1', role: 'assistant', content: 'streaming', createdAt: 2, model: 'or-gemini-3-flash' },
+      );
+      (chat as unknown as { streamingByThread: Record<string, string> }).streamingByThread[id] = 'a1';
+    });
+
+    expect(chat.branchThreadFromMessage(id, 'u1')).toBeNull();
+    expect(chat.editAndResendFromMessage(id, 'u1', 'edited')).toBeNull();
+    expect(chat.threads).toHaveLength(2);
+  });
+
   it('regenerates the latest assistant response in place', async () => {
     const { chat, mock } = setup([
       { type: 'text', delta: 'replacement' },
@@ -268,6 +284,23 @@ describe('ChatStore', () => {
     expect(branch.title).toBe('History (branch)');
     expect(branch.messages.map(m => m.content)).toEqual(['first', 'branched answer']);
     expect(mock.calls).toHaveLength(1);
+  });
+
+  it('does not regenerate historical messages while the thread is streaming', () => {
+    const { chat } = setup();
+    const id = chat.createThread();
+    runInAction(() => {
+      chat.activeThread!.messages.push(
+        { id: 'u1', role: 'user', content: 'first', createdAt: 1 },
+        { id: 'a1', role: 'assistant', content: 'old first', createdAt: 2, model: 'or-gemini-3-flash' },
+        { id: 'u2', role: 'user', content: 'second', createdAt: 3 },
+        { id: 'a2', role: 'assistant', content: 'streaming second', createdAt: 4, model: 'or-gemini-3-flash' },
+      );
+      (chat as unknown as { streamingByThread: Record<string, string> }).streamingByThread[id] = 'a2';
+    });
+
+    expect(chat.regenerateFromMessage(id, 'a1')).toBeNull();
+    expect(chat.threads).toHaveLength(2);
   });
 
   it('edit-and-resend creates a branch before the edited user message and preserves attachments', async () => {
