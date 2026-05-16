@@ -49,6 +49,12 @@ function buildStore(section: MenuSectionKey = 'settings'): { store: RootStore; r
     openrouter,
     ui,
     imageGen,
+    search: {
+      braveReady: false,
+      braveApiKey: '',
+      setBraveKey: () => {},
+      clearBraveKey: () => {},
+    },
     chat,
     notes: { notes: [], clear: () => {} },
     imageJobs: { history: [], clearHistory: () => {} },

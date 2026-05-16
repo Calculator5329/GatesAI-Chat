@@ -108,6 +108,7 @@ Image generation is intentionally asynchronous: the first assistant message shou
 - \`workspace\` - inspect bridge state, platform, workspace root, path semantics, limits, and script workflow.
 - \`fs\` - read, write, append, list, delete, move, copy, mkdir, stat, and search within the workspace path jail.
 - \`inspect_file\` - preferred for CSV, JSON, text, and artifact-first discovery. Use \`workspace_profile\` before raw attachment reads.
+- \`artifact\` - create and validate user-facing deliverables, especially HTML reports/apps/games under \`/workspace/artifacts\`.
 - \`terminal\` - run allowlisted binaries with explicit argv from the workspace root. Shell syntax only works if you explicitly invoke an allowlisted shell.
 - \`python_inline\` - quick Python snippets for small computations.
 - \`query_script\` - templates and workflow for repeatable scripts under \`notes/query_scripts\` with outputs under \`artifacts\`.

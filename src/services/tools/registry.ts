@@ -4,6 +4,7 @@ import { memoryTool } from './memory';
 import { timeTool } from './time';
 import { notesTool } from './notes';
 import { threadTool } from './thread';
+import { chatHistoryTool } from './chatHistory';
 import { fsTool } from './fs';
 import { terminalTool } from './terminal';
 import { pythonInlineTool } from './pythonInline';
@@ -14,6 +15,8 @@ import { workspaceTool } from './workspace';
 import { inspectFileTool } from './inspectFile';
 import { imageGenerateTool } from './imageGenerate';
 import { describeImageTool } from './describeImage';
+import { webSearchTool } from './webSearch';
+import { artifactTool } from './artifact';
 
 export interface ToolSelectionContext {
   userText: string;
@@ -23,6 +26,7 @@ export interface ToolSelectionContext {
    * never see image generation tools unless the backend can actually run them.
    */
   imageGenAvailable?: boolean;
+  webSearchAvailable?: boolean;
 }
 
 export interface ToolValidationResult {
@@ -67,8 +71,8 @@ export class ToolRegistry {
 
   toolDefsForTurn(ctx: ToolSelectionContext): ToolDef[] {
     const text = ctx.userText.toLowerCase();
-    const selected = new Set<string>(['memory', 'thread']);
-    const bridgeRelevant = ctx.bridgeOnline || /\b(file|files|attachment|attached|csv|json|data|dataset|text|txt|code|script|command|terminal|shell|git|build|test|workspace|artifact|artifacts|folder|directory|read|write)\b/.test(text);
+    const selected = new Set<string>(['memory', 'thread', 'chat_history']);
+    const bridgeRelevant = ctx.bridgeOnline || /\b(file|files|attachment|attached|csv|json|data|dataset|text|txt|code|script|command|terminal|shell|git|build|test|workspace|artifact|artifacts|folder|directory|read|write|html|htm|webpage|website|page|game|canvas|app|demo|prototype|ui)\b/.test(text);
     const notesRelevant = /\b(note|notes|plan|plans|document|documents|doc|docs|memory|remember|search|list|read|write)\b/.test(text);
     const imageGenRelevant = /\b(draw|drawing|paint|render|generate|make|create|design|illustrate|picture|image|photo|artwork|poster|logo|illustration|visual|scene|portrait|landscape|background|wallpaper)\b.*\b(image|picture|photo|art|artwork|drawing|poster|logo|illustration|scene|portrait|landscape|background|wallpaper)\b|\b(image[-_ ]?gen|imagegen|flux|stable ?diffusion|dall[-_ ]?e|midjourney|background|wallpaper)\b/i.test(text);
     const imageVisionRelevant = /\b(describe|caption|inspect|analy[sz]e|what(?:'s| is)|read)\b.*\b(image|picture|photo|screenshot|attachment|visual)\b|\b(image|picture|photo|screenshot)\b.*\b(describe|caption|inspect|analy[sz]e|read)\b/i.test(text);
@@ -77,6 +81,7 @@ export class ToolRegistry {
       selected.add('workspace');
       selected.add('fs');
       selected.add('inspect_file');
+      selected.add('artifact');
       selected.add('terminal');
       selected.add('python_inline');
       selected.add('sqlite_query');
@@ -84,6 +89,7 @@ export class ToolRegistry {
       selected.add('git');
     }
     if (notesRelevant) selected.add('notes');
+    if (ctx.webSearchAvailable) selected.add('web_search');
     if (ctx.imageGenAvailable && imageGenRelevant) selected.add('image_generate');
     if (imageVisionRelevant) {
       selected.add('workspace');
@@ -108,7 +114,7 @@ export class ToolRegistry {
       return validationFailure(call.name, {
         errorCode: 'malformed_arguments',
         summary: `Tool arguments for ${call.name} were not valid JSON.`,
-        fix: 'Retry the tool call with a complete JSON object matching the tool schema. Do not send placeholders or partial arguments.',
+        fix: 'Retry the tool call with a complete JSON object matching the tool schema. Do not send placeholders or partial arguments. For finished HTML games/apps, prefer artifact.create_html_artifact with path and content.',
         retryable: true,
       });
     }
@@ -359,9 +365,11 @@ toolRegistry.register(memoryTool);
 toolRegistry.register(timeTool);
 toolRegistry.register(notesTool);
 toolRegistry.register(threadTool);
+toolRegistry.register(chatHistoryTool);
 toolRegistry.register(workspaceTool);
 toolRegistry.register(fsTool);
 toolRegistry.register(inspectFileTool);
+toolRegistry.register(artifactTool);
 toolRegistry.register(terminalTool);
 toolRegistry.register(pythonInlineTool);
 toolRegistry.register(sqliteQueryTool);
@@ -369,3 +377,4 @@ toolRegistry.register(queryScriptTool);
 toolRegistry.register(gitTool);
 toolRegistry.register(imageGenerateTool);
 toolRegistry.register(describeImageTool);
+toolRegistry.register(webSearchTool);

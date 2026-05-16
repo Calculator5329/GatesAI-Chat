@@ -48,7 +48,7 @@ function WhisperResult({ result }: { result: ToolResult }) {
     <div
       title={`${result.toolName}: ${flat}`}
       style={{
-        ...mono(11), color: failed ? '#ff9a9a' : 'var(--text-faint)',
+        ...mono(11), color: failed ? '#ff9a9a' : 'var(--accent)',
         letterSpacing: '0.02em',
         padding: '4px 0',
         whiteSpace: 'nowrap',
@@ -77,7 +77,7 @@ function DotResult({ result }: { result: ToolResult }) {
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '4px 0',
-        ...mono(11), color: 'var(--text-faint)',
+        ...mono(11), color: failed ? '#ff9a9a' : 'var(--accent)',
       }}
     >
       <span style={{
@@ -102,7 +102,7 @@ function AsideResult({ result }: { result: ToolResult }) {
     <div style={{
       fontFamily: '"Source Serif 4", Iowan Old Style, Georgia, serif',
       fontSize: 13, lineHeight: 1.5,
-      color: failed ? '#ffaaaa' : 'var(--text-faint)',
+      color: failed ? '#ffaaaa' : 'var(--accent)',
       fontStyle: 'italic',
       padding: '4px 0',
       whiteSpace: 'pre-wrap',

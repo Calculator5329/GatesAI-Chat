@@ -32,3 +32,7 @@ src-tauri/binaries/*-linux
 
 # Local release-staging output (zipped installer + DIRECTIONS bundle)
 release/
+
+# Local generated previews and agent scratch worktrees
+preview-output/
+.claude/worktrees/

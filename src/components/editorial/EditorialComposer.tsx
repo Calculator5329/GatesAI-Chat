@@ -8,7 +8,6 @@ import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
 import { ModelPopover } from './ModelPopover';
 import { WorkspaceImage } from './WorkspaceImage';
-import type { Model } from '../../core/types';
 
 /** Browsers without `field-sizing: content` need the JS height-recalc fallback. */
 const SUPPORTS_FIELD_SIZING = typeof CSS !== 'undefined'
@@ -57,7 +56,7 @@ const ROW_STYLE: CSSProperties = {
 
 const META_ROW_STYLE: CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 8, marginTop: 7,
-  fontSize: 11.5, color: 'var(--text-faint)',
+  fontSize: 11.5, color: 'var(--accent)',
   position: 'relative',
   minHeight: 18,
   minWidth: 0,
@@ -65,6 +64,7 @@ const META_ROW_STYLE: CSSProperties = {
 
 const MODEL_LABEL_STYLE: CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 6,
+  color: 'var(--accent)',
   cursor: 'pointer', padding: '2px 6px', borderRadius: 4,
   maxWidth: 220,
   minWidth: 0,
@@ -79,7 +79,7 @@ const LOCAL_CONTEXT_SELECT_STYLE: CSSProperties = {
   background: 'var(--panel)',
   border: '1px solid var(--border)',
   borderRadius: 5,
-  color: 'var(--text-faint)',
+  color: 'var(--accent)',
   fontFamily: '"Geist Mono", monospace',
   fontSize: 10.5,
   height: 22,
@@ -110,17 +110,23 @@ function AttachButton({
   onClick, disabled, title,
 }: { onClick: () => void; disabled: boolean; title: string }) {
   return (
-    <div
+    <button
+      type="button"
       className="composer-attach-btn"
       onClick={onClick}
       title={title}
+      aria-label="Attach file"
+      disabled={disabled}
       data-disabled={disabled || undefined}
       style={{
         ...ATTACH_BTN_STYLE,
+        border: 'none',
+        background: 'transparent',
+        padding: 0,
         opacity: disabled ? 0.35 : 0.85,
         cursor: disabled ? 'not-allowed' : 'pointer',
       }}
-    ><Icons.Paperclip /></div>
+    ><Icons.Paperclip /></button>
   );
 }
 
@@ -383,12 +389,18 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               },
             })}
           />
-          <div
+          <button
+            type="button"
             className="composer-send-control"
             onClick={streaming && !hasText ? onStop : onSend}
             title={sendTitle}
+            aria-label={sendTitle}
+            disabled={!streaming && !canSend}
             style={{
               alignSelf: 'center',
+              border: 'none',
+              background: 'transparent',
+              padding: 0,
               cursor: (streaming || canSend) ? 'pointer' : 'default',
               opacity: (streaming || canSend) ? 1 : 0.45,
             }}
@@ -396,7 +408,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             {streaming && !hasText
               ? <StopButton />
               : <SendButton />}
-          </div>
+          </button>
         </div>
 <div className="editorial-composer__meta" style={META_ROW_STYLE}>
           <div style={{ position: 'relative' }}>
@@ -419,7 +431,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               />
             )}
           </div>
-          <span style={{ color: 'var(--text-faint)', opacity: 0.5, flex: 'none' }}>·</span>
+          <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
           {activeThread && currentModel?.providerId === 'ollama' && (
             <>
               <select
@@ -433,7 +445,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                 <option value="bare">bare prompt</option>
                 <option value="micro">micro tools</option>
               </select>
-              <span style={{ color: 'var(--text-faint)', opacity: 0.5, flex: 'none' }}>·</span>
+              <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
             </>
           )}
           <ContextMeter />
@@ -441,7 +453,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             marginLeft: 'auto',
             flex: 'none',
             fontFamily: '"Geist Mono", monospace',
-            color: streaming ? 'var(--accent)' : 'var(--text-faint)',
+            color: 'var(--accent)',
             opacity: streaming ? 0.85 : 0,
             transition: 'opacity 160ms ease',
             letterSpacing: '0.06em',
@@ -454,127 +466,34 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   );
 });
 
-/**
- * Live context-window usage for the active thread, including the unsent draft.
- * Replaces the static "Enter send · Shift+Enter newline" hint - the meter teaches the same
- * keyboard idiom implicitly (you'll learn Enter sends because the bar grows
- * when you type and resets when you send), while surfacing genuinely useful
- * info: how close you are to the model's context limit.
- */
+/** Per-thread spend indicator kept quiet unless there is spend to show. */
 const ContextMeter = observer(function ContextMeter() {
   const chat = useChatStore();
-  const ui = useUiStore();
   const imageJobs = useImageJobStore();
-  const registry = useModelRegistry();
-  const localRuntime = useLocalRuntimeStore();
-  const usage = chat.tokenUsage(ui.draft);
   const llmSpend = threadLlmSpendUsd(chat.activeThread);
   const imageSpend = imageJobs.threadCostUsd(chat.activeThreadId);
   const totalSpend = llmSpend + imageSpend;
-  const model = registry.findById(chat.activeThread?.modelId) ?? registry.findById(DEFAULT_MODEL_ID);
-  const contextMode = chat.activeThread?.contextMode ?? (model?.providerId === 'ollama' ? 'micro' : 'full');
-  const sourceStatus = model
-    ? sourceStatusForFooter(model, contextMode, localRuntime.runtimes.ollama.status === 'online')
-    : '';
-  const localSuggestion = model?.providerId === 'ollama' && usage.fraction >= 0.75
-    ? (contextMode === 'micro' ? 'use Auto' : 'switch to micro tools')
-    : '';
-
-  const tone = usage.fraction >= 0.9
-    ? 'var(--text)' : usage.fraction >= 0.75
-    ? 'var(--text-dim)' : 'var(--text-faint)';
-  const fillColor = usage.fraction >= 0.9
-    ? '#e06c75' : usage.fraction >= 0.75
-    ? '#d19a66' : 'var(--accent)';
+  if (totalSpend <= 0) return <span style={{ flex: '1 1 auto' }} />;
 
   return (
     <div
       className="context-meter"
-      title={`${formatTokens(usage.used)} of ${formatTokens(usage.window)} tokens used (estimated)${sourceStatus ? `; ${sourceStatus}` : ''}${totalSpend > 0 ? `; spent ${formatUsd(totalSpend)} in this chat` : ''}`}
+      title={`Spent in this chat: ${formatUsd(totalSpend)} (${formatUsd(llmSpend)} LLM, ${formatUsd(imageSpend)} images)`}
       style={{
-        display: 'flex', alignItems: 'center', gap: 8,
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
         flex: '1 1 auto',
         fontFamily: '"Geist Mono", monospace',
         letterSpacing: '0.03em',
         fontSize: 11,
         lineHeight: '16px',
-        color: tone,
+        color: 'var(--accent)',
         minWidth: 0,
         overflow: 'hidden',
       }}
     >
-      <div className="context-meter__bar" style={{
-        width: 90, height: 4, borderRadius: 2,
-        background: 'rgba(255,255,255,0.06)',
-        overflow: 'hidden',
-        flex: 'none',
-      }}>
-        <div style={{
-          width: `${Math.round(usage.fraction * 100)}%`,
-          height: '100%',
-          background: fillColor,
-          transition: 'width 160ms ease, background-color 160ms ease',
-        }} />
-      </div>
-      <span className="context-meter__tokens" style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        height: 16,
-        fontVariantNumeric: 'tabular-nums',
-        whiteSpace: 'nowrap',
-      }}>{formatTokens(usage.used)} / {formatTokens(usage.window)}</span>
-      {sourceStatus && (
-        <span
-          className="context-meter__source"
-          title={sourceStatus}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            height: 16,
-            color: 'var(--text-faint)',
-            opacity: 0.78,
-            whiteSpace: 'nowrap',
-            minWidth: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {sourceStatus}
-        </span>
-      )}
-      {totalSpend > 0 && (
-        <span
-          className="context-meter__spend"
-          title={`Spent in this chat: ${formatUsd(totalSpend)} (${formatUsd(llmSpend)} LLM, ${formatUsd(imageSpend)} images)`}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            height: 16,
-            color: 'var(--accent)',
-            opacity: 0.86,
-            fontVariantNumeric: 'tabular-nums',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          spent {formatUsd(totalSpend)}
-        </span>
-      )}
-      {localSuggestion && (
-        <span
-          className="context-meter__suggestion"
-          title="Local model context is getting tight"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            height: 16,
-            color: '#d19a66',
-            opacity: 0.82,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {localSuggestion}
-        </span>
-      )}
+      <span className="context-meter__spend" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+        {formatUsd(totalSpend)}
+      </span>
     </div>
   );
 });
@@ -685,37 +604,6 @@ function timestampForPasteName(): string {
   const d = new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-}
-
-function sourceStatusForFooter(
-  model: Model,
-  contextMode: ChatContextMode,
-  ollamaOnline: boolean,
-): string {
-  if (model.id === DEFAULT_MODEL_ID) return 'auto · Gemini 3 Flash API';
-  if (model.providerId === 'openrouter') return 'api';
-  if (model.providerId === 'ollama') {
-    if (!ollamaOnline) return 'local offline';
-    if (contextMode === 'micro') return 'local';
-    return `local · ${contextModeLabel(contextMode)}`;
-  }
-  return 'image · local ComfyUI';
-}
-
-function contextModeLabel(mode: ChatContextMode): string {
-  switch (mode) {
-    case 'system-tools': return 'system + tools';
-    case 'bare': return 'bare prompt';
-    case 'micro': return 'micro tools';
-    default: return 'full context';
-  }
-}
-
-function formatTokens(n: number): string {
-  if (n < 1000) return `${n}`;
-  if (n < 100_000) return `${(n / 1000).toFixed(1)}k`;
-  if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
-  return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
 function formatUsd(value: number): string {

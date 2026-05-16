@@ -14,6 +14,7 @@ import { ExecStreamStore } from './ExecStreamStore';
 import { ImageGenStore } from './ImageGenStore';
 import { ImageJobStore } from './ImageJobStore';
 import { LocalRuntimeStore } from './LocalRuntimeStore';
+import { SearchStore } from './SearchStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 import { isWebLite } from '../services/system/runtime';
 
@@ -33,6 +34,7 @@ export class RootStore {
   readonly imageGen: ImageGenStore;
   readonly imageJobs: ImageJobStore;
   readonly localRuntime: LocalRuntimeStore;
+  readonly search: SearchStore;
 
   constructor() {
     let ollamaStore: OllamaStore | null = null;
@@ -44,6 +46,7 @@ export class RootStore {
     this.localRuntime = new LocalRuntimeStore({
       getOllamaCatalog: () => ollamaStore?.catalog ?? [],
     });
+    this.search = new SearchStore();
     this.ollama = new OllamaStore(this.registry, this.localRuntime);
     ollamaStore = this.ollama;
     this.providers = new ProviderStore(this.registry, () => ({
@@ -82,6 +85,24 @@ export class RootStore {
       onTerminal: job => this.chat.notifyImageJobTerminal(job),
     });
 
+    let attemptedWorkspacePersistenceRoot: string | undefined;
+    let workspacePersistenceAttemptInFlight = false;
+    autorun(() => {
+      if (isWebLite()) return;
+      if (!this.bridge.isOnline || !this.bridge.workspaceRoot) return;
+      if (attemptedWorkspacePersistenceRoot === this.bridge.workspaceRoot) return;
+      if (workspacePersistenceAttemptInFlight) return;
+      const workspaceRoot = this.bridge.workspaceRoot;
+      workspacePersistenceAttemptInFlight = true;
+      void this.bridge.client.connect()
+        .then(() => this.chat.enableWorkspacePersistence(this.bridge.client))
+        .then(ok => {
+          if (ok) attemptedWorkspacePersistenceRoot = workspaceRoot;
+        })
+        .catch(err => { console.warn('[persistence] workspace chat persistence boot failed', err); })
+        .finally(() => { workspacePersistenceAttemptInFlight = false; });
+    });
+
     // Cross-thread awareness: ChatStore asks SummaryStore for the digest
     // list every time it composes a system prompt. Wiring is one-way
     // (Chat → Summary read) so the dependency graph stays acyclic.
@@ -99,6 +120,7 @@ export class RootStore {
       imageGen: this.imageGen,
       imageJobs: this.imageJobs,
       localRuntime: this.localRuntime,
+      search: this.search,
     }));
 
     if (!isWebLite()) {

@@ -150,6 +150,53 @@
   display: none;
 }
 
+.editorial-sidebar__pin-button:hover,
+.editorial-sidebar__delete-button:hover {
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  color: var(--text);
+}
+
+.editorial-sidebar__row-actions {
+  flex: 0 0 auto;
+  min-width: max-content;
+  overflow: visible;
+}
+
+.editorial-sidebar__pin-button,
+.editorial-sidebar__delete-button {
+  box-sizing: border-box;
+  flex: 0 0 32px;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  overflow: visible;
+}
+
+.settings-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 14px;
+}
+
+.settings-quick-actions button {
+  height: 28px;
+  min-width: 0;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel) 86%, transparent);
+  color: var(--text-dim);
+  font: 12px "Geist", ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.settings-quick-actions button:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--text);
+}
+
 @keyframes thinkingDot {
   0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
   40%           { opacity: 1;    transform: translateY(-2px); }
@@ -561,6 +608,7 @@ body {
    browsers (see EditorialComposer onInput handler). */
 .composer-textarea {
   field-sizing: content;
+  min-width: 0;
 }
 
 /* Composer wrapper border. Default = static border. While dragging files
@@ -569,6 +617,9 @@ body {
    saturated accent border — a subtle keystroke ack that costs zero JS. */
 .composer-row {
   border: 1px solid var(--border);
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: visible;
   transition: border-color 100ms ease;
 }
 .composer-row[data-drag-active] {
@@ -592,6 +643,17 @@ body {
    the GPU. */
 .composer-attach-btn:not([data-disabled="true"]):hover {
   background: rgba(255, 255, 255, 0.06);
+}
+.composer-attach-btn,
+.composer-send-control {
+  flex: 0 0 28px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .composer-send-control:hover > div {
   background: rgba(255, 255, 255, 0.045);
@@ -2146,28 +2208,42 @@ body {
     z-index: 50;
     left: 0;
     right: 0;
+    width: 100%;
+    box-sizing: border-box;
     bottom: 0;
-    padding: 8px var(--mobile-gutter) max(10px, env(safe-area-inset-bottom)) !important;
+    padding: 8px max(var(--mobile-gutter), env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(var(--mobile-gutter), env(safe-area-inset-left)) !important;
     border-top: 0;
     background: linear-gradient(to top, var(--bg) 86%, color-mix(in srgb, var(--bg) 0%, transparent));
   }
 
   :is(.runtime-web-lite, .runtime-desktop) .editorial-composer__inner {
     width: 100% !important;
+    max-width: 720px;
     padding-top: 0 !important;
+    box-sizing: border-box;
   }
 
   :is(.runtime-web-lite, .runtime-desktop) .composer-row {
     min-height: 48px;
-    padding: 8px 9px !important;
+    padding: 8px 10px !important;
     border-radius: 18px !important;
     background: color-mix(in srgb, var(--panel) 84%, var(--text) 4%) !important;
+  }
+
+  :is(.runtime-web-lite, .runtime-desktop) .composer-attach-btn,
+  :is(.runtime-web-lite, .runtime-desktop) .composer-send-control {
+    flex-basis: 32px;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    min-height: 32px;
   }
 
   :is(.runtime-web-lite, .runtime-desktop) .composer-textarea {
     font-size: 16px !important;
     line-height: 22px !important;
     max-height: 116px !important;
+    min-width: 0;
   }
 
   :is(.runtime-web-lite, .runtime-desktop) .editorial-composer__meta {
@@ -2176,6 +2252,10 @@ body {
     gap: 0 !important;
     display: flex !important;
     align-items: center !important;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0 4px !important;
+    box-sizing: border-box;
   }
 
   :is(.runtime-web-lite, .runtime-desktop) .context-meter {
@@ -2187,7 +2267,7 @@ body {
     min-height: 22px;
     padding: 0 8px 0 0 !important;
     gap: 6px !important;
-    color: var(--text-faint);
+    color: var(--accent);
     font-size: 11px;
     opacity: 0.88;
   }

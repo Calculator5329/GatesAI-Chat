@@ -6,10 +6,11 @@ import { ModelRegistry } from '../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../src/stores/UserProfileStore';
 import type { LlmProvider, LlmRequest } from '../../src/core/llm';
 import type { LlmRouter } from '../../src/services/llm/router';
-import type { ToolContext } from '../../src/services/tools/types';
+import type { BridgeClientFacade, ToolContext } from '../../src/services/tools/types';
 import { MockProvider, flush, installMockProvider } from '../helpers/mockProvider';
 import { clearAppStorage } from '../helpers/storage';
 import { toolRegistry } from '../../src/services/tools/registry';
+import { WORKSPACE_CHAT_STATE_PATH } from '../../src/services/workspaceChatPersistence';
 
 function setup(chunks?: Parameters<MockProvider['setChunks']>[0]) {
   clearAppStorage();
@@ -31,6 +32,107 @@ function onlineBridge(): ToolContext['bridge'] {
       },
     },
   } as unknown as ToolContext['bridge'];
+}
+
+function chatSnapshot(id: string, title: string) {
+  return {
+    activeThreadId: id,
+    threads: [{
+      id,
+      title,
+      subtitle: '',
+      createdAt: 1,
+      updatedAt: 2,
+      pinned: false,
+      modelId: 'or-gpt-5.4-mini',
+      messages: [{ id: `${id}-m1`, role: 'user' as const, content: title, createdAt: 3 }],
+    }],
+  };
+}
+
+function memoryBridge(initial: Record<string, string> = {}): BridgeClientFacade & { files: Map<string, string> } {
+  const files = new Map(Object.entries(initial));
+  return {
+    files,
+    async request<T = unknown>(op: string, data: unknown): Promise<T> {
+      const args = data as Record<string, string>;
+      switch (op) {
+        case 'fs.mkdir':
+          return {} as T;
+        case 'fs.read': {
+          const value = files.get(args.path);
+          if (value == null) throw new Error('not found');
+          return {
+            path: args.path,
+            content: value,
+            encoding: 'utf8',
+            size: value.length,
+            mime: 'application/json',
+          } as T;
+        }
+        case 'fs.write':
+          files.set(args.path, args.content ?? '');
+          return { path: args.path, bytes: (args.content ?? '').length } as T;
+        case 'fs.list': {
+          const prefix = args.path.replace(/\/+$/, '');
+          return {
+            path: prefix,
+            entries: [...files.keys()]
+              .filter(path => path.startsWith(`${prefix}/`))
+              .map(path => ({
+                path,
+                name: path.slice(prefix.length + 1),
+                kind: 'file',
+                size: files.get(path)?.length ?? 0,
+                mtime: 1,
+              })),
+          } as T;
+        }
+        case 'fs.delete':
+          files.delete(args.path);
+          return {} as T;
+        case 'fs.move': {
+          const value = files.get(args.from);
+          if (value == null) throw new Error('not found');
+          files.set(args.to, value);
+          files.delete(args.from);
+          return {} as T;
+        }
+        default:
+          throw new Error(`unexpected op ${op}`);
+      }
+    },
+  };
+}
+
+function failingBridge(): BridgeClientFacade {
+  return {
+    async request<T = unknown>(): Promise<T> {
+      throw new Error('workspace unavailable');
+    },
+  };
+}
+
+async function waitForWorkspaceSave(
+  bridge: { files: Map<string, string> },
+  predicate: (raw: string) => boolean,
+): Promise<void> {
+  for (let i = 0; i < 20; i++) {
+    const raw = bridge.files.get(WORKSPACE_CHAT_STATE_PATH) ?? '';
+    if (predicate(raw)) return;
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  throw new Error('workspace save did not settle');
+}
+
+async function waitForLocalStorageTitle(title: string): Promise<void> {
+  for (let i = 0; i < 20; i++) {
+    const raw = localStorage.getItem('gatesai.state.v1') ?? '{}';
+    const parsed = JSON.parse(raw) as { threads?: Array<{ title?: string }> };
+    if (parsed.threads?.[0]?.title === title) return;
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  throw new Error('localStorage save did not settle');
 }
 
 describe('ChatStore', () => {
@@ -104,6 +206,83 @@ describe('ChatStore', () => {
     expect(chat.activeThreadId).toBe('visible');
   });
 
+  it('uses localStorage at startup, then hydrates from valid workspace history', async () => {
+    localStorage.setItem('gatesai.state.v1', JSON.stringify(chatSnapshot('local', 'Local history')));
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    const chat = new ChatStore(providers, registry, profile);
+    const bridge = memoryBridge({
+      [WORKSPACE_CHAT_STATE_PATH]: JSON.stringify({
+        version: 1,
+        savedAt: '2026-05-12T00:00:00.000Z',
+        source: 'workspace',
+        snapshot: chatSnapshot('workspace', 'Workspace history'),
+      }),
+    });
+
+    expect(chat.activeThread?.title).toBe('Local history');
+    await chat.enableWorkspacePersistence(bridge);
+
+    expect(chat.activeThreadId).toBe('workspace');
+    expect(chat.activeThread?.title).toBe('Workspace history');
+    expect(JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}').activeThreadId).toBe('workspace');
+  });
+
+  it('migrates localStorage history into the workspace when workspace state is absent', async () => {
+    localStorage.setItem('gatesai.state.v1', JSON.stringify(chatSnapshot('local', 'Local only')));
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    const chat = new ChatStore(providers, registry, profile);
+    const bridge = memoryBridge();
+
+    await chat.enableWorkspacePersistence(bridge);
+
+    const envelope = JSON.parse(bridge.files.get(WORKSPACE_CHAT_STATE_PATH) ?? '{}');
+    expect(envelope.source).toBe('localStorage-migration');
+    expect(envelope.snapshot.activeThreadId).toBe('local');
+    expect(envelope.snapshot.threads[0].title).toBe('Local only');
+  });
+
+  it('keeps local fallback when workspace history is malformed and writes a backup', async () => {
+    localStorage.setItem('gatesai.state.v1', JSON.stringify(chatSnapshot('local', 'Local fallback')));
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    const chat = new ChatStore(providers, registry, profile);
+    const bridge = memoryBridge({ [WORKSPACE_CHAT_STATE_PATH]: '{not json' });
+
+    await chat.enableWorkspacePersistence(bridge);
+
+    expect(chat.activeThread?.title).toBe('Local fallback');
+    expect([...bridge.files.keys()].some(path => path.includes('/malformed-'))).toBe(true);
+    expect(JSON.parse(bridge.files.get(WORKSPACE_CHAT_STATE_PATH) ?? '{}').snapshot.activeThreadId).toBe('local');
+  });
+
+  it('saves subsequent mutations to workspace after workspace persistence is enabled', async () => {
+    const { chat } = setup();
+    const bridge = memoryBridge();
+
+    await chat.enableWorkspacePersistence(bridge);
+    chat.renameThread(chat.activeThreadId!, 'Workspace mutation');
+    await waitForWorkspaceSave(bridge, raw => raw.includes('Workspace mutation'));
+
+    const envelope = JSON.parse(bridge.files.get(WORKSPACE_CHAT_STATE_PATH) ?? '{}');
+    expect(envelope.snapshot.threads[0].title).toBe('Workspace mutation');
+  });
+
+  it('continues saving localStorage when workspace persistence cannot start', async () => {
+    const { chat } = setup();
+    const bridge = failingBridge();
+
+    expect(await chat.enableWorkspacePersistence(bridge)).toBe(false);
+    chat.renameThread(chat.activeThreadId!, 'Local survives');
+    await waitForLocalStorageTitle('Local survives');
+
+    expect(JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}').threads[0].title).toBe('Local survives');
+  });
+
   it('repairs a live unresolved active model before sending', () => {
     const { chat } = setup();
     chat.setThreadModel(chat.activeThreadId!, 'missing-model');
@@ -111,6 +290,33 @@ describe('ChatStore', () => {
     chat.sendMessage('hello');
 
     expect(chat.activeThread?.modelId).toBe('or-gemini-3-flash');
+  });
+
+  it('exposes web_search to model requests only when Brave Search is configured', async () => {
+    const { chat, mock } = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    chat.setToolStoresProvider(() => ({
+      search: {
+        braveReady: true,
+        searchBraveContext: async () => [],
+      },
+    }) as unknown as Pick<ToolContext, 'search'>);
+
+    chat.sendMessage('What changed today?');
+    await flush(20);
+
+    expect(mock.calls[0].tools?.some(t => t.name === 'web_search')).toBe(true);
+
+    const withoutSearch = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    withoutSearch.chat.sendMessage('What changed today?');
+    await flush(20);
+
+    expect(withoutSearch.mock.calls[0].tools?.some(t => t.name === 'web_search')).toBe(false);
   });
 
   it('createThread inserts a new thread at the top and selects it', () => {

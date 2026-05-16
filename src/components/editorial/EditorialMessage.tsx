@@ -1,11 +1,12 @@
-import { memo, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { observer } from 'mobx-react-lite';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import type { PluggableList } from 'unified';
 import type { ComponentPropsWithoutRef, ReactNode, MouseEvent } from 'react';
-import type { AssistantMessage, Message } from '../../core/types';
+import type { AssistantMessage, Message, ToolResult } from '../../core/types';
+import type { ToolCall } from '../../core/llm';
 import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
 import { isWorkspacePath } from '../../core/workspacePaths';
 import { ToolCallView, ToolResultView } from '../ui';
@@ -91,6 +92,10 @@ let copyHintSeen = false;
 const EMPTY_TOOL_CALLS: NonNullable<AssistantMessage['toolCalls']> = [];
 const EMPTY_TOOL_RESULTS: NonNullable<AssistantMessage['toolResults']> = [];
 const EMPTY_WORK_NOTES: NonNullable<AssistantMessage['workNotes']> = [];
+const MAX_VISIBLE_TOOL_ACTIVITIES = 4;
+const STREAM_SMOOTH_FRAME_MS = 24;
+const STREAM_SMOOTH_MIN_CHARS = 2;
+const STREAM_SMOOTH_MAX_CHARS = 48;
 
 /**
  * One message = one user turn or one assistant turn (which may include
@@ -141,7 +146,17 @@ export const EditorialMessage = observer(function EditorialMessage({
   const results = !isUser ? message.toolResults ?? EMPTY_TOOL_RESULTS : EMPTY_TOOL_RESULTS;
   const workNotes = !isUser ? visibleWorkNotes(message.workNotes ?? EMPTY_WORK_NOTES) : EMPTY_WORK_NOTES;
   const pairedResults = useMemo(() => pairToolResults(calls, results), [calls, results]);
+  const pendingCalls = useMemo(() => (
+    calls.filter((_, index) => !pairedResults[index])
+  ), [calls, pairedResults]);
   const hasContent = message.content.trim().length > 0;
+  const visibleAssistantContent = useSmoothedStreamingText(
+    message.content,
+    !isUser && streaming && hasContent,
+  );
+  const toolActivities = !isUser
+    ? activityForToolState({ pendingCalls: streaming ? pendingCalls : EMPTY_TOOL_CALLS, calls, results, streaming })
+    : [];
   const hasCalls = calls.length > 0;
   const hasWorkNotes = workNotes.length > 0;
   const userContent = isUser && message.role === 'user' ? resolveUserAttachments(message) : null;
@@ -155,6 +170,10 @@ export const EditorialMessage = observer(function EditorialMessage({
   const shouldHideAssistantTextForImageJob = !isUser && results.some(result =>
     result.artifacts?.some(artifact => artifact.kind === 'image-job') ?? false
   );
+  const hasRenderableArtifacts = !isUser && results.some(result => (result.artifacts?.length ?? 0) > 0);
+  const hasPendingTerminal = !isUser && pendingCalls.some(call => call.name === 'terminal');
+  const hasSearchCalls = !isUser && calls.some(call => call.name === 'web_search');
+  const showToolTrace = hasCalls && !(toolActivities.length > 0 && hasSearchCalls && !hasRenderableArtifacts && !hasPendingTerminal);
 
   useEffect(() => {
     if (copyState === 'idle') return;
@@ -168,8 +187,10 @@ export const EditorialMessage = observer(function EditorialMessage({
     setCopyState('hint');
   }
 
+  const canCopy = message.content.trim().length > 0;
+
   async function copyMessage() {
-    if (!message.content) return;
+    if (!canCopy) return;
     try {
       await navigator.clipboard.writeText(message.content);
       setCopyState('copied');
@@ -225,7 +246,7 @@ export const EditorialMessage = observer(function EditorialMessage({
         </div>
       )}
       <div className="message-actions" onClick={onActionClick}>
-        <button type="button" title="Copy message" aria-label="Copy message" onClick={() => void copyMessage()}>
+        <button type="button" title={canCopy ? 'Copy message' : 'Nothing to copy yet'} aria-label="Copy message" disabled={!canCopy} onClick={() => void copyMessage()}>
           <Icons.Copy />
         </button>
         {!isUser && (
@@ -263,14 +284,32 @@ export const EditorialMessage = observer(function EditorialMessage({
           <Icons.Branch />
         </button>
       </div>
+      {toolActivities.length > 0 && (
+        <div
+          style={{
+            display: 'grid',
+            gap: 6,
+            marginBottom: showToolTrace || hasContent || streaming ? 10 : 0,
+          }}
+        >
+          {toolActivities.map((activity, index) => (
+            <LiveStatusIndicator
+              key={`${activity.label}-${index}`}
+              label={activity.label}
+              title={activity.title}
+              active={activity.active ?? false}
+            />
+          ))}
+        </div>
+      )}
       {hasWorkNotes && (
-        <div style={{ marginBottom: hasCalls || hasContent || streaming ? 10 : 0 }}>
+        <div style={{ marginBottom: showToolTrace || hasContent || streaming ? 10 : 0 }}>
           {workNotes.map((note, idx) => (
             <WorkNote key={`${idx}-${note.slice(0, 24)}`} content={note} />
           ))}
         </div>
       )}
-      {hasCalls && (
+      {showToolTrace && (
         <div style={{ marginBottom: hasContent || streaming ? 10 : 0 }}>
           {calls.map((call, idx) => {
             const result = pairedResults[idx];
@@ -333,17 +372,19 @@ export const EditorialMessage = observer(function EditorialMessage({
           null
         ) : hasContent && streaming ? (
           <>
-            <MarkdownBody content={message.content} />
-            <WorkingIndicator />
+            <MarkdownBody content={visibleAssistantContent} />
+            {!hasCalls && <WorkingIndicator />}
           </>
         ) : hasContent ? (
           <MarkdownBody content={message.content} />
         ) : streaming ? (
-          <ThinkingIndicator label={
-            hasLoadingImageJob
-              ? 'generating'
-              : (preTokenLabel ?? message.preTokenLabel ?? 'thinking')
-          } />
+          toolActivities.length > 0 ? null : (
+            <ThinkingIndicator label={
+              hasLoadingImageJob
+                ? 'generating'
+                : (preTokenLabel ?? message.preTokenLabel ?? 'thinking')
+            } />
+          )
         ) : null}
       </div>
     </div>
@@ -369,22 +410,328 @@ function visibleWorkNotes(notes: readonly string[]): string[] {
     .filter(note => note.length > 0);
 }
 
+interface ToolActivity {
+  label: string;
+  title: string;
+  active?: boolean;
+}
+
+function activityForToolState({
+  pendingCalls,
+  calls,
+  results,
+  streaming,
+}: {
+  pendingCalls: ToolCall[];
+  calls: readonly ToolCall[];
+  results: readonly ToolResult[];
+  streaming: boolean;
+}): ToolActivity[] {
+  if (pendingCalls.length > 0) return pendingToolActivities(pendingCalls);
+  if (calls.length === 0 || results.length === 0) return [];
+  if (streaming) {
+    const failed = results.some(result => result.ok === false || result.errorCode);
+    const invalid = results.some(result => isValidationFailureResult(result));
+    if (invalid) {
+      return [{
+        label: 'Tool arguments were invalid; asking the model to retry...',
+        title: 'The model produced a malformed tool call. GatesAI returned the error to the model and is waiting for a corrected next step.',
+        active: true,
+      }];
+    }
+    if (failed) {
+      return [{
+        label: 'Tool returned an error; asking the model to recover...',
+        title: 'A tool failed. GatesAI returned the failure to the model and is waiting for the next response.',
+        active: true,
+      }];
+    }
+    const summary = resultSummary(calls, results);
+    const continuation = continuationSummary(calls, summary);
+    return [{
+      label: continuation,
+      title: `${summary}. GatesAI returned the tool result to the model and is waiting for the final response.`,
+      active: true,
+    }];
+  }
+
+  const summary = resultSummary(calls, results);
+  return [{
+    label: summary,
+    title: `${summary}. Tool results are in.`,
+  }];
+}
+
+function pendingToolActivities(pendingCalls: ToolCall[]): ToolActivity[] {
+  const activities = pendingCalls.flatMap(call => pendingCallActivities(call));
+  if (activities.length <= MAX_VISIBLE_TOOL_ACTIVITIES) return activities;
+  const visible = activities.slice(0, MAX_VISIBLE_TOOL_ACTIVITIES - 1);
+  return [
+    ...visible,
+    {
+      label: `${activities.length - visible.length} more tool actions...`,
+      title: pendingToolTitle(pendingCalls),
+    },
+  ];
+}
+
+function pendingCallActivities(call: ToolCall): ToolActivity[] {
+  if (call.name === 'web_search') {
+    const queries = stringArrayArg(call.arguments.queries);
+    if (queries.length > 0) {
+      return queries.map(query => ({
+        label: `Searching web for "${compactText(query, 34)}"...`,
+        title: pendingToolTitle([call]),
+        active: true,
+      }));
+    }
+    return [{ label: 'Searching web...', title: pendingToolTitle([call]), active: true }];
+  }
+  if (call.name === 'inspect_file' || call.name === 'fs') {
+    const action = stringArg(call.arguments.action);
+    const query = stringArg(call.arguments.query);
+    const path = stringArg(call.arguments.path) || stringArg(call.arguments.from) || stringArg(call.arguments.to);
+    if (action === 'search' && query) {
+      return [{ label: `Searching workspace for "${compactText(query, 30)}"...`, title: pendingToolTitle([call]), active: true }];
+    }
+    if (action === 'write' || action === 'append') {
+      return [{ label: `${action === 'append' ? 'Appending to' : 'Writing'} ${path ? shortWorkspacePath(path) : 'workspace file'}...`, title: pendingToolTitle([call]), active: true }];
+    }
+    if (action === 'mkdir') {
+      return [{ label: `Creating ${path ? shortWorkspacePath(path) : 'workspace directory'}...`, title: pendingToolTitle([call]), active: true }];
+    }
+    if (action === 'move' || action === 'copy') {
+      return [{ label: `${action === 'move' ? 'Moving' : 'Copying'} ${path ? shortWorkspacePath(path) : 'workspace file'}...`, title: pendingToolTitle([call]), active: true }];
+    }
+    if (action === 'delete') {
+      return [{ label: `Deleting ${path ? shortWorkspacePath(path) : 'workspace path'}...`, title: pendingToolTitle([call]), active: true }];
+    }
+    return [{
+      label: path ? `Reading ${shortWorkspacePath(path)}...` : 'Reading workspace...',
+      title: pendingToolTitle([call]),
+      active: true,
+    }];
+  }
+  if (call.name === 'artifact') {
+    const action = stringArg(call.arguments.action);
+    const path = stringArg(call.arguments.path);
+    if (action === 'create_html_artifact') {
+      return [{ label: `Creating ${path ? shortWorkspacePath(path) : 'HTML artifact'}...`, title: pendingToolTitle([call]), active: true }];
+    }
+    if (action === 'validate_html') {
+      return [{ label: `Checking ${path ? shortWorkspacePath(path) : 'HTML artifact'}...`, title: pendingToolTitle([call]), active: true }];
+    }
+    return [{ label: 'Preparing artifact...', title: pendingToolTitle([call]), active: true }];
+  }
+  if (call.name === 'terminal' || call.name === 'git' || call.name === 'python_inline' || call.name === 'sqlite_query') {
+    const cmd = stringArg(call.arguments.cmd) ?? stringArg(call.arguments.command);
+    return [{ label: cmd ? `Running ${compactText(cmd, 28)}...` : 'Running command...', title: pendingToolTitle([call]), active: true }];
+  }
+  if (call.name === 'image_generate') {
+    const count = numberArg(call.arguments.count) ?? 1;
+    return [{ label: count > 1 ? `Starting ${count} image jobs...` : 'Starting image job...', title: pendingToolTitle([call]), active: true }];
+  }
+  if (call.name === 'chat_history') {
+    const action = stringArg(call.arguments.action);
+    return [{
+      label: action === 'search' ? 'Searching past chats...' : action === 'read_thread' ? 'Reading past chat...' : 'Checking recent chats...',
+      title: pendingToolTitle([call]),
+      active: true,
+    }];
+  }
+  if (call.name === 'memory' || call.name === 'notes' || call.name === 'thread') {
+    return [{ label: 'Updating context...', title: pendingToolTitle([call]), active: true }];
+  }
+  return [{
+    label: `Using ${formatToolName(call.name)}...`,
+    title: pendingToolTitle([call]),
+    active: true,
+  }];
+}
+
+function resultSummary(calls: readonly ToolCall[], results: readonly ToolResult[]): string {
+  if (calls.some(call => call.name === 'web_search')) {
+    const sourceCount = results
+      .filter(result => result.toolName === 'web_search')
+      .reduce((sum, result) => sum + countMatches(result.content, /^url:\s+/gm), 0);
+    const failed = results.some(result => result.toolName === 'web_search' && result.ok === false);
+    if (sourceCount > 0) return `Found ${sourceCount} source${sourceCount === 1 ? '' : 's'}`;
+    if (failed) return 'Search returned an error';
+    return 'Search complete';
+  }
+  if (calls.some(call => call.name === 'inspect_file' || call.name === 'fs' || call.name === 'artifact')) {
+    const failed = results.some(result => result.ok === false || result.errorCode);
+    return failed ? 'Workspace tool returned an error' : 'Workspace context ready';
+  }
+  if (calls.some(call => call.name === 'terminal' || call.name === 'git' || call.name === 'python_inline' || call.name === 'sqlite_query')) {
+    const failed = results.some(result => result.ok === false || result.errorCode);
+    return failed ? 'Command finished with an error' : 'Command finished';
+  }
+  if (calls.some(call => call.name === 'image_generate')) {
+    const imageCount = results.reduce((sum, result) => sum + (result.artifacts?.length ?? 0), 0);
+    return imageCount > 0 ? 'Image job started' : 'Image request complete';
+  }
+  if (calls.some(call => call.name === 'chat_history')) {
+    return 'Chat history ready';
+  }
+  if (calls.some(call => call.name === 'memory' || call.name === 'notes' || call.name === 'thread')) {
+    return 'Context updated';
+  }
+  return 'Tool results ready';
+}
+
+function isValidationFailureResult(result: ToolResult): boolean {
+  const code = result.errorCode ?? '';
+  return code.includes('invalid')
+    || code === 'missing_required_argument'
+    || code === 'invalid_argument_type'
+    || code === 'invalid_enum_value'
+    || code === 'unknown_tool'
+    || /error_code:\s*(invalid_tool_batch|malformed_arguments|missing_required_argument|invalid_argument_type|invalid_enum_value|unknown_tool)/i.test(result.content)
+    || /not valid JSON/i.test(result.content);
+}
+
+function continuationSummary(calls: readonly ToolCall[], summary: string): string {
+  if (calls.some(call => call.name === 'web_search')) return summary;
+  if (calls.some(call => call.name === 'inspect_file' || call.name === 'fs' || call.name === 'artifact')) return 'Continuing with workspace results...';
+  if (calls.some(call => call.name === 'terminal' || call.name === 'git' || call.name === 'python_inline' || call.name === 'sqlite_query')) return 'Continuing after command output...';
+  if (calls.some(call => call.name === 'chat_history')) return 'Continuing with chat history...';
+  return 'Continuing with tool results...';
+}
+
+function pendingToolTitle(calls: ToolCall[]): string {
+  return calls.map(call => `${formatToolName(call.name)} (${call.id})`).join('\n');
+}
+
+function formatToolName(name: string): string {
+  return name.replace(/_/g, ' ');
+}
+
+function stringArrayArg(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    .map(item => item.trim());
+}
+
+function stringArg(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function numberArg(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function compactText(value: string, max: number): string {
+  const compact = value.replace(/\s+/g, ' ').trim();
+  return compact.length > max ? `${compact.slice(0, Math.max(0, max - 3))}...` : compact;
+}
+
+function shortWorkspacePath(path: string): string {
+  const normalized = path.replace(/\\/g, '/');
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length <= 2) return normalized;
+  return `.../${parts.slice(-2).join('/')}`;
+}
+
+function countMatches(value: string, pattern: RegExp): number {
+  return Array.from(value.matchAll(pattern)).length;
+}
+
+function useSmoothedStreamingText(content: string, active: boolean): string {
+  const [visible, setVisible] = useState(content);
+  const visibleRef = useRef(visible);
+  const targetRef = useRef(content);
+  const rafRef = useRef<number | null>(null);
+  const lastFrameRef = useRef(0);
+
+  useEffect(() => {
+    targetRef.current = content;
+
+    if (!active || !content.startsWith(visibleRef.current)) {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      visibleRef.current = content;
+      setVisible(content);
+      return;
+    }
+
+    if (visibleRef.current !== content && rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(stepVisibleText);
+    }
+
+    function stepVisibleText(timestamp: number) {
+      rafRef.current = null;
+      const elapsed = timestamp - lastFrameRef.current;
+      if (elapsed < STREAM_SMOOTH_FRAME_MS) {
+        rafRef.current = requestAnimationFrame(stepVisibleText);
+        return;
+      }
+
+      const current = visibleRef.current;
+      const target = targetRef.current;
+      if (current === target) return;
+
+      const remaining = target.length - current.length;
+      const nextSize = Math.min(
+        STREAM_SMOOTH_MAX_CHARS,
+        Math.max(STREAM_SMOOTH_MIN_CHARS, Math.ceil(remaining / 3)),
+      );
+      const next = target.slice(0, current.length + nextSize);
+      visibleRef.current = next;
+      lastFrameRef.current = timestamp;
+      setVisible(next);
+
+      if (next !== target) {
+        rafRef.current = requestAnimationFrame(stepVisibleText);
+      }
+    }
+  }, [active, content]);
+
+  useEffect(() => () => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+  }, []);
+
+  return visible;
+}
+
 function WorkNote({ content }: { content: string }) {
   return (
-    <div
+    <details
       style={{
-        borderLeft: '2px solid color-mix(in srgb, var(--accent) 38%, transparent)',
-        padding: '2px 0 2px 12px',
-        color: 'var(--text-dim)',
-        fontFamily: '"Source Serif 4", Iowan Old Style, Georgia, serif',
-        fontSize: 14,
-        fontStyle: 'italic',
-        lineHeight: 1.55,
-        opacity: 0.86,
+        borderLeft: '1px solid color-mix(in srgb, var(--accent) 35%, transparent)',
+        padding: '2px 0 2px 10px',
+        color: 'var(--accent)',
+        opacity: 0.88,
       }}
     >
-      <MarkdownBody content={content} />
-    </div>
+      <summary
+        style={{
+          cursor: 'pointer',
+          fontFamily: '"Geist Mono", ui-monospace, monospace',
+          fontSize: 10,
+          letterSpacing: '0.16em',
+          lineHeight: 1.6,
+          textTransform: 'uppercase',
+          color: 'var(--accent)',
+        }}
+      >
+        thinking
+      </summary>
+      <div
+        style={{
+          marginTop: 6,
+          fontFamily: '"Source Serif 4", Iowan Old Style, Georgia, serif',
+          fontSize: 14,
+          lineHeight: 1.55,
+          color: 'color-mix(in srgb, var(--accent) 78%, var(--text))',
+        }}
+      >
+        <MarkdownBody content={content} />
+      </div>
+    </details>
   );
 }
 
@@ -568,9 +915,10 @@ function FileAttachmentChip({ file }: { file: RenderedAttachment }) {
  * a generic spinner — uppercase mono label + three pulsing dots in the
  * accent color so it's noticeable but not loud.
  */
-type StreamStatusLabel = 'thinking' | 'responding' | 'compacting' | 'working' | 'generating';
+type StreamStatusLabel = 'thinking' | 'responding' | 'compacting' | 'working' | 'generating' | 'drafting';
 
 function ThinkingIndicator({ label }: { label: StreamStatusLabel }) {
+  const elapsed = useElapsedLabel(true);
   const accessibleLabel = label[0].toUpperCase() + label.slice(1);
   return (
     <span
@@ -584,6 +932,7 @@ function ThinkingIndicator({ label }: { label: StreamStatusLabel }) {
       }}
     >
       <span>{label}</span>
+      {elapsed && <span style={{ opacity: 0.62, letterSpacing: '0.08em' }}>{elapsed}</span>}
       <span className="thinking-dots" aria-hidden="true">
         <span /><span /><span />
       </span>
@@ -591,6 +940,53 @@ function ThinkingIndicator({ label }: { label: StreamStatusLabel }) {
   );
 }
 
-function WorkingIndicator() {
-  return <ThinkingIndicator label="working" />;
+function LiveStatusIndicator({ label, title, active = false }: { label: string; title?: string; active?: boolean }) {
+  const elapsed = useElapsedLabel(active);
+  return (
+    <span
+      aria-label={label}
+      title={title}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 10,
+        maxWidth: '100%',
+        fontFamily: '"Geist Mono", ui-monospace, monospace',
+        fontSize: 11,
+        letterSpacing: '0.08em',
+        color: 'var(--accent)',
+        opacity: 0.86,
+      }}
+    >
+      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+      {elapsed && <span style={{ flex: 'none', opacity: 0.62 }}>{elapsed}</span>}
+      {active && (
+        <span className="thinking-dots" aria-hidden="true">
+          <span /><span /><span />
+        </span>
+      )}
+    </span>
+  );
+}
+
+function WorkingIndicator({ label = 'working' }: { label?: StreamStatusLabel }) {
+  return <ThinkingIndicator label={label} />;
+}
+
+function useElapsedLabel(active: boolean): string {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const startedAt = Date.now();
+    const resetId = window.setTimeout(() => setSeconds(0), 0);
+    if (!active) return () => window.clearTimeout(resetId);
+
+    const intervalId = window.setInterval(() => {
+      setSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => {
+      window.clearTimeout(resetId);
+      window.clearInterval(intervalId);
+    };
+  }, [active]);
+
+  return active && seconds >= 4 ? `${seconds}s` : '';
 }

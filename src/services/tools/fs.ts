@@ -7,6 +7,12 @@ import type {
 } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
 import { decodeFsRead } from './textDecode';
+import {
+  filterProtectedChatHistoryEntries,
+  filterProtectedChatHistoryHits,
+  isProtectedChatHistoryPath,
+  isProtectedChatHistoryScope,
+} from './protectedWorkspacePaths';
 import type { Tool } from './types';
 
 /**
@@ -99,6 +105,8 @@ export const fsTool: Tool = {
     if (!action) {
       return 'Error: `action` is required for fs. Valid: read, write, append, list, delete, move, copy, mkdir, stat, search.';
     }
+    const protectedPathError = validateProtectedChatHistoryAccess(action, args);
+    if (protectedPathError) return protectedPathError;
     try {
       switch (action) {
         case 'read':   return await doRead(args, ctx);
@@ -237,7 +245,8 @@ async function doList(args: Record<string, unknown>, ctx: Parameters<Tool['execu
   const path = strArg(args, 'path') || '/workspace';
   const recursive = args.recursive === true;
   const resp = await ctx.bridge!.client.request<FsListResp>('fs.list', { path, recursive });
-  const entries = Array.isArray(resp.entries) ? resp.entries : [];
+  const rawEntries = Array.isArray(resp.entries) ? resp.entries : [];
+  const entries = recursive ? filterProtectedChatHistoryEntries(rawEntries) : rawEntries;
   if (entries.length === 0) return `${resp.path} is empty.`;
   const lines = entries.map(e => {
     const tag = e.kind === 'dir' ? 'd' : '-';
@@ -289,7 +298,7 @@ async function doSearch(args: Record<string, unknown>, ctx: Parameters<Tool['exe
   const path = strArg(args, 'path') || '/workspace';
   const max_hits = typeof args.max_hits === 'number' ? args.max_hits : undefined;
   const resp = await ctx.bridge!.client.request<FsSearchResp>('fs.search', { query, path, max_hits });
-  const hits = Array.isArray(resp.hits) ? resp.hits : [];
+  const hits = filterProtectedChatHistoryHits(Array.isArray(resp.hits) ? resp.hits : []);
   if (hits.length === 0) return `No matches for "${query}" under ${path}.`;
   const lines = hits.map(h => `${h.path}:${h.line}: ${h.snippet}`);
   if (resp.truncated) lines.push(`(truncated)`);
@@ -299,4 +308,21 @@ async function doSearch(args: Record<string, unknown>, ctx: Parameters<Tool['exe
 function strArg(args: Record<string, unknown>, key: string): string {
   const v = args[key];
   return typeof v === 'string' ? v : '';
+}
+
+function validateProtectedChatHistoryAccess(action: string, args: Record<string, unknown>): string | null {
+  const path = strArg(args, 'path');
+  const from = strArg(args, 'from');
+  const to = strArg(args, 'to');
+  const paths = [path, from, to].filter(Boolean);
+  if (paths.some(isProtectedChatHistoryPath)) {
+    return 'Error: app-managed chat history files are not exposed through fs. Use the `chat_history` tool instead.';
+  }
+  if (action === 'search' && path && isProtectedChatHistoryScope(path)) {
+    return 'Error: app-managed chat history files are not exposed through fs.search. Use the `chat_history` tool instead.';
+  }
+  if (action === 'list' && path && isProtectedChatHistoryScope(path)) {
+    return 'Error: app-managed chat history files are not exposed through fs.list. Use the `chat_history` tool instead.';
+  }
+  return null;
 }

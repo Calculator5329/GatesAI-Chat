@@ -67,6 +67,12 @@ function render(s: RootStore): HTMLDivElement {
   return host;
 }
 
+function sendControl(rendered: HTMLElement, title = 'Send'): HTMLButtonElement {
+  const button = rendered.querySelector(`button.composer-send-control[title="${title}"]`) as HTMLButtonElement | null;
+  if (!button) throw new Error(`Missing composer send control: ${title}`);
+  return button;
+}
+
 beforeEach(() => {
   clearAppStorage();
 });
@@ -92,11 +98,10 @@ describe('EditorialComposer API-key banner', () => {
     // wrapper div has cursor + opacity inline styles tied to canSend.
     // With text in the draft but no provider, opacity should be 0.45.
     act(() => store!.ui.setDraft('hello'));
-    const sendWrapper = Array.from(rendered.querySelectorAll('div'))
-      .find(d => (d as HTMLElement).getAttribute('title') === 'Send') as HTMLElement | undefined;
-    expect(sendWrapper).toBeDefined();
-    expect(sendWrapper!.style.opacity).toBe('0.45');
-    expect(sendWrapper!.style.cursor).toBe('default');
+    const sendWrapper = sendControl(rendered);
+    expect(sendWrapper.disabled).toBe(true);
+    expect(sendWrapper.style.opacity).toBe('0.45');
+    expect(sendWrapper.style.cursor).toBe('default');
   });
 
   it('hides the banner once a provider key is set (live transition)', async () => {
@@ -112,11 +117,10 @@ describe('EditorialComposer API-key banner', () => {
 
     // Pre-condition: banner present, send disabled.
     expect(rendered.textContent).toContain('Add an API key to start chatting.');
-    let sendWrapper = Array.from(rendered.querySelectorAll('div'))
-      .find(d => (d as HTMLElement).getAttribute('title') === 'Send') as HTMLElement | undefined;
-    expect(sendWrapper).toBeDefined();
-    expect(sendWrapper!.style.opacity).toBe('0.45');
-    expect(sendWrapper!.style.cursor).toBe('default');
+    let sendWrapper = sendControl(rendered);
+    expect(sendWrapper.disabled).toBe(true);
+    expect(sendWrapper.style.opacity).toBe('0.45');
+    expect(sendWrapper.style.cursor).toBe('default');
 
     // Live transition: add a key after mount.
     act(() => store!.providers.setKey('openrouter', 'sk-test'));
@@ -124,11 +128,35 @@ describe('EditorialComposer API-key banner', () => {
 
     // Post-condition: banner gone, send enabled.
     expect(rendered.textContent).not.toContain('Add an API key to start chatting.');
-    sendWrapper = Array.from(rendered.querySelectorAll('div'))
-      .find(d => (d as HTMLElement).getAttribute('title') === 'Send') as HTMLElement | undefined;
-    expect(sendWrapper).toBeDefined();
-    expect(sendWrapper!.style.opacity).toBe('1');
-    expect(sendWrapper!.style.cursor).toBe('pointer');
+    sendWrapper = sendControl(rendered);
+    expect(sendWrapper.disabled).toBe(false);
+    expect(sendWrapper.style.opacity).toBe('1');
+    expect(sendWrapper.style.cursor).toBe('pointer');
+  });
+
+  it('exposes send, interrupt, and stop as real buttons', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    const rendered = render(store);
+
+    act(() => store!.ui.setDraft('hello'));
+    let control = sendControl(rendered);
+    expect(control.getAttribute('aria-label')).toBe('Send');
+    expect(control.disabled).toBe(false);
+
+    act(() => {
+      runInAction(() => {
+        (store!.chat as unknown as { streamingByThread: Record<string, string> }).streamingByThread[store!.chat.activeThreadId!] = 'a-stream';
+      });
+    });
+    control = sendControl(rendered, 'Interrupt and send');
+    expect(control.getAttribute('aria-label')).toBe('Interrupt and send');
+    expect(control.disabled).toBe(false);
+
+    act(() => store!.ui.setDraft(''));
+    control = sendControl(rendered, 'Stop');
+    expect(control.getAttribute('aria-label')).toBe('Stop');
+    expect(control.disabled).toBe(false);
   });
 
   it('falls back to Gemini 3 Flash when the active thread has no resolvable model', async () => {
@@ -143,11 +171,10 @@ describe('EditorialComposer API-key banner', () => {
     expect(rendered.textContent).toContain('Gemini 3 Flash');
     expect(rendered.textContent).not.toContain('Select model');
     expect(rendered.textContent).not.toContain('Add an API key to start chatting.');
-    const sendWrapper = Array.from(rendered.querySelectorAll('div'))
-      .find(d => (d as HTMLElement).getAttribute('title') === 'Send') as HTMLElement | undefined;
-    expect(sendWrapper).toBeDefined();
-    expect(sendWrapper!.style.opacity).toBe('1');
-    expect(sendWrapper!.style.cursor).toBe('pointer');
+    const sendWrapper = sendControl(rendered);
+    expect(sendWrapper.disabled).toBe(false);
+    expect(sendWrapper.style.opacity).toBe('1');
+    expect(sendWrapper.style.cursor).toBe('pointer');
   });
 
   it('disables direct-image mode until ComfyUI is ready', () => {
@@ -159,11 +186,10 @@ describe('EditorialComposer API-key banner', () => {
     act(() => store!.ui.setDraft('a neon greenhouse at night'));
 
     expect(rendered.textContent).toContain('Start and connect ComfyUI');
-    const sendWrapper = Array.from(rendered.querySelectorAll('div'))
-      .find(d => (d as HTMLElement).getAttribute('title') === 'Send') as HTMLElement | undefined;
-    expect(sendWrapper).toBeDefined();
-    expect(sendWrapper!.style.opacity).toBe('0.45');
-    expect(sendWrapper!.style.cursor).toBe('default');
+    const sendWrapper = sendControl(rendered);
+    expect(sendWrapper.disabled).toBe(true);
+    expect(sendWrapper.style.opacity).toBe('0.45');
+    expect(sendWrapper.style.cursor).toBe('default');
   });
 
   it('allows sending in direct-image mode once ComfyUI is ready', () => {
@@ -179,11 +205,10 @@ describe('EditorialComposer API-key banner', () => {
 
     expect(rendered.textContent).not.toContain('Add an API key to start chatting.');
     expect(rendered.textContent).not.toContain('Start and connect ComfyUI');
-    const sendWrapper = Array.from(rendered.querySelectorAll('div'))
-      .find(d => (d as HTMLElement).getAttribute('title') === 'Send') as HTMLElement | undefined;
-    expect(sendWrapper).toBeDefined();
-    expect(sendWrapper!.style.opacity).toBe('1');
-    expect(sendWrapper!.style.cursor).toBe('pointer');
+    const sendWrapper = sendControl(rendered);
+    expect(sendWrapper.disabled).toBe(false);
+    expect(sendWrapper.style.opacity).toBe('1');
+    expect(sendWrapper.style.cursor).toBe('pointer');
   });
 
   it('does not show the gray estimated-send cost', () => {
@@ -216,19 +241,20 @@ describe('EditorialComposer API-key banner', () => {
     });
     const rendered = render(store);
 
-    expect(rendered.textContent).toContain('spent $0.004');
+    expect(rendered.textContent).toContain('$0.004');
+    expect(rendered.textContent).not.toContain('spent $0.004');
     expect(rendered.textContent).not.toMatch(/~\$/);
   });
 
-  it('shows API source guidance in the composer footer', () => {
+  it('does not show API source guidance in the composer footer', () => {
     store = buildStore();
     store.providers.setKey('openrouter', 'sk-test');
     const rendered = render(store);
 
-    expect(rendered.textContent).toContain('auto · Gemini 3 Flash API');
+    expect(rendered.textContent).not.toContain('auto · Gemini 3 Flash API');
   });
 
-  it('shows local source guidance with the selected context mode', () => {
+  it('keeps the local context selector without footer source guidance', () => {
     store = buildStore();
     store.registry.setDynamicForProvider('ollama', [{
       id: 'ollama-llama3',
@@ -245,7 +271,6 @@ describe('EditorialComposer API-key banner', () => {
 
     const rendered = render(store);
     expect((rendered.querySelector('select') as HTMLSelectElement | null)?.value).toBe('micro');
-    expect(rendered.textContent).toContain('local');
     expect(rendered.textContent).not.toContain('local Ã‚· micro tools');
   });
 

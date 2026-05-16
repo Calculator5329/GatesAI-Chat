@@ -127,6 +127,28 @@ function cleanSnapshot(snapshot: ChatSnapshot): ChatSnapshot {
   };
 }
 
+export function prepareChatSnapshotForSave(snapshot: ChatSnapshot): ChatSnapshot {
+  return cleanSnapshot(snapshot);
+}
+
+export function parseChatSnapshotValue(value: unknown): ChatSnapshot | null {
+  try {
+    const parsed = value as ChatSnapshot;
+    if (!parsed || !Array.isArray(parsed.threads)) return null;
+    return migrate(parsed);
+  } catch {
+    return null;
+  }
+}
+
+export function parseChatSnapshotRaw(raw: string): ChatSnapshot | null {
+  try {
+    return parseChatSnapshotValue(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
 function compactSnapshotForEmergencySave(snapshot: ChatSnapshot): ChatSnapshot {
   return {
     ...snapshot,

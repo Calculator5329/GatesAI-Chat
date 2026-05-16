@@ -67,6 +67,10 @@
 - [x] Add a `PersistenceProvider<T>` boundary around local storage slots so
       future IndexedDB / Firestore work can swap repositories without store
       rewrites
+- [x] Add workspace-backed chat-history persistence with readable HTML/Markdown
+      exports and a protected `chat_history` tool for model-side recall
+- [x] Add Brave Search-backed `web_search`, a Models-menu key surface, and an
+      HTML artifact helper for validated workspace deliverables
 
 ## Near-term
 - [x] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-05-14 — Workspace chat history and web search
+
+- Added workspace-backed chat persistence at `/workspace/.gatesai/chat` plus a
+  readable `/workspace/chat-history` HTML/Markdown library for conversations.
+- Added the `chat_history`, `web_search`, and `artifact` tools, with Brave
+  Search configuration in Models and a Tauri-side Brave proxy for desktop use.
+- Hardened direct workspace file access so app-managed chat history stays behind
+  the `chat_history` tool instead of being read, listed, searched, or modified
+  through raw `fs` operations.
+
 ## 2026-05-10 - GatesAI core hardening sprint
 
 - Added ChatStore workflows for pin/unpin, trimmed rename fallback, branching

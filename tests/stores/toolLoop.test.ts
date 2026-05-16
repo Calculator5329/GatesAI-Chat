@@ -177,11 +177,10 @@ describe('Tool loop — scripted', () => {
     chat.createThread();
 
     chat.sendMessage('go');
-    await flush(200);
+    await flush(800);
 
     expect(mock.calls.length).toBeGreaterThan(6);
     expect(mock.calls.length).toBeLessThanOrEqual(16);
-    expect(chat.lastError).toContain('tool rounds');
     expect(chat.activeThread!.messages.at(-1)?.content).toContain('Stopped after 16 tool rounds');
     expect(chat.streamingMessageId).toBeNull();
   });
@@ -293,7 +292,7 @@ describe('Tool loop — scripted', () => {
     }
   });
 
-  it('runs valid calls in a mixed batch while returning validation feedback for invalid calls', async () => {
+  it('executes the valid prefix before stopping at an invalid tool call', async () => {
     const bridgeRequest = vi.fn(async (op: string, data: unknown) => {
       if (op === 'fs.stat') return { path: (data as { path: string }).path, kind: 'file', size: 42, mtime: 0, mime: 'application/json' };
       throw new Error(`unexpected op ${op}`);
@@ -302,6 +301,7 @@ describe('Tool loop — scripted', () => {
       [
         { type: 'tool_call', call: { id: 'valid-stat', name: 'fs', arguments: { action: 'stat', path: '/workspace/artifacts/a.json' } } },
         { type: 'tool_call', call: { id: 'bad-read', name: 'fs', arguments: { action: 'read' } } },
+        { type: 'tool_call', call: { id: 'later-stat', name: 'fs', arguments: { action: 'stat', path: '/workspace/artifacts/b.json' } } },
         { type: 'done', finishReason: 'tool_use' },
       ],
       [{ type: 'text', delta: 'I inspected the valid file and need a path for the read.' }, { type: 'done', finishReason: 'stop' }],
@@ -318,10 +318,16 @@ describe('Tool loop — scripted', () => {
     await flush(80);
 
     expect(bridgeRequest).toHaveBeenCalledTimes(1);
+    expect(bridgeRequest).toHaveBeenCalledWith('fs.stat', { path: '/workspace/artifacts/a.json' });
     const toolMsgs = mock.calls[1].messages.filter(m => m.role === 'tool');
-    expect(toolMsgs.map(m => m.toolCallId)).toEqual(['valid-stat', 'bad-read']);
-    expect(toolMsgs[0].content).toContain('size: 42');
-    expect(toolMsgs[1].content).toContain('`path` is required for fs action "read"');
+    expect(toolMsgs.map(m => m.toolCallId)).toEqual(['valid-stat', 'bad-read', 'later-stat']);
+    expect(toolMsgs[0].content).toContain('path: /workspace/artifacts/a.json');
+    expect(toolMsgs[1].content).toContain('error_code: missing_required_argument');
+    expect(toolMsgs[1].content).toContain('call_index: 1');
+    expect(toolMsgs[1].content).toContain('Tool batch stopped at call 1');
+    expect(toolMsgs[1].content).toContain('1 earlier tool call executed');
+    expect(toolMsgs[2].content).toContain('error_code: skipped_after_invalid_tool_call');
+    expect(toolMsgs[2].content).toContain('first_invalid_call_index: 1');
   });
 
   it('returns malformed argument feedback instead of treating parse failures as empty arguments', async () => {

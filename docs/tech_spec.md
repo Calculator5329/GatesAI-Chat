@@ -150,6 +150,7 @@ interface LlmProvider {
 | `gatesai.ollama.v1`              | Ollama config + catalog   | `OllamaStore`      |
 | `gatesai.local.v1`               | runtime paths + toggles   | `LocalRuntimeStore`|
 | `gatesai.imagejobs.v1`           | completed-job history     | `ImageJobStore`    |
+| `gatesai.search.v1`              | Brave Search key          | `SearchStore`      |
 
 Chat, provider, profile, notes, and UI preference snapshots are saved by their
 owning stores through the `PersistenceProvider<T>` boundary in
@@ -179,6 +180,13 @@ calls, and tool result metadata, but compacts oversized tool result bodies
 and large payload arguments such as `fs.write` content to marked head/tail
 previews. This prevents a large file/tool result from rolling the whole
 conversation back to the previous successful save.
+
+When the bridge is online in desktop mode, `ChatStore` also mirrors the cleaned
+chat snapshot into `/workspace/.gatesai/chat/state.v1.json` and writes a
+readable `/workspace/chat-history` library as HTML and Markdown. The JSON state
+scope is app-managed: `fs` and `inspect_file` block direct access to it, while
+the `chat_history` tool exposes bounded `recent`, `search`, and `read_thread`
+operations for model recall.
 
 ## Theming
 
@@ -350,6 +358,17 @@ Current tool catalog:
   omitted. `set_context` is the only end-to-end path for writing
   `Thread.threadContext`, which is then injected into every subsequent
   system prompt under "About this conversation".
+- `chat_history({ action, id?, query?, limit?, offset? })` — read-only access to
+  bounded slices of persisted conversations. It lists recent visible threads,
+  searches titles/messages/tool metadata/workspace paths, and reads transcript
+  slices without exposing app-managed JSON files through `fs`.
+- `web_search({ queries, freshness?, country?, search_lang? })` — live web
+  grounding through Brave LLM Context. `SearchStore` owns the locally persisted
+  Brave key and a short in-memory query cache; desktop builds call the Tauri
+  `brave_llm_context` command to avoid browser CORS.
+- `artifact({ action, path, content? })` — validates or creates finished HTML
+  artifacts under `/workspace/artifacts/...`, checking file existence, basic
+  HTML shape, inline script syntax, and local asset references.
 - `time({})` — no arguments. Returns ISO + human-readable + timezone +
   unix_ms. Used whenever the model needs the current date/time.
 - `workspace({ action })` — bridge runtime facade. `info` returns platform,

@@ -19,14 +19,16 @@ import { generateThreadTitle } from '../services/threadNamer';
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
 import { isToolFailureContent, logToolCallFailure, safeJsonPreview } from '../services/chat/toolFailureLog';
 import { logEvent } from '../services/diagnostics/chatLog';
+import { createWorkspaceChatPersistence, type WorkspaceChatPersistence } from '../services/workspaceChatPersistence';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
 import type { ToolContext } from '../services/tools/types';
+import type { BridgeClientFacade } from '../services/tools/types';
 import type { ImageBackendId, LocalComfyMode } from '../services/image/types';
 import type { CompletedJob } from '../services/image/jobs/types';
 
-type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime'>;
+type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search'>;
 export type ChatContextMode = NonNullable<Thread['contextMode']>;
 
 const MICRO_LOCAL_MAX_TOKENS = 512;
@@ -210,6 +212,11 @@ export class ChatStore {
   private readonly profile: UserProfileStore;
   private readonly controllersByThread = new Map<string, AbortController>();
   private readonly textBuffer = new StreamingTextBuffer();
+  private workspacePersistence: WorkspaceChatPersistence | null = null;
+  private workspacePersistenceReady = false;
+  private workspacePersistenceHydrating = false;
+  private pendingWorkspaceSnap: ChatSnapshot | null = null;
+  private workspaceSaveInFlight = false;
   /**
    * Late-bound source of "Recent conversations" digests. Wired by RootStore
    * to a SummaryStore call; left unset in tests that don't care about
@@ -231,17 +238,7 @@ export class ChatStore {
     this.profile = profile;
     const snapshot = loadSnapshot();
     if (snapshot) {
-      this.threads = snapshot.threads.map(thread =>
-        this.registry.findById(thread.modelId)
-          ? thread
-          : { ...thread, modelId: DEFAULT_MODEL_ID }
-      );
-      this.activeThreadId = normalizeActiveThreadId(this.threads, snapshot.activeThreadId);
-      if (!this.activeThreadId) {
-        const thread = createEmptyThread();
-        this.threads = [thread];
-        this.activeThreadId = thread.id;
-      }
+      this.applySnapshot(snapshot);
     } else {
       // First run / cleared storage: land in one empty untitled thread so the
       // user has somewhere to type. Composer is disabled by hasUsableProvider
@@ -250,12 +247,17 @@ export class ChatStore {
       this.threads = [thread];
       this.activeThreadId = thread.id;
     }
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'workspacePersistence' | 'workspacePersistenceReady' | 'workspacePersistenceHydrating' | 'pendingWorkspaceSnap' | 'workspaceSaveInFlight' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
       providers: false,
       registry: false,
       profile: false,
       controllersByThread: false,
       textBuffer: false,
+      workspacePersistence: false,
+      workspacePersistenceReady: false,
+      workspacePersistenceHydrating: false,
+      pendingWorkspaceSnap: false,
+      workspaceSaveInFlight: false,
       recentSummariesProvider: false,
       toolStoresProvider: false,
     });
@@ -277,7 +279,7 @@ export class ChatStore {
         pendingTimer = null;
       }
       if (pendingSnap) {
-        scheduleSaveSnapshot(pendingSnap);
+        this.schedulePersistSnapshot(pendingSnap);
         lastSaveAt = Date.now();
         pendingSnap = null;
       }
@@ -289,7 +291,7 @@ export class ChatStore {
       if (elapsed >= FLUSH_MS) {
         if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
         pendingSnap = null;
-        scheduleSaveSnapshot(snap);
+        this.schedulePersistSnapshot(snap);
         lastSaveAt = now;
         return;
       }
@@ -304,6 +306,7 @@ export class ChatStore {
         if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
         if (pendingSnap) {
           saveSnapshot(pendingSnap);
+          this.scheduleWorkspaceSnapshotSave(pendingSnap);
           lastSaveAt = Date.now();
           pendingSnap = null;
         }
@@ -320,6 +323,39 @@ export class ChatStore {
 
   get activeThread(): Thread | null {
     return this.threads.find(t => t.id === this.activeThreadId) ?? null;
+  }
+
+  async enableWorkspacePersistence(client: BridgeClientFacade): Promise<boolean> {
+    if (this.workspacePersistenceHydrating) return false;
+    this.workspacePersistenceHydrating = true;
+    const persistence = createWorkspaceChatPersistence(client);
+    try {
+      const loaded = await persistence.load();
+      if (loaded.kind === 'loaded') {
+        runInAction(() => {
+          this.applySnapshot(loaded.snapshot);
+        });
+        saveSnapshot(this.snapshot);
+      } else if (loaded.kind === 'malformed') {
+        try {
+          await persistence.backupMalformed(loaded.raw);
+        } catch (err) {
+          console.warn('[persistence] failed to back up malformed workspace chat snapshot', err);
+        }
+        await persistence.save(this.snapshot, 'localStorage-migration');
+      } else {
+        await persistence.save(this.snapshot, 'localStorage-migration');
+      }
+      this.workspacePersistence = persistence;
+      this.workspacePersistenceReady = true;
+      this.scheduleWorkspaceSnapshotSave(this.snapshot);
+      return true;
+    } catch (err) {
+      console.warn('[persistence] workspace chat persistence unavailable', err);
+      return false;
+    } finally {
+      this.workspacePersistenceHydrating = false;
+    }
   }
 
   get isStreaming(): boolean {
@@ -376,6 +412,7 @@ export class ChatStore {
       userText: latestUserText,
       bridgeOnline: bridge?.isOnline ?? false,
       imageGenAvailable: isImageGenerationAvailable(extras),
+      webSearchAvailable: extras?.search?.braveReady ?? false,
     });
     const systemPrompt = systemPromptForContextMode(mode, () =>
       this.profile.composeSystemPrompt({
@@ -533,8 +570,10 @@ export class ChatStore {
    * conversation:". Persists with the thread snapshot. No editor UI yet.
    */
   setThreadContext(threadId: string, context: string): void {
-    const thread = this.findThread(threadId);
-    if (thread) thread.threadContext = context;
+    const idx = this.threads.findIndex(t => t.id === threadId);
+    if (idx < 0) return;
+    this.threads[idx] = { ...this.threads[idx], threadContext: context };
+    this.schedulePersistSnapshot(this.snapshot);
   }
 
   /**
@@ -542,10 +581,11 @@ export class ChatStore {
    * UI. No-op if the id is unknown.
    */
   renameThread(threadId: string, title: string): void {
-    const thread = this.findThread(threadId);
-    if (!thread) return;
+    const idx = this.threads.findIndex(t => t.id === threadId);
+    if (idx < 0) return;
     const next = title.trim();
-    thread.title = next || 'Untitled conversation';
+    this.threads[idx] = { ...this.threads[idx], title: next || 'Untitled conversation' };
+    this.schedulePersistSnapshot(this.snapshot);
   }
 
   clearAllThreads(): void {
@@ -1097,6 +1137,7 @@ export class ChatStore {
       userText: latestUserMessageContent(thread),
       bridgeOnline: bridge?.isOnline ?? false,
       imageGenAvailable: isImageGenerationAvailable(extras),
+      webSearchAvailable: extras?.search?.braveReady ?? false,
     });
     const finalSystemPrompt = appendImageGenAddendum(systemPrompt, tools);
     return {
@@ -1243,40 +1284,61 @@ export class ChatStore {
         toolNames: calls.map(call => call.name),
       });
     }
-    let index = 0;
-    while (index < calls.length) {
-      if (signal.aborted) break;
-      const call = calls[index];
+    const validations = calls.map((call, index) => {
       const validation = toolRegistry.validateToolCall(call);
-      this.logToolValidation(threadId, call, validation);
-      if (!validation.ok) {
-        results[index] = this.invalidToolCallResult(call, validation, invalidSeen, threadId);
-        index += 1;
-        continue;
+      this.logToolValidation(threadId, call, validation, index);
+      return validation;
+    });
+    const invalids = validations
+      .map((validation, index) => ({ validation, index, call: calls[index] }))
+      .filter(item => !item.validation.ok);
+    if (invalids.length > 0) {
+      const firstInvalidIndex = invalids[0].index;
+      const batchSummary = formatInterruptedToolBatchSummary(invalids, firstInvalidIndex);
+      logEvent(threadId, 'tool.batch.interrupted', {
+        count: calls.length,
+        invalid: invalids.length,
+        executedPrefix: firstInvalidIndex,
+        invalidIndexes: invalids.map(item => item.index),
+        errorCodes: invalids.map(item => item.validation.errorCode),
+      });
+      if (firstInvalidIndex > 0) {
+        const prefixResults = await this.executeValidatedToolCalls(calls.slice(0, firstInvalidIndex), threadId, signal);
+        prefixResults.forEach((result, index) => { results[index] = result; });
       }
-      if (toolRegistry.isReadOnlyCall(call.name, call.arguments)) {
-        const groupStart = index;
-        const group: ToolCall[] = [];
-        while (
-          index < calls.length
-          && toolRegistry.validateToolCall(calls[index]).ok
-          && toolRegistry.isReadOnlyCall(calls[index].name, calls[index].arguments)
-        ) {
-          if (index !== groupStart) this.logToolValidation(threadId, calls[index], { ok: true, toolName: calls[index].name });
-          group.push(calls[index]);
-          index += 1;
+      const invalidByIndex = new Map(invalids.map(item => [item.index, item]));
+      if (!signal.aborted) {
+        for (let index = firstInvalidIndex; index < calls.length; index += 1) {
+          const invalid = invalidByIndex.get(index);
+          results[index] = invalid
+            ? this.invalidToolCallResult(calls[index], invalid.validation, invalidSeen, threadId, {
+                callIndex: index,
+                batchSummary,
+              })
+            : this.skippedAfterInvalidToolCallResult(calls[index], index, batchSummary, firstInvalidIndex);
         }
-        const groupResults = await Promise.all(group.map(call => this.executeOneToolCall(call, threadId, signal)));
-        if (signal.aborted) break;
-        groupResults.forEach((result, offset) => { results[groupStart + offset] = result; });
-      } else {
-        const result = await this.executeOneToolCall(call, threadId, signal);
-        if (signal.aborted) break;
-        results[index] = result;
-        index += 1;
       }
+      const finished = results.filter(Boolean);
+      if (largeBatchWarning && finished[0]) {
+        finished[0] = {
+          ...finished[0],
+          content: `${largeBatchWarning}\n\n${finished[0].content}`,
+          outputChars: `${largeBatchWarning}\n\n${finished[0].content}`.length,
+        };
+      }
+      logEvent(threadId, 'tool.batch.finished', {
+        count: calls.length,
+        results: finished.length,
+        invalid: invalids.length,
+        skipped: Math.max(0, calls.length - firstInvalidIndex - invalids.length),
+        durationMs: Date.now() - batchStartedAt,
+        largeBatch: Boolean(largeBatchWarning),
+        interrupted: true,
+        executedPrefix: firstInvalidIndex,
+      });
+      return finished;
     }
-    const finished = results.filter(Boolean);
+    const finished = await this.executeValidatedToolCalls(calls, threadId, signal);
     if (largeBatchWarning && finished[0]) {
       finished[0] = {
         ...finished[0],
@@ -1294,10 +1356,40 @@ export class ChatStore {
     return finished;
   }
 
-  private logToolValidation(threadId: string, call: ToolCall, validation: ToolValidationResult): void {
+  private async executeValidatedToolCalls(calls: ToolCall[], threadId: string, signal: AbortSignal): Promise<ToolResult[]> {
+    const results = new Array<ToolResult>(calls.length);
+    let index = 0;
+    while (index < calls.length) {
+      if (signal.aborted) break;
+      const call = calls[index];
+      if (toolRegistry.isReadOnlyCall(call.name, call.arguments)) {
+        const groupStart = index;
+        const group: ToolCall[] = [];
+        while (
+          index < calls.length
+          && toolRegistry.isReadOnlyCall(calls[index].name, calls[index].arguments)
+        ) {
+          group.push(calls[index]);
+          index += 1;
+        }
+        const groupResults = await Promise.all(group.map(call => this.executeOneToolCall(call, threadId, signal)));
+        if (signal.aborted) break;
+        groupResults.forEach((result, offset) => { results[groupStart + offset] = result; });
+      } else {
+        const result = await this.executeOneToolCall(call, threadId, signal);
+        if (signal.aborted) break;
+        results[index] = result;
+        index += 1;
+      }
+    }
+    return results.filter(Boolean);
+  }
+
+  private logToolValidation(threadId: string, call: ToolCall, validation: ToolValidationResult, index?: number): void {
     logEvent(threadId, 'tool.call.validated', {
       toolName: call.name,
       toolCallId: call.id,
+      ...(index != null ? { index } : {}),
       ok: validation.ok,
       errorCode: validation.errorCode,
       retryable: validation.retryable,
@@ -1306,7 +1398,13 @@ export class ChatStore {
     });
   }
 
-  private invalidToolCallResult(call: ToolCall, validation: ToolValidationResult, invalidSeen: Set<string>, threadId: string): ToolResult {
+  private invalidToolCallResult(
+    call: ToolCall,
+    validation: ToolValidationResult,
+    invalidSeen: Set<string>,
+    threadId: string,
+    batch?: { callIndex: number; batchSummary: string },
+  ): ToolResult {
     const validationError = validation.content ?? `status: error\ntool: ${call.name}\nsummary: invalid tool call`;
     const key = `${call.name}:${validationError}:${safeStableJson(call.arguments)}`;
     const repeated = invalidSeen.has(key);
@@ -1334,7 +1432,10 @@ export class ChatStore {
     }
     const content = repeated
       ? `status: error\ntool: ${call.name}\nerror_code: repeated_invalid_tool_call\nsummary: Skipped repeated invalid tool call.\nfix: Correct the prior validation error before retrying.\nretryable: true\nprevious_error: ${validation.summary ?? validationError.replace(/\s+/g, ' ').slice(0, 300)}`
-      : validationError;
+      : [
+          ...(batch ? [batch.batchSummary, `call_index: ${batch.callIndex}`] : []),
+          validationError,
+        ].join('\n');
     return {
       toolCallId: call.id,
       toolName: call.name,
@@ -1343,6 +1444,31 @@ export class ChatStore {
       errorCode: repeated ? 'repeated_invalid_tool_call' : validation.errorCode,
       retryable: repeated ? true : validation.retryable,
       durationMs: Date.now() - startedAt,
+      outputChars: content.length,
+      ranAt: Date.now(),
+    };
+  }
+
+  private skippedAfterInvalidToolCallResult(call: ToolCall, callIndex: number, batchSummary: string, firstInvalidIndex: number): ToolResult {
+    const content = [
+      batchSummary,
+      `call_index: ${callIndex}`,
+      `first_invalid_call_index: ${firstInvalidIndex}`,
+      `status: error`,
+      `tool: ${call.name}`,
+      `error_code: skipped_after_invalid_tool_call`,
+      `summary: This valid-looking tool call was not executed because an earlier call in the same batch failed validation.`,
+      `fix: Retry this call only after correcting the earlier invalid call. Keep dependent side-effect work in separate sequential batches.`,
+      `retryable: true`,
+    ].join('\n');
+    return {
+      toolCallId: call.id,
+      toolName: call.name,
+      content,
+      ok: false,
+      errorCode: 'skipped_after_invalid_tool_call',
+      retryable: true,
+      durationMs: 0,
       outputChars: content.length,
       ranAt: Date.now(),
     };
@@ -1382,6 +1508,7 @@ export class ChatStore {
       imageGen: extras.imageGen,
       imageJobs: extras.imageJobs,
       localRuntime: extras.localRuntime,
+      search: extras.search,
       threadId,
       signal,
     });
@@ -1510,6 +1637,47 @@ export class ChatStore {
 
   private findThread(id: string): Thread | undefined {
     return this.threads.find(t => t.id === id);
+  }
+
+  private applySnapshot(snapshot: ChatSnapshot): void {
+    this.threads = snapshot.threads.map(thread =>
+      this.registry.findById(thread.modelId)
+        ? thread
+        : { ...thread, modelId: DEFAULT_MODEL_ID }
+    );
+    this.activeThreadId = normalizeActiveThreadId(this.threads, snapshot.activeThreadId);
+    if (!this.activeThreadId) {
+      const thread = createEmptyThread();
+      this.threads = [thread];
+      this.activeThreadId = thread.id;
+    }
+  }
+
+  private schedulePersistSnapshot(snapshot: ChatSnapshot): void {
+    scheduleSaveSnapshot(snapshot);
+    this.scheduleWorkspaceSnapshotSave(snapshot);
+  }
+
+  private scheduleWorkspaceSnapshotSave(snapshot: ChatSnapshot): void {
+    if (!this.workspacePersistenceReady || !this.workspacePersistence) return;
+    this.pendingWorkspaceSnap = snapshot;
+    if (this.workspaceSaveInFlight) return;
+    this.drainWorkspaceSnapshotSave();
+  }
+
+  private drainWorkspaceSnapshotSave(): void {
+    if (!this.workspacePersistence || !this.pendingWorkspaceSnap) return;
+    const snap = this.pendingWorkspaceSnap;
+    this.pendingWorkspaceSnap = null;
+    this.workspaceSaveInFlight = true;
+    void this.workspacePersistence.save(snap)
+      .catch(err => {
+        console.warn('[persistence] failed to save workspace chat snapshot', err);
+      })
+      .finally(() => {
+        this.workspaceSaveInFlight = false;
+        if (this.pendingWorkspaceSnap) this.drainWorkspaceSnapshotSave();
+      });
   }
 
   private findMessage(threadId: string, messageId: string): Message | undefined {
@@ -1706,15 +1874,21 @@ function toolsForContextMode(args: {
   userText: string;
   bridgeOnline: boolean;
   imageGenAvailable?: boolean;
+  webSearchAvailable?: boolean;
 }): ToolDef[] | undefined {
   if (!args.toolsAllowed || args.mode === 'bare') return undefined;
   if (args.mode === 'micro') {
-    return args.bridgeOnline && isMicroFsRelevant(args.userText) ? [MICRO_FS_TOOL_DEF] : undefined;
+    const tools: ToolDef[] = [];
+    if (args.bridgeOnline && isMicroFsRelevant(args.userText)) tools.push(MICRO_FS_TOOL_DEF);
+    const webSearch = args.webSearchAvailable ? toolRegistry.get('web_search')?.def : undefined;
+    if (webSearch) tools.push(webSearch);
+    return tools.length > 0 ? tools : undefined;
   }
   return toolRegistry.toolDefsForTurn({
     userText: args.userText,
     bridgeOnline: args.bridgeOnline,
     imageGenAvailable: args.imageGenAvailable,
+    webSearchAvailable: args.webSearchAvailable,
   });
 }
 
@@ -1866,6 +2040,28 @@ function formatRepeatedSideEffectLoopMessage(repeat: { path: string; action: str
     `Latest repeated path: ${repeat.path}`,
     'The successful tool results above are still available, so you can open the artifact or ask me to continue from that file.',
   ].join('\n\n');
+}
+
+function formatInterruptedToolBatchSummary(
+  invalids: Array<{ index: number; call: ToolCall; validation: ToolValidationResult }>,
+  firstInvalidIndex: number,
+): string {
+  const executed = firstInvalidIndex;
+  const prefixSummary = executed === 0
+    ? 'No earlier calls were executed.'
+    : `${executed} earlier tool call${executed === 1 ? '' : 's'} executed before the invalid call.`;
+  return [
+    'status: error',
+    'tool: tool_batch_policy',
+    'error_code: invalid_tool_batch',
+    `summary: Tool batch stopped at call ${firstInvalidIndex} because ${invalids.length} tool call${invalids.length === 1 ? '' : 's'} failed validation. ${prefixSummary} The invalid call and all later calls were not executed.`,
+    'invalid_calls:',
+    ...invalids.map(({ index, call, validation }) => (
+      `- call ${index} (${call.name}): ${validation.summary ?? validation.errorCode ?? 'invalid tool call'}`
+    )),
+    'fix: Correct the invalid call and retry from that point. Do not send placeholder or empty tool arguments. For finished HTML games/apps, prefer one artifact.create_html_artifact call with a complete document under /workspace/artifacts/exports/...',
+    'retryable: true',
+  ].join('\n');
 }
 
 function summarizeToolProgress(message: AssistantMessage): string | null {

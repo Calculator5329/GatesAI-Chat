@@ -3,7 +3,9 @@ import { NotesStore } from '../../src/stores/NotesStore';
 import { notesTool } from '../../src/services/tools/notes';
 import { timeTool } from '../../src/services/tools/time';
 import { threadTool } from '../../src/services/tools/thread';
+import { chatHistoryTool } from '../../src/services/tools/chatHistory';
 import { fsTool } from '../../src/services/tools/fs';
+import { inspectFileTool } from '../../src/services/tools/inspectFile';
 import { terminalTool } from '../../src/services/tools/terminal';
 import { pythonInlineTool } from '../../src/services/tools/pythonInline';
 import { sqliteQueryTool } from '../../src/services/tools/sqliteQuery';
@@ -241,6 +243,53 @@ describe('thread tool', () => {
   });
 });
 
+describe('chat_history tool', () => {
+  const threads: Thread[] = [{
+    id: 't-alpha',
+    title: 'Migration planning',
+    subtitle: '',
+    modelId: DEFAULT_MODEL_ID,
+    createdAt: 1,
+    updatedAt: 3,
+    pinned: false,
+    summary: 'Discussed moving chat history into the workspace.',
+    threadContext: 'Persistence work',
+    messages: [
+      { id: 'm1', role: 'user', content: 'Please store chat history durably.', createdAt: 1 },
+      {
+        id: 'm2',
+        role: 'assistant',
+        content: 'I will use /workspace/artifacts/reports/plan.md for the plan.',
+        createdAt: 2,
+        toolCalls: [{ id: 'c1', name: 'fs', arguments: { action: 'write', path: '/workspace/artifacts/reports/plan.md' } }],
+        toolResults: [{ toolCallId: 'c1', toolName: 'fs', content: 'Wrote plan.md with persistence notes.', ranAt: 3 }],
+      },
+    ],
+  }];
+
+  it('search returns bounded snippets with thread and message ids', async () => {
+    const out = await chatHistoryTool.execute(
+      { action: 'search', query: 'persistence', limit: 2 },
+      makeCtx({ chat: { threads } as unknown as ToolContext['chat'], threadId: 't-alpha' }),
+    );
+
+    expect(out).toContain('thread_id: t-alpha');
+    expect(out).toContain('field:');
+    expect(out).toContain('snippet:');
+  });
+
+  it('read_thread returns a bounded transcript slice', async () => {
+    const out = await chatHistoryTool.execute(
+      { action: 'read_thread', id: 't-alpha', limit: 1 },
+      makeCtx({ chat: { threads } as unknown as ToolContext['chat'], threadId: 't-alpha' }),
+    );
+
+    expect(out).toContain('showing: 1 from offset 1');
+    expect(out).toContain('#1 assistant m2');
+    expect(out).not.toContain('#0 user m1');
+  });
+});
+
 interface FakeRequest { op: string; data: unknown }
 function fakeBridge(opts: { online: boolean; respond?: (op: string, data: unknown) => unknown; requests?: FakeRequest[] }): ToolContext['bridge'] {
   return {
@@ -259,6 +308,64 @@ describe('fs tool', () => {
     const ctx = makeCtx({ bridge: fakeBridge({ online: false }) });
     const out = await fsTool.execute({ action: 'read', path: 'notes/x.md' }, ctx);
     expect(out).toMatch(/bridge offline/i);
+  });
+
+  it('denies direct reads of app-managed chat history files', async () => {
+    const out = await fsTool.execute(
+      { action: 'read', path: '/workspace/.gatesai/chat/state.v1.json' },
+      makeCtx({ bridge: fakeBridge({ online: true }) }),
+    );
+    expect(out).toMatch(/chat_history/);
+  });
+
+  it('denies writes and deletes inside app-managed chat history scope', async () => {
+    const ctx = makeCtx({ bridge: fakeBridge({ online: true }) });
+
+    await expect(fsTool.execute(
+      { action: 'write', path: '/workspace/.gatesai/chat/manual.json', content: '{}' },
+      ctx,
+    )).resolves.toMatch(/chat_history/);
+    await expect(fsTool.execute(
+      { action: 'delete', path: '/workspace/.gatesai/chat' },
+      ctx,
+    )).resolves.toMatch(/chat_history/);
+  });
+
+  it('filters app-managed chat history files from recursive lists and search results', async () => {
+    const bridge = fakeBridge({
+      online: true,
+      respond: op => {
+        if (op === 'fs.list') {
+          return {
+            path: '/workspace',
+            entries: [
+              { path: '/workspace/.gatesai/chat/state.v1.json', name: 'state.v1.json', kind: 'file', size: 10, mtime: 1 },
+              { path: '/workspace/.gatesai/chat/malformed-2026.json', name: 'malformed-2026.json', kind: 'file', size: 12, mtime: 1 },
+              { path: '/workspace/artifacts/report.md', name: 'report.md', kind: 'file', size: 20, mtime: 2 },
+            ],
+          };
+        }
+        if (op === 'fs.search') {
+          return {
+            query: 'history',
+            hits: [
+              { path: '/workspace/.gatesai/chat/state.v1.json', line: 1, snippet: 'hidden history' },
+              { path: '/workspace/.gatesai/chat/malformed-2026.json', line: 1, snippet: 'hidden backup history' },
+              { path: '/workspace/artifacts/report.md', line: 2, snippet: 'visible history' },
+            ],
+          };
+        }
+        return {};
+      },
+    });
+
+    const listed = await fsTool.execute({ action: 'list', path: '/workspace', recursive: true }, makeCtx({ bridge }));
+    const searched = await fsTool.execute({ action: 'search', path: '/workspace', query: 'history' }, makeCtx({ bridge }));
+
+    expect(listed).not.toContain('.gatesai/chat/state');
+    expect(listed).toContain('/workspace/artifacts/report.md');
+    expect(searched).not.toContain('.gatesai/chat/state');
+    expect(searched).toContain('/workspace/artifacts/report.md');
   });
 
   it('rejects unknown actions', async () => {
@@ -393,6 +500,17 @@ describe('fs tool', () => {
     const out = await fsTool.execute({ action: 'search', path: '/workspace/notes', query: 'gamma' }, ctx);
 
     expect(out).toBe('No matches for "gamma" under /workspace/notes.');
+  });
+});
+
+describe('inspect_file tool', () => {
+  it('denies direct inspection of app-managed chat history files', async () => {
+    const out = await inspectFileTool.execute(
+      { action: 'profile', path: '/workspace/.gatesai/chat/state.v1.json' },
+      makeCtx({ bridge: fakeBridge({ online: true }) }),
+    );
+
+    expect(out).toMatch(/chat_history/);
   });
 });
 
@@ -593,6 +711,68 @@ describe('workspace tool', () => {
   });
 });
 
+describe('artifact tool', () => {
+  it('creates an HTML artifact and validates it before returning success', async () => {
+    const requests: FakeRequest[] = [];
+    const files = new Map<string, string>();
+    const bridge = fakeBridge({
+      online: true,
+      requests,
+      respond: (op, data) => {
+        const path = (data as { path?: string }).path ?? '';
+        if (op === 'fs.mkdir') return { path };
+        if (op === 'fs.write') {
+          const content = (data as { content: string }).content;
+          files.set(path, content);
+          return { path, bytes: content.length };
+        }
+        if (op === 'fs.stat') {
+          const content = files.get(path);
+          if (content == null) throw new Error(`missing ${path}`);
+          return { path, kind: 'file', size: content.length, mtime: 1, mime: 'text/html' };
+        }
+        if (op === 'fs.read') {
+          const content = files.get(path) ?? '';
+          return { path, content, encoding: 'utf8', size: content.length, mime: 'text/html' };
+        }
+        throw new Error(`unexpected op ${op}`);
+      },
+    });
+
+    const out = await toolRegistry.execute('artifact', {
+      action: 'create_html_artifact',
+      path: '/workspace/artifacts/exports/game.html',
+      content: '<!doctype html><html><body><canvas id="game"></canvas><script>const score = 1;</script></body></html>',
+    }, makeCtx({ bridge }));
+
+    expect(out.ok).toBe(true);
+    expect(out.content).toContain('Created and validated HTML artifact');
+    expect(requests.map(req => req.op)).toEqual(['fs.mkdir', 'fs.write', 'fs.stat', 'fs.read']);
+  });
+
+  it('reports invalid HTML and missing local assets', async () => {
+    const bridge = fakeBridge({
+      online: true,
+      respond: (op, data) => {
+        const path = (data as { path?: string }).path ?? '';
+        if (op === 'fs.stat' && path.endsWith('bad.html')) return { path, kind: 'file', size: 50, mtime: 1, mime: 'text/html' };
+        if (op === 'fs.read') return { path, content: '<div><script>const = ;</script><img src="./missing.png">', encoding: 'utf8', size: 50, mime: 'text/html' };
+        throw new Error(`missing ${path}`);
+      },
+    });
+
+    const out = await toolRegistry.execute('artifact', {
+      action: 'validate_html',
+      path: '/workspace/artifacts/exports/bad.html',
+    }, makeCtx({ bridge }));
+
+    expect(out.ok).toBe(false);
+    expect(out.errorCode).toBe('invalid_html_artifact');
+    expect(out.content).toContain('inline script 1 has a syntax error');
+    expect(out.content).toContain('missing local assets');
+  });
+});
+
 describe('tool registry harness selection', () => {
   it('validates schema types, enums, unknown tools, and fs action-specific arguments before execution', () => {
     expect(toolRegistry.validateCallDetailed('missing_tool', {}).content).toContain('error_code: unknown_tool');
@@ -603,6 +783,8 @@ describe('tool registry harness selection', () => {
     expect(toolRegistry.validateCallDetailed('fs', { action: 'move', from: '/workspace/a.txt' }).content).toContain('`to` is required for fs action "move"');
     expect(toolRegistry.validateCallDetailed('fs', { action: 'search', query: 'needle', max_hits: 'many' }).content).toContain('error_code: invalid_argument_type');
     expect(toolRegistry.validateCallDetailed('fs', { action: 'read', path: '/workspace/x.txt' }).ok).toBe(true);
+    expect(toolRegistry.validateCallDetailed('artifact', { action: 'create_html_artifact', path: '/workspace/artifacts/exports/game.html' }).content)
+      .toContain('`content` is required for artifact action "create_html_artifact"');
   });
 
   it('keeps ordinary chat turns on the small always-on tool set', () => {
@@ -611,7 +793,7 @@ describe('tool registry harness selection', () => {
       bridgeOnline: false,
     }).map(t => t.name);
 
-    expect(names).toEqual(['memory', 'thread']);
+    expect(names).toEqual(['memory', 'thread', 'chat_history']);
     expect(names).not.toContain('time');
   });
 
@@ -621,7 +803,16 @@ describe('tool registry harness selection', () => {
       bridgeOnline: true,
     }).map(t => t.name);
 
-    expect(names).toEqual(expect.arrayContaining(['workspace', 'fs', 'inspect_file', 'terminal', 'python_inline', 'sqlite_query', 'query_script', 'git']));
+    expect(names).toEqual(expect.arrayContaining(['workspace', 'fs', 'inspect_file', 'artifact', 'terminal', 'python_inline', 'sqlite_query', 'query_script', 'git']));
+  });
+
+  it('includes artifact tools for HTML game requests even without file keywords', () => {
+    const names = toolRegistry.toolDefsForTurn({
+      userText: 'make a cool html game',
+      bridgeOnline: false,
+    }).map(t => t.name);
+
+    expect(names).toEqual(expect.arrayContaining(['workspace', 'fs', 'artifact']));
   });
 
   it('only exposes image generation when an image backend is available', () => {

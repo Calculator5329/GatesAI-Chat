@@ -5,6 +5,7 @@ use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
 mod http_health;
+mod brave_search;
 mod local_runtime;
 
 use http_health::probe_health;
@@ -40,6 +41,7 @@ pub fn run() {
     .plugin(tauri_plugin_dialog::init())
     .invoke_handler(tauri::generate_handler![
       open_path,
+      brave_search::brave_llm_context,
       local_runtime::spawn_runtime,
       local_runtime::stop_runtime,
       local_runtime::runtime_status,

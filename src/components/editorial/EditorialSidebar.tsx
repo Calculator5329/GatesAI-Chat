@@ -54,14 +54,15 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
   list: { flex: 1, overflowY: 'auto', paddingBottom: 16, scrollbarGutter: 'stable' as const },
   xBtn: {
     flex: 'none',
-    width: 18, height: 18, padding: 0,
+    width: 32, height: 32, minWidth: 32, minHeight: 32, padding: 0,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     background: 'transparent',
     border: 'none',
     color: 'var(--text-faint)',
     cursor: 'pointer',
-    borderRadius: 3,
-    opacity: 0.7,
+    borderRadius: 5,
+    opacity: 0.78,
+    overflow: 'visible',
   },
   undo: {
     margin: '8px 16px 4px',
@@ -97,7 +98,9 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
     flex: 'none',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
+    minWidth: 68,
+    overflow: 'visible',
   },
   inlineInput: {
     width: '100%',
@@ -251,6 +254,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
               hovering a row would re-flow the title text. */}
           {!streaming && (
             <div
+              className="editorial-sidebar__row-actions"
               style={{
                 ...(S.rowActions as CSSProperties),
                 visibility: showActions || t.pinned ? 'visible' : 'hidden',
@@ -260,19 +264,19 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
             >
               <button
                 type="button"
+                className="editorial-sidebar__pin-button"
                 onClick={() => chat.toggleThreadPinned(t.id)}
                 aria-label={t.pinned ? `Unpin "${t.title}"` : `Pin "${t.title}"`}
-                title={t.pinned ? 'Unpin conversation' : 'Pin conversation'}
                 tabIndex={showActions || t.pinned ? 0 : -1}
-                style={{ ...(S.xBtn as CSSProperties), color: t.pinned ? 'var(--accent)' : 'var(--text-faint)' }}
+                style={{ ...(S.xBtn as CSSProperties), color: t.pinned ? 'var(--accent)' : 'var(--text-faint)', opacity: t.pinned ? 1 : 0.72 }}
               >
                 <Icons.Pin />
               </button>
               <button
                 type="button"
+                className="editorial-sidebar__delete-button"
                 onClick={e => onDelete(t, e)}
                 aria-label={`Delete "${t.title}"`}
-                title="Delete conversation"
                 tabIndex={showActions ? 0 : -1}
                 style={S.xBtn as CSSProperties}
               >

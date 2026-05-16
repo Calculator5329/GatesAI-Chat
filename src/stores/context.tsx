@@ -13,6 +13,7 @@ import type { ImageGenStore } from './ImageGenStore';
 import type { ImageJobStore } from './ImageJobStore';
 import type { OllamaStore } from './OllamaStore';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
+import type { SearchStore } from './SearchStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -76,4 +77,8 @@ export function useOllamaStore(): OllamaStore {
 
 export function useLocalRuntimeStore(): LocalRuntimeStore {
   return useRootStore().localRuntime;
+}
+
+export function useSearchStore(): SearchStore {
+  return useRootStore().search;
 }

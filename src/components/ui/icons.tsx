@@ -18,7 +18,7 @@ const Ico = ({ d, size = 16, stroke = 1.5, fill = 'none', style }: IconProps) =>
     strokeWidth={stroke}
     strokeLinecap="round"
     strokeLinejoin="round"
-    style={{ flexShrink: 0, ...style }}
+    style={{ flexShrink: 0, overflow: 'visible', ...style }}
   >
     {typeof d === 'string' ? <path d={d} /> : d}
   </svg>
@@ -35,7 +35,9 @@ export const Icons = {
   Edit:      () => <Ico d={<><path d="M3.5 11.8l.7-2.7 6.6-6.6a1.4 1.4 0 0 1 2 2L6.2 11.1z" /><path d="M9.8 3.5l2.7 2.7M3.5 13h9" /></>} />,
   Refresh:   () => <Ico d={<><path d="M13 5.5A5 5 0 1 0 14 8" /><path d="M13 2.5v3h-3" /></>} />,
   Branch:    () => <Ico d={<><circle cx="4" cy="4" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="4" cy="12" r="1.5" /><path d="M4 5.5V12M5.4 4.6c3.2.7 5.2 2.7 6 5.9" /></>} />,
-  Pin:       () => <Ico d={<><path d="M5.5 2.8h5l-.8 4 2.1 2.1v1H8.7L8 14" /><path d="M7.3 10.2L3 14.5" /></>} />,
+  Pin:       () => <Ico size={17} stroke={1.55} d={<g transform="rotate(-45 8 8)"><path d="M5.2 3.4h5.6" /><path d="M8 3.4v6.2" /><path d="M6.2 9.6h3.6" /><path d="M8 9.6v3.4" /></g>} />,
+  Eye:       () => <Ico d={<><path d="M1.8 8s2.2-4 6.2-4 6.2 4 6.2 4-2.2 4-6.2 4-6.2-4-6.2-4z" /><circle cx="8" cy="8" r="1.7" /></>} />,
+  Tool:      () => <Ico d={<><path d="M9.8 2.8a3 3 0 0 0 3.4 3.4l-6.8 6.8a1.6 1.6 0 0 1-2.3-2.3z" /><path d="M4.4 11.6l-1.7 1.7" /></>} />,
   Share:     () => <Ico d={<><circle cx="5" cy="8" r="1.7" /><circle cx="12" cy="4" r="1.7" /><circle cx="12" cy="12" r="1.7" /><path d="M6.5 7.1l4-2.2M6.5 8.9l4 2.2" /></>} />,
   More:      () => <Ico d={<><circle cx="8" cy="3.8" r=".7" fill="currentColor" stroke="none" /><circle cx="8" cy="8" r=".7" fill="currentColor" stroke="none" /><circle cx="8" cy="12.2" r=".7" fill="currentColor" stroke="none" /></>} />,
   Close:     () => <Ico d="M4 4l8 8M12 4l-8 8" />,

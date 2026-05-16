@@ -57,6 +57,7 @@ export interface BridgeFacade {
 }
 
 import type { ImageBackendId, ImageBackendSnapshot, LocalComfyMode } from '../image/types';
+import type { BraveFreshness, BraveSearchQueryResult } from '../search/types';
 export type { ImageBackendId, ImageBackendSnapshot, LocalComfyMode };
 
 export interface ImageGenFacade {
@@ -100,6 +101,17 @@ export interface ExecStreamFacade {
   fail(jobId: string, message: string): void;
 }
 
+export interface SearchFacade {
+  readonly braveReady: boolean;
+  searchBraveContext(input: {
+    queries: string[];
+    freshness?: BraveFreshness;
+    country?: string;
+    searchLang?: string;
+    signal?: AbortSignal;
+  }): Promise<BraveSearchQueryResult[]>;
+}
+
 export interface ToolContext {
   profile: ProfileFacade;
   chat: ChatFacade;
@@ -110,13 +122,14 @@ export interface ToolContext {
   imageJobs?: ImageJobsFacade;
   localRuntime?: LocalRuntimeFacade;
   execStream?: ExecStreamFacade;
+  search?: SearchFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;
   /** Aborts when the calling assistant turn is interrupted. */
   signal?: AbortSignal;
 }
 
-export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision';
+export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision' | 'web';
 
 export interface ToolResultPolicy {
   /** Default max chars returned to the model before compaction. */

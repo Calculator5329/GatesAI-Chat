@@ -56,6 +56,7 @@ src/
     LocalRuntimeStore.ts          # Ollama + ComfyUI install paths, base URLs, vision model
     ImageGenStore.ts              # image-gen backend selection + workflow override settings
     ImageJobStore.ts              # image-job queue, runner, completed history
+    SearchStore.ts                # Brave Search key, short-lived query cache, web_search facade
     UserProfileStore.ts           # bio, durable facts, base system prompt
     SummaryStore.ts               # lazy cross-thread summaries
     NotesStore.ts                 # durable user/model notes
@@ -71,6 +72,8 @@ src/
     openrouterCache.ts            # gatesai.openrouter.catalog.v1 cache
     imageGenStorage.ts            # gatesai.imagegen.v1 (ComfyUI quality + workflow override)
     imageJobsStorage.ts           # gatesai.imagejobs.v1 (completed-job history; in-flight discarded)
+    searchStorage.ts              # gatesai.search.v1 (Brave Search key)
+    workspaceChatPersistence.ts   # bridge-backed chat snapshot + readable history library
     storage/
       persistenceProvider.ts      # injectable persistence ports + localStorage adapter
       jsonSlot.ts                 # compatibility wrapper for JSON-backed slots
@@ -168,6 +171,8 @@ source while keeping tests looser.
 - `BridgeStore` owns bridge health polling and the WebSocket client.
 - `ExecStreamStore` owns the live terminal output tail rendered while
   `terminal` calls are in flight.
+- `SearchStore` owns the Brave Search API key, a short-lived in-memory result
+  cache, and the facade consumed by the `web_search` tool.
 - `RootStore` composes them and is provided through React context. Components
   use `observer()` from `mobx-react-lite` and read state via `use*Store()`.
 
@@ -186,6 +191,14 @@ parsing the human-facing result string.
 `ChatStore.executeOneToolCall` runs the registry, persists the
 `content` onto the assistant message's `toolResults`, and stashes
 `artifacts` next to it when present.
+
+Workspace chat history is app-managed: `ChatStore` saves a JSON envelope under
+`/workspace/.gatesai/chat/state.v1.json` when the bridge is online and writes a
+readable `/workspace/chat-history` HTML/Markdown library for users. Raw `fs` and
+`inspect_file` access to the app-managed JSON scope is blocked; models use
+`chat_history` for bounded recent/search/read operations instead. `web_search`
+routes through `SearchStore` and Brave's LLM Context endpoint, using a desktop
+Tauri proxy when running inside the packaged app.
 
 ## Image jobs
 

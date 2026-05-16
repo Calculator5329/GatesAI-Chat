@@ -34,7 +34,7 @@ export const LiveExecTail = observer(function LiveExecTail({ store }: { store: E
           : job.tail.map((line, i) => (
               <span
                 key={i}
-                style={{ color: line.stream === 'stderr' ? 'var(--accent)' : 'var(--text-dim)' }}
+                style={{ color: line.stream === 'stderr' ? '#ffaaaa' : 'var(--accent)' }}
               >
                 {line.text}
               </span>
@@ -64,13 +64,15 @@ const S: Record<string, CSSProperties> = {
   },
   body: {
     margin: 0,
-    color: 'var(--text-dim)',
+    color: 'var(--accent)',
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
     maxHeight: 180,
     overflow: 'hidden',
   },
   placeholder: {
-    fontStyle: 'italic', opacity: 0.5,
+    color: 'var(--accent)',
+    fontStyle: 'italic',
+    opacity: 0.72,
   },
 };

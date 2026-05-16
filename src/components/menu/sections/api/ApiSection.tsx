@@ -1,8 +1,8 @@
 import type { CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../../core/styleTokens';
-import { useImageGenStore, useProviderStore } from '../../../../stores/context';
-import { Button, Card, Pill } from '../../../ui';
+import { useImageGenStore, useProviderStore, useSearchStore } from '../../../../stores/context';
+import { Button, Card, Pill, SecretKeyField } from '../../../ui';
 import { ProviderCard, OPENROUTER_PROVIDER_INFO } from './ProviderCard';
 import { ProviderAvatar } from './ProviderAvatar';
 
@@ -12,19 +12,57 @@ export const ApiSection = observer(function ApiSection() {
   return (
     <>
       <h1 style={tokens.h1}>Models</h1>
-      <div style={tokens.kicker}>OpenRouter access · live catalog · keys stored locally</div>
+      <div style={tokens.kicker}>Model and tool access - live catalog - keys stored locally</div>
 
       <Card style={{ padding: '14px 18px', marginBottom: 28, background: 'rgba(62,207,142,0.04)', borderColor: 'rgba(62,207,142,0.2)' }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
-          Connect OpenRouter to unlock the cloud model catalog. Your key is stored in{' '}
-          <code style={tokens.mono}>localStorage</code> on this device only and is used only as the
-          <code style={tokens.mono}> Authorization</code> header for model requests.
+          Connect OpenRouter for cloud models and Brave Search for live web grounding. Keys are stored in{' '}
+          <code style={tokens.mono}>localStorage</code> on this device only and used only as the
+          required request header for each provider.
         </div>
       </Card>
 
       <ProviderCard info={OPENROUTER_PROVIDER_INFO} providers={providers} />
+      <BraveSearchCard />
       <OpenRouterImageGenerationCard />
     </>
+  );
+});
+
+const BraveSearchCard = observer(function BraveSearchCard() {
+  const search = useSearchStore();
+  const connected = search.braveReady;
+
+  return (
+    <Card style={{ marginBottom: 12 }}>
+      <div style={cardHeaderStyle}>
+        <ProviderAvatar name="Brave" />
+        <div style={{ flex: 1 }}>
+          <div style={cardTitleStyle}>Brave Search</div>
+          <div style={cardDescStyle}>Live web grounding for the web_search tool.</div>
+        </div>
+        {connected ? <Pill>Ready</Pill> : <Pill tone="muted">Not connected</Pill>}
+      </div>
+
+      <div style={{
+        paddingTop: 12,
+        borderTop: '1px solid var(--border)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}>
+        <SecretKeyField
+          value={search.braveApiKey}
+          onSet={key => search.setBraveKey(key)}
+          onClear={() => search.clearBraveKey()}
+          placeholder="Paste your Brave Search API key..."
+          getKeyUrl={!connected ? 'https://api-dashboard.search.brave.com/app/keys' : undefined}
+        />
+        <div style={hintStyle}>
+          Uses Brave LLM Context with up to 3 parallel searches per model tool call. Results are cached briefly to reduce duplicate requests.
+        </div>
+      </div>
+    </Card>
   );
 });
 

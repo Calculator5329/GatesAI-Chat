@@ -114,7 +114,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
   const remote = job.backend === 'openrouter-image';
   return (
     <div style={{ ...rectBase, position: 'relative' }}>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: 12 }}>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontSize: 12 }}>
         <span>{remote ? 'waiting on' : 'generating'} · {pct}% · {backendLabel}</span>
         {remote && <span style={{ marginTop: 4 }}>remote render · {elapsedSeconds}s elapsed</span>}
         {job.count > 1 && <span style={{ marginTop: 4 }}>{job.results.length} / {job.count} done</span>}

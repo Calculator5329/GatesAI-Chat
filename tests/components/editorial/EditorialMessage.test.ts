@@ -34,22 +34,8 @@ function htmlFromPreviewFrame(frame: HTMLIFrameElement | null | undefined): stri
   return decodeURIComponent(encoded);
 }
 
-function renderMessage(
-  message: Parameters<typeof EditorialMessage>[0]['message'],
-  modelName = 'Assistant',
-  streaming = false,
-  preTokenLabel?: Parameters<typeof EditorialMessage>[0]['preTokenLabel'],
-  imageJobs = new ImageJobStore(),
-  handlers: Pick<
-    Parameters<typeof EditorialMessage>[0],
-    'onRegenerate' | 'onBranch' | 'onEditAndResend' | 'actionsDisabled'
-  > = {},
-): HTMLDivElement {
-  host = document.createElement('div');
-  document.body.appendChild(host);
-  root = createRoot(host);
-
-  const store = {
+function createTestStore(imageJobs = new ImageJobStore()): RootStore {
+  return {
     ui: new UiStore(),
     execStream: new ExecStreamStore(),
     imageJobs,
@@ -65,6 +51,24 @@ function renderMessage(
       openWorkspacePath: vi.fn(async () => true),
     },
   } as unknown as RootStore;
+}
+
+function renderMessage(
+  message: Parameters<typeof EditorialMessage>[0]['message'],
+  modelName = 'Assistant',
+  streaming = false,
+  preTokenLabel?: Parameters<typeof EditorialMessage>[0]['preTokenLabel'],
+  imageJobs = new ImageJobStore(),
+  handlers: Pick<
+    Parameters<typeof EditorialMessage>[0],
+    'onRegenerate' | 'onBranch' | 'onEditAndResend' | 'actionsDisabled'
+  > = {},
+): HTMLDivElement {
+  host = document.createElement('div');
+  document.body.appendChild(host);
+  root = createRoot(host);
+
+  const store = createTestStore(imageJobs);
 
   act(() => {
     root!.render(
@@ -83,6 +87,34 @@ function renderMessage(
   return host;
 }
 
+function renderMessageHarness(
+  message: Parameters<typeof EditorialMessage>[0]['message'],
+  streaming = false,
+): { host: HTMLDivElement; rerender: (nextMessage: typeof message, nextStreaming?: boolean) => void } {
+  host = document.createElement('div');
+  document.body.appendChild(host);
+  root = createRoot(host);
+  const store = createTestStore();
+
+  const rerender = (nextMessage: typeof message, nextStreaming = streaming) => {
+    act(() => {
+      root!.render(
+        createElement(StoreProvider, {
+          store,
+          children: createElement(EditorialMessage, {
+            modelName: 'Assistant',
+            streaming: nextStreaming,
+            message: nextMessage,
+          }),
+        }),
+      );
+    });
+  };
+
+  rerender(message, streaming);
+  return { host, rerender };
+}
+
 afterEach(() => {
   if (root) {
     act(() => root?.unmount());
@@ -91,6 +123,7 @@ afterEach(() => {
   host?.remove();
   host = null;
   __htmlArtifactPreviewTestApi.reset();
+  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -194,6 +227,33 @@ describe('EditorialMessage markdown rendering', () => {
     expect(finalized.querySelector('[aria-label="Working"]')).toBeNull();
   });
 
+  it('smooths visible text updates during streaming', () => {
+    vi.useFakeTimers();
+    const initial = {
+      id: 'm-smooth-stream',
+      role: 'assistant' as const,
+      createdAt: Date.now(),
+      content: 'Hello',
+    };
+    const { host: rendered, rerender } = renderMessageHarness(initial, true);
+
+    expect(rendered.textContent).toContain('Hello');
+
+    rerender({
+      ...initial,
+      content: 'Hello, this should ease into view instead of jumping all at once.',
+    }, true);
+
+    expect(rendered.textContent).toContain('Hello');
+    expect(rendered.textContent).not.toContain('jumping all at once');
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(rendered.textContent).toContain('jumping all at once');
+  });
+
   it('can label an empty streaming assistant message as responding', () => {
     const rendered = renderMessage({
       id: 'm-responding',
@@ -295,6 +355,276 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
   });
 
+  it('shows a live web search status while tool results are pending', () => {
+    const rendered = renderMessage({
+      id: 'm-searching',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '',
+      toolCalls: [
+        { id: 'tc-search', name: 'web_search', arguments: { queries: ['latest models', 'current API docs'] } },
+      ],
+    }, 'Assistant', true);
+
+    expect(rendered.textContent).toContain('Searching web for "latest models"...');
+    expect(rendered.textContent).toContain('Searching web for "current API docs"...');
+    expect(rendered.querySelector('[aria-label=\'Searching web for "latest models"...\']')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label=\'Searching web for "current API docs"...\']')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+    expect(rendered.textContent).not.toContain('status: ok');
+  });
+
+  it('fans out mixed pending tool batches into separate live statuses', () => {
+    const rendered = renderMessage({
+      id: 'm-batch-tools',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '',
+      toolCalls: [
+        { id: 'tc-search', name: 'web_search', arguments: { queries: ['model pricing', 'tool UX'] } },
+        { id: 'tc-file-a', name: 'inspect_file', arguments: { action: 'search', query: 'LiveStatusIndicator' } },
+        { id: 'tc-file-b', name: 'inspect_file', arguments: { action: 'preview', path: '/workspace/src/components/editorial/EditorialMessage.tsx' } },
+      ],
+    }, 'Assistant', true);
+
+    expect(rendered.textContent).toContain('Searching web for "model pricing"...');
+    expect(rendered.textContent).toContain('Searching web for "tool UX"...');
+    expect(rendered.textContent).toContain('Searching workspace for "LiveStatusIndicator"...');
+    expect(rendered.textContent).toContain('Reading .../editorial/EditorialMessage.tsx...');
+    expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+  });
+
+  it('morphs to a completed search summary after tool results land', () => {
+    const rendered = renderMessage({
+      id: 'm-drafting',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '',
+      toolCalls: [
+        { id: 'tc-search', name: 'web_search', arguments: { queries: ['latest models'] } },
+      ],
+      toolResults: [
+        { toolCallId: 'tc-search', toolName: 'web_search', content: 'status: ok', ranAt: Date.now() },
+      ],
+    }, 'Assistant', true);
+
+    expect(rendered.textContent).toContain('Search complete');
+    expect(rendered.querySelector('[aria-label="Search complete"]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+    expect(rendered.textContent).not.toContain('Drafting answer');
+    expect(rendered.textContent).not.toContain('status: ok');
+  });
+
+  it('uses tool arguments in live workspace statuses', () => {
+    const rendered = renderMessage({
+      id: 'm-reading-file',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '',
+      toolCalls: [
+        { id: 'tc-file', name: 'inspect_file', arguments: { action: 'preview', path: '/workspace/data/reports/quarterly.csv' } },
+      ],
+    }, 'Assistant', true);
+
+    expect(rendered.textContent).toContain('Reading .../reports/quarterly.csv...');
+    expect(rendered.querySelector('[aria-label="Reading .../reports/quarterly.csv..."]')).not.toBeNull();
+  });
+
+  it('uses action-specific labels for pending workspace writes', () => {
+    const rendered = renderMessage({
+      id: 'm-creating-dir',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '',
+      toolCalls: [
+        { id: 'tc-mkdir', name: 'fs', arguments: { action: 'mkdir', path: '/workspace/artifacts/pacman-game' } },
+      ],
+    }, 'Assistant', true);
+
+    expect(rendered.textContent).toContain('Creating .../artifacts/pacman-game...');
+    expect(rendered.textContent).not.toContain('Reading workspace');
+  });
+
+  it('uses action-specific labels for pending HTML artifacts', () => {
+    const rendered = renderMessage({
+      id: 'm-creating-artifact',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '',
+      toolCalls: [
+        { id: 'tc-artifact', name: 'artifact', arguments: { action: 'create_html_artifact', path: '/workspace/artifacts/exports/game.html' } },
+      ],
+    }, 'Assistant', true);
+
+    expect(rendered.textContent).toContain('Creating .../exports/game.html...');
+    expect(rendered.textContent).not.toContain('Using artifact');
+  });
+
+  it('shows workspace continuation while waiting for the final response', () => {
+    const rendered = renderMessage({
+      id: 'm-continuing-workspace',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '',
+      toolCalls: [
+        { id: 'tc-mkdir', name: 'fs', arguments: { action: 'mkdir', path: '/workspace/artifacts/pacman-game' } },
+      ],
+      toolResults: [
+        {
+          toolCallId: 'tc-mkdir',
+          toolName: 'fs',
+          content: 'Created directory /workspace/artifacts/pacman-game',
+          ranAt: Date.now(),
+        },
+      ],
+    }, 'Assistant', true);
+
+    expect(rendered.textContent).toContain('Continuing with workspace results...');
+    expect(rendered.querySelector('[aria-label="Continuing with workspace results..."]')).not.toBeNull();
+    expect(rendered.textContent).not.toContain('Workspace context ready');
+  });
+
+  it('keeps recovery visible after invalid tool arguments land', () => {
+    const rendered = renderMessage({
+      id: 'm-invalid-tool-recovery',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '',
+      toolCalls: [
+        { id: 'tc-fs', name: 'fs', arguments: {}, argumentsError: 'Tool arguments for fs were not valid JSON.' },
+      ],
+      toolResults: [
+        {
+          toolCallId: 'tc-fs',
+          toolName: 'fs',
+          content: 'fs failed: Tool arguments for fs were not valid JSON.',
+          ok: false,
+          errorCode: 'invalid_tool_arguments',
+          retryable: true,
+          ranAt: Date.now(),
+        },
+      ],
+    }, 'Assistant', true);
+
+    expect(rendered.textContent).toContain('Tool arguments were invalid; asking the model to retry...');
+    expect(rendered.querySelector('[aria-label="Tool arguments were invalid; asking the model to retry..."]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+  });
+
+  it('treats batch validation failures as invalid tool arguments while streaming', () => {
+    const rendered = renderMessage({
+      id: 'm-invalid-batch-recovery',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '',
+      toolCalls: [
+        { id: 'tc-fs', name: 'fs', arguments: { action: 'read' } },
+      ],
+      toolResults: [
+        {
+          toolCallId: 'tc-fs',
+          toolName: 'fs',
+          content: [
+            'status: error',
+            'tool: tool_batch_policy',
+            'error_code: invalid_tool_batch',
+            'summary: Tool batch stopped at call 0 because 1 tool call failed validation.',
+            'status: error',
+            'tool: fs',
+            'error_code: missing_required_argument',
+          ].join('\n'),
+          ok: false,
+          errorCode: 'missing_required_argument',
+          retryable: true,
+          ranAt: Date.now(),
+        },
+      ],
+    }, 'Assistant', true);
+
+    expect(rendered.textContent).toContain('Tool arguments were invalid; asking the model to retry...');
+    expect(rendered.textContent).not.toContain('Tool returned an error; asking the model to recover...');
+  });
+
+  it('summarizes source count while streaming a tool-backed answer', () => {
+    const rendered = renderMessage({
+      id: 'm-writing-sources',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'Here is what I found so far.',
+      toolCalls: [
+        { id: 'tc-search', name: 'web_search', arguments: { queries: ['latest models'] } },
+      ],
+      toolResults: [
+        {
+          toolCallId: 'tc-search',
+          toolName: 'web_search',
+          content: 'status: ok\n[1] One\nurl: https://example.com/one\n[2] Two\nurl: https://example.com/two',
+          ranAt: Date.now(),
+        },
+      ],
+    }, 'Assistant', true);
+
+    expect(rendered.textContent).toContain('Found 2 sources');
+    expect(rendered.querySelector('[aria-label="Found 2 sources"]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Drafting"]')).toBeNull();
+    expect(rendered.textContent).not.toContain('Writing answer');
+    expect(rendered.textContent).not.toContain('https://example.com/one');
+  });
+
+  it('keeps the search summary after streaming is complete', () => {
+    const rendered = renderMessage({
+      id: 'm-finished-sources',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'Here is what I found.',
+      toolCalls: [
+        { id: 'tc-search', name: 'web_search', arguments: { queries: ['latest models'] } },
+      ],
+      toolResults: [
+        {
+          toolCallId: 'tc-search',
+          toolName: 'web_search',
+          content: 'status: ok\n[1] One\nurl: https://example.com/one\n[2] Two\nurl: https://example.com/two',
+          ranAt: Date.now(),
+        },
+      ],
+    });
+
+    expect(rendered.textContent).toContain('Found 2 sources');
+    expect(rendered.textContent).not.toContain('Writing answer');
+    expect(rendered.textContent).not.toContain('status: ok');
+    expect(rendered.textContent).not.toContain('https://example.com/one');
+  });
+
+  it('renders tool summaries above collapsed thinking work notes', () => {
+    const rendered = renderMessage({
+      id: 'm-work-note-sources',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'Final answer.',
+      workNotes: ['Pre-tool reasoning that should not look like the answer.'],
+      toolCalls: [
+        { id: 'tc-search', name: 'web_search', arguments: { queries: ['latest models'] } },
+      ],
+      toolResults: [
+        {
+          toolCallId: 'tc-search',
+          toolName: 'web_search',
+          content: 'status: ok\n[1] One\nurl: https://example.com/one',
+          ranAt: Date.now(),
+        },
+      ],
+    });
+
+    const sourceSummary = rendered.querySelector('[aria-label="Found 1 source"]');
+    const thinking = rendered.querySelector('details summary');
+
+    expect(sourceSummary).not.toBeNull();
+    expect(thinking?.textContent).toBe('thinking');
+    expect(rendered.textContent!.indexOf('Found 1 source')).toBeLessThan(rendered.textContent!.indexOf('thinking'));
+    expect(rendered.querySelector('details')?.hasAttribute('open')).toBe(false);
+  });
+
   it('pairs duplicate tool result ids by occurrence in the transcript', () => {
     const rendered = renderMessage({
       id: 'm-duplicate-tools',
@@ -385,6 +715,19 @@ describe('EditorialMessage markdown rendering', () => {
     });
 
     expect((rendered.querySelector('[aria-label="Copy message"]') as HTMLButtonElement).disabled).toBe(false);
+    expect((rendered.querySelector('[aria-label="Regenerate response"]') as HTMLButtonElement).disabled).toBe(true);
+    expect((rendered.querySelector('[aria-label="Branch conversation"]') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('disables copy on empty streaming assistant placeholders', () => {
+    const rendered = renderMessage({
+      id: 'm-empty-streaming-actions',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '',
+    }, 'Assistant', true);
+
+    expect((rendered.querySelector('[aria-label="Copy message"]') as HTMLButtonElement).disabled).toBe(true);
     expect((rendered.querySelector('[aria-label="Regenerate response"]') as HTMLButtonElement).disabled).toBe(true);
     expect((rendered.querySelector('[aria-label="Branch conversation"]') as HTMLButtonElement).disabled).toBe(true);
   });

@@ -53,7 +53,7 @@ const META: Record<string, ModelMeta> = {
   'image-direct-comfy': { tag: 'local ComfyUI image generation', capabilities: ['fast'], costLabel: 'LOCAL', starred: true },
   'or-deepseek-v4-pro': { tag: 'reasoning', capabilities: ['reasoning'] },
   'or-gpt-5.5-pro': { tag: 'premium API tools and reasoning', capabilities: ['vision', 'tools', 'reasoning'] },
-  'or-gemini-3.1-flash-lite': { tag: 'cheap fast API vision', capabilities: ['vision', 'fast'], costLabel: '$' },
+  'or-gemini-3.1-flash-lite': { tag: 'fast API vision', capabilities: ['vision', 'fast'], costLabel: '$' },
 };
 
 const META_BY_PROVIDER_MODEL_ID: Record<string, ModelMeta> = {
@@ -162,6 +162,28 @@ function Badge({ children, tone = 'muted', title }: { children: ReactNode; tone?
   );
 }
 
+function IconBadge({ kind, tone = 'muted', title }: { kind: 'vision' | 'tools'; tone?: 'muted' | 'warn'; title: string }) {
+  const color = tone === 'warn' ? '#d19a66' : 'var(--text-faint)';
+  return (
+    <span
+      title={title}
+      aria-label={title}
+      style={{
+        width: 16,
+        height: 16,
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color,
+        opacity: 0.82,
+        flex: 'none',
+      }}
+    >
+      {kind === 'vision' ? <Icons.Eye /> : <Icons.Tool />}
+    </span>
+  );
+}
+
 interface RowProps {
   model: Model;
   meta: ModelMeta | null;
@@ -219,7 +241,9 @@ const ModelRow = memo(function ModelRow({
       </div>
       <div style={ROW_RIGHT_STYLE}>
         {badgesForModel(model, ollamaOnline, comfyReady).map(badge => (
-          <Badge key={badge.label} tone={badge.tone} title={badge.title}>{badge.label}</Badge>
+          badge.icon
+            ? <IconBadge key={badge.label} kind={badge.icon} tone={badge.tone === 'warn' ? 'warn' : 'muted'} title={badge.title ?? badge.label} />
+            : <Badge key={badge.label} tone={badge.tone} title={badge.title}>{badge.label}</Badge>
         ))}
       </div>
       <div style={sublineStyle}>{subline}</div>
@@ -445,20 +469,15 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       </div>
 
       <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '8px 14px',
+        padding: '7px 14px',
         borderTop: '1px solid var(--border)',
         fontFamily: '"Geist Mono", monospace',
         fontSize: 10, color: 'var(--text-faint)',
         letterSpacing: '0.06em',
         textTransform: 'uppercase',
+        textAlign: 'right',
       }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span><Kbd>up/down</Kbd> nav</span>
-          <span><Kbd>enter</Kbd> select</span>
-          <span><Kbd>esc</Kbd> close</span>
-        </span>
-        <span>{hiddenCount > 0 ? `${flat.length} of ${totalMatching}` : flat.length} models</span>
+        {hiddenCount > 0 ? `${flat.length} of ${totalMatching}` : flat.length} models
       </div>
     </div>
   );
@@ -594,39 +613,36 @@ function bestForLine(model: Model, meta: ModelMeta | null): string {
   if (model.description) return model.description;
   if (meta?.tag) return meta.tag;
   if (model.providerId === 'ollama') {
-    const ctx = model.contextLength ? `${formatContext(model.contextLength)} context` : 'unknown context';
     const tools = model.supportsTools === false ? 'tools off' : 'micro tools recommended';
-    return `private local chat; ${ctx}; ${tools}`;
+    return `private local chat; ${tools}`;
   }
   if (model.providerId === 'local-image') return 'local ComfyUI image generation';
   return describeDynamic(model);
 }
 
-function badgesForModel(model: Model, ollamaOnline: boolean, comfyReady: boolean): Array<{ label: string; tone?: 'muted' | 'accent' | 'warn'; title?: string }> {
-  const badges: Array<{ label: string; tone?: 'muted' | 'accent' | 'warn'; title?: string }> = [];
+function badgesForModel(model: Model, ollamaOnline: boolean, comfyReady: boolean): Array<{ label: string; tone?: 'muted' | 'accent' | 'warn'; title?: string; icon?: 'vision' | 'tools' }> {
+  const meta = META[model.id] ?? META_BY_PROVIDER_MODEL_ID[model.providerModelId] ?? null;
+  const badges: Array<{ label: string; tone?: 'muted' | 'accent' | 'warn'; title?: string; icon?: 'vision' | 'tools' }> = [];
   if (model.id === AUTO_MODEL.id) badges.push({ label: 'AUTO', tone: 'accent' });
-  else if (model.providerId === 'openrouter') badges.push({ label: 'API' });
   else if (model.providerId === 'ollama') badges.push({ label: 'LOCAL' });
-  else badges.push({ label: 'IMAGE' });
+  else if (model.providerId === 'local-image') badges.push({ label: 'IMAGE' });
 
   if (model.providerId === 'ollama') {
     badges.push({ label: ollamaOnline ? 'online' : 'offline', tone: ollamaOnline ? 'accent' : 'warn' });
-    badges.push({ label: model.supportsTools === false ? 'tools off' : 'tools', tone: model.supportsTools === false ? 'warn' : 'muted' });
+    if (model.supportsTools !== false) badges.push({ label: 'tools', icon: 'tools', title: 'Tools' });
   } else if (model.providerId === 'local-image') {
     badges.push({ label: comfyReady ? 'online' : 'offline', tone: comfyReady ? 'accent' : 'warn' });
   } else {
-    badges.push({ label: modelSupportsVision(model) ? 'vision' : 'text' });
-    badges.push({ label: model.supportsTools === false ? 'tools off' : 'tools', tone: model.supportsTools === false ? 'warn' : 'muted' });
+    if (modelSupportsVision(model)) badges.push({ label: 'vision', icon: 'vision', title: 'Vision' });
+    if (model.supportsTools !== false) badges.push({ label: 'tools', icon: 'tools', title: 'Tools' });
   }
 
-  if (model.pricing?.prompt != null && model.pricing.prompt <= 0.5) badges.push({ label: 'cheap' });
-  if (model.contextLength && model.contextLength >= 128000) badges.push({ label: 'large ctx' });
+  if (meta?.costLabel) badges.push({ label: meta.costLabel, tone: meta.costLabel === '$$$' ? 'warn' : 'muted', title: 'Relative cost' });
   return badges.slice(0, 5);
 }
 
 function describeDynamic(m: Model): string {
   const bits: string[] = [];
-  if (m.contextLength) bits.push(`${formatContext(m.contextLength)} ctx`);
   if (m.pricing?.prompt != null && m.pricing.completion != null) {
     bits.push(`$${formatPrice(m.pricing.prompt)} / $${formatPrice(m.pricing.completion)} per 1M`);
   } else if (m.pricing?.prompt != null) {
@@ -634,12 +650,6 @@ function describeDynamic(m: Model): string {
   }
   if (bits.length === 0) return m.providerModelId;
   return bits.join(' - ');
-}
-
-function formatContext(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
-  return String(n);
 }
 
 function formatPrice(usdPerMillion: number): string {
@@ -673,18 +683,4 @@ function saveRecentModelId(modelId: string): void {
     const next = [modelId, ...loadRecentModelIds().filter(id => id !== modelId)].slice(0, MAX_RECENT_MODELS);
     localStorage.setItem(RECENT_MODELS_STORAGE_KEY, JSON.stringify(next));
   } catch { /* ignore */ }
-}
-
-function Kbd({ children }: { children: ReactNode }) {
-  return (
-    <span style={{
-      display: 'inline-block',
-      padding: '0 4px',
-      borderRadius: 2,
-      border: '1px solid var(--border)',
-      color: 'var(--text-dim)',
-      fontSize: 9.5,
-      marginRight: 4,
-    }}>{children}</span>
-  );
 }
