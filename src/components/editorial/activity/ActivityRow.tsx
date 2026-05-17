@@ -1,20 +1,20 @@
 import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { ActivityItem } from '../../../core/types';
+import type { ActivityItem, ActivityStats } from '../../../core/types';
 import { WorkspaceImage } from '../WorkspaceImage';
 import { ImageJobCard } from '../ImageJobCard';
+import { iconForActivity } from './iconForActivity';
 
 export function ActivityRow({ item }: { item: ActivityItem }) {
   const [open, setOpen] = useState(false);
   const elapsed = useElapsedLabel(item.state === 'running', item.startedAt);
   const expandable = Boolean(item.detail || item.artifacts?.length);
   const label = [item.verb, item.target].filter(Boolean).join(' ');
-  const summary = item.state === 'failed' || item.state === 'cancelled'
+  const summary = item.state === 'failed' || item.state === 'cancelled' || item.state === 'done'
     ? item.summary
-    : item.summary && item.state === 'done'
-      ? item.summary
-      : undefined;
+    : undefined;
+  const icon = iconForActivity(item)();
 
   return (
     <div className="activity-row" data-state={item.state} data-kind={item.kind}>
@@ -26,12 +26,13 @@ export function ActivityRow({ item }: { item: ActivityItem }) {
         className="activity-row__button"
         onClick={() => expandable && setOpen(value => !value)}
       >
-        <span className="activity-row__glyph" aria-hidden="true">{glyphFor(item)}</span>
+        <span className="activity-row__icon" aria-hidden="true">{icon}</span>
         <span className="activity-row__label">
           <span>{item.verb}</span>
           {item.target && <> <span className="activity-row__target">{item.target}</span></>}
           {summary && <> <span className="activity-row__summary">· {summary}</span></>}
         </span>
+        {item.stats && <StatsChips stats={item.stats} />}
         {elapsed && <span className="activity-row__elapsed">· {elapsed}</span>}
         {item.state === 'running' && (
           <span className="thinking-dots" aria-hidden="true">
@@ -69,11 +70,20 @@ export function ActivityRow({ item }: { item: ActivityItem }) {
   );
 }
 
-function glyphFor(item: ActivityItem): string {
-  if (item.state === 'failed') return '■';
-  if (item.state === 'cancelled') return '×';
-  if (item.state === 'running') return '·';
-  return '';
+function StatsChips({ stats }: { stats: ActivityStats }) {
+  const hasNumeric = typeof stats.added === 'number' || typeof stats.removed === 'number';
+  if (!hasNumeric && !stats.label) return null;
+  return (
+    <span className="activity-row__stats">
+      {typeof stats.added === 'number' && (
+        <span className="activity-row__stats-added">+{stats.added}</span>
+      )}
+      {typeof stats.removed === 'number' && (
+        <span className="activity-row__stats-removed">−{stats.removed}</span>
+      )}
+      {!hasNumeric && stats.label && <span>{stats.label}</span>}
+    </span>
+  );
 }
 
 function useElapsedLabel(active: boolean, startedAt: number): string {

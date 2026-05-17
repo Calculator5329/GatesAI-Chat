@@ -68,6 +68,30 @@ describe('ActivityStream', () => {
     ]);
     expect(rendered.textContent).toContain('foo.ts');
   });
+
+  it('renders an SVG icon instead of an ASCII glyph', () => {
+    const rendered = render([
+      item({ id: 'i1', state: 'done', verb: 'Editing', target: 'foo.ts' }),
+    ]);
+    expect(rendered.querySelector('.activity-row__icon svg')).not.toBeNull();
+    expect(rendered.querySelector('.activity-row__glyph')).toBeNull();
+  });
+
+  it('renders stats chips when item has stats', () => {
+    const rendered = render([
+      item({ id: 's2', state: 'done', verb: 'Editing', target: 'foo.ts', stats: { added: 6, removed: 1 } }),
+    ]);
+    const stats = rendered.querySelector('.activity-row__stats');
+    expect(stats?.textContent).toContain('+6');
+    expect(stats?.textContent).toContain('−1');
+  });
+
+  it('renders a free-form stats label when added/removed are absent', () => {
+    const rendered = render([
+      item({ id: 's3', state: 'done', verb: 'Wrote', target: 'foo.ts', stats: { label: '3 files' } }),
+    ]);
+    expect(rendered.querySelector('.activity-row__stats')?.textContent).toBe('3 files');
+  });
 });
 
 function item(overrides: Partial<ActivityItem>): ActivityItem {
