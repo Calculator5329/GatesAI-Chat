@@ -92,6 +92,32 @@ describe('ActivityStream', () => {
     ]);
     expect(rendered.querySelector('.activity-row__stats')?.textContent).toBe('3 files');
   });
+
+  it('renders a single group row when consecutive items share a groupKey', () => {
+    const rendered = render([
+      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'echo a', groupKey: 'shell' }),
+      item({ id: 'g2', state: 'done', verb: 'Ran', target: 'echo b', groupKey: 'shell' }),
+      item({ id: 'g3', state: 'done', verb: 'Ran', target: 'echo c', groupKey: 'shell' }),
+    ]);
+
+    const groups = rendered.querySelectorAll('.activity-group');
+    expect(groups.length).toBe(1);
+    expect(rendered.textContent).toContain('Ran 3 commands');
+
+    act(() => {
+      rendered.querySelector('.activity-group .activity-row__button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(rendered.querySelectorAll('.activity-group__child').length).toBe(3);
+  });
+
+  it('marks the group failed when any child failed', () => {
+    const rendered = render([
+      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'ok', groupKey: 'shell' }),
+      item({ id: 'g2', state: 'failed', verb: 'Ran', target: 'bad', groupKey: 'shell', summary: 'exit 1' }),
+    ]);
+    expect(rendered.querySelector('.activity-group')?.getAttribute('data-state')).toBe('failed');
+  });
 });
 
 function item(overrides: Partial<ActivityItem>): ActivityItem {

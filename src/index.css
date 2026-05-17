@@ -288,6 +288,27 @@
   color: #ffaaaa;
 }
 
+.activity-stream__header {
+  font: 11px/1.5 inherit;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.activity-group__children {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 4px 22px;
+  padding-left: 8px;
+  border-left: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.activity-group__child .activity-row__button {
+  font-size: 12px;
+}
+
 .editorial-sidebar__close {
   display: none;
 }
