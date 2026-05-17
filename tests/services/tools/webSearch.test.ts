@@ -5,7 +5,12 @@ import type { ToolContext } from '../../../src/services/tools/types';
 describe('web_search tool', () => {
   it('rejects invalid query counts', () => {
     expect(toolRegistry.validateCallDetailed('web_search', { queries: [] }).errorCode).toBe('invalid_query_count');
-    expect(toolRegistry.validateCallDetailed('web_search', { queries: ['a', 'b', 'c', 'd'] }).errorCode).toBe('invalid_query_count');
+    expect(toolRegistry.validateCallDetailed('web_search', { queries: ['a', 'b', 'c', 'd', 'e', 'f'] }).ok).toBe(true);
+    expect(toolRegistry.validateCallDetailed('web_search', { queries: ['a', 'b', 'c', 'd', 'e', 'f', 'g'] }).errorCode).toBe('invalid_query_count');
+  });
+
+  it('validates query count after de-duping', () => {
+    expect(toolRegistry.validateCallDetailed('web_search', { queries: ['React 19', ' react   19 '] }).ok).toBe(true);
   });
 
   it('de-dupes queries and formats partial failures', async () => {
@@ -78,4 +83,3 @@ function baseContext(): ToolContext {
     },
   };
 }
-

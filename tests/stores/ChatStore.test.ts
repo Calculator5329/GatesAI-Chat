@@ -1213,7 +1213,7 @@ describe('ChatStore', () => {
     expect(mock.calls[0].tools).toBeUndefined();
   });
 
-  it('can send local Ollama turns in micro mode with tiny prompt, fs only, and small output reserve', async () => {
+  it('can send local Ollama turns in micro mode with tiny prompt, source tools, fs, and small output reserve', async () => {
     const { chat, mock, registry } = setup([
       { type: 'text', delta: 'ok' },
       { type: 'done', finishReason: 'stop' },
@@ -1241,7 +1241,7 @@ describe('ChatStore', () => {
     expect(mock.calls[0].messages).toEqual([{ role: 'user', content: 'create an html file' }]);
     expect(mock.calls[0].systemPrompt).toContain('Minimal local mode.');
     expect(mock.calls[0].systemPrompt).not.toContain('remembered context');
-    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['fs']);
+    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['source_workspace', 'source_build', 'fs']);
     expect(mock.calls[0].maxTokens).toBe(512);
   });
 
@@ -1266,7 +1266,7 @@ describe('ChatStore', () => {
     expect(mock.calls).toHaveLength(1);
     expect(mock.calls[0].messages).toEqual([{ role: 'user', content: 'create an html file' }]);
     expect(mock.calls[0].systemPrompt).toContain('Minimal local mode.');
-    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['fs']);
+    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['source_workspace', 'source_build', 'fs']);
     expect(mock.calls[0].maxTokens).toBe(512);
   });
 

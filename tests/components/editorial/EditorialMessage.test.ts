@@ -605,7 +605,7 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.textContent).not.toContain('https://example.com/one');
   });
 
-  it('renders tool summaries above collapsed thinking work notes', () => {
+  it('keeps pre-tool prose visible above tool summaries', () => {
     const rendered = renderMessage({
       id: 'm-work-note-sources',
       role: 'assistant',
@@ -626,11 +626,11 @@ describe('EditorialMessage markdown rendering', () => {
     });
 
     const sourceSummary = rendered.querySelector('[aria-label="Searching latest models"]');
-    const thinking = rendered.querySelector('[aria-label="Thinking"]');
+    const workNote = rendered.querySelector('.assistant-work-notes');
 
     expect(sourceSummary).not.toBeNull();
-    expect(thinking?.textContent).toContain('Thinking');
-    expect(rendered.textContent!.indexOf('Thinking')).toBeLessThan(rendered.textContent!.indexOf('Found 1 source'));
+    expect(workNote?.textContent).toContain('Pre-tool reasoning');
+    expect(rendered.textContent!.indexOf('Pre-tool reasoning')).toBeLessThan(rendered.textContent!.indexOf('Found 1 source'));
     expect(rendered.querySelector('.activity-row__detail')).toBeNull();
   });
 

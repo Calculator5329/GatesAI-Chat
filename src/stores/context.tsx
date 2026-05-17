@@ -14,6 +14,7 @@ import type { ImageJobStore } from './ImageJobStore';
 import type { OllamaStore } from './OllamaStore';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
 import type { SearchStore } from './SearchStore';
+import type { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -81,4 +82,8 @@ export function useLocalRuntimeStore(): LocalRuntimeStore {
 
 export function useSearchStore(): SearchStore {
   return useRootStore().search;
+}
+
+export function useOpenRouterCompatibilityStore(): OpenRouterCompatibilityStore {
+  return useRootStore().openrouterCompatibility;
 }

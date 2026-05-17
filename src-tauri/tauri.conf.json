@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "GatesAI Chat",
-  "version": "3.4.0",
+  "version": "3.7.0",
   "identifier": "ai.gatesai.chat",
   "build": {
     "frontendDist": "../dist",
@@ -30,6 +30,9 @@
     "active": true,
     "targets": ["nsis", "appimage"],
     "externalBin": ["binaries/gatesai-bridge"],
+    "resources": {
+      "resources/source/": "source/"
+    },
     "publisher": "Ethan Gates",
     "shortDescription": "GatesAI Chat — local-first AI chat with workspace tools",
     "longDescription": "Desktop client for GatesAI Chat with embedded local bridge for filesystem and command-execution tools.",

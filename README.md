@@ -30,6 +30,33 @@ cd ..\gatesai-bridge
 go run ./cmd/gatesai-bridge
 ```
 
+### Linux AppImage builds
+
+Tauri sidecars must be named with the target triple. Linux AppImage builds need:
+
+```text
+src-tauri/binaries/gatesai-bridge-x86_64-unknown-linux-gnu
+```
+
+From a Linux host with the companion bridge repo checked out next to this repo:
+
+```bash
+npm ci
+bash scripts/prepare-linux-sidecar.sh
+npx tauri build --bundles appimage
+```
+
+You can also provide a prebuilt bridge:
+
+```bash
+GATESAI_BRIDGE_BIN=/path/to/gatesai-bridge-x86_64-unknown-linux-gnu \
+  bash scripts/prepare-linux-sidecar.sh
+```
+
+The GitHub Actions workflow builds a real Linux bridge when `GATESAI_BRIDGE_REPOSITORY` is configured as a repository variable, or when manually dispatched with `bridge_repo`. The `allow_stub` manual input is only for packaging smoke tests; stub AppImages start, but workspace tools stay offline.
+
+For end-user Arch Linux installation steps, open `docs/arch-linux-appimage-install.html`.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

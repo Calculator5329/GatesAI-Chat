@@ -2,6 +2,20 @@ name: Build Linux AppImage
 
 on:
   workflow_dispatch:
+    inputs:
+      bridge_repo:
+        description: 'Optional gatesai-bridge repository, for example owner/gatesai-bridge'
+        required: false
+        type: string
+      bridge_ref:
+        description: 'Optional gatesai-bridge ref to checkout'
+        required: false
+        type: string
+      allow_stub:
+        description: 'Build a packaging-only AppImage with an offline bridge stub'
+        required: false
+        default: false
+        type: boolean
   push:
     tags:
       - 'v*'
@@ -11,7 +25,19 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout chat app
+        uses: actions/checkout@v4
+        with:
+          path: chat
+
+      - name: Checkout bridge source
+        if: ${{ inputs.bridge_repo != '' || vars.GATESAI_BRIDGE_REPOSITORY != '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.bridge_repo || vars.GATESAI_BRIDGE_REPOSITORY }}
+          ref: ${{ inputs.bridge_ref || vars.GATESAI_BRIDGE_REF || 'main' }}
+          path: gatesai-bridge
+          token: ${{ secrets.GATESAI_BRIDGE_TOKEN || github.token }}
 
       - name: Install Linux system dependencies
         run: |
@@ -36,6 +62,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
+          cache-dependency-path: chat/package-lock.json
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -46,13 +73,14 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            src-tauri/target
+            chat/src-tauri/target
             ~/.cache/tauri
-          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-${{ hashFiles('chat/src-tauri/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
       - name: Install npm dependencies
+        working-directory: chat
         run: npm ci
 
       - name: Prefetch Tauri AppImage tools
@@ -85,31 +113,20 @@ jobs:
             "https://raw.githubusercontent.com/tauri-apps/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh" \
             "$HOME/.cache/tauri/linuxdeploy-plugin-gtk.sh"
 
-      - name: Build stub bridge binary for Linux
-        # The real bridge source lives in a separate repo. This stub satisfies
-        # Tauri's externalBin requirement and keeps the app alive; workspace
-        # tools will show "bridge offline" until a native Linux bridge ships.
-        run: |
-          mkdir -p src-tauri/binaries
-          cat > /tmp/bridge_stub.c << 'EOF'
-          #include <stdio.h>
-          #include <unistd.h>
-          int main(int argc, char *argv[]) {
-            fprintf(stderr, "[gatesai-bridge-stub] Linux bridge stub — workspace tools unavailable.\n");
-            fflush(stderr);
-            while (1) { sleep(3600); }
-            return 0;
-          }
-          EOF
-          gcc /tmp/bridge_stub.c -o "src-tauri/binaries/gatesai-bridge-x86_64-unknown-linux-gnu"
-          chmod +x "src-tauri/binaries/gatesai-bridge-x86_64-unknown-linux-gnu"
+      - name: Prepare Linux bridge sidecar
+        working-directory: chat
+        env:
+          GATESAI_BRIDGE_REPO: ${{ github.workspace }}/gatesai-bridge
+          ALLOW_STUB_BRIDGE: ${{ inputs.allow_stub || 'false' }}
+        run: bash scripts/prepare-linux-sidecar.sh
 
       - name: Build Tauri AppImage
+        working-directory: chat
         run: npx tauri build --bundles appimage
 
       - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
           name: GatesAI-Chat-linux-appimage
-          path: src-tauri/target/release/bundle/appimage/*.AppImage
+          path: chat/src-tauri/target/release/bundle/appimage/*.AppImage
           if-no-files-found: error

@@ -1,10 +1,11 @@
 {
   "name": "gatesai-chat",
   "private": true,
-  "version": "3.4.0",
+  "version": "3.7.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "source:snapshot": "node scripts/create-source-snapshot.mjs",
     "build": "tsc -b && vite build",
     "build:web": "tsc -b && vite build --mode firebase",
     "deploy:firebase": "npm run build:web && firebase deploy --only hosting",
@@ -17,7 +18,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "npm run source:snapshot && tauri build"
   },
   "dependencies": {
     "highlight.js": "^11.11.1",

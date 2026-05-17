@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../../core/styleTokens';
-import { useImageGenStore, useProviderStore, useSearchStore } from '../../../../stores/context';
+import { useImageGenStore, useOpenRouterCompatibilityStore, useProviderStore, useSearchStore } from '../../../../stores/context';
 import { Button, Card, Pill, SecretKeyField } from '../../../ui';
 import { ProviderCard, OPENROUTER_PROVIDER_INFO } from './ProviderCard';
 import { ProviderAvatar } from './ProviderAvatar';
@@ -23,9 +23,66 @@ export const ApiSection = observer(function ApiSection() {
       </Card>
 
       <ProviderCard info={OPENROUTER_PROVIDER_INFO} providers={providers} />
+      <OpenRouterCompatibilityCard />
       <BraveSearchCard />
       <OpenRouterImageGenerationCard />
     </>
+  );
+});
+
+const OpenRouterCompatibilityCard = observer(function OpenRouterCompatibilityCard() {
+  const compat = useOpenRouterCompatibilityStore();
+  const disabledReason = !compat.openRouterReady
+    ? 'Add an OpenRouter API key first.'
+    : !compat.workspaceReady
+      ? 'Start the workspace bridge first.'
+      : undefined;
+  const canRun = !compat.running && !disabledReason;
+
+  return (
+    <Card style={{ marginBottom: 12 }}>
+      <div style={cardHeaderStyle}>
+        <ProviderAvatar name="OpenRouter" />
+        <div style={{ flex: 1 }}>
+          <div style={cardTitleStyle}>Compatibility test suite</div>
+          <div style={cardDescStyle}>Smoke-test OpenRouter models and write paste-ready logs to the workspace.</div>
+        </div>
+        {compat.running ? <Pill>Running</Pill> : compat.lastRun ? <Pill>{compat.lastRun.passed}/{compat.lastRun.total} passed</Pill> : <Pill tone="muted">Manual</Pill>}
+      </div>
+
+      <div style={compatPanelStyle}>
+        <div style={compatButtonRowStyle}>
+          <Button onClick={() => void compat.start('curated')} disabled={!canRun} title={disabledReason}>
+            Curated ({compat.curatedCount})
+          </Button>
+          <Button onClick={() => void compat.start('sample')} disabled={!canRun} title={disabledReason}>
+            Catalog sample ({compat.sampleCount})
+          </Button>
+          <Button variant="danger" onClick={() => void compat.start('all')} disabled={!canRun} title={disabledReason}>
+            All catalog ({compat.allCount})
+          </Button>
+          {compat.running && (
+            <Button variant="danger" onClick={() => compat.cancel()}>
+              Cancel
+            </Button>
+          )}
+        </div>
+
+        <div style={compatStatusStyle}>
+          {compat.running && compat.total > 0 ? `${compat.completed}/${compat.total} - ${compat.progress}` : compat.progress || disabledReason || 'Ready to run after adding an OpenRouter key.'}
+        </div>
+        {compat.lastRun && (
+          <div style={compatPathStyle}>
+            <div>Report: <code style={tokens.mono}>{compat.lastRun.reportPath}</code></div>
+            <div>JSONL: <code style={tokens.mono}>{compat.lastRun.jsonlPath}</code></div>
+          </div>
+        )}
+        {compat.lastError && <div style={compatErrorStyle}>{compat.lastError}</div>}
+        {compat.logLines.length > 0 && (
+          <pre style={compatLogStyle}>{compat.logLines.join('\n')}</pre>
+        )}
+      </div>
+    </Card>
   );
 });
 
@@ -59,7 +116,7 @@ const BraveSearchCard = observer(function BraveSearchCard() {
           getKeyUrl={!connected ? 'https://api-dashboard.search.brave.com/app/keys' : undefined}
         />
         <div style={hintStyle}>
-          Uses Brave LLM Context with up to 3 parallel searches per model tool call. Results are cached briefly to reduce duplicate requests.
+          Uses Brave LLM Context with up to 6 parallel searches per model tool call. Results are cached briefly to reduce duplicate requests.
         </div>
       </div>
     </Card>
@@ -109,6 +166,40 @@ const cardHeaderStyle: CSSProperties = { display: 'flex', alignItems: 'center', 
 const cardTitleStyle: CSSProperties = { fontSize: 14, fontWeight: 500, color: 'var(--text)' };
 const cardDescStyle: CSSProperties = { fontSize: 11.5, color: 'var(--text-faint)', marginTop: 1 };
 const hintStyle: CSSProperties = { fontSize: 11.5, color: 'var(--text-faint)' };
+const compatPanelStyle: CSSProperties = {
+  paddingTop: 12,
+  borderTop: '1px solid var(--border)',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 10,
+};
+const compatButtonRowStyle: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 8,
+};
+const compatStatusStyle: CSSProperties = { fontSize: 12, color: 'var(--text-dim)' };
+const compatPathStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 4,
+  fontSize: 11.5,
+  color: 'var(--text-faint)',
+};
+const compatErrorStyle: CSSProperties = { fontSize: 12, color: '#ff7597' };
+const compatLogStyle: CSSProperties = {
+  margin: 0,
+  padding: 10,
+  maxHeight: 150,
+  overflow: 'auto',
+  border: '1px solid var(--border)',
+  borderRadius: 6,
+  background: 'rgba(255,255,255,0.02)',
+  color: 'var(--text-dim)',
+  fontSize: 11,
+  lineHeight: 1.45,
+  whiteSpace: 'pre-wrap',
+};
 const imageBackendRowStyle: CSSProperties = {
   display: 'grid',
   gridTemplateColumns: '180px minmax(0, 1fr)',

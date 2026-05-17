@@ -787,13 +787,13 @@ describe('tool registry harness selection', () => {
       .toContain('`content` is required for artifact action "create_html_artifact"');
   });
 
-  it('keeps ordinary chat turns on the small always-on tool set', () => {
+  it('keeps ordinary chat turns on the small always-on tool set plus source controls', () => {
     const names = toolRegistry.toolDefsForTurn({
       userText: 'tell me a story',
       bridgeOnline: false,
     }).map(t => t.name);
 
-    expect(names).toEqual(['memory', 'thread', 'chat_history']);
+    expect(names).toEqual(['memory', 'thread', 'chat_history', 'source_workspace', 'source_build']);
     expect(names).not.toContain('time');
   });
 

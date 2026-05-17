@@ -1,6 +1,6 @@
 [package]
 name = "gatesai-chat"
-version = "3.4.0"
+version = "3.7.0"
 description = "GatesAI Chat — local-first AI chat with workspace tools"
 authors = ["Ethan Gates"]
 license = ""

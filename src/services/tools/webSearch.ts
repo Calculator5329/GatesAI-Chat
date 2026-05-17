@@ -1,7 +1,8 @@
 import type { BraveFreshness, BraveSearchQueryResult } from '../search/types';
 import type { Tool, ToolValidationIssue } from './types';
 
-const MAX_QUERIES = 3;
+const MAX_QUERIES = 6;
+const QUERY_COUNT_LABEL = `1 to ${MAX_QUERIES}`;
 const MAX_OUTPUT_CHARS = 16_000;
 const MAX_SOURCE_TEXT_CHARS = 1200;
 const FRESHNESS = ['pd', 'pw', 'pm', 'py'];
@@ -11,7 +12,7 @@ export const webSearchTool: Tool = {
     name: 'web_search',
     description: [
       'Search the live web with Brave LLM Context for current facts, recent events, source-backed claims, or anything likely to have changed.',
-      'Pass 1 to 3 independent search queries in one call. The tool runs them in parallel and returns source URLs plus extracted context.',
+      `Pass ${QUERY_COUNT_LABEL} independent search queries in one call. The tool runs them in parallel and returns source URLs plus extracted context.`,
       'Use concise queries. Cite returned URLs in the final answer when using web_search results.',
     ].join('\n'),
     parameters: {
@@ -20,7 +21,7 @@ export const webSearchTool: Tool = {
         queries: {
           type: 'array',
           items: { type: 'string' },
-          description: 'One to three web search queries.',
+          description: `One to ${MAX_QUERIES} web search queries.`,
         },
         freshness: {
           type: 'string',
@@ -79,25 +80,26 @@ function validateArgs(args: Record<string, unknown>): ToolValidationIssue | null
   if (!Array.isArray(args.queries)) {
     return {
       errorCode: 'invalid_queries',
-      summary: '`queries` must be an array of 1 to 3 non-empty strings.',
+      summary: `\`queries\` must be an array of ${QUERY_COUNT_LABEL} non-empty strings.`,
       fix: 'Retry with `queries` like ["latest React release", "React 19 changes"].',
       retryable: true,
     };
   }
   const raw = args.queries;
-  if (raw.length < 1 || raw.length > MAX_QUERIES) {
-    return {
-      errorCode: 'invalid_query_count',
-      summary: '`queries` must contain 1 to 3 searches.',
-      fix: 'Batch at most three independent searches in one web_search call.',
-      retryable: true,
-    };
-  }
   if (raw.some(value => typeof value !== 'string' || value.trim() === '')) {
     return {
       errorCode: 'empty_query',
       summary: 'Every query must be a non-empty string.',
       fix: 'Remove empty queries and retry.',
+      retryable: true,
+    };
+  }
+  const uniqueCount = uniqueQueries(raw as string[]).length;
+  if (uniqueCount < 1 || uniqueCount > MAX_QUERIES) {
+    return {
+      errorCode: 'invalid_query_count',
+      summary: `\`queries\` must contain ${QUERY_COUNT_LABEL} unique searches.`,
+      fix: `Batch at most ${MAX_QUERIES} independent searches in one web_search call.`,
       retryable: true,
     };
   }

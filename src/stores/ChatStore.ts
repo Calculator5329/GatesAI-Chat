@@ -505,21 +505,6 @@ export class ChatStore {
     const ownerThreadId = this.threadIdForMessage(message.id);
     const items: ActivityItem[] = [];
 
-    for (const [index, note] of (message.workNotes ?? []).entries()) {
-      const content = note.trim();
-      if (!content) continue;
-      items.push({
-        id: `${message.id}:thinking:${index}`,
-        kind: 'thinking',
-        state: 'done',
-        verb: 'Thinking',
-        summary: 'Thinking saved',
-        detail: { type: 'markdown', content },
-        startedAt: message.createdAt,
-        finishedAt: message.createdAt,
-      });
-    }
-
     const usedResultIndexes = new Set<number>();
     for (const call of message.toolCalls ?? []) {
       const resultIndex = results.findIndex((candidate, index) => !usedResultIndexes.has(index) && candidate.toolCallId === call.id);
@@ -916,9 +901,9 @@ export class ChatStore {
    *   2. stream from the provider; append tokens to `content`, collect
    *      tool calls
    *   3. if no calls came back: this WAS the final round, exit
-   *   4. otherwise: preserve the round's prose in `workNotes`, clear
-   *      `content` for the next round, append the calls to `toolCalls`,
-   *      execute them, append to `toolResults`, loop
+   *   4. otherwise: preserve the round's prose in `workNotes` for visible
+   *      rendering, clear `content` for the next round's final prose, append
+   *      the calls to `toolCalls`, execute them, append to `toolResults`, loop
    *
    * The loop exits when the model produces a round with no tool calls
    * (final reply), the request errors, the signal aborts, or we hit
@@ -1170,8 +1155,8 @@ export class ChatStore {
       }
 
       // Mid-turn: the model called tools. Keep any streamed pre-tool prose as
-      // quiet work notes, then clear `content` so the final answer remains the
-      // model's closing reply after tool results are available.
+      // visible work notes, then clear `content` so the next streamed text is
+      // the model's closing reply after tool results are available.
       this.textBuffer.flush(assistantMessage.id);
       if (signal.aborted) {
         runInAction(() => this.clearStreamingState(threadId));
@@ -2014,6 +1999,10 @@ function toolsForContextMode(args: {
   if (!args.toolsAllowed || args.mode === 'bare') return undefined;
   if (args.mode === 'micro') {
     const tools: ToolDef[] = [];
+    const sourceWorkspace = toolRegistry.get('source_workspace')?.def;
+    const sourceBuild = toolRegistry.get('source_build')?.def;
+    if (sourceWorkspace) tools.push(sourceWorkspace);
+    if (sourceBuild) tools.push(sourceBuild);
     if (args.bridgeOnline && isMicroFsRelevant(args.userText)) tools.push(MICRO_FS_TOOL_DEF);
     const webSearch = args.webSearchAvailable ? toolRegistry.get('web_search')?.def : undefined;
     if (webSearch) tools.push(webSearch);

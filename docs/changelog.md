@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-05-17 - Version 3.7.0 release build
+
+- Bumped GatesAI Chat package, Tauri, and Rust crate metadata to `3.7.0`.
+- Updated Arch Linux AppImage install examples for the `3.7.0` artifact name.
+
+## 2026-05-17 - Linux AppImage sidecar preparation
+
+- Added `scripts/prepare-linux-sidecar.sh` to build or copy the required
+  `gatesai-bridge-x86_64-unknown-linux-gnu` sidecar before AppImage bundling.
+- Updated the Linux AppImage workflow to build with a real bridge checkout when
+  configured, while keeping the old stub path as an explicit manual smoke-test
+  option.
+- Documented local Linux AppImage build steps and tightened sidecar ignore
+  rules so generated bridge binaries stay out of git.
+- Added an HTML Arch Linux AppImage install guide covering runtime packages,
+  launcher setup, bridge verification, and troubleshooting.
+
 ## 2026-05-15 — Unified assistant activity timeline
 
 - Added a typed `ActivityItem` model and a single ambient `ActivityStream`

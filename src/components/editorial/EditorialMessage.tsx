@@ -86,9 +86,12 @@ interface MessageProps {
 type CopyState = 'idle' | 'hint' | 'copied' | 'failed';
 
 let copyHintSeen = false;
-const STREAM_SMOOTH_FRAME_MS = 24;
-const STREAM_SMOOTH_MIN_CHARS = 2;
-const STREAM_SMOOTH_MAX_CHARS = 48;
+const STREAM_SMOOTH_FRAME_MS = 16;
+const STREAM_SMOOTH_BASE_CHARS_PER_SECOND = 180;
+const STREAM_SMOOTH_CATCHUP_CHARS_PER_SECOND = 540;
+const STREAM_SMOOTH_CATCHUP_BACKLOG = 96;
+const STREAM_SMOOTH_MAX_BACKLOG = 320;
+const STREAM_SMOOTH_TARGET_BACKLOG = 180;
 
 /**
  * One message = one user turn or one assistant turn (which may include
@@ -141,6 +144,9 @@ export const EditorialMessage = observer(function EditorialMessage({
   const userContent = isUser && message.role === 'user' ? resolveUserAttachments(message) : null;
   const activities = !isUser && message.role === 'assistant'
     ? rootStore.chat.activitiesForMessage(preTokenLabel ? { ...message, preTokenLabel } : message, { streaming })
+    : [];
+  const visibleWorkNotes = !isUser && message.role === 'assistant'
+    ? (message.workNotes ?? []).map(note => note.trim()).filter(Boolean)
     : [];
   const shouldHideAssistantTextForImageJob = !isUser && activities.some(activity => activity.kind === 'image-job');
 
@@ -253,6 +259,21 @@ export const EditorialMessage = observer(function EditorialMessage({
           <Icons.Branch />
         </button>
       </div>
+      <div style={{
+        fontFamily: '"Source Serif 4", Iowan Old Style, Georgia, serif',
+        fontSize: 16,
+        lineHeight: 1.65,
+        color: 'var(--text)',
+        letterSpacing: '-0.01em',
+      }}>
+        {visibleWorkNotes.length > 0 && (
+          <div className="assistant-work-notes">
+            {visibleWorkNotes.map((note, index) => (
+              <MarkdownBody key={`${message.id}-work-note-${index}`} content={note} />
+            ))}
+          </div>
+        )}
+      </div>
       <ActivityStream items={activities} />
       <div style={{
         fontFamily: '"Source Serif 4", Iowan Old Style, Georgia, serif',
@@ -324,16 +345,22 @@ function useSmoothedStreamingText(content: string, active: boolean): string {
         return;
       }
 
-      const current = visibleRef.current;
+      let current = visibleRef.current;
       const target = targetRef.current;
       if (current === target) return;
 
-      const remaining = target.length - current.length;
-      const nextSize = Math.min(
-        STREAM_SMOOTH_MAX_CHARS,
-        Math.max(STREAM_SMOOTH_MIN_CHARS, Math.ceil(remaining / 3)),
-      );
-      const next = target.slice(0, current.length + nextSize);
+      let remaining = target.length - current.length;
+      if (remaining > STREAM_SMOOTH_MAX_BACKLOG) {
+        current = target.slice(0, Math.max(current.length, target.length - STREAM_SMOOTH_TARGET_BACKLOG));
+        visibleRef.current = current;
+        remaining = target.length - current.length;
+      }
+
+      const rate = remaining > STREAM_SMOOTH_CATCHUP_BACKLOG
+        ? STREAM_SMOOTH_CATCHUP_CHARS_PER_SECOND
+        : STREAM_SMOOTH_BASE_CHARS_PER_SECOND;
+      const nextSize = Math.max(1, Math.min(24, Math.ceil((elapsed / 1000) * rate)));
+      const next = target.slice(0, current.length + Math.min(remaining, nextSize));
       visibleRef.current = next;
       lastFrameRef.current = timestamp;
       setVisible(next);

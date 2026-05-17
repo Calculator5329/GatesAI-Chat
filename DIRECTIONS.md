@@ -174,5 +174,6 @@ Artifacts:
 
 - **Installer:** `src-tauri\target\release\bundle\nsis\GatesAI Chat_<version>_x64-setup.exe` (version in `src-tauri/tauri.conf.json`).
 - **Bridge sidecar** must exist at `src-tauri\binaries\gatesai-bridge-x86_64-pc-windows-msvc.exe` before bundling.
+- **Linux AppImage:** on a Linux host, build or copy the sidecar to `src-tauri/binaries/gatesai-bridge-x86_64-unknown-linux-gnu`, then run `npx tauri build --bundles appimage`. `scripts/prepare-linux-sidecar.sh` does this from `../gatesai-bridge` or from `GATESAI_BRIDGE_BIN`.
 
 For deeper architecture, see **`docs/tech_spec.md`** and **`docs/architecture.md`**.

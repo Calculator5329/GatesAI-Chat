@@ -13,7 +13,7 @@ import type { Message } from '../../core/types';
  *
  * Expansion rules for one stored assistant turn:
  *   - If it has no calls: emit a single `{ assistant, content }`.
- *   - If it has calls: emit `{ assistant, content: '', toolCalls }`
+ *   - If it has calls: emit `{ assistant, content: <pre-tool prose>, toolCalls }`
  *     followed by one `{ role: 'tool' }` per result (paired by id),
  *     then a final `{ assistant, content: <prose> }` with the model's
  *     finalized reply (only when prose is non-empty — otherwise the turn
@@ -41,7 +41,7 @@ export function flattenForWire(messages: Message[]): LlmMessage[] {
       continue;
     }
 
-    out.push({ role: 'assistant', content: '', toolCalls: calls });
+    out.push({ role: 'assistant', content: (m.workNotes ?? []).join('\n\n'), toolCalls: calls });
 
     const usedResultIndexes = new Set<number>();
     for (const call of calls) {

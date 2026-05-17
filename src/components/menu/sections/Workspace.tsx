@@ -4,7 +4,20 @@ import { useBridgeStore } from '../../../stores/context';
 import type { FsEntry, FsListResp } from '../../../core/workspace';
 import { Card } from '../../ui/Card';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
-import { isWebLite } from '../../../services/system/runtime';
+import { isTauri, isWebLite } from '../../../services/system/runtime';
+import {
+  getSourceWorkspaceStatus,
+  openSourceWorkspace,
+  prepareSourceWorkspace,
+  type SourceWorkspaceStatus,
+} from '../../../services/sourceWorkspace';
+import {
+  clearSourceBuild,
+  getSourceBuildStatus,
+  startSourceBuild,
+  type SourceBuildCommand,
+  type SourceBuildStatus,
+} from '../../../services/sourceBuild';
 
 export const WorkspaceSection = observer(function WorkspaceSection() {
   const bridge = useBridgeStore();
@@ -12,6 +25,12 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
   const [tree, setTree] = useState<FsListResp | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sourceStatus, setSourceStatus] = useState<SourceWorkspaceStatus | null>(null);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [sourceError, setSourceError] = useState<string | null>(null);
+  const [buildStatus, setBuildStatus] = useState<SourceBuildStatus | null>(null);
+  const [buildLoading, setBuildLoading] = useState(false);
+  const [buildError, setBuildError] = useState<string | null>(null);
 
   const refresh = async () => {
     setError(null);
@@ -28,6 +47,93 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
   };
 
   useEffect(() => { void refresh(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [bridge.state]);
+  useEffect(() => {
+    if (webLite || !isTauri()) return;
+    void refreshSourceWorkspace();
+    void refreshSourceBuild();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [webLite]);
+
+  useEffect(() => {
+    if (webLite || !isTauri() || buildStatus?.status !== 'running') return;
+    const timer = setInterval(() => { void refreshSourceBuild(); }, 1500);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [webLite, buildStatus?.status]);
+
+  const refreshSourceWorkspace = async () => {
+    setSourceError(null);
+    if (webLite || !isTauri()) {
+      setSourceStatus(null);
+      return;
+    }
+    setSourceLoading(true);
+    try {
+      setSourceStatus(await getSourceWorkspaceStatus());
+    } catch (err) {
+      setSourceError((err as Error).message);
+    } finally {
+      setSourceLoading(false);
+    }
+  };
+
+  const prepareSource = async () => {
+    setSourceError(null);
+    setSourceLoading(true);
+    try {
+      setSourceStatus(await prepareSourceWorkspace());
+    } catch (err) {
+      setSourceError((err as Error).message);
+    } finally {
+      setSourceLoading(false);
+    }
+  };
+
+  const openSource = async () => {
+    setSourceError(null);
+    try {
+      await openSourceWorkspace();
+    } catch (err) {
+      setSourceError((err as Error).message);
+    }
+  };
+
+  const refreshSourceBuild = async () => {
+    setBuildError(null);
+    if (webLite || !isTauri()) {
+      setBuildStatus(null);
+      return;
+    }
+    try {
+      setBuildStatus(await getSourceBuildStatus());
+    } catch (err) {
+      setBuildError((err as Error).message);
+    }
+  };
+
+  const startBuild = async (command: SourceBuildCommand) => {
+    setBuildError(null);
+    setBuildLoading(true);
+    try {
+      setBuildStatus(await startSourceBuild(command));
+    } catch (err) {
+      setBuildError((err as Error).message);
+    } finally {
+      setBuildLoading(false);
+    }
+  };
+
+  const clearBuild = async () => {
+    setBuildError(null);
+    setBuildLoading(true);
+    try {
+      setBuildStatus(await clearSourceBuild());
+    } catch (err) {
+      setBuildError((err as Error).message);
+    } finally {
+      setBuildLoading(false);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -69,6 +175,27 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
           Three folders inside this root: <code style={S.inlineCode}>attachments/</code> (your uploads), <code style={S.inlineCode}>notes/</code> (model scratchpad), <code style={S.inlineCode}>artifacts/</code> (final outputs).
         </div>
       </Card>
+
+      <SourceWorkspaceCard
+        status={sourceStatus}
+        loading={sourceLoading}
+        error={sourceError}
+        unavailable={webLite || !isTauri()}
+        onPrepare={prepareSource}
+        onRefresh={refreshSourceWorkspace}
+        onOpen={openSource}
+      />
+
+      <SourceBuildCard
+        status={buildStatus}
+        sourcePrepared={Boolean(sourceStatus?.prepared)}
+        loading={buildLoading}
+        error={buildError}
+        unavailable={webLite || !isTauri()}
+        onStart={startBuild}
+        onRefresh={refreshSourceBuild}
+        onClear={clearBuild}
+      />
 
       {/* Allowlist */}
       <Card>
@@ -117,6 +244,144 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
     </div>
   );
 });
+
+function SourceWorkspaceCard({
+  status,
+  loading,
+  error,
+  unavailable,
+  onPrepare,
+  onRefresh,
+  onOpen,
+}: {
+  status: SourceWorkspaceStatus | null;
+  loading: boolean;
+  error: string | null;
+  unavailable: boolean;
+  onPrepare: () => void;
+  onRefresh: () => void;
+  onOpen: () => void;
+}) {
+  const ready = Boolean(status?.available && status.prepared && !status.stale);
+  const needsPrepare = Boolean(status?.available && (!status.prepared || status.stale));
+  const statusText = unavailable
+    ? 'Desktop app only'
+    : !status
+      ? 'Not checked'
+      : !status.available
+        ? 'Snapshot unavailable'
+        : ready
+          ? 'Prepared'
+          : status.stale
+            ? 'Update available'
+            : 'Not prepared';
+
+  return (
+    <Card>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div>
+          <div style={S.label}>Source workspace</div>
+          <div style={S.sub}>Managed duplicate codebase for future self-update work.</div>
+        </div>
+        <span style={S.statusChip(ready ? '#5fbf7a' : needsPrepare ? '#c8b87e' : 'var(--text-faint)')}>
+          {statusText}
+        </span>
+      </div>
+
+      <div style={{ ...S.code, marginTop: 12 }}>
+        {status?.sourceRoot || '—'}
+      </div>
+      {status?.available && (
+        <div style={{ ...S.sub, marginTop: 8 }}>
+          {status.version ?? 'unknown version'} · {shortHash(status.contentHash)} · {formatSize(status.totalBytes ?? 0)} · {status.fileCount ?? 0} files
+          {status.preparedAtUnix ? ` · prepared ${new Date(status.preparedAtUnix * 1000).toLocaleString()}` : ''}
+        </div>
+      )}
+      {(error || status?.lastError) && (
+        <div style={{ ...S.empty, color: '#c96a6a', marginTop: 8 }}>{error ?? status?.lastError}</div>
+      )}
+      {unavailable && (
+        <div style={{ ...S.empty, marginTop: 8 }}>Source workspace controls are available in the installed desktop app.</div>
+      )}
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <button onClick={onPrepare} disabled={unavailable || loading || !status?.available} style={S.btn}>
+          {loading ? 'Working…' : status?.stale ? 'Refresh source' : 'Prepare source'}
+        </button>
+        <button onClick={onOpen} disabled={unavailable || !status?.prepared} style={S.btn}>Open source</button>
+        <button onClick={onRefresh} disabled={unavailable || loading} style={S.btn}>Refresh</button>
+      </div>
+    </Card>
+  );
+}
+
+function SourceBuildCard({
+  status,
+  sourcePrepared,
+  loading,
+  error,
+  unavailable,
+  onStart,
+  onRefresh,
+  onClear,
+}: {
+  status: SourceBuildStatus | null;
+  sourcePrepared: boolean;
+  loading: boolean;
+  error: string | null;
+  unavailable: boolean;
+  onStart: (command: SourceBuildCommand) => void;
+  onRefresh: () => void;
+  onClear: () => void;
+}) {
+  const running = status?.status === 'running';
+  const disabled = unavailable || loading || running || !sourcePrepared;
+  const chipColor = status?.status === 'succeeded'
+    ? '#5fbf7a'
+    : status?.status === 'failed'
+      ? '#c96a6a'
+      : running
+        ? '#c8b87e'
+        : 'var(--text-faint)';
+
+  return (
+    <Card>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div>
+          <div style={S.label}>Source build runner</div>
+          <div style={S.sub}>Run approved validation and packaging commands in the duplicate source.</div>
+        </div>
+        <span style={S.statusChip(chipColor)}>{status?.status ?? 'idle'}</span>
+      </div>
+
+      <div style={{ ...S.sub, marginTop: 10 }}>
+        {status?.cmdline ?? 'No build job has run yet.'}
+        {status?.exitCode != null ? ` · exit ${status.exitCode}` : ''}
+      </div>
+      {status?.installerPath && (
+        <div style={{ ...S.code, marginTop: 8 }}>
+          installer: {status.installerPath} {status.installerBytes ? `(${formatSize(status.installerBytes)})` : ''}
+        </div>
+      )}
+      {(error || status?.lastError) && (
+        <div style={{ ...S.empty, color: '#c96a6a', marginTop: 8 }}>{error ?? status?.lastError}</div>
+      )}
+      {!sourcePrepared && !unavailable && (
+        <div style={{ ...S.empty, marginTop: 8 }}>Prepare the source workspace before running builds.</div>
+      )}
+      {status?.logs?.length ? (
+        <pre style={S.logTail}>{status.logs.slice(-12).join('\n')}</pre>
+      ) : null}
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <button onClick={() => onStart('install')} disabled={disabled} style={S.btn}>Install deps</button>
+        <button onClick={() => onStart('test')} disabled={disabled} style={S.btn}>Test</button>
+        <button onClick={() => onStart('build')} disabled={disabled} style={S.btn}>Build</button>
+        <button onClick={() => onStart('package')} disabled={disabled} style={S.btn}>Package</button>
+        <button onClick={onRefresh} disabled={unavailable || loading} style={S.btn}>Refresh</button>
+        <button onClick={onClear} disabled={unavailable || loading || running} style={S.btn}>Clear</button>
+      </div>
+    </Card>
+  );
+}
 
 // ── File explorer ──────────────────────────────────────────────────────────────
 
@@ -300,6 +565,11 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+function shortHash(hash?: string): string {
+  if (!hash) return 'unknown hash';
+  return hash.replace(/^sha256:/, '').slice(0, 12);
+}
+
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
 const S = {
@@ -322,4 +592,25 @@ const S = {
     color: 'var(--text-dim)',
   } as CSSProperties,
   empty: { fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic' } as CSSProperties,
+  statusChip: (color: string): CSSProperties => ({
+    padding: '3px 8px',
+    fontSize: 11,
+    border: '1px solid var(--border)',
+    borderRadius: 3,
+    color,
+    whiteSpace: 'nowrap',
+  }),
+  logTail: {
+    margin: '10px 0 0',
+    maxHeight: 180,
+    overflow: 'auto',
+    padding: 10,
+    border: '1px solid var(--border)',
+    borderRadius: 4,
+    background: 'rgba(0,0,0,0.18)',
+    color: 'var(--text-dim)',
+    fontSize: 11,
+    lineHeight: 1.45,
+    whiteSpace: 'pre-wrap',
+  } as CSSProperties,
 };

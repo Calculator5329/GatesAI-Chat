@@ -7,6 +7,8 @@ use tauri_plugin_shell::ShellExt;
 mod http_health;
 mod brave_search;
 mod local_runtime;
+mod source_build;
+mod source_workspace;
 
 use http_health::probe_health;
 
@@ -51,9 +53,21 @@ pub fn run() {
       local_runtime::pick_directory,
       local_runtime::pick_file,
       local_runtime::runtime_candidate_paths,
+      source_workspace::source_workspace_status,
+      source_workspace::source_workspace_prepare,
+      source_workspace::source_workspace_open,
+      source_workspace::source_workspace_list,
+      source_workspace::source_workspace_read,
+      source_workspace::source_workspace_write,
+      source_workspace::source_workspace_stat,
+      source_workspace::source_workspace_search,
+      source_build::source_build_status,
+      source_build::source_build_start,
+      source_build::source_build_clear,
     ])
     .manage(BridgeChild(Mutex::new(None)))
     .manage(local_runtime::LocalRuntimeState::default())
+    .manage(source_build::SourceBuildState::default())
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

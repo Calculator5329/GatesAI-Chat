@@ -18,6 +18,8 @@ import { imageGenerateTool } from './imageGenerate';
 import { describeImageTool } from './describeImage';
 import { webSearchTool } from './webSearch';
 import { artifactTool } from './artifact';
+import { sourceWorkspaceTool } from './sourceWorkspace';
+import { sourceBuildTool } from './sourceBuild';
 
 export interface ToolSelectionContext {
   userText: string;
@@ -75,7 +77,13 @@ export class ToolRegistry {
 
   toolDefsForTurn(ctx: ToolSelectionContext): ToolDef[] {
     const text = ctx.userText.toLowerCase();
-    const selected = new Set<string>(['memory', 'thread', 'chat_history']);
+    const selected = new Set<string>([
+      'memory',
+      'thread',
+      'chat_history',
+      'source_workspace',
+      'source_build',
+    ]);
     const bridgeRelevant = ctx.bridgeOnline || /\b(file|files|attachment|attached|csv|json|data|dataset|text|txt|code|script|command|terminal|shell|git|build|test|workspace|artifact|artifacts|folder|directory|read|write|html|htm|webpage|website|page|game|canvas|app|demo|prototype|ui)\b/.test(text);
     const notesRelevant = /\b(note|notes|plan|plans|document|documents|doc|docs|memory|remember|search|list|read|write)\b/.test(text);
     const imageGenRelevant = /\b(draw|drawing|paint|render|generate|make|create|design|illustrate|picture|image|photo|artwork|poster|logo|illustration|visual|scene|portrait|landscape|background|wallpaper)\b.*\b(image|picture|photo|art|artwork|drawing|poster|logo|illustration|scene|portrait|landscape|background|wallpaper)\b|\b(image[-_ ]?gen|imagegen|flux|stable ?diffusion|dall[-_ ]?e|midjourney|background|wallpaper)\b/i.test(text);
@@ -382,6 +390,8 @@ toolRegistry.register(notesTool);
 toolRegistry.register(threadTool);
 toolRegistry.register(chatHistoryTool);
 toolRegistry.register(workspaceTool);
+toolRegistry.register(sourceWorkspaceTool);
+toolRegistry.register(sourceBuildTool);
 toolRegistry.register(fsTool);
 toolRegistry.register(inspectFileTool);
 toolRegistry.register(artifactTool);

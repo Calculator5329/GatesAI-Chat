@@ -90,10 +90,12 @@ describe('Tool loop — scripted', () => {
     expect(assistant.toolResults?.[0].toolCallId).toBe('call_xyz');
     expect(assistant.toolResults?.[0].content).toContain('Saved');
     // Content holds the FINAL round's prose, while pre-tool text is preserved
-    // as work notes so it does not disappear from the UI mid-turn.
+    // as visible work notes so it does not disappear from the UI mid-turn.
     expect(assistant.workNotes?.[0]).toContain("I'll remember that");
     expect(assistant.content).toContain('Bill Evans');
     expect(assistant.content).not.toContain("Got it");
+    expect(mock.calls[1].messages.find(m => m.role === 'assistant' && m.toolCalls)?.content)
+      .toContain("I'll remember that");
     expect(chat.streamingMessageId).toBeNull();
   });
 

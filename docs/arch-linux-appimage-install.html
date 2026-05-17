@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Install GatesAI Chat on Arch Linux</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #101215;
+      --panel: #171b20;
+      --text: #edf1f5;
+      --muted: #aeb8c4;
+      --border: #2d3540;
+      --accent: #5ec4ff;
+      --code: #0b0d10;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 48px 24px 72px;
+    }
+
+    h1, h2 {
+      line-height: 1.15;
+      margin: 0 0 14px;
+    }
+
+    h1 {
+      font-size: 2.3rem;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin-top: 40px;
+      padding-top: 26px;
+      border-top: 1px solid var(--border);
+      font-size: 1.35rem;
+    }
+
+    p {
+      margin: 0 0 16px;
+      color: var(--muted);
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    code {
+      font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-size: 0.94em;
+    }
+
+    pre {
+      margin: 14px 0 22px;
+      padding: 16px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--code);
+    }
+
+    pre code {
+      color: #f3f7fb;
+      white-space: pre;
+    }
+
+    .lede {
+      font-size: 1.08rem;
+      max-width: 720px;
+    }
+
+    .note {
+      margin: 20px 0;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    .checklist {
+      margin: 12px 0 0;
+      padding-left: 22px;
+      color: var(--muted);
+    }
+
+    .checklist li {
+      margin: 8px 0;
+    }
+
+    footer {
+      margin-top: 44px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Install GatesAI Chat on Arch Linux</h1>
+    <p class="lede">Use this guide to install the GatesAI Chat AppImage on Arch Linux and confirm that the bundled Linux bridge starts correctly.</p>
+
+    <h2>1. Install Runtime Packages</h2>
+    <p>Install the AppImage and WebKit runtime packages from the Arch repositories:</p>
+    <pre><code>sudo pacman -Syu
+sudo pacman -S fuse2 webkit2gtk-4.1</code></pre>
+    <p><code>fuse2</code> lets AppImage files mount and run. <code>webkit2gtk-4.1</code> provides the WebView runtime used by Tauri on Linux.</p>
+
+    <h2>2. Copy The AppImage</h2>
+    <p>Create a permanent folder for user-installed AppImages:</p>
+    <pre><code>mkdir -p "$HOME/Applications/GatesAI Chat"</code></pre>
+    <p>If the AppImage is in <code>~/Downloads</code>, copy it into that folder and make it executable:</p>
+    <pre><code>cp "$HOME/Downloads/GatesAI Chat_3.7.0_amd64.AppImage" "$HOME/Applications/GatesAI Chat/"
+chmod +x "$HOME/Applications/GatesAI Chat/GatesAI Chat_3.7.0_amd64.AppImage"</code></pre>
+
+    <h2>3. Launch</h2>
+    <p>Run the AppImage directly:</p>
+    <pre><code>"$HOME/Applications/GatesAI Chat/GatesAI Chat_3.7.0_amd64.AppImage"</code></pre>
+
+    <div class="note">
+      After launch, open <strong>Menu -&gt; Workspace</strong>. The status should become <strong>Bridge online</strong>.
+    </div>
+
+    <h2>4. Add A Desktop Launcher</h2>
+    <p>Create an applications-menu entry:</p>
+    <pre><code>mkdir -p "$HOME/.local/share/applications"
+cat &gt; "$HOME/.local/share/applications/gatesai-chat.desktop" &lt;&lt;'EOF'
+[Desktop Entry]
+Type=Application
+Name=GatesAI Chat
+Comment=Local-first AI chat with workspace tools
+Exec=/home/YOUR_USER/Applications/GatesAI Chat/GatesAI Chat_3.7.0_amd64.AppImage
+Terminal=false
+Categories=Utility;Development;
+EOF</code></pre>
+    <p>Patch the launcher path to your Linux home directory:</p>
+    <pre><code>sed -i "s|/home/YOUR_USER|$HOME|" "$HOME/.local/share/applications/gatesai-chat.desktop"
+update-desktop-database "$HOME/.local/share/applications" 2&gt;/dev/null || true</code></pre>
+    <p>Log out and back in if the launcher does not appear right away.</p>
+
+    <h2>5. Verify The Bridge</h2>
+    <p>If the app says the bridge is offline, check whether another process is already using the bridge port:</p>
+    <pre><code>ss -ltnp | grep ':7331' || true</code></pre>
+    <p>You can also run the AppImage from a terminal to watch bridge startup logs:</p>
+    <pre><code>"$HOME/Applications/GatesAI Chat/GatesAI Chat_3.7.0_amd64.AppImage"</code></pre>
+
+    <h2>6. Troubleshooting</h2>
+    <p>If the AppImage does not start and mentions FUSE, reinstall <code>fuse2</code>:</p>
+    <pre><code>sudo pacman -S fuse2</code></pre>
+    <p>If the app opens to a blank window or exits with WebKit-related errors, reinstall the WebKit runtime:</p>
+    <pre><code>sudo pacman -S webkit2gtk-4.1</code></pre>
+    <p>If the app launches but workspace tools are offline, make sure this AppImage was built with the real Linux bridge sidecar, not the packaging-only stub.</p>
+
+    <h2>7. Inspect The AppImage</h2>
+    <p>To confirm the bridge binary is inside the AppImage:</p>
+    <pre><code>mkdir -p /tmp/gatesai-appimage-check
+cp "$HOME/Applications/GatesAI Chat/GatesAI Chat_3.7.0_amd64.AppImage" /tmp/gatesai-appimage-check/
+cd /tmp/gatesai-appimage-check
+chmod +x ./*.AppImage
+./*.AppImage --appimage-extract &gt;/dev/null
+find squashfs-root -name 'gatesai-bridge*' -exec file {} \;</code></pre>
+    <p>The bridge entry should report an <code>ELF 64-bit</code> executable.</p>
+
+    <footer>
+      Package names verified against the Arch Linux package database for <code>fuse2</code> and <code>webkit2gtk-4.1</code>.
+    </footer>
+  </main>
+</body>
+</html>

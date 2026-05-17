@@ -11,7 +11,7 @@ export class StreamingTextBuffer {
   private readonly scheduleFlush: ScheduleFlush;
   private readonly maxPendingChars: number;
 
-  constructor(scheduleFlush: ScheduleFlush = defaultScheduleFlush, maxPendingChars = 48) {
+  constructor(scheduleFlush: ScheduleFlush = defaultScheduleFlush, maxPendingChars = 72) {
     this.scheduleFlush = scheduleFlush;
     this.maxPendingChars = maxPendingChars;
   }
@@ -51,7 +51,10 @@ export class StreamingTextBuffer {
 }
 
 function defaultScheduleFlush(flush: FlushCallback): void {
-  // A 16ms timer gives frame-sized batches without relying on rAF behavior in
-  // background tabs or test environments.
-  globalThis.setTimeout(flush, 16);
+  if (typeof globalThis.requestAnimationFrame === 'function') {
+    globalThis.requestAnimationFrame(() => flush());
+    return;
+  }
+
+  globalThis.setTimeout(flush, 24);
 }
