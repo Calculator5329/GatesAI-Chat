@@ -166,7 +166,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font: 12px/1.45 "Geist Mono", ui-monospace, monospace;
+  font: 13px/1.5 inherit;
   letter-spacing: 0.02em;
   text-align: left;
 }
@@ -191,11 +191,36 @@
   color: color-mix(in srgb, #ffaaaa 72%, var(--text-faint));
 }
 
-.activity-row__glyph {
-  flex: 0 0 10px;
-  width: 10px;
-  text-align: center;
+.activity-row__icon {
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: currentColor;
+  opacity: 0.85;
+}
+
+.activity-row__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.activity-row__stats {
+  display: inline-flex;
+  gap: 6px;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.activity-row__stats-added {
+  color: color-mix(in srgb, var(--accent) 70%, #6ee7a7);
+}
+
+.activity-row__stats-removed {
+  color: color-mix(in srgb, #ffaaaa 75%, var(--text-faint));
 }
 
 .activity-row__label {
@@ -205,7 +230,15 @@
   text-overflow: ellipsis;
 }
 
-.activity-row__target,
+.activity-row__target {
+  color: color-mix(in srgb, var(--accent) 80%, var(--text));
+  text-decoration: none;
+}
+
+.activity-row__button:hover .activity-row__target {
+  text-decoration: underline;
+}
+
 .activity-row__summary,
 .activity-row__elapsed {
   opacity: 0.78;
@@ -253,6 +286,40 @@
 
 .activity-row__terminal [data-stream="stderr"] {
   color: #ffaaaa;
+}
+
+.activity-stream__header {
+  font: 11px/1.5 inherit;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.activity-group__children {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0 4px 22px;
+  padding-left: 8px;
+  border-left: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.activity-group__child .activity-row__button {
+  font-size: 12px;
+}
+
+.activity-row[data-kind="thinking"] .activity-row__button {
+  color: color-mix(in srgb, var(--text-faint) 70%, var(--text));
+  font-style: italic;
+}
+
+.activity-row[data-kind="thinking"] .activity-row__icon {
+  opacity: 0.7;
+}
+
+.activity-row[data-kind="thinking"][data-state="running"] .activity-row__button {
+  font-style: normal;
 }
 
 .editorial-sidebar__close {

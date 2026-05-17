@@ -9,12 +9,12 @@ import type { ActivityItem } from '../../../src/core/types';
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
-function render(items: ActivityItem[]) {
+function render(items: ActivityItem[], header?: string) {
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
   act(() => {
-    root!.render(createElement(ActivityStream, { items }));
+    root!.render(createElement(ActivityStream, { items, header }));
   });
   return host;
 }
@@ -58,6 +58,94 @@ describe('ActivityStream', () => {
 
     expect(rendered.querySelector('.activity-row__detail')?.textContent).toContain('Checked');
     expect(rendered.querySelector('.activity-row__detail strong')?.textContent).toBe('Checked');
+  });
+
+  it('accepts optional stats and groupKey on items', () => {
+    const rendered = render([
+      item({ id: 's1', state: 'done', verb: 'Editing', target: 'foo.ts', stats: { added: 6, removed: 1 } }),
+      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'echo a', groupKey: 'shell' }),
+      item({ id: 'g2', state: 'done', verb: 'Ran', target: 'echo b', groupKey: 'shell' }),
+    ]);
+    expect(rendered.textContent).toContain('foo.ts');
+  });
+
+  it('renders an SVG icon instead of an ASCII glyph', () => {
+    const rendered = render([
+      item({ id: 'i1', state: 'done', verb: 'Editing', target: 'foo.ts' }),
+    ]);
+    expect(rendered.querySelector('.activity-row__icon svg')).not.toBeNull();
+    expect(rendered.querySelector('.activity-row__glyph')).toBeNull();
+  });
+
+  it('renders stats chips when item has stats', () => {
+    const rendered = render([
+      item({ id: 's2', state: 'done', verb: 'Editing', target: 'foo.ts', stats: { added: 6, removed: 1 } }),
+    ]);
+    const stats = rendered.querySelector('.activity-row__stats');
+    expect(stats?.textContent).toContain('+6');
+    expect(stats?.textContent).toContain('−1');
+  });
+
+  it('renders a free-form stats label when added/removed are absent', () => {
+    const rendered = render([
+      item({ id: 's3', state: 'done', verb: 'Wrote', target: 'foo.ts', stats: { label: '3 files' } }),
+    ]);
+    expect(rendered.querySelector('.activity-row__stats')?.textContent).toBe('3 files');
+  });
+
+  it('renders a single group row when consecutive items share a groupKey', () => {
+    const rendered = render([
+      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'echo a', groupKey: 'tool:terminal' }),
+      item({ id: 'g2', state: 'done', verb: 'Ran', target: 'echo b', groupKey: 'tool:terminal' }),
+      item({ id: 'g3', state: 'done', verb: 'Ran', target: 'echo c', groupKey: 'tool:terminal' }),
+    ]);
+
+    const groups = rendered.querySelectorAll('.activity-group');
+    expect(groups.length).toBe(1);
+    expect(rendered.textContent).toContain('Ran 3 commands');
+
+    act(() => {
+      rendered.querySelector('.activity-group .activity-row__button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(rendered.querySelectorAll('.activity-group__child').length).toBe(3);
+  });
+
+  it('marks the group failed when any child failed', () => {
+    const rendered = render([
+      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'ok', groupKey: 'tool:terminal' }),
+      item({ id: 'g2', state: 'failed', verb: 'Ran', target: 'bad', groupKey: 'tool:terminal', summary: 'exit 1' }),
+    ]);
+    expect(rendered.querySelector('.activity-group')?.getAttribute('data-state')).toBe('failed');
+  });
+
+  it('renders running indicator on the group parent when a child is running', () => {
+    const rendered = render([
+      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'echo a', groupKey: 'tool:terminal' }),
+      item({ id: 'g2', state: 'running', verb: 'Ran', target: 'echo b', groupKey: 'tool:terminal' }),
+    ]);
+    const group = rendered.querySelector('.activity-group');
+    expect(group?.getAttribute('data-state')).toBe('running');
+    expect(group?.querySelector(':scope > .activity-row__button > .thinking-dots')).not.toBeNull();
+  });
+
+  it('renders header, thinking, group, and standalone rows together', () => {
+    const rendered = render([
+      item({ id: 't1', kind: 'thinking', state: 'done', verb: 'Thinking', detail: { type: 'markdown', content: 'Reasoned about X.' } }),
+      item({ id: 's1', kind: 'tool', state: 'done', verb: 'Ran', target: 'echo a', groupKey: 'tool:terminal' }),
+      item({ id: 's2', kind: 'tool', state: 'done', verb: 'Ran', target: 'echo b', groupKey: 'tool:terminal' }),
+      item({ id: 'e1', kind: 'tool', state: 'done', verb: 'Editing', target: 'foo.ts', stats: { added: 6, removed: 1 } }),
+    ]);
+
+    expect(rendered.querySelector('[data-kind="thinking"]')).not.toBeNull();
+    expect(rendered.querySelector('.activity-group')).not.toBeNull();
+    expect(rendered.textContent).toContain('Editing');
+    expect(rendered.textContent).toContain('+6');
+  });
+
+  it('renders an optional header above the stream', () => {
+    const rendered = render([item({ id: 'a', state: 'done' })], 'Worked on');
+    expect(rendered.querySelector('.activity-stream__header')?.textContent).toBe('Worked on');
   });
 });
 
