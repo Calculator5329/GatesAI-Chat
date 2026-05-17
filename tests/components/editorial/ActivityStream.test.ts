@@ -59,6 +59,15 @@ describe('ActivityStream', () => {
     expect(rendered.querySelector('.activity-row__detail')?.textContent).toContain('Checked');
     expect(rendered.querySelector('.activity-row__detail strong')?.textContent).toBe('Checked');
   });
+
+  it('accepts optional stats and groupKey on items', () => {
+    const rendered = render([
+      item({ id: 's1', state: 'done', verb: 'Editing', target: 'foo.ts', stats: { added: 6, removed: 1 } }),
+      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'echo a', groupKey: 'shell' }),
+      item({ id: 'g2', state: 'done', verb: 'Ran', target: 'echo b', groupKey: 'shell' }),
+    ]);
+    expect(rendered.textContent).toContain('foo.ts');
+  });
 });
 
 function item(overrides: Partial<ActivityItem>): ActivityItem {

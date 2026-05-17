@@ -147,6 +147,13 @@ export interface ActivityDetail {
   placeholder?: string;
 }
 
+export interface ActivityStats {
+  added?: number;
+  removed?: number;
+  /** Free-form label when added/removed don't apply (e.g. "3 files", "1.2 KB"). */
+  label?: string;
+}
+
 export interface ActivityItem {
   id: string;
   kind: ActivityKind;
@@ -159,6 +166,10 @@ export interface ActivityItem {
   startedAt: number;
   finishedAt?: number;
   toolCallId?: string;
+  /** Inline diff/count chips rendered between target and elapsed. */
+  stats?: ActivityStats;
+  /** Stable grouping key. Consecutive rows with the same key collapse into one parent. */
+  groupKey?: string;
 }
 
 /**
