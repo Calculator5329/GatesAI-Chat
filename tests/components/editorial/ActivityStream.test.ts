@@ -9,12 +9,12 @@ import type { ActivityItem } from '../../../src/core/types';
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
-function render(items: ActivityItem[]) {
+function render(items: ActivityItem[], header?: string) {
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
   act(() => {
-    root!.render(createElement(ActivityStream, { items }));
+    root!.render(createElement(ActivityStream, { items, header }));
   });
   return host;
 }
@@ -127,6 +127,25 @@ describe('ActivityStream', () => {
     const group = rendered.querySelector('.activity-group');
     expect(group?.getAttribute('data-state')).toBe('running');
     expect(group?.querySelector(':scope > .activity-row__button > .thinking-dots')).not.toBeNull();
+  });
+
+  it('renders header, thinking, group, and standalone rows together', () => {
+    const rendered = render([
+      item({ id: 't1', kind: 'thinking', state: 'done', verb: 'Thinking', detail: { type: 'markdown', content: 'Reasoned about X.' } }),
+      item({ id: 's1', kind: 'tool', state: 'done', verb: 'Ran', target: 'echo a', groupKey: 'tool:terminal' }),
+      item({ id: 's2', kind: 'tool', state: 'done', verb: 'Ran', target: 'echo b', groupKey: 'tool:terminal' }),
+      item({ id: 'e1', kind: 'tool', state: 'done', verb: 'Editing', target: 'foo.ts', stats: { added: 6, removed: 1 } }),
+    ]);
+
+    expect(rendered.querySelector('[data-kind="thinking"]')).not.toBeNull();
+    expect(rendered.querySelector('.activity-group')).not.toBeNull();
+    expect(rendered.textContent).toContain('Editing');
+    expect(rendered.textContent).toContain('+6');
+  });
+
+  it('renders an optional header above the stream', () => {
+    const rendered = render([item({ id: 'a', state: 'done' })], 'Worked on');
+    expect(rendered.querySelector('.activity-stream__header')?.textContent).toBe('Worked on');
   });
 });
 
