@@ -562,6 +562,7 @@ export class ChatStore {
         startedAt: message.createdAt,
         finishedAt: result?.ranAt,
         toolCallId: call.id,
+        groupKey: imageJob ? undefined : `tool:${call.name}`,
       });
     }
 

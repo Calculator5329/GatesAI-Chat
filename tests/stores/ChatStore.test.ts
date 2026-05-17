@@ -180,6 +180,32 @@ describe('ChatStore', () => {
     ]);
     expect(activities[0].detail?.content).toContain('inspect the file');
     expect(activities[1].summary).toBe('Read plan.md');
+    expect(activities[1].groupKey).toBe('tool:fs');
+    expect(activities[2].groupKey).toBe('tool:web_search');
+  });
+
+  it('tags consecutive same-tool calls with a shared groupKey for collapsing', () => {
+    const { chat } = setup();
+    const assistant = {
+      id: 'm-group-key',
+      role: 'assistant' as const,
+      createdAt: 1000,
+      content: '',
+      toolCalls: [
+        { id: 'tc-a', name: 'fs', arguments: { action: 'read', path: '/workspace/a.md' } },
+        { id: 'tc-b', name: 'fs', arguments: { action: 'read', path: '/workspace/b.md' } },
+      ],
+      toolResults: [
+        { toolCallId: 'tc-a', toolName: 'fs', content: 'status: ok\ntool: fs\nsummary: Read a.md', summary: 'Read a.md', ok: true, ranAt: 1200 },
+        { toolCallId: 'tc-b', toolName: 'fs', content: 'status: ok\ntool: fs\nsummary: Read b.md', summary: 'Read b.md', ok: true, ranAt: 1300 },
+      ],
+    };
+
+    const activities = chat.activitiesForMessage(assistant);
+
+    expect(activities).toHaveLength(2);
+    expect(activities[0].groupKey).toBe('tool:fs');
+    expect(activities[1].groupKey).toBe('tool:fs');
   });
 
   it('attaches live terminal tail only to the matching terminal tool call', () => {
