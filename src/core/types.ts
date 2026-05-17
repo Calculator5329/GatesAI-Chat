@@ -73,6 +73,11 @@ export interface AssistantMessage {
   toolResults?: ToolResult[];
   /** Provider-reported usage/cost for the LLM request(s) that produced this message. */
   usage?: LlmUsage[];
+  /**
+   * UI-only ambient activity events that are not tool calls, such as bridge
+   * connectivity transitions observed while this assistant turn was active.
+   */
+  activityEvents?: ActivityItem[];
 }
 
 /**
@@ -109,6 +114,8 @@ export interface ToolResult {
   toolName: string;
   /** Result string the tool returned (and the model sees on its next round). */
   content: string;
+  /** Concise UI-facing summary. Never parsed back out of {@link content}. */
+  summary?: string;
   /** Whether the tool execution produced a successful outcome. */
   ok?: boolean;
   /** Low-cardinality error code for invalid/failed tool calls. */
@@ -128,6 +135,30 @@ export interface ToolResult {
    * field instead.
    */
   artifacts?: ToolResultArtifact[];
+}
+
+export type ActivityKind = 'thinking' | 'tool' | 'image-job' | 'exec-tail' | 'bridge';
+export type ActivityState = 'running' | 'done' | 'failed' | 'cancelled';
+
+export interface ActivityDetail {
+  type: 'markdown' | 'terminal';
+  content?: string;
+  lines?: Array<{ stream: 'stdout' | 'stderr'; text: string }>;
+  placeholder?: string;
+}
+
+export interface ActivityItem {
+  id: string;
+  kind: ActivityKind;
+  state: ActivityState;
+  verb: string;
+  target?: string;
+  summary?: string;
+  detail?: ActivityDetail;
+  artifacts?: ToolResultArtifact[];
+  startedAt: number;
+  finishedAt?: number;
+  toolCallId?: string;
 }
 
 /**
@@ -245,19 +276,6 @@ export interface ChatSnapshot {
 
 export type MenuSectionKey = 'agent' | 'models' | 'local' | 'workspace' | 'gallery' | 'settings';
 
-/**
- * How the assistant's tool invocations and their results are rendered in
- * the chat. Choice is persisted via UiStore. All five variants prioritize
- * "stay out of the way" — the conversation is the content, the tool is
- * machinery. From most-visible to invisible:
- *
- *   - `whisper`: single dim mono line, "tool · action · result". One breath.
- *   - `dot`:     a single accent dot with the tool name. Just `● memory`.
- *   - `aside`:   italic serif aside, "saved a memory". Reads as muttering.
- *   - `mark`:    a thin accent rule in the left margin. No text at all.
- *   - `hidden`:  not rendered. Model sees it; you don't.
- */
-export type ToolCallStyleKey = 'whisper' | 'dot' | 'aside' | 'mark' | 'hidden';
 export type MarkdownStyleKey = 'editorial' | 'technical' | 'compact';
 export type CodeStyleKey = 'obsidian' | 'terminal' | 'paper';
 export type MarkdownDensityKey = 'compact' | 'comfortable' | 'spacious';

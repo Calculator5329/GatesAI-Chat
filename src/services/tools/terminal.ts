@@ -71,8 +71,10 @@ export const terminalTool: Tool = {
     const stdin = typeof args.stdin === 'string' ? args.stdin : undefined;
     const timeout_ms = typeof args.timeout_ms === 'number' ? args.timeout_ms : undefined;
 
-    const jobId = `t-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    ctx.execStream?.start(jobId, cmd, cmdArgs);
+    const jobId = ctx.toolCallId
+      ? `terminal:${ctx.threadId}:${ctx.toolCallId}`
+      : `t-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    ctx.execStream?.start(jobId, cmd, cmdArgs, { threadId: ctx.threadId, toolCallId: ctx.toolCallId });
 
     try {
       const resp = await ctx.bridge.client.request<ExecRunResp>(

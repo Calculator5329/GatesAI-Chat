@@ -26,6 +26,7 @@ type Message =
       preTokenLabel?: 'thinking' | 'responding' | 'compacting' | 'generating';
       toolCalls?: ToolCall[];
       toolResults?: ToolResult[];     // paired to toolCalls by toolCallId
+      activityEvents?: ActivityItem[]; // bridge/non-tool transition rows
     };
 
 interface ToolCall {
@@ -38,6 +39,7 @@ interface ToolResult {
   toolCallId: string;   // matches the corresponding ToolCall.id
   toolName: string;     // denormalized so the renderer doesn't need a join
   content: string;      // what the tool returned (and the model sees next round)
+  summary?: string;     // concise UI one-liner; never parsed from content
   ranAt: number;
   artifacts?: ToolResultArtifact[];   // UI-only side channel (image thumbnails, ...)
 }
@@ -53,6 +55,20 @@ type ToolResultArtifact =
       jobId: string;    // reference into ImageJobStore
       count: number;    // expected number of images this job produces
     };
+
+type ActivityItem = {
+  id: string;
+  kind: 'thinking' | 'tool' | 'image-job' | 'exec-tail' | 'bridge';
+  state: 'running' | 'done' | 'failed' | 'cancelled';
+  verb: string;
+  target?: string;
+  summary?: string;
+  detail?: { type: 'markdown' | 'terminal'; content?: string; lines?: { stream: 'stdout' | 'stderr'; text: string }[] };
+  artifacts?: ToolResultArtifact[];
+  startedAt: number;
+  finishedAt?: number;
+  toolCallId?: string;
+};
 
 interface Thread {
   id: string;
@@ -197,8 +213,10 @@ operations for model recall.
 calls, markdown, and code output.
 
 `gatesai.uiprefs.v1` is normalized to the fixed foundation presentation:
-tool calls render as `aside`, markdown uses `compact`, code blocks use
-`obsidian`, compact density remains active, and animations stay enabled.
+markdown uses `compact`, code blocks use `obsidian`, compact density
+remains active, and animations stay enabled. Tool calls no longer have a
+selectable presentation setting; all assistant work renders through the
+unified ambient activity timeline.
 `App` maps those keys to root classes while `.md-body` consumes the resulting
 CSS variables for prose, lists, headings, inline code, and fenced code blocks.
 
@@ -288,14 +306,16 @@ one `toolRegistry.register()` line in `services/tools/registry.ts`. No UI
 wiring required.
 
 Tools may return either a plain `string` (the common case — the string
-becomes the tool result the model sees next round) or
-`{ content: string; artifacts?: ToolResultArtifact[] }`. The `content`
-remains the model-facing payload; `artifacts` is a UI-only side channel
-the chat renderer reads to show rich outputs. Concretely, `image_generate`
+becomes the tool result the model sees next round), a structured
+`ToolOutcome`, or `{ content: string; summary?: string; artifacts?: ToolResultArtifact[] }`.
+The `content` remains the model-facing payload; `summary` is the
+UI-facing activity line; `artifacts` is a UI-only side channel the chat
+renderer reads to show rich outputs. Concretely, `image_generate`
 enqueues work into `ImageJobStore`. For a single prompt it returns immediately
 with `{ content: 'Queued … (job <id>).', artifacts: [{ kind:'image-job', jobId, count }] }`.
-The renderer mounts an `ImageJobCard` bound to that `jobId`, observes the store
-for live progress, and swaps to the rendered images (and the optional Lightbox
+The unified activity renderer mounts an `ImageJobCard` bound to that
+`jobId` inside the activity expansion, observes the store for live
+progress, and swaps to the rendered images (and the optional Lightbox
 click-through) once the runner persists results to `/workspace/artifacts/`.
 
 For overnight batches, `image_generate` also accepts `prompt_file`, a

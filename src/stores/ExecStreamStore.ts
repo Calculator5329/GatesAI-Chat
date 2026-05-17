@@ -15,6 +15,8 @@ import { makeAutoObservable, runInAction } from 'mobx';
 
 export interface ExecStreamJob {
   id: string;
+  threadId?: string;
+  toolCallId?: string;
   cmd: string;
   args: string[];
   startedAt: number;
@@ -40,9 +42,9 @@ export class ExecStreamStore {
     makeAutoObservable(this);
   }
 
-  start(id: string, cmd: string, args: string[]): void {
+  start(id: string, cmd: string, args: string[], meta: { threadId?: string; toolCallId?: string } = {}): void {
     this.jobs[id] = {
-      id, cmd, args, startedAt: Date.now(),
+      id, threadId: meta.threadId, toolCallId: meta.toolCallId, cmd, args, startedAt: Date.now(),
       tail: [], status: 'running',
     };
   }

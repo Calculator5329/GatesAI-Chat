@@ -1,5 +1,5 @@
 import { autorun, makeAutoObservable, runInAction } from 'mobx';
-import type { AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
+import type { ActivityDetail, ActivityItem, AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
 import type { LlmProvider, LlmRequest, LlmUsage, ToolCall, ToolDef } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
@@ -499,6 +499,100 @@ export class ChatStore {
     this.toolStoresProvider = fn;
   }
 
+  activitiesForMessage(message: AssistantMessage, options: { streaming?: boolean } = {}): ActivityItem[] {
+    const extras = this.toolStoresProvider?.();
+    const results = message.toolResults ?? [];
+    const ownerThreadId = this.threadIdForMessage(message.id);
+    const items: ActivityItem[] = [];
+
+    for (const [index, note] of (message.workNotes ?? []).entries()) {
+      const content = note.trim();
+      if (!content) continue;
+      items.push({
+        id: `${message.id}:thinking:${index}`,
+        kind: 'thinking',
+        state: 'done',
+        verb: 'Thinking',
+        summary: 'Thinking saved',
+        detail: { type: 'markdown', content },
+        startedAt: message.createdAt,
+        finishedAt: message.createdAt,
+      });
+    }
+
+    const usedResultIndexes = new Set<number>();
+    for (const call of message.toolCalls ?? []) {
+      const resultIndex = results.findIndex((candidate, index) => !usedResultIndexes.has(index) && candidate.toolCallId === call.id);
+      if (resultIndex >= 0) usedResultIndexes.add(resultIndex);
+      const result = resultIndex >= 0 ? results[resultIndex] : undefined;
+      const tool = toolRegistry.get(call.name);
+      const artifacts = result?.artifacts;
+      const imageJob = artifacts?.find(artifact => artifact.kind === 'image-job');
+      const state = result
+        ? stateForToolResult(result, imageJob ? extras?.imageJobs?.findById?.(imageJob.jobId)?.status : undefined)
+        : 'running';
+      const summary = result
+        ? (tool?.ui?.summary?.({
+            content: result.content,
+            summary: result.summary,
+            ok: result.ok,
+            errorCode: result.errorCode,
+            retryable: result.retryable,
+            artifacts: result.artifacts,
+          }) ?? result.summary)
+        : undefined;
+      const runningExec = !result && call.name === 'terminal' ? runningExecForCall(extras?.execStream?.jobs, ownerThreadId, call.id) : null;
+      items.push({
+        id: call.id,
+        kind: imageJob ? 'image-job' : 'tool',
+        state,
+        verb: tool?.ui?.verb(call.arguments) ?? 'Using',
+        target: tool?.ui?.target?.(call.arguments),
+        summary,
+        detail: runningExec
+          ? {
+              type: 'terminal',
+              lines: runningExec.tail,
+              placeholder: runningExec.tail.length ? undefined : '(no output yet)',
+            }
+          : result?.content
+            ? detailForToolResult(call.name, result.content)
+            : undefined,
+        artifacts,
+        startedAt: message.createdAt,
+        finishedAt: result?.ranAt,
+        toolCallId: call.id,
+      });
+    }
+
+    for (const event of message.activityEvents ?? []) items.push(event);
+
+    if (options.streaming && message.content.trim().length === 0) {
+      const label = message.preTokenLabel ?? 'thinking';
+      items.push({
+        id: `${message.id}:pretoken`,
+        kind: 'thinking',
+        state: 'running',
+        verb: label[0].toUpperCase() + label.slice(1),
+        startedAt: message.createdAt,
+      });
+    }
+
+    return items;
+  }
+
+  recordActivityEvent(event: ActivityItem): void {
+    const threadId = this.activeThreadId;
+    if (!threadId) return;
+    const messageId = this.streamingByThread[threadId];
+    if (!messageId) return;
+    const message = this.findMessage(threadId, messageId);
+    if (!message || message.role !== 'assistant') return;
+    const existing = message.activityEvents ?? [];
+    if (existing.some(item => item.id === event.id)) return;
+    message.activityEvents = [...existing, event].slice(-12);
+  }
+
   async llmComplete(messages: Pick<LlmRequest['messages'][number], 'role' | 'content'>[], systemPrompt?: string): Promise<string> {
     const modelId = this.activeThread?.modelId ?? DEFAULT_MODEL_ID;
     const { provider, providerModelId } = this.providers.router.resolve(modelId);
@@ -557,6 +651,7 @@ export class ChatStore {
       toolCallId: callId,
       toolName: 'image_generate_complete',
       content: imageTerminalToolResult(job, backend, elapsed),
+      summary: `Image job ${job.status}.`,
       ranAt: Date.now(),
     }];
 
@@ -1440,6 +1535,7 @@ export class ChatStore {
       toolCallId: call.id,
       toolName: call.name,
       content,
+      summary: repeated ? 'Skipped repeated invalid tool call.' : validation.summary,
       ok: false,
       errorCode: repeated ? 'repeated_invalid_tool_call' : validation.errorCode,
       retryable: repeated ? true : validation.retryable,
@@ -1465,6 +1561,7 @@ export class ChatStore {
       toolCallId: call.id,
       toolName: call.name,
       content,
+      summary: 'This valid-looking tool call was not executed because an earlier call in the same batch failed validation.',
       ok: false,
       errorCode: 'skipped_after_invalid_tool_call',
       retryable: true,
@@ -1483,6 +1580,7 @@ export class ChatStore {
         toolCallId: call.id,
         toolName: call.name,
         content,
+        summary: 'Cancelled.',
         ok: false,
         errorCode: 'cancelled',
         retryable: true,
@@ -1498,7 +1596,7 @@ export class ChatStore {
       argumentsPreview: safeJsonPreview(call.arguments),
       bridgeOnline: extras.bridge?.isOnline,
     });
-    const { content, artifacts, ok, errorCode, retryable } = await toolRegistry.execute(call.name, call.arguments, {
+    const { content, summary, artifacts, ok, errorCode, retryable } = await toolRegistry.execute(call.name, call.arguments, {
       profile: this.profile,
       chat: this,
       notes: extras.notes,
@@ -1510,6 +1608,7 @@ export class ChatStore {
       localRuntime: extras.localRuntime,
       search: extras.search,
       threadId,
+      toolCallId: call.id,
       signal,
     });
     const durationMs = Date.now() - startedAt;
@@ -1546,6 +1645,7 @@ export class ChatStore {
       toolCallId: call.id,
       toolName: call.name,
       content,
+      ...(summary ? { summary } : {}),
       ok: !failed,
       ...(failed && errorCode ? { errorCode } : {}),
       ...(failed && retryable != null ? { retryable } : {}),
@@ -1627,6 +1727,7 @@ export class ChatStore {
         toolCallId: callId,
         toolName: 'image_generate',
         content: `Queued an image render through ${backendLabel} (job ${jobId}). Expected time: ${estimate}.`,
+        summary: `Queued image render through ${backendLabel}.`,
         ranAt: Date.now(),
         artifacts: [{ kind: 'image-job', jobId, count }],
       }];
@@ -1682,6 +1783,10 @@ export class ChatStore {
 
   private findMessage(threadId: string, messageId: string): Message | undefined {
     return this.findThread(threadId)?.messages.find(m => m.id === messageId);
+  }
+
+  private threadIdForMessage(messageId: string): string | undefined {
+    return this.threads.find(thread => thread.messages.some(message => message.id === messageId))?.id;
   }
 
   private createBranchThread(source: Thread, throughIndex: number): string | null {
@@ -1759,6 +1864,36 @@ export function threadLlmSpendUsd(thread: Thread | null): number {
         : inner
     ), 0);
   }, 0);
+}
+
+function stateForToolResult(result: ToolResult, artifactStatus?: string): ActivityItem['state'] {
+  if (artifactStatus === 'cancelled') return 'cancelled';
+  if (artifactStatus === 'failed') return 'failed';
+  if (artifactStatus === 'pending' || artifactStatus === 'running') return 'running';
+  if (result.errorCode === 'cancelled') return 'cancelled';
+  if (result.ok === false || result.errorCode || isToolFailureContent(result.toolName, result.content)) return 'failed';
+  return 'done';
+}
+
+function detailForToolResult(toolName: string, content: string): ActivityDetail {
+  if (toolName === 'terminal' || toolName === 'git' || toolName === 'python_inline' || toolName === 'sqlite_query' || toolName === 'query_script') {
+    return {
+      type: 'terminal',
+      lines: content.split(/\r?\n/).map(text => ({ stream: 'stdout', text })),
+    };
+  }
+  return { type: 'markdown', content };
+}
+
+function runningExecForCall(jobs: NonNullable<ToolStoreContext['execStream']>['jobs'] | undefined, threadId: string | undefined, toolCallId: string) {
+  if (!jobs) return null;
+  const running = Object.values(jobs).filter(job =>
+    job.status === 'running'
+    && job.toolCallId === toolCallId
+    && (!threadId || !job.threadId || job.threadId === threadId)
+  );
+  if (running.length === 0) return null;
+  return running.reduce((a, b) => (a.startedAt > b.startedAt ? a : b));
 }
 
 const IMAGE_GEN_ADDENDUM = 'When you call image_generate, treat the tool result as queued, not successful. Tell the user the render is queued, name the backend if useful, and set expectation that it may take roughly a minute. Do not say the image was generated, completed, or successful just because the tool returned. The inline image-job card is the source of truth for pending, success, failure, cancellation, and failure reason; the app will post a completion follow-up when the job finishes.';

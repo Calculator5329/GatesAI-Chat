@@ -123,6 +123,13 @@ export class RootStore {
       search: this.search,
     }));
 
+    const deliveredBridgeActivityIds = new Set<string>();
+    autorun(() => {
+      const events = this.bridge.activityEvents.filter(event => !deliveredBridgeActivityIds.has(event.id));
+      for (const event of events) this.chat.recordActivityEvent(event);
+      for (const event of events) deliveredBridgeActivityIds.add(event.id);
+    });
+
     if (!isWebLite()) {
       // Boot the bridge poller - chat keeps working if it never connects.
       this.bridge.start();

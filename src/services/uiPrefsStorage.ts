@@ -3,11 +3,10 @@
  * these choices, but the app now normalizes them to one supported presentation.
  */
 
-import type { CodeSizeKey, CodeStyleKey, MarkdownDensityKey, MarkdownStyleKey, ToolCallStyleKey } from '../core/types';
+import type { CodeSizeKey, CodeStyleKey, MarkdownDensityKey, MarkdownStyleKey } from '../core/types';
 import { createJsonPersistenceProvider } from './storage/persistenceProvider';
 
 export interface UiPrefsSnapshot {
-  toolCallStyle: ToolCallStyleKey;
   markdownStyle: MarkdownStyleKey;
   codeStyle: CodeStyleKey;
   markdownDensity: MarkdownDensityKey;
@@ -19,7 +18,6 @@ export interface UiPrefsSnapshot {
 
 const KEY = 'gatesai.uiprefs.v1';
 const DEFAULT: UiPrefsSnapshot = {
-  toolCallStyle: 'aside',
   markdownStyle: 'compact',
   codeStyle: 'obsidian',
   markdownDensity: 'compact',

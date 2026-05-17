@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-05-15 — Unified assistant activity timeline
+
+- Added a typed `ActivityItem` model and a single ambient `ActivityStream`
+  renderer for thinking notes, tool calls/results, terminal tails, image jobs,
+  and bridge status transitions.
+- Promoted tool result summaries to first-class data and gave every registered
+  tool pure UI metadata (`verb`, `target`, `summary`) so the chat surface no
+  longer parses result strings to explain what happened.
+- Replaced the old `EditorialMessage` tool/status branches with the unified
+  stream, then removed `ToolCallRender`, `LiveExecTail`, thinking/working
+  indicator forks, and the obsolete `toolCallStyle` preference.
+
 ## 2026-05-14 — Workspace chat history and web search
 
 - Added workspace-backed chat persistence at `/workspace/.gatesai/chat` plus a

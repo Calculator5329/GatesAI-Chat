@@ -5,7 +5,6 @@ import type {
   DraftAttachment,
   MarkdownDensityKey,
   MarkdownStyleKey,
-  ToolCallStyleKey,
 } from '../core/types';
 import { loadUiPrefs, saveUiPrefs, type UiPrefsSnapshot } from '../services/uiPrefsStorage';
 import type { BridgeStore } from './BridgeStore';
@@ -22,7 +21,6 @@ export class UiStore {
   /** Last upload error message. Cleared on each new upload attempt. */
   uploadError: string | null = null;
 
-  toolCallStyle: ToolCallStyleKey = 'aside';
   markdownStyle: MarkdownStyleKey = 'compact';
   codeStyle: CodeStyleKey = 'obsidian';
   markdownDensity: MarkdownDensityKey = 'compact';
@@ -33,7 +31,6 @@ export class UiStore {
 
   constructor() {
     const prefs = loadUiPrefs();
-    this.toolCallStyle = prefs.toolCallStyle;
     this.markdownStyle = prefs.markdownStyle;
     this.codeStyle = prefs.codeStyle;
     this.markdownDensity = prefs.markdownDensity;
@@ -60,7 +57,6 @@ export class UiStore {
     };
     autorun(() => {
       pendingPrefs = toJS({
-        toolCallStyle: this.toolCallStyle,
         markdownStyle: this.markdownStyle,
         codeStyle: this.codeStyle,
         markdownDensity: this.markdownDensity,
@@ -111,7 +107,6 @@ export class UiStore {
     }
   }
 
-  setToolCallStyle(value: ToolCallStyleKey): void { this.toolCallStyle = value; }
   setMarkdownStyle(value: MarkdownStyleKey): void { this.markdownStyle = value; }
   setCodeStyle(value: CodeStyleKey): void { this.codeStyle = value; }
   setMarkdownDensity(value: MarkdownDensityKey): void { this.markdownDensity = value; }

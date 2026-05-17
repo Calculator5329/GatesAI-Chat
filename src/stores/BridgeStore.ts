@@ -1,5 +1,5 @@
 import { makeAutoObservable, runInAction } from 'mobx';
-import type { DraftAttachment } from '../core/types';
+import type { ActivityItem, DraftAttachment } from '../core/types';
 import type { BridgeConnectionState, BridgeStatus } from '../core/workspace';
 import { isWorkspacePath, resolveWorkspacePath } from '../core/workspacePaths';
 import { uploadAttachment } from '../services/bridge/attachments';
@@ -40,16 +40,19 @@ export class BridgeStore {
   allowlist: string[] = [];
   lastSeenAt: number | undefined;
   lastError: string | undefined;
+  activityEvents: ActivityItem[] = [];
 
   readonly client: BridgeClient;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
   private seededWorkspaceRoot: string | undefined;
+  private bridgeActivitySeq = 0;
 
   constructor() {
     this.client = new BridgeClient(WS_URL);
-    makeAutoObservable<this, 'pollTimer' | 'seededWorkspaceRoot' | 'client'>(this, {
+    makeAutoObservable<this, 'pollTimer' | 'seededWorkspaceRoot' | 'bridgeActivitySeq' | 'client'>(this, {
       pollTimer: false,
       seededWorkspaceRoot: false,
+      bridgeActivitySeq: false,
       client: false,
     });
   }
@@ -148,6 +151,11 @@ export class BridgeStore {
         if (this.lastError !== undefined) this.lastError = undefined;
       });
       if (wasOffline) {
+        this.emitBridgeActivity({
+          state: 'done',
+          verb: 'Workspace ready',
+          summary: data.workspace_root,
+        });
         try {
           await this.client.connect();
           if (this.seededWorkspaceRoot !== data.workspace_root) {
@@ -160,6 +168,11 @@ export class BridgeStore {
             this.state = 'offline';
             this.lastError = (err as Error).message;
           });
+          this.emitBridgeActivity({
+            state: 'failed',
+            verb: 'Workspace offline',
+            summary: (err as Error).message,
+          });
         }
       }
     } catch (err) {
@@ -171,7 +184,30 @@ export class BridgeStore {
           : `Health check failed: ${(err as Error).message}`;
       });
       if (wasOnline) this.client.disconnect();
+      if (wasOnline) {
+        this.emitBridgeActivity({
+          state: 'failed',
+          verb: 'Workspace offline',
+          summary: this.lastError,
+        });
+      }
     }
+  }
+
+  private emitBridgeActivity(input: Pick<ActivityItem, 'state' | 'verb' | 'summary'>): void {
+    const now = Date.now();
+    runInAction(() => {
+      this.activityEvents.push({
+        id: `bridge-${now}-${this.bridgeActivitySeq++}`,
+        kind: 'bridge',
+        state: input.state,
+        verb: input.verb,
+        summary: input.summary,
+        startedAt: now,
+        finishedAt: now,
+      });
+      if (this.activityEvents.length > 30) this.activityEvents.splice(0, this.activityEvents.length - 30);
+    });
   }
 }
 

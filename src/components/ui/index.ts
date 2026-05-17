@@ -8,5 +8,4 @@ export { Textarea } from './Textarea';
 export { SettingsRow } from './SettingsRow';
 export { SecretKeyField } from './SecretKeyField';
 export { SegmentedControl } from './SegmentedControl';
-export { ToolCallView, ToolResultView } from './ToolCallRender';
 export { Icons } from './icons';

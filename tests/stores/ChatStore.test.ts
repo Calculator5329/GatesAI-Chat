@@ -147,6 +147,119 @@ describe('ChatStore', () => {
     expect(chat.activeThreadId).toBe(chat.threads[0].id);
   });
 
+  it('derives one ambient activity list from thinking notes and tool state', () => {
+    const { chat } = setup();
+    const assistant = {
+      id: 'm-activity',
+      role: 'assistant' as const,
+      createdAt: 1000,
+      content: '',
+      preTokenLabel: 'thinking' as const,
+      workNotes: ['I will inspect the file first.'],
+      toolCalls: [
+        { id: 'tc-1', name: 'fs', arguments: { action: 'read', path: '/workspace/notes/plan.md' } },
+        { id: 'tc-2', name: 'web_search', arguments: { queries: ['React 19 release notes'] } },
+      ],
+      toolResults: [{
+        toolCallId: 'tc-1',
+        toolName: 'fs',
+        content: 'status: ok\ntool: fs\nsummary: Read plan.md',
+        summary: 'Read plan.md',
+        ok: true,
+        ranAt: 1200,
+      }],
+    };
+
+    const activities = chat.activitiesForMessage(assistant, { streaming: true });
+
+    expect(activities.map(item => [item.kind, item.state, item.verb, item.target])).toEqual([
+      ['thinking', 'done', 'Thinking', undefined],
+      ['tool', 'done', 'Reading', 'plan.md'],
+      ['tool', 'running', 'Searching', 'React 19 release notes'],
+      ['thinking', 'running', 'Thinking', undefined],
+    ]);
+    expect(activities[0].detail?.content).toContain('inspect the file');
+    expect(activities[1].summary).toBe('Read plan.md');
+  });
+
+  it('attaches live terminal tail only to the matching terminal tool call', () => {
+    const { chat } = setup();
+    const thread = chat.activeThread!;
+    const assistant = {
+      id: 'm-terminal-tail',
+      role: 'assistant' as const,
+      createdAt: 1000,
+      content: '',
+      toolCalls: [
+        { id: 'tc-terminal', name: 'terminal', arguments: { cmd: 'npm', args: ['run', 'test'] } },
+      ],
+    };
+    runInAction(() => {
+      thread.messages.push(assistant);
+    });
+    chat.setToolStoresProvider(() => ({
+      execStream: {
+        jobs: {
+          wrong: {
+            id: 'wrong',
+            threadId: 'other-thread',
+            toolCallId: 'tc-terminal',
+            cmd: 'npm',
+            args: ['run', 'test'],
+            startedAt: 2000,
+            status: 'running',
+            tail: [{ stream: 'stdout', text: 'wrong tail' }],
+          },
+          right: {
+            id: 'right',
+            threadId: thread.id,
+            toolCallId: 'tc-terminal',
+            cmd: 'npm',
+            args: ['run', 'test'],
+            startedAt: 1000,
+            status: 'running',
+            tail: [{ stream: 'stdout', text: 'right tail' }],
+          },
+        },
+      },
+    }) as never);
+
+    const activities = chat.activitiesForMessage(assistant, { streaming: true });
+
+    expect(activities[0].detail?.type).toBe('terminal');
+    expect(activities[0].detail?.lines?.map(line => line.text)).toEqual(['right tail']);
+  });
+
+  it('attaches bridge transition activity to the active streaming assistant turn', () => {
+    const { chat } = setup();
+    const thread = chat.activeThread!;
+    const assistant = {
+      id: 'm-bridge-activity',
+      role: 'assistant' as const,
+      createdAt: 1000,
+      content: '',
+    };
+    runInAction(() => {
+      thread.messages.push(assistant);
+      chat.streamingByThread[thread.id] = assistant.id;
+    });
+
+    chat.recordActivityEvent({
+      id: 'bridge-1',
+      kind: 'bridge',
+      state: 'failed',
+      verb: 'Workspace offline',
+      summary: 'Health check failed',
+      startedAt: 1100,
+      finishedAt: 1100,
+    });
+
+    const stored = chat.activeThread!.messages.find(message => message.id === assistant.id);
+    const activities = chat.activitiesForMessage(stored as typeof assistant, { streaming: true });
+
+    expect(activities.map(item => [item.kind, item.state, item.verb])).toContainEqual(['bridge', 'failed', 'Workspace offline']);
+  });
+
   it('defaults persisted unresolved thread models back to Gemini 3 Flash', () => {
     localStorage.setItem('gatesai.state.v1', JSON.stringify({
       activeThreadId: 't-stale',

@@ -3,7 +3,6 @@ import { clearAppStorage } from '../helpers/storage';
 import { loadUiPrefs, saveUiPrefs } from '../../src/services/uiPrefsStorage';
 
 const DEFAULTS = {
-  toolCallStyle: 'aside',
   markdownStyle: 'compact',
   codeStyle: 'obsidian',
   markdownDensity: 'compact',
@@ -22,7 +21,6 @@ describe('uiPrefsStorage', () => {
 
   it('normalizes persisted appearance preferences to the fixed foundation defaults', () => {
     saveUiPrefs({
-      toolCallStyle: 'hidden',
       markdownStyle: 'technical',
       codeStyle: 'terminal',
       markdownDensity: 'spacious',

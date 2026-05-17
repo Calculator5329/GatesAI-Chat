@@ -1,5 +1,6 @@
 import type { JsonSchema, ToolCall, ToolDef } from '../../core/llm';
 import type { Tool, ToolContext, ToolExecuteResult, ToolOutcome, ToolValidationIssue } from './types';
+import { defaultToolUi, summarizeToolResult } from './activityDisplay';
 import { memoryTool } from './memory';
 import { timeTool } from './time';
 import { notesTool } from './notes';
@@ -53,7 +54,10 @@ export class ToolRegistry {
   private readonly tools = new Map<string, Tool>();
 
   register(tool: Tool): void {
-    this.tools.set(tool.def.name, tool);
+    this.tools.set(tool.def.name, {
+      ...tool,
+      ui: tool.ui ?? defaultToolUi(tool.def.name),
+    });
   }
 
   get(name: string): Tool | undefined {
@@ -174,6 +178,7 @@ export class ToolRegistry {
           fix: 'Inspect the error, correct the inputs or environment, and retry only if the operation is still needed.',
           retryable: true,
         }),
+        summary,
         ok: false,
         errorCode: 'execution_exception',
         retryable: true,
@@ -203,6 +208,7 @@ function validationFailure(toolName: string, issue: ToolValidationIssue): ToolVa
 function validationResultToExecuteResult(result: ToolValidationResult): ToolExecuteResult {
   return {
     content: result.content ?? `status: error\ntool: ${result.toolName}\nsummary: invalid tool call`,
+    summary: result.summary,
     ok: false,
     errorCode: result.errorCode,
     retryable: result.retryable,
@@ -211,11 +217,16 @@ function validationResultToExecuteResult(result: ToolValidationResult): ToolExec
 
 function normalizeToolOutput(name: string, out: string | ToolExecuteResult | ToolOutcome): ToolExecuteResult {
   if (typeof out === 'string') {
-    return { content: out, ok: !/^Error(?: executing [\w-]+)?:/i.test(out.trim()) };
+    const result = { content: out, ok: !/^Error(?: executing [\w-]+)?:/i.test(out.trim()) };
+    return {
+      ...result,
+      summary: summarizeToolResult(name, result),
+    };
   }
   if ('summary' in out && 'ok' in out && !('content' in out)) {
     return {
       content: serializeToolOutcome(name, out),
+      summary: out.summary,
       artifacts: out.ok ? out.artifacts : undefined,
       ok: out.ok,
       errorCode: out.ok ? undefined : out.errorCode,
@@ -223,7 +234,7 @@ function normalizeToolOutput(name: string, out: string | ToolExecuteResult | Too
       data: out.data,
     };
   }
-  return {
+  const result = {
     ...out,
     content: typeof out.content === 'string'
       ? out.content
@@ -234,6 +245,10 @@ function normalizeToolOutput(name: string, out: string | ToolExecuteResult | Too
           fix: 'Retry the operation or inspect the tool implementation.',
           retryable: true,
         }),
+  };
+  return {
+    ...result,
+    summary: result.summary ?? summarizeToolResult(name, result),
   };
 }
 

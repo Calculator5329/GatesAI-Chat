@@ -6,6 +6,10 @@ import { StoreProvider } from '../../../src/stores/context';
 import { UiStore } from '../../../src/stores/UiStore';
 import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
 import { ImageJobStore } from '../../../src/stores/ImageJobStore';
+import { ChatStore } from '../../../src/stores/ChatStore';
+import { ProviderStore } from '../../../src/stores/ProviderStore';
+import { ModelRegistry } from '../../../src/stores/ModelRegistry';
+import { UserProfileStore } from '../../../src/stores/UserProfileStore';
 import { EditorialMessage } from '../../../src/components/editorial/EditorialMessage';
 import { __htmlArtifactPreviewTestApi } from '../../../src/components/editorial/HtmlArtifactPreview';
 import type { RootStore } from '../../../src/stores/RootStore';
@@ -35,9 +39,18 @@ function htmlFromPreviewFrame(frame: HTMLIFrameElement | null | undefined): stri
 }
 
 function createTestStore(imageJobs = new ImageJobStore()): RootStore {
+  const registry = new ModelRegistry();
+  const providers = new ProviderStore(registry);
+  const chat = new ChatStore(providers, registry, new UserProfileStore());
+  const execStream = new ExecStreamStore();
+  chat.setToolStoresProvider(() => ({
+    execStream,
+    imageJobs,
+  }));
   return {
+    chat,
     ui: new UiStore(),
-    execStream: new ExecStreamStore(),
+    execStream,
     imageJobs,
     bridge: {
       isOnline: true,
@@ -193,10 +206,10 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.textContent).toContain('Yes');
     expect(rendered.querySelector('.stream-caret')).toBeNull();
     expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
-    expect(rendered.querySelector('[aria-label="Working"]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Working"]')).toBeNull();
   });
 
-  it('renders active assistant streams as markdown with a working indicator', () => {
+  it('renders active assistant streams as markdown without a duplicate working row', () => {
     const streaming = renderMessage({
       id: 'm-active-stream',
       role: 'assistant',
@@ -206,8 +219,8 @@ describe('EditorialMessage markdown rendering', () => {
 
     expect(streaming.querySelector('.streaming-plain-text')).toBeNull();
     expect(streaming.querySelector('strong')?.textContent).toBe('bold so far');
-    expect(streaming.textContent).toContain('working');
-    expect(streaming.querySelector('[aria-label="Working"]')).not.toBeNull();
+    expect(streaming.textContent).not.toContain('working');
+    expect(streaming.querySelector('[aria-label="Working"]')).toBeNull();
     expect(streaming.querySelector('.editorial-message')?.getAttribute('style')).not.toContain('border-bottom');
 
     act(() => root?.unmount());
@@ -262,7 +275,7 @@ describe('EditorialMessage markdown rendering', () => {
       content: '',
     }, 'Assistant', true, 'responding');
 
-    expect(rendered.textContent).toContain('responding');
+    expect(rendered.textContent).toContain('Responding');
     expect(rendered.querySelector('[aria-label="Responding"]')).not.toBeNull();
     expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
   });
@@ -350,7 +363,7 @@ describe('EditorialMessage markdown rendering', () => {
       content: '',
     }, 'Assistant', true, 'compacting');
 
-    expect(rendered.textContent).toContain('compacting');
+    expect(rendered.textContent).toContain('Compacting');
     expect(rendered.querySelector('[aria-label="Compacting"]')).not.toBeNull();
     expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
   });
@@ -366,11 +379,9 @@ describe('EditorialMessage markdown rendering', () => {
       ],
     }, 'Assistant', true);
 
-    expect(rendered.textContent).toContain('Searching web for "latest models"...');
-    expect(rendered.textContent).toContain('Searching web for "current API docs"...');
-    expect(rendered.querySelector('[aria-label=\'Searching web for "latest models"...\']')).not.toBeNull();
-    expect(rendered.querySelector('[aria-label=\'Searching web for "current API docs"...\']')).not.toBeNull();
-    expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+    expect(rendered.textContent).toContain('Searching latest models');
+    expect(rendered.querySelector('[aria-label="Searching latest models"]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Thinking"]')).not.toBeNull();
     expect(rendered.textContent).not.toContain('status: ok');
   });
 
@@ -387,11 +398,10 @@ describe('EditorialMessage markdown rendering', () => {
       ],
     }, 'Assistant', true);
 
-    expect(rendered.textContent).toContain('Searching web for "model pricing"...');
-    expect(rendered.textContent).toContain('Searching web for "tool UX"...');
-    expect(rendered.textContent).toContain('Searching workspace for "LiveStatusIndicator"...');
-    expect(rendered.textContent).toContain('Reading .../editorial/EditorialMessage.tsx...');
-    expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+    expect(rendered.textContent).toContain('Searching model pricing');
+    expect(rendered.textContent).toContain('Searching LiveStatusIndicator');
+    expect(rendered.textContent).toContain('Inspecting EditorialMessage.tsx');
+    expect(rendered.querySelector('[aria-label="Thinking"]')).not.toBeNull();
   });
 
   it('morphs to a completed search summary after tool results land', () => {
@@ -409,8 +419,8 @@ describe('EditorialMessage markdown rendering', () => {
     }, 'Assistant', true);
 
     expect(rendered.textContent).toContain('Search complete');
-    expect(rendered.querySelector('[aria-label="Search complete"]')).not.toBeNull();
-    expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+    expect(rendered.querySelector('[aria-label="Searching latest models"]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Thinking"]')).not.toBeNull();
     expect(rendered.textContent).not.toContain('Drafting answer');
     expect(rendered.textContent).not.toContain('status: ok');
   });
@@ -426,8 +436,8 @@ describe('EditorialMessage markdown rendering', () => {
       ],
     }, 'Assistant', true);
 
-    expect(rendered.textContent).toContain('Reading .../reports/quarterly.csv...');
-    expect(rendered.querySelector('[aria-label="Reading .../reports/quarterly.csv..."]')).not.toBeNull();
+    expect(rendered.textContent).toContain('Inspecting quarterly.csv');
+    expect(rendered.querySelector('[aria-label="Inspecting quarterly.csv"]')).not.toBeNull();
   });
 
   it('uses action-specific labels for pending workspace writes', () => {
@@ -441,7 +451,7 @@ describe('EditorialMessage markdown rendering', () => {
       ],
     }, 'Assistant', true);
 
-    expect(rendered.textContent).toContain('Creating .../artifacts/pacman-game...');
+    expect(rendered.textContent).toContain('Creating pacman-game');
     expect(rendered.textContent).not.toContain('Reading workspace');
   });
 
@@ -456,7 +466,7 @@ describe('EditorialMessage markdown rendering', () => {
       ],
     }, 'Assistant', true);
 
-    expect(rendered.textContent).toContain('Creating .../exports/game.html...');
+    expect(rendered.textContent).toContain('Creating game.html');
     expect(rendered.textContent).not.toContain('Using artifact');
   });
 
@@ -479,9 +489,8 @@ describe('EditorialMessage markdown rendering', () => {
       ],
     }, 'Assistant', true);
 
-    expect(rendered.textContent).toContain('Continuing with workspace results...');
-    expect(rendered.querySelector('[aria-label="Continuing with workspace results..."]')).not.toBeNull();
-    expect(rendered.textContent).not.toContain('Workspace context ready');
+    expect(rendered.textContent).toContain('Created directory /workspace/artifacts/pacman-game');
+    expect(rendered.querySelector('[aria-label="Creating pacman-game"]')).not.toBeNull();
   });
 
   it('keeps recovery visible after invalid tool arguments land', () => {
@@ -506,9 +515,9 @@ describe('EditorialMessage markdown rendering', () => {
       ],
     }, 'Assistant', true);
 
-    expect(rendered.textContent).toContain('Tool arguments were invalid; asking the model to retry...');
-    expect(rendered.querySelector('[aria-label="Tool arguments were invalid; asking the model to retry..."]')).not.toBeNull();
-    expect(rendered.querySelector('[aria-label="Thinking"]')).toBeNull();
+    expect(rendered.textContent).toContain('fs failed');
+    expect(rendered.querySelector('[aria-label="Reading"]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Thinking"]')).not.toBeNull();
   });
 
   it('treats batch validation failures as invalid tool arguments while streaming', () => {
@@ -541,7 +550,7 @@ describe('EditorialMessage markdown rendering', () => {
       ],
     }, 'Assistant', true);
 
-    expect(rendered.textContent).toContain('Tool arguments were invalid; asking the model to retry...');
+    expect(rendered.textContent).toContain('Tool batch stopped at call 0');
     expect(rendered.textContent).not.toContain('Tool returned an error; asking the model to recover...');
   });
 
@@ -565,7 +574,7 @@ describe('EditorialMessage markdown rendering', () => {
     }, 'Assistant', true);
 
     expect(rendered.textContent).toContain('Found 2 sources');
-    expect(rendered.querySelector('[aria-label="Found 2 sources"]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Searching latest models"]')).not.toBeNull();
     expect(rendered.querySelector('[aria-label="Drafting"]')).toBeNull();
     expect(rendered.textContent).not.toContain('Writing answer');
     expect(rendered.textContent).not.toContain('https://example.com/one');
@@ -616,13 +625,13 @@ describe('EditorialMessage markdown rendering', () => {
       ],
     });
 
-    const sourceSummary = rendered.querySelector('[aria-label="Found 1 source"]');
-    const thinking = rendered.querySelector('details summary');
+    const sourceSummary = rendered.querySelector('[aria-label="Searching latest models"]');
+    const thinking = rendered.querySelector('[aria-label="Thinking"]');
 
     expect(sourceSummary).not.toBeNull();
-    expect(thinking?.textContent).toBe('thinking');
-    expect(rendered.textContent!.indexOf('Found 1 source')).toBeLessThan(rendered.textContent!.indexOf('thinking'));
-    expect(rendered.querySelector('details')?.hasAttribute('open')).toBe(false);
+    expect(thinking?.textContent).toContain('Thinking');
+    expect(rendered.textContent!.indexOf('Thinking')).toBeLessThan(rendered.textContent!.indexOf('Found 1 source'));
+    expect(rendered.querySelector('.activity-row__detail')).toBeNull();
   });
 
   it('pairs duplicate tool result ids by occurrence in the transcript', () => {
@@ -678,7 +687,7 @@ describe('EditorialMessage markdown rendering', () => {
     }, 'Assistant', false, undefined, imageJobs);
 
     expect(rendered.textContent).not.toContain('I queued an image through OpenRouter');
-    expect(rendered.textContent).toContain('waiting on');
+    expect(rendered.textContent).toContain('Generating image');
   });
 
   it('wires assistant regenerate and branch actions', () => {

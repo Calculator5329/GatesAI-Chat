@@ -146,6 +146,115 @@
   color: var(--accent);
 }
 
+.activity-stream {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 10px;
+}
+
+.activity-row {
+  min-width: 0;
+}
+
+.activity-row__button {
+  width: 100%;
+  min-height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 12px/1.45 "Geist Mono", ui-monospace, monospace;
+  letter-spacing: 0.02em;
+  text-align: left;
+}
+
+.activity-row__button:not(:disabled) {
+  cursor: pointer;
+}
+
+.activity-row__button:disabled {
+  cursor: default;
+}
+
+.activity-row[data-state="running"] .activity-row__button {
+  color: color-mix(in srgb, var(--accent) 78%, var(--text));
+}
+
+.activity-row[data-state="failed"] .activity-row__button {
+  color: #ffaaaa;
+}
+
+.activity-row[data-state="cancelled"] .activity-row__button {
+  color: color-mix(in srgb, #ffaaaa 72%, var(--text-faint));
+}
+
+.activity-row__glyph {
+  flex: 0 0 10px;
+  width: 10px;
+  text-align: center;
+  color: currentColor;
+}
+
+.activity-row__label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.activity-row__target,
+.activity-row__summary,
+.activity-row__elapsed {
+  opacity: 0.78;
+}
+
+.activity-row__elapsed,
+.activity-row__chevron {
+  flex: none;
+}
+
+.activity-row__chevron {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.activity-row:hover .activity-row__chevron,
+.activity-row:focus-within .activity-row__chevron {
+  opacity: 0.7;
+}
+
+.activity-row__detail {
+  margin: 5px 0 8px 18px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+}
+
+.activity-row__markdown {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.activity-row__terminal {
+  margin: 0;
+  max-height: 180px;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--accent);
+  font: 11px/1.45 "Geist Mono", ui-monospace, monospace;
+}
+
+.activity-row__terminal span {
+  display: block;
+}
+
+.activity-row__terminal [data-stream="stderr"] {
+  color: #ffaaaa;
+}
+
 .editorial-sidebar__close {
   display: none;
 }

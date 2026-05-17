@@ -71,6 +71,8 @@
       exports and a protected `chat_history` tool for model-side recall
 - [x] Add Brave Search-backed `web_search`, a Models-menu key surface, and an
       HTML artifact helper for validated workspace deliverables
+- [x] Centralize assistant activity display into a unified ambient timeline
+      for thinking, tools, terminal tails, image jobs, and bridge transitions
 
 ## Near-term
 - [x] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`

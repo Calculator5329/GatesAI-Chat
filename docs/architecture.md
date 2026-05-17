@@ -29,10 +29,10 @@ src/
       Toggle.tsx Pill.tsx Card.tsx Button.tsx
       Input.tsx Select.tsx Textarea.tsx
       SettingsRow.tsx SegmentedControl.tsx
-      ToolCallRender.tsx          # shared tool-call/result renderers
       icons.tsx
       index.ts
     editorial/                    # the chat surface
+      activity/                   # ambient assistant activity timeline rows
       EditorialSidebar.tsx
       EditorialChat.tsx
       EditorialMessage.tsx
@@ -182,15 +182,38 @@ Tools live under `services/tools/`. Each implements `Tool` from
 `services/tools/types.ts`: a `ToolDef` the model sees, optional
 `meta` for category / read-only hints, and `execute(args, ctx)`.
 `execute` returns either a string (the common case — the model gets it
-verbatim as the tool result) or `{ content, artifacts }` where
+verbatim as the tool result) or `{ content, summary, artifacts }` where
+`summary` is the concise UI-facing one-liner and
 `artifacts: ToolResultArtifact[]` is a UI-only side channel for rich
-rendering. The `image_generate` tool uses this to surface the saved
-artifact path so the chat renderer can mount a thumbnail without
-parsing the human-facing result string.
+rendering. Each registered tool also exposes pure `ui` metadata
+(`verb`, optional `target`, optional result `summary`) so the chat
+surface can describe activity without parsing result strings or importing
+tool internals. The `image_generate` tool uses artifacts to surface the
+queued image job so the unified activity renderer can mount progress and
+results without regexing the human-facing result string.
 
 `ChatStore.executeOneToolCall` runs the registry, persists the
-`content` onto the assistant message's `toolResults`, and stashes
-`artifacts` next to it when present.
+`content` and `summary` onto the assistant message's `toolResults`, and
+stashes `artifacts` next to it when present.
+
+## Activity timeline
+
+Assistant-side work is projected through a single `ActivityItem[]`
+contract rather than separate bespoke renderers. `ChatStore.activitiesForMessage(...)`
+merges:
+
+- tool calls and tool results using the registry's tool UI metadata
+- pre-tool `workNotes` as expandable thinking rows
+- live pre-token state (`thinking`, `responding`, `compacting`, `generating`)
+- `ExecStreamStore` tails for running terminal calls
+- `ImageJobStore` status for image-job artifacts
+- bridge transition events captured during the active assistant turn
+
+`components/editorial/activity/ActivityStream` and `ActivityRow` are the
+only live renderer for this surface. Rows stay ambient by default
+(mono, single line, running dots), and expand in place for markdown
+detail, terminal tails, and image artifacts. The older `ToolCallRender`,
+`LiveExecTail`, and selectable `toolCallStyle` preference were retired.
 
 Workspace chat history is app-managed: `ChatStore` saves a JSON envelope under
 `/workspace/.gatesai/chat/state.v1.json` when the bridge is online and writes a

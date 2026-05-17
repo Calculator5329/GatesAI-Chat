@@ -57,6 +57,7 @@ export interface BridgeFacade {
 }
 
 import type { ImageBackendId, ImageBackendSnapshot, LocalComfyMode } from '../image/types';
+import type { CompletedJob, ImageJob } from '../image/jobs/types';
 import type { BraveFreshness, BraveSearchQueryResult } from '../search/types';
 export type { ImageBackendId, ImageBackendSnapshot, LocalComfyMode };
 
@@ -70,6 +71,7 @@ export interface ImageGenFacade {
 }
 
 export interface ImageJobsFacade {
+  findById?(jobId: string): ImageJob | CompletedJob | null;
   enqueue(input: {
     threadId: string;
     prompt: string;
@@ -95,7 +97,19 @@ export interface LocalRuntimeFacade {
 }
 
 export interface ExecStreamFacade {
-  start(jobId: string, command: string, args: string[]): void;
+  readonly jobs?: Record<string, {
+    id: string;
+    threadId?: string;
+    toolCallId?: string;
+    cmd: string;
+    args: string[];
+    startedAt: number;
+    tail: Array<{ stream: 'stdout' | 'stderr'; text: string }>;
+    status: 'running' | 'done' | 'error';
+    exitCode?: number;
+    durationMs?: number;
+  }>;
+  start(jobId: string, command: string, args: string[], meta?: { threadId?: string; toolCallId?: string }): void;
   appendChunk(jobId: string, stream: 'stdout' | 'stderr', chunk: string): void;
   finish(jobId: string, exitCode: number, durationMs: number): void;
   fail(jobId: string, message: string): void;
@@ -125,6 +139,8 @@ export interface ToolContext {
   search?: SearchFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;
+  /** The provider tool-call id that triggered this execution. */
+  toolCallId?: string;
   /** Aborts when the calling assistant turn is interrupted. */
   signal?: AbortSignal;
 }
@@ -176,11 +192,18 @@ export type ToolOutcome =
  */
 export interface ToolExecuteResult {
   content: string;
+  summary?: string;
   artifacts?: ToolResultArtifact[];
   ok?: boolean;
   errorCode?: string;
   retryable?: boolean;
   data?: unknown;
+}
+
+export interface ToolActivityUi {
+  verb: (args: Record<string, unknown>) => string;
+  target?: (args: Record<string, unknown>) => string | undefined;
+  summary?: (result: ToolExecuteResult) => string | undefined;
 }
 
 /**
@@ -195,5 +218,6 @@ export interface ToolExecuteResult {
 export interface Tool {
   def: ToolDef;
   meta?: ToolMetadata;
+  ui?: ToolActivityUi;
   execute(args: Record<string, unknown>, ctx: ToolContext): Promise<string | ToolExecuteResult | ToolOutcome>;
 }
