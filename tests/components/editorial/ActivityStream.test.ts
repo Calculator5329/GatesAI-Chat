@@ -95,9 +95,9 @@ describe('ActivityStream', () => {
 
   it('renders a single group row when consecutive items share a groupKey', () => {
     const rendered = render([
-      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'echo a', groupKey: 'shell' }),
-      item({ id: 'g2', state: 'done', verb: 'Ran', target: 'echo b', groupKey: 'shell' }),
-      item({ id: 'g3', state: 'done', verb: 'Ran', target: 'echo c', groupKey: 'shell' }),
+      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'echo a', groupKey: 'tool:terminal' }),
+      item({ id: 'g2', state: 'done', verb: 'Ran', target: 'echo b', groupKey: 'tool:terminal' }),
+      item({ id: 'g3', state: 'done', verb: 'Ran', target: 'echo c', groupKey: 'tool:terminal' }),
     ]);
 
     const groups = rendered.querySelectorAll('.activity-group');
@@ -113,10 +113,20 @@ describe('ActivityStream', () => {
 
   it('marks the group failed when any child failed', () => {
     const rendered = render([
-      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'ok', groupKey: 'shell' }),
-      item({ id: 'g2', state: 'failed', verb: 'Ran', target: 'bad', groupKey: 'shell', summary: 'exit 1' }),
+      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'ok', groupKey: 'tool:terminal' }),
+      item({ id: 'g2', state: 'failed', verb: 'Ran', target: 'bad', groupKey: 'tool:terminal', summary: 'exit 1' }),
     ]);
     expect(rendered.querySelector('.activity-group')?.getAttribute('data-state')).toBe('failed');
+  });
+
+  it('renders running indicator on the group parent when a child is running', () => {
+    const rendered = render([
+      item({ id: 'g1', state: 'done', verb: 'Ran', target: 'echo a', groupKey: 'tool:terminal' }),
+      item({ id: 'g2', state: 'running', verb: 'Ran', target: 'echo b', groupKey: 'tool:terminal' }),
+    ]);
+    const group = rendered.querySelector('.activity-group');
+    expect(group?.getAttribute('data-state')).toBe('running');
+    expect(group?.querySelector('.activity-row__button > .thinking-dots')).not.toBeNull();
   });
 });
 
