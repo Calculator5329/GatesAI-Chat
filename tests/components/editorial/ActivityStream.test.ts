@@ -126,7 +126,7 @@ describe('ActivityStream', () => {
     ]);
     const group = rendered.querySelector('.activity-group');
     expect(group?.getAttribute('data-state')).toBe('running');
-    expect(group?.querySelector('.activity-row__button > .thinking-dots')).not.toBeNull();
+    expect(group?.querySelector(':scope > .activity-row__button > .thinking-dots')).not.toBeNull();
   });
 });
 
