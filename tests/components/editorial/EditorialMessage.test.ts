@@ -399,6 +399,11 @@ describe('EditorialMessage markdown rendering', () => {
     }, 'Assistant', true);
 
     expect(rendered.textContent).toContain('Searching model pricing');
+    const group = rendered.querySelector('.activity-group');
+    expect(group?.textContent).toContain('Searching 2 calls');
+    act(() => {
+      group?.querySelector(':scope > .activity-row__button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     expect(rendered.textContent).toContain('Searching LiveStatusIndicator');
     expect(rendered.textContent).toContain('Inspecting EditorialMessage.tsx');
     expect(rendered.querySelector('[aria-label="Thinking"]')).not.toBeNull();
@@ -650,6 +655,11 @@ describe('EditorialMessage markdown rendering', () => {
       ],
     });
 
+    const group = rendered.querySelector('.activity-group');
+    expect(group?.textContent).toContain('Writing 2 calls');
+    act(() => {
+      group?.querySelector(':scope > .activity-row__button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     expect(rendered.textContent).toContain('Wrote 100 bytes to /workspace/artifacts/one.html');
     expect(rendered.textContent).toContain('Wrote 200 bytes to /workspace/artifacts/two.html');
   });
