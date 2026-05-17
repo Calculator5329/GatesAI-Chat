@@ -53,9 +53,7 @@ export function TimelineGroup({ items }: { items: ActivityItem[] }) {
 
 function groupNoun(items: ActivityItem[]): string {
   const first = items[0];
-  if (first.kind === 'exec-tail') return 'commands';
-  if (first.groupKey === 'tool:terminal') return 'commands';
-  if (first.groupKey?.startsWith('tool:edit') || first.groupKey?.startsWith('tool:write')) return 'files';
-  if (first.groupKey?.startsWith('tool:read')) return 'files';
+  if (first.kind === 'exec-tail' || first.groupKey === 'tool:terminal') return 'commands';
+  if (/^(edit|writ|read|view)/i.test(first.verb)) return 'files';
   return 'calls';
 }

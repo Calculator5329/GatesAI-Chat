@@ -656,7 +656,7 @@ describe('EditorialMessage markdown rendering', () => {
     });
 
     const group = rendered.querySelector('.activity-group');
-    expect(group?.textContent).toContain('Writing 2 calls');
+    expect(group?.textContent).toContain('Writing 2 files');
     act(() => {
       group?.querySelector(':scope > .activity-row__button')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
