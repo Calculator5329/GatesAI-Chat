@@ -309,6 +309,19 @@
   font-size: 12px;
 }
 
+.activity-row[data-kind="thinking"] .activity-row__button {
+  color: color-mix(in srgb, var(--text-faint) 70%, var(--text));
+  font-style: italic;
+}
+
+.activity-row[data-kind="thinking"] .activity-row__icon {
+  opacity: 0.7;
+}
+
+.activity-row[data-kind="thinking"][data-state="running"] .activity-row__button {
+  font-style: normal;
+}
+
 .editorial-sidebar__close {
   display: none;
 }
