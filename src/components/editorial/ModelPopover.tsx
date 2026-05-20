@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
 import { DEFAULT_MODEL_ID } from '../../core/models';
@@ -192,12 +192,13 @@ interface RowProps {
   disabledReason?: string;
   ollamaOnline: boolean;
   comfyReady: boolean;
-  onPick: () => void;
-  onHover: () => void;
+  flatIndex: number;
+  onPick: (model: Model) => void;
+  onHover: (index: number) => void;
 }
 
 const ModelRow = memo(function ModelRow({
-  model, meta, selected, active, disabledReason, ollamaOnline, comfyReady, onPick, onHover,
+  model, meta, selected, active, disabledReason, ollamaOnline, comfyReady, flatIndex, onPick, onHover,
 }: RowProps) {
   const disabled = !!disabledReason;
   const subline = disabledReason ?? bestForLine(model, meta);
@@ -225,8 +226,8 @@ const ModelRow = memo(function ModelRow({
   return (
     <div
       data-model-row={model.id}
-      onClick={() => { if (!disabled) onPick(); }}
-      onMouseEnter={onHover}
+      onClick={() => { if (!disabled) onPick(model); }}
+      onMouseEnter={() => onHover(flatIndex)}
       aria-disabled={disabled || undefined}
       title={disabledReason}
       style={rowStyle}
@@ -304,13 +305,16 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     try { localStorage.setItem(SOURCE_FILTER_STORAGE_KEY, next); } catch { /* ignore */ }
   };
 
-  const pickModel = (model: Model) => {
+  const pickModel = useCallback((model: Model) => {
     const resolvedId = model.id === AUTO_MODEL.id ? DEFAULT_MODEL_ID : model.id;
     saveRecentModelId(resolvedId);
     setRecentIds(loadRecentModelIds());
     onPick(resolvedId);
     onClose();
-  };
+  }, [onClose, onPick]);
+  const hoverModelAt = useCallback((index: number) => {
+    setActiveIdx(index);
+  }, []);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowDown') {
@@ -444,8 +448,9 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
                   disabledReason={disabledReason}
                   ollamaOnline={ollamaOnline}
                   comfyReady={comfyReady}
-                  onPick={() => pickModel(m)}
-                  onHover={() => setActiveIdx(flatIdx)}
+                  flatIndex={flatIdx}
+                  onPick={pickModel}
+                  onHover={hoverModelAt}
                 />
               );
             })}

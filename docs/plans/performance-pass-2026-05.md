@@ -2,6 +2,15 @@
 
 Goal: eliminate >50ms interactions. Order of execution = order of ROI. All file paths relative to repo root.
 
+## Bundle analysis baseline
+
+Run `npm run analyze` before bundle or import-graph cleanup. It builds with sourcemaps and writes:
+
+- `dist/bundle-analysis.html` for visual inspection.
+- `dist/bundle-analysis.json` for before/after chunk deltas.
+
+Bundle/perf refactors should include the touched chunk's before/after raw and gzip sizes. If a refactor has no measurable improvement, revert it and document the result instead of keeping churn.
+
 ## Phase 1 — Streaming hot path
 
 **Problem:** During assistant streaming, the entire react-markdown + rehype-highlight + rehype-katex tree re-parses on every ~48-char token flush. Auto-scroll fires every flush. Off-screen messages still paint.

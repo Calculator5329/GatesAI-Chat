@@ -47,6 +47,18 @@ export const EditorialChat = observer(function EditorialChat() {
     if (!threadId) return;
     router.goThread(threadId);
   }, [router]);
+  const regenerateMessage = useCallback((messageId: string) => {
+    if (!activeThreadId) return;
+    goResultThread(chat.regenerateFromMessage(activeThreadId, messageId));
+  }, [activeThreadId, chat, goResultThread]);
+  const branchMessage = useCallback((messageId: string) => {
+    if (!activeThreadId) return;
+    goResultThread(chat.branchThreadFromMessage(activeThreadId, messageId));
+  }, [activeThreadId, chat, goResultThread]);
+  const editAndResendMessage = useCallback((messageId: string, text: string) => {
+    if (!activeThreadId) return;
+    goResultThread(chat.editAndResendFromMessage(activeThreadId, messageId, text));
+  }, [activeThreadId, chat, goResultThread]);
 
   useEffect(() => () => {
     if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
@@ -171,18 +183,9 @@ export const EditorialChat = observer(function EditorialChat() {
                 modelName={modelId ? (registry.findById(modelId)?.name ?? modelId) : undefined}
                 streaming={m.id === chat.streamingMessageId}
                 actionsDisabled={activeThreadStreaming}
-                onRegenerate={(messageId) => {
-                  if (!activeThreadId) return;
-                  goResultThread(chat.regenerateFromMessage(activeThreadId, messageId));
-                }}
-                onBranch={(messageId) => {
-                  if (!activeThreadId) return;
-                  goResultThread(chat.branchThreadFromMessage(activeThreadId, messageId));
-                }}
-                onEditAndResend={(messageId, text) => {
-                  if (!activeThreadId) return;
-                  goResultThread(chat.editAndResendFromMessage(activeThreadId, messageId, text));
-                }}
+                onRegenerate={regenerateMessage}
+                onBranch={branchMessage}
+                onEditAndResend={editAndResendMessage}
               />
             );
           })}
