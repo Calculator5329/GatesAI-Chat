@@ -1,15 +1,15 @@
+// Coordinates the left menu surface and section metadata used by the app shell.
+// Called by App and sidebar navigation; depends on section keys, lazy components, and support flags.
+// Invariant: every routed section key maps to exactly one supported component or fallback.
 import { lazy, type ComponentType } from 'react';
 import type { MenuSectionKey } from '../../core/types';
-import { AgentSection } from './sections/Agent';
-import { WorkspaceSection } from './sections/Workspace';
-import { SettingsSection } from './sections/Settings';
-import { ApiSection } from './sections/api/ApiSection';
-import { GallerySection } from './sections/Gallery';
 
-// Local is the image-gen / runtime panel — heavy and off the critical path.
-// Lazy-load so the initial bundle stays lean; users only pay the cost when
-// they navigate to the Local tab.
+const AgentSection = lazy(() => import('./sections/Agent').then(m => ({ default: m.AgentSection })));
+const ApiSection = lazy(() => import('./sections/api/ApiSection').then(m => ({ default: m.ApiSection })));
 const LocalSection = lazy(() => import('./sections/Local').then(m => ({ default: m.LocalSection })));
+const WorkspaceSection = lazy(() => import('./sections/Workspace').then(m => ({ default: m.WorkspaceSection })));
+const GallerySection = lazy(() => import('./sections/Gallery').then(m => ({ default: m.GallerySection })));
+const SettingsSection = lazy(() => import('./sections/Settings').then(m => ({ default: m.SettingsSection })));
 
 export interface MenuSectionMeta {
   key: MenuSectionKey;

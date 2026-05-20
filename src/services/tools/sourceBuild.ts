@@ -1,10 +1,7 @@
-import {
-  clearSourceBuild,
-  getSourceBuildStatus,
-  startSourceBuild,
-  type SourceBuildCommand,
-  type SourceBuildStatus,
-} from '../sourceBuild';
+// Defines the sourceBuild tool contract, validation, execution, or display formatting.
+// Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
+// Invariant: tools validate inputs first and return deterministic, user-readable results.
+import type { SourceBuildCommand, SourceBuildStatus } from '../sourceBuild';
 import type { Tool } from './types';
 
 export const sourceBuildTool: Tool = {
@@ -46,6 +43,11 @@ export const sourceBuildTool: Tool = {
   },
 
   async execute(args) {
+    const {
+      clearSourceBuild,
+      getSourceBuildStatus,
+      startSourceBuild,
+    } = await import('../sourceBuild');
     const action = typeof args.action === 'string' ? args.action : '';
     switch (action) {
       case 'status':

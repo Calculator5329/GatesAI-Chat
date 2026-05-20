@@ -100,6 +100,18 @@ function findTab(container: HTMLDivElement, label: string): HTMLElement | null {
   return all.find(el => el.textContent?.includes(label)) ?? null;
 }
 
+async function flushLazySections(): Promise<void> {
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+}
+
+async function preloadApiSection(): Promise<void> {
+  await act(async () => {
+    await import('../../../src/components/menu/sections/api/ApiSection');
+  });
+}
+
 afterEach(() => {
   if (root) act(() => root?.unmount());
   root = null;
@@ -108,9 +120,10 @@ afterEach(() => {
 });
 
 describe('GatesMenu tab strip', () => {
-  it('renders the trimmed top-level menu tabs', () => {
+  it('renders the trimmed top-level menu tabs', async () => {
     const { store, router } = buildStore('settings');
     const rendered = renderMenu(store);
+    await flushLazySections();
 
     for (const label of ['Agent', 'Models', 'Local', 'Workspace', 'Gallery', 'Settings']) {
       const tab = findTab(rendered, label);
@@ -122,25 +135,29 @@ describe('GatesMenu tab strip', () => {
     expect(router.menuSection).toBe('models');
   });
 
-  it('removes retired and renamed top-level tabs', () => {
+  it('removes retired and renamed top-level tabs', async () => {
     const { store } = buildStore('settings');
     const rendered = renderMenu(store);
+    await flushLazySections();
 
     expect(findTab(rendered, 'Profile')).toBeNull();
     expect(findTab(rendered, 'Usage')).toBeNull();
     expect(findTab(rendered, 'API')).toBeNull();
   });
 
-  it('does not render the retired Appearance tab', () => {
+  it('does not render the retired Appearance tab', async () => {
     const { store } = buildStore('settings');
     const rendered = renderMenu(store);
+    await flushLazySections();
 
     expect(findTab(rendered, 'Appearance')).toBeNull();
   });
 
-  it('renders only the OpenRouter model access surface', () => {
+  it('renders only the OpenRouter model access surface', async () => {
+    await preloadApiSection();
     const { store } = buildStore('models');
     const rendered = renderMenu(store);
+    await flushLazySections();
 
     expect(rendered.textContent).toContain('Models');
     expect(rendered.textContent).toContain('OpenRouter');

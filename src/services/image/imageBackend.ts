@@ -1,5 +1,6 @@
-import { ComfyClient } from './comfyClient';
-import { OpenRouterImageClient } from './openrouterImageClient';
+// Implements image-generation backend behavior for imageBackend.
+// Called by ImageJobStore and image tools; depends on provider configs, ComfyUI/OpenRouter APIs, and bridge file writes.
+// Invariant: backend clients return normalized job artifacts and leave queue ownership to ImageJobStore.
 import type {
   GenerateImageRequest,
   GenerateImageResult,
@@ -26,14 +27,15 @@ export interface ImageBackendConfig extends ImageBackendSnapshot {
  * backend can't be instantiated (missing key, missing base URL, etc.)
  * so the tool can surface the message verbatim.
  */
-export function resolveBackend(
+export async function resolveBackend(
   id: ImageBackendId,
   config: ImageBackendConfig,
-): { backend: ImageBackend } | { error: string } {
+): Promise<{ backend: ImageBackend } | { error: string }> {
   const fetchImpl = config.fetch;
   switch (id) {
     case 'local-comfy': {
       if (!config.comfyBaseUrl) return { error: 'no ComfyUI base URL configured. Open Local and start/configure ComfyUI (default http://127.0.0.1:8188).' };
+      const { ComfyClient } = await import('./comfyClient');
       return {
         backend: new ComfyClient({
           baseUrl: config.comfyBaseUrl,
@@ -46,6 +48,7 @@ export function resolveBackend(
     }
     case 'openrouter-image': {
       if (!config.openRouterApiKey) return { error: 'OpenRouter API key is required for GPT-5.4 Image 2. Add one under Menu -> API -> OpenRouter.' };
+      const { OpenRouterImageClient } = await import('./openrouterImageClient');
       return { backend: new OpenRouterImageClient({ apiKey: config.openRouterApiKey, fetch: fetchImpl }) };
     }
   }
@@ -62,7 +65,7 @@ export async function dispatchImageGenerate(
   req: GenerateImageRequest,
   config: ImageBackendConfig,
 ): Promise<DispatchResult> {
-  const primary = resolveBackend(config.primary, config);
+  const primary = await resolveBackend(config.primary, config);
   if ('error' in primary) {
     throw new Error(primary.error);
   }

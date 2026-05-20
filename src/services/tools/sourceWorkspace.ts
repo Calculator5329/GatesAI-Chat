@@ -1,11 +1,12 @@
-import {
-  getSourceWorkspaceStatus,
-  listSourceWorkspace,
-  prepareSourceWorkspace,
-  readSourceWorkspace,
-  searchSourceWorkspace,
-  statSourceWorkspace,
-  writeSourceWorkspace,
+// Defines the sourceWorkspace tool contract, validation, execution, or display formatting.
+// Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
+// Invariant: tools validate inputs first and return deterministic, user-readable results.
+import type {
+  SourceWorkspaceList,
+  SourceWorkspaceRead,
+  SourceWorkspaceSearch,
+  SourceWorkspaceStat,
+  SourceWorkspaceStatus,
 } from '../sourceWorkspace';
 import type { Tool } from './types';
 
@@ -60,6 +61,15 @@ export const sourceWorkspaceTool: Tool = {
   },
 
   async execute(args) {
+    const {
+      getSourceWorkspaceStatus,
+      listSourceWorkspace,
+      prepareSourceWorkspace,
+      readSourceWorkspace,
+      searchSourceWorkspace,
+      statSourceWorkspace,
+      writeSourceWorkspace,
+    } = await import('../sourceWorkspace');
     const action = typeof args.action === 'string' ? args.action : '';
     switch (action) {
       case 'status':
@@ -103,7 +113,7 @@ function validateSourceWorkspaceArgs(args: Record<string, unknown>) {
   }
 }
 
-function formatStatus(status: Awaited<ReturnType<typeof getSourceWorkspaceStatus>>): string {
+function formatStatus(status: SourceWorkspaceStatus): string {
   return [
     `available: ${status.available ? 'true' : 'false'}`,
     `prepared: ${status.prepared ? 'true' : 'false'}`,
@@ -118,7 +128,7 @@ function formatStatus(status: Awaited<ReturnType<typeof getSourceWorkspaceStatus
   ].filter(Boolean).join('\n');
 }
 
-function formatList(resp: Awaited<ReturnType<typeof listSourceWorkspace>>): string {
+function formatList(resp: SourceWorkspaceList): string {
   if (!resp.entries.length) return `${resp.path} is empty.`;
   const lines = resp.entries.map(entry => {
     const tag = entry.kind === 'dir' ? 'd' : '-';
@@ -129,7 +139,7 @@ function formatList(resp: Awaited<ReturnType<typeof listSourceWorkspace>>): stri
   return lines.join('\n');
 }
 
-function formatRead(resp: Awaited<ReturnType<typeof readSourceWorkspace>>): string {
+function formatRead(resp: SourceWorkspaceRead): string {
   return [
     `path: ${resp.path}`,
     `size: ${resp.size}`,
@@ -139,7 +149,7 @@ function formatRead(resp: Awaited<ReturnType<typeof readSourceWorkspace>>): stri
   ].filter(line => line !== '').join('\n');
 }
 
-function formatStat(resp: Awaited<ReturnType<typeof statSourceWorkspace>>): string {
+function formatStat(resp: SourceWorkspaceStat): string {
   return [
     `path: ${resp.path}`,
     `kind: ${resp.kind}`,
@@ -148,7 +158,7 @@ function formatStat(resp: Awaited<ReturnType<typeof statSourceWorkspace>>): stri
   ].join('\n');
 }
 
-function formatSearch(resp: Awaited<ReturnType<typeof searchSourceWorkspace>>): string {
+function formatSearch(resp: SourceWorkspaceSearch): string {
   if (!resp.hits.length) return `No matches for "${resp.query}".`;
   const lines = resp.hits.map(hit => `${hit.path}:${hit.line}: ${hit.snippet}`);
   if (resp.truncated) lines.push('(truncated)');

@@ -1,10 +1,18 @@
+// Runs OpenRouter compatibility checks against representative models and tool/image paths.
+// Called by OpenRouterCompatibilityStore and API settings UI; depends on provider configs, LLM clients, and target fixtures.
+// Invariant: checks report structured outcomes and must not persist provider state themselves.
 import type { LlmProvider, LlmUsage, ToolCall, ToolDef } from '../../core/llm';
 import type { Model } from '../../core/types';
 import type { LlmRouter } from '../llm/router';
 import { resolveModelFormatProfile } from '../llm/modelFormatProfiles';
 import type { BridgeClientFacade } from '../tools/types';
+import {
+  selectOpenRouterCompatibilityTargets,
+  type OpenRouterCompatibilityMode,
+} from './openRouterCompatibilityTargets';
 
-export type OpenRouterCompatibilityMode = 'curated' | 'sample' | 'all';
+export { selectOpenRouterCompatibilityTargets };
+export type { OpenRouterCompatibilityMode };
 
 export interface OpenRouterCompatibilityProgress {
   completed: number;
@@ -73,26 +81,6 @@ const COMPAT_TOOL: ToolDef = {
   },
   strict: true,
 };
-
-export function selectOpenRouterCompatibilityTargets(
-  models: Model[],
-  mode: OpenRouterCompatibilityMode,
-): Model[] {
-  const openrouter = uniqueByProviderModel(models)
-    .filter(model => model.providerId === 'openrouter')
-    .filter(model => model.supportsTools !== false);
-  if (mode === 'all') return openrouter;
-  const curated = openrouter.filter(model => !model.dynamic);
-  if (mode === 'curated') return curated.length ? curated : openrouter.slice(0, 16);
-
-  const byVendor = new Map<string, Model[]>();
-  for (const model of openrouter) {
-    const bucket = byVendor.get(model.vendor) ?? [];
-    bucket.push(model);
-    byVendor.set(model.vendor, bucket);
-  }
-  return [...byVendor.values()].flatMap(bucket => bucket.slice(0, 2)).slice(0, 32);
-}
 
 export async function runOpenRouterCompatibility(
   args: RunOpenRouterCompatibilityArgs,
@@ -280,18 +268,6 @@ async function runProbe(
 async function ensureLogDirs(bridge: BridgeClientFacade): Promise<void> {
   await bridge.request('fs.mkdir', { path: '/workspace/artifacts/reports/openrouter-compat' });
   await bridge.request('fs.mkdir', { path: '/workspace/artifacts/data/openrouter-compat' });
-}
-
-function uniqueByProviderModel(models: Model[]): Model[] {
-  const seen = new Set<string>();
-  const out: Model[] = [];
-  for (const model of models) {
-    const key = `${model.providerId}:${model.providerModelId}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(model);
-  }
-  return out;
 }
 
 function compactTimestamp(date: Date): string {
