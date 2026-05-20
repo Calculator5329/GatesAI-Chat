@@ -1,4 +1,7 @@
-import { autorun } from 'mobx';
+// Owns observable RootStore state and actions for the app runtime.
+// Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
+// Invariant: mutations happen through store actions so UI derivations stay consistent.
+import { autorun, reaction } from 'mobx';
 import { ChatStore } from './ChatStore';
 import { UiStore } from './UiStore';
 import { ProviderStore } from './ProviderStore';
@@ -55,7 +58,7 @@ export class RootStore {
       ollama: {
         baseUrl: this.localRuntime.ollamaBaseUrl,
         apiKey: this.ollama.config.apiKey,
-        available: this.ollama.online,
+        available: this.localRuntime.runtimes.ollama.status === 'online',
         toolsEnabled: this.ollama.config.toolsEnabled,
       },
     }));
@@ -163,27 +166,38 @@ export class RootStore {
    */
   private bindRouterToChat(): void {
     // URL → store
-    autorun(() => {
-      if (this.router.route.kind !== 'thread') return;
-      const id = this.router.route.threadId;
-      if (id && this.chat.threads.some(t => t.id === id)) {
-        if (this.chat.activeThreadId !== id && !this.chat.selectThread(id) && this.chat.activeThreadId) {
-          this.router.goThread(this.chat.activeThreadId);
+    reaction(
+      () => ({
+        route: this.router.route,
+        activeThreadId: this.chat.activeThreadId,
+        threadIds: this.chat.threads.map(t => t.id).join('\0'),
+      }),
+      ({ route, activeThreadId }) => {
+        if (route.kind !== 'thread') return;
+        const id = route.threadId;
+        if (id && this.chat.threads.some(t => t.id === id)) {
+          if (activeThreadId !== id && !this.chat.selectThread(id) && this.chat.activeThreadId) {
+            this.router.goThread(this.chat.activeThreadId);
+          }
+        } else if (!id && activeThreadId) {
+          // bare `#/` → reflect current active thread back into the URL
+          this.router.goThread(activeThreadId);
+        } else if (id && activeThreadId) {
+          this.router.goThread(activeThreadId);
         }
-      } else if (!id && this.chat.activeThreadId) {
-        // bare `#/` → reflect current active thread back into the URL
-        this.router.goThread(this.chat.activeThreadId);
-      } else if (id && this.chat.activeThreadId) {
-        this.router.goThread(this.chat.activeThreadId);
-      }
-    });
+      },
+      { fireImmediately: true },
+    );
 
     // store → URL (only while we're on the thread surface; menu routes are explicit)
-    autorun(() => {
-      if (this.router.route.kind !== 'thread') return;
-      const id = this.chat.activeThreadId;
-      if (id && this.router.route.threadId !== id) this.router.goThread(id);
-    });
+    reaction(
+      () => ({ route: this.router.route, activeThreadId: this.chat.activeThreadId }),
+      ({ route, activeThreadId }) => {
+        if (route.kind !== 'thread') return;
+        if (activeThreadId && route.threadId !== activeThreadId) this.router.goThread(activeThreadId);
+      },
+      { fireImmediately: true },
+    );
   }
 }
 
@@ -193,7 +207,8 @@ export const rootStore = new RootStore();
 // every conversation in one shot. Removed in production builds. Replace with
 // a proper menu action when we add UI for this.
 if (import.meta.env.DEV) {
-  (window as unknown as { __gatesai?: unknown }).__gatesai = {
+  const devWindow = window as Window & { __gatesai?: unknown };
+  devWindow.__gatesai = {
     clearAll: () => rootStore.chat.clearAllThreads(),
     store: rootStore,
   };

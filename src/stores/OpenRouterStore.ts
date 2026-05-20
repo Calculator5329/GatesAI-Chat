@@ -20,7 +20,6 @@ import type { ModelRegistry } from './ModelRegistry';
  * deal with promise rejection.
  */
 export class OpenRouterStore {
-  models: Model[] = [];
   fetchedAt: number | null = null;
   fetching = false;
   fetchError: string | null = null;
@@ -32,7 +31,6 @@ export class OpenRouterStore {
     this.registry = registry;
     const cached = loadOpenRouterCache();
     if (cached) {
-      this.models = cached.models;
       this.fetchedAt = cached.fetchedAt;
       this.registry.setDynamicForProvider('openrouter', cached.models);
     }
@@ -40,6 +38,14 @@ export class OpenRouterStore {
       registry: false,
       inflight: false,
     });
+  }
+
+  get models(): Model[] {
+    return this.registry.dynamicForProvider('openrouter');
+  }
+
+  set models(models: Model[]) {
+    this.registry.setDynamicForProvider('openrouter', models);
   }
 
   get count(): number {
@@ -62,7 +68,6 @@ export class OpenRouterStore {
         this.models = models;
         this.fetchedAt = fetchedAt;
         this.fetching = false;
-        this.registry.setDynamicForProvider('openrouter', models);
       });
       saveOpenRouterCache({ fetchedAt, models });
     } catch (err) {
@@ -81,11 +86,10 @@ export class OpenRouterStore {
       this.inflight.abort();
       this.inflight = null;
     }
-    this.models = [];
     this.fetchedAt = null;
     this.fetchError = null;
     this.fetching = false;
-    this.registry.clearDynamicForProvider('openrouter');
+    this.models = [];
     clearOpenRouterCache();
   }
 }

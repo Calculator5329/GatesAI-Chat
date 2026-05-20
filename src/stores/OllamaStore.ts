@@ -19,7 +19,6 @@ import type { LocalRuntimeStore } from './LocalRuntimeStore';
  */
 export class OllamaStore {
   config: { apiKey: string | undefined; toolsEnabled: boolean };
-  catalog: Model[] = [];
   lastRefreshAt: number | null = null;
   fetching = false;
   lastError: string | undefined;
@@ -36,9 +35,8 @@ export class OllamaStore {
       apiKey: persisted.apiKey,
       toolsEnabled: persisted.toolsEnabled,
     };
-    this.catalog = persisted.catalog;
     this.lastRefreshAt = persisted.lastRefreshAt;
-    if (this.catalog.length) registry.setDynamicForProvider('ollama', this.catalog);
+    if (persisted.catalog.length) registry.setDynamicForProvider('ollama', persisted.catalog);
 
     makeAutoObservable<this, 'registry' | 'localRuntime' | 'inflight'>(this, {
       registry: false,
@@ -59,6 +57,13 @@ export class OllamaStore {
 
   get count(): number { return this.catalog.length; }
   get online(): boolean { return this.localRuntime.runtimes.ollama.status === 'online'; }
+  get catalog(): Model[] {
+    return this.registry.dynamicForProvider('ollama');
+  }
+
+  set catalog(models: Model[]) {
+    this.registry.setDynamicForProvider('ollama', models);
+  }
 
   setKey(key: string): void {
     const trimmed = key.trim();
@@ -83,7 +88,6 @@ export class OllamaStore {
         this.catalog = models;
         this.lastRefreshAt = Date.now();
         this.fetching = false;
-        this.registry.setDynamicForProvider('ollama', models);
       });
     } catch (err) {
       if (ctrl.signal.aborted) return;
@@ -102,6 +106,6 @@ export class OllamaStore {
     this.lastRefreshAt = null;
     this.lastError = undefined;
     this.fetching = false;
-    this.registry.clearDynamicForProvider('ollama');
+    this.catalog = [];
   }
 }

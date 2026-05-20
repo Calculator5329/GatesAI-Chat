@@ -71,6 +71,10 @@ export class ModelRegistry {
     return out;
   }
 
+  dynamicForProvider(providerId: ProviderId): Model[] {
+    return this.dynamic.filter(m => m.providerId === providerId);
+  }
+
   get byVendor(): Map<string, Model[]> {
     const out = new Map<string, Model[]>();
     for (const m of this.all) {
