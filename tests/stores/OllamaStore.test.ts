@@ -1,3 +1,4 @@
+import { runInAction } from 'mobx';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OllamaStore } from '../../src/stores/OllamaStore';
 import { LocalRuntimeStore } from '../../src/stores/LocalRuntimeStore';
@@ -35,6 +36,16 @@ describe('OllamaStore', () => {
     expect(local.ollamaBaseUrl).toBe('http://127.0.0.1:11434');
     expect(store.catalog).toEqual([]);
     expect(store.config.toolsEnabled).toBe(true);
+  });
+
+  it('derives online from LocalRuntimeStore status', () => {
+    const local = makeLocalRuntime();
+    const store = new OllamaStore(new ModelRegistry(), local);
+    expect(store.online).toBe(false);
+    runInAction(() => { local.runtimes.ollama.status = 'online'; });
+    expect(store.online).toBe(true);
+    runInAction(() => { local.runtimes.ollama.status = 'offline'; });
+    expect(store.online).toBe(false);
   });
 
   it('refresh() loads /api/tags through LocalRuntimeStore', async () => {

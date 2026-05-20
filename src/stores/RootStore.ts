@@ -55,7 +55,7 @@ export class RootStore {
       ollama: {
         baseUrl: this.localRuntime.ollamaBaseUrl,
         apiKey: this.ollama.config.apiKey,
-        available: this.ollama.online || this.ollama.catalog.length > 0,
+        available: this.ollama.online,
         toolsEnabled: this.ollama.config.toolsEnabled,
       },
     }));

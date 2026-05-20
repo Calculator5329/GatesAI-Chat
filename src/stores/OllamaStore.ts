@@ -21,7 +21,6 @@ export class OllamaStore {
   config: { apiKey: string | undefined; toolsEnabled: boolean };
   catalog: Model[] = [];
   lastRefreshAt: number | null = null;
-  online = false;
   fetching = false;
   lastError: string | undefined;
 
@@ -59,6 +58,7 @@ export class OllamaStore {
   }
 
   get count(): number { return this.catalog.length; }
+  get online(): boolean { return this.localRuntime.runtimes.ollama.status === 'online'; }
 
   setKey(key: string): void {
     const trimmed = key.trim();
@@ -82,7 +82,6 @@ export class OllamaStore {
       runInAction(() => {
         this.catalog = models;
         this.lastRefreshAt = Date.now();
-        this.online = true;
         this.fetching = false;
         this.registry.setDynamicForProvider('ollama', models);
       });
@@ -90,7 +89,6 @@ export class OllamaStore {
       if (ctrl.signal.aborted) return;
       runInAction(() => {
         this.lastError = err instanceof Error ? err.message : String(err);
-        this.online = false;
         this.fetching = false;
       });
     } finally {
@@ -102,7 +100,6 @@ export class OllamaStore {
     if (this.inflight) { this.inflight.abort(); this.inflight = null; }
     this.catalog = [];
     this.lastRefreshAt = null;
-    this.online = false;
     this.lastError = undefined;
     this.fetching = false;
     this.registry.clearDynamicForProvider('ollama');

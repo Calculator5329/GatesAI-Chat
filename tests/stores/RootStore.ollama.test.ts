@@ -47,10 +47,29 @@ describe('RootStore — Ollama config bridge', () => {
     expect(root.providers.effectiveConfigs.ollama?.apiKey).toBeUndefined();
   });
 
-  it('treats a cached Ollama catalog as locally available', () => {
+  it('does not treat a cached Ollama catalog as locally available while runtime is offline', () => {
     const root = new RootStore();
     runInAction(() => {
-      root.ollama.online = false;
+      root.localRuntime.runtimes.ollama.status = 'offline';
+      root.ollama.catalog = [{
+        id: 'ollama-gpt-oss:20b',
+        name: 'gpt-oss:20b',
+        providerId: 'ollama',
+        providerModelId: 'gpt-oss:20b',
+        vendor: 'Ollama',
+        contextWindow: 8000,
+      }];
+      root.registry.setDynamicForProvider('ollama', root.ollama.catalog);
+    });
+
+    expect(root.providers.effectiveConfigs.ollama?.available).toBe(false);
+    expect(root.providers.isConnected('ollama')).toBe(false);
+  });
+
+  it('treats a cached Ollama catalog as locally available when runtime is online', () => {
+    const root = new RootStore();
+    runInAction(() => {
+      root.localRuntime.runtimes.ollama.status = 'online';
       root.ollama.catalog = [{
         id: 'ollama-gpt-oss:20b',
         name: 'gpt-oss:20b',
