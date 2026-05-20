@@ -23,25 +23,38 @@ export function configureChatLog(d: LoggerDeps): void {
   deps = d;
 }
 
+function debugChatLogsEnabled(): boolean {
+  if (!import.meta.env.DEV) return false;
+  try {
+    return localStorage.getItem('gatesai.debug.chatLog') === '1';
+  } catch {
+    return false;
+  }
+}
+
 export function logEvent(threadId: string | null | undefined, tag: string, payload?: unknown): void {
-  const line = JSON.stringify({
-    t: new Date().toISOString(),
-    tag,
-    ...(payload !== undefined ? { payload } : {}),
-  }) + '\n';
+  const shouldWrite = deps?.isOnline === true;
+  const shouldDebug = debugChatLogsEnabled();
+  if (!shouldWrite && !shouldDebug) return;
 
-  console.log(`[log:${threadId ?? 'global'}] ${tag}`, payload ?? '');
+  queueMicrotask(() => {
+    if (shouldDebug) console.log(`[log:${threadId ?? 'global'}] ${tag}`, payload ?? '');
+    if (!shouldWrite || !deps?.isOnline) return;
+    const line = JSON.stringify({
+      t: new Date().toISOString(),
+      tag,
+      ...(payload !== undefined ? { payload } : {}),
+    }) + '\n';
+    const id = threadId ?? 'global';
+    const safe = id.replace(/[^A-Za-z0-9._-]+/g, '_');
+    const path = `/workspace/logs/${safe}.log`;
 
-  if (!deps?.isOnline) return;
-  const id = threadId ?? 'global';
-  const safe = id.replace(/[^A-Za-z0-9._-]+/g, '_');
-  const path = `/workspace/logs/${safe}.log`;
-
-  // Fire-and-forget; swallow errors so logging never breaks the app.
-  void deps.client.request('fs.write', {
-    path,
-    content: line,
-    encoding: 'utf8',
-    append: true,
-  }).catch(() => { /* ignore */ });
+    // Fire-and-forget; swallow errors so logging never breaks the app.
+    void deps.client.request('fs.write', {
+      path,
+      content: line,
+      encoding: 'utf8',
+      append: true,
+    }).catch(() => { /* ignore */ });
+  });
 }

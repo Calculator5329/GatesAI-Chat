@@ -193,7 +193,7 @@ export class LocalRuntimeStore {
       await this.refreshStatus(id);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      if (isAddressInUseError(message)) {
+      if (isAddressInUseError(message) || isAlreadyRunningOutsideGatesAI(message)) {
         const probe = await this.testConnection(id);
         if (probe.ok) {
           this.clearWatchdog(id);
@@ -363,6 +363,10 @@ function isAddressInUseError(message: string): boolean {
     || lower.includes('cannot assign requested address')
     || lower.includes('bind:')
     || lower.includes('eaddrinuse');
+}
+
+function isAlreadyRunningOutsideGatesAI(message: string): boolean {
+  return message.toLowerCase().includes('already running outside gatesai');
 }
 
 function runtimeLabel(id: LocalRuntimeId): string {

@@ -122,12 +122,12 @@ sudo pacman -S fuse2 webkit2gtk-4.1</code></pre>
     <p>Create a permanent folder for user-installed AppImages:</p>
     <pre><code>mkdir -p "$HOME/Applications/GatesAI Chat"</code></pre>
     <p>If the AppImage is in <code>~/Downloads</code>, copy it into that folder and make it executable:</p>
-    <pre><code>cp "$HOME/Downloads/GatesAI Chat_3.7.0_amd64.AppImage" "$HOME/Applications/GatesAI Chat/"
-chmod +x "$HOME/Applications/GatesAI Chat/GatesAI Chat_3.7.0_amd64.AppImage"</code></pre>
+    <pre><code>cp "$HOME/Downloads/GatesAI Chat_4.0.0_amd64.AppImage" "$HOME/Applications/GatesAI Chat/"
+chmod +x "$HOME/Applications/GatesAI Chat/GatesAI Chat_4.0.0_amd64.AppImage"</code></pre>
 
     <h2>3. Launch</h2>
     <p>Run the AppImage directly:</p>
-    <pre><code>"$HOME/Applications/GatesAI Chat/GatesAI Chat_3.7.0_amd64.AppImage"</code></pre>
+    <pre><code>"$HOME/Applications/GatesAI Chat/GatesAI Chat_4.0.0_amd64.AppImage"</code></pre>
 
     <div class="note">
       After launch, open <strong>Menu -&gt; Workspace</strong>. The status should become <strong>Bridge online</strong>.
@@ -141,7 +141,7 @@ cat &gt; "$HOME/.local/share/applications/gatesai-chat.desktop" &lt;&lt;'EOF'
 Type=Application
 Name=GatesAI Chat
 Comment=Local-first AI chat with workspace tools
-Exec=/home/YOUR_USER/Applications/GatesAI Chat/GatesAI Chat_3.7.0_amd64.AppImage
+Exec=/home/YOUR_USER/Applications/GatesAI Chat/GatesAI Chat_4.0.0_amd64.AppImage
 Terminal=false
 Categories=Utility;Development;
 EOF</code></pre>
@@ -154,7 +154,7 @@ update-desktop-database "$HOME/.local/share/applications" 2&gt;/dev/null || true
     <p>If the app says the bridge is offline, check whether another process is already using the bridge port:</p>
     <pre><code>ss -ltnp | grep ':7331' || true</code></pre>
     <p>You can also run the AppImage from a terminal to watch bridge startup logs:</p>
-    <pre><code>"$HOME/Applications/GatesAI Chat/GatesAI Chat_3.7.0_amd64.AppImage"</code></pre>
+    <pre><code>"$HOME/Applications/GatesAI Chat/GatesAI Chat_4.0.0_amd64.AppImage"</code></pre>
 
     <h2>6. Troubleshooting</h2>
     <p>If the AppImage does not start and mentions FUSE, reinstall <code>fuse2</code>:</p>
@@ -166,7 +166,7 @@ update-desktop-database "$HOME/.local/share/applications" 2&gt;/dev/null || true
     <h2>7. Inspect The AppImage</h2>
     <p>To confirm the bridge binary is inside the AppImage:</p>
     <pre><code>mkdir -p /tmp/gatesai-appimage-check
-cp "$HOME/Applications/GatesAI Chat/GatesAI Chat_3.7.0_amd64.AppImage" /tmp/gatesai-appimage-check/
+cp "$HOME/Applications/GatesAI Chat/GatesAI Chat_4.0.0_amd64.AppImage" /tmp/gatesai-appimage-check/
 cd /tmp/gatesai-appimage-check
 chmod +x ./*.AppImage
 ./*.AppImage --appimage-extract &gt;/dev/null

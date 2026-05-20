@@ -1,76 +1,18 @@
-import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import type { PluggableList } from 'unified';
-import type { ComponentPropsWithoutRef, ReactNode, MouseEvent } from 'react';
-import type { Message } from '../../core/types';
+import type { MouseEvent } from 'react';
+import type { AssistantFinishReason, Message } from '../../core/types';
 import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
-import { isWorkspacePath } from '../../core/workspacePaths';
 import { useBridgeStore, useRootStore } from '../../stores/context';
-import type { BridgeStore } from '../../stores/BridgeStore';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
 import { WorkspaceImage } from './WorkspaceImage';
 import { splitMarkdownChunks } from './markdownChunks';
-import { HtmlArtifactPreview, isHtmlWorkspacePath } from './HtmlArtifactPreview';
-import { MermaidDiagram } from './MermaidDiagram';
+import { MarkdownFallback } from './MarkdownFallback';
 import { Icons } from '../ui/icons';
 import { ActivityStream } from './activity/ActivityStream';
 
-/**
- * Lazy plugin loader for the heavy rehype plugins. `rehype-highlight` pulls
- * highlight.js (~120KB) and `rehype-katex` pulls katex (~56KB) plus its CSS
- * and font assets. Most messages have no code fences or math, so we only
- * load these when content actually needs them, then notify subscribed
- * MarkdownChunks to re-render with the new plugin set.
- *
- * Until each plugin is loaded, markdown still renders correctly — code blocks
- * just appear unstyled, and math renders as raw \\(...\\) text. The plugin
- * promise is kicked off on first detection and cached forever.
- */
-type RehypePlugin = PluggableList[number];
-let highlightPlugin: RehypePlugin | null = null;
-let highlightLoading: Promise<void> | null = null;
-let katexPlugin: RehypePlugin | null = null;
-let katexLoading: Promise<void> | null = null;
-let pluginVersion = 0;
-const pluginListeners = new Set<() => void>();
+const MarkdownChunk = lazy(() => import('./MarkdownChunk').then(m => ({ default: m.MarkdownChunk })));
 
-function subscribePlugins(listener: () => void) {
-  pluginListeners.add(listener);
-  return () => { pluginListeners.delete(listener); };
-}
-function getPluginVersion() { return pluginVersion; }
-function bumpPluginVersion() {
-  pluginVersion += 1;
-  for (const l of pluginListeners) l();
-}
-
-function ensureHighlight() {
-  if (highlightPlugin || highlightLoading) return;
-  highlightLoading = import('rehype-highlight').then(mod => {
-    highlightPlugin = mod.default as RehypePlugin;
-    bumpPluginVersion();
-  }).catch(() => { /* swallow — markdown still renders without highlight */ });
-}
-
-function ensureKatex() {
-  if (katexPlugin || katexLoading) return;
-  katexLoading = Promise.all([
-    import('rehype-katex'),
-    import('katex/dist/katex.min.css'),
-  ]).then(([mod]) => {
-    katexPlugin = [mod.default, { throwOnError: false, strict: 'ignore' }] as RehypePlugin;
-    bumpPluginVersion();
-  }).catch(() => { /* swallow */ });
-}
-
-const HAS_CODE_FENCE = (s: string) => s.includes('```');
-// Block math `$$...$$` or LaTeX-style \( \[ delimiters. Single-dollar inline math
-// is disabled (`singleDollarTextMath: false` on remarkMath), so no `$...$` case here.
-const MATH_RE = /\$\$[\s\S]+?\$\$|\\\(|\\\[/;
-const HAS_MATH = (s: string) => MATH_RE.test(s);
 
 interface MessageProps {
   message: Message;
@@ -149,6 +91,9 @@ export const EditorialMessage = observer(function EditorialMessage({
     ? (message.workNotes ?? []).map(note => note.trim()).filter(Boolean)
     : [];
   const shouldHideAssistantTextForImageJob = !isUser && activities.some(activity => activity.kind === 'image-job');
+  const finishNotice = !isUser && message.role === 'assistant'
+    ? finishNoticeForReason(message.finishReason)
+    : null;
 
   useEffect(() => {
     if (copyState === 'idle') return;
@@ -308,10 +253,28 @@ export const EditorialMessage = observer(function EditorialMessage({
         ) : hasContent ? (
           <MarkdownBody content={message.content} />
         ) : null}
+        {finishNotice && (
+          <div className="message-finish-notice" data-tone={finishNotice.tone}>
+            {finishNotice.label}
+          </div>
+        )}
       </div>
     </div>
   );
 });
+
+function finishNoticeForReason(reason: AssistantFinishReason | undefined): { label: string; tone: 'warn' | 'error' } | null {
+  switch (reason) {
+    case 'length':
+      return { label: 'Response cut off because the model hit its token limit.', tone: 'warn' };
+    case 'content_filter':
+      return { label: 'Provider filtered this response before it finished.', tone: 'warn' };
+    case 'error':
+      return { label: 'Provider ended this response with an error.', tone: 'error' };
+    default:
+      return null;
+  }
+}
 
 function useSmoothedStreamingText(content: string, active: boolean): string {
   const [visible, setVisible] = useState(content);
@@ -386,122 +349,19 @@ function MarkdownBody({ content }: { content: string }) {
   const chunks = useMemo(() => splitMarkdownChunks(content), [content]);
   return (
     <div className="md-body">
-      {chunks.map((chunk, idx) => (
-        // Skip whitespace-only chunks (e.g. a leading "\n\n" from the
-        // splitter); ReactMarkdown produces nothing for them and they'd just
-        // burn a render. The chunks themselves still preserve the original
-        // string so the splitter's join() invariant holds elsewhere.
-        chunk.trim() === '' ? null : (
-          <MarkdownChunk key={idx} content={chunk} bridge={bridge} />
-        )
-      ))}
+      <Suspense fallback={<MarkdownFallback content={content} bridge={bridge} />}>
+        {chunks.map((chunk, idx) => (
+          // Skip whitespace-only chunks; ReactMarkdown produces nothing for
+          // them and they'd just burn a render.
+          chunk.trim() === '' ? null : (
+            <MarkdownChunk key={idx} content={chunk} bridge={bridge} />
+          )
+        ))}
+      </Suspense>
     </div>
   );
 }
 
-interface MarkdownChunkProps {
-  content: string;
-  bridge: BridgeStore;
-}
-
-/**
- * Memoized by content string. React.memo's default shallow compare on a
- * primitive `content` is exactly what we want: while streaming, closed
- * chunks pass identical strings on every token flush and skip re-rendering
- * the heavy remark/rehype tree (highlight + katex). The trailing chunk
- * keeps re-parsing as tokens arrive — that cost is unavoidable.
- *
- * `bridge` is a stable store reference (singleton from context) so it never
- * triggers re-renders in practice.
- */
-const MarkdownChunk = memo(function MarkdownChunk({ content, bridge }: MarkdownChunkProps) {
-  // Subscribe to plugin-loaded events so chunks needing a not-yet-loaded
-  // plugin re-render once it lands. The version itself is unused; we just
-  // need useSyncExternalStore to fire on bumpPluginVersion().
-  useSyncExternalStore(subscribePlugins, getPluginVersion, getPluginVersion);
-
-  const needsHighlight = HAS_CODE_FENCE(content);
-  const needsKatex = HAS_MATH(content);
-  if (needsHighlight && !highlightPlugin) ensureHighlight();
-  if (needsKatex && !katexPlugin) ensureKatex();
-
-  const rehypePlugins: PluggableList = [];
-  if (needsHighlight && highlightPlugin) rehypePlugins.push(highlightPlugin);
-  if (needsKatex && katexPlugin) rehypePlugins.push(katexPlugin);
-
-  return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
-      rehypePlugins={rehypePlugins}
-      components={{
-        code: (props) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
-        a: (props) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,
-      }}
-    >
-      {content}
-    </ReactMarkdown>
-  );
-});
-
-interface CodeProps extends ComponentPropsWithoutRef<'code'> {
-  bridge: BridgeStore;
-}
-
-function CodeOrWorkspaceLink({ bridge, className, children, ...rest }: CodeProps) {
-  const isInline = !className;
-  const text = childrenToString(children).replace(/\n$/, '');
-  if (isInline) {
-    if (isWorkspacePath(text)) {
-      if (isHtmlWorkspacePath(text)) {
-        return <HtmlArtifactPreview path={text} />;
-      }
-      return <WorkspacePathLink path={text} bridge={bridge} />;
-    }
-  }
-  if (/\blanguage-mermaid\b/.test(className ?? '')) {
-    return <MermaidDiagram source={text} />;
-  }
-  return <code className={className} {...rest}>{children}</code>;
-}
-
-interface AnchorProps extends ComponentPropsWithoutRef<'a'> {
-  bridge: BridgeStore;
-}
-
-function AnchorOrWorkspaceLink({ bridge, href, children, ...rest }: AnchorProps) {
-  const target = typeof href === 'string' ? href : '';
-  if (target && isWorkspacePath(target)) {
-    if (isHtmlWorkspacePath(target)) {
-      return <HtmlArtifactPreview path={target} label={childrenToString(children)} />;
-    }
-    return <WorkspacePathLink path={target} bridge={bridge} />;
-  }
-  return <a href={href} {...rest} target="_blank" rel="noreferrer">{children}</a>;
-}
-
-function WorkspacePathLink({ path, bridge }: { path: string; bridge: BridgeStore }) {
-  return (
-    <button
-      type="button"
-      className="workspace-path-link"
-      title={`Open ${path}`}
-      onClick={(event) => {
-        event.stopPropagation();
-        void bridge.openWorkspacePath(path);
-      }}
-    >
-      <span className="workspace-path-link__glyph" aria-hidden="true">↗</span>
-      <code>{path}</code>
-    </button>
-  );
-}
-
-function childrenToString(children: ReactNode): string {
-  if (typeof children === 'string') return children;
-  if (typeof children === 'number') return String(children);
-  if (Array.isArray(children)) return children.map(childrenToString).join('');
-  return '';
-}
 
 function UserMessageContent({ body, attachments }: { body: string; attachments: RenderedAttachment[] }) {
   const imageAttachments = attachments.filter(file => file.isImage);

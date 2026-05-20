@@ -17,7 +17,7 @@ export interface WorkspaceChatSnapshotEnvelope {
   version: 1;
   savedAt: string;
   snapshot: ChatSnapshot;
-  source?: 'workspace' | 'localStorage-migration';
+  source?: 'workspace' | 'localStorage-migration' | 'local-newer-than-workspace';
 }
 
 export type WorkspaceChatLoadResult =
@@ -160,7 +160,12 @@ function parseEnvelope(value: unknown): WorkspaceChatSnapshotEnvelope | null {
   if (!value || typeof value !== 'object') return null;
   const record = value as { version?: unknown; savedAt?: unknown; snapshot?: unknown; source?: unknown };
   if (record.version !== 1 || typeof record.savedAt !== 'string') return null;
-  if (record.source != null && record.source !== 'workspace' && record.source !== 'localStorage-migration') return null;
+  if (
+    record.source != null &&
+    record.source !== 'workspace' &&
+    record.source !== 'localStorage-migration' &&
+    record.source !== 'local-newer-than-workspace'
+  ) return null;
   const snapshot = parseChatSnapshotValue(record.snapshot);
   if (!snapshot) return null;
   return {

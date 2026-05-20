@@ -1,11 +1,12 @@
-import { useEffect, useMemo, type CSSProperties } from 'react';
+import { Suspense, lazy, useEffect, useMemo, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { buildTheme, themeToCssVars } from '../core/theme';
 import { useChatStore, useRouterStore, useUiStore } from '../stores/context';
 import { EditorialSidebar } from '../components/editorial/EditorialSidebar';
 import { EditorialChat } from '../components/editorial/EditorialChat';
-import { GatesMenu } from '../components/menu/GatesMenu';
 import { runtimeMode } from '../services/system/runtime';
+
+const GatesMenu = lazy(() => import('../components/menu/GatesMenu').then(m => ({ default: m.GatesMenu })));
 
 const stageStyle: CSSProperties = {
   height: '100dvh', width: '100vw',
@@ -63,7 +64,11 @@ export const App = observer(function App() {
       <div className={appearanceClassName} style={{ ...themeToCssVars(theme), ...appearanceVars, ...rootStyle, fontFamily: theme.fontUi }}>
         <EditorialSidebar />
         {router.isMenu
-          ? <GatesMenu />
+          ? (
+            <Suspense fallback={null}>
+              <GatesMenu />
+            </Suspense>
+          )
           : <EditorialChat />
         }
       </div>

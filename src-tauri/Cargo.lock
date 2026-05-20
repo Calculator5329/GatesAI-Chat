@@ -1056,7 +1056,7 @@ dependencies = [
 
 [[package]]
 name = "gatesai-chat"
-version = "3.7.0"
+version = "4.0.0"
 dependencies = [
  "log",
  "open",

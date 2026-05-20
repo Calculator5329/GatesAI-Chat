@@ -275,6 +275,12 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     >
       <div className="editorial-composer__inner" style={{ width: 'min(750px, 70%)', margin: '0 auto', paddingTop: 4 }}>
         {!routeReady && (directImageMode ? <LocalImageBanner /> : <ApiKeyBanner />)}
+        {chat.lastError && (
+          <div className="chat-error-banner" role="status">
+            <span>{chat.lastError}</span>
+            <button type="button" onClick={() => chat.clearLastError()} aria-label="Dismiss chat error">×</button>
+          </div>
+        )}
         {hasAttachments && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8, alignItems: 'center' }}>
             {ui.attachments.map(a => (
@@ -305,7 +311,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                       lineHeight: 1,
                       fontSize: 13,
                     }}
-                  >Ã—</button>
+                  >×</button>
                 </span>
               ) : (
                 <span
@@ -327,7 +333,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                     onClick={() => ui.removeAttachment(a.id)}
                     style={{ cursor: 'pointer', opacity: 0.5, marginLeft: 2 }}
                     title="Remove"
-                  >Ã—</span>
+                  >×</span>
                 </span>
               )
             ))}

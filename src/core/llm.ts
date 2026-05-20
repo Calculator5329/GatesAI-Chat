@@ -118,7 +118,7 @@ export type LlmChunk =
   | { type: 'text'; delta: string }
   | { type: 'tool_call'; call: ToolCall }
   | { type: 'usage'; usage: LlmUsage }
-  | { type: 'done'; finishReason?: 'stop' | 'length' | 'tool_use' | 'cancelled' | 'error'; error?: string };
+  | { type: 'done'; finishReason?: 'stop' | 'length' | 'tool_use' | 'cancelled' | 'content_filter' | 'error'; error?: string };
 
 export interface LlmProvider {
   readonly id: ProviderId;

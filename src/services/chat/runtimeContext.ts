@@ -4,27 +4,55 @@ interface RuntimeBridgeInfo {
   version?: string;
 }
 
+interface RuntimeContextCacheEntry {
+  key: string;
+  local: string;
+  timeZone: string;
+}
+
+let cachedRuntimeContext: RuntimeContextCacheEntry | null = null;
+let cachedDefaultTimeZone: string | null = null;
+
+function defaultTimeZone(): string {
+  if (cachedDefaultTimeZone) return cachedDefaultTimeZone;
+  cachedDefaultTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  return cachedDefaultTimeZone;
+}
+
 export function buildRuntimeContext(opts: {
   bridge?: RuntimeBridgeInfo;
   now?: Date;
   timeZone?: string;
 } = {}): string {
   const now = opts.now ?? new Date();
-  const tz = opts.timeZone ?? (Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
-  const local = now.toLocaleString(undefined, {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-    timeZone: tz,
-  });
+  const tz = opts.timeZone ?? defaultTimeZone();
   const bridge = opts.bridge;
+  const minute = Math.floor(now.getTime() / 60_000);
+  const cacheKey = [
+    minute,
+    tz,
+    bridge?.isOnline ? 'online' : 'offline',
+    bridge?.platform ?? '',
+    bridge?.version ?? '',
+  ].join('|');
+  let local = cachedRuntimeContext?.key === cacheKey ? cachedRuntimeContext.local : '';
+  if (!local) {
+    local = now.toLocaleString(undefined, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short',
+      timeZone: tz,
+    });
+    cachedRuntimeContext = { key: cacheKey, local, timeZone: tz };
+  }
+  const timeZone = cachedRuntimeContext?.key === cacheKey ? cachedRuntimeContext.timeZone : tz;
   const lines = [
     `local_time: ${local}`,
-    `timezone: ${tz}`,
+    `timezone: ${timeZone}`,
     `iso: ${now.toISOString()}`,
     `bridge: ${bridge?.isOnline ? 'online' : 'offline'}`,
   ];

@@ -1052,7 +1052,7 @@ describe('ChatStore', () => {
     expect(mock.abortedAt).not.toBeNull();
   });
 
-  it('does not append tool results that finish after the turn is interrupted', async () => {
+  it('marks in-flight tools cancelled when the turn is interrupted', async () => {
     let releaseTool: (() => void) | null = null;
     toolRegistry.register({
       def: {
@@ -1081,7 +1081,11 @@ describe('ChatStore', () => {
     (releaseTool as (() => void) | null)?.();
     await flush(10);
 
-    expect(assistant.role === 'assistant' ? assistant.toolResults : undefined).toBeUndefined();
+    expect(assistant.role === 'assistant' ? assistant.toolResults?.[0] : undefined).toMatchObject({
+      toolCallId: 'call-slow',
+      ok: false,
+      errorCode: 'cancelled',
+    });
     expect(assistant.content).toContain('[no response]');
   });
 

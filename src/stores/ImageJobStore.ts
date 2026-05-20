@@ -76,15 +76,17 @@ export class ImageJobStore {
 
   private idCounter = 0;
   private inflight: AbortController | null = null;
+  private activeProgress: JobProgress | null = null;
   private readonly deps?: ImageJobStoreDeps;
 
   constructor(deps?: ImageJobStoreDeps) {
     this.deps = deps;
     const snapshot = loadImageJobsSnapshot();
     this.history = recoverInterruptedJobs(snapshot.history, snapshot.active, snapshot.queue);
-    makeAutoObservable<this, 'idCounter' | 'inflight' | 'deps'>(this, {
+    makeAutoObservable<this, 'idCounter' | 'inflight' | 'activeProgress' | 'deps'>(this, {
       idCounter: false,
       inflight: false,
+      activeProgress: false,
       deps: false,
     });
     autorun(() => {
@@ -114,6 +116,7 @@ export class ImageJobStore {
   cancel(jobId: string): void {
     if (this.active?.id === jobId) {
       this.inflight?.abort();
+      void this.activeProgress?.cancel?.();
       this.moveToHistory(this.active, 'cancelled');
       runInAction(() => { this.active = null; });
       void this.runNext();
@@ -266,8 +269,10 @@ export class ImageJobStore {
     let progress: JobProgress | null = null;
     try {
       progress = progressFactory(job.backend, config);
+      this.activeProgress = progress;
     } catch (err) {
       console.warn('[image-jobs] progress adapter failed to initialize; render will run without live progress.', err);
+      this.activeProgress = null;
     }
     const progressUnsub = progress?.subscribe((e) => {
       const fraction = e.max > 0 ? Math.min(1, Math.max(0, e.value / e.max)) : 0;
@@ -306,7 +311,7 @@ export class ImageJobStore {
         console.info(`[image-jobs] dispatch ${job.id} (${i + 1}/${job.count}) backend=${job.backend} seed=${seed} dims=${job.width}x${job.height}${perIterPrefix ? ` prefix=${perIterPrefix}` : ''}`);
         const t0 = performance.now();
         const { result } = await dispatcher(
-          { prompt: job.prompt, width: job.width, height: job.height, seed, filenamePrefix: perIterPrefix },
+          { prompt: job.prompt, width: job.width, height: job.height, seed, filenamePrefix: perIterPrefix, signal: ac.signal },
           config,
         );
         console.info(`[image-jobs] dispatch ${job.id} returned in ${Math.round(performance.now() - t0)}ms (mime=${result.mime})`);
@@ -350,6 +355,7 @@ export class ImageJobStore {
       if (syntheticProgressTimer) clearInterval(syntheticProgressTimer);
       progressUnsub?.();
       progress?.dispose();
+      if (this.activeProgress === progress) this.activeProgress = null;
     }
   }
 

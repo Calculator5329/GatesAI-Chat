@@ -4,11 +4,13 @@ import { DEFAULT_MODEL_ID, MODELS } from '../core/models';
 import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';
 
 const STORAGE_KEY = 'gatesai.state.v1';
+const CORRUPT_STORAGE_KEY_PREFIX = `${STORAGE_KEY}.corrupt`;
 const EMERGENCY_TOOL_RESULT_CHARS = 600;
 const EMERGENCY_TOOL_ARGUMENT_CHARS = 600;
 const LARGE_TOOL_ARGUMENT_KEYS = new Set(['body', 'content', 'stdin']);
 const SUPPORTED_MODEL_IDS = new Set(MODELS.map(model => model.id));
 const DYNAMIC_MODEL_PREFIXES = ['or-live-', 'ollama-'];
+let snapshotLoadError: string | null = null;
 
 export type ChatSnapshotPersistenceProvider = PersistenceProvider<ChatSnapshot | null>;
 
@@ -17,13 +19,21 @@ export function createLocalChatSnapshotPersistenceProvider(
 ): ChatSnapshotPersistenceProvider {
   return {
     load(): ChatSnapshot | null {
+      snapshotLoadError = null;
+      let raw: string | null = null;
       try {
-        const raw = storage.getItem(STORAGE_KEY);
+        raw = storage.getItem(STORAGE_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw) as ChatSnapshot;
-        if (!parsed || !Array.isArray(parsed.threads)) return null;
+        if (!parsed || !Array.isArray(parsed.threads)) {
+          quarantineUnreadableSnapshot(storage, raw, 'Saved chat state had an invalid shape.');
+          return null;
+        }
         return migrate(parsed);
-      } catch {
+      } catch (err) {
+        if (raw) {
+          quarantineUnreadableSnapshot(storage, raw, `Saved chat state was unreadable: ${(err as Error).message}`);
+        }
         return null;
       }
     },
@@ -58,6 +68,12 @@ export const chatSnapshotPersistence = createLocalChatSnapshotPersistenceProvide
 
 export function loadSnapshot(): ChatSnapshot | null {
   return chatSnapshotPersistence.load();
+}
+
+export function consumeSnapshotLoadError(): string | null {
+  const message = snapshotLoadError;
+  snapshotLoadError = null;
+  return message;
 }
 
 export function saveSnapshot(snapshot: ChatSnapshot): void {
@@ -125,6 +141,15 @@ function cleanSnapshot(snapshot: ChatSnapshot): ChatSnapshot {
       return copy;
     }),
   };
+}
+
+function quarantineUnreadableSnapshot(storage: KeyValuePersistence, raw: string, reason: string): void {
+  snapshotLoadError = `${reason} A recovery copy was saved in localStorage.`;
+  try {
+    storage.setItem(`${CORRUPT_STORAGE_KEY_PREFIX}-${Date.now()}`, raw);
+  } catch (err) {
+    snapshotLoadError = `${reason} A recovery copy could not be saved: ${(err as Error).message}`;
+  }
 }
 
 export function prepareChatSnapshotForSave(snapshot: ChatSnapshot): ChatSnapshot {

@@ -17,6 +17,7 @@
  */
 
 const PROTOCOL_VERSION = '1';
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 
 interface Envelope {
   id: string;
@@ -36,6 +37,7 @@ interface Pending {
   resolve: (value: unknown) => void;
   reject: (reason: Error) => void;
   onEvent?: EventHandler;
+  timer: ReturnType<typeof setTimeout>;
 }
 
 export class BridgeOfflineError extends Error {
@@ -151,16 +153,28 @@ export class BridgeClient {
     const id = `j-${PROTOCOL_VERSION}-${this.nextId++}`;
     const envelope: Envelope = { id, type: 'request', op, data };
     return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pending.delete(id);
+        reject(new BridgeError(`Bridge request timed out after ${Math.round(DEFAULT_REQUEST_TIMEOUT_MS / 1000)}s`, op, 'bridge_timeout'));
+      }, DEFAULT_REQUEST_TIMEOUT_MS);
       this.pending.set(id, {
-        resolve: (v) => resolve(v as T),
-        reject,
+        resolve: (v) => {
+          clearTimeout(timer);
+          resolve(v as T);
+        },
+        reject: (err) => {
+          clearTimeout(timer);
+          reject(err);
+        },
         onEvent,
+        timer,
       });
       try {
         this.socket!.send(JSON.stringify(envelope));
       } catch (err) {
+        const pending = this.pending.get(id);
         this.pending.delete(id);
-        reject(new BridgeOfflineError(`Send failed: ${(err as Error).message}`));
+        pending?.reject(new BridgeOfflineError(`Send failed: ${(err as Error).message}`));
       }
     });
   }
@@ -173,9 +187,14 @@ export class BridgeClient {
     } catch {
       return;
     }
-    if (!env.id || !env.type) return;
+    if (!env.id) return;
     const pending = this.pending.get(env.id);
     if (!pending) return;
+    if (!env.type) {
+      this.pending.delete(env.id);
+      pending.reject(new BridgeError('Malformed bridge frame: missing type', env.op, 'bridge_protocol_error'));
+      return;
+    }
 
     switch (env.type) {
       case 'event':

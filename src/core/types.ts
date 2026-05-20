@@ -1,5 +1,7 @@
 import type { LlmUsage, ToolCall } from './llm';
 
+export type AssistantFinishReason = 'stop' | 'length' | 'tool_use' | 'cancelled' | 'content_filter' | 'error';
+
 export type Role = 'user' | 'assistant';
 
 /**
@@ -73,6 +75,8 @@ export interface AssistantMessage {
   toolResults?: ToolResult[];
   /** Provider-reported usage/cost for the LLM request(s) that produced this message. */
   usage?: LlmUsage[];
+  /** Why the provider stopped the final streamed round, when reported. */
+  finishReason?: AssistantFinishReason;
   /**
    * UI-only ambient activity events that are not tool calls, such as bridge
    * connectivity transitions observed while this assistant turn was active.

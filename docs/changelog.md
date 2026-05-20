@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-05-17 - Version 4.0.0 release build
+
+- Updated release metadata and Arch Linux AppImage examples for the `4.0.0`
+  artifact name.
+
 ## 2026-05-17 - Version 3.7.0 release build
 
 - Bumped GatesAI Chat package, Tauri, and Rust crate metadata to `3.7.0`.

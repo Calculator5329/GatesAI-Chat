@@ -1,9 +1,9 @@
 import { autorun, makeAutoObservable, runInAction } from 'mobx';
-import type { ActivityDetail, ActivityItem, AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
+import type { ActivityDetail, ActivityItem, AssistantFinishReason, AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
 import type { LlmProvider, LlmRequest, LlmUsage, ToolCall, ToolDef } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
-import { flushPendingSnapshot, loadSnapshot, saveSnapshot, scheduleSaveSnapshot } from '../services/persistence';
+import { consumeSnapshotLoadError, flushPendingSnapshot, loadSnapshot, saveSnapshot, scheduleSaveSnapshot } from '../services/persistence';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, estimateTokens, type TokenUsage } from '../core/tokens';
 import { flattenForWire } from '../services/llm/wireFormat';
 import { resolveWireImages } from '../services/llm/resolveImages';
@@ -86,6 +86,10 @@ function normalizeActiveThreadId(threads: Thread[], activeThreadId: string | nul
     .filter(thread => thread.deletedAt == null)
     .sort((a, b) => b.updatedAt - a.updatedAt);
   return visible[0]?.id ?? null;
+}
+
+function snapshotLatestUpdatedAt(snapshot: ChatSnapshot): number {
+  return snapshot.threads.reduce((latest, thread) => Math.max(latest, thread.updatedAt, thread.createdAt), 0);
 }
 
 function normalizeWorkNote(content: string): string | null {
@@ -247,6 +251,7 @@ export class ChatStore {
       this.threads = [thread];
       this.activeThreadId = thread.id;
     }
+    this.lastError = consumeSnapshotLoadError();
     makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'workspacePersistence' | 'workspacePersistenceReady' | 'workspacePersistenceHydrating' | 'pendingWorkspaceSnap' | 'workspaceSaveInFlight' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
       providers: false,
       registry: false,
@@ -332,10 +337,18 @@ export class ChatStore {
     try {
       const loaded = await persistence.load();
       if (loaded.kind === 'loaded') {
-        runInAction(() => {
-          this.applySnapshot(loaded.snapshot);
-        });
-        saveSnapshot(this.snapshot);
+        const localSnapshot = this.snapshot;
+        if (snapshotLatestUpdatedAt(localSnapshot) > snapshotLatestUpdatedAt(loaded.snapshot)) {
+          runInAction(() => {
+            this.lastError = 'Workspace history was older than local chat history, so GatesAI kept the newer local copy.';
+          });
+          await persistence.save(localSnapshot, 'local-newer-than-workspace');
+        } else {
+          runInAction(() => {
+            this.applySnapshot(loaded.snapshot);
+          });
+          saveSnapshot(this.snapshot);
+        }
       } else if (loaded.kind === 'malformed') {
         try {
           await persistence.backupMalformed(loaded.raw);
@@ -506,6 +519,19 @@ export class ChatStore {
     const items: ActivityItem[] = [];
 
     const usedResultIndexes = new Set<number>();
+    for (const note of message.workNotes ?? []) {
+      const trimmed = note.trim();
+      if (!trimmed) continue;
+      items.push({
+        id: `${message.id}:work-note:${items.length}`,
+        kind: 'thinking',
+        state: 'done',
+        verb: 'Thinking',
+        detail: { type: 'markdown', content: trimmed },
+        startedAt: message.createdAt,
+        finishedAt: message.createdAt,
+      });
+    }
     for (const call of message.toolCalls ?? []) {
       const resultIndex = results.findIndex((candidate, index) => !usedResultIndexes.has(index) && candidate.toolCallId === call.id);
       if (resultIndex >= 0) usedResultIndexes.add(resultIndex);
@@ -830,7 +856,9 @@ export class ChatStore {
     this.runTurn(targetThreadId, controller.signal, isReplacingInterruptedReply)
       .catch(err => runInAction(() => {
         this.lastError = (err as Error).message;
-        this.clearStreamingState(targetThreadId);
+        if (this.controllersByThread.get(targetThreadId) === controller) {
+          this.clearStreamingState(targetThreadId);
+        }
       }));
   }
 
@@ -845,7 +873,9 @@ export class ChatStore {
     this.runTurn(thread.id, controller.signal, isReplacingInterruptedReply)
       .catch(err => runInAction(() => {
         this.lastError = (err as Error).message;
-        this.clearStreamingState(thread.id);
+        if (this.controllersByThread.get(thread.id) === controller) {
+          this.clearStreamingState(thread.id);
+        }
       }));
   }
 
@@ -871,9 +901,14 @@ export class ChatStore {
     this.clearStreamingState(threadId);
   }
 
-  private clearStreamingState(threadId: string): void {
+  private clearStreamingState(threadId: string, expectedMessageId?: string): void {
+    if (expectedMessageId && this.streamingByThread[threadId] !== expectedMessageId) return;
     delete this.streamingByThread[threadId];
     this.controllersByThread.delete(threadId);
+  }
+
+  private ownsStreamingTurn(threadId: string, messageId: string): boolean {
+    return this.streamingByThread[threadId] === messageId;
   }
 
   private ensureThreadModel(threadId: string | null): Thread | null {
@@ -960,7 +995,7 @@ export class ChatStore {
             m.content = `_Error: ${msg}_`;
             this.touchMessage(threadId, assistantMessage.id);
           }
-          this.clearStreamingState(threadId);
+          this.clearStreamingState(threadId, assistantMessage.id);
         });
         return;
       }
@@ -984,7 +1019,7 @@ export class ChatStore {
         });
         await this.compactThreadContext(thread, signal);
         if (signal.aborted) {
-          runInAction(() => this.clearStreamingState(threadId));
+          runInAction(() => this.clearStreamingState(threadId, assistantMessage.id));
           return;
         }
         runInAction(() => {
@@ -1013,7 +1048,7 @@ export class ChatStore {
             m.content = message;
             this.touchMessage(threadId, assistantMessage.id);
           }
-          this.clearStreamingState(threadId);
+          this.clearStreamingState(threadId, assistantMessage.id);
         });
         return;
       }
@@ -1022,8 +1057,10 @@ export class ChatStore {
       const collectedUsage: LlmUsage[] = [];
       let errored = false;
       let errorMessage: string | undefined;
+      let finishReason: AssistantFinishReason | undefined;
       try {
         for await (const chunk of provider.stream(request, signal)) {
+          if (!this.ownsStreamingTurn(threadId, assistantMessage.id)) continue;
           if (chunk.type === 'text') {
             this.queueTextChunk(threadId, assistantMessage.id, chunk.delta);
           } else if (chunk.type === 'tool_call') {
@@ -1032,9 +1069,10 @@ export class ChatStore {
             collectedUsage.push(chunk.usage);
           } else if (chunk.type === 'done') {
             logEvent(thread.id, 'round.done', { round, finishReason: chunk.finishReason, error: chunk.error });
-            if (chunk.finishReason === 'error' && chunk.error) {
+            finishReason = chunk.finishReason;
+            if (chunk.finishReason === 'error') {
               errored = true;
-              errorMessage = chunk.error;
+              errorMessage = chunk.error || 'Provider ended the response with an error.';
             }
             break;
           }
@@ -1042,7 +1080,7 @@ export class ChatStore {
       } catch (err) {
         if (signal.aborted) {
           this.textBuffer.flush(assistantMessage.id);
-          runInAction(() => this.clearStreamingState(threadId));
+          runInAction(() => this.clearStreamingState(threadId, assistantMessage.id));
           return;
         }
         logEvent(thread.id, 'round.exception', { round, error: (err as Error).message, stack: (err as Error).stack });
@@ -1065,6 +1103,7 @@ export class ChatStore {
           this.lastError = errorMessage ?? 'unknown error';
           const m = this.findMessage(threadId, assistantMessage.id);
           if (m && m.role === 'assistant') {
+            m.finishReason = 'error';
             const recovery = formatProviderErrorRecovery(m, errorMessage ?? 'unknown error');
             m.content = m.content.trim()
               ? `${m.content.trimEnd()}\n\n${recovery}`
@@ -1089,7 +1128,7 @@ export class ChatStore {
                 if (note) m.workNotes = appendWorkNote(m.workNotes, note);
                 m.content = formatRepeatedSideEffectLoopMessage(repeat);
                 this.touchMessage(threadId, assistantMessage.id);
-                this.clearStreamingState(threadId);
+                this.clearStreamingState(threadId, assistantMessage.id);
               }
             });
             return;
@@ -1110,7 +1149,13 @@ export class ChatStore {
           this.textBuffer.cancel(assistantMessage.id);
           const results = await this.executeToolCalls(rescuedCalls, threadId, signal);
           if (signal.aborted) {
-            runInAction(() => this.clearStreamingState(threadId));
+            runInAction(() => {
+              const current = this.findMessage(threadId, assistantMessage.id);
+              if (current && current.role === 'assistant' && results.length > 0) {
+                current.toolResults = [...(current.toolResults ?? []), ...results];
+              }
+              this.clearStreamingState(threadId, assistantMessage.id);
+            });
             return;
           }
           runInAction(() => {
@@ -1128,8 +1173,15 @@ export class ChatStore {
         // Final round (no calls) or terminal error — keep whatever prose
         // was streamed and stop.
         runInAction(() => {
+          const m = this.findMessage(threadId, assistantMessage.id);
+          if (m && m.role === 'assistant' && finishReason) {
+            m.finishReason = finishReason;
+          }
+          if (finishReason === 'content_filter') {
+            this.lastError = 'The provider filtered this response before it finished.';
+          }
           this.touchMessage(threadId, assistantMessage.id);
-          this.clearStreamingState(threadId);
+          this.clearStreamingState(threadId, assistantMessage.id);
         });
         this.maybeAutoName(threadId, assistantMessage);
         return;
@@ -1149,7 +1201,7 @@ export class ChatStore {
             m.content = formatRepeatedSideEffectLoopMessage(repeat);
             this.touchMessage(threadId, assistantMessage.id);
           }
-          this.clearStreamingState(threadId);
+          this.clearStreamingState(threadId, assistantMessage.id);
         });
         this.maybeAutoName(threadId, assistantMessage);
         return;
@@ -1160,7 +1212,7 @@ export class ChatStore {
       // the model's closing reply after tool results are available.
       this.textBuffer.flush(assistantMessage.id);
       if (signal.aborted) {
-        runInAction(() => this.clearStreamingState(threadId));
+        runInAction(() => this.clearStreamingState(threadId, assistantMessage.id));
         return;
       }
       runInAction(() => {
@@ -1176,7 +1228,13 @@ export class ChatStore {
 
       const results = await this.executeToolCalls(uniqueCollectedCalls, threadId, signal);
       if (signal.aborted) {
-        runInAction(() => this.clearStreamingState(threadId));
+        runInAction(() => {
+          const m = this.findMessage(threadId, assistantMessage.id);
+          if (m && m.role === 'assistant' && results.length > 0) {
+            m.toolResults = [...(m.toolResults ?? []), ...results];
+          }
+          this.clearStreamingState(threadId, assistantMessage.id);
+        });
         return;
       }
       runInAction(() => {
@@ -1196,7 +1254,7 @@ export class ChatStore {
         current.content = message;
         this.touchMessage(threadId, assistantMessage.id);
       }
-      this.clearStreamingState(threadId);
+      this.clearStreamingState(threadId, assistantMessage.id);
     });
   }
 
@@ -1463,7 +1521,28 @@ export class ChatStore {
         index += 1;
       }
     }
+    if (signal.aborted) {
+      for (let i = 0; i < calls.length; i += 1) {
+        if (!results[i]) results[i] = this.cancelledToolCallResult(calls[i]);
+      }
+    }
     return results.filter(Boolean);
+  }
+
+  private cancelledToolCallResult(call: ToolCall): ToolResult {
+    const content = 'status: cancelled\ntool: ' + call.name + '\nsummary: Cancelled before this tool finished.';
+    return {
+      toolCallId: call.id,
+      toolName: call.name,
+      content,
+      summary: 'Cancelled before this tool finished.',
+      ok: false,
+      errorCode: 'cancelled',
+      retryable: true,
+      durationMs: 0,
+      outputChars: content.length,
+      ranAt: Date.now(),
+    };
   }
 
   private logToolValidation(threadId: string, call: ToolCall, validation: ToolValidationResult, index?: number): void {
@@ -1660,19 +1739,19 @@ export class ChatStore {
     runInAction(() => {
       const message = this.findMessage(thread.id, assistantMessage.id);
       if (!message || message.role !== 'assistant') {
-        this.clearStreamingState(thread.id);
+        this.clearStreamingState(thread.id, assistantMessage.id);
         return;
       }
       if (!prompt) {
         message.content = '_Direct image mode: no prompt found in your last message._';
         this.touchMessage(thread.id, message.id);
-        this.clearStreamingState(thread.id);
+        this.clearStreamingState(thread.id, assistantMessage.id);
         return;
       }
       if (!imageJobs || !imageGen) {
         message.content = '_Direct image mode: image-jobs subsystem not wired in this session._';
         this.touchMessage(thread.id, message.id);
-        this.clearStreamingState(thread.id);
+        this.clearStreamingState(thread.id, assistantMessage.id);
         return;
       }
 
@@ -1718,7 +1797,7 @@ export class ChatStore {
         artifacts: [{ kind: 'image-job', jobId, count }],
       }];
       this.touchMessage(thread.id, message.id);
-      this.clearStreamingState(thread.id);
+      this.clearStreamingState(thread.id, assistantMessage.id);
     });
   }
 
@@ -1814,8 +1893,13 @@ export class ChatStore {
 
   private queueTextChunk(threadId: string, messageId: string, chunk: string): void {
     this.textBuffer.enqueue(messageId, chunk, text => {
+      if (!this.ownsStreamingTurn(threadId, messageId)) return;
       runInAction(() => this.appendChunk(threadId, messageId, text));
     });
+  }
+
+  clearLastError(): void {
+    this.lastError = null;
   }
 
   private touchMessage(threadId: string, messageId: string): void {

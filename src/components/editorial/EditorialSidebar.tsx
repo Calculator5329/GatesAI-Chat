@@ -3,10 +3,13 @@ import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { MenuSectionKey, Thread } from '../../core/types';
 import { useChatStore, useRouterStore } from '../../stores/context';
+import { formatHash } from '../../services/router';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
 
 const UNDO_TIMEOUT_MS = 8000;
+const SEARCH_DEBOUNCE_MS = 120;
+const SEARCH_RESULT_LIMIT = 100;
 const MENU_LABELS: Record<MenuSectionKey, string> = {
   agent: 'Agent',
   models: 'Models',
@@ -120,11 +123,16 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   const router = useRouterStore();
   const onMenu = router.isMenu;
   const [query, setQuery] = useState('');
-  const normalizedQuery = query.trim().toLowerCase();
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+  const normalizedQuery = debouncedQuery.trim().toLowerCase();
   const visible = normalizedQuery
     ? chat.visibleThreads.filter(t =>
         `${t.title} ${t.subtitle}`.toLowerCase().includes(normalizedQuery)
-      )
+      ).slice(0, SEARCH_RESULT_LIMIT)
     : chat.visibleThreads;
   const pinned = visible.filter(t => t.pinned);
   const unpinned = visible.filter(t => !t.pinned);
@@ -343,7 +351,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
             className="editorial-mobile-topbar__share"
             aria-label="Copy link"
             title="Copy link"
-            onClick={() => void navigator.clipboard?.writeText(window.location.href)}
+            onClick={() => void navigator.clipboard?.writeText(threadUrl(chat.activeThreadId))}
           >
             <Icons.Share />
           </button>
@@ -462,3 +470,10 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     </>
   );
 });
+
+function threadUrl(threadId: string | null): string {
+  if (typeof window === 'undefined') return formatHash({ kind: 'thread', threadId });
+  const url = new URL(window.location.href);
+  url.hash = formatHash({ kind: 'thread', threadId });
+  return url.toString();
+}

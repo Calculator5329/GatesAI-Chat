@@ -118,6 +118,7 @@ export class ComfyClient implements ImageBackend {
     const promptResp = await this.fetchImpl(`${this.baseUrl}/prompt`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: req.signal,
       body: JSON.stringify({ prompt, client_id: this.clientId }),
     });
     if (!promptResp.ok) {
@@ -136,7 +137,7 @@ export class ComfyClient implements ImageBackend {
     // Poll history until the prompt completes or we give up. ComfyUI has
     // already saved the image to its own output folder by this point — we
     // just need the metadata so we can build the /view URL.
-    const image = await this.waitForImage(promptId);
+    const image = await this.waitForImage(promptId, req.signal);
     const viewUrl = `${this.baseUrl}/view?filename=${encodeURIComponent(image.filename)}&subfolder=${encodeURIComponent(image.subfolder)}&type=${encodeURIComponent(image.type)}`;
 
     return {
@@ -150,13 +151,14 @@ export class ComfyClient implements ImageBackend {
     };
   }
 
-  private async waitForImage(promptId: string): Promise<HistoryOutputImage> {
+  private async waitForImage(promptId: string, signal?: AbortSignal): Promise<HistoryOutputImage> {
     const historyUrl = `${this.baseUrl}/history/${encodeURIComponent(promptId)}`;
     let loggedShape = false;
     for (let i = 0; i < this.maxPoll; i++) {
+      if (signal?.aborted) throw new Error('comfy generation cancelled');
       let resp: Response | null = null;
       try {
-        resp = await this.fetchImpl(historyUrl);
+        resp = await this.fetchImpl(historyUrl, { signal });
       } catch {
         // Transient network blip during a long render — keep polling instead
         // of bubbling. /prompt already succeeded so the prompt is in flight.

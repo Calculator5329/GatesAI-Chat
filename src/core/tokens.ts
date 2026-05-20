@@ -17,6 +17,8 @@ const CHARS_PER_TOKEN = 4;
 /** Per-message overhead (role + JSON envelope) the providers add. */
 const MESSAGE_OVERHEAD_TOKENS = 4;
 export const DEFAULT_RESERVED_REPLY_TOKENS = 4096;
+const TOOL_TOKEN_CACHE_LIMIT = 64;
+const toolTokenCache = new Map<string, number>();
 
 /** Default context windows by provider, used when `model.contextLength` is unset. */
 const DEFAULT_WINDOW_BY_PROVIDER: Record<ProviderId, number> = {
@@ -51,8 +53,26 @@ export function estimateWireTokens(messages: LlmMessage[], tools: ToolDef[] = []
       total += estimateTokens(message.toolName ?? '');
     }
   }
-  if (tools.length > 0) total += estimateTokens(JSON.stringify(tools));
+  if (tools.length > 0) total += estimateToolTokens(tools);
   return total;
+}
+
+export function estimateToolTokens(tools: ToolDef[]): number {
+  if (tools.length === 0) return 0;
+  const key = tools.map(tool => tool.name).join('|');
+  const cached = toolTokenCache.get(key);
+  if (cached != null) return cached;
+  const value = estimateTokens(JSON.stringify(tools));
+  toolTokenCache.set(key, value);
+  if (toolTokenCache.size > TOOL_TOKEN_CACHE_LIMIT) {
+    const first = toolTokenCache.keys().next().value;
+    if (first) toolTokenCache.delete(first);
+  }
+  return value;
+}
+
+export function clearTokenEstimateCaches(): void {
+  toolTokenCache.clear();
 }
 
 export function estimateLlmPayloadTokens(args: {

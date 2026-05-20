@@ -15,6 +15,8 @@ export interface GenerateImageRequest {
   width?: number;
   height?: number;
   seed?: number;
+  /** Cancellation signal from the image job runner. Backends should honor it. */
+  signal?: AbortSignal;
   /**
    * Optional filename hint. ComfyUI uses this to control where the file lands
    * in its own output folder via the SaveImage prefix.

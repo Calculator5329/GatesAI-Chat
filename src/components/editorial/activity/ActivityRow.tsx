@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import type { ActivityItem, ActivityStats } from '../../../core/types';
 import { WorkspaceImage } from '../WorkspaceImage';
 import { ImageJobCard } from '../ImageJobCard';
+import { MarkdownFallback } from '../MarkdownFallback';
 import { iconForActivity } from './iconForActivity';
+
+const ActivityMarkdown = lazy(() => import('./ActivityMarkdown').then(m => ({ default: m.ActivityMarkdown })));
 
 export function ActivityRow({ item }: { item: ActivityItem }) {
   const [open, setOpen] = useState(false);
@@ -45,7 +46,9 @@ export function ActivityRow({ item }: { item: ActivityItem }) {
         <div className="activity-row__detail">
           {item.detail?.type === 'markdown' && item.detail.content && (
             <div className="md-body activity-row__markdown">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.detail.content}</ReactMarkdown>
+              <Suspense fallback={<MarkdownFallback content={item.detail.content} />}>
+                <ActivityMarkdown content={item.detail.content} />
+              </Suspense>
             </div>
           )}
           {item.detail?.type === 'terminal' && (

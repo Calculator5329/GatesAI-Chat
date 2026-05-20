@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
 import { useChatStore, useModelRegistry, useRouterStore } from '../../stores/context';
 import { EditorialMessage } from './EditorialMessage';
 import { EditorialComposer } from './EditorialComposer';
 
 const STICKY_BOTTOM_PX = 100;
+const INITIAL_RENDERED_MESSAGES = 120;
+const RENDERED_MESSAGE_PAGE_SIZE = 80;
 
 export const EditorialChat = observer(function EditorialChat() {
   const chat = useChatStore();
@@ -15,6 +18,7 @@ export const EditorialChat = observer(function EditorialChat() {
   const scrollRafRef = useRef<number | null>(null);
   const lastMessageCountRef = useRef(0);
   const previousStreamingIdRef = useRef<string | null>(null);
+  const prependScrollHeightRef = useRef<number | null>(null);
   // Sticky-bottom: only auto-scroll when the user is parked near the bottom.
   // If they've scrolled up to read history we leave them there. Updated by a
   // rAF-throttled scroll listener so we're not measuring layout per token.
@@ -26,6 +30,9 @@ export const EditorialChat = observer(function EditorialChat() {
   const streamingId = chat.streamingMessageId;
   const messageCount = messages.length;
   const activeThreadStreaming = activeThreadId ? chat.isThreadStreaming(activeThreadId) : false;
+  const [renderLimit, setRenderLimit] = useState(INITIAL_RENDERED_MESSAGES);
+  const hiddenMessageCount = Math.max(0, messageCount - renderLimit);
+  const visibleMessages = hiddenMessageCount > 0 ? messages.slice(hiddenMessageCount) : messages;
 
   const scheduleScrollToBottom = useCallback(() => {
     if (scrollRafRef.current !== null) return;
@@ -44,6 +51,10 @@ export const EditorialChat = observer(function EditorialChat() {
   useEffect(() => () => {
     if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
   }, []);
+
+  useEffect(() => {
+    setRenderLimit(INITIAL_RENDERED_MESSAGES);
+  }, [activeThreadId]);
 
   // Watch scroll position. Anything within STICKY_BOTTOM_PX of bottom counts
   // as "at bottom" — covers small offsets from images loading or trailing
@@ -90,18 +101,24 @@ export const EditorialChat = observer(function EditorialChat() {
     if (stickyRef.current) scheduleScrollToBottom();
   }, [messageCount, messages, scheduleScrollToBottom]);
 
-  // While streaming, follow the tail only if the user is parked at the
-  // bottom. The observer wrapper re-runs this effect each token flush
-  // because `streamingContent` (read from the live message) updates; we
-  // gate the scroll on stickyRef so a user who scrolled up is left alone.
-  const streamingContent = streamingId
-    ? messages.find(m => m.id === streamingId)?.content ?? ''
-    : '';
   useEffect(() => {
-    if (!streamingId) return;
-    if (!stickyRef.current) return;
-    scheduleScrollToBottom();
-  }, [streamingId, streamingContent, scheduleScrollToBottom]);
+    const dispose = autorun(() => {
+      const id = chat.streamingMessageId;
+      if (!id) return;
+      const content = chat.activeThread?.messages.find(m => m.id === id)?.content ?? '';
+      if (!content || !stickyRef.current) return;
+      scheduleScrollToBottom();
+    });
+    return () => dispose();
+  }, [chat, scheduleScrollToBottom]);
+
+  useLayoutEffect(() => {
+    const previousHeight = prependScrollHeightRef.current;
+    prependScrollHeightRef.current = null;
+    const el = scrollRef.current;
+    if (!el || previousHeight == null) return;
+    el.scrollTop += el.scrollHeight - previousHeight;
+  }, [hiddenMessageCount]);
 
   // Response finished: force-scroll once to reveal the final answer tail.
   useEffect(() => {
@@ -132,7 +149,20 @@ export const EditorialChat = observer(function EditorialChat() {
               A blank page. Say something.
             </div>
           )}
-          {messages.map(m => {
+          {hiddenMessageCount > 0 && (
+            <button
+              type="button"
+              className="editorial-show-earlier"
+              onClick={() => {
+                const el = scrollRef.current;
+                prependScrollHeightRef.current = el?.scrollHeight ?? null;
+                setRenderLimit(limit => limit + RENDERED_MESSAGE_PAGE_SIZE);
+              }}
+            >
+              Show {Math.min(RENDERED_MESSAGE_PAGE_SIZE, hiddenMessageCount)} earlier messages
+            </button>
+          )}
+          {visibleMessages.map(m => {
             const modelId = m.role === 'assistant' ? m.model : undefined;
             return (
               <EditorialMessage

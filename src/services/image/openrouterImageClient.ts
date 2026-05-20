@@ -30,8 +30,9 @@ export class OpenRouterImageClient implements ImageBackend {
     }
     const prompt = req.prompt.trim();
     if (!prompt) throw new Error('Image prompt is required.');
-    const ac = new AbortController();
-    const timeout = setTimeout(() => ac.abort(), OPENROUTER_IMAGE_TIMEOUT_MS);
+    const timeoutController = new AbortController();
+    const timeout = setTimeout(() => timeoutController.abort(), OPENROUTER_IMAGE_TIMEOUT_MS);
+    const signal = combineAbortSignals(req.signal, timeoutController.signal);
 
     let resp: Response;
     try {
@@ -43,7 +44,7 @@ export class OpenRouterImageClient implements ImageBackend {
           'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
           'X-Title': 'GatesAI Chat',
         },
-        signal: ac.signal,
+        signal,
         body: JSON.stringify({
           model: OPENROUTER_IMAGE_MODEL_ID,
           modalities: ['image', 'text'],
@@ -53,7 +54,10 @@ export class OpenRouterImageClient implements ImageBackend {
         }),
       });
     } catch (err) {
-      if (ac.signal.aborted) {
+      if (req.signal?.aborted) {
+        throw new Error('OpenRouter image generation cancelled.');
+      }
+      if (timeoutController.signal.aborted) {
         throw new Error(`OpenRouter image generation timed out after ${Math.round(OPENROUTER_IMAGE_TIMEOUT_MS / 1000)}s.`);
       }
       throw err;
@@ -155,4 +159,19 @@ function aspectRatioForRequest(req: GenerateImageRequest): string {
   if (ratio > 1) return '3:2';
   if (ratio < 0.7) return '9:16';
   return '2:3';
+}
+
+function combineAbortSignals(...signals: Array<AbortSignal | undefined>): AbortSignal {
+  const active = signals.filter(Boolean) as AbortSignal[];
+  if (active.length === 1) return active[0];
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  for (const signal of active) {
+    if (signal.aborted) {
+      controller.abort();
+      break;
+    }
+    signal.addEventListener('abort', abort, { once: true });
+  }
+  return controller.signal;
 }

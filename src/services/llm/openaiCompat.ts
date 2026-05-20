@@ -114,7 +114,7 @@ export class OpenAiCompatProvider implements LlmProvider {
 
     /** Per-call accumulator keyed by the `index` field OpenAI uses to dedupe call fragments. */
     const pending = new Map<number, { id: string; name: string; argsBuf: string }>();
-    let finishReason: 'stop' | 'length' | 'tool_use' | undefined;
+    let finishReason: 'stop' | 'length' | 'tool_use' | 'content_filter' | undefined;
     try {
       for await (const data of parseSse(response, signal)) {
         if (data === '[DONE]') break;
@@ -142,7 +142,7 @@ export class OpenAiCompatProvider implements LlmProvider {
         }
 
         const fr = choice?.finish_reason;
-        if (fr === 'stop' || fr === 'length') finishReason = fr;
+        if (fr === 'stop' || fr === 'length' || fr === 'content_filter') finishReason = fr;
         else if (fr === 'tool_calls') finishReason = 'tool_use';
       }
     } catch (err) {

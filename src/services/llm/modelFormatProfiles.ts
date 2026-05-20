@@ -33,24 +33,27 @@ export const DEFAULT_MODEL_FORMAT_PROFILE: ModelFormatProfile = {
   id: 'default-openai-compatible',
   label: 'Default OpenAI-compatible chat',
   match: /.^/,
-  maxTokens: 512,
-  notes: ['Plain text/tool-call smoke tests with no model-specific request extras.'],
+  // No default max_tokens — let the model use its full reply budget. Callers
+  // that genuinely want a small reply (compaction, titling, micro-mode) still
+  // pass `maxTokens` explicitly on the request and that value wins.
+  notes: ['Plain text/tool-call defaults with no model-specific request extras.'],
 };
 
 export function resolveModelFormatProfile(modelId: string): ModelFormatProfile {
   return MODEL_FORMAT_PROFILES.find(profile => profile.match.test(modelId)) ?? DEFAULT_MODEL_FORMAT_PROFILE;
 }
 
-export function maxTokensForRequest(req: LlmRequest): number {
-  return req.maxTokens ?? resolveModelFormatProfile(req.modelId).maxTokens ?? 4096;
+export function maxTokensForRequest(req: LlmRequest): number | undefined {
+  return req.maxTokens ?? resolveModelFormatProfile(req.modelId).maxTokens;
 }
 
 export function openAiCompatBodyExtras(req: LlmRequest): Record<string, unknown> {
   const profile = resolveModelFormatProfile(req.modelId);
   const maxTokens = maxTokensForRequest(req);
-  const extras: Record<string, unknown> = { max_tokens: maxTokens };
+  const extras: Record<string, unknown> = {};
+  if (maxTokens != null) extras.max_tokens = maxTokens;
   const reasoning = profile.openAiCompat;
-  if (reasoning?.reasoningBudgetRatio) {
+  if (reasoning?.reasoningBudgetRatio && maxTokens != null) {
     extras.reasoning = {
       max_tokens: Math.max(
         reasoning.minReasoningTokens ?? 64,

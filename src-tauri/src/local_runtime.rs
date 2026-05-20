@@ -137,7 +137,7 @@ pub fn spawn_runtime(
 ) -> Result<(), String> {
   let kind = RuntimeKind::from_str(&id)?;
   if probe_health(kind.health_url()) {
-    return Ok(());
+    return Err(format!("{id} is already running outside GatesAI."));
   }
 
   {

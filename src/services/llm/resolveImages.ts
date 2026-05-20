@@ -14,9 +14,9 @@ export interface AttachmentBytesReader {
 
 /**
  * Walk a freshly-flattened wire message list and populate `images` on user
- * entries by reading base64 bytes from the bridge. Stored user messages
- * emit exactly one wire entry each, so the two sequences can be zipped
- * positionally.
+ * entries by reading base64 bytes from the bridge. Full-context requests
+ * include every stored user turn, while reduced context modes usually include
+ * only the latest user turn, so the two sequences are aligned from the end.
  *
  * Image attachments are skipped entirely when the target model does not
  * support vision (`supportsVision: false`) — the model wouldn't know what
@@ -40,13 +40,16 @@ export async function resolveWireImages(
   if (userStored.length === 0 || userWire.length === 0) return wire;
 
   const pairs: Array<{ wireIdx: number; paths: string[] }> = [];
-  for (let i = 0; i < Math.min(userStored.length, userWire.length); i++) {
-    const stored = userStored[i];
+  const count = Math.min(userStored.length, userWire.length);
+  const storedStart = userStored.length - count;
+  const wireStart = userWire.length - count;
+  for (let i = 0; i < count; i++) {
+    const stored = userStored[storedStart + i];
     if (stored.role !== 'user') continue;
     const refs = stored.attachments ?? [];
     const imagePaths = refs.filter(a => isImageMime(a.mime)).map(a => a.path);
     if (imagePaths.length === 0) continue;
-    pairs.push({ wireIdx: userWire[i], paths: imagePaths });
+    pairs.push({ wireIdx: userWire[wireStart + i], paths: imagePaths });
   }
   if (pairs.length === 0) return wire;
 
@@ -68,7 +71,11 @@ function collectUserWireIndices(wire: LlmMessage[]): number[] {
 }
 
 async function readOne(bridge: AttachmentBytesReader, path: string): Promise<LlmImagePart | null> {
-  const result = await bridge.readAttachmentBase64(path);
-  if (!result) return null;
-  return { mime: result.mime, base64: result.base64 };
+  try {
+    const result = await bridge.readAttachmentBase64(path);
+    if (!result) return null;
+    return { mime: result.mime, base64: result.base64 };
+  } catch {
+    return null;
+  }
 }
