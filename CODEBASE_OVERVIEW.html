@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GatesAI Chat Codebase Overview</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8fa;
+      --panel: #ffffff;
+      --text: #1d252d;
+      --muted: #5b6773;
+      --line: #d9e0e7;
+      --accent: #1f6feb;
+      --code: #f1f4f8;
+      --ok: #167447;
+      --warn: #9a6700;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+      color: var(--text);
+      background: var(--bg);
+    }
+    header, main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    header {
+      padding-top: 32px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1 { margin: 0 0 8px; font-size: 32px; }
+    h2 { margin: 36px 0 12px; font-size: 22px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+    h3 { margin: 22px 0 8px; font-size: 17px; }
+    p { margin: 8px 0; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code {
+      background: var(--code);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 1px 4px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+    }
+    pre {
+      overflow: auto;
+      background: #101820;
+      color: #eef6ff;
+      border-radius: 6px;
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      margin: 10px 0 18px;
+      border: 1px solid var(--line);
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 10px;
+    }
+    th { background: #eef3f8; font-weight: 650; }
+    tr:last-child td { border-bottom: 0; }
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .toc a {
+      display: block;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .meta, .muted { color: var(--muted); }
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 650;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>GatesAI Chat Codebase Overview</h1>
+    <p class="meta">Generated during the post-cleanup consolidation pass on 2026-05-20. This file is self-contained and describes only observed code and repository notes.</p>
+    <nav class="toc" aria-label="Table of contents">
+      <a href="#architecture">Architecture overview</a>
+      <a href="#conventions">Conventions</a>
+      <a href="#recent-changes">Recent changes summary</a>
+      <a href="#deferred">Deferred items and known issues</a>
+      <a href="#performance">Performance baselines</a>
+      <a href="#follow-ups">Open follow-ups</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="architecture">
+      <h2>Architecture Overview</h2>
+      <p>GatesAI Chat is a Vite, React, TypeScript single-page app wrapped by Tauri. A Go bridge process is expected beside the app for workspace file and process operations. The client keeps app state in MobX stores and calls service modules for persistence, providers, tools, bridge transport, search, and image generation.</p>
+
+      <h3>Top-level module map</h3>
+      <table>
+        <thead><tr><th>Path</th><th>Responsibility</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><a href="src/app/">src/app/</a></td><td>Application shell and boot-facing composition.</td><td>Small top-level React app surface.</td></tr>
+          <tr><td><a href="src/components/editorial/">src/components/editorial/</a></td><td>Main chat UI, composer, thread sidebar, message rendering, markdown, activity rows, image cards.</td><td>Recent cleanup keeps persisted state in stores and derives view state in components.</td></tr>
+          <tr><td><a href="src/components/menu/">src/components/menu/</a></td><td>Menu shell and section screens for Agent, Models, Local, Workspace, Gallery, Settings.</td><td>Section components are lazy-loaded through `menuSectionMeta.ts` and rendered inside `Suspense`.</td></tr>
+          <tr><td><a href="src/components/ui/">src/components/ui/</a></td><td>Small reusable UI controls and icons.</td><td>Depends only on React props and CSS variables.</td></tr>
+          <tr><td><a href="src/core/">src/core/</a></td><td>Domain types, model catalog helpers, token estimation, workspace path utilities.</td><td>Core modules avoid store mutation and service side effects.</td></tr>
+          <tr><td><a href="src/services/">src/services/</a></td><td>Provider clients, persistence, bridge transport, tools, search, image backends, streaming helpers.</td><td>Service modules normalize legacy data before handing snapshots back to stores.</td></tr>
+          <tr><td><a href="src/stores/">src/stores/</a></td><td>MobX state owners and app actions.</td><td>RootStore wires stores and shares service facades.</td></tr>
+          <tr><td><a href="tests/">tests/</a></td><td>Vitest unit, store, component, tool, and perf smoke coverage.</td><td>Final validation ran 73 files and 611 tests.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Key stores</h3>
+      <table>
+        <thead><tr><th>Store</th><th>Responsibility</th><th>Important dependencies</th></tr></thead>
+        <tbody>
+          <tr><td><a href="src/stores/RootStore.ts">RootStore</a></td><td>Composes stores, provider configs, bridge/local runtime integration, and dev-only window hooks.</td><td>ChatStore, ProviderStore, ModelRegistry, OpenRouterStore, OllamaStore, LocalRuntimeStore, ImageJobStore.</td></tr>
+          <tr><td><a href="src/stores/ChatStore.ts">ChatStore</a></td><td>Threads, messages, send flow, tool loop, streaming state, workspace/local chat persistence, LLM spend derivation.</td><td>ProviderStore, ModelRegistry, UserProfileStore, tool runtime context, persistence services.</td></tr>
+          <tr><td><a href="src/stores/ProviderStore.ts">ProviderStore</a></td><td>Provider API key config and connected/usable provider state.</td><td>providerStorage, ModelRegistry.</td></tr>
+          <tr><td><a href="src/stores/ModelRegistry.ts">ModelRegistry</a></td><td>Static and dynamic model catalog ownership.</td><td>OpenRouterStore and OllamaStore sync dynamic provider catalogs here.</td></tr>
+          <tr><td><a href="src/stores/OpenRouterStore.ts">OpenRouterStore</a></td><td>OpenRouter catalog cache, refresh status, errors, and registry sync.</td><td>openRouterCatalog, openrouterCache, ModelRegistry.</td></tr>
+          <tr><td><a href="src/stores/OllamaStore.ts">OllamaStore</a></td><td>Ollama auth/tools settings and local pulled model catalog.</td><td>LocalRuntimeStore, ollamaStorage, ModelRegistry.</td></tr>
+          <tr><td><a href="src/stores/LocalRuntimeStore.ts">LocalRuntimeStore</a></td><td>Local runtime detection and status for Ollama and image generation runtimes.</td><td>Local auto-detect services and local runtime storage.</td></tr>
+          <tr><td><a href="src/stores/ImageJobStore.ts">ImageJobStore</a></td><td>Image queue, active job, history, artifact writes, per-thread image cost derivation.</td><td>imageBackend, imageJobsStorage, bridge file write facade.</td></tr>
+          <tr><td><a href="src/stores/OpenRouterCompatibilityStore.ts">OpenRouterCompatibilityStore</a></td><td>OpenRouter compatibility run status and target counts.</td><td>ProviderStore, ModelRegistry, BridgeStore, dynamically imported compatibility runner.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Chat send path</h3>
+      <pre>EditorialComposer
+  -> ChatStore.sendMessage(...)
+     -> append user message and derive selected model/context/tool set
+     -> ProviderStore + ModelRegistry choose provider/model config
+     -> services/llm/router creates LlmProvider
+     -> provider streams normalized LlmChunk events
+     -> ChatStore updates assistant message, activity rows, token usage, tool calls
+     -> tools execute through services/tools with ToolContext facades
+     -> BridgeStore/BridgeClient handle workspace operations when needed
+     -> persistence queues localStorage and optional workspace snapshot writes</pre>
+
+      <h3>Client/server boundary</h3>
+      <table>
+        <thead><tr><th>Boundary</th><th>Client side</th><th>External side</th></tr></thead>
+        <tbody>
+          <tr><td>LLM providers</td><td>`services/llm/*` normalizes OpenAI-compatible and Ollama streams.</td><td>OpenRouter HTTP APIs and local Ollama HTTP APIs.</td></tr>
+          <tr><td>Workspace tools</td><td>`services/bridge/client.ts` sends typed envelopes and parses responses.</td><td>Go bridge sidecar spawned by Tauri.</td></tr>
+          <tr><td>Image generation</td><td>`ImageJobStore` owns queue; `imageBackend.ts` dynamically resolves backend clients.</td><td>ComfyUI local API or OpenRouter image API.</td></tr>
+          <tr><td>Persistence</td><td>Local storage and optional workspace-readable snapshots.</td><td>Browser localStorage and bridge file operations.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="conventions">
+      <h2>Conventions</h2>
+      <table>
+        <thead><tr><th>Area</th><th>Convention</th><th>Sources</th></tr></thead>
+        <tbody>
+          <tr><td>Error handling</td><td>Preserve graceful fallbacks. Parse unknown JSON into narrow shapes before stores consume it. Do not replace diagnostic `console.warn`/`console.error` with a logger until a logger module is approved.</td><td><a href="ERROR_HANDLING_NOTES.md">ERROR_HANDLING_NOTES.md</a>, `src/services/*` parser helpers.</td></tr>
+          <tr><td>State management</td><td>Stores own mutations and observable state. Components should derive view state and avoid broad store observation where a narrower prop or computed value exists.</td><td><a href="RENDER_PERF_NOTES.md">RENDER_PERF_NOTES.md</a>, `src/stores/*` headers.</td></tr>
+          <tr><td>Dynamic models</td><td>`ModelRegistry` is the owner for provider dynamic catalogs. Provider-specific stores expose getters/setters that sync through the registry.</td><td><a href="STATE_OWNERSHIP_NOTES.md">STATE_OWNERSHIP_NOTES.md</a>, `ModelRegistry`, `OllamaStore`, `OpenRouterStore`.</td></tr>
+          <tr><td>Bundle hygiene</td><td>Heavy UI sections and tool/provider modules can be loaded with dynamic imports when behavior stays the same. Analyzer mode is available through `npm run analyze`.</td><td><a href="IMPORT_BUNDLE_CLEANUP_NOTES.md">IMPORT_BUNDLE_CLEANUP_NOTES.md</a>, `vite.config.ts`.</td></tr>
+          <tr><td>Naming</td><td>Use domain-specific names for private UI helper types. Do not rename public exports or persisted fields without approval.</td><td><a href="NAMING.md">NAMING.md</a>, <a href="NAMING_CLEANUP_NOTES.md">NAMING_CLEANUP_NOTES.md</a>.</td></tr>
+          <tr><td>File organization</td><td>Components stay under feature folders; service modules own IO and parsing; stores own state transitions.</td><td>Observed in `src/components`, `src/services`, and `src/stores`.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="recent-changes">
+      <h2>Recent Changes Summary</h2>
+      <table>
+        <thead><tr><th>Commit/hash</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>`3a25371`</td><td>Moved sidebar hover state into rows.</td></tr>
+          <tr><td>`1ccbae0`</td><td>Added bundle analyzer baseline tooling.</td></tr>
+          <tr><td>`fc9394f`</td><td>Stabilized model popover callbacks.</td></tr>
+          <tr><td>`993c572`</td><td>Added source navigation comments.</td></tr>
+          <tr><td>`2e23c53`</td><td>Clarified model picker control flow.</td></tr>
+          <tr><td>`db65cff`</td><td>Documented import cleanup decisions.</td></tr>
+          <tr><td>`c5ce743`</td><td>Added error-handling cleanup notes.</td></tr>
+          <tr><td>`a41f3cf`</td><td>Fixed model picker query guard.</td></tr>
+          <tr><td>`d186d70`</td><td>Renamed private UI helper types.</td></tr>
+          <tr><td>`f65537d`</td><td>Derived Ollama availability from runtime status.</td></tr>
+          <tr><td>`e8775b9`</td><td>Consolidated dynamic model catalog ownership by removing duplicate provider-store registry writes.</td></tr>
+          <tr><td>`a8cc11b`</td><td>Consolidated lazy menu, source tool, image backend, and OpenRouter compatibility boundaries.</td></tr>
+          <tr><td>`344253b`</td><td>Consolidated parser hardening across bridge, persistence, provider, search, image, and tool services.</td></tr>
+          <tr><td>`e14fedd`</td><td>Consolidated render cost derivations and render-performance coverage from prior cleanup work.</td></tr>
+          <tr><td>`3e2caa7`</td><td>Stabilized ChatStore persistence test isolation by flushing deferred saves before storage resets.</td></tr>
+          <tr><td>`00f84d1`</td><td>Consolidated the OpenRouter compatibility store boundary so target selection stays lightweight and compatibility runs stay lazy.</td></tr>
+          <tr><td><span class="pill">current docs</span></td><td>Added `CONSOLIDATION_REPORT.md` and this self-contained codebase overview.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="deferred">
+      <h2>Deferred Items And Known Issues</h2>
+      <table>
+        <thead><tr><th>Item</th><th>Status</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>Workspace virtualization</td><td class="warn">Deferred</td><td>Explicitly deferred in render-performance notes.</td></tr>
+          <tr><td>Gallery pagination/virtualization</td><td class="warn">Deferred</td><td>Explicitly deferred in render-performance notes.</td></tr>
+          <tr><td>Composer split</td><td class="warn">Deferred</td><td>Render notes say not implemented in the cleanup pass.</td></tr>
+          <tr><td>Logger module</td><td class="warn">Deferred</td><td>Error-handling notes classify this as a proposal, not current convention.</td></tr>
+          <tr><td>Markdown/Tauri adapter split</td><td class="warn">Deferred</td><td>Import-bundle notes defer it.</td></tr>
+          <tr><td>MobX strict-mode warnings</td><td class="warn">Known test noise</td><td>Documented as out of scope in error-handling notes.</td></tr>
+          <tr><td>TimeoutOverflowWarning</td><td class="warn">Known test noise</td><td>Documented as future cleanup in render-performance notes.</td></tr>
+          <tr><td>ChatStore persistence test race</td><td class="ok">Resolved</td><td>Fixed in `3e2caa7` by flushing pending deferred snapshot saves before clearing localStorage in test setup and teardown.</td></tr>
+          <tr><td>Profiler traces</td><td>Unknown</td><td>No profiler artifacts were found in the notes.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="performance">
+      <h2>Performance Baselines</h2>
+      <p>Final validation build completed successfully. Vite still reports the known large-chunk warning.</p>
+      <table>
+        <thead><tr><th>Chunk</th><th>Size</th><th>Gzip</th></tr></thead>
+        <tbody>
+          <tr><td>`index-DO4Nj6bz.js`</td><td>588.80 kB</td><td>179.04 kB</td></tr>
+          <tr><td>`chunk-K5T4RW27--k6b0qxn.js`</td><td>474.39 kB</td><td>102.28 kB</td></tr>
+          <tr><td>`cytoscape.esm-CM-WY83N.js`</td><td>434.29 kB</td><td>137.57 kB</td></tr>
+          <tr><td>`katex-BgoCriM6.js`</td><td>257.04 kB</td><td>76.96 kB</td></tr>
+          <tr><td>`rehype-highlight-DkGNdgSb.js`</td><td>163.04 kB</td><td>51.91 kB</td></tr>
+          <tr><td>`Workspace-Cchn98ln.js`</td><td>17.76 kB</td><td>6.44 kB</td></tr>
+          <tr><td>`ApiSection-Ds1SJRdg.js`</td><td>8.79 kB</td><td>2.79 kB</td></tr>
+          <tr><td>`Gallery-C0G5BSak.js`</td><td>4.80 kB</td><td>2.17 kB</td></tr>
+          <tr><td>`openRouterCompatibility-BD7nORDV.js`</td><td>4.88 kB</td><td>2.00 kB</td></tr>
+          <tr><td>`sourceWorkspace-B8x5DocZ.js`</td><td>1.19 kB</td><td>0.41 kB</td></tr>
+          <tr><td>`sourceBuild-C37FM63W.js`</td><td>0.47 kB</td><td>0.26 kB</td></tr>
+        </tbody>
+      </table>
+      <p>Perf smoke coverage now includes streaming buffer throughput, wire-format flattening, base64 throughput, and ChatStore send-path startup on a 1000-turn thread.</p>
+    </section>
+
+    <section id="follow-ups">
+      <h2>Open Follow-ups</h2>
+      <table>
+        <thead><tr><th>Follow-up</th><th>Next contributor note</th></tr></thead>
+        <tbody>
+          <tr><td>Archive stale notes once owners agree.</td><td>`IMPORT_BUNDLE_CLEANUP_NOTES.md` has one now-resolved OpenRouter compatibility import issue, but other decisions remain active.</td></tr>
+          <tr><td>Decide logging convention.</td><td>Introduce a logger only as its own pass; preserve current graceful fallbacks meanwhile.</td></tr>
+          <tr><td>Collect profiler traces.</td><td>Render notes ask for concrete scenarios and measurements; none were found.</td></tr>
+          <tr><td>Investigate large chunks.</td><td>Use `npm run analyze`; do not infer improvements from single main-bundle numbers.</td></tr>
+          <tr><td>Keep dynamic catalog ownership coherent.</td><td>New provider catalog state should sync through `ModelRegistry`, not shadow arrays in feature stores.</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>
