@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type TouchEvent } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { MenuSectionKey, Thread } from '../../core/types';
@@ -138,7 +138,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   const unpinned = visible.filter(t => !t.pinned);
   const rest = normalizedQuery ? unpinned : unpinned.slice(0, 20);
 
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileShell, setMobileShell] = useState(false);
@@ -179,8 +178,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     setMobileOpen(false);
   }, [chat.activeThreadId, router.isMenu, mobileShell]);
 
-  const onDelete = (t: Thread, e: MouseEvent): void => {
-    e.stopPropagation();
+  const onDelete = (t: Thread): void => {
     chat.softDeleteThread(t.id);
     setUndo({ id: t.id, title: t.title });
   };
@@ -210,93 +208,15 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     if (mobileOpen && dx < 0) setMobileOpen(false);
   };
 
-  const renderItem = (t: Thread) => {
-    const active = !onMenu && t.id === chat.activeThreadId;
-    const streaming = chat.isThreadStreaming(t.id);
-    const showActions = (hoveredId === t.id || active) && !streaming;
-    return (
-      <div
-        key={t.id}
-        className="editorial-sidebar__item"
-        style={(S.item as (a: boolean) => CSSProperties)(active)}
-        role="button"
-        tabIndex={0}
-        onClick={() => {
-          chat.selectThread(t.id);
-          router.goThread(t.id);
-          setMobileOpen(false);
-        }}
-        onKeyDown={e => {
-          if (e.key !== 'Enter' && e.key !== ' ') return;
-          e.preventDefault();
-          chat.selectThread(t.id);
-          router.goThread(t.id);
-          setMobileOpen(false);
-        }}
-        onFocus={() => setHoveredId(t.id)}
-        onBlur={e => {
-          if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-          setHoveredId(prev => (prev === t.id ? null : prev));
-        }}
-        onMouseEnter={() => setHoveredId(t.id)}
-        onMouseLeave={() => setHoveredId(prev => (prev === t.id ? null : prev))}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ ...(S.title as (a: boolean) => CSSProperties)(active), flex: 1, minWidth: 0 }}>
-            <ThreadTitle title={t.title} naming={t.naming === true} />
-          </div>
-          {streaming && (
-            <span
-              title="Receiving response"
-              style={{
-                width: 6, height: 6, borderRadius: '50%',
-                background: 'var(--accent)',
-                boxShadow: '0 0 6px var(--accent-glow)',
-                animation: 'thinkingDot 1.1s ease-in-out infinite',
-                flex: 'none',
-              }}
-            />
-          )}
-          {/* The X slot is always rendered to keep the title's flex slot
-              stable. Hover toggles visibility, not layout — otherwise
-              hovering a row would re-flow the title text. */}
-          {!streaming && (
-            <div
-              className="editorial-sidebar__row-actions"
-              style={{
-                ...(S.rowActions as CSSProperties),
-                visibility: showActions || t.pinned ? 'visible' : 'hidden',
-                pointerEvents: showActions || t.pinned ? 'auto' : 'none',
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              <button
-                type="button"
-                className="editorial-sidebar__pin-button"
-                onClick={() => chat.toggleThreadPinned(t.id)}
-                aria-label={t.pinned ? `Unpin "${t.title}"` : `Pin "${t.title}"`}
-                tabIndex={showActions || t.pinned ? 0 : -1}
-                style={{ ...(S.xBtn as CSSProperties), color: t.pinned ? 'var(--accent)' : 'var(--text-faint)', opacity: t.pinned ? 1 : 0.72 }}
-              >
-                <Icons.Pin />
-              </button>
-              <button
-                type="button"
-                className="editorial-sidebar__delete-button"
-                onClick={e => onDelete(t, e)}
-                aria-label={`Delete "${t.title}"`}
-                tabIndex={showActions ? 0 : -1}
-                style={S.xBtn as CSSProperties}
-              >
-                <Icons.Close />
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="editorial-sidebar__preview" style={S.preview as CSSProperties}>{t.subtitle}</div>
-      </div>
-    );
-  };
+  const renderItem = (t: Thread) => (
+    <SidebarThreadRow
+      key={t.id}
+      thread={t}
+      onMenu={onMenu}
+      onDelete={onDelete}
+      onCloseMobile={() => setMobileOpen(false)}
+    />
+  );
 
   return (
     <>
@@ -468,6 +388,105 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       <BridgeStatusPill />
     </aside>
     </>
+  );
+});
+
+const SidebarThreadRow = observer(function SidebarThreadRow({
+  thread,
+  onMenu,
+  onDelete,
+  onCloseMobile,
+}: {
+  thread: Thread;
+  onMenu: boolean;
+  onDelete: (thread: Thread) => void;
+  onCloseMobile: () => void;
+}) {
+  const chat = useChatStore();
+  const router = useRouterStore();
+  const [hovered, setHovered] = useState(false);
+  const active = !onMenu && thread.id === chat.activeThreadId;
+  const streaming = chat.isThreadStreaming(thread.id);
+  const showActions = (hovered || active) && !streaming;
+
+  const selectThread = (): void => {
+    chat.selectThread(thread.id);
+    router.goThread(thread.id);
+    onCloseMobile();
+  };
+
+  return (
+    <div
+      className="editorial-sidebar__item"
+      style={(S.item as (a: boolean) => CSSProperties)(active)}
+      role="button"
+      tabIndex={0}
+      onClick={selectThread}
+      onKeyDown={event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        selectThread();
+      }}
+      onFocus={() => setHovered(true)}
+      onBlur={event => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+        setHovered(false);
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ ...(S.title as (a: boolean) => CSSProperties)(active), flex: 1, minWidth: 0 }}>
+          <ThreadTitle title={thread.title} naming={thread.naming === true} />
+        </div>
+        {streaming && (
+          <span
+            title="Receiving response"
+            style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: 'var(--accent)',
+              boxShadow: '0 0 6px var(--accent-glow)',
+              animation: 'thinkingDot 1.1s ease-in-out infinite',
+              flex: 'none',
+            }}
+          />
+        )}
+        {/* Keep the action slot mounted so hover/focus changes never reflow the title. */}
+        {!streaming && (
+          <div
+            className="editorial-sidebar__row-actions"
+            style={{
+              ...(S.rowActions as CSSProperties),
+              visibility: showActions || thread.pinned ? 'visible' : 'hidden',
+              pointerEvents: showActions || thread.pinned ? 'auto' : 'none',
+            }}
+            onClick={event => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="editorial-sidebar__pin-button"
+              onClick={() => chat.toggleThreadPinned(thread.id)}
+              aria-label={thread.pinned ? `Unpin "${thread.title}"` : `Pin "${thread.title}"`}
+              tabIndex={showActions || thread.pinned ? 0 : -1}
+              style={{ ...(S.xBtn as CSSProperties), color: thread.pinned ? 'var(--accent)' : 'var(--text-faint)', opacity: thread.pinned ? 1 : 0.72 }}
+            >
+              <Icons.Pin />
+            </button>
+            <button
+              type="button"
+              className="editorial-sidebar__delete-button"
+              onClick={() => onDelete(thread)}
+              aria-label={`Delete "${thread.title}"`}
+              tabIndex={showActions ? 0 : -1}
+              style={S.xBtn as CSSProperties}
+            >
+              <Icons.Close />
+            </button>
+          </div>
+        )}
+      </div>
+      <div className="editorial-sidebar__preview" style={S.preview as CSSProperties}>{thread.subtitle}</div>
+    </div>
   );
 });
 
