@@ -211,7 +211,9 @@
           <tr><td>`00f84d1`</td><td>Consolidated the OpenRouter compatibility store boundary so target selection stays lightweight and compatibility runs stay lazy.</td></tr>
           <tr><td>`014ba5b`</td><td>Added `CONSOLIDATION_REPORT.md` and this self-contained codebase overview.</td></tr>
           <tr><td>`7681425`</td><td>Stabilized the ChatStore persistence assertion by waiting for the persisted snapshot condition instead of a fixed timer.</td></tr>
-          <tr><td><span class="pill">current docs</span></td><td>Updated the consolidation docs to include the final persistence-test stabilization.</td></tr>
+          <tr><td>`f4e1ff6`</td><td>Updated the consolidation docs for the first persistence-test stabilization attempt.</td></tr>
+          <tr><td>`c8c93e9`</td><td>Added a ChatStore persistence cleanup lifecycle and used it in tests so old store timers cannot overwrite later localStorage assertions.</td></tr>
+          <tr><td><span class="pill">current docs</span></td><td>Updated the consolidation docs to include the durable ChatStore persistence cleanup fix.</td></tr>
         </tbody>
       </table>
     </section>
@@ -228,7 +230,7 @@
           <tr><td>Markdown/Tauri adapter split</td><td class="warn">Deferred</td><td>Import-bundle notes defer it.</td></tr>
           <tr><td>MobX strict-mode warnings</td><td class="warn">Known test noise</td><td>Documented as out of scope in error-handling notes.</td></tr>
           <tr><td>TimeoutOverflowWarning</td><td class="warn">Known test noise</td><td>Documented as future cleanup in render-performance notes.</td></tr>
-          <tr><td>ChatStore persistence test race</td><td class="ok">Resolved</td><td>Fixed across `3e2caa7` and `7681425` by flushing pending deferred snapshot saves and waiting for the exact persisted snapshot condition.</td></tr>
+          <tr><td>ChatStore persistence test race</td><td class="ok">Resolved</td><td>Fixed in `c8c93e9` by disposing short-lived ChatStore persistence reactions between tests; earlier `3e2caa7` and `7681425` reduced but did not eliminate the race.</td></tr>
           <tr><td>Profiler traces</td><td>Unknown</td><td>No profiler artifacts were found in the notes.</td></tr>
         </tbody>
       </table>
@@ -240,17 +242,17 @@
       <table>
         <thead><tr><th>Chunk</th><th>Size</th><th>Gzip</th></tr></thead>
         <tbody>
-          <tr><td>`index-DO4Nj6bz.js`</td><td>588.80 kB</td><td>179.04 kB</td></tr>
+          <tr><td>`index-lpXATjsi.js`</td><td>589.06 kB</td><td>179.10 kB</td></tr>
           <tr><td>`chunk-K5T4RW27--k6b0qxn.js`</td><td>474.39 kB</td><td>102.28 kB</td></tr>
           <tr><td>`cytoscape.esm-CM-WY83N.js`</td><td>434.29 kB</td><td>137.57 kB</td></tr>
           <tr><td>`katex-BgoCriM6.js`</td><td>257.04 kB</td><td>76.96 kB</td></tr>
           <tr><td>`rehype-highlight-DkGNdgSb.js`</td><td>163.04 kB</td><td>51.91 kB</td></tr>
-          <tr><td>`Workspace-Cchn98ln.js`</td><td>17.76 kB</td><td>6.44 kB</td></tr>
-          <tr><td>`ApiSection-Ds1SJRdg.js`</td><td>8.79 kB</td><td>2.79 kB</td></tr>
-          <tr><td>`Gallery-C0G5BSak.js`</td><td>4.80 kB</td><td>2.17 kB</td></tr>
-          <tr><td>`openRouterCompatibility-BD7nORDV.js`</td><td>4.88 kB</td><td>2.00 kB</td></tr>
-          <tr><td>`sourceWorkspace-B8x5DocZ.js`</td><td>1.19 kB</td><td>0.41 kB</td></tr>
-          <tr><td>`sourceBuild-C37FM63W.js`</td><td>0.47 kB</td><td>0.26 kB</td></tr>
+          <tr><td>`Workspace-BxRRFUrA.js`</td><td>17.76 kB</td><td>6.44 kB</td></tr>
+          <tr><td>`ApiSection-P-MYQQG6.js`</td><td>8.79 kB</td><td>2.79 kB</td></tr>
+          <tr><td>`Gallery-BrixWXeB.js`</td><td>4.80 kB</td><td>2.16 kB</td></tr>
+          <tr><td>`openRouterCompatibility-BncHg5eO.js`</td><td>4.88 kB</td><td>2.00 kB</td></tr>
+          <tr><td>`sourceWorkspace-BWc2hhe2.js`</td><td>1.19 kB</td><td>0.40 kB</td></tr>
+          <tr><td>`sourceBuild-DdewKMhc.js`</td><td>0.47 kB</td><td>0.26 kB</td></tr>
         </tbody>
       </table>
       <p>Perf smoke coverage now includes streaming buffer throughput, wire-format flattening, base64 throughput, and ChatStore send-path startup on a 1000-turn thread.</p>

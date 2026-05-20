@@ -33,6 +33,8 @@ Consolidation commits created in this pass:
 | `00f84d1` | Consolidate OpenRouter compatibility store boundary | No behavior change; compatibility runs still lazy-load the heavyweight runner. |
 | `014ba5b` | Add consolidation reference docs | Documentation only; no runtime behavior change. |
 | `7681425` | Stabilize ChatStore persistence assertion | No application behavior change; test waits for the persisted snapshot condition instead of a fixed timer. |
+| `f4e1ff6` | Update consolidation docs for test stabilization | Documentation only; no runtime behavior change. |
+| `c8c93e9` | Dispose ChatStore persistence reactions in tests | Runtime behavior is unchanged unless `dispose()` is called; tests now clean up persistence timers between store instances. |
 
 Running notes cross-referenced:
 
@@ -50,7 +52,8 @@ Running notes cross-referenced:
 | --- | --- |
 | `src/stores/OllamaStore.ts` | Removed duplicate direct registry writes after the catalog setter became the single sync path. No behavior change. |
 | `src/stores/OpenRouterStore.ts` | Removed duplicate direct registry writes after the models setter became the single sync path; `clearCache()` now clears through the setter. No behavior change. |
-| `tests/stores/ChatStore.test.ts` | Flushes pending deferred snapshot saves before storage resets and waits for the exact persisted snapshot condition instead of a fixed timer. No application behavior change. |
+| `src/stores/ChatStore.ts` | Adds `dispose()` to drain and remove the persistence autorun/unload listeners when a test creates short-lived store instances. No runtime behavior change unless called. |
+| `tests/stores/ChatStore.test.ts` | Disposes every tracked ChatStore instance before clearing storage and waits for the exact persisted snapshot condition instead of a fixed timer. No application behavior change. |
 | `CONSOLIDATION_REPORT.md` | Added this audit report. |
 | `CODEBASE_OVERVIEW.html` | Added self-contained orientation snapshot for future contributors. |
 
@@ -98,7 +101,7 @@ The following cleanup-agent files were also reviewed and committed as part of th
 | Lazy imports for menu sections and heavyweight tool modules were introduced consistently. | Verified `GatesMenu` wraps lazy sections in `Suspense`; no code change needed. |
 | Runtime JSON parsing was hardened across providers, bridge messages, persistence, search, and tools. | Reviewed parsers for shape preservation and validation. No additional parser changes needed. |
 | Render-performance tests were added for long chat histories, sidebar search capping, context meter display, token cache reuse, and chat send startup. | Preserved tests and included them in full validation. |
-| Full-suite validation exposed an intermittent ChatStore persistence assertion after cleanup commits and again after the first docs commit. | Fixed test isolation by flushing queued snapshot saves before clearing storage, then replaced the brittle fixed wait with a predicate wait for the actual persisted turn in `7681425`. |
+| Full-suite validation exposed an intermittent ChatStore persistence assertion after cleanup commits and again after the first docs commits. | The durable fix was `c8c93e9`: short-lived ChatStore instances now expose `dispose()` and tests call it so old persistence timers cannot overwrite storage in later assertions. |
 | Console warnings/errors remain visible in tests. | Left unchanged because `ERROR_HANDLING_NOTES.md` explicitly defers a logger module and several warnings assert graceful degradation paths. |
 
 ## Decisions And Rationale
@@ -108,7 +111,7 @@ The following cleanup-agent files were also reviewed and committed as part of th
 | Treat existing dirty cleanup-agent work as consolidation input. | The prompt describes multiple prior cleanup agents and asks for residue cleanup after those passes. The dirty worktree matched the cleanup themes and validated green. | Treat the dirty work as unrelated user edits; rejected because it would leave the requested consolidation incomplete. |
 | Keep `threadLlmSpendUsd(thread)` export. | It is still imported by `tests/stores/ChatStore.test.ts`; removing it would risk a public-ish helper contract and was not needed. | Remove as dead code; rejected after reference search. |
 | Do not replace `console.warn`/`console.error` calls. | The notes classify centralized logging as proposed/deferred, and several warnings preserve intentional fallback visibility. | Introduce a logger now; rejected as a new initiative. |
-| Fix the ChatStore persistence test as test cleanup, not runtime cleanup. | Repeated full-suite failures pointed at deferred save/timer nondeterminism; the production code path was preserved and the test now waits for the persisted snapshot it asserts. | Change persistence timing in production; rejected as behavior risk and unnecessary. |
+| Fix the ChatStore persistence test as cleanup lifecycle, not runtime timing. | Repeated full-suite failures showed prior ChatStore instances were still holding persistence timers. Adding `dispose()` preserves normal app behavior while giving tests a cleanup path. | Change persistence timing in production; rejected as behavior risk and unnecessary. |
 | Do not address virtualization, gallery pagination, draft ownership, route ownership, or persistence cleanup. | These are explicitly deferred or warrant dedicated prompts. | Fold them into consolidation; rejected as out of scope. |
 | Document current architecture in HTML without generated diagrams or external libraries. | The deliverable requires a single self-contained reference artifact. | Mermaid or bundled script charts; rejected by constraint. |
 
@@ -131,7 +134,7 @@ The following cleanup-agent files were also reviewed and committed as part of th
 | Command | Status | Notes |
 | --- | --- | --- |
 | `npm.cmd run lint` | Passed | PowerShell blocks `npm.ps1`, so `npm.cmd` is the working invocation. |
-| `npm test -- --reporter=dot` | Passed | 73 files, 611 tests. Earlier full-suite runs exposed the ChatStore persistence isolation race; the initial flush fix was insufficient, and the final predicate wait in `7681425` passed targeted and full suites. NPM reports `--reporter` as an unknown npm config; Vitest still ran. |
+| `npm test -- --reporter=dot` | Passed | 73 files, 611 tests. Earlier full-suite runs exposed the ChatStore persistence isolation race; fixed in `c8c93e9` by disposing store persistence reactions between test instances. NPM reports `--reporter` as an unknown npm config; Vitest still ran. |
 | `npm run build` | Passed | Vite still reports the known large-chunk warning. |
 | `git diff --check` | Passed | Only Git line-ending notices were printed. |
 
@@ -139,16 +142,16 @@ Build baseline from the final validation:
 
 | Chunk | Size | Gzip |
 | --- | ---: | ---: |
-| `index-DO4Nj6bz.js` | 588.80 kB | 179.04 kB |
+| `index-lpXATjsi.js` | 589.06 kB | 179.10 kB |
 | `chunk-K5T4RW27--k6b0qxn.js` | 474.39 kB | 102.28 kB |
 | `cytoscape.esm-CM-WY83N.js` | 434.29 kB | 137.57 kB |
 | `katex-BgoCriM6.js` | 257.04 kB | 76.96 kB |
 | `rehype-highlight-DkGNdgSb.js` | 163.04 kB | 51.91 kB |
-| `ApiSection-Ds1SJRdg.js` | 8.79 kB | 2.79 kB |
-| `Gallery-C0G5BSak.js` | 4.80 kB | 2.17 kB |
-| `Workspace-Cchn98ln.js` | 17.76 kB | 6.44 kB |
-| `openRouterCompatibility-BD7nORDV.js` | 4.88 kB | 2.00 kB |
-| `sourceWorkspace-B8x5DocZ.js` | 1.19 kB | 0.41 kB |
-| `sourceBuild-C37FM63W.js` | 0.47 kB | 0.26 kB |
+| `ApiSection-P-MYQQG6.js` | 8.79 kB | 2.79 kB |
+| `Gallery-BrixWXeB.js` | 4.80 kB | 2.16 kB |
+| `Workspace-BxRRFUrA.js` | 17.76 kB | 6.44 kB |
+| `openRouterCompatibility-BncHg5eO.js` | 4.88 kB | 2.00 kB |
+| `sourceWorkspace-BWc2hhe2.js` | 1.19 kB | 0.40 kB |
+| `sourceBuild-DdewKMhc.js` | 0.47 kB | 0.26 kB |
 
 Profiler traces: not found in repo notes; left unknown.
