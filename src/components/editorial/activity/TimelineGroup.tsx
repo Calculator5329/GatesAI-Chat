@@ -1,16 +1,13 @@
+// Renders and groups live activity details for assistant tool and streaming work.
+// Called by EditorialMessage; depends on ActivityItem contracts and lazy markdown rendering.
+// Invariant: activity state is display-only and never mutates ChatStore progress.
 import { useState } from 'react';
 import type { ActivityItem } from '../../../core/types';
 import { ActivityRow } from './ActivityRow';
 import { iconForActivity } from './iconForActivity';
 
 export function TimelineGroup({ items }: { items: ActivityItem[] }) {
-  const aggregateState = items.some(i => i.state === 'failed')
-    ? 'failed'
-    : items.some(i => i.state === 'running')
-      ? 'running'
-      : items.some(i => i.state === 'cancelled')
-        ? 'cancelled'
-        : 'done';
+  const aggregateState = aggregateActivityState(items);
   const [open, setOpen] = useState(aggregateState === 'failed');
   const icon = iconForActivity(items[0])();
   const verb = items[0].verb;
@@ -49,6 +46,13 @@ export function TimelineGroup({ items }: { items: ActivityItem[] }) {
       )}
     </div>
   );
+}
+
+function aggregateActivityState(items: ActivityItem[]): ActivityItem['state'] {
+  if (items.some(item => item.state === 'failed')) return 'failed';
+  if (items.some(item => item.state === 'running')) return 'running';
+  if (items.some(item => item.state === 'cancelled')) return 'cancelled';
+  return 'done';
 }
 
 function groupNoun(items: ActivityItem[]): string {

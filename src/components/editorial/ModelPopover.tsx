@@ -1,3 +1,6 @@
+// Renders the editorial chat ModelPopover surface and its local interaction state.
+// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
+// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
@@ -141,7 +144,7 @@ const SUBLINE_STYLE_BASE: CSSProperties = {
 };
 
 function Badge({ children, tone = 'muted', title }: { children: ReactNode; tone?: 'muted' | 'accent' | 'warn'; title?: string }) {
-  const color = tone === 'accent' ? 'var(--accent)' : tone === 'warn' ? '#d19a66' : 'var(--text-faint)';
+  const color = badgeColor(tone);
   return (
     <span
       title={title}
@@ -163,7 +166,7 @@ function Badge({ children, tone = 'muted', title }: { children: ReactNode; tone?
 }
 
 function IconBadge({ kind, tone = 'muted', title }: { kind: 'vision' | 'tools'; tone?: 'muted' | 'warn'; title: string }) {
-  const color = tone === 'warn' ? '#d19a66' : 'var(--text-faint)';
+  const color = badgeColor(tone);
   return (
     <span
       title={title}
@@ -325,8 +328,8 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       setActiveIdx(i => Math.max(0, i - 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const m = flat[activeIdx];
-      if (m && !disabledReasonForModel(m, comfyReady)) pickModel(m);
+      const activeModel = flat[activeIdx];
+      if (activeModel && !disabledReasonForModel(activeModel, comfyReady)) pickModel(activeModel);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
@@ -431,24 +434,24 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
                 }}>PICK</span>
               )}
             </div>
-            {models.map(m => {
-              const meta = META[m.id] ?? META_BY_PROVIDER_MODEL_ID[m.providerModelId] ?? null;
-              const flatIdx = flatIndexById.get(m.id) ?? -1;
-              const disabledReason = disabledReasonForModel(m, comfyReady);
-              const selected = m.id === AUTO_MODEL.id
+            {models.map(model => {
+              const meta = META[model.id] ?? META_BY_PROVIDER_MODEL_ID[model.providerModelId] ?? null;
+              const flatIndex = flatIndexById.get(model.id) ?? -1;
+              const disabledReason = disabledReasonForModel(model, comfyReady);
+              const selected = model.id === AUTO_MODEL.id
                 ? currentModelId === DEFAULT_MODEL_ID
-                : m.id === currentModelId;
+                : model.id === currentModelId;
               return (
                 <ModelRow
-                  key={`${title}-${m.id}`}
-                  model={m}
+                  key={`${title}-${model.id}`}
+                  model={model}
                   meta={meta}
                   selected={selected}
-                  active={flatIdx === activeIdx}
+                  active={flatIndex === activeIdx}
                   disabledReason={disabledReason}
                   ollamaOnline={ollamaOnline}
                   comfyReady={comfyReady}
-                  flatIndex={flatIdx}
+                  flatIndex={flatIndex}
                   onPick={pickModel}
                   onHover={hoverModelAt}
                 />
@@ -488,6 +491,9 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   );
 });
 
+// Keeps picker order stable: recommended/current choices first, then source
+// and recents, because keyboard navigation assumes rows do not jump while
+// local runtimes or catalog refreshes update in the background.
 function buildPickerSections(args: {
   all: readonly Model[];
   currentModel: Model | undefined;
@@ -495,17 +501,17 @@ function buildPickerSections(args: {
   source: SourceFilter;
   recentIds: string[];
 }): PickerSection[] {
-  const q = args.query.trim().toLowerCase();
+  const normalizedQuery = args.query.trim().toLowerCase();
   const allById = new Map(args.all.map(model => [model.id, model]));
   const sourceModels = args.all.filter(model => sourceMatches(model, args.source));
-  const base = q ? args.all.filter(model => matchesQuery(model, q)) : sourceModels;
+  const base = normalizedQuery ? args.all.filter(model => matchesQuery(model, normalizedQuery)) : sourceModels;
   const sections: PickerSection[] = [];
 
   const rawRecommended = dedupeModels([
     AUTO_MODEL,
     ...(args.currentModel ? [args.currentModel] : []),
     firstLocalModel(args.all),
-  ]).filter(model => !q || matchesQuery(model, q));
+  ]).filter(model => !normalizedQuery || matchesQuery(model, normalizedQuery));
   const recommended = args.source === 'auto'
     ? rawRecommended
     : rawRecommended.filter(model => sourceMatches(model, args.source));
@@ -515,7 +521,7 @@ function buildPickerSections(args: {
     const recent = args.recentIds
       .map(id => allById.get(id))
       .filter((model): model is Model => Boolean(model))
-      .filter(model => !q || matchesQuery(model, q));
+      .filter(model => !normalizedQuery || matchesQuery(model, normalizedQuery));
     if (recent.length) sections.push({ title: 'Recent', models: dedupeModels(recent) });
     return removeDuplicateRowsAcrossSections(sections);
   }
@@ -534,7 +540,7 @@ function buildPickerSections(args: {
     .map(id => allById.get(id))
     .filter((model): model is Model => Boolean(model))
     .filter(model => sourceMatches(model, args.source))
-    .filter(model => !q || matchesQuery(model, q));
+    .filter(model => !normalizedQuery || matchesQuery(model, normalizedQuery));
   if (recent.length) sections.push({ title: 'Recent', models: dedupeModels(recent) });
 
   return removeDuplicateRowsAcrossSections(sections);
@@ -554,12 +560,12 @@ function titleForSource(source: SourceFilter): string {
   return 'Recommended';
 }
 
-function matchesQuery(model: Model, q: string): boolean {
+function matchesQuery(model: Model, normalizedQuery: string): boolean {
   return (
-    model.name.toLowerCase().includes(q) ||
-    model.vendor.toLowerCase().includes(q) ||
-    model.id.toLowerCase().includes(q) ||
-    model.providerModelId.toLowerCase().includes(q)
+    model.name.toLowerCase().includes(normalizedQuery) ||
+    model.vendor.toLowerCase().includes(normalizedQuery) ||
+    model.id.toLowerCase().includes(normalizedQuery) ||
+    model.providerModelId.toLowerCase().includes(normalizedQuery)
   );
 }
 
@@ -646,15 +652,21 @@ function badgesForModel(model: Model, ollamaOnline: boolean, comfyReady: boolean
   return badges.slice(0, 5);
 }
 
-function describeDynamic(m: Model): string {
+function describeDynamic(model: Model): string {
   const bits: string[] = [];
-  if (m.pricing?.prompt != null && m.pricing.completion != null) {
-    bits.push(`$${formatPrice(m.pricing.prompt)} / $${formatPrice(m.pricing.completion)} per 1M`);
-  } else if (m.pricing?.prompt != null) {
-    bits.push(`$${formatPrice(m.pricing.prompt)} / 1M in`);
+  if (model.pricing?.prompt != null && model.pricing.completion != null) {
+    bits.push(`$${formatPrice(model.pricing.prompt)} / $${formatPrice(model.pricing.completion)} per 1M`);
+  } else if (model.pricing?.prompt != null) {
+    bits.push(`$${formatPrice(model.pricing.prompt)} / 1M in`);
   }
-  if (bits.length === 0) return m.providerModelId;
+  if (bits.length === 0) return model.providerModelId;
   return bits.join(' - ');
+}
+
+function badgeColor(tone: 'muted' | 'accent' | 'warn'): string {
+  if (tone === 'accent') return 'var(--accent)';
+  if (tone === 'warn') return '#d19a66';
+  return 'var(--text-faint)';
 }
 
 function formatPrice(usdPerMillion: number): string {
