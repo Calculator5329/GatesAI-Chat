@@ -209,7 +209,9 @@
           <tr><td>`e14fedd`</td><td>Consolidated render cost derivations and render-performance coverage from prior cleanup work.</td></tr>
           <tr><td>`3e2caa7`</td><td>Stabilized ChatStore persistence test isolation by flushing deferred saves before storage resets.</td></tr>
           <tr><td>`00f84d1`</td><td>Consolidated the OpenRouter compatibility store boundary so target selection stays lightweight and compatibility runs stay lazy.</td></tr>
-          <tr><td><span class="pill">current docs</span></td><td>Added `CONSOLIDATION_REPORT.md` and this self-contained codebase overview.</td></tr>
+          <tr><td>`014ba5b`</td><td>Added `CONSOLIDATION_REPORT.md` and this self-contained codebase overview.</td></tr>
+          <tr><td>`7681425`</td><td>Stabilized the ChatStore persistence assertion by waiting for the persisted snapshot condition instead of a fixed timer.</td></tr>
+          <tr><td><span class="pill">current docs</span></td><td>Updated the consolidation docs to include the final persistence-test stabilization.</td></tr>
         </tbody>
       </table>
     </section>
@@ -226,7 +228,7 @@
           <tr><td>Markdown/Tauri adapter split</td><td class="warn">Deferred</td><td>Import-bundle notes defer it.</td></tr>
           <tr><td>MobX strict-mode warnings</td><td class="warn">Known test noise</td><td>Documented as out of scope in error-handling notes.</td></tr>
           <tr><td>TimeoutOverflowWarning</td><td class="warn">Known test noise</td><td>Documented as future cleanup in render-performance notes.</td></tr>
-          <tr><td>ChatStore persistence test race</td><td class="ok">Resolved</td><td>Fixed in `3e2caa7` by flushing pending deferred snapshot saves before clearing localStorage in test setup and teardown.</td></tr>
+          <tr><td>ChatStore persistence test race</td><td class="ok">Resolved</td><td>Fixed across `3e2caa7` and `7681425` by flushing pending deferred snapshot saves and waiting for the exact persisted snapshot condition.</td></tr>
           <tr><td>Profiler traces</td><td>Unknown</td><td>No profiler artifacts were found in the notes.</td></tr>
         </tbody>
       </table>
