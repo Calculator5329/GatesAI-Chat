@@ -11,8 +11,10 @@ import { MockProvider, flush, installMockProvider } from '../helpers/mockProvide
 import { clearAppStorage } from '../helpers/storage';
 import { toolRegistry } from '../../src/services/tools/registry';
 import { WORKSPACE_CHAT_STATE_PATH } from '../../src/services/workspaceChatPersistence';
+import { flushPendingSnapshot } from '../../src/services/persistence';
 
 function setup(chunks?: Parameters<MockProvider['setChunks']>[0]) {
+  flushPendingSnapshot();
   clearAppStorage();
   const registry = new ModelRegistry();
   const providers = new ProviderStore(registry);
@@ -136,8 +138,14 @@ async function waitForLocalStorageTitle(title: string): Promise<void> {
 }
 
 describe('ChatStore', () => {
-  beforeEach(() => clearAppStorage());
-  afterEach(() => clearAppStorage());
+  beforeEach(() => {
+    flushPendingSnapshot();
+    clearAppStorage();
+  });
+  afterEach(() => {
+    flushPendingSnapshot();
+    clearAppStorage();
+  });
 
   it('creates exactly one empty untitled thread when no snapshot exists', () => {
     const { chat } = setup();
@@ -1112,10 +1120,11 @@ describe('ChatStore', () => {
     ]);
     const id = chat.createThread();
     chat.sendMessage('save me');
-    await flush(20);
-    // ChatStore throttles snapshot writes to ~250ms; wait wall-clock for
-    // the trailing flush before re-reading from localStorage.
+    // ChatStore writes after streaming settles and the debounced persistence
+    // timer fires; use wall-clock time here because microtask flushing alone
+    // can capture the placeholder assistant message.
     await new Promise(resolve => setTimeout(resolve, 320));
+    flushPendingSnapshot();
 
     // Build a brand-new store; it should pick up the snapshot.
     const registry2 = new ModelRegistry();
