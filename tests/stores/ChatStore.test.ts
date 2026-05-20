@@ -5,6 +5,7 @@ import { ProviderStore } from '../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../src/stores/UserProfileStore';
 import type { LlmProvider, LlmRequest } from '../../src/core/llm';
+import type { ChatSnapshot } from '../../src/core/types';
 import type { LlmRouter } from '../../src/services/llm/router';
 import type { BridgeClientFacade, ToolContext } from '../../src/services/tools/types';
 import { MockProvider, flush, installMockProvider } from '../helpers/mockProvider';
@@ -135,6 +136,20 @@ async function waitForLocalStorageTitle(title: string): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 20));
   }
   throw new Error('localStorage save did not settle');
+}
+
+async function waitForLocalStorageSnapshot(
+  predicate: (snapshot: ChatSnapshot) => boolean,
+  label: string,
+): Promise<ChatSnapshot> {
+  for (let i = 0; i < 50; i++) {
+    flushPendingSnapshot();
+    const raw = localStorage.getItem('gatesai.state.v1') ?? '{}';
+    const parsed = JSON.parse(raw) as ChatSnapshot;
+    if (predicate(parsed)) return parsed;
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  throw new Error(`localStorage save did not settle: ${label}`);
 }
 
 describe('ChatStore', () => {
@@ -1120,11 +1135,12 @@ describe('ChatStore', () => {
     ]);
     const id = chat.createThread();
     chat.sendMessage('save me');
-    // ChatStore writes after streaming settles and the debounced persistence
-    // timer fires; use wall-clock time here because microtask flushing alone
-    // can capture the placeholder assistant message.
-    await new Promise(resolve => setTimeout(resolve, 320));
-    flushPendingSnapshot();
+    await waitForLocalStorageSnapshot(
+      snapshot => snapshot.threads.some(thread =>
+        thread.id === id && thread.messages.map(message => message.content).join('\n') === 'save me\npersisted',
+      ),
+      'persisted chat turn',
+    );
 
     // Build a brand-new store; it should pick up the snapshot.
     const registry2 = new ModelRegistry();
