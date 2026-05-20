@@ -158,6 +158,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeThread = chat.activeThread;
+  const activeThreadId = activeThread?.id ?? null;
   const currentModel = registry.findById(activeThread?.modelId) ?? registry.findById(DEFAULT_MODEL_ID);
   const localContextMode = activeThread?.contextMode ?? (currentModel?.providerId === 'ollama' ? 'micro' : 'full');
 
@@ -249,6 +250,14 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     chat.stopStreaming();
   };
 
+  const closeModelPopover = useCallback(() => {
+    setModelOpen(false);
+  }, []);
+
+  const pickModel = useCallback((modelId: string) => {
+    if (!activeThreadId) return;
+    chat.setThreadModel(activeThreadId, modelId);
+  }, [activeThreadId, chat]);
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -432,8 +441,8 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             {modelOpen && activeThread && (
               <ModelPopover
                 currentModelId={currentModel?.id ?? DEFAULT_MODEL_ID}
-                onPick={(modelId) => chat.setThreadModel(activeThread.id, modelId)}
-                onClose={() => setModelOpen(false)}
+                onPick={pickModel}
+                onClose={closeModelPopover}
               />
             )}
           </div>
