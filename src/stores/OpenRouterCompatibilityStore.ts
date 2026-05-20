@@ -1,12 +1,16 @@
+// Owns observable OpenRouterCompatibilityStore state and actions for the app runtime.
+// Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
+// Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { makeAutoObservable, runInAction } from 'mobx';
 import type { BridgeStore } from './BridgeStore';
 import type { ModelRegistry } from './ModelRegistry';
 import type { ProviderStore } from './ProviderStore';
 import {
-  runOpenRouterCompatibility,
   selectOpenRouterCompatibilityTargets,
   type OpenRouterCompatibilityMode,
-  type OpenRouterCompatibilityRun,
+} from '../services/compat/openRouterCompatibilityTargets';
+import type {
+  OpenRouterCompatibilityRun,
 } from '../services/compat/openRouterCompatibility';
 
 export class OpenRouterCompatibilityStore {
@@ -78,6 +82,7 @@ export class OpenRouterCompatibilityStore {
     });
 
     try {
+      const { runOpenRouterCompatibility } = await import('../services/compat/openRouterCompatibility');
       const run = await runOpenRouterCompatibility({
         mode,
         models: this.registry.all,
