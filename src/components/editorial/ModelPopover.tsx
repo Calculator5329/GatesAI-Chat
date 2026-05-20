@@ -526,7 +526,7 @@ function buildPickerSections(args: {
     return removeDuplicateRowsAcrossSections(sections);
   }
 
-  if (!q && recommended.length) {
+  if (!normalizedQuery && recommended.length) {
     sections.push({ title: 'Recommended', models: recommended, favorite: true });
   }
 
