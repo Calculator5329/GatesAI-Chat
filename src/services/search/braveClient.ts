@@ -1,3 +1,6 @@
+// Wraps Brave Search context API calls and error normalization for web_search.
+// Called by SearchStore and webSearchTool; depends on provider API keys, fetch/Tauri transport, and abort signals.
+// Invariant: callers receive normalized sources or BraveSearchError codes.
 import type { BraveSearchRequest, BraveSearchSource } from './types';
 import { invoke } from '@tauri-apps/api/core';
 import { isTauri } from '../system/runtime';
@@ -66,8 +69,7 @@ export class BraveSearchClient {
       if (!response.ok) {
         throw new BraveSearchError(errorCodeForStatus(response.status), `Brave Search returned HTTP ${response.status}.`);
       }
-      const json = await response.json() as BraveLlmContextResponse;
-      return parseSources(json);
+      return parseSources(await response.json());
     } catch (err) {
       if (req.signal?.aborted || controller.signal.aborted) {
         throw new BraveSearchError('timeout_or_aborted', 'Brave Search request timed out or was cancelled.');
@@ -126,8 +128,9 @@ function buildBraveUrl(req: BraveSearchRequest): string {
   return `${ENDPOINT}?${params.toString()}`;
 }
 
-function parseSources(json: BraveLlmContextResponse): BraveSearchSource[] {
-  const items = Array.isArray(json.grounding?.generic) ? json.grounding.generic : [];
+function parseSources(json: unknown): BraveSearchSource[] {
+  const grounding = isRecord(json) && isRecord(json.grounding) ? json.grounding : {};
+  const items = Array.isArray(grounding.generic) ? grounding.generic : [];
   return items
     .map((item): BraveSearchSource | null => {
       const url = stringValue(item.url);
@@ -137,6 +140,10 @@ function parseSources(json: BraveLlmContextResponse): BraveSearchSource[] {
       return { title, url, text };
     })
     .filter((source): source is BraveSearchSource => source !== null);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function firstText(...values: unknown[]): string {

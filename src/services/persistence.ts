@@ -1,4 +1,7 @@
-import type { ChatSnapshot, Message, ToolResult, Thread } from '../core/types';
+// Persists or coordinates service-level state for persistence.
+// Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
+// Invariant: services normalize legacy data before handing snapshots back to stores.
+import type { ChatSnapshot, Message, MessageAttachmentRef, ToolResult, Thread, UserMessage } from '../core/types';
 import type { ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID, MODELS } from '../core/models';
 import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';
@@ -14,6 +17,10 @@ let snapshotLoadError: string | null = null;
 
 export type ChatSnapshotPersistenceProvider = PersistenceProvider<ChatSnapshot | null>;
 
+type ParseResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; reason: string };
+
 export function createLocalChatSnapshotPersistenceProvider(
   storage: KeyValuePersistence = browserLocalStorage(),
 ): ChatSnapshotPersistenceProvider {
@@ -24,12 +31,12 @@ export function createLocalChatSnapshotPersistenceProvider(
       try {
         raw = storage.getItem(STORAGE_KEY);
         if (!raw) return null;
-        const parsed = JSON.parse(raw) as ChatSnapshot;
-        if (!parsed || !Array.isArray(parsed.threads)) {
-          quarantineUnreadableSnapshot(storage, raw, 'Saved chat state had an invalid shape.');
+        const parsed = parseChatSnapshotShape(JSON.parse(raw));
+        if (!parsed.ok) {
+          quarantineUnreadableSnapshot(storage, raw, parsed.reason);
           return null;
         }
-        return migrate(parsed);
+        return migrate(parsed.value);
       } catch (err) {
         if (raw) {
           quarantineUnreadableSnapshot(storage, raw, `Saved chat state was unreadable: ${(err as Error).message}`);
@@ -158,9 +165,9 @@ export function prepareChatSnapshotForSave(snapshot: ChatSnapshot): ChatSnapshot
 
 export function parseChatSnapshotValue(value: unknown): ChatSnapshot | null {
   try {
-    const parsed = value as ChatSnapshot;
-    if (!parsed || !Array.isArray(parsed.threads)) return null;
-    return migrate(parsed);
+    const parsed = parseChatSnapshotShape(value);
+    if (!parsed.ok) return null;
+    return migrate(parsed.value);
   } catch {
     return null;
   }
@@ -273,6 +280,188 @@ function migrate(snap: ChatSnapshot): ChatSnapshot {
     messages: foldAssistantRuns(foldToolMessages(t.messages as LegacyMessage[])),
   }));
   return { ...snap, threads };
+}
+
+function parseChatSnapshotShape(value: unknown): ParseResult<ChatSnapshot> {
+  if (!isRecord(value)) return { ok: false, reason: 'Saved chat state had an invalid shape.' };
+  if (!Array.isArray(value.threads)) return { ok: false, reason: 'Saved chat state had an invalid thread list.' };
+  const threads = value.threads
+    .map(parseThread)
+    .filter((thread): thread is Thread => thread !== null);
+  const activeThreadId = typeof value.activeThreadId === 'string' || value.activeThreadId === null
+    ? value.activeThreadId
+    : null;
+  return { ok: true, value: { threads, activeThreadId } };
+}
+
+function parseThread(value: unknown): Thread | null {
+  if (!isRecord(value)) return null;
+  const id = stringField(value.id);
+  const title = stringField(value.title);
+  const messages = Array.isArray(value.messages)
+    ? value.messages.map(parseLegacyMessage).filter((message): message is LegacyMessage => message !== null)
+    : null;
+  if (!id || !title || !messages) return null;
+  return {
+    id,
+    title,
+    subtitle: stringField(value.subtitle) ?? '',
+    createdAt: numberField(value.createdAt) ?? Date.now(),
+    updatedAt: numberField(value.updatedAt) ?? Date.now(),
+    pinned: booleanField(value.pinned) ?? false,
+    modelId: stringField(value.modelId) ?? DEFAULT_MODEL_ID,
+    messages: messages as Message[],
+    contextMode: parseContextMode(value.contextMode),
+    deletedAt: numberField(value.deletedAt),
+    threadContext: stringField(value.threadContext),
+    summary: stringField(value.summary),
+    summaryUpdatedAt: numberField(value.summaryUpdatedAt),
+    summaryMessageCount: numberField(value.summaryMessageCount),
+    autoNamed: booleanField(value.autoNamed),
+  };
+}
+
+function parseLegacyMessage(value: unknown): LegacyMessage | null {
+  if (!isRecord(value)) return null;
+  const id = stringField(value.id);
+  const content = stringField(value.content);
+  const createdAt = numberField(value.createdAt);
+  if (!id || content === undefined || createdAt === undefined) return null;
+  if (value.role === 'user') {
+    return {
+      id,
+      role: 'user',
+      content,
+      createdAt,
+      attachments: parseAttachments(value.attachments),
+    };
+  }
+  if (value.role === 'assistant') {
+    return {
+      id,
+      role: 'assistant',
+      content,
+      createdAt,
+      model: stringField(value.model),
+      preTokenLabel: parsePreTokenLabel(value.preTokenLabel),
+      workNotes: parseStringArray(value.workNotes),
+      toolCalls: parseToolCalls(value.toolCalls),
+      toolResults: parseToolResults(value.toolResults),
+      usage: Array.isArray(value.usage) ? value.usage.filter(isRecord) : undefined,
+      finishReason: parseFinishReason(value.finishReason),
+    };
+  }
+  if (value.role === 'tool') {
+    const toolCallId = stringField(value.toolCallId);
+    const toolName = stringField(value.toolName);
+    if (!toolCallId || !toolName) return null;
+    return { id, role: 'tool', content, createdAt, toolCallId, toolName };
+  }
+  return null;
+}
+
+function parseAttachments(value: unknown): UserMessage['attachments'] {
+  if (!Array.isArray(value)) return undefined;
+  const attachments = value
+    .map(item => {
+      if (!isRecord(item)) return null;
+      const path = stringField(item.path);
+      const name = stringField(item.name);
+      const mime = stringField(item.mime);
+      const size = numberField(item.size);
+      return path && name && mime && size !== undefined ? { path, name, mime, size } : null;
+    })
+    .filter((item): item is MessageAttachmentRef => item !== null);
+  return attachments.length ? attachments : undefined;
+}
+
+function parseToolCalls(value: unknown): ToolCall[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const calls = value
+    .map((item): ToolCall | null => {
+      if (!isRecord(item) || !isRecord(item.arguments)) return null;
+      const id = stringField(item.id);
+      const name = stringField(item.name);
+      if (!id || !name) return null;
+      const call: ToolCall = {
+        id,
+        name,
+        arguments: item.arguments,
+      };
+      const argumentsError = stringField(item.argumentsError);
+      const rawArguments = stringField(item.rawArguments);
+      if (argumentsError !== undefined) call.argumentsError = argumentsError;
+      if (rawArguments !== undefined) call.rawArguments = rawArguments;
+      return call;
+    })
+    .filter((item): item is ToolCall => item !== null);
+  return calls.length ? calls : undefined;
+}
+
+function parseToolResults(value: unknown): ToolResult[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const results = value
+    .map((item): ToolResult | null => {
+      if (!isRecord(item)) return null;
+      const toolCallId = stringField(item.toolCallId);
+      const toolName = stringField(item.toolName);
+      const content = stringField(item.content);
+      const ranAt = numberField(item.ranAt);
+      if (!toolCallId || !toolName || content === undefined || ranAt === undefined) return null;
+      const result: ToolResult = {
+        toolCallId,
+        toolName,
+        content,
+        ranAt,
+      };
+      const summary = stringField(item.summary);
+      const ok = booleanField(item.ok);
+      const errorCode = stringField(item.errorCode);
+      const retryable = booleanField(item.retryable);
+      const durationMs = numberField(item.durationMs);
+      const outputChars = numberField(item.outputChars);
+      if (summary !== undefined) result.summary = summary;
+      if (ok !== undefined) result.ok = ok;
+      if (errorCode !== undefined) result.errorCode = errorCode;
+      if (retryable !== undefined) result.retryable = retryable;
+      if (durationMs !== undefined) result.durationMs = durationMs;
+      if (outputChars !== undefined) result.outputChars = outputChars;
+      return result;
+    })
+    .filter((item): item is ToolResult => item !== null);
+  return results.length ? results : undefined;
+}
+
+function parseStringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : undefined;
+}
+
+function parseContextMode(value: unknown): Thread['contextMode'] {
+  return value === 'full' || value === 'system-tools' || value === 'bare' || value === 'micro' ? value : undefined;
+}
+
+function parsePreTokenLabel(value: unknown) {
+  return value === 'thinking' || value === 'responding' || value === 'compacting' || value === 'generating' ? value : undefined;
+}
+
+function parseFinishReason(value: unknown) {
+  return value === 'stop' || value === 'length' || value === 'tool_use' || value === 'cancelled' || value === 'content_filter' || value === 'error' ? value : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function stringField(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function numberField(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function booleanField(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
 }
 
 function isSupportedModelId(modelId: string): boolean {

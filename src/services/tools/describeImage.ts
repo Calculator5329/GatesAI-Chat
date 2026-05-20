@@ -1,3 +1,6 @@
+// Defines the describeImage tool contract, validation, execution, or display formatting.
+// Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
+// Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { Tool } from './types';
 
 export const describeImageTool: Tool = {
@@ -42,7 +45,22 @@ export const describeImageTool: Tool = {
     });
 
     if (!resp.ok) return `Error: Ollama vision request failed with HTTP ${resp.status}.`;
-    const json = await resp.json() as { message?: { content?: string }; response?: string };
+    const json = parseVisionResponse(await resp.json());
     return json.message?.content?.trim() || json.response?.trim() || 'No description returned by the local vision model.';
   },
 };
+
+function parseVisionResponse(value: unknown): { message?: { content?: string }; response?: string } {
+  if (!isRecord(value)) return {};
+  const message = isRecord(value.message) && typeof value.message.content === 'string'
+    ? { content: value.message.content }
+    : undefined;
+  return {
+    message,
+    response: typeof value.response === 'string' ? value.response : undefined,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}

@@ -1,3 +1,6 @@
+// Defines the imageGenerate tool contract, validation, execution, or display formatting.
+// Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
+// Invariant: tools validate inputs first and return deterministic, user-readable results.
 import {
   dimsForAspect,
   isImageAspectRatio,
@@ -205,7 +208,7 @@ async function enqueuePromptFileBatch(
 
   let parsed: BatchPromptFile;
   try {
-    parsed = JSON.parse(resp.content) as BatchPromptFile;
+    parsed = parseBatchPromptFile(JSON.parse(resp.content));
   } catch (err) {
     return `Error: could not parse prompt_file JSON: ${(err as Error).message}`;
   }
@@ -228,7 +231,7 @@ async function enqueuePromptFileBatch(
     if (typeof entry !== 'object' || entry === null) {
       return `Error: prompt_file prompts[${i}] must be an object.`;
     }
-    const item = entry as BatchPromptDefaults;
+    const item = parseBatchPromptDefaults(entry);
     const prompt = typeof item.prompt === 'string'
       ? item.prompt.trim()
       : typeof defaults.prompt === 'string'
@@ -348,6 +351,32 @@ function slugify(input: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+function parseBatchPromptFile(value: unknown): BatchPromptFile {
+  if (!isRecord(value)) return {};
+  return {
+    defaults: parseBatchPromptDefaults(value.defaults),
+    prompts: value.prompts,
+  };
+}
+
+function parseBatchPromptDefaults(value: unknown): BatchPromptDefaults {
+  if (!isRecord(value)) return {};
+  return {
+    prompt: value.prompt,
+    count: value.count,
+    aspect_ratio: value.aspect_ratio,
+    width: value.width,
+    height: value.height,
+    seed: value.seed,
+    filename: value.filename,
+    backend: value.backend,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function estimatedImageDuration(backend: ImageBackendId): string {

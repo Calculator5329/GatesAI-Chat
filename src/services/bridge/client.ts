@@ -183,7 +183,9 @@ export class BridgeClient {
     if (typeof raw !== 'string') return;
     let env: Envelope;
     try {
-      env = JSON.parse(raw) as Envelope;
+      const parsed = parseEnvelope(JSON.parse(raw));
+      if (!parsed.ok) return;
+      env = parsed.value;
     } catch {
       return;
     }
@@ -206,7 +208,7 @@ export class BridgeClient {
         return;
       case 'error': {
         this.pending.delete(env.id);
-        const payload = env.data as ErrorPayload | undefined;
+        const payload = parseErrorPayload(env.data);
         pending.reject(new BridgeError(payload?.message ?? 'Bridge error', env.op, payload?.code));
         return;
       }
@@ -214,4 +216,38 @@ export class BridgeClient {
         return;
     }
   }
+}
+
+type ParseResult<T> =
+  | { ok: true; value: T }
+  | { ok: false };
+
+function parseEnvelope(value: unknown): ParseResult<Envelope> {
+  if (!isRecord(value)) return { ok: false };
+  const id = typeof value.id === 'string' ? value.id : '';
+  const type = value.type;
+  if (!id || (type !== 'request' && type !== 'event' && type !== 'result' && type !== 'error')) {
+    return { ok: false };
+  }
+  return {
+    ok: true,
+    value: {
+      id,
+      type,
+      op: typeof value.op === 'string' ? value.op : undefined,
+      data: value.data,
+    },
+  };
+}
+
+function parseErrorPayload(value: unknown): ErrorPayload | undefined {
+  if (!isRecord(value) || typeof value.message !== 'string') return undefined;
+  return {
+    message: value.message,
+    code: typeof value.code === 'string' ? value.code : undefined,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

@@ -1,3 +1,6 @@
+// Implements LLM provider plumbing for ollama.
+// Called by RouterStore/ChatStore through the LlmProvider interface; depends on core LLM messages, SSE/JSON parsing, and provider configs.
+// Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, ToolDef } from '../../core/llm';
 import { ensureOk } from './sse';
 
@@ -153,7 +156,7 @@ export class OllamaProvider implements LlmProvider {
 
           let frame: OllamaStreamFrame;
           try {
-            frame = JSON.parse(line);
+            frame = parseOllamaStreamFrame(JSON.parse(line));
           } catch {
             continue; // skip malformed line
           }
@@ -180,7 +183,7 @@ export class OllamaProvider implements LlmProvider {
                 call: {
                   id: tc.id ?? this.nextToolCallId(i),
                   name: tc.function?.name ?? 'unknown',
-                  arguments: args as Record<string, unknown>,
+                  arguments: args,
                   ...(
                     rawArgs && (typeof rawArgs !== 'object' || Array.isArray(rawArgs))
                       ? {
@@ -206,7 +209,7 @@ export class OllamaProvider implements LlmProvider {
       const trailing = buffer.trim();
       if (trailing) {
         try {
-          const frame = JSON.parse(trailing) as OllamaStreamFrame;
+          const frame = parseOllamaStreamFrame(JSON.parse(trailing));
           if (frame.error) {
             yield { type: 'done', finishReason: 'error', error: frame.error };
             return;
@@ -238,6 +241,47 @@ export class OllamaProvider implements LlmProvider {
     const seq = this.toolCallSeq++;
     return `ollama-tool-${seq}-${index}`;
   }
+}
+
+function parseOllamaStreamFrame(value: unknown): OllamaStreamFrame {
+  if (!isRecord(value)) return {};
+  return {
+    message: parseOllamaMessage(value.message),
+    done: typeof value.done === 'boolean' ? value.done : undefined,
+    done_reason: typeof value.done_reason === 'string' ? value.done_reason : undefined,
+    error: typeof value.error === 'string' ? value.error : undefined,
+  };
+}
+
+function parseOllamaMessage(value: unknown): OllamaStreamFrame['message'] {
+  if (!isRecord(value)) return undefined;
+  return {
+    role: typeof value.role === 'string' ? value.role : undefined,
+    content: typeof value.content === 'string' ? value.content : undefined,
+    tool_calls: Array.isArray(value.tool_calls)
+      ? value.tool_calls.map(parseOllamaToolCall).filter((call): call is NonNullable<NonNullable<OllamaStreamFrame['message']>['tool_calls']>[number] => call !== null)
+      : undefined,
+  };
+}
+
+function parseOllamaToolCall(value: unknown): NonNullable<NonNullable<OllamaStreamFrame['message']>['tool_calls']>[number] | null {
+  if (!isRecord(value)) return null;
+  return {
+    id: typeof value.id === 'string' ? value.id : undefined,
+    function: parseOllamaToolFunction(value.function),
+  };
+}
+
+function parseOllamaToolFunction(value: unknown): NonNullable<NonNullable<NonNullable<OllamaStreamFrame['message']>['tool_calls']>[number]['function']> | undefined {
+  if (!isRecord(value)) return undefined;
+  return {
+    name: typeof value.name === 'string' ? value.name : undefined,
+    arguments: isRecord(value.arguments) ? value.arguments : undefined,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function toOllamaTool(t: ToolDef): OllamaTool {

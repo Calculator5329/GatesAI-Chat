@@ -1,3 +1,6 @@
+// Implements image-generation backend behavior for comfyClient.
+// Called by ImageJobStore and image tools; depends on provider configs, ComfyUI/OpenRouter APIs, and bridge file writes.
+// Invariant: backend clients return normalized job artifacts and leave queue ownership to ImageJobStore.
 import {
   dimsForRequest,
   safeText,
@@ -125,7 +128,7 @@ export class ComfyClient implements ImageBackend {
       const text = await safeText(promptResp);
       throw new Error(`comfy ${promptResp.status} ${promptResp.statusText}: ${text || '(no body)'} [/prompt]`);
     }
-    const promptData = (await promptResp.json()) as PromptResp;
+    const promptData = parsePromptResp(await promptResp.json());
     const promptId = promptData.prompt_id;
     if (!promptId) {
       const err = typeof promptData.error === 'string'
@@ -164,7 +167,7 @@ export class ComfyClient implements ImageBackend {
         // of bubbling. /prompt already succeeded so the prompt is in flight.
       }
       if (resp?.ok) {
-        const data = (await resp.json()) as Record<string, HistoryEntry>;
+        const data = parseHistoryResp(await resp.json());
         const entry = data[promptId];
         if (entry?.outputs) {
           for (const nodeOut of Object.values(entry.outputs)) {
@@ -188,6 +191,70 @@ export class ComfyClient implements ImageBackend {
     }
     throw new Error(`comfy timed out after ${this.maxPoll * this.pollIntervalMs}ms waiting for prompt ${promptId}`);
   }
+}
+
+function parsePromptResp(value: unknown): PromptResp {
+  if (!isRecord(value)) return {};
+  return {
+    prompt_id: typeof value.prompt_id === 'string' ? value.prompt_id : undefined,
+    error: typeof value.error === 'string' || isRecord(value.error)
+      ? parsePromptError(value.error)
+      : undefined,
+  };
+}
+
+function parsePromptError(value: string | Record<string, unknown>): PromptResp['error'] {
+  return typeof value === 'string'
+    ? value
+    : { message: typeof value.message === 'string' ? value.message : undefined };
+}
+
+function parseHistoryResp(value: unknown): Record<string, HistoryEntry> {
+  if (!isRecord(value)) return {};
+  const entries: Record<string, HistoryEntry> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    const parsed = parseHistoryEntry(entry);
+    if (parsed) entries[key] = parsed;
+  }
+  return entries;
+}
+
+function parseHistoryEntry(value: unknown): HistoryEntry | null {
+  if (!isRecord(value)) return null;
+  return {
+    outputs: parseHistoryOutputs(value.outputs),
+    status: isRecord(value.status)
+      ? {
+        status_str: typeof value.status.status_str === 'string' ? value.status.status_str : undefined,
+        completed: typeof value.status.completed === 'boolean' ? value.status.completed : undefined,
+      }
+      : undefined,
+  };
+}
+
+function parseHistoryOutputs(value: unknown): HistoryEntry['outputs'] {
+  if (!isRecord(value)) return undefined;
+  const outputs: NonNullable<HistoryEntry['outputs']> = {};
+  for (const [key, output] of Object.entries(value)) {
+    if (!isRecord(output) || !Array.isArray(output.images)) continue;
+    const images = output.images
+      .map(parseHistoryOutputImage)
+      .filter((image): image is HistoryOutputImage => image !== null);
+    outputs[key] = { images };
+  }
+  return outputs;
+}
+
+function parseHistoryOutputImage(value: unknown): HistoryOutputImage | null {
+  if (!isRecord(value)) return null;
+  const filename = typeof value.filename === 'string' ? value.filename : '';
+  const subfolder = typeof value.subfolder === 'string' ? value.subfolder : '';
+  const type = typeof value.type === 'string' ? value.type : '';
+  return filename && type ? { filename, subfolder, type } : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**

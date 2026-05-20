@@ -1,3 +1,6 @@
+// Defines the sqliteQuery tool contract, validation, execution, or display formatting.
+// Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
+// Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ExecRunResp } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
 import type { Tool } from './types';
@@ -122,7 +125,7 @@ function formatSqliteResult(path: string, resp: ExecRunResp): string {
     ].filter(Boolean).join('\n');
   }
   try {
-    const parsed = JSON.parse(resp.stdout) as { columns?: unknown[]; rows?: unknown[]; row_count?: number; truncated?: boolean };
+    const parsed = parseSqliteJsonResult(JSON.parse(resp.stdout));
     const columns = Array.isArray(parsed.columns) ? parsed.columns.join(', ') : '';
     const rows = Array.isArray(parsed.rows) ? parsed.rows : [];
     return [
@@ -139,4 +142,15 @@ function formatSqliteResult(path: string, resp: ExecRunResp): string {
       resp.stdout.trimEnd(),
     ].join('\n');
   }
+}
+
+function parseSqliteJsonResult(value: unknown): { columns?: unknown[]; rows?: unknown[]; row_count?: number; truncated?: boolean } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const record = value as Record<string, unknown>;
+  return {
+    columns: Array.isArray(record.columns) ? record.columns : undefined,
+    rows: Array.isArray(record.rows) ? record.rows : undefined,
+    row_count: typeof record.row_count === 'number' && Number.isFinite(record.row_count) ? record.row_count : undefined,
+    truncated: typeof record.truncated === 'boolean' ? record.truncated : undefined,
+  };
 }

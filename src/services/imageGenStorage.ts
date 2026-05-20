@@ -90,7 +90,7 @@ function normalizeImageGenConfig(config: ImageGenConfig): ImageGenConfig {
   // Migrate legacy/default preset names into the current normal default.
   // Direct-image Draft is now selected from the model picker instead of
   // being the stored Local default.
-  const preset = next.comfyQualityPreset as unknown as string | undefined;
+  const preset: unknown = next.comfyQualityPreset;
   if (preset === 'final') next.comfyQualityPreset = 'full';
   else if (preset === 'draft' || preset === 'quick') {
     next.comfyQualityPreset = 'full';

@@ -1,3 +1,6 @@
+// Builds chat-runtime support data for toolFailureLog.
+// Called by ChatStore before/after provider or tool work; depends on thread/tool result contracts.
+// Invariant: helpers format diagnostics without mutating message history directly.
 import type { ToolCall } from '../../core/llm';
 
 export function isToolFailureContent(toolName: string, content: string): boolean {
@@ -18,7 +21,7 @@ export function failureReason(content: string): string {
 
 export function safeJsonPreview(value: unknown, maxChars = 1200): string {
   const sensitiveKeys = new Set(['content', 'stdin', 'fact', 'next', 'body', 'message', 'apiKey', 'token', 'password', 'secret']);
-  const json = JSON.stringify(value, (key, child) => {
+  const json = JSON.stringify(value, (key: string, child: unknown): unknown => {
     if (sensitiveKeys.has(key)) {
       if (typeof child === 'string') return `[redacted ${child.length} chars]`;
       return '[redacted]';

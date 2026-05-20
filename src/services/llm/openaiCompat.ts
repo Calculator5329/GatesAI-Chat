@@ -1,3 +1,6 @@
+// Implements LLM provider plumbing for openaiCompat.
+// Called by RouterStore/ChatStore through the LlmProvider interface; depends on core LLM messages, SSE/JSON parsing, and provider configs.
+// Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ProviderId, ToolCall, ToolDef } from '../../core/llm';
 import { parseJsonObject } from './json';
 import { openAiCompatBodyExtras } from './modelFormatProfiles';
@@ -119,7 +122,11 @@ export class OpenAiCompatProvider implements LlmProvider {
       for await (const data of parseSse(response, signal)) {
         if (data === '[DONE]') break;
         let chunk: ChatChunk;
-        try { chunk = JSON.parse(data) as ChatChunk; } catch { continue; }
+        try {
+          chunk = parseChatChunk(JSON.parse(data));
+        } catch {
+          continue;
+        }
         const usage = parseProviderUsage(chunk.usage, {
           providerId: this.id,
           modelId: chunk.model ?? req.modelId,
@@ -177,6 +184,75 @@ export class OpenAiCompatProvider implements LlmProvider {
   }
 }
 
+function parseChatChunk(value: unknown): ChatChunk {
+  if (!isRecord(value)) return {};
+  return {
+    model: typeof value.model === 'string' ? value.model : undefined,
+    usage: parseOpenRouterUsage(value.usage),
+    choices: Array.isArray(value.choices) ? value.choices.map(parseChatChoice).filter((choice): choice is NonNullable<ChatChunk['choices']>[number] => choice !== null) : undefined,
+  };
+}
+
+function parseChatChoice(value: unknown): NonNullable<ChatChunk['choices']>[number] | null {
+  if (!isRecord(value)) return null;
+  return {
+    delta: parseChatChoiceDelta(value.delta),
+    finish_reason: parseFinishReason(value.finish_reason),
+  };
+}
+
+function parseChatChoiceDelta(value: unknown): ChatChoiceDelta | undefined {
+  if (!isRecord(value)) return undefined;
+  return {
+    content: typeof value.content === 'string' || value.content === null ? value.content : undefined,
+    tool_calls: Array.isArray(value.tool_calls)
+      ? value.tool_calls.map(parseToolCallDelta).filter((call): call is NonNullable<ChatChoiceDelta['tool_calls']>[number] => call !== null)
+      : undefined,
+  };
+}
+
+function parseToolCallDelta(value: unknown): NonNullable<ChatChoiceDelta['tool_calls']>[number] | null {
+  if (!isRecord(value) || typeof value.index !== 'number' || !Number.isInteger(value.index)) return null;
+  return {
+    index: value.index,
+    id: typeof value.id === 'string' ? value.id : undefined,
+    type: value.type === 'function' ? value.type : undefined,
+    function: parseToolCallFunction(value.function),
+  };
+}
+
+function parseToolCallFunction(value: unknown): NonNullable<NonNullable<ChatChoiceDelta['tool_calls']>[number]['function']> | undefined {
+  if (!isRecord(value)) return undefined;
+  return {
+    name: typeof value.name === 'string' ? value.name : undefined,
+    arguments: typeof value.arguments === 'string' ? value.arguments : undefined,
+  };
+}
+
+function parseOpenRouterUsage(value: unknown): OpenRouterUsage | undefined {
+  if (!isRecord(value)) return undefined;
+  return {
+    prompt_tokens: finiteNumber(value.prompt_tokens),
+    completion_tokens: finiteNumber(value.completion_tokens),
+    total_tokens: finiteNumber(value.total_tokens),
+    cost: finiteNumber(value.cost),
+  };
+}
+
+function parseFinishReason(value: unknown): NonNullable<ChatChunk['choices']>[number]['finish_reason'] {
+  return value === 'stop' || value === 'length' || value === 'tool_calls' || value === 'content_filter' || value === null
+    ? value
+    : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
 function parseProviderUsage(
   usage: OpenRouterUsage | undefined,
   context: Pick<LlmUsage, 'providerId' | 'modelId'>,
@@ -203,18 +279,21 @@ function parseProviderUsage(
     : null;
 }
 
-function toOpenAiTool(t: ToolDef): { type: 'function'; function: { name: string; description: string; parameters: unknown; strict?: boolean } } {
+function toOpenAiTool(tool: ToolDef): { type: 'function'; function: { name: string; description: string; parameters: unknown; strict?: boolean } } {
   return {
     type: 'function',
     function: {
-      name: t.name,
-      description: t.description,
-      parameters: t.parameters,
-      ...(t.strict && isProviderStrictSchemaSafe(t.parameters) ? { strict: true } : {}),
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+      ...(tool.strict && isProviderStrictSchemaSafe(tool.parameters) ? { strict: true } : {}),
     },
   };
 }
 
+// Some OpenAI-compatible gateways reject `strict` schemas when optional object
+// properties are present. Keep strict mode only where the schema contract is
+// fully provider-safe, then let ChatStore validation handle the rest.
 function isProviderStrictSchemaSafe(schema: ToolDef['parameters']): boolean {
   if (schema.type !== 'object') return true;
   if (schema.additionalProperties !== false) return false;
