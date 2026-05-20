@@ -1,3 +1,6 @@
+// Manages local-runtime discovery, process control, or persistence for autoDetect.
+// Called by LocalRuntimeStore and menu controls; depends on bridge/system APIs and runtime ids.
+// Invariant: runtime state is stored separately from detection/probe side effects.
 import type { LocalRuntimeId } from './localRuntimeService';
 import { localRuntimeService } from './localRuntimeService';
 

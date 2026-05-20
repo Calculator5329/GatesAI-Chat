@@ -1,3 +1,6 @@
+// Renders the editorial chat EditorialChat surface and its local interaction state.
+// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
+// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';

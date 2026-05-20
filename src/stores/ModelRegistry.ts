@@ -1,3 +1,6 @@
+// Owns observable ModelRegistry state and actions for the app runtime.
+// Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
+// Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { computed, makeAutoObservable } from 'mobx';
 import type { Model } from '../core/types';
 import type { ProviderId } from '../core/llm';

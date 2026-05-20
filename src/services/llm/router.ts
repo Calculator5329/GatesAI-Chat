@@ -1,3 +1,6 @@
+// Implements LLM provider plumbing for router.
+// Called by RouterStore/ChatStore through the LlmProvider interface; depends on core LLM messages, SSE/JSON parsing, and provider configs.
+// Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { LlmProvider, ProviderConfigs, ProviderId } from '../../core/llm';
 import type { Model } from '../../core/types';
 import { OpenRouterProvider } from './openrouter';

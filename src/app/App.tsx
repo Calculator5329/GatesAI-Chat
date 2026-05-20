@@ -1,3 +1,6 @@
+// Bootstraps the visible app shell and lazy menu/chat composition.
+// Called by main.tsx; depends on RootStore context, MobX observers, and shared CSS vars.
+// Invariant: the RootStore owns state while App only chooses the current surface.
 import { Suspense, lazy, useEffect, useMemo, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { buildTheme, themeToCssVars } from '../core/theme';

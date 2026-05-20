@@ -1,3 +1,6 @@
+// Defines shared attachments domain contracts and pure helpers for chat, models, tokens, or workspace paths.
+// Called by stores, services, components, and tests; depends on stable TypeScript data shapes.
+// Invariant: core modules stay side-effect free except for explicit cache helpers.
 import type { DraftAttachment, MessageAttachmentRef, UserMessage } from './types';
 
 /** True when a MIME type names an image (case-insensitive `image/*`). */

@@ -1,3 +1,6 @@
+// Renders the editorial chat MarkdownChunk surface and its local interaction state.
+// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
+// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
 import { memo, useSyncExternalStore, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

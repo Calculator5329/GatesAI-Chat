@@ -1,3 +1,6 @@
+// Defines the activityDisplay tool contract, validation, execution, or display formatting.
+// Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
+// Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ToolActivityUi, ToolExecuteResult } from './types';
 
 export function defaultToolUi(name: string): ToolActivityUi {

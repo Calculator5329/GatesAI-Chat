@@ -1,3 +1,6 @@
+// Persists or coordinates service-level state for router.
+// Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
+// Invariant: services normalize legacy data before handing snapshots back to stores.
 import type { MenuSectionKey } from '../core/types';
 
 const DEFAULT_MENU_SECTION: MenuSectionKey = 'settings';

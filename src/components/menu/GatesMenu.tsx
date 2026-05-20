@@ -1,3 +1,6 @@
+// Coordinates the left menu surface and section metadata used by the app shell.
+// Called by App and sidebar navigation; depends on section keys, lazy components, and support flags.
+// Invariant: every routed section key maps to exactly one supported component or fallback.
 import { Suspense } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useRouterStore } from '../../stores/context';

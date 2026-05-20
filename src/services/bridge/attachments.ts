@@ -1,3 +1,6 @@
+// Adapts browser UI requests to the local workspace bridge for attachments.
+// Called by stores and tools; depends on BridgeClient envelopes, workspace path contracts, and abortable requests.
+// Invariant: bridge failures are surfaced as typed errors or user-readable strings.
 import type { DraftAttachment } from '../../core/types';
 import type { FsWriteResp } from '../../core/workspace';
 

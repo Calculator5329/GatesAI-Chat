@@ -1,3 +1,6 @@
+// Defines shared types domain contracts and pure helpers for chat, models, tokens, or workspace paths.
+// Called by stores, services, components, and tests; depends on stable TypeScript data shapes.
+// Invariant: core modules stay side-effect free except for explicit cache helpers.
 import type { LlmUsage, ToolCall } from './llm';
 
 export type AssistantFinishReason = 'stop' | 'length' | 'tool_use' | 'cancelled' | 'content_filter' | 'error';

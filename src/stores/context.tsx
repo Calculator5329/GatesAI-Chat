@@ -1,3 +1,6 @@
+// Owns observable context state and actions for the app runtime.
+// Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
+// Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { createContext, useContext, type ReactNode } from 'react';
 import type { RootStore } from './RootStore';
 import type { ChatStore } from './ChatStore';

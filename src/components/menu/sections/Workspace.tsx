@@ -1,3 +1,6 @@
+// Renders the Workspace menu section and the controls for its store-backed workflow.
+// Called by GatesMenu; depends on MobX stores, bridge services, and shared UI primitives.
+// Invariant: menu components present state and delegate side effects to stores/services.
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useBridgeStore } from '../../../stores/context';
@@ -46,19 +49,22 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
     }
   };
 
-  useEffect(() => { void refresh(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [bridge.state]);
+  useEffect(() => {
+    void refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh closes over bridge client state; bridge.state is the only intended trigger.
+  }, [bridge.state]);
   useEffect(() => {
     if (webLite || !isTauri()) return;
     void refreshSourceWorkspace();
     void refreshSourceBuild();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- these probes are Tauri-only boot checks, not reactive subscriptions to their local helpers.
   }, [webLite]);
 
   useEffect(() => {
     if (webLite || !isTauri() || buildStatus?.status !== 'running') return;
     const timer = setInterval(() => { void refreshSourceBuild(); }, 1500);
     return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- polling cadence is keyed to build status; refreshSourceBuild only refreshes that status.
   }, [webLite, buildStatus?.status]);
 
   const refreshSourceWorkspace = async () => {

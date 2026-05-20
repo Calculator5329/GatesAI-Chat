@@ -1,3 +1,6 @@
+// Implements LLM provider plumbing for ollamaCatalog.
+// Called by RouterStore/ChatStore through the LlmProvider interface; depends on core LLM messages, SSE/JSON parsing, and provider configs.
+// Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { Model } from '../../core/types';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 

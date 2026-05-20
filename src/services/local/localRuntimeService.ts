@@ -1,3 +1,6 @@
+// Manages local-runtime discovery, process control, or persistence for localRuntimeService.
+// Called by LocalRuntimeStore and menu controls; depends on bridge/system APIs and runtime ids.
+// Invariant: runtime state is stored separately from detection/probe side effects.
 import { invoke } from '@tauri-apps/api/core';
 import { isTauri } from '../system/runtime';
 

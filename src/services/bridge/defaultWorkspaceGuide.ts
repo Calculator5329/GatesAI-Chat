@@ -1,3 +1,6 @@
+// Adapts browser UI requests to the local workspace bridge for defaultWorkspaceGuide.
+// Called by stores and tools; depends on BridgeClient envelopes, workspace path contracts, and abortable requests.
+// Invariant: bridge failures are surfaced as typed errors or user-readable strings.
 interface BridgeRequestFacade {
   request<T = unknown>(op: string, data: unknown): Promise<T>;
 }

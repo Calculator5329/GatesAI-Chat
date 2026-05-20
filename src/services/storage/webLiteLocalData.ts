@@ -1,3 +1,6 @@
+// Provides storage adapter behavior for webLiteLocalData.
+// Called by persistence-facing services and stores; depends on slot names and browser/local bridge availability.
+// Invariant: callers see parsed snapshots while corrupt/missing data falls back safely.
 export interface LocalDataSlot {
   key: string;
   label: string;

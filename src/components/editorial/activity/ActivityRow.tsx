@@ -1,3 +1,6 @@
+// Renders and groups live activity details for assistant tool and streaming work.
+// Called by EditorialMessage; depends on ActivityItem contracts and lazy markdown rendering.
+// Invariant: activity state is display-only and never mutates ChatStore progress.
 import { Suspense, lazy, useEffect, useState } from 'react';
 import type { ActivityItem, ActivityStats } from '../../../core/types';
 import { WorkspaceImage } from '../WorkspaceImage';

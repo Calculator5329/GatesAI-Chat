@@ -1,3 +1,6 @@
+// Implements LLM provider plumbing for contextCompaction.
+// Called by RouterStore/ChatStore through the LlmProvider interface; depends on core LLM messages, SSE/JSON parsing, and provider configs.
+// Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { Thread, ToolResult } from '../../core/types';
 
 export const COMPACTED_TOOL_RESULT_PREFIX = '[compacted tool result]';

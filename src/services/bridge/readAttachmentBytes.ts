@@ -1,3 +1,6 @@
+// Adapts browser UI requests to the local workspace bridge for readAttachmentBytes.
+// Called by stores and tools; depends on BridgeClient envelopes, workspace path contracts, and abortable requests.
+// Invariant: bridge failures are surfaced as typed errors or user-readable strings.
 import type { FsReadResp } from '../../core/workspace';
 import { BridgeOfflineError, type BridgeClient } from './client';
 

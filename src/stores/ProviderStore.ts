@@ -1,3 +1,6 @@
+// Owns observable ProviderStore state and actions for the app runtime.
+// Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
+// Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, toJS } from 'mobx';
 import type { ProviderConfig, ProviderConfigs, ProviderId } from '../core/llm';
 import { LlmRouter } from '../services/llm/router';

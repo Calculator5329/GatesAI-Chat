@@ -1,3 +1,6 @@
+// Provides the shared icons UI primitive used across menu and chat surfaces.
+// Called by feature components; depends only on React props and global CSS variables.
+// Invariant: primitives stay controlled, lightweight, and free of store side effects.
 import type { CSSProperties, ReactNode } from 'react';
 
 interface IconProps {

@@ -1,3 +1,6 @@
+// Builds chat-runtime support data for runtimeContext.
+// Called by ChatStore before/after provider or tool work; depends on thread/tool result contracts.
+// Invariant: helpers format diagnostics without mutating message history directly.
 interface RuntimeBridgeInfo {
   isOnline: boolean;
   platform?: string;

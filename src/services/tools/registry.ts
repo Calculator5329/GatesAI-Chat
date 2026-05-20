@@ -1,3 +1,6 @@
+// Defines the registry tool contract, validation, execution, or display formatting.
+// Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
+// Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { JsonSchema, ToolCall, ToolDef } from '../../core/llm';
 import type { Tool, ToolContext, ToolExecuteResult, ToolOutcome, ToolValidationIssue } from './types';
 import { defaultToolUi, summarizeToolResult } from './activityDisplay';

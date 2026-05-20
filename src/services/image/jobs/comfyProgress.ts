@@ -1,3 +1,6 @@
+// Defines image-job comfyProgress contracts and progress adapters shared by stores and backends.
+// Called by ImageJobStore and image backend clients; depends on image job status and ComfyUI payload shapes.
+// Invariant: progress updates are advisory while terminal job status remains authoritative.
 import type { JobProgress, ProgressEvent } from './progress';
 
 export interface ComfyProgressOptions {

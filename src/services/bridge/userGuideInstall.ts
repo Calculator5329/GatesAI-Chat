@@ -1,3 +1,6 @@
+// Adapts browser UI requests to the local workspace bridge for userGuideInstall.
+// Called by stores and tools; depends on BridgeClient envelopes, workspace path contracts, and abortable requests.
+// Invariant: bridge failures are surfaced as typed errors or user-readable strings.
 import userGuideHtml from '../../../docs/user-guide.html?raw';
 import agentMemoryUrl from '../../../docs/user-guide-assets/agent-memory.png?url';
 import chatHomeUrl from '../../../docs/user-guide-assets/chat-home.png?url';

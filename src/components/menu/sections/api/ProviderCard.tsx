@@ -1,3 +1,6 @@
+// Renders API-provider controls for Provider Card.
+// Called by ApiSection or GatesMenu; depends on provider/search/image stores and shared form controls.
+// Invariant: provider secrets and compatibility state are changed only through store actions.
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../../core/styleTokens';

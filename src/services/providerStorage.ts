@@ -1,3 +1,6 @@
+// Persists or coordinates service-level state for providerStorage.
+// Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
+// Invariant: services normalize legacy data before handing snapshots back to stores.
 import type { ProviderConfigs } from '../core/llm';
 import { jsonSlot } from './storage/jsonSlot';
 import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';

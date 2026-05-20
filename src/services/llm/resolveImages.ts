@@ -1,3 +1,6 @@
+// Implements LLM provider plumbing for resolveImages.
+// Called by RouterStore/ChatStore through the LlmProvider interface; depends on core LLM messages, SSE/JSON parsing, and provider configs.
+// Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { LlmImagePart, LlmMessage } from '../../core/llm';
 import type { Message } from '../../core/types';
 import { isImageMime } from '../../core/attachments';

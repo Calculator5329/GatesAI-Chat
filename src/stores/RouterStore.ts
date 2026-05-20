@@ -1,3 +1,6 @@
+// Owns observable RouterStore state and actions for the app runtime.
+// Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
+// Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { makeAutoObservable, runInAction } from 'mobx';
 import type { MenuSectionKey } from '../core/types';
 import {

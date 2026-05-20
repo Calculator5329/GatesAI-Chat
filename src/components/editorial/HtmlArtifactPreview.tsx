@@ -1,3 +1,6 @@
+// Renders the editorial chat HtmlArtifactPreview surface and its local interaction state.
+// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
+// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import type { FsReadResp, FsStatResp } from '../../core/workspace';

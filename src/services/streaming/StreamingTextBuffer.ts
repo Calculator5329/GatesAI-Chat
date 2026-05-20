@@ -1,3 +1,6 @@
+// Buffers streaming provider text so the UI updates at readable cadence.
+// Called by ChatStore during assistant streaming; depends on timer callbacks and append/flush ordering.
+// Invariant: buffered text flushes in-order and finalization leaves no pending chunks.
 type FlushCallback = () => void;
 type ScheduleFlush = (flush: FlushCallback) => void;
 

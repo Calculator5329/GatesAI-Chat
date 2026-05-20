@@ -1,3 +1,6 @@
+// Persists or coordinates service-level state for workspaceChatPersistence.
+// Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
+// Invariant: services normalize legacy data before handing snapshots back to stores.
 import type { AssistantMessage, ChatSnapshot, Message, MessageAttachmentRef, Thread, ToolResultArtifact } from '../core/types';
 import type { FsListResp, FsReadResp } from '../core/workspace';
 import {
@@ -31,6 +34,9 @@ export interface WorkspaceChatPersistence {
   backupMalformed(raw: string): Promise<string>;
 }
 
+// Workspace persistence is intentionally bridge-backed rather than local-only:
+// the chat state should travel with a project, and localStorage is only the
+// migration/fallback layer managed by ChatStore.
 export function createWorkspaceChatPersistence(client: BridgeClientFacade): WorkspaceChatPersistence {
   return {
     async load(): Promise<WorkspaceChatLoadResult> {
@@ -102,6 +108,8 @@ async function ensureDir(client: BridgeClientFacade): Promise<void> {
   await client.request('fs.mkdir', { path: WORKSPACE_CHAT_DIR });
 }
 
+// Save both the machine-readable snapshot and a browsable library. The HTML/MD
+// mirror is best-effort so corrupt rendering never blocks the canonical state.
 async function saveReadableChatLibrary(client: BridgeClientFacade, snapshot: ChatSnapshot, savedAt: string): Promise<void> {
   try {
     await client.request('fs.mkdir', { path: WORKSPACE_CHAT_LIBRARY_DIR });

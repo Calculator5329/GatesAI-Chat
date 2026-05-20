@@ -1,3 +1,6 @@
+// Renders the Agent menu section and the controls for its store-backed workflow.
+// Called by GatesMenu; depends on MobX stores, bridge services, and shared UI primitives.
+// Invariant: menu components present state and delegate side effects to stores/services.
 import { useState, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';

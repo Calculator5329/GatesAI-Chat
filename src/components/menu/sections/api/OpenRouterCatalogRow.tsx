@@ -1,3 +1,6 @@
+// Renders API-provider controls for Open Router Catalog Row.
+// Called by ApiSection or GatesMenu; depends on provider/search/image stores and shared form controls.
+// Invariant: provider secrets and compatibility state are changed only through store actions.
 import { observer } from 'mobx-react-lite';
 import { useOpenRouterStore } from '../../../../stores/context';
 import { Button } from '../../../ui';

@@ -1,3 +1,6 @@
+// Defines the pythonInline tool contract, validation, execution, or display formatting.
+// Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
+// Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ExecRunResp } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
 import type { Tool } from './types';

@@ -1,3 +1,6 @@
+// Defines the types tool contract, validation, execution, or display formatting.
+// Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
+// Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { LlmMessage, ToolDef } from '../../core/llm';
 import type { Note } from '../../core/notes';
 import type { Thread, ToolResultArtifact } from '../../core/types';

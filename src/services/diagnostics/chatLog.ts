@@ -1,3 +1,6 @@
+// Provides opt-in runtime logging hooks for chat and tool diagnostics.
+// Called by stores/services on critical-path events; depends on explicit configuration before logging.
+// Invariant: diagnostics are best-effort and never block user-visible work.
 import type { BridgeClient } from '../bridge/client';
 
 /**

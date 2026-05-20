@@ -1,3 +1,6 @@
+// Manages local-runtime discovery, process control, or persistence for localRuntimeStorage.
+// Called by LocalRuntimeStore and menu controls; depends on bridge/system APIs and runtime ids.
+// Invariant: runtime state is stored separately from detection/probe side effects.
 import { DEFAULT_OLLAMA_BASE_URL } from '../llm/ollama';
 import { createJsonPersistenceProvider } from '../storage/persistenceProvider';
 

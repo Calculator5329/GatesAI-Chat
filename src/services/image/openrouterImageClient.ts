@@ -1,3 +1,6 @@
+// Implements image-generation backend behavior for openrouterImageClient.
+// Called by ImageJobStore and image tools; depends on provider configs, ComfyUI/OpenRouter APIs, and bridge file writes.
+// Invariant: backend clients return normalized job artifacts and leave queue ownership to ImageJobStore.
 import type { GenerateImageRequest, GenerateImageResult, ImageBackend } from './types';
 import { safeText, wrapGlobalFetch } from './types';
 

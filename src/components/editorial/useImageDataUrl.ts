@@ -1,3 +1,6 @@
+// Renders the editorial chat useImageDataUrl surface and its local interaction state.
+// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
+// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
 import { useEffect, useState } from 'react';
 import type { BridgeStore } from '../../stores/BridgeStore';
 import { useBridgeStore } from '../../stores/context';

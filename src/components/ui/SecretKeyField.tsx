@@ -1,3 +1,6 @@
+// Provides the shared SecretKeyField UI primitive used across menu and chat surfaces.
+// Called by feature components; depends only on React props and global CSS variables.
+// Invariant: primitives stay controlled, lightweight, and free of store side effects.
 import { useState } from 'react';
 import { tokens } from '../../core/styleTokens';
 import { Button } from './Button';

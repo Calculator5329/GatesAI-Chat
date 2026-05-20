@@ -1,3 +1,6 @@
+// Defines shared tokens domain contracts and pure helpers for chat, models, tokens, or workspace paths.
+// Called by stores, services, components, and tests; depends on stable TypeScript data shapes.
+// Invariant: core modules stay side-effect free except for explicit cache helpers.
 import type { Model } from './types';
 import type { LlmMessage, ToolDef } from './llm';
 import type { ProviderId } from './llm';
