@@ -1,3 +1,8 @@
+/*
+ * Defines the global visual system for the chat app, menu, composer, and rendered markdown.
+ * Loaded by main.tsx; depends on CSS variables produced by theme/store state.
+ * Invariant: selectors stay global and class names must match component markup exactly.
+ */
 @keyframes caret {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
@@ -40,6 +45,23 @@
 }
 .editorial-message:active {
   cursor: copy;
+}
+.editorial-show-earlier {
+  display: block;
+  margin: 0 auto 28px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg) 94%, var(--text) 6%);
+  color: var(--text-faint);
+  font: 11px "Geist Mono", ui-monospace, monospace;
+  cursor: pointer;
+}
+.editorial-show-earlier:hover,
+.editorial-show-earlier:focus-visible {
+  color: var(--text-dim);
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
+  outline: none;
 }
 .message-copy-hint,
 .message-copy-feedback {

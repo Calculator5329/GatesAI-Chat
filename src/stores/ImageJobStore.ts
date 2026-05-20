@@ -1,3 +1,6 @@
+// Owns observable ImageJobStore state and actions for the app runtime.
+// Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
+// Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, runInAction, toJS } from 'mobx';
 import type { FsReadResp, FsWriteResp } from '../core/workspace';
 import {
@@ -136,16 +139,22 @@ export class ImageJobStore {
     return this.history.find(j => j.id === jobId) ?? null;
   }
 
+  get costByThread(): Record<string, number> {
+    const out: Record<string, number> = {};
+    const add = (job: ImageJob | CompletedJob | null | undefined): void => {
+      if (!job?.threadId) return;
+      const cost = job.costUsd ?? 0;
+      if (cost <= 0) return;
+      out[job.threadId] = (out[job.threadId] ?? 0) + cost;
+    };
+    add(this.active);
+    for (const job of this.queue) add(job);
+    for (const job of this.history) add(job);
+    return out;
+  }
+
   threadCostUsd(threadId: string | null | undefined): number {
-    if (!threadId) return 0;
-    const fromActive = this.active?.threadId === threadId ? this.active.costUsd ?? 0 : 0;
-    const fromQueue = this.queue.reduce((sum, job) => (
-      job.threadId === threadId ? sum + (job.costUsd ?? 0) : sum
-    ), 0);
-    const fromHistory = this.history.reduce((sum, job) => (
-      job.threadId === threadId ? sum + (job.costUsd ?? 0) : sum
-    ), 0);
-    return fromActive + fromQueue + fromHistory;
+    return threadId ? (this.costByThread[threadId] ?? 0) : 0;
   }
 
   delete(jobId: string): void {
@@ -423,8 +432,8 @@ async function loadComfyWorkflow(
       return `Error: ComfyUI workflow template at ${path} is not readable as text.`;
     }
     try {
-      const parsed = JSON.parse(resp.content) as Record<string, unknown>;
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      const parsed = JSON.parse(resp.content);
+      if (!isRecord(parsed)) {
         return `Error: ComfyUI workflow template at ${path} must be a JSON object.`;
       }
       return parsed;
@@ -434,6 +443,10 @@ async function loadComfyWorkflow(
   } catch (err) {
     return `Error reading ComfyUI workflow template at ${path}: ${(err as Error).message}`;
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function defaultFilenameStem(backend: ImageBackendId): string {

@@ -1,8 +1,16 @@
+import { runInAction } from 'mobx';
 import { describe, expect, it } from 'vitest';
 import { StreamingTextBuffer } from '../../src/services/streaming/StreamingTextBuffer';
 import { flattenForWire } from '../../src/services/llm/wireFormat';
 import { bytesToBase64 } from '../../src/services/image/types';
 import type { Message } from '../../src/core/types';
+import { ChatStore } from '../../src/stores/ChatStore';
+import { ProviderStore } from '../../src/stores/ProviderStore';
+import { ModelRegistry } from '../../src/stores/ModelRegistry';
+import { UserProfileStore } from '../../src/stores/UserProfileStore';
+import { flushPendingSnapshot } from '../../src/services/persistence';
+import { MockProvider, installMockProvider } from '../helpers/mockProvider';
+import { clearAppStorage } from '../helpers/storage';
 
 /**
  * Performance smoke tests. These don't aim to be precise benchmarks —
@@ -122,5 +130,43 @@ describe('bytesToBase64 throughput', () => {
     // base64 expands by ~4/3.
     expect(encoded.length).toBeGreaterThanOrEqual(Math.ceil(size / 3) * 4 - 4);
     expect(elapsed).toBeLessThan(2_000 * PERF_TOLERANCE);
+  });
+});
+
+describe('ChatStore send path startup', () => {
+  it('starts provider streaming quickly on a 1000-turn thread', async () => {
+    clearAppStorage();
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    const mock = new MockProvider([{ type: 'text', delta: 'ok' }, { type: 'done', finishReason: 'stop' }]);
+    installMockProvider(providers, mock);
+    const chat = new ChatStore(providers, registry, profile);
+    chat.createThread();
+    const thread = chat.activeThread;
+    if (!thread) throw new Error('missing active thread');
+
+    runInAction(() => {
+      thread.messages = Array.from({ length: 2_000 }, (_, index) => ({
+        id: `m-${index}`,
+        role: index % 2 === 0 ? 'user' : 'assistant',
+        content: `historical message ${index}`,
+        createdAt: index,
+        ...(index % 2 === 1 ? { model: 'or-gpt-5.4-mini' } : {}),
+      })) as Message[];
+    });
+
+    const t0 = performance.now();
+    chat.sendMessage('continue');
+    for (let i = 0; i < 20 && mock.calls.length === 0; i++) {
+      await Promise.resolve();
+    }
+    const elapsed = performance.now() - t0;
+
+    expect(mock.calls.length).toBe(1);
+    expect(elapsed).toBeLessThan(250 * PERF_TOLERANCE);
+    await new Promise(resolve => setTimeout(resolve, 260));
+    flushPendingSnapshot();
+    clearAppStorage();
   });
 });

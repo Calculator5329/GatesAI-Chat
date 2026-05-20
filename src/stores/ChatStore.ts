@@ -1,3 +1,6 @@
+// Owns observable ChatStore state and actions for the app runtime.
+// Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
+// Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { ActivityDetail, ActivityItem, AssistantFinishReason, AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
 import type { LlmProvider, LlmRequest, LlmUsage, ToolCall, ToolDef } from '../core/llm';
@@ -105,6 +108,9 @@ function appendWorkNote(existing: string[] | undefined, note: string): string[] 
   return [...notes, note].slice(-MAX_WORK_NOTES);
 }
 
+// Tool-call ids are the join key between provider deltas, UI activity rows,
+// and tool-result messages. Some providers omit or repeat ids, so the store
+// normalizes them before any result can be attached to the wrong call.
 function uniqueToolCallIds(calls: ToolCall[], message: AssistantMessage, round: number): ToolCall[] {
   const seen = new Set<string>();
   for (const call of message.toolCalls ?? []) seen.add(call.id);
@@ -131,6 +137,9 @@ function sideEffectSignature(call: ToolCall): string | null {
   return `fs:${action}:${path.replace(/\\/g, '/').toLowerCase()}`;
 }
 
+// Repeated writes are usually a model retry loop after it already succeeded.
+// Cap only identical side-effect signatures so read/search retries still have
+// room to recover from validation or bridge errors.
 function repeatedSideEffectLoop(calls: ToolCall[], message: AssistantMessage): { path: string; action: string } | null {
   const counts = new Map<string, number>();
   for (const call of message.toolCalls ?? []) {
@@ -328,6 +337,27 @@ export class ChatStore {
 
   get activeThread(): Thread | null {
     return this.threads.find(t => t.id === this.activeThreadId) ?? null;
+  }
+
+  get llmSpendByThread(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const thread of this.threads) {
+      let total = 0;
+      for (const message of thread.messages) {
+        if (message.role !== 'assistant') continue;
+        for (const usage of message.usage ?? []) {
+          if (usage.providerId === 'openrouter' && typeof usage.costUsd === 'number' && Number.isFinite(usage.costUsd)) {
+            total += usage.costUsd;
+          }
+        }
+      }
+      if (total > 0) out[thread.id] = total;
+    }
+    return out;
+  }
+
+  threadLlmSpendUsd(threadId: string | null | undefined): number {
+    return threadId ? (this.llmSpendByThread[threadId] ?? 0) : 0;
   }
 
   async enableWorkspacePersistence(client: BridgeClientFacade): Promise<boolean> {

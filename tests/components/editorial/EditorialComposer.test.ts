@@ -246,6 +246,14 @@ describe('EditorialComposer API-key banner', () => {
     expect(rendered.textContent).not.toMatch(/~\$/);
   });
 
+  it('shows an estimated context usage meter beside the model picker', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    const rendered = render(store);
+
+    expect(rendered.querySelector('.context-meter__tokens')?.textContent).toMatch(/\/ 128k/);
+  });
+
   it('does not show API source guidance in the composer footer', () => {
     store = buildStore();
     store.providers.setKey('openrouter', 'sk-test');

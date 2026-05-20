@@ -1,8 +1,11 @@
+// Renders the editorial chat EditorialComposer surface and its local interaction state.
+// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
+// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
 import { useCallback, useEffect, useRef, useState, type ClipboardEvent, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import { useBridgeStore, useChatStore, useImageJobStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
-import { threadLlmSpendUsd, type ChatContextMode } from '../../stores/ChatStore';
+import type { ChatContextMode } from '../../stores/ChatStore';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
@@ -258,6 +261,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     if (!activeThreadId) return;
     chat.setThreadModel(activeThreadId, modelId);
   }, [activeThreadId, chat]);
+
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -463,7 +467,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
             </>
           )}
-          <ContextMeter />
+          <ContextMeter draftText={value} />
           <span style={{
             marginLeft: 'auto',
             flex: 'none',
@@ -481,34 +485,69 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   );
 });
 
-/** Per-thread spend indicator kept quiet unless there is spend to show. */
-const ContextMeter = observer(function ContextMeter() {
+const ContextMeter = observer(function ContextMeter({ draftText }: { draftText: string }) {
   const chat = useChatStore();
   const imageJobs = useImageJobStore();
-  const llmSpend = threadLlmSpendUsd(chat.activeThread);
+  const usage = chat.tokenUsage(draftText);
+  const llmSpend = chat.threadLlmSpendUsd(chat.activeThreadId);
   const imageSpend = imageJobs.threadCostUsd(chat.activeThreadId);
   const totalSpend = llmSpend + imageSpend;
-  if (totalSpend <= 0) return <span style={{ flex: '1 1 auto' }} />;
+  const percent = Math.round(usage.fraction * 100);
+  const tone = usage.fraction >= 0.9
+    ? '#c96a6a'
+    : usage.fraction >= 0.7
+      ? '#d19a66'
+      : 'var(--accent)';
 
   return (
     <div
       className="context-meter"
-      title={`Spent in this chat: ${formatUsd(totalSpend)} (${formatUsd(llmSpend)} LLM, ${formatUsd(imageSpend)} images)`}
+      title={[
+        `Context estimate: ${formatTokens(usage.used)} of ${formatTokens(usage.window)} (${percent}%)`,
+        totalSpend > 0 ? `Spent in this chat: ${formatUsd(totalSpend)} (${formatUsd(llmSpend)} LLM, ${formatUsd(imageSpend)} images)` : '',
+      ].filter(Boolean).join('\n')}
       style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
         flex: '1 1 auto',
         fontFamily: '"Geist Mono", monospace',
         letterSpacing: '0.03em',
         fontSize: 11,
         lineHeight: '16px',
-        color: 'var(--accent)',
+        color: tone,
         minWidth: 0,
         overflow: 'hidden',
       }}
     >
-      <span className="context-meter__spend" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-        {formatUsd(totalSpend)}
+      <span
+        aria-hidden="true"
+        style={{
+          width: 54,
+          height: 4,
+          borderRadius: 999,
+          background: 'color-mix(in srgb, var(--text-faint) 20%, transparent)',
+          overflow: 'hidden',
+          flex: 'none',
+        }}
+      >
+        <span
+          style={{
+            display: 'block',
+            width: `${Math.max(2, percent)}%`,
+            maxWidth: '100%',
+            height: '100%',
+            borderRadius: 999,
+            background: tone,
+          }}
+        />
       </span>
+      <span className="context-meter__tokens" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+        {formatTokens(usage.used)} / {formatTokens(usage.window)}
+      </span>
+      {totalSpend > 0 && (
+        <span className="context-meter__spend" style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', color: 'var(--accent)' }}>
+          {formatUsd(totalSpend)}
+        </span>
+      )}
     </div>
   );
 });
@@ -626,4 +665,14 @@ function formatUsd(value: number): string {
   if (value < 0.01) return `$${value.toFixed(4)}`;
   if (value < 1) return `$${value.toFixed(3)}`;
   return `$${value.toFixed(2)}`;
+}
+
+function formatTokens(value: number): string {
+  if (value >= 1_000_000) return `${trimFixed(value / 1_000_000)}M`;
+  if (value >= 1_000) return `${trimFixed(value / 1_000)}k`;
+  return Math.round(value).toString();
+}
+
+function trimFixed(value: number): string {
+  return value >= 10 ? value.toFixed(0) : value.toFixed(1).replace(/\.0$/, '');
 }
