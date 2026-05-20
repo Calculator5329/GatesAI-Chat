@@ -14,7 +14,21 @@ import { toolRegistry } from '../../src/services/tools/registry';
 import { WORKSPACE_CHAT_STATE_PATH } from '../../src/services/workspaceChatPersistence';
 import { flushPendingSnapshot } from '../../src/services/persistence';
 
+const activeChats: ChatStore[] = [];
+
+function trackChat(chat: ChatStore): ChatStore {
+  activeChats.push(chat);
+  return chat;
+}
+
+function disposeActiveChats(): void {
+  while (activeChats.length > 0) {
+    activeChats.pop()?.dispose();
+  }
+}
+
 function setup(chunks?: Parameters<MockProvider['setChunks']>[0]) {
+  disposeActiveChats();
   flushPendingSnapshot();
   clearAppStorage();
   const registry = new ModelRegistry();
@@ -22,7 +36,7 @@ function setup(chunks?: Parameters<MockProvider['setChunks']>[0]) {
   const profile = new UserProfileStore();
   const mock = new MockProvider(chunks);
   installMockProvider(providers, mock);
-  const chat = new ChatStore(providers, registry, profile);
+  const chat = trackChat(new ChatStore(providers, registry, profile));
   return { registry, providers, profile, mock, chat };
 }
 
@@ -154,10 +168,12 @@ async function waitForLocalStorageSnapshot(
 
 describe('ChatStore', () => {
   beforeEach(() => {
+    disposeActiveChats();
     flushPendingSnapshot();
     clearAppStorage();
   });
   afterEach(() => {
+    disposeActiveChats();
     flushPendingSnapshot();
     clearAppStorage();
   });
@@ -1148,7 +1164,7 @@ describe('ChatStore', () => {
     const profile2 = new UserProfileStore();
     const mock2 = new MockProvider();
     installMockProvider(providers2, mock2);
-    const chat2 = new ChatStore(providers2, registry2, profile2);
+    const chat2 = trackChat(new ChatStore(providers2, registry2, profile2));
 
     const restored = chat2.threads.find(t => t.id === id);
     expect(restored).toBeDefined();

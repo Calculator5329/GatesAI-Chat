@@ -230,6 +230,7 @@ export class ChatStore {
   private workspacePersistenceHydrating = false;
   private pendingWorkspaceSnap: ChatSnapshot | null = null;
   private workspaceSaveInFlight = false;
+  private persistenceCleanup: (() => void) | null = null;
   /**
    * Late-bound source of "Recent conversations" digests. Wired by RootStore
    * to a SummaryStore call; left unset in tests that don't care about
@@ -261,7 +262,7 @@ export class ChatStore {
       this.activeThreadId = thread.id;
     }
     this.lastError = consumeSnapshotLoadError();
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'workspacePersistence' | 'workspacePersistenceReady' | 'workspacePersistenceHydrating' | 'pendingWorkspaceSnap' | 'workspaceSaveInFlight' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'workspacePersistence' | 'workspacePersistenceReady' | 'workspacePersistenceHydrating' | 'pendingWorkspaceSnap' | 'workspaceSaveInFlight' | 'persistenceCleanup' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -272,6 +273,7 @@ export class ChatStore {
       workspacePersistenceHydrating: false,
       pendingWorkspaceSnap: false,
       workspaceSaveInFlight: false,
+      persistenceCleanup: false,
       recentSummariesProvider: false,
       toolStoresProvider: false,
     });
@@ -298,7 +300,7 @@ export class ChatStore {
         pendingSnap = null;
       }
     };
-    autorun(() => {
+    const stopPersistAutorun = autorun(() => {
       const snap = this.snapshot;
       const now = Date.now();
       const elapsed = now - lastSaveAt;
@@ -313,22 +315,37 @@ export class ChatStore {
       if (pendingTimer) return;
       pendingTimer = setTimeout(flush, FLUSH_MS - elapsed);
     });
+    let removeUnloadListeners = (): void => {};
+    const syncFlush = (): void => {
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+      if (pendingSnap) {
+        saveSnapshot(pendingSnap);
+        this.scheduleWorkspaceSnapshotSave(pendingSnap);
+        lastSaveAt = Date.now();
+        pendingSnap = null;
+      }
+      flushPendingSnapshot();
+    };
     if (typeof window !== 'undefined') {
       // Unload paths must persist synchronously — drain the throttle queue
       // and flush any microtask-deferred write before the page tears down.
-      const syncFlush = (): void => {
-        if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
-        if (pendingSnap) {
-          saveSnapshot(pendingSnap);
-          this.scheduleWorkspaceSnapshotSave(pendingSnap);
-          lastSaveAt = Date.now();
-          pendingSnap = null;
-        }
-        flushPendingSnapshot();
-      };
       window.addEventListener('pagehide', syncFlush);
       window.addEventListener('beforeunload', syncFlush);
+      removeUnloadListeners = (): void => {
+        window.removeEventListener('pagehide', syncFlush);
+        window.removeEventListener('beforeunload', syncFlush);
+      };
     }
+    this.persistenceCleanup = (): void => {
+      stopPersistAutorun();
+      syncFlush();
+      removeUnloadListeners();
+    };
+  }
+
+  dispose(): void {
+    this.persistenceCleanup?.();
+    this.persistenceCleanup = null;
   }
 
   get snapshot(): ChatSnapshot {
