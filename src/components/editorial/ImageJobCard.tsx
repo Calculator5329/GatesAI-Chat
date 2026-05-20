@@ -13,9 +13,9 @@ interface ImageJobCardProps {
   expectedCount: number;
 }
 
-export type CardVariant = 'missing' | 'running' | 'failed' | 'cancelled' | 'done-empty' | 'done-single' | 'done-grid';
+export type ImageJobCardVariant = 'missing' | 'running' | 'failed' | 'cancelled' | 'done-empty' | 'done-single' | 'done-grid';
 
-export function pickCardVariant(job: ImageJob | CompletedJob | null): CardVariant {
+export function pickImageJobCardVariant(job: ImageJob | CompletedJob | null): ImageJobCardVariant {
   if (!job) return 'missing';
   if (job.status === 'pending' || job.status === 'running') return 'running';
   if (job.status === 'failed') return 'failed';

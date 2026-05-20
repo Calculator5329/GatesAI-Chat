@@ -103,7 +103,7 @@ src/
     llm.ts                        # provider-agnostic LLM contract
     models.ts                     # curated Model catalog + DEFAULT_MODEL_ID
     modelMenu.ts                  # favorite/provider ordering for the model picker
-    providers.ts                  # ProviderInfo (name, desc, key URL, etc.)
+    providers.ts                  # provider metadata (name, desc, key URL, etc.)
     theme.ts                      # accent/bg palettes, CSS-var builder
     styleTokens.ts                # typography/layout style objects
     seed.ts                       # initial threads + welcome conversation

@@ -10,7 +10,7 @@ import { Card, Pill, Input, Button, SecretKeyField } from '../../../ui';
 import { ProviderAvatar } from './ProviderAvatar';
 import { OpenRouterCatalogRow } from './OpenRouterCatalogRow';
 
-export interface ProviderInfo {
+export interface ApiProviderCardInfo {
   id: ProviderId;
   name: string;
   desc: string;
@@ -20,7 +20,7 @@ export interface ProviderInfo {
   keyUrl?: string;
 }
 
-export const OPENROUTER_PROVIDER_INFO: ProviderInfo = {
+export const OPENROUTER_PROVIDER_INFO: ApiProviderCardInfo = {
   id: 'openrouter',
   name: 'OpenRouter',
   desc: 'Unified gateway — 300+ models',
@@ -30,7 +30,7 @@ export const OPENROUTER_PROVIDER_INFO: ProviderInfo = {
 };
 
 interface ProviderCardProps {
-  info: ProviderInfo;
+  info: ApiProviderCardInfo;
   providers: ReturnType<typeof useProviderStore>;
 }
 
