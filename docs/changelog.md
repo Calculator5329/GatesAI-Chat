@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-06-07 — Architecture audit, boundary enforcement, and showcase pass
+
+- Rewrote `README.md` as a recruiter-facing project showcase (highlights,
+  layered-architecture overview, tech stack, dev/build/quality-gate commands,
+  repository layout).
+- Made the ESLint architecture rules actually enforce the UI→store→service
+  direction. The flat-config blocks were silently replacing each other and the
+  path globs were too shallow to catch nested violations; each layer now has a
+  self-contained, depth-agnostic `no-restricted-imports` block.
+- Resolved the real boundary violations the stricter rules surfaced:
+  - Moved runtime-mode detection from `services/system/runtime.ts` to
+    `core/runtime.ts` so every layer may read the platform mode without crossing
+    a boundary.
+  - Added `src/components/media/` and moved the shared `Lightbox` and
+    `useImageDataUrl` there so both `editorial` and `menu` can use them without
+    a cross-feature import.
+  - Added `RouterStore.hrefForThread`, `UiStore` Web-Lite local-data facade
+    methods, image-job type re-exports on `ImageJobStore`, and a new
+    `SourceWorkspaceStore` facade so UI no longer imports services directly.
+- Removed dead code: `core/modelMenu.ts` (+ its test), the unused
+  `useExecStreamStore` context hook, and the unused
+  `saveSnapshotToLocalStorage` / `parseChatSnapshotRaw` persistence exports.
+- Surfaced previously-silent failures: auto-naming and background
+  summarization now log on failure, and the Local menu shows the Ollama
+  catalog-refresh error.
+- Decluttered the repo root: relocated scratch audit notes under `docs/notes/`,
+  moved `NAMING.md`/`DIRECTIONS.md`/`TODO.md`/`CODEBASE_OVERVIEW.html` into
+  `docs/`, and dropped their now-stale entries from the source-snapshot script.
+- Verified green: `npm run typecheck`, `npm run lint`, and the 608-test Vitest
+  suite all pass.
+
 ## 2026-05-17 - Version 4.0.0 release build
 
 - Updated release metadata and Arch Linux AppImage examples for the `4.0.0`

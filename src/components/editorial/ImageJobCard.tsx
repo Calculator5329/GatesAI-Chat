@@ -4,9 +4,9 @@
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useImageJobStore } from '../../stores/context';
-import type { CompletedJob, ImageJob } from '../../services/image/jobs/types';
-import { Lightbox } from './Lightbox';
-import { useImageDataUrl } from './useImageDataUrl';
+import type { CompletedJob, ImageJob } from '../../stores/ImageJobStore';
+import { Lightbox } from '../media/Lightbox';
+import { useImageDataUrl } from '../media/useImageDataUrl';
 
 interface ImageJobCardProps {
   jobId: string;

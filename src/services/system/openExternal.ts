@@ -9,7 +9,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
-import { isTauri } from './runtime';
+import { isTauri } from '../../core/runtime';
 
 export async function openExternal(absolutePath: string): Promise<void> {
   if (!isTauri()) {

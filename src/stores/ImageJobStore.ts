@@ -14,6 +14,10 @@ import type {
   ImageJob,
   ImageJobInput,
 } from '../services/image/jobs/types';
+
+// Re-exported so UI components observe image-job shapes through the store
+// facade instead of importing service-layer types directly.
+export type { CompletedJob, ImageJob, ImageJobInput } from '../services/image/jobs/types';
 import type { ImageBackendId } from '../services/image/types';
 import { bytesToBase64, comfySettingsForMode, safeText } from '../services/image/types';
 import {

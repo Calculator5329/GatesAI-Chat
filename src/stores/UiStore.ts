@@ -10,7 +10,15 @@ import type {
   MarkdownStyleKey,
 } from '../core/types';
 import { loadUiPrefs, saveUiPrefs, type UiPrefsSnapshot } from '../services/uiPrefsStorage';
+import {
+  clearLocalDataExceptCredentials,
+  formatBytes,
+  readLocalDataUsage,
+  type LocalDataSlotUsage,
+} from '../services/storage/webLiteLocalData';
 import type { BridgeStore } from './BridgeStore';
+
+export type { LocalDataSlotUsage } from '../services/storage/webLiteLocalData';
 
 /**
  * Owns ephemeral UI state: composer draft and reading preferences.
@@ -119,4 +127,11 @@ export class UiStore {
   }
   setReadingWidthPx(value: number): void { this.readingWidthPx = value; }
   setAnimationsEnabled(value: boolean): void { this.animationsEnabled = value; }
+
+  // ── Web Lite browser-data maintenance (facade over services/storage) ──
+  // These let the Settings UI inspect and clear browser-resident app data
+  // without importing the storage service directly.
+  localDataUsage(): LocalDataSlotUsage[] { return readLocalDataUsage(); }
+  clearLocalDataExceptCredentials(): void { clearLocalDataExceptCredentials(); }
+  formatBytes(bytes: number): string { return formatBytes(bytes); }
 }

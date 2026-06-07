@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { isTauri } from './system/runtime';
+import { isTauri } from '../core/runtime';
 
 export type SourceBuildCommand = 'install' | 'test' | 'build' | 'package';
 export type SourceBuildStatusKind = 'idle' | 'running' | 'succeeded' | 'failed';

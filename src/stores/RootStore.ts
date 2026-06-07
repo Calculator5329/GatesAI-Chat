@@ -19,8 +19,9 @@ import { ImageJobStore } from './ImageJobStore';
 import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { SearchStore } from './SearchStore';
 import { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
+import { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
-import { isWebLite } from '../services/system/runtime';
+import { isWebLite } from '../core/runtime';
 
 export class RootStore {
   readonly registry: ModelRegistry;
@@ -40,6 +41,7 @@ export class RootStore {
   readonly localRuntime: LocalRuntimeStore;
   readonly search: SearchStore;
   readonly openrouterCompatibility: OpenRouterCompatibilityStore;
+  readonly sourceWorkspace: SourceWorkspaceStore;
 
   constructor() {
     let ollamaStore: OllamaStore | null = null;
@@ -83,6 +85,7 @@ export class RootStore {
     this.notes = new NotesStore();
     this.bridge = new BridgeStore();
     this.openrouterCompatibility = new OpenRouterCompatibilityStore(this.providers, this.registry, this.bridge);
+    this.sourceWorkspace = new SourceWorkspaceStore();
     this.execStream = new ExecStreamStore();
     this.imageGen = new ImageGenStore(this.localRuntime, () => this.providers.getConfig('openrouter').apiKey);
     this.imageJobs = new ImageJobStore({

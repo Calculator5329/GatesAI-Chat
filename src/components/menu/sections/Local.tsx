@@ -9,7 +9,7 @@ import type { LocalRuntimeId, RuntimeState } from '../../../stores/LocalRuntimeS
 import { Button, Card, Input, Pill, Select, SettingsRow, Toggle, SecretKeyField } from '../../ui';
 import { ProviderAvatar } from './api/ProviderAvatar';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
-import { isWebLite } from '../../../services/system/runtime';
+import { isWebLite } from '../../../core/runtime';
 
 export const LocalSection = observer(function LocalSection() {
   const local = useLocalRuntimeStore();
@@ -253,6 +253,11 @@ const LocalLlmCard = observer(function LocalLlmCard() {
             {ollama.fetching ? 'Refreshing…' : 'Refresh'}
           </Button>
         </div>
+        {ollama.lastError && (
+          <div style={{ marginTop: 6, fontSize: 11.5, color: '#ff7597' }}>
+            Catalog refresh failed: {ollama.lastError}
+          </div>
+        )}
       </SettingsRow>
       <PullSnippet command="ollama pull llama3.1" hint="Add a local chat model." />
     </Card>

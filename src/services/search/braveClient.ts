@@ -3,7 +3,7 @@
 // Invariant: callers receive normalized sources or BraveSearchError codes.
 import type { BraveSearchRequest, BraveSearchSource } from './types';
 import { invoke } from '@tauri-apps/api/core';
-import { isTauri } from '../system/runtime';
+import { isTauri } from '../../core/runtime';
 
 const ENDPOINT = 'https://api.search.brave.com/res/v1/llm/context';
 const DEFAULT_COUNT = 10;

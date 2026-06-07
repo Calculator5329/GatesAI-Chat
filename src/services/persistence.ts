@@ -87,24 +87,6 @@ export function saveSnapshot(snapshot: ChatSnapshot): void {
   chatSnapshotPersistence.save(snapshot);
 }
 
-export function saveSnapshotToLocalStorage(snapshot: ChatSnapshot): void {
-  const cleaned = cleanSnapshot(snapshot);
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
-  } catch {
-    // Emergency-save fallback only runs when the primary write fails (typically
-    // QuotaExceededError). It compacts large tool results / arguments to fit
-    // under the storage cap. Swallowed errors here are terminal — nothing more
-    // we can do.
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(compactSnapshotForEmergencySave(cleaned)));
-      console.warn('[persistence] saved compacted chat snapshot after localStorage rejected full snapshot');
-    } catch (err) {
-      console.error('[persistence] failed to save chat snapshot', err);
-    }
-  }
-}
-
 /**
  * Deferred snapshot save — wraps `saveSnapshot` in a microtask so the
  * JSON.stringify + localStorage.setItem cost doesn't block the caller (e.g.
@@ -168,14 +150,6 @@ export function parseChatSnapshotValue(value: unknown): ChatSnapshot | null {
     const parsed = parseChatSnapshotShape(value);
     if (!parsed.ok) return null;
     return migrate(parsed.value);
-  } catch {
-    return null;
-  }
-}
-
-export function parseChatSnapshotRaw(raw: string): ChatSnapshot | null {
-  try {
-    return parseChatSnapshotValue(JSON.parse(raw));
   } catch {
     return null;
   }

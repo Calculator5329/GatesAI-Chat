@@ -10,10 +10,10 @@ UI (components/, app/)
 Stores (MobX object models)
         │
         ▼
-Services (persistence, llm/, tools/, bridge, router)
+Services (persistence, llm/, tools/, image/, bridge, router, source*)
         │
         ▼
-Core (types, theme, models, providers, llm contract, seed)
+Core (types, theme, models, providers, runtime, llm contract, seed)
 ```
 
 ## Folder layout
@@ -31,6 +31,9 @@ src/
       SettingsRow.tsx SegmentedControl.tsx
       icons.tsx
       index.ts
+    media/                        # shared image UI used by >1 feature
+      Lightbox.tsx                # full-screen image viewer
+      useImageDataUrl.ts          # workspace/hosted image loader hook
     editorial/                    # the chat surface
       activity/                   # ambient assistant activity timeline rows
       EditorialSidebar.tsx
@@ -62,6 +65,7 @@ src/
     NotesStore.ts                 # durable user/model notes
     BridgeStore.ts                # bridge health + WebSocket client
     ExecStreamStore.ts            # live terminal output tail for UI
+    SourceWorkspaceStore.ts       # facade over desktop source-workspace + source-build services
     context.tsx                   # React context + use*Store hooks
   services/
     persistence.ts                # chat snapshot localStorage
@@ -102,8 +106,8 @@ src/
     types.ts                      # domain interfaces & persisted preference unions
     llm.ts                        # provider-agnostic LLM contract
     models.ts                     # curated Model catalog + DEFAULT_MODEL_ID
-    modelMenu.ts                  # favorite/provider ordering for the model picker
     providers.ts                  # provider metadata (name, desc, key URL, etc.)
+    runtime.ts                    # pure desktop-vs-web-lite mode detection (importable by every layer)
     theme.ts                      # accent/bg palettes, CSS-var builder
     styleTokens.ts                # typography/layout style objects
     seed.ts                       # initial threads + welcome conversation
@@ -127,15 +131,19 @@ tests/                            # Vitest, completely separate from src/
 | `services/`          | `core/`                                        | Stateless. No MobX, no React, no app state.    |
 | `stores/`            | `core/`, `services/`                           | MobX classes. No React/UI imports.             |
 | `components/ui/`     | `core/` only                                   | Stateless primitives.                          |
-| `components/<feat>/` | `core/`, `stores/`, `components/ui/`           | Observers; never import other features.        |
+| `components/media/`  | `core/`, `stores/`, `components/ui/`           | Shared image UI; neutral so >1 feature can use it. |
+| `components/<feat>/` | `core/`, `stores/`, `components/ui/`, `components/media/` | Observers; never import other features.   |
 | `app/`               | everything                                     | Composition root.                              |
 | `tests/`             | anything in `src/`                             | Lives outside `src/` so the app build is pure. |
 
 `stores/context.tsx` is the explicit React bridge exception: it hosts
 `StoreProvider` and the `use*Store()` hooks so feature components never import
-`RootStore` directly. `eslint.config.js` contains staged
-`no-restricted-imports` rules that enforce these boundaries for production
-source while keeping tests looser.
+`RootStore` directly. `eslint.config.js` enforces these boundaries with
+depth-agnostic `no-restricted-imports` rules (each layer's block is
+self-contained because ESLint flat config replaces rather than merges a
+rule across config objects): UI may not import `services/`, features may not
+import sibling features, and stores/services may not import UI. Tests are
+kept looser so they can reach into `src/` freely.
 
 ## State management
 

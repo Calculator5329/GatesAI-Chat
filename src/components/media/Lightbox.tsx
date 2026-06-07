@@ -1,6 +1,6 @@
-// Renders the editorial chat Lightbox surface and its local interaction state.
-// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
-// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
+// Shared full-screen image viewer used by both the editorial chat and the menu Gallery.
+// Store-aware shared UI: lives in components/media/ so neither feature imports the other.
+// Invariant: persisted state stays in stores while this component derives view state from props/hooks.
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { observer } from 'mobx-react-lite';

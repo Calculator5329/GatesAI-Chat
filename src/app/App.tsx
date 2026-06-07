@@ -7,7 +7,7 @@ import { buildTheme, themeToCssVars } from '../core/theme';
 import { useChatStore, useRouterStore, useUiStore } from '../stores/context';
 import { EditorialSidebar } from '../components/editorial/EditorialSidebar';
 import { EditorialChat } from '../components/editorial/EditorialChat';
-import { runtimeMode } from '../services/system/runtime';
+import { runtimeMode } from '../core/runtime';
 
 const GatesMenu = lazy(() => import('../components/menu/GatesMenu').then(m => ({ default: m.GatesMenu })));
 

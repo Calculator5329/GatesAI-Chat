@@ -73,6 +73,16 @@
       HTML artifact helper for validated workspace deliverables
 - [x] Centralize assistant activity display into a unified ambient timeline
       for thinking, tools, terminal tails, image jobs, and bridge transitions
+- [x] Architecture-boundary hardening: make the ESLint import rules actually
+      enforce UI→store→service direction (depth-agnostic globs, self-contained
+      per-layer blocks), move runtime-mode detection into `core/runtime.ts`,
+      add a `components/media/` home for shared image UI, add a
+      `SourceWorkspaceStore` facade, and route remaining UI service imports
+      through store facades
+- [x] Project-showcase pass: recruiter-facing `README.md`, root decluttered
+      (scratch notes relocated under `docs/notes/`), dead code removed
+      (`core/modelMenu.ts`, unused persistence/context exports), and
+      previously-silent store failures logged
 
 ## Near-term
 - [x] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`
@@ -82,7 +92,8 @@
 - [ ] Continue architecture cleanup: split large tools/components and keep
       slimming `ChatStore` where helpers can move out safely
 - [ ] Manually test the foundation surface before rebuilding optional integrations
-- [ ] Add basic unit tests around `ChatStore` (send, stream, switch, stop)
+- [x] Add basic unit tests around `ChatStore` (send, stream, switch, stop) —
+      covered by the Vitest suite (`tests/stores/ChatStore.test.ts`, 600+ tests)
 
 ## Later
 - [ ] Multi-window / split-thread layouts

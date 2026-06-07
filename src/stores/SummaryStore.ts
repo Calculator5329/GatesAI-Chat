@@ -148,6 +148,9 @@ export class SummaryStore {
     try {
       await this.summarizeOne(candidate);
     } catch (err) {
+      // Background summarization has no UI surface, so log the failure
+      // instead of letting it vanish into lastError unseen.
+      console.warn('[summary] background summarization failed', err);
       runInAction(() => { this.lastError = (err as Error).message; });
     } finally {
       runInAction(() => { this.inFlight = null; });

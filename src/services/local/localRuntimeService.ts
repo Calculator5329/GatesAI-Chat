@@ -2,7 +2,7 @@
 // Called by LocalRuntimeStore and menu controls; depends on bridge/system APIs and runtime ids.
 // Invariant: runtime state is stored separately from detection/probe side effects.
 import { invoke } from '@tauri-apps/api/core';
-import { isTauri } from '../system/runtime';
+import { isTauri } from '../../core/runtime';
 
 export type LocalRuntimeId = 'ollama' | 'comfyui';
 export type LocalRuntimeStatus = 'stopped' | 'starting' | 'online' | 'offline' | 'crashed';

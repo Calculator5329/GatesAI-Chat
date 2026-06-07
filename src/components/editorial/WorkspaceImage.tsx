@@ -1,6 +1,6 @@
 import { observer } from 'mobx-react-lite';
 import { useBridgeStore } from '../../stores/context';
-import { useImageDataUrl } from './useImageDataUrl';
+import { useImageDataUrl } from '../media/useImageDataUrl';
 
 /**
  * Renders a workspace-attached image as a data URL thumbnail. Bytes are

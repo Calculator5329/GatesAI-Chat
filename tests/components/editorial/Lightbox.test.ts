@@ -1,7 +1,7 @@
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Lightbox } from '../../../src/components/editorial/Lightbox';
+import { Lightbox } from '../../../src/components/media/Lightbox';
 import { StoreProvider } from '../../../src/stores/context';
 import type { RootStore } from '../../../src/stores/RootStore';
 

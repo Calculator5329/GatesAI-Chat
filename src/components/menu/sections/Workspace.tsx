@@ -3,27 +3,17 @@
 // Invariant: menu components present state and delegate side effects to stores/services.
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useBridgeStore } from '../../../stores/context';
+import { useBridgeStore, useSourceWorkspaceStore } from '../../../stores/context';
 import type { FsEntry, FsListResp } from '../../../core/workspace';
 import { Card } from '../../ui/Card';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
-import { isTauri, isWebLite } from '../../../services/system/runtime';
-import {
-  getSourceWorkspaceStatus,
-  openSourceWorkspace,
-  prepareSourceWorkspace,
-  type SourceWorkspaceStatus,
-} from '../../../services/sourceWorkspace';
-import {
-  clearSourceBuild,
-  getSourceBuildStatus,
-  startSourceBuild,
-  type SourceBuildCommand,
-  type SourceBuildStatus,
-} from '../../../services/sourceBuild';
+import { isTauri, isWebLite } from '../../../core/runtime';
+import type { SourceWorkspaceStatus } from '../../../stores/SourceWorkspaceStore';
+import type { SourceBuildCommand, SourceBuildStatus } from '../../../stores/SourceWorkspaceStore';
 
 export const WorkspaceSection = observer(function WorkspaceSection() {
   const bridge = useBridgeStore();
+  const source = useSourceWorkspaceStore();
   const webLite = isWebLite();
   const [tree, setTree] = useState<FsListResp | null>(null);
   const [loading, setLoading] = useState(false);
@@ -75,7 +65,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
     }
     setSourceLoading(true);
     try {
-      setSourceStatus(await getSourceWorkspaceStatus());
+      setSourceStatus(await source.status());
     } catch (err) {
       setSourceError((err as Error).message);
     } finally {
@@ -87,7 +77,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
     setSourceError(null);
     setSourceLoading(true);
     try {
-      setSourceStatus(await prepareSourceWorkspace());
+      setSourceStatus(await source.prepare());
     } catch (err) {
       setSourceError((err as Error).message);
     } finally {
@@ -98,7 +88,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
   const openSource = async () => {
     setSourceError(null);
     try {
-      await openSourceWorkspace();
+      await source.open();
     } catch (err) {
       setSourceError((err as Error).message);
     }
@@ -111,7 +101,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
       return;
     }
     try {
-      setBuildStatus(await getSourceBuildStatus());
+      setBuildStatus(await source.buildStatus());
     } catch (err) {
       setBuildError((err as Error).message);
     }
@@ -121,7 +111,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
     setBuildError(null);
     setBuildLoading(true);
     try {
-      setBuildStatus(await startSourceBuild(command));
+      setBuildStatus(await source.startBuild(command));
     } catch (err) {
       setBuildError((err as Error).message);
     } finally {
@@ -133,7 +123,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
     setBuildError(null);
     setBuildLoading(true);
     try {
-      setBuildStatus(await clearSourceBuild());
+      setBuildStatus(await source.clearBuild());
     } catch (err) {
       setBuildError((err as Error).message);
     } finally {

@@ -11,13 +11,13 @@ import type { ModelRegistry } from './ModelRegistry';
 import type { OpenRouterStore } from './OpenRouterStore';
 import type { UserProfileStore } from './UserProfileStore';
 import type { BridgeStore } from './BridgeStore';
-import type { ExecStreamStore } from './ExecStreamStore';
 import type { ImageGenStore } from './ImageGenStore';
 import type { ImageJobStore } from './ImageJobStore';
 import type { OllamaStore } from './OllamaStore';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
 import type { SearchStore } from './SearchStore';
 import type { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
+import type { SourceWorkspaceStore } from './SourceWorkspaceStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -63,10 +63,6 @@ export function useBridgeStore(): BridgeStore {
   return useRootStore().bridge;
 }
 
-export function useExecStreamStore(): ExecStreamStore {
-  return useRootStore().execStream;
-}
-
 export function useImageGenStore(): ImageGenStore {
   return useRootStore().imageGen;
 }
@@ -89,4 +85,8 @@ export function useSearchStore(): SearchStore {
 
 export function useOpenRouterCompatibilityStore(): OpenRouterCompatibilityStore {
   return useRootStore().openrouterCompatibility;
+}
+
+export function useSourceWorkspaceStore(): SourceWorkspaceStore {
+  return useRootStore().sourceWorkspace;
 }

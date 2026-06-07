@@ -4,7 +4,7 @@
 import type { CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useBridgeStore } from '../../stores/context';
-import { isWebLite } from '../../services/system/runtime';
+import { isWebLite } from '../../core/runtime';
 
 /**
  * Tiny status indicator at the bottom of the sidebar. Three states:

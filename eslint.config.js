@@ -28,13 +28,18 @@ export default defineConfig([
       'react-refresh/only-export-components': 'off',
     },
   },
+  // NOTE on flat-config rule semantics: when multiple config objects set the
+  // SAME rule for overlapping files, the LAST one wins outright (options are
+  // replaced, not merged). So every block below is self-contained, and the
+  // path globs use a leading `**/` so they match regardless of how deeply the
+  // importing file is nested (e.g. components/menu/sections/*).
   {
     files: ['src/core/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [
           {
-            group: ['../stores/*', '../services/*', '../components/*', '../app/*'],
+            group: ['**/stores/**', '**/services/**', '**/components/**', '**/app/**'],
             message: 'core/ must stay independent of app, component, store, and service layers.',
           },
           {
@@ -50,7 +55,7 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{
-          group: ['../stores/*', '../../stores/*', '../components/*', '../../components/*', '../app/*', '../../app/*', 'react', 'mobx', 'mobx-react-lite'],
+          group: ['**/stores/**', '**/components/**', '**/app/**', 'react', 'mobx', 'mobx-react-lite'],
           message: 'services/ may depend on core/ and other services only; use narrow facades instead of stores/UI.',
         }],
       }],
@@ -61,7 +66,7 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{
-          group: ['../components/*', '../../components/*', '../app/*', '../../app/*', 'react', 'mobx-react-lite'],
+          group: ['**/components/**', '**/app/**', 'react', 'mobx-react-lite'],
           message: 'stores/ must not import UI, React, or app composition code. Use stores/context.tsx as the React bridge.',
         }],
       }],
@@ -72,19 +77,22 @@ export default defineConfig([
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{
-          group: ['../../stores/*', '../../services/*', '../editorial/*', '../menu/*', 'mobx-react-lite'],
+          group: ['**/stores/**', '**/services/**', '**/editorial/**', '**/menu/**', '**/media/**', 'mobx-react-lite'],
           message: 'components/ui/ must stay feature-agnostic and stateless.',
         }],
       }],
     },
   },
+  // Generic feature-component rule: applies to media/ and any future feature
+  // folder. editorial/ and menu/ override this with their own (self-contained)
+  // blocks below, so those repeat the services ban.
   {
     files: ['src/components/**/*.{ts,tsx}'],
     ignores: ['src/components/ui/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{
-          group: ['../services/*', '../../services/*'],
+          group: ['**/services/**'],
           message: 'UI must go through stores/facades rather than importing services directly.',
         }],
       }],
@@ -94,10 +102,16 @@ export default defineConfig([
     files: ['src/components/editorial/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': ['error', {
-        patterns: [{
-          group: ['../menu/*', '../menu/**'],
-          message: 'editorial components must not import menu components; move shared UI to components/ui.',
-        }],
+        patterns: [
+          {
+            group: ['**/services/**'],
+            message: 'UI must go through stores/facades rather than importing services directly.',
+          },
+          {
+            group: ['**/menu/**'],
+            message: 'editorial components must not import menu components; move shared UI to components/ui or components/media.',
+          },
+        ],
       }],
     },
   },
@@ -105,10 +119,16 @@ export default defineConfig([
     files: ['src/components/menu/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': ['error', {
-        patterns: [{
-          group: ['../editorial/*', '../editorial/**'],
-          message: 'menu components must not import editorial components; move shared UI to components/ui.',
-        }],
+        patterns: [
+          {
+            group: ['**/services/**'],
+            message: 'UI must go through stores/facades rather than importing services directly.',
+          },
+          {
+            group: ['**/editorial/**'],
+            message: 'menu components must not import editorial components; move shared UI to components/ui or components/media.',
+          },
+        ],
       }],
     },
   },

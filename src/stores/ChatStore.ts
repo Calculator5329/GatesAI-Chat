@@ -1453,7 +1453,14 @@ export class ChatStore {
         thread.title = title;
         thread.autoNamed = true;
       }
-    })).catch(() => runInAction(() => { thread.naming = false; }));
+    })).catch(err => {
+      // Auto-naming is best-effort, but a silent swallow hid real failures
+      // (e.g. every cheap model rejecting the request). Log it so a broken
+      // namer is visible during harness iteration; the thread keeps its
+      // fallback title either way.
+      console.warn('[chat] auto-naming failed; keeping fallback title', err);
+      runInAction(() => { thread.naming = false; });
+    });
   }
 
   private async executeToolCalls(calls: ToolCall[], threadId: string, signal: AbortSignal): Promise<ToolResult[]> {

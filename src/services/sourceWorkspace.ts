@@ -2,7 +2,7 @@
 // Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
 // Invariant: services normalize legacy data before handing snapshots back to stores.
 import { invoke } from '@tauri-apps/api/core';
-import { isTauri } from './system/runtime';
+import { isTauri } from '../core/runtime';
 
 export interface SourceWorkspaceStatus {
   available: boolean;

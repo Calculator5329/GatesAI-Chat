@@ -5,6 +5,7 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import type { MenuSectionKey } from '../core/types';
 import {
   type Route,
+  formatHash,
   readRoute,
   subscribeRoute,
   writeRoute,
@@ -38,6 +39,19 @@ export class RouterStore {
     const next: Route = { kind: 'menu', section };
     this.route = next;
     writeRoute(next);
+  }
+
+  /**
+   * Full href for a thread route, suitable for an `<a href>` so middle-click
+   * and Ctrl/Cmd-click open the thread the way users expect. Keeps hash
+   * formatting behind the store facade so UI never imports services/router.
+   */
+  hrefForThread(threadId: string | null): string {
+    const hash = formatHash({ kind: 'thread', threadId });
+    if (typeof window === 'undefined') return hash;
+    const url = new URL(window.location.href);
+    url.hash = hash;
+    return url.toString();
   }
 
   get isMenu(): boolean { return this.route.kind === 'menu'; }

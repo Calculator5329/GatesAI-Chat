@@ -5,12 +5,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import { useBridgeStore, useImageJobStore } from '../../../stores/context';
-import type { CompletedJob } from '../../../services/image/jobs/types';
+import type { CompletedJob } from '../../../stores/ImageJobStore';
 import { Button } from '../../ui';
-import { Lightbox } from '../../editorial/Lightbox';
-import { loadImageSource } from '../../editorial/useImageDataUrl';
+import { Lightbox } from '../../media/Lightbox';
+import { loadImageSource } from '../../media/useImageDataUrl';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
-import { isWebLite } from '../../../services/system/runtime';
+import { isWebLite } from '../../../core/runtime';
 
 interface LightboxState {
   paths: string[];

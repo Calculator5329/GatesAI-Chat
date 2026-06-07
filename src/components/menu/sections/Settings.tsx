@@ -5,13 +5,8 @@ import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import { Button, Card, SettingsRow } from '../../ui';
-import { useRootStore, useRouterStore } from '../../../stores/context';
-import { isWebLite } from '../../../services/system/runtime';
-import {
-  clearLocalDataExceptCredentials,
-  formatBytes,
-  readLocalDataUsage,
-} from '../../../services/storage/webLiteLocalData';
+import { useRootStore, useRouterStore, useUiStore } from '../../../stores/context';
+import { isWebLite } from '../../../core/runtime';
 
 export const SettingsSection = observer(function SettingsSection() {
   const router = useRouterStore();
@@ -257,7 +252,8 @@ const DangerZone = observer(function DangerZone() {
 });
 
 function WebLiteBrowserData() {
-  const [usage, setUsage] = useState(() => readLocalDataUsage());
+  const ui = useUiStore();
+  const [usage, setUsage] = useState(() => ui.localDataUsage());
   const [confirming, setConfirming] = useState(false);
   const [cleared, setCleared] = useState(false);
   if (!isWebLite()) return null;
@@ -267,8 +263,8 @@ function WebLiteBrowserData() {
   const nonCredentialSlots = usage.filter(slot => !slot.credential && slot.present);
 
   const clear = (): void => {
-    clearLocalDataExceptCredentials();
-    const next = readLocalDataUsage();
+    ui.clearLocalDataExceptCredentials();
+    const next = ui.localDataUsage();
     setUsage(next);
     setConfirming(false);
     setCleared(true);
@@ -285,7 +281,7 @@ function WebLiteBrowserData() {
         </div>
         <div className="settings-data-summary" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, marginTop: 12, fontSize: 12 }}>
           <div style={{ color: 'var(--text-dim)' }}>Tracked local data</div>
-          <div style={{ ...tokens.mono, color: 'var(--text-faint)' }}>{formatBytes(total)}</div>
+          <div style={{ ...tokens.mono, color: 'var(--text-faint)' }}>{ui.formatBytes(total)}</div>
           <div style={{ color: 'var(--text-dim)' }}>Provider key slot</div>
           <div style={{ ...tokens.mono, color: keySlot?.present ? 'var(--accent)' : 'var(--text-faint)' }}>
             {keySlot?.present ? 'present' : 'empty'}
@@ -306,7 +302,7 @@ function WebLiteBrowserData() {
                 background: 'color-mix(in srgb, var(--panel) 80%, transparent)',
               }}
             >
-              {slot.label} · {formatBytes(slot.bytes)}
+              {slot.label} · {ui.formatBytes(slot.bytes)}
             </span>
           ))}
         </div>

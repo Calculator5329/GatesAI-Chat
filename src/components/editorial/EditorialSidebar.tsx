@@ -6,7 +6,6 @@ import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { MenuSectionKey, Thread } from '../../core/types';
 import { useChatStore, useRouterStore } from '../../stores/context';
-import { formatHash } from '../../services/router';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
 
@@ -274,7 +273,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
             className="editorial-mobile-topbar__share"
             aria-label="Copy link"
             title="Copy link"
-            onClick={() => void navigator.clipboard?.writeText(threadUrl(chat.activeThreadId))}
+            onClick={() => void navigator.clipboard?.writeText(router.hrefForThread(chat.activeThreadId))}
           >
             <Icons.Share />
           </button>
@@ -492,10 +491,3 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
     </div>
   );
 });
-
-function threadUrl(threadId: string | null): string {
-  if (typeof window === 'undefined') return formatHash({ kind: 'thread', threadId });
-  const url = new URL(window.location.href);
-  url.hash = formatHash({ kind: 'thread', threadId });
-  return url.toString();
-}
