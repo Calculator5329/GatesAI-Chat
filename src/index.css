@@ -435,27 +435,41 @@
 /* --- Hover-revealed surfaces ---------------------------------------------
    Design principle: controls stay out of sight until the moment the user
    reaches for them. The thread search box reveals when the sidebar is hovered
-   or focused; the composer's context/thinking selects slide out when the
-   composer is engaged. Both are scoped to fine-pointer (mouse) devices so
-   touch users — who can't hover — always see the controls. */
+   or focused; it overlays the chrome above the list (zero-height anchor) so
+   conversation history does not jump. The composer's context/thinking selects
+   slide out when the composer is engaged. Both are scoped to fine-pointer
+   (mouse) devices so touch users — who can't hover — always see the controls. */
 
 @media (hover: hover) and (pointer: fine) and (min-width: 961px) {
-  .editorial-sidebar__search {
-    height: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    border-width: 0 !important;
-    opacity: 0;
-    overflow: hidden;
-    transition: height 180ms ease, opacity 150ms ease,
-                margin 180ms ease, border-width 180ms ease;
+  .editorial-sidebar__search-wrap {
+    flex: none;
+    height: 0;
+    position: relative;
+    overflow: visible;
+    z-index: 2;
   }
-  .editorial-sidebar:hover .editorial-sidebar__search,
-  .editorial-sidebar:focus-within .editorial-sidebar__search {
+
+  .editorial-sidebar__search {
+    position: absolute;
+    top: -40px;
+    left: 16px;
+    right: 16px;
+    width: auto !important;
     height: 30px !important;
-    margin-bottom: 10px !important;
-    border-width: 1px !important;
+    margin: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition: opacity 150ms ease, transform 150ms ease;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  }
+
+  .editorial-sidebar:hover .editorial-sidebar__search,
+  .editorial-sidebar:focus-within .editorial-sidebar__search,
+  .editorial-sidebar__search:not(:placeholder-shown) {
     opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
   }
 }
 
@@ -486,62 +500,44 @@
 
 /* --- First-run menu discovery cue ----------------------------------------
    The GatesAI wordmark is the only entry point to the menu (the old composer
-   "Menu" button was retired). For first-time users we wrap the wordmark in a
-   pulsing accent halo and drop a clickable coachmark beneath it pointing back
-   up, so it reads unmistakably as "the menu / settings live here". Both clear
-   the moment the user opens the menu through it. */
-@keyframes gatesBrandHalo {
-  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
-  70%  { box-shadow: 0 0 0 11px color-mix(in srgb, var(--accent) 0%, transparent); }
-  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+   "Menu" button was retired). Rather than recolour the wordmark itself, we
+   leave it calm and drop a soft coachmark beneath it pointing back up, so it
+   reads as "the menu / settings live here". It fades in on first open, then
+   dismisses itself after a few seconds (or the moment the user clicks it). */
+@keyframes gatesCoachIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Looping attention pulse so the first-run cue is impossible to miss. */
+@keyframes gatesCoachPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  55%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent); }
 }
 @keyframes gatesBrandDotPulse {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.5); box-shadow: 0 0 10px 2px var(--accent-glow); }
-}
-.editorial-sidebar__brand[data-hint="true"] {
-  cursor: pointer;
-}
-/* Halo hugs just the wordmark+dot group; negative margins cancel the padding
-   so adding the highlight never nudges the layout. */
-.editorial-sidebar__brand[data-hint="true"] > div:first-child {
-  border-radius: 9px;
-  padding: 4px 10px;
-  margin: -4px -10px;
-  background: color-mix(in srgb, var(--accent) 13%, transparent);
-  animation: gatesBrandHalo 1.8s ease-out infinite;
-}
-.editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-text {
-  color: var(--accent);
-  text-shadow: 0 0 14px var(--accent-glow);
-}
-.editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot {
-  animation: gatesBrandDotPulse 1.8s ease-in-out infinite;
-}
-
-@keyframes gatesCoachPulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 42%, transparent); }
-  60%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+  50%      { transform: scale(1.6); box-shadow: 0 0 10px 2px var(--accent-glow); }
 }
 .editorial-sidebar__menu-coach {
   position: relative;
   margin: 2px 16px 14px;
-  padding: 8px 11px;
+  padding: 9px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
-  font: 500 11.5px "Geist", ui-sans-serif, system-ui, sans-serif;
+  font: 600 12px "Geist", ui-sans-serif, system-ui, sans-serif;
   text-align: left;
   color: var(--text);
-  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
+  background: color-mix(in srgb, var(--accent) 20%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
   border-radius: 9px;
   cursor: pointer;
-  animation: gatesCoachPulse 1.9s ease-in-out infinite;
+  animation:
+    gatesCoachIn 0.35s ease-out both,
+    gatesCoachPulse 1.9s ease-in-out 0.35s infinite;
 }
 .editorial-sidebar__menu-coach:hover {
-  background: color-mix(in srgb, var(--accent) 26%, var(--panel));
-  border-color: color-mix(in srgb, var(--accent) 65%, var(--border));
+  background: color-mix(in srgb, var(--accent) 30%, var(--panel));
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
 }
 /* Up-caret pointing at the wordmark above. */
 .editorial-sidebar__menu-coach::before {
@@ -551,9 +547,9 @@
   left: 22px;
   width: 9px;
   height: 9px;
-  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
-  border-left: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
-  border-top: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
+  background: color-mix(in srgb, var(--accent) 20%, var(--panel));
+  border-left: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-top: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
   transform: rotate(45deg);
 }
 .editorial-sidebar__menu-coach-dot {
@@ -562,16 +558,45 @@
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 8px var(--accent-glow);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+/* While the cue is live, the wordmark's accent dot breathes to draw the eye
+   to the actual button (the coachmark just below explains what it opens). */
+.editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot {
+  animation: gatesBrandDotPulse 1.9s ease-in-out infinite;
+}
+
+/* The menu tab strip scrolls horizontally on narrow widths, but the native
+   scrollbar reads as a stray bar across the header. Hide it; the tabs still
+   scroll via wheel/trackpad/touch. */
+.gates-menu__tabs {
+  scrollbar-width: none;
+}
+.gates-menu__tabs::-webkit-scrollbar {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .composer-reveal { transition: none; }
-  .editorial-sidebar__brand[data-hint="true"] > div:first-child,
-  .editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot,
-  .editorial-sidebar__menu-coach {
+  .editorial-sidebar__menu-coach,
+  .editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot {
     animation: none;
   }
+}
+
+/* Inline accent links inside Settings copy — consistent with the app accent
+   instead of standalone pill buttons. */
+.settings-inline-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.settings-inline-link:hover {
+  border-bottom-color: var(--accent);
 }
 
 .settings-quick-actions {

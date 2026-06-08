@@ -11,6 +11,8 @@ import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
 
 const UNDO_TIMEOUT_MS = 8000;
+// First-run menu coach: show it briefly, then bow out on its own so it never nags.
+const MENU_HINT_TIMEOUT_MS = 9000;
 const SEARCH_DEBOUNCE_MS = 120;
 const SEARCH_RESULT_LIMIT = 100;
 const MENU_LABELS: Record<MenuSectionKey, string> = {
@@ -142,8 +144,8 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileShell, setMobileShell] = useState(false);
-  // First-run cue: pulse the brand wordmark until the user opens the menu
-  // through it. State + persistence live in UiStore (no direct storage here).
+  // First-run cue: surface the menu coachmark until the user opens the menu.
+  // State + persistence live in UiStore (no direct storage here).
   const showMenuHint = !ui.menuHintSeen && !onMenu;
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const mobileMenuTitle = MENU_LABELS[router.menuSection] ?? 'Menu';
@@ -167,6 +169,14 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     const timer = setTimeout(() => setUndo(null), UNDO_TIMEOUT_MS);
     return () => clearTimeout(timer);
   }, [undo]);
+
+  // Let the first-run menu coach linger just long enough to be noticed, then
+  // dismiss itself. Clicking it (or opening the menu) marks it seen sooner.
+  useEffect(() => {
+    if (!showMenuHint) return;
+    const timer = setTimeout(() => ui.markMenuHintSeen(), MENU_HINT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [showMenuHint, ui]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -308,7 +318,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     >
       <div
         className="editorial-sidebar__brand"
-        data-hint={showMenuHint || undefined}
+        data-hint={showMenuHint && !mobileShell ? 'true' : undefined}
         style={S.head as CSSProperties}
         onClick={() => {
           if (mobileShell) {
@@ -380,15 +390,17 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           </button>
         </div>
       )}
-      <input
-        className="editorial-sidebar__search"
-        type="search"
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        placeholder="Search threads"
-        aria-label="Search threads"
-        style={S.search as CSSProperties}
-      />
+      <div className="editorial-sidebar__search-wrap">
+        <input
+          className="editorial-sidebar__search"
+          type="search"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search threads"
+          aria-label="Search threads"
+          style={S.search as CSSProperties}
+        />
+      </div>
       <div className="editorial-sidebar__list" style={S.list as CSSProperties}>
         {pinned.length > 0 && <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Pinned</div>}
         {pinned.map(renderItem)}
