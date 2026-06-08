@@ -11,10 +11,9 @@ import type {
 import { BridgeOfflineError } from '../bridge/client';
 import { decodeFsRead } from './textDecode';
 import {
+  denyProtectedChatHistoryPath,
   filterProtectedChatHistoryEntries,
   filterProtectedChatHistoryHits,
-  isProtectedChatHistoryPath,
-  isProtectedChatHistoryScope,
 } from './protectedWorkspacePaths';
 import type { Tool } from './types';
 
@@ -249,7 +248,10 @@ async function doList(args: Record<string, unknown>, ctx: Parameters<Tool['execu
   const recursive = args.recursive === true;
   const resp = await ctx.bridge!.client.request<FsListResp>('fs.list', { path, recursive });
   const rawEntries = Array.isArray(resp.entries) ? resp.entries : [];
-  const entries = recursive ? filterProtectedChatHistoryEntries(rawEntries) : rawEntries;
+  // Filter protected chat-history entries from EVERY listing, not just
+  // recursive ones — a plain `list /workspace` or `list /workspace/.gatesai`
+  // would otherwise reveal the protected directory names (audit C3).
+  const entries = filterProtectedChatHistoryEntries(rawEntries);
   if (entries.length === 0) return `${resp.path} is empty.`;
   const lines = entries.map(e => {
     const tag = e.kind === 'dir' ? 'd' : '-';
@@ -318,14 +320,29 @@ function validateProtectedChatHistoryAccess(action: string, args: Record<string,
   const from = strArg(args, 'from');
   const to = strArg(args, 'to');
   const paths = [path, from, to].filter(Boolean);
-  if (paths.some(isProtectedChatHistoryPath)) {
-    return 'Error: app-managed chat history files are not exposed through fs. Use the `chat_history` tool instead.';
+  for (const candidate of paths) {
+    const denial = denyProtectedChatHistoryPath(
+      'fs',
+      candidate,
+      'Error: app-managed chat history files are not exposed through fs. Use the `chat_history` tool instead.',
+    );
+    if (denial) return denial;
   }
-  if (action === 'search' && path && isProtectedChatHistoryScope(path)) {
-    return 'Error: app-managed chat history files are not exposed through fs.search. Use the `chat_history` tool instead.';
+  if (action === 'search' && path) {
+    const denial = denyProtectedChatHistoryPath(
+      'fs.search',
+      path,
+      'Error: app-managed chat history files are not exposed through fs.search. Use the `chat_history` tool instead.',
+    );
+    if (denial) return denial;
   }
-  if (action === 'list' && path && isProtectedChatHistoryScope(path)) {
-    return 'Error: app-managed chat history files are not exposed through fs.list. Use the `chat_history` tool instead.';
+  if (action === 'list' && path) {
+    const denial = denyProtectedChatHistoryPath(
+      'fs.list',
+      path,
+      'Error: app-managed chat history files are not exposed through fs.list. Use the `chat_history` tool instead.',
+    );
+    if (denial) return denial;
   }
   return null;
 }

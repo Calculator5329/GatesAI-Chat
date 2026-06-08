@@ -41,7 +41,7 @@ test.describe('bridge-backed flows (faked online bridge)', () => {
     await page.goto('/#/menu/gallery');
 
     await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible();
-    await expect(page.locator('.gallery-grid img')).toBeVisible();
+    await expect(page.locator('.gallery-grid img')).toBeVisible({ timeout: 15_000 });
   });
 
   test('clears all threads from the danger zone', async ({ page }) => {

@@ -318,6 +318,14 @@ describe('fs tool', () => {
     expect(out).toMatch(/chat_history/);
   });
 
+  it('denies direct reads of the readable chat-history mirror', async () => {
+    const out = await fsTool.execute(
+      { action: 'read', path: '/workspace/chat-history/conversations/t1.html' },
+      makeCtx({ bridge: fakeBridge({ online: true }) }),
+    );
+    expect(out).toMatch(/chat_history/);
+  });
+
   it('denies writes and deletes inside app-managed chat history scope', async () => {
     const ctx = makeCtx({ bridge: fakeBridge({ online: true }) });
 
@@ -527,6 +535,23 @@ describe('terminal tool', () => {
     expect(out).toMatch(/`cmd` is required/);
   });
 
+  it('rejects commands that read protected chat-history mirror files', async () => {
+    const requests: FakeRequest[] = [];
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        requests,
+        respond: () => ({ exit_code: 0, duration_ms: 1, stdout: 'secret', stderr: '' }),
+      }),
+    });
+    const out = await terminalTool.execute(
+      { cmd: 'cat', args: ['/workspace/chat-history/conversations/t1.html'] },
+      ctx,
+    );
+    expect(out).toMatch(/chat_history/);
+    expect(requests).toHaveLength(0);
+  });
+
   it('formats stdout / stderr / exit code in the result', async () => {
     const requests: FakeRequest[] = [];
     const ctx = makeCtx({
@@ -572,6 +597,16 @@ describe('terminal tool', () => {
 });
 
 describe('python_inline tool', () => {
+  it('rejects inline Python that reads protected chat-history paths', async () => {
+    const requests: FakeRequest[] = [];
+    const ctx = makeCtx({ bridge: fakeBridge({ online: true, requests }) });
+    const out = await pythonInlineTool.execute({
+      code: 'print(open("/workspace/chat-history/index.html").read())',
+    }, ctx);
+    expect(out).toMatch(/chat_history/);
+    expect(requests).toHaveLength(0);
+  });
+
   it('runs short Python snippets through python argv directly', async () => {
     const requests: FakeRequest[] = [];
     const ctx = makeCtx({
@@ -616,6 +651,17 @@ describe('python_inline tool', () => {
 });
 
 describe('sqlite_query tool', () => {
+  it('rejects queries against protected chat-history database paths', async () => {
+    const requests: FakeRequest[] = [];
+    const ctx = makeCtx({ bridge: fakeBridge({ online: true, requests }) });
+    const out = await sqliteQueryTool.execute({
+      path: 'chat-history/conversations/t1.sqlite',
+      sql: 'SELECT 1',
+    }, ctx);
+    expect(out).toMatch(/chat_history/);
+    expect(requests).toHaveLength(0);
+  });
+
   it('runs a scoped SQLite query through a Python helper instead of sqlite shell', async () => {
     const requests: FakeRequest[] = [];
     const ctx = makeCtx({

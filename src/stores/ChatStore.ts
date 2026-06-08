@@ -6,7 +6,17 @@ import type { ActivityDetail, ActivityItem, AssistantFinishReason, AssistantMess
 import type { LlmProvider, LlmRequest, LlmUsage, ThinkingEffort, ToolCall, ToolDef } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
-import { consumeSnapshotLoadError, flushPendingSnapshot, loadSnapshot, saveSnapshot, scheduleSaveSnapshot } from '../services/persistence';
+import {
+  CHAT_SNAPSHOT_STORAGE_KEY,
+  cancelPendingDeferredSnapshot,
+  consumeSnapshotLoadError,
+  flushPendingSnapshot,
+  loadSnapshot,
+  saveSnapshot,
+  scheduleSaveSnapshot,
+  setCompactionNoticeHandler,
+} from '../services/persistence';
+import { setMultiTabWriteHandler } from '../services/storage/persistenceProvider';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, estimateTokens, type TokenUsage } from '../core/tokens';
 import { flattenForWire } from '../services/llm/wireFormat';
 import { resolveWireImages } from '../services/llm/resolveImages';
@@ -81,6 +91,28 @@ function createEmptyThread(now = Date.now()): Thread {
     modelId: DEFAULT_MODEL_ID,
     messages: [],
   };
+}
+
+/**
+ * Read nested thread/message fields purely to register MobX dependencies for
+ * the persistence reaction. That reaction observes `snapshot` (the `threads`
+ * array identity + `activeThreadId`), which does NOT track in-place edits like
+ * appended messages, streamed tokens, renames, or summaries — those mutate
+ * fields inside existing thread/message objects. Touching the fields here makes
+ * those mutations invalidate the reaction so the throttled save runs. Returns a
+ * cheap numeric signature so the reads aren't dead-code-eliminated.
+ */
+function trackSnapshotDeep(threads: Thread[]): number {
+  let signature = threads.length;
+  for (const thread of threads) {
+    signature += thread.title.length + thread.updatedAt + thread.messages.length;
+    if (thread.pinned) signature += 1;
+    if (thread.deletedAt != null) signature += thread.deletedAt;
+    if (thread.summary) signature += thread.summary.length;
+    if (thread.threadContext) signature += thread.threadContext.length;
+    for (const message of thread.messages) signature += message.content.length;
+  }
+  return signature;
 }
 
 function normalizeActiveThreadId(threads: Thread[], activeThreadId: string | null): string | null {
@@ -220,7 +252,13 @@ export class ChatStore {
   threads: Thread[] = [];
   activeThreadId: string | null = null;
   streamingByThread: Record<string, string> = {};
-  lastError: string | null = null;
+  /** Per-thread send/stream errors; only the active thread surfaces via `lastError`. */
+  lastErrorByThread: Record<string, string> = {};
+  /** Set when another tab writes chat storage; local saves pause until dismissed. */
+  persistenceConflict: string | null = null;
+  /** User-visible notice after an emergency compaction save. */
+  compactionNotice: string | null = null;
+  private persistPaused = false;
 
   private readonly providers: ProviderStore;
   private readonly registry: ModelRegistry;
@@ -263,8 +301,27 @@ export class ChatStore {
       this.threads = [thread];
       this.activeThreadId = thread.id;
     }
-    this.lastError = consumeSnapshotLoadError();
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'workspacePersistence' | 'workspacePersistenceReady' | 'workspacePersistenceHydrating' | 'pendingWorkspaceSnap' | 'workspaceSaveInFlight' | 'persistenceCleanup' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
+    const snapshotLoadError = consumeSnapshotLoadError();
+    if (snapshotLoadError && this.activeThreadId) {
+      this.setThreadLastError(this.activeThreadId, snapshotLoadError);
+    }
+    setMultiTabWriteHandler(key => {
+      if (key !== CHAT_SNAPSHOT_STORAGE_KEY) return;
+      logger.warn('persistence', 'Chat autosave paused after cross-tab write', { key });
+      runInAction(() => {
+        this.persistenceConflict =
+          'Another browser tab updated chat history. Saving is paused until you reload or dismiss this warning.';
+        this.persistPaused = true;
+      });
+      // Drop any save already queued for a microtask so it can't fire after the
+      // pause and clobber the other tab's write.
+      cancelPendingDeferredSnapshot();
+    });
+    setCompactionNoticeHandler(message => {
+      logger.info('persistence', 'Emergency chat compaction notice shown', { message });
+      runInAction(() => { this.compactionNotice = message; });
+    });
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'workspacePersistence' | 'workspacePersistenceReady' | 'workspacePersistenceHydrating' | 'pendingWorkspaceSnap' | 'workspaceSaveInFlight' | 'persistenceCleanup' | 'recentSummariesProvider' | 'toolStoresProvider' | 'persistPaused'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -278,6 +335,7 @@ export class ChatStore {
       persistenceCleanup: false,
       recentSummariesProvider: false,
       toolStoresProvider: false,
+      persistPaused: false,
     });
 
     // Leading-edge + trailing-throttle the snapshot save: streaming fires
@@ -304,6 +362,12 @@ export class ChatStore {
     };
     const stopPersistAutorun = autorun(() => {
       const snap = this.snapshot;
+      // Subscribe to nested thread/message fields. `snapshot` only tracks the
+      // threads array + activeThreadId, so without this an appended message or
+      // streamed token would never trigger a save (the bug where a single fresh
+      // conversation was lost on reload). The throttle below still bounds how
+      // often we actually write.
+      trackSnapshotDeep(this.threads);
       const now = Date.now();
       const elapsed = now - lastSaveAt;
       if (elapsed >= FLUSH_MS) {
@@ -320,13 +384,13 @@ export class ChatStore {
     let removeUnloadListeners = (): void => {};
     const syncFlush = (): void => {
       if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
-      if (pendingSnap) {
+      if (pendingSnap && !this.persistPaused) {
         saveSnapshot(pendingSnap);
         this.scheduleWorkspaceSnapshotSave(pendingSnap);
         lastSaveAt = Date.now();
         pendingSnap = null;
       }
-      flushPendingSnapshot();
+      if (!this.persistPaused) flushPendingSnapshot();
     };
     if (typeof window !== 'undefined') {
       // Unload paths must persist synchronously — drain the throttle queue
@@ -356,6 +420,11 @@ export class ChatStore {
 
   get activeThread(): Thread | null {
     return this.threads.find(t => t.id === this.activeThreadId) ?? null;
+  }
+
+  /** Error banner text for the active thread only. */
+  get lastError(): string | null {
+    return this.activeThreadId ? (this.lastErrorByThread[this.activeThreadId] ?? null) : null;
   }
 
   get llmSpendByThread(): Record<string, number> {
@@ -388,8 +457,17 @@ export class ChatStore {
       if (loaded.kind === 'loaded') {
         const localSnapshot = this.snapshot;
         if (snapshotLatestUpdatedAt(localSnapshot) > snapshotLatestUpdatedAt(loaded.snapshot)) {
+          logger.warn('persistence', 'kept newer local chat over older workspace copy', {
+            localUpdatedAt: snapshotLatestUpdatedAt(localSnapshot),
+            workspaceUpdatedAt: snapshotLatestUpdatedAt(loaded.snapshot),
+          });
           runInAction(() => {
-            this.lastError = 'Workspace history was older than local chat history, so GatesAI kept the newer local copy.';
+            if (this.activeThreadId) {
+              this.setThreadLastError(
+                this.activeThreadId,
+                'Workspace history was older than local chat history, so GatesAI kept the newer local copy.',
+              );
+            }
           });
           await persistence.save(localSnapshot, 'local-newer-than-workspace');
         } else {
@@ -649,8 +727,13 @@ export class ChatStore {
   }
 
   recordActivityEvent(event: ActivityItem): void {
-    const threadId = this.activeThreadId;
-    if (!threadId) return;
+    const streamingIds = Object.keys(this.streamingByThread);
+    if (streamingIds.length === 0) return;
+    // Attach bridge/tool activity to the thread that is actually streaming,
+    // not necessarily the sidebar-active thread (background streams).
+    const threadId = (this.activeThreadId && this.streamingByThread[this.activeThreadId])
+      ? this.activeThreadId
+      : streamingIds[0];
     const messageId = this.streamingByThread[threadId];
     if (!messageId) return;
     const message = this.findMessage(threadId, messageId);
@@ -740,25 +823,39 @@ export class ChatStore {
 
   /**
    * Rename a thread. Used by the `thread` tool and any future inline-rename
-   * UI. No-op if the id is unknown.
+   * UI. Sets `autoNamed: true` so `maybeAutoName` never overwrites manual titles.
    */
   renameThread(threadId: string, title: string): void {
     const idx = this.threads.findIndex(t => t.id === threadId);
     if (idx < 0) return;
     const next = title.trim();
-    this.threads[idx] = { ...this.threads[idx], title: next || 'Untitled conversation' };
+    this.threads[idx] = {
+      ...this.threads[idx],
+      title: next || 'Untitled conversation',
+      autoNamed: true,
+    };
     this.schedulePersistSnapshot(this.snapshot);
   }
 
   clearAllThreads(): void {
+    this.abortAllStreams();
+    const thread = createEmptyThread();
+    this.threads = [thread];
+    this.activeThreadId = thread.id;
+    this.lastErrorByThread = {};
+  }
+
+  /**
+   * Abort every in-flight stream and drop all streaming bookkeeping. Used when
+   * the thread list is about to be wholesale replaced (clear-all, cross-tab
+   * reload) so an abandoned `runTurn` can't keep appending tokens or fire
+   * `maybeAutoName` into the freshly-loaded state.
+   */
+  private abortAllStreams(): void {
     for (const controller of this.controllersByThread.values()) controller.abort();
     this.controllersByThread.clear();
     this.textBuffer.cancelAll();
     this.streamingByThread = {};
-    const thread = createEmptyThread();
-    this.threads = [thread];
-    this.activeThreadId = thread.id;
-    this.lastError = null;
   }
 
   clearThreadMemory(): void {
@@ -785,13 +882,20 @@ export class ChatStore {
   softDeleteThread(threadId: string): void {
     const thread = this.findThread(threadId);
     if (!thread || thread.deletedAt != null) return;
-    const controller = this.controllersByThread.get(threadId);
-    if (controller) {
-      controller.abort();
-      this.controllersByThread.delete(threadId);
+    // Stop any in-flight stream the same way an explicit interrupt does, so a
+    // restored thread shows the `*[interrupted]*` / `*[no response]*` marker
+    // instead of a silently truncated reply.
+    if (this.isThreadStreaming(threadId)) {
+      this.interruptThread(threadId);
+    } else {
+      const controller = this.controllersByThread.get(threadId);
+      if (controller) {
+        controller.abort();
+        this.controllersByThread.delete(threadId);
+      }
+      this.textBuffer.cancel(threadId);
+      delete this.streamingByThread[threadId];
     }
-    this.textBuffer.cancel(threadId);
-    delete this.streamingByThread[threadId];
     thread.deletedAt = Date.now();
     if (this.activeThreadId === threadId) {
       const next = this.visibleThreads[0];
@@ -890,7 +994,7 @@ export class ChatStore {
       this.interruptThread(thread.id);
     }
 
-    this.lastError = null;
+    this.setThreadLastError(thread.id, null);
 
     const attachmentFooter = formatAttachmentFooter(attachments);
     const refs = attachments.map(toMessageAttachmentRef);
@@ -910,7 +1014,8 @@ export class ChatStore {
 
     this.runTurn(targetThreadId, controller.signal, isReplacingInterruptedReply)
       .catch(err => runInAction(() => {
-        this.lastError = (err as Error).message;
+        logger.error('chat', 'runTurn failed', { threadId: targetThreadId, err });
+        this.setThreadLastError(targetThreadId, (err as Error).message);
         if (this.controllersByThread.get(targetThreadId) === controller) {
           this.clearStreamingState(targetThreadId);
         }
@@ -922,12 +1027,13 @@ export class ChatStore {
     if (!thread || thread.messages.length === 0) return;
     if (this.isThreadStreaming(thread.id)) this.interruptThread(thread.id);
     this.activeThreadId = thread.id;
-    this.lastError = null;
+    this.setThreadLastError(thread.id, null);
     const controller = new AbortController();
     this.controllersByThread.set(thread.id, controller);
     this.runTurn(thread.id, controller.signal, isReplacingInterruptedReply)
       .catch(err => runInAction(() => {
-        this.lastError = (err as Error).message;
+        logger.error('chat', 'runTurn failed', { threadId: thread.id, err });
+        this.setThreadLastError(thread.id, (err as Error).message);
         if (this.controllersByThread.get(thread.id) === controller) {
           this.clearStreamingState(thread.id);
         }
@@ -962,6 +1068,11 @@ export class ChatStore {
     this.controllersByThread.delete(threadId);
   }
 
+  /**
+   * True while this message still owns the active stream slot for the thread.
+   * After interrupt-and-resend or `clearStreamingState`, abandoned `runTurn`
+   * work must not write tokens, set finishReason, or call `maybeAutoName`.
+   */
   private ownsStreamingTurn(threadId: string, messageId: string): boolean {
     return this.streamingByThread[threadId] === messageId;
   }
@@ -1041,10 +1152,11 @@ export class ChatStore {
         ({ provider, providerModelId } = this.providers.router.resolve(thread.modelId));
       } catch (err) {
         const msg = (err as Error).message;
+        logger.warn('chat', 'model resolve failed', { threadId, modelId: thread.modelId, error: msg });
         logEvent(thread.id, 'round.resolveError', { round, modelId: thread.modelId, error: msg });
         this.textBuffer.flush(assistantMessage.id);
         runInAction(() => {
-          this.lastError = msg;
+          this.setThreadLastError(threadId, msg);
           const m = this.findMessage(threadId, assistantMessage.id);
           if (m && m.role === 'assistant') {
             m.content = `_Error: ${msg}_`;
@@ -1097,7 +1209,7 @@ export class ChatStore {
       if (requestedTokens > contextWindow) {
         const message = formatOversizedContextMessage(requestedTokens, contextWindow);
         runInAction(() => {
-          this.lastError = message;
+          this.setThreadLastError(threadId, message);
           const m = this.findMessage(threadId, assistantMessage.id);
           if (m && m.role === 'assistant') {
             m.content = message;
@@ -1139,6 +1251,7 @@ export class ChatStore {
           return;
         }
         logEvent(thread.id, 'round.exception', { round, error: (err as Error).message, stack: (err as Error).stack });
+        logger.error('chat', 'provider stream exception', { threadId, round, err });
         errored = true;
         errorMessage = (err as Error).message;
       }
@@ -1154,18 +1267,25 @@ export class ChatStore {
 
       if (errored && errorMessage) {
         this.textBuffer.flush(assistantMessage.id);
-        runInAction(() => {
-          this.lastError = errorMessage ?? 'unknown error';
-          const m = this.findMessage(threadId, assistantMessage.id);
-          if (m && m.role === 'assistant') {
-            m.finishReason = 'error';
-            const recovery = formatProviderErrorRecovery(m, errorMessage ?? 'unknown error');
-            m.content = m.content.trim()
-              ? `${m.content.trimEnd()}\n\n${recovery}`
-              : recovery;
-            this.touchMessage(threadId, assistantMessage.id);
-          }
-        });
+        if (!this.ownsStreamingTurn(threadId, assistantMessage.id)) {
+          logger.warn('chat', 'skipped stale turn error finalization', {
+            threadId,
+            messageId: assistantMessage.id,
+          });
+        } else {
+          runInAction(() => {
+            this.setThreadLastError(threadId, errorMessage ?? 'unknown error');
+            const m = this.findMessage(threadId, assistantMessage.id);
+            if (m && m.role === 'assistant') {
+              m.finishReason = 'error';
+              const recovery = formatProviderErrorRecovery(m, errorMessage ?? 'unknown error');
+              m.content = m.content.trim()
+                ? `${m.content.trimEnd()}\n\n${recovery}`
+                : recovery;
+              this.touchMessage(threadId, assistantMessage.id);
+            }
+          });
+        }
       }
 
       if (!errored && collectedCalls.length === 0 && activeModel?.providerId === 'ollama' && request.tools?.length) {
@@ -1227,18 +1347,20 @@ export class ChatStore {
         this.textBuffer.flush(assistantMessage.id);
         // Final round (no calls) or terminal error — keep whatever prose
         // was streamed and stop.
-        runInAction(() => {
-          const m = this.findMessage(threadId, assistantMessage.id);
-          if (m && m.role === 'assistant' && finishReason) {
-            m.finishReason = finishReason;
-          }
-          if (finishReason === 'content_filter') {
-            this.lastError = 'The provider filtered this response before it finished.';
-          }
-          this.touchMessage(threadId, assistantMessage.id);
-          this.clearStreamingState(threadId, assistantMessage.id);
-        });
-        this.maybeAutoName(threadId, assistantMessage);
+        if (this.ownsStreamingTurn(threadId, assistantMessage.id)) {
+          runInAction(() => {
+            const m = this.findMessage(threadId, assistantMessage.id);
+            if (m && m.role === 'assistant' && finishReason) {
+              m.finishReason = finishReason;
+            }
+            if (finishReason === 'content_filter') {
+              this.setThreadLastError(threadId, 'The provider filtered this response before it finished.');
+            }
+            this.touchMessage(threadId, assistantMessage.id);
+            this.clearStreamingState(threadId, assistantMessage.id);
+          });
+          this.maybeAutoName(threadId, assistantMessage);
+        }
         return;
       }
 
@@ -1248,17 +1370,19 @@ export class ChatStore {
       const repeat = repeatedSideEffectLoop(uniqueCollectedCalls, toolMessage);
       if (repeat) {
         this.textBuffer.flush(assistantMessage.id);
-        runInAction(() => {
-          const m = this.findMessage(threadId, assistantMessage.id);
-          if (m && m.role === 'assistant') {
-            const note = normalizeWorkNote(m.content);
-            if (note) m.workNotes = appendWorkNote(m.workNotes, note);
-            m.content = formatRepeatedSideEffectLoopMessage(repeat);
-            this.touchMessage(threadId, assistantMessage.id);
-          }
-          this.clearStreamingState(threadId, assistantMessage.id);
-        });
-        this.maybeAutoName(threadId, assistantMessage);
+        if (this.ownsStreamingTurn(threadId, assistantMessage.id)) {
+          runInAction(() => {
+            const m = this.findMessage(threadId, assistantMessage.id);
+            if (m && m.role === 'assistant') {
+              const note = normalizeWorkNote(m.content);
+              if (note) m.workNotes = appendWorkNote(m.workNotes, note);
+              m.content = formatRepeatedSideEffectLoopMessage(repeat);
+              this.touchMessage(threadId, assistantMessage.id);
+            }
+            this.clearStreamingState(threadId, assistantMessage.id);
+          });
+          this.maybeAutoName(threadId, assistantMessage);
+        }
         return;
       }
 
@@ -1304,7 +1428,7 @@ export class ChatStore {
       this.textBuffer.cancel(assistantMessage.id);
       const current = this.findMessage(threadId, assistantMessage.id);
       const message = formatToolRoundCapMessage(MAX_TOOL_ROUNDS, current && current.role === 'assistant' ? current : assistantMessage);
-      this.lastError = message;
+      this.setThreadLastError(threadId, message);
       if (current && current.role === 'assistant') {
         current.content = message;
         this.touchMessage(threadId, assistantMessage.id);
@@ -1434,13 +1558,23 @@ export class ChatStore {
    * the namer cascade. The `naming` flag is set transiently for the UI
    * typewriter animation and cleared whether or not the namer succeeds.
    *
-   * Skipped if: thread already auto-named, the user has manually typed
-   * a non-default title (heuristic: title ≠ first 40 chars of opener),
-   * or there's no opening user message.
+   * Skipped if there's no opening user message, or the thread's title is
+   * locked via `autoNamed`. `autoNamed` is set both after a successful
+   * auto-name and by `renameThread` (the `thread` tool / any future inline
+   * rename), so a user/tool-chosen title is never overwritten. The truncated
+   * provisional title set in `appendMessage` is intentionally *not* locked, so
+   * the first completed turn upgrades it to a real title.
    */
   private maybeAutoName(threadId: string, assistantMessage: AssistantMessage): void {
+    // NOTE: callers verify stream ownership *before* finalizing and clearing
+    // streaming state, then call this. We must NOT re-check `ownsStreamingTurn`
+    // here — by this point `clearStreamingState` has already run, so the check
+    // would always fail and silently disable auto-naming entirely.
     const thread = this.findThread(threadId);
-    if (!thread || thread.autoNamed) return;
+    // Skip if already named, currently naming (a second completed turn must not
+    // launch a parallel namer — flicker + wasted API calls), or soft-deleted (a
+    // returning namer would otherwise resurrect a title onto a deleted thread).
+    if (!thread || thread.autoNamed || thread.naming || thread.deletedAt != null) return;
     if (!this.providers.router.canRoute()) return;
     const opener = thread.messages.find(m => m.role === 'user');
     if (!opener) return;
@@ -1458,7 +1592,10 @@ export class ChatStore {
       this.providers.router,
     ).then(title => runInAction(() => {
       thread.naming = false;
-      if (title) {
+      // Re-check the lock + deletion: a manual `renameThread` (tool/UI) could
+      // have landed, or the thread could have been soft-deleted, while the async
+      // namer was in flight; never clobber a chosen title or revive a dead thread.
+      if (title && !thread.autoNamed && thread.deletedAt == null) {
         thread.title = title;
         thread.autoNamed = true;
       }
@@ -1797,6 +1934,7 @@ export class ChatStore {
     const stores = this.toolStoresProvider?.();
     const imageJobs = stores?.imageJobs;
     const imageGen = stores?.imageGen;
+    const comfyReady = stores?.localRuntime?.comfyReady ?? false;
     const prompt = latestUserPromptBody(thread).trim();
 
     runInAction(() => {
@@ -1817,12 +1955,23 @@ export class ChatStore {
         this.clearStreamingState(thread.id, assistantMessage.id);
         return;
       }
+      // Defense in depth: the picker hides direct-image models and the composer
+      // blocks send unless ComfyUI is ready, but never silently enqueue a job
+      // against an unavailable backend if a turn slips through.
+      if (!comfyReady) {
+        message.content = '_Direct image mode: ComfyUI is not running. Start and connect it in Local settings, then try again._';
+        this.touchMessage(thread.id, message.id);
+        this.clearStreamingState(thread.id, assistantMessage.id);
+        return;
+      }
 
-      const snapshot = imageGen.toBackendConfig();
       const activeModel = this.registry.findById(thread.modelId);
-      const comfyMode = snapshot.primary === 'local-comfy'
-        ? directImageComfyMode(activeModel?.providerModelId)
-        : undefined;
+      // Direct-image models are ComfyUI modes by construction (Draft / Normal /
+      // Upscale). Force the local-comfy backend and always derive the mode so
+      // the render matches what the picker promised, regardless of the global
+      // image-backend preference.
+      const backend = 'local-comfy' as const;
+      const comfyMode = directImageComfyMode(activeModel?.providerModelId);
       const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'render';
       const { jobId, count } = imageJobs.enqueue({
         threadId: thread.id,
@@ -1834,7 +1983,7 @@ export class ChatStore {
         // EmptyFlux2LatentImage will use these.
         width: 1024,
         height: 1024,
-        backend: snapshot.primary,
+        backend,
         comfyMode,
         filenamePrefix: slug,
       });
@@ -1842,8 +1991,8 @@ export class ChatStore {
       // Attach the image-job artifact via a synthetic tool-call/result
       // pair so EditorialMessage's existing artifact pipeline picks it up.
       const callId = newId('tc');
-      const backendLabel = imageBackendDisplayName(snapshot.primary);
-      const estimate = estimatedImageDuration(snapshot.primary);
+      const backendLabel = imageBackendDisplayName(backend);
+      const estimate = estimatedImageDuration(backend);
       message.content = `I queued an image through ${backendLabel}. It usually takes ${estimate}; I’ll drop the finished image here when it’s ready.`;
       message.preTokenLabel = undefined;
       message.toolCalls = [{
@@ -1883,6 +2032,7 @@ export class ChatStore {
   }
 
   private schedulePersistSnapshot(snapshot: ChatSnapshot): void {
+    if (this.persistPaused) return;
     scheduleSaveSnapshot(snapshot);
     this.scheduleWorkspaceSnapshotSave(snapshot);
   }
@@ -1941,11 +2091,18 @@ export class ChatStore {
 
   private appendMessage(threadId: string, message: Message): void {
     const thread = this.findThread(threadId);
-    if (!thread) return;
+    // Never write into a soft-deleted thread. A turn aborted by soft-delete can
+    // still have async tool results / image-job notifications in flight; letting
+    // them land would resurrect content if the user later hits Undo.
+    if (!thread || thread.deletedAt != null) return;
     thread.messages.push(message);
     thread.updatedAt = Date.now();
     if ((thread.title === 'New conversation' || !thread.title) && message.role === 'user') {
-      const title = message.content.replace(/\s+/g, ' ').slice(0, 40);
+      // Provisional placeholder only — derived from what the user typed, with
+      // the attachment footer stripped so it never leaks "[Attached: …]" text.
+      // Auto-naming intentionally replaces this once the first turn completes.
+      const body = splitAttachmentFooter(message.content).body;
+      const title = body.replace(/\s+/g, ' ').trim().slice(0, 40);
       thread.title = title || 'New conversation';
     }
   }
@@ -1963,7 +2120,57 @@ export class ChatStore {
   }
 
   clearLastError(): void {
-    this.lastError = null;
+    if (this.activeThreadId) this.setThreadLastError(this.activeThreadId, null);
+  }
+
+  dismissPersistenceConflict(): void {
+    logger.warn('persistence', 'User dismissed multi-tab conflict; autosave resumed without reload');
+    this.clearPersistenceConflict();
+  }
+
+  /** Reload chat state from localStorage after another tab wrote newer data. */
+  reloadFromStorage(): void {
+    const snapshot = loadSnapshot();
+    runInAction(() => {
+      // Stop any in-flight stream first: the thread list is about to be replaced
+      // wholesale, and an abandoned turn would otherwise keep mutating (and
+      // re-saving) state that no longer matches what's on disk.
+      this.abortAllStreams();
+      if (snapshot) {
+        logger.info('persistence', 'Reloaded chat from localStorage after multi-tab conflict');
+        this.applySnapshot(snapshot);
+      } else {
+        // The other tab cleared storage. Adopt that empty state instead of
+        // keeping stale in-memory threads that would just re-save (and
+        // resurrect data the user deleted in the other tab).
+        logger.info('persistence', 'Storage cleared by another tab; resetting to an empty conversation');
+        const thread = createEmptyThread();
+        this.threads = [thread];
+        this.activeThreadId = thread.id;
+      }
+      // Drop per-thread provider errors so a stale banner doesn't linger after
+      // the thread list was replaced.
+      this.lastErrorByThread = {};
+    });
+    this.clearPersistenceConflict();
+  }
+
+  private clearPersistenceConflict(): void {
+    this.persistenceConflict = null;
+    this.persistPaused = false;
+  }
+
+  dismissCompactionNotice(): void {
+    this.compactionNotice = null;
+  }
+
+  /** Per-thread provider errors for the composer banner (active thread only). */
+  private setThreadLastError(threadId: string, message: string | null): void {
+    if (!message) {
+      delete this.lastErrorByThread[threadId];
+    } else {
+      this.lastErrorByThread[threadId] = message;
+    }
   }
 
   private touchMessage(threadId: string, messageId: string): void {
@@ -1998,31 +2205,6 @@ export function threadLlmSpendUsd(thread: Thread | null): number {
         : inner
     ), 0);
   }, 0);
-}
-
-const SIDEBAR_PREVIEW_MAX_CHARS = 100;
-
-/**
- * One-line preview for the sidebar, derived from the most recent message with
- * visible text (newest first). User messages have their attachment footer
- * stripped so the preview shows what the person actually typed. Returns an
- * empty string for an untouched thread so the row simply shows no preview.
- *
- * Derived on read rather than stored on the thread: `subtitle` is never written
- * during a turn, so duplicating message text onto the thread would just be a
- * stale copy waiting to drift.
- */
-export function threadSidebarPreview(thread: Thread): string {
-  for (let i = thread.messages.length - 1; i >= 0; i--) {
-    const message = thread.messages[i];
-    const raw = message.role === 'user' ? splitAttachmentFooter(message.content).body : message.content;
-    const text = raw.replace(/\s+/g, ' ').trim();
-    if (!text) continue;
-    return text.length > SIDEBAR_PREVIEW_MAX_CHARS
-      ? `${text.slice(0, SIDEBAR_PREVIEW_MAX_CHARS).trimEnd()}…`
-      : text;
-  }
-  return '';
 }
 
 /**

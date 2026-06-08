@@ -15,7 +15,7 @@ import { LocalImageProvider } from './localImage';
  */
 export class NoProviderConfiguredError extends Error {
   constructor() {
-    super('No API provider configured. Add an API key in Settings → API.');
+    super('No API provider configured. Add an OpenRouter key in Models.');
     this.name = 'NoProviderConfiguredError';
   }
 }

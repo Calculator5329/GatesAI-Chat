@@ -12,6 +12,7 @@ import {
   saveLocalRuntimeConfig,
   type LocalRuntimePersistedConfig,
 } from '../services/local/localRuntimeStorage';
+import { logger } from '../services/diagnostics/logger';
 import {
   localRuntimeService,
   type LocalRuntimeId,
@@ -160,6 +161,7 @@ export class LocalRuntimeStore {
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      logger.warn('local-runtime', 'Auto-detect failed', { err });
       runInAction(() => {
         this.runtimes.ollama.lastError = `Auto-detect failed: ${message}`;
         this.runtimes.comfyui.lastError = `Auto-detect failed: ${message}`;
@@ -210,6 +212,7 @@ export class LocalRuntimeStore {
         }
       }
       this.clearWatchdog(id);
+      logger.error('local-runtime', 'Failed to start runtime', { id, message });
       runInAction(() => {
         runtime.status = 'crashed';
         runtime.lastError = message;

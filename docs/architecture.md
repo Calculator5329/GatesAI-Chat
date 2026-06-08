@@ -44,7 +44,7 @@ src/
     menu/                         # the GatesMenu surface
       GatesMenu.tsx
       sections/
-        Agent.tsx Settings.tsx Api.tsx Workspace.tsx
+        Agent.tsx Settings.tsx api/ApiSection.tsx Workspace.tsx
         Local.tsx                 # local runtimes (Ollama + ComfyUI) + image-gen settings
         Gallery.tsx               # completed image-job history
   stores/
@@ -55,6 +55,7 @@ src/
     RouterStore.ts                # observable URL hash
     ModelRegistry.ts              # curated + dynamic model catalog (MobX)
     OpenRouterStore.ts            # live OpenRouter catalog: refresh / cache / errors
+    OpenRouterCompatibilityStore.ts  # Models-menu live compatibility runner
     OllamaStore.ts                # Ollama config + /api/tags catalog
     LocalRuntimeStore.ts          # Ollama + ComfyUI install paths, base URLs, vision model
     ImageGenStore.ts              # image-gen backend selection + workflow override settings
@@ -116,9 +117,8 @@ src/
     runtime.ts                    # pure desktop-vs-web-lite mode detection (importable by every layer)
     theme.ts                      # accent/bg palettes, CSS-var builder
     styleTokens.ts                # typography/layout style objects
-    seed.ts                       # initial threads + welcome conversation
 
-tests/                            # Vitest, completely separate from src/
+tests/                            # Vitest + Playwright e2e, separate from src/
   helpers/
     mockProvider.ts               # scriptable LlmProvider for ChatStore tests
     storage.ts
@@ -243,6 +243,23 @@ file). `logger.{debug,info,warn,error}(scope, message, data?)`:
 forensic `chatLog`. Errors normalize to `{ name, message, stack }`. UI never
 logs directly — it dispatches to a store, which logs.
 
+Common log scopes (grep the ring buffer or JSONL by `scope`):
+
+| Scope | Typical events |
+| ----- | -------------- |
+| `chat` | `runTurn` failures, stale finalize skip, auto-naming errors |
+| `persistence` | quarantine, emergency compaction, multi-tab pause/reload, workspace save, dropped threads |
+| `security` | protected chat-history denials (`fs`, `terminal`, `python_inline`, `sqlite_query`, `inspect_file`) |
+| `bridge` | WebSocket connect failure after health OK, offline transition |
+| `image-jobs` | dispatch, cancel/recovery, progress adapter failures |
+| `summary` | background/manual summarization stream failures |
+| `models` | OpenRouter/Ollama catalog fetch failures |
+| `llm` | provider stream errors (OpenRouter compat, Ollama) |
+| `local-runtime` | auto-detect / start failures |
+| `attachments` | bridge upload failures |
+| `search` | Brave search failures |
+| `tools` | uncaught tool execution exceptions |
+
 ## Activity timeline
 
 Assistant-side work is projected through a single `ActivityItem[]`
@@ -264,9 +281,11 @@ detail, terminal tails, and image artifacts. The older `ToolCallRender`,
 
 Workspace chat history is app-managed: `ChatStore` saves a JSON envelope under
 `/workspace/.gatesai/chat/state.v1.json` when the bridge is online and writes a
-readable `/workspace/chat-history` HTML/Markdown library for users. Raw `fs` and
-`inspect_file` access to the app-managed JSON scope is blocked; models use
-`chat_history` for bounded recent/search/read operations instead. `web_search`
+readable `/workspace/chat-history` HTML/Markdown library for users. App tools
+block direct access to **both** the JSON scope and the `chat-history/` mirror
+(`fs`, `inspect_file`, `terminal`, `python_inline`, `sqlite_query`); models
+use `chat_history` for bounded recent/search/read operations instead. Bridge-level
+enforcement is still a planned follow-up. `web_search`
 routes through `SearchStore` and Brave's LLM Context endpoint, using a desktop
 Tauri proxy when running inside the packaged app.
 
@@ -286,7 +305,10 @@ Tauri proxy when running inside the packaged app.
   reloads
 
 Cancel aborts the inflight controller and asks the progress adapter to
-hit the backend's `/interrupt` endpoint best-effort. The chat-side
+hit the backend's `/interrupt` endpoint best-effort. The runner **does not**
+start the next queued job until the cancelled job's `runJob` promise settles
+(C2 runner lock — the cancelled job's `finally` must not clobber the next
+job's abort controller). The chat-side
 `ImageJobCard` observes the store and dispatches its render to a
 status-specific sub-card (running / done-single / done-grid /
 failed / cancelled), with a Lightbox for click-through.
@@ -335,7 +357,14 @@ closest current section.
 | `gatesai.uiprefs.v1`             | output style prefs       | `UiStore`          |
 | `gatesai.openrouter.catalog.v1`  | `{ fetchedAt, models[] }`| `OpenRouterStore`  |
 | `gatesai.ollama.v1`              | Ollama config + catalog  | `OllamaStore`      |
+| `gatesai.local.v1`               | runtime paths + toggles  | `LocalRuntimeStore`|
+| `gatesai.imagegen.v1`            | ComfyUI quality + workflow | `ImageGenStore`  |
 | `gatesai.imagejobs.v1`           | completed-job history    | `ImageJobStore`    |
+| `gatesai.search.v1`              | Brave Search key         | `SearchStore`      |
+| `gatesai.modelPicker.source.v1`  | picker source filter     | `ModelRegistry`    |
+| `gatesai.modelPicker.recent.v1`  | recent model ids         | `ModelRegistry`    |
+| `gatesai.modelPicker.favorites.v1` | favorited model ids    | `ModelRegistry`    |
+| `gatesai.userGuide.opened.v1`    | first-run guide flag     | user guide service |
 
 Chat, provider, profile, notes, and UI preference snapshots are saved from
 their owning stores through small `PersistenceProvider<T>` ports in
@@ -348,9 +377,25 @@ Ollama snapshot persists on every config mutation so a fresh boot has
 a populated picker before the first `/api/tags` probe completes. Provider
 routing and transient UI state live in memory only.
 
+**Multi-tab coordination (partial):** `installMultiTabStorageListener` logs
+cross-tab `localStorage` writes. When another tab mutates `gatesai.state.v1`,
+`ChatStore` pauses autosave and shows a composer banner (Reload or Dismiss).
+There is no merge — Dismiss resumes last-write-wins saves.
+
+**Compaction notice:** when emergency chat compaction succeeds after a quota
+error, `ChatStore.compactionNotice` surfaces a user-visible banner; profile,
+notes, and ui-prefs save failures are log-only via `createJsonPersistenceProvider`.
+
+**Per-thread composer state:** `UiStore.bindDraftThread` isolates draft text and
+attachments per thread; `ChatStore.lastErrorByThread` scopes provider errors to
+the active thread's composer banner.
+
 ## Testing
 
-- **Vitest** in jsdom, configured by `vitest.config.ts`.
+- **Vitest** in jsdom, configured by `vitest.config.mjs` (`npm run test`).
+- **Playwright** e2e in `tests/e2e/` (`npm run test:e2e`): two projects —
+  `desktop-mocked` (faked bridge + OpenRouter SSE) and `web-lite` (firebase
+  build, degraded surfaces).
 - Tests live in a top-level `tests/` folder — `tsconfig.app.json` only
   includes `src/`, so the production build never sees test code.
 - `tsconfig.test.json` extends the app config with test-specific settings
@@ -362,7 +407,7 @@ routing and transient UI state live in memory only.
 
 ```
 npm run typecheck   # tsc -b && tsc -p tsconfig.test.json --noEmit
-npm run lint        # ESLint over src/ + tests/
-npm run test        # Vitest
-npm run ci          # all three, in order
+npm run lint        # ESLint over the repo (eslint .)
+npm run test        # Vitest (659+ offline tests)
+npm run ci          # all three, in order (e2e is separate: npm run test:e2e)
 ```

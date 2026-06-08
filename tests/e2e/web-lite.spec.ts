@@ -28,6 +28,30 @@ test.describe('web lite (no bridge)', () => {
     await expect(page.getByText('Web Lite:')).toBeVisible();
 
     await page.goto('/#/menu/settings');
-    await expect(page.getByText('Web Lite browser data')).toBeVisible();
+    await expect(page.getByText('Your data is saved in this browser')).toBeVisible();
+  });
+});
+
+test.describe('web lite without a configured provider', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('gatesai.userGuide.opened.v1', '1');
+    });
+    await mockOpenRouter(page);
+  });
+
+  test('shows the API key banner on the composer', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page.getByText('Add an OpenRouter key in Models to start chatting.')).toBeVisible();
+    await expect(page.locator('button.composer-send-control[aria-label="Send"]')).toBeDisabled();
+  });
+
+  test('models menu shows the OpenRouter key connect form', async ({ page }) => {
+    await page.goto('/#/menu/models');
+
+    await expect(page.getByRole('heading', { name: 'Models' })).toBeVisible();
+    await expect(page.getByPlaceholder('Paste your OpenRouter API key…')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Connect' }).first()).toBeDisabled();
   });
 });

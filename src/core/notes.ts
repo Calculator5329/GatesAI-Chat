@@ -15,6 +15,10 @@ export interface Note {
   updatedAt: number;
 }
 
+/** Per-note body cap to avoid silent localStorage exhaustion. */
+export const MAX_NOTE_BODY_CHARS = 32_000;
+export const MAX_NOTE_TITLE_CHARS = 200;
+
 export interface NotesSnapshot {
   notes: Note[];
 }

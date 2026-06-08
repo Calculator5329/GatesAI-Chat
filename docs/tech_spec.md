@@ -22,6 +22,12 @@ warn/error in prod), and on desktop appends JSONL to
 buffer so the assistant can inspect recent failures and self-diagnose. UI never
 logs directly — it dispatches to a store, which logs.
 
+Key scopes added in the 2026-06-07 hardening pass: `security` (chat-history
+denials), `persistence` (multi-tab pause/reload, dropped threads, compaction
+notice, model-picker / Web Lite storage failures), `bridge` (connect/offline),
+`models`, `llm`, `local-runtime`, `attachments`, `search`, `tools`. See
+`docs/architecture.md` § Logging for the full scope table.
+
 ## Testing
 Two layers, both runnable offline:
 
@@ -203,9 +209,11 @@ interface LlmProvider {
 | `gatesai.search.v1`              | Brave Search key          | `SearchStore`      |
 | `gatesai.modelPicker.source.v1`  | picker source filter      | `ModelRegistry`    |
 | `gatesai.modelPicker.recent.v1`  | recent model ids          | `ModelRegistry`    |
+| `gatesai.modelPicker.favorites.v1` | favorite model ids      | `ModelRegistry`    |
+| `gatesai.imagegen.v1`            | ComfyUI quality settings  | `ImageGenStore`    |
 
-The two `gatesai.modelPicker.*` keys back the model picker's source filter and
-recent-models list. They are owned by `services/storage/modelPickerStorage.ts`
+The three `gatesai.modelPicker.*` keys back the model picker's source filter,
+recent-models list, and user favorites. They are owned by `services/storage/modelPickerStorage.ts`
 and exposed to the picker UI through thin `ModelRegistry` passthroughs, so the
 component never touches `localStorage` directly (an ESLint rule enforces this).
 
@@ -230,20 +238,47 @@ URLs, and the selected local vision model. On first boot with no
 `gatesai.local.v1`, auto-detect populates default ports and paths; legacy URL
 fields on the Ollama / image-gen keys are no longer read.
 
+The chat autosave reaction has one non-obvious invariant: its MobX `autorun`
+must **deep-observe** thread/message content, not just the `threads` array. Most
+turn activity (`appendMessage`, streamed token writes) mutates `thread.messages`
+and `message.content` in place, which does not change the array identity the
+`snapshot` getter subscribes to. A `trackSnapshotDeep(threads)` helper reads each
+thread's mutable fields and every message's content length inside the reaction so
+those in-place edits invalidate it and re-run the throttled save. Without it, a
+freshly created conversation can be lost on reload (it was — see the
+2026-06-07 changelog entry).
+
 If a full chat snapshot exceeds the browser's `localStorage` quota, the
 chat persistence service retries once with an emergency-compacted snapshot.
 The fallback preserves the conversation structure, assistant prose, tool
 calls, and tool result metadata, but compacts oversized tool result bodies
 and large payload arguments such as `fs.write` content to marked head/tail
 previews. This prevents a large file/tool result from rolling the whole
-conversation back to the previous successful save.
+conversation back to the previous successful save. On success,
+`ChatStore.compactionNotice` shows a composer banner; failures log at
+`error` and leave the prior snapshot intact.
+
+**Multi-tab:** `storage` events on `gatesai.*` keys log at `warn`. Writes to
+`gatesai.state.v1` from another tab pause chat autosave and show Reload/Dismiss
+in the composer. Dismiss resumes saves without merging (last-write-wins risk).
+
+**Invalid threads on load:** malformed individual threads are dropped during
+parse with a `persistence` warn (counts kept vs dropped).
 
 When the bridge is online in desktop mode, `ChatStore` also mirrors the cleaned
 chat snapshot into `/workspace/.gatesai/chat/state.v1.json` and writes a
-readable `/workspace/chat-history` library as HTML and Markdown. The JSON state
-scope is app-managed: `fs` and `inspect_file` block direct access to it, while
-the `chat_history` tool exposes bounded `recent`, `search`, and `read_thread`
-operations for model recall.
+readable `/workspace/chat-history` library as HTML and Markdown. App tools block
+direct access to both `.gatesai/chat/` and `chat-history/`; the `chat_history`
+tool exposes bounded `recent`, `search`, and `read_thread` operations for model
+recall. Bridge-level enforcement is still planned.
+
+**Notes durability:** corrupt `gatesai.notes.v1` snapshots are quarantined to
+`gatesai.notes.v1.corrupt-<timestamp>` (parity with chat). Note body/title
+length is capped at `MAX_NOTE_BODY_CHARS` / `MAX_NOTE_TITLE_CHARS`.
+
+**Stale turn guard:** `ChatStore.ownsStreamingTurn(threadId, messageId)` must
+return true before post-stream mutations (tokens, finishReason, `maybeAutoName`).
+After interrupt-and-resend, abandoned `runTurn` work is ignored.
 
 ## Theming
 
@@ -266,10 +301,31 @@ CSS variables for prose, lists, headings, inline code, and fenced code blocks.
 The curated cloud catalog in `core/models.ts` includes a default OpenRouter
 section for the current leading OpenAI, Anthropic, Gemini, Grok, Meta, NVIDIA
 Nemotron, DeepSeek, and Moonshot/Kimi models. The model picker renders this
-default catalog ahead of the broader live OpenRouter browse results, while the
-live catalog cache can still hydrate dynamic `or-live-*` entries. Nemotron 3.5
-Content Safety is cataloged as a guardrail model with `supportsTools: false`,
-but is intentionally kept out of the default live chat/tool matrix.
+catalog as a prominent `Verified` section ahead of the broader live OpenRouter
+browse results, while the live catalog cache can still hydrate dynamic
+`or-live-*` entries. Nemotron 3.5 Content Safety is cataloged as a guardrail
+model with `supportsTools: false`, but is intentionally kept out of the default
+live chat/tool matrix.
+
+## Model picker availability gating
+
+`core/modelPickerAvailability.ts` is the single pure source of truth for "what
+can the user pick and send right now." It owns the canonical `ModelPickerSource`
+type (`auto | cloud | local | image`, re-exported by the storage layer) and
+treats `DEFAULT_OPENROUTER_CATALOG_MODEL_IDS` (the live-tested matrix) as the
+`isVerifiedModelId` set. Given a `RuntimeAvailability` snapshot
+(`{ webLite, ollamaOnline, comfyReady }`), `availableSources()` always offers
+`auto` + `cloud`, adds `local` only on desktop when Ollama is online, and adds
+`image` only on desktop when ComfyUI is ready; `isModelAvailable()` applies the
+same rule per model.
+
+`ModelPopover` consumes these helpers: it renders only the available source
+tabs (falling back to `auto` if a persisted source is no longer available),
+filters `registry.all` so unusable local/image models are hidden entirely
+rather than shown disabled, features the `Verified` catalog prominently
+(unlimited, accent-marked, per-row verified check), and offers
+vision/tools/reasoning/fast/free capability chips plus a context-window badge.
+In web-lite there are therefore no Local/Image tabs at all.
 
 Threads may carry a `thinkingEffort` of `none`, `low`, `medium`, `high`, or
 `xhigh` (`Extra high` in the UI). `ChatStore` attaches it only to OpenRouter
@@ -315,6 +371,15 @@ and system context, enqueues one image job through `ImageJobStore`, and attaches
 the same `image-job` artifact shape that the `image_generate` tool uses. This
 keeps direct ComfyUI generation available offline and reuses the existing chat
 image card renderer.
+
+`runDirectImageTurn` is guarded: even though the picker hides direct-image
+models and the composer blocks send unless `comfyReady`, the turn refuses to
+enqueue (and posts a clear "ComfyUI is not running" message) when
+`localRuntime.comfyReady` is false, so a turn can never silently queue against a
+dead backend. Because the direct-image models are ComfyUI modes by construction,
+the turn forces the `local-comfy` backend and always derives the
+Draft/Normal/Upscale `comfyMode`, independent of the user's global image-backend
+preference.
 
 The same `AssistantMessage` is mutated across all rounds — one stored
 row per user turn, regardless of how many round trips happened. This

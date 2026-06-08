@@ -3,6 +3,7 @@
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ExecRunResp, ExecEvent } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
+import { denyIfReferencesProtectedChatHistory } from './protectedWorkspacePaths';
 import type { Tool } from './types';
 
 /**
@@ -73,6 +74,10 @@ export const terminalTool: Tool = {
     const cwd = typeof args.cwd === 'string' ? args.cwd : undefined;
     const stdin = typeof args.stdin === 'string' ? args.stdin : undefined;
     const timeout_ms = typeof args.timeout_ms === 'number' ? args.timeout_ms : undefined;
+
+    // Audit C3 — scan command text for protected chat-history paths before exec.
+    const protectedDenial = denyIfReferencesProtectedChatHistory([cmd, ...cmdArgs, cwd ?? '', stdin ?? ''], 'terminal');
+    if (protectedDenial) return protectedDenial;
 
     const jobId = ctx.toolCallId
       ? `terminal:${ctx.threadId}:${ctx.toolCallId}`

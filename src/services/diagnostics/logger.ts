@@ -95,7 +95,15 @@ function emit(level: LogLevel, scope: string, message: string, data?: unknown): 
 
 /**
  * The app-wide logger. Use a stable, lowercase `scope` per subsystem so logs
- * stay greppable (`chat`, `image-jobs`, `bridge`, `persistence`, ...).
+ * stay greppable. Common scopes (see also `docs/tech_spec.md`):
+ *
+ * - `chat` — turn failures, stale finalize skip, auto-naming
+ * - `persistence` — quarantine, compaction, multi-tab, workspace save
+ * - `security` — protected chat-history denials
+ * - `bridge` — connect/offline transitions
+ * - `image-jobs` — dispatch, cancel, recovery
+ * - `summary` — background summarization failures
+ * - `models` / `llm` / `local-runtime` / `attachments` / `search` / `tools`
  */
 export const logger = {
   debug: (scope: string, message: string, data?: unknown) => emit('debug', scope, message, data),

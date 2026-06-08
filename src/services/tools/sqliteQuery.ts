@@ -3,6 +3,7 @@
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ExecRunResp } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
+import { denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
 import type { Tool } from './types';
 
 const SQLITE_HELPER = String.raw`
@@ -75,6 +76,12 @@ export const sqliteQueryTool: Tool = {
     if (!sql) return 'Error: `sql` is required.';
     const pathError = validateWorkspaceRelativePath(path);
     if (pathError) return `Error: ${pathError}`;
+    const protectedDenial = denyProtectedChatHistoryPath(
+      'sqlite_query',
+      path,
+      'Error: app-managed chat history files are not exposed through sqlite_query. Use the `chat_history` tool instead.',
+    );
+    if (protectedDenial) return protectedDenial;
     const sqlError = validateSql(sql);
     if (sqlError) return `Error: ${sqlError}`;
 

@@ -1,6 +1,5 @@
-// Persists or coordinates service-level state for threadNamer.
-// Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
-// Invariant: services normalize legacy data before handing snapshots back to stores.
+// Generates a short conversation title from the opening exchange using a cheap
+// model cascade. Stateless; called by ChatStore.maybeAutoName.
 import type { LlmProvider, LlmRequest } from '../core/llm';
 
 /**
@@ -24,6 +23,11 @@ const NAMER_CASCADE: string[] = [
   'or-gemini-3.1-flash-lite',
   'or-gemini-3-flash',
 ];
+
+// A naming call is best-effort and must never hang the thread's `naming`
+// indicator. If a provider stream stalls without ever yielding `done` or
+// erroring, abort the attempt and fall through to the next candidate.
+const NAMER_ATTEMPT_TIMEOUT_MS = 15_000;
 
 const SYSTEM_PROMPT = [
   'You name conversations. Given the first user question and the start of the assistant\'s reply, output a concise 2-5 word title that captures the topic.',
@@ -73,15 +77,40 @@ export async function generateThreadTitle(
       systemPrompt: SYSTEM_PROMPT,
     };
 
+    const controller = new AbortController();
     try {
-      const title = await collectShortReply(provider.stream(request, new AbortController().signal));
+      const title = await withTimeout(
+        collectShortReply(provider.stream(request, controller.signal)),
+        NAMER_ATTEMPT_TIMEOUT_MS,
+        controller,
+      );
       const cleaned = sanitizeTitle(title);
       if (cleaned) return cleaned;
     } catch {
-      // Fall through to next model in the cascade.
+      // Fall through to next model in the cascade (includes timeouts).
     }
   }
   return null;
+}
+
+/**
+ * Resolve `promise`, or reject after `ms` (aborting `controller` so a respecting
+ * provider also stops its underlying fetch). Guarantees the caller settles even
+ * if the stream never does.
+ */
+async function withTimeout<T>(promise: Promise<T>, ms: number, controller: AbortController): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error('thread-namer attempt timed out'));
+    }, ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 async function collectShortReply(stream: AsyncIterable<{ type: string; delta?: string }>): Promise<string> {

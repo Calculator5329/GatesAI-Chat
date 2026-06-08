@@ -90,9 +90,23 @@
       no `fetch` in stores, no `localStorage` in stores/UI, `import/no-cycle`,
       and `mobx/*-make-observable` correctness rules — with the surfaced
       violations refactored through services/facades
-- [x] Sidebar message previews (derived from messages) + body search, real
+- [x] Sidebar body search across thread titles and message bodies, real
       persisted user-togglable model favorites, and a broad Playwright UI suite
       (faked-bridge desktop project + web-lite project, mocked OpenRouter stream)
+- [x] Model picker redesign with runtime availability gating: a pure
+      `core/modelPickerAvailability` decides which sources/models are usable
+      (web-lite hides Local/Image; offline Ollama and not-ready ComfyUI are
+      hidden, not shown-disabled), prominent live-verified catalog section,
+      vision/tools/reasoning/fast/free capability chips, and a hardened
+      direct-image path (ComfyUI-ready guard + forced local-comfy backend)
+      with new picker/availability/guard tests
+- [x] Web Lite persistence fix + UX pass: the `ChatStore` autosave reaction now
+      deep-observes nested thread/message edits (in-place message appends and
+      streamed tokens previously never triggered a save, losing fresh
+      conversations on reload), plus a sidebar cleanup (single-line titles,
+      wider nav, pin/trash icons, no preview line), an intuitive first-run
+      onboarding panel, explicit Web Lite desktop-only states for Workspace and
+      Gallery, and an API-key-forward Settings page
 
 ## Near-term
 - [x] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`
@@ -107,7 +121,16 @@
       slimming `ChatStore` where helpers can move out safely
 - [ ] Manually test the foundation surface before rebuilding optional integrations
 - [x] Add basic unit tests around `ChatStore` (send, stream, switch, stop) —
-      covered by the Vitest suite (`tests/stores/ChatStore.test.ts`, 600+ tests)
+      covered by `tests/stores/ChatStore.test.ts` and the full Vitest suite
+- [x] **Audit follow-ups** — see `docs/audits/2026-06-07-comprehensive-audit.md`
+      - [x] Multi-tab localStorage warning banner + save pause on chat key conflict
+      - [x] Chat-history protection across tool paths + mirror scope (Batch A)
+      - [x] Image-job cancel serialization + stale turn finalization guards (C2/C4)
+      - [x] Manual rename blocks auto-naming; summary scheduler respects background streams + deleted threads
+      - [x] Per-thread composer draft and error banner scoping
+      - [x] User-visible persistence quota / compaction notices
+      - [x] Batch C–E: Models copy, context-aware banners, setup checklist, image UX polish, notes limits/quarantine, Web Lite clear reload
+      - [x] Audit documentation: test coverage matrix + implementation guide (`docs/audits/2026-06-07-*.md`)
 
 ## Later
 - [ ] Multi-window / split-thread layouts

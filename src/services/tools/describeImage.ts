@@ -2,6 +2,7 @@
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { Tool } from './types';
+import { PROTECTED_CHAT_HISTORY_DENIAL, denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
 
 export const describeImageTool: Tool = {
   def: {
@@ -20,6 +21,8 @@ export const describeImageTool: Tool = {
   async execute(args, ctx) {
     const path = typeof args.path === 'string' ? args.path.trim() : '';
     if (!path) return 'Error: `path` is required.';
+    const denial = denyProtectedChatHistoryPath('describe_image', path, PROTECTED_CHAT_HISTORY_DENIAL);
+    if (denial) return denial;
     if (!ctx.bridge?.isOnline) return 'Error: bridge is offline, so GatesAI cannot read the image file.';
     if (!ctx.localRuntime?.visionModel) return 'Error: No local vision model selected in the Local menu.';
 

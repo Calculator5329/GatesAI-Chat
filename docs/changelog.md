@@ -1,5 +1,279 @@
 # Changelog
 
+## 2026-06-07 — Polish pass: sub-agent double-check + correctness hardening
+
+Ran three parallel audit sub-agents (dead-code, architecture, correctness) and
+acted on the verified findings. Full suite green (typecheck, lint, 688 unit, e2e).
+
+- **Auto-naming hardening (`ChatStore` / `threadNamer`):**
+  - `maybeAutoName` now skips threads that are already naming (no parallel
+    namers / title flicker) or soft-deleted, and the async callback re-checks
+    `deletedAt` so a returning namer can't revive a deleted thread's title.
+  - `generateThreadTitle` now has a per-attempt 15s timeout that aborts the
+    stream, so a stalled provider can no longer leave a thread stuck in the
+    "naming…" state forever.
+- **`reloadFromStorage` aborts in-flight streams:** extracted `abortAllStreams`
+  (shared with `clearAllThreads`) and call it before replacing the thread list
+  on a cross-tab reload, so an abandoned `runTurn` can't keep mutating/re-saving
+  the freshly-loaded state.
+- **Path protection is now case-insensitive:** `isProtectedChatHistoryScope`
+  lower-cases the comparison, matching the command-text scanner — `Chat-History`
+  / `.GatesAI/chat` are blocked on case-insensitive (Windows/macOS) filesystems.
+- **Dead code / consistency:** removed the unreachable `'offline'` model-picker
+  badge branches and the now-unused `ollamaOnline`/`comfyReady` props (offline
+  models are filtered by `isModelAvailable`); collapsed the redundant
+  `isProtectedChatHistoryPath` alias and a `!X && !X` predicate; corrected
+  inaccurate copy-pasted file headers across the editorial folder; removed a
+  stray `playwright-out.txt` from the repo root.
+- **Tests (+5):** case-insensitive + `..`-traversal path protection, namer
+  timeout, `reloadFromStorage` stream abort, and the soft-delete naming guard.
+- **Verified false positives (no change):** the `sqlite_query` `ATTACH` "bypass"
+  is already blocked by the single-statement / leading-keyword `validateSql`
+  guard; the model-picker `auto`-source branches flagged as dead are reachable
+  when `recommended` is empty.
+
+## 2026-06-07 — Audit hardening: critical/high fixes + production polish
+
+Verified all comprehensive-audit findings with sub-agents, then fixed the
+confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
+
+- **Persistence / chat (critical):**
+  - Restored LLM auto-naming, which a premature `ownsStreamingTurn` guard in
+    `maybeAutoName` had silently disabled (the streaming state was already cleared
+    by the time it ran, so the check always failed). Naming ownership is now
+    verified by callers *before* finalize; `maybeAutoName` re-checks only the
+    `autoNamed` lock to avoid clobbering a manual/tool rename mid-flight (C4).
+  - `persistence.ts` now surfaces a user notice when even emergency compaction
+    fails, instead of losing the session silently (S1).
+  - Added `cancelPendingDeferredSnapshot`, invoked from the multi-tab write
+    handler, so a save queued just before the cross-tab pause can't clobber the
+    other tab's write (C1).
+  - `reloadFromStorage` now adopts an empty conversation (rather than re-saving
+    stale threads) when another tab cleared storage, and drops per-thread errors.
+- **Image jobs (critical):** confirmed the C2 runner-lock fix — `cancel()` no
+  longer drives `runNext()`, and the runner's `finally` only clears the
+  controller it owns, so the next job stays cancellable. Gallery supports
+  single-image deletion (`removeImage`) and shows an explicit "image file
+  missing" tile.
+- **Image UX (I1):** assistant prose is always rendered alongside an image job
+  card — direct image turns no longer collapse to a bare gray chip.
+- **Security (C3):** chat-history protection now covers the readable
+  `/workspace/chat-history` mirror (case-insensitive, relative-path aware),
+  canonicalizes `..` segments to block traversal, filters protected entries from
+  every `fs.list` (not just recursive), and is enforced across `terminal`,
+  `python_inline`, `sqlite_query`, `git`, `describe_image`, and `image_generate`
+  (`prompt_file`).
+- **Provider UX (P1):** offline Ollama shows a "start Ollama" banner instead of
+  "add an API key"; unusable models are filtered from the picker entirely.
+- **Accessibility:** attachment-remove is a real `<button>` with an `aria-label`,
+  the context meter has `role="img"`/`aria-label`, banner actions are
+  `type="button"`, and the model picker is a proper `listbox`/`option` tree.
+- **Deslop:** removed the now-dead `disabledReasonForModel` and its call sites
+  (model availability is handled entirely by `isModelAvailable`).
+
+## 2026-06-07 — Audit test gap fill (B–E coverage)
+
+- **Tests (+13 Vitest):** closed all section-9 gaps except two documented
+  partials — soft-delete streaming interrupt; first-run checklist; Ollama offline
+  banner; model picker + menu a11y; persistence/conflict composer banners;
+  `ActivityRow` image-job layout; cancelled partial + missing-file `ImageJobCard`
+  renders; notes title/body truncation; Web Lite credential-preserving clear.
+- **Docs:** refreshed `docs/audits/2026-06-07-test-coverage-matrix.md` (20
+  covered / 2 partial / 0 gap). README test badge → 683 unit.
+- **Comments:** `lastErrorByThread` JSDoc on `ChatStore`.
+
+## 2026-06-07 — Audit documentation: coverage matrix + implementation guide
+
+- Added `docs/audits/2026-06-07-test-coverage-matrix.md` (Batch A–E items →
+  implementation files, test names, covered/partial/gap status).
+- Added `docs/audits/2026-06-07-implementation-guide.md` (what/why per item,
+  invariants, test locations, remaining bridge/multi-tab gaps).
+- Linked both from comprehensive audit section 9; marked audit follow-ups
+  complete in `docs/roadmap.md`.
+
+## 2026-06-07 — Diagnostics pass: logging coverage, inline docs, architecture notes
+
+- **Logging:** expanded ring-buffer coverage across batches A–E — multi-tab
+  pause/reload/dismiss, compaction notice, protected chat-history denials
+  (`security`), dropped threads on load, bridge connect/offline, catalog/runtime
+  failures, attachments/search/tools/LLM stream errors, model-picker and Web Lite
+  storage failures, workspace chat malformed snapshots.
+- **Code comments:** JSDoc and module headers for `ownsStreamingTurn`, protected
+  paths, multi-tab pause semantics, summary scheduler guards, image batch
+  `notifyOnTerminal`, partial image cards, composer banner stack, notes quarantine.
+- **Docs:** `architecture.md` scope table, multi-tab/compaction/per-thread state;
+  `tech_spec.md` persistence durability matrix and logging scopes.
+
+## 2026-06-07 — Audit batches C–E: clarity, image UX, storage durability
+
+- **Batch C — User clarity:** context-aware composer banners (Models key, Ollama
+  offline, Comfy offline); persistence conflict + compaction notices; first-run
+  setup checklist in chat empty state; model picker as accessible button; Menu
+  affordance; OpenRouter copy unified to “Models”.
+- **Batch D — Image polish:** image job cards render outside collapsed activity
+  rows; partial results on failed/cancelled cards; missing-file failed state;
+  `prompt_file` batch returns `{ content, artifacts[] }` with terminal notify on
+  last job.
+- **Batch E — Storage:** notes quarantine + body/title size limits; Web Lite
+  clear-data reloads after credential-preserving wipe.
+- **Tests:** updated `ImageJobStore` cancel-chain and `imageGenerate` batch
+  expectations; Playwright banner/menu e2e. Vitest + Playwright green.
+
+## 2026-06-07 — Hardening continuation: background streams, reload, e2e
+
+- **Bridge activity on background streams:** `recordActivityEvent` targets the
+  streaming thread when the sidebar-active thread differs.
+- **`reloadFromStorage()`:** multi-tab conflict banner reloads from disk without
+  a full page refresh.
+- **Image cancel runner lock test** updated for async `runNext` after abort settle.
+- **Playwright:** per-thread draft e2e rewritten; per-thread error banner e2e added;
+  menu/gallery specs hardened with explicit waits. **19** e2e / **670** Vitest.
+
+## 2026-06-07 — Batch B hardening: per-thread state, multi-tab pause, notes quarantine
+
+- **Per-thread composer draft + attachments:** `UiStore.bindDraftThread` (wired from
+  `RootStore` on `activeThreadId` changes) isolates draft text and staged files per
+  thread instead of leaking across sidebar switches.
+- **Per-thread error banners:** `lastErrorByThread` + computed `lastError` so a
+  provider error on thread A does not show while viewing thread B.
+- **Multi-tab protection (C1 partial):** external `storage` writes to
+  `gatesai.state.v1` set `persistenceConflict`, pause autosave, and show a composer
+  banner with Reload (`reloadFromStorage`) or Dismiss.
+- **Compaction notice:** emergency chat snapshot compaction surfaces
+  `compactionNotice` in the composer.
+- **Notes quarantine:** corrupt `gatesai.notes.v1` snapshots are quarantined with a
+  recovery copy (matching chat persistence) instead of silently wiping to `[]`.
+- **Bridge activity routing:** `recordActivityEvent` attaches to the streaming
+  thread when the active sidebar thread differs (background streams).
+- **Tests:** `UiStore.test.ts`, expanded `ChatStore` / `NotesStore` / `persistence`
+  coverage; Playwright per-thread draft + per-thread error e2e. Vitest: **669+**;
+  Playwright: **19** e2e tests.
+
+## 2026-06-07 — Hardening pass: audit Batch A fixes + regression tests + Playwright
+
+- **Image cancel race (C2):** `ImageJobStore.runNext` only clears `inflight` when
+  the settling job still owns the active `AbortController`.
+- **Stale finalize / auto-name (C4):** normal and side-effect-loop finalization
+  paths guard with `ownsStreamingTurn`; manual `renameThread` sets `autoNamed`.
+- **Chat-history protection (C3 partial):** `protectedWorkspacePaths` now covers
+  the `/workspace/chat-history` mirror; `terminal`, `python_inline`, and
+  `sqlite_query` reject protected paths before bridge execution.
+- **Summary scheduler:** `SummaryStore.tick` backs off when **any** thread is
+  streaming, not only the active thread.
+- **Tests:** +15 Vitest cases (`protectedWorkspacePaths`, image cancel
+  serialization, stale finalize, manual rename, background-stream summary skip,
+  multi-tab last-write-wins doc, `NotesStore` corrupt boot, tool denials).
+  Suite: **659** tests / **78** files.
+- **Playwright:** +7 e2e scenarios (draft on thread switch, new conversation,
+  Models API UI, streaming Stop, no-key banner; web-lite parity). `delayMs` on
+  `mockOpenRouter`. **18** e2e tests; search spec waits for debounce.
+- **Docs:** README, architecture, tech_spec storage tables, roadmap audit
+  checkoffs reconciled with current counts and layout.
+
+## 2026-06-07 — Logging hardening + audit cross-links + stale-turn guard
+
+- **Smarter diagnostics coverage:** `createJsonPersistenceProvider` now logs
+  load/save/clear failures (notes, profile, image jobs, UI prefs, provider keys).
+  Chat snapshot quarantine, compaction, and recovery-copy failures log to the
+  ring buffer. Workspace chat atomic-save fallback, multi-tab `storage` events,
+  `runTurn` failures, model resolve errors, provider stream exceptions, image
+  job cancel/recovery, and summarization stream failures all emit scoped
+  `logger.*` entries the `logs` tool can read.
+- **Stale-turn robustness (audit C4):** error finalization after a provider
+  failure now re-checks `ownsStreamingTurn` so an abandoned interrupt-and-resend
+  turn cannot stamp `finishReason: 'error'` on an already-interrupted message.
+- **Multi-tab awareness (audit C1, logging-only):** `installMultiTabStorageListener`
+  warns when another tab mutates `gatesai.*` localStorage keys (last-write-wins
+  risk; full coordination still planned).
+- **Tests:** compaction test updated for dual warn logs; added multi-tab listener
+  and stale-turn error-finalization regression tests. Full suite green: 661 unit,
+  18 e2e, typecheck, lint.
+
+## 2026-06-07 — Comprehensive read-only audit
+
+- Added `docs/audits/2026-06-07-comprehensive-audit.md`: six parallel code
+  walkthroughs, user-story reference, 4 Critical / ~11 High findings.
+- No code changes from the audit itself; findings feed near-term roadmap work.
+
+## 2026-06-07 — Web Lite persistence fix + UX/onboarding pass
+
+- **Critical autosave fix (data loss on reload):** a freshly created conversation
+  could be lost on refresh — most visibly in the deployed Web Lite demo, where a
+  brand-new thread's messages never reached `localStorage` even though the API key
+  did. Root cause: the `ChatStore` autosave `autorun` read only `snapshot`
+  (`{ threads, activeThreadId }`), which subscribes to the `threads` array
+  identity and `activeThreadId` — but `appendMessage` and token streaming mutate
+  `thread.messages` / `message.content` **in place**. Those nested mutations never
+  invalidated the reaction, so only thread-list operations (create/select/delete/
+  rename) incidentally flushed deep state. Fix: the reaction now calls a
+  `trackSnapshotDeep(threads)` helper that reads each thread's title/updatedAt/
+  pinned/deletedAt/summary/threadContext and every message's content length, so
+  any in-place edit re-runs the existing 250ms-throttled save. Regression test
+  added in `tests/stores/ChatStore.test.ts` (send a message + stream a reply with
+  no thread-list change, assert both persist to `localStorage`).
+- **Sidebar polish:** removed the derived preview/subtitle line (retired
+  `threadSidebarPreview`; body search via `threadMatchesSearch` stays), forced
+  thread titles to a single line with ellipsis, widened the nav (240→270), and
+  replaced the pin/delete controls with smaller, cleaner pin + trash icons.
+- **First-run onboarding:** the cryptic "A blank page. Say something." empty state
+  is now an intuitive panel — what GatesAI is, a clear "Add your OpenRouter API
+  key to start" CTA when no provider is usable, and a Web Lite "saved locally in
+  this browser" note.
+- **Web Lite disabled-capability clarity:** Workspace and Gallery now early-return
+  explicit desktop-only capability overviews (mirroring the Local section's
+  pattern) instead of rendering dead offline bridge cards.
+- **Settings is clearer:** API-key management is front-and-center (a primary
+  "OpenRouter API key" card with a Manage key button at the top), section grouping
+  is tightened, and the Web Lite browser-data panel reads as "Your data is saved
+  in this browser."
+- **Fixed a pre-existing typecheck break:** `core/modelPickerAvailability.ts`
+  imported `ProviderId` from `./types` (which only re-imports it locally from
+  `./llm`); it now imports `ProviderId` from `./llm` directly.
+- **Decisions recorded (kept as-is, by design):** API-key "rotate" is remove +
+  reconnect; `inspect_file` stays scoped to csv/json/txt as a deliberate
+  foundation; OpenRouter catalog refresh is manual (no TTL); web-search uses the
+  desktop bridge (web-lite degrades by design).
+- **Tests:** `tests/stores/threadPreview.test.ts` trimmed to the search helper;
+  the desktop e2e preview assertion replaced with a body-search assertion; the
+  web-lite e2e settings assertion updated to the new wording. Full suite green
+  (`npm run typecheck`, `npm run lint`, `npm run test`, `npm run test:e2e`). Note:
+  `npx playwright install chromium` is required before the e2e suite can run.
+
+## 2026-06-07 — Model picker redesign + runtime availability gating + image verification
+
+- **Runtime availability is now a first-class, pure concept:** new
+  `src/core/modelPickerAvailability.ts` exposes `availableSources()`,
+  `isProviderAvailable()` / `isModelAvailable()`, and `isVerifiedModelId()`. It
+  reuses `DEFAULT_OPENROUTER_CATALOG_MODEL_IDS` (the live-tested matrix) as the
+  canonical "verified" set, and `ModelPickerSource` moves here so storage + UI
+  share one definition.
+- **The model picker only shows what you can actually use:** the source tabs are
+  now derived from `availableSources()`. In web-lite there are no Local/Image
+  tabs at all; on desktop the Local tab appears only when Ollama is online and
+  the Image tab only when ComfyUI is ready (`comfyReady`). Unusable models are
+  hidden entirely instead of shown disabled, and a persisted source that is no
+  longer available falls back to `auto`.
+- **Verified models are featured prominently:** the curated, live-tested catalog
+  renders as an unlimited, accent-marked `Verified` section (with a per-row
+  verified check), since that set is what gets picked the overwhelming majority
+  of the time.
+- **Capability filter chips:** vision / tools / reasoning / fast / free toggles
+  under the search box narrow the list across every section. Rows also gained a
+  context-window badge.
+- **Image generation is provably gated and guarded:** direct-image models only
+  appear when ComfyUI is ready, and `ChatStore.runDirectImageTurn` now refuses
+  (with a clear assistant message) to enqueue when `comfyReady` is false instead
+  of silently queuing against a dead backend. Direct-image turns force the
+  `local-comfy` backend and always derive the ComfyUI mode, so a picked
+  Draft/Normal/Upscale model can no longer be re-routed to OpenRouter image by a
+  global preference.
+- **Tests:** new `tests/services/modelPickerAvailability.test.ts` and
+  `tests/components/editorial/ModelPopover.test.ts` (web-lite tab hiding, offline
+  Ollama hiding, ComfyUI-gated image rows + pick, verified prominence, capability
+  filters, cross-source search); a new `ChatStore` guard test; and updated
+  `EditorialComposer` expectations (offline Ollama rows are now hidden rather
+  than shown with an offline badge).
+
 ## 2026-06-07 — Sidebar previews + body search, model favorites, Playwright e2e
 
 - **Sidebar message previews + search:** the sidebar thread row now derives its

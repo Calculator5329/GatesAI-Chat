@@ -1,6 +1,5 @@
-// Renders the editorial chat MermaidDiagram surface and its local interaction state.
-// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
-// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
+// Lazily renders a Mermaid code block to SVG, with loading and error states.
+// Used by the markdown renderers. Presentation only; no store access.
 import { useEffect, useId, useState } from 'react';
 
 type DiagramState =

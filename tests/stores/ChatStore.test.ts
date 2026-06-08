@@ -1,10 +1,10 @@
 import { runInAction } from 'mobx';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatStore, threadLlmSpendUsd } from '../../src/stores/ChatStore';
 import { ProviderStore } from '../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../src/stores/UserProfileStore';
-import type { LlmProvider, LlmRequest } from '../../src/core/llm';
+import type { LlmChunk, LlmProvider, LlmRequest, ProviderId } from '../../src/core/llm';
 import type { ChatSnapshot } from '../../src/core/types';
 import type { LlmRouter } from '../../src/services/llm/router';
 import type { BridgeClientFacade, ToolContext } from '../../src/services/tools/types';
@@ -12,7 +12,8 @@ import { MockProvider, flush, installMockProvider } from '../helpers/mockProvide
 import { clearAppStorage } from '../helpers/storage';
 import { toolRegistry } from '../../src/services/tools/registry';
 import { WORKSPACE_CHAT_STATE_PATH } from '../../src/services/workspaceChatPersistence';
-import { flushPendingSnapshot } from '../../src/services/persistence';
+import { CHAT_SNAPSHOT_STORAGE_KEY, flushPendingSnapshot, loadSnapshot } from '../../src/services/persistence';
+import { installMultiTabStorageListener } from '../../src/services/storage/persistenceProvider';
 
 const activeChats: ChatStore[] = [];
 
@@ -325,6 +326,104 @@ describe('ChatStore', () => {
     expect(activities.map(item => [item.kind, item.state, item.verb])).toContainEqual(['bridge', 'failed', 'Workspace offline']);
   });
 
+  it('recordActivityEvent attaches to a background streaming thread when active thread differs', () => {
+    const { chat } = setup();
+    const backgroundId = chat.createThread();
+    const background = chat.threads.find(t => t.id === backgroundId)!;
+    const assistant = {
+      id: 'm-bg-stream',
+      role: 'assistant' as const,
+      createdAt: 1000,
+      content: 'streaming…',
+    };
+    runInAction(() => {
+      background.messages.push(assistant);
+      chat.streamingByThread[backgroundId] = assistant.id;
+    });
+    const activeId = chat.createThread();
+    expect(chat.activeThreadId).toBe(activeId);
+    expect(chat.isThreadStreaming(backgroundId)).toBe(true);
+
+    chat.recordActivityEvent({
+      id: 'bridge-bg',
+      kind: 'bridge',
+      state: 'running',
+      verb: 'Workspace online',
+      summary: 'Connected',
+      startedAt: 1200,
+      finishedAt: 1200,
+    });
+
+    const bgMessage = background.messages.find(m => m.id === assistant.id);
+    expect(bgMessage?.role === 'assistant' ? bgMessage.activityEvents?.[0]?.verb : undefined).toBe('Workspace online');
+    const activeAssistant = chat.activeThread!.messages.find(m => m.role === 'assistant');
+    expect(activeAssistant).toBeUndefined();
+  });
+
+  it('reloadFromStorage applies a newer snapshot and clears persistence conflict', () => {
+    const { chat } = setup();
+    const threadId = chat.activeThreadId!;
+    chat.renameThread(threadId, 'Stale in memory');
+    localStorage.setItem('gatesai.state.v1', JSON.stringify({
+      activeThreadId: threadId,
+      threads: [{
+        id: threadId,
+        title: 'Fresh from storage',
+        subtitle: '',
+        createdAt: 1,
+        updatedAt: 2,
+        pinned: false,
+        modelId: 'or-gemini-3-flash',
+        messages: [{ id: 'm1', role: 'user', content: 'from disk', createdAt: 3 }],
+      }],
+    }));
+    runInAction(() => {
+      chat.persistenceConflict = 'tab conflict';
+      (chat as unknown as { persistPaused: boolean }).persistPaused = true;
+    });
+
+    chat.reloadFromStorage();
+
+    expect(chat.persistenceConflict).toBeNull();
+    expect(chat.threads.find(t => t.id === threadId)?.title).toBe('Fresh from storage');
+    expect(chat.activeThread?.messages[0]).toMatchObject({ content: 'from disk' });
+  });
+
+  it('reloadFromStorage aborts in-flight streams so abandoned turns stop mutating', async () => {
+    // Stream that emits one token then stays pending until aborted — a turn
+    // genuinely mid-flight when the cross-tab reload happens.
+    class PendingStreamProvider implements LlmProvider {
+      readonly id: ProviderId = 'openrouter';
+      ready(): boolean { return true; }
+      async *stream(_req: LlmRequest, signal: AbortSignal): AsyncIterable<LlmChunk> {
+        yield { type: 'text', delta: 'partial' };
+        await new Promise<void>((resolve) => {
+          if (signal.aborted) { resolve(); return; }
+          signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+      }
+    }
+
+    disposeActiveChats();
+    flushPendingSnapshot();
+    clearAppStorage();
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    installMockProvider(providers, new PendingStreamProvider());
+    const chat = trackChat(new ChatStore(providers, registry, profile));
+
+    const threadId = chat.createThread();
+    chat.sendMessage('stream please');
+    await flush(5);
+    expect(chat.isThreadStreaming(threadId)).toBe(true);
+
+    // Another tab cleared storage; reloading must stop the in-flight stream
+    // rather than let it keep appending into the freshly-loaded state.
+    chat.reloadFromStorage();
+    expect(chat.isThreadStreaming(threadId)).toBe(false);
+  });
+
   it('defaults persisted unresolved thread models back to Gemini 3 Flash', () => {
     localStorage.setItem('gatesai.state.v1', JSON.stringify({
       activeThreadId: 't-stale',
@@ -461,6 +560,36 @@ describe('ChatStore', () => {
     expect(JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}').threads[0].title).toBe('Local survives');
   });
 
+  it('persists a freshly sent message + streamed reply with no thread-list change (regression: deep autosave tracking)', async () => {
+    // Repro of the bug where a single new conversation was lost on reload:
+    // sendMessage appends the user message and streams the reply by mutating
+    // existing thread/message objects in place, without any create/select/
+    // rename that would reassign the threads array. The autosave reaction must
+    // observe those nested edits, not just the top-level threads array.
+    const { chat } = setup([
+      { type: 'text', delta: 'streamed reply body' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    const threadId = chat.activeThreadId!;
+
+    chat.sendMessage('remember me across reload');
+    await flush(20);
+
+    const snapshot = await waitForLocalStorageSnapshot(
+      s => {
+        const t = s.threads.find(thread => thread.id === threadId);
+        return !!t
+          && t.messages.some(m => m.content === 'remember me across reload')
+          && t.messages.some(m => m.content.includes('streamed reply body'));
+      },
+      'sent message + streamed reply persisted to localStorage',
+    );
+
+    const thread = snapshot.threads.find(t => t.id === threadId)!;
+    expect(thread.messages.some(m => m.role === 'user' && m.content === 'remember me across reload')).toBe(true);
+    expect(thread.messages.some(m => m.role === 'assistant' && m.content.includes('streamed reply body'))).toBe(true);
+  });
+
   it('repairs a live unresolved active model before sending', () => {
     const { chat } = setup();
     chat.setThreadModel(chat.activeThreadId!, 'missing-model');
@@ -563,6 +692,25 @@ describe('ChatStore', () => {
     expect(chat.threads.find(t => t.id === b)?.deletedAt).toBeTypeOf('number');
     expect(chat.activeThreadId).not.toBe(b);
     expect([a, chat.activeThreadId]).toContain(chat.activeThreadId);
+  });
+
+  it('softDeleteThread while streaming annotates the partial assistant reply', async () => {
+    const slow: Parameters<MockProvider['setChunks']>[0] = [];
+    for (let i = 0; i < 50; i++) slow.push({ type: 'text', delta: 'x' });
+    slow.push({ type: 'done', finishReason: 'stop' });
+
+    const { chat } = setup(slow);
+    const threadId = chat.createThread();
+    chat.sendMessage('go');
+    await flush(2);
+    expect(chat.isThreadStreaming(threadId)).toBe(true);
+
+    chat.softDeleteThread(threadId);
+    expect(chat.isThreadStreaming(threadId)).toBe(false);
+
+    const reply = chat.threads.find(t => t.id === threadId)!.messages.find(m => m.role === 'assistant')!;
+    expect(reply.content).toContain('[interrupted]');
+    expect(chat.threads.find(t => t.id === threadId)?.deletedAt).toBeTypeOf('number');
   });
 
   it('restoreThread brings a soft-deleted thread back into visibleThreads', () => {
@@ -1196,6 +1344,67 @@ describe('ChatStore', () => {
     expect(chat.streamingMessageId).toBeNull();
   });
 
+  it('keeps lastError scoped to the thread that failed', async () => {
+    const { chat } = setup([
+      { type: 'done', finishReason: 'error', error: 'thread A failed' },
+    ]);
+    const threadA = chat.activeThreadId!;
+    chat.sendMessage('boom on A');
+    await flush(10);
+    expect(chat.lastError).toBe('thread A failed');
+    expect(chat.lastErrorByThread[threadA]).toBe('thread A failed');
+
+    const threadB = chat.createThread();
+    expect(chat.activeThreadId).toBe(threadB);
+    expect(chat.lastError).toBeNull();
+
+    chat.selectThread(threadA);
+    expect(chat.lastError).toBe('thread A failed');
+
+    chat.clearLastError();
+    expect(chat.lastErrorByThread[threadA]).toBeUndefined();
+    chat.selectThread(threadB);
+    expect(chat.lastError).toBeNull();
+  });
+
+  it('pauses local saves after another tab writes chat storage', async () => {
+    const listeners = new Map<string, EventListener>();
+    vi.spyOn(window, 'addEventListener').mockImplementation((type, handler) => {
+      listeners.set(type, handler as EventListener);
+    });
+    installMultiTabStorageListener();
+
+    const { chat } = setup();
+    const threadId = chat.activeThreadId!;
+    chat.renameThread(threadId, 'Before conflict');
+    await flush(300);
+
+    const before = loadSnapshot();
+    expect(before?.threads.find(t => t.id === threadId)?.title).toBe('Before conflict');
+
+    const storageHandler = listeners.get('storage');
+    expect(storageHandler).toBeTypeOf('function');
+    storageHandler!(new StorageEvent('storage', {
+      key: CHAT_SNAPSHOT_STORAGE_KEY,
+      oldValue: JSON.stringify(before),
+      newValue: JSON.stringify({
+        ...before,
+        threads: before!.threads.map(t => ({ ...t, title: 'External overwrite' })),
+      }),
+      storageArea: localStorage,
+    }));
+
+    expect(chat.persistenceConflict).toMatch(/Another browser tab/);
+    chat.renameThread(threadId, 'After conflict');
+    await flush(300);
+    expect(loadSnapshot()?.threads.find(t => t.id === threadId)?.title).toBe('Before conflict');
+
+    chat.dismissPersistenceConflict();
+    chat.renameThread(threadId, 'After dismiss');
+    await flush(300);
+    expect(loadSnapshot()?.threads.find(t => t.id === threadId)?.title).toBe('After dismiss');
+  });
+
   it('omits tools from the request when the active model has supportsTools=false', async () => {
     const { chat, mock, registry } = setup([
       { type: 'text', delta: 'ok' },
@@ -1464,6 +1673,7 @@ describe('ChatStore', () => {
           comfyUpscaleFactor: 2,
         }),
       },
+      localRuntime: { ollamaBaseUrl: '', comfyReady: true },
       imageJobs: {
         enqueue: (input) => {
           enqueued.push(input);
@@ -1487,6 +1697,43 @@ describe('ChatStore', () => {
     expect(chat.activeThread!.messages.at(-1)).toMatchObject({
       role: 'assistant',
       content: expect.stringContaining('I queued an image through local ComfyUI'),
+    });
+  });
+
+  it('direct-image turn is blocked with a clear message when ComfyUI is not ready', async () => {
+    const { chat, mock } = setup();
+    const threadId = chat.createThread();
+    chat.setThreadModel(threadId, 'image-direct-comfy');
+    const enqueued: Parameters<NonNullable<ToolContext['imageJobs']>['enqueue']>[0][] = [];
+    chat.setToolStoresProvider(() => ({
+      imageGen: {
+        backend: 'local-comfy',
+        comfyWorkflowPath: undefined,
+        getCredential: () => 'http://127.0.0.1:8188',
+        toBackendConfig: () => ({
+          primary: 'local-comfy',
+          comfyBaseUrl: 'http://127.0.0.1:8188',
+          comfyQualityPreset: 'full',
+          comfyUpscaleFactor: 1,
+        }),
+      },
+      localRuntime: { ollamaBaseUrl: '', comfyReady: false },
+      imageJobs: {
+        enqueue: (input) => {
+          enqueued.push(input);
+          return { jobId: 'job-1', count: input.count };
+        },
+      },
+    }));
+
+    chat.sendMessage('a glass city under rain');
+    await flush(10);
+
+    expect(mock.calls).toHaveLength(0);
+    expect(enqueued).toHaveLength(0);
+    expect(chat.activeThread!.messages.at(-1)).toMatchObject({
+      role: 'assistant',
+      content: expect.stringContaining('ComfyUI is not running'),
     });
   });
 
@@ -1569,6 +1816,7 @@ describe('ChatStore', () => {
           comfyUpscaleFactor: 3,
         }),
       },
+      localRuntime: { ollamaBaseUrl: '', comfyReady: true },
       imageJobs: {
         enqueue: (input) => {
           enqueued.push(input);
@@ -1608,6 +1856,165 @@ describe('ChatStore', () => {
     expect(usage.used).toBeLessThan(100);
   });
 
+  it('abandoned stream finalize does not stamp finishReason or auto-name after interrupt-resend', async () => {
+    class LateFinalizeMockProvider implements LlmProvider {
+      readonly id: ProviderId = 'openrouter';
+      calls: LlmRequest[] = [];
+      private callIndex = 0;
+
+      ready(): boolean { return true; }
+
+      async *stream(req: LlmRequest, _signal: AbortSignal): AsyncIterable<LlmChunk> {
+        this.calls.push(req);
+        const n = this.callIndex++;
+        if (n === 0) {
+          yield { type: 'text', delta: 'partial abandoned' };
+          await new Promise(r => setTimeout(r, 20));
+          yield { type: 'done', finishReason: 'stop' };
+          return;
+        }
+        yield { type: 'text', delta: 'real-reply' };
+        yield { type: 'done', finishReason: 'stop' };
+      }
+    }
+
+    disposeActiveChats();
+    flushPendingSnapshot();
+    clearAppStorage();
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    const mock = new LateFinalizeMockProvider();
+    installMockProvider(providers, mock);
+    const chat = trackChat(new ChatStore(providers, registry, profile));
+
+    chat.createThread();
+    chat.sendMessage('first');
+    await flush(5);
+    chat.sendMessage('second');
+    await flush(30);
+
+    const messages = chat.activeThread!.messages;
+    const interrupted = messages.find(m => m.role === 'assistant' && m.content.includes('[interrupted]'));
+    expect(interrupted).toBeDefined();
+    if (interrupted?.role === 'assistant') {
+      expect(interrupted.finishReason).toBeUndefined();
+    }
+    expect(chat.activeThread!.autoNamed).toBeFalsy();
+    const finalReply = messages.at(-1);
+    expect(finalReply).toMatchObject({ role: 'assistant', content: 'real-reply' });
+  });
+
+  it('abandoned stream error finalize does not stamp finishReason after interrupt-resend', async () => {
+    class LateErrorFinalizeMockProvider implements LlmProvider {
+      readonly id: ProviderId = 'openrouter';
+      calls: LlmRequest[] = [];
+      private callIndex = 0;
+
+      ready(): boolean { return true; }
+
+      async *stream(req: LlmRequest, _signal: AbortSignal): AsyncIterable<LlmChunk> {
+        this.calls.push(req);
+        const n = this.callIndex++;
+        if (n === 0) {
+          yield { type: 'text', delta: 'partial abandoned' };
+          await new Promise(r => setTimeout(r, 20));
+          yield { type: 'done', finishReason: 'error', error: 'provider blew up' };
+          return;
+        }
+        yield { type: 'text', delta: 'real-reply' };
+        yield { type: 'done', finishReason: 'stop' };
+      }
+    }
+
+    disposeActiveChats();
+    flushPendingSnapshot();
+    clearAppStorage();
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    const mock = new LateErrorFinalizeMockProvider();
+    installMockProvider(providers, mock);
+    const chat = trackChat(new ChatStore(providers, registry, profile));
+
+    chat.createThread();
+    chat.sendMessage('first');
+    await flush(5);
+    chat.sendMessage('second');
+    await flush(30);
+
+    const messages = chat.activeThread!.messages;
+    const interrupted = messages.find(m => m.role === 'assistant' && m.content.includes('[interrupted]'));
+    expect(interrupted).toBeDefined();
+    if (interrupted?.role === 'assistant') {
+      expect(interrupted.finishReason).toBeUndefined();
+    }
+    expect(chat.activeThread!.autoNamed).toBeFalsy();
+    expect(chat.lastError).toBeNull();
+    const finalReply = messages.at(-1);
+    expect(finalReply).toMatchObject({ role: 'assistant', content: 'real-reply' });
+  });
+
+  it('manual rename prevents auto-naming from overwriting the user title', async () => {
+    const { chat } = setup([
+      { type: 'text', delta: 'assistant body long enough to name from' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    const threadId = chat.createThread();
+    chat.renameThread(threadId, 'My Custom Title');
+    chat.sendMessage('hello naming guard');
+    await flush(30);
+    expect(chat.threads.find(t => t.id === threadId)?.title).toBe('My Custom Title');
+    expect(chat.threads.find(t => t.id === threadId)?.autoNamed).toBe(true);
+  });
+
+  it('auto-naming does not revive a thread soft-deleted while the namer is in flight', async () => {
+    // Main turn completes immediately (so `maybeAutoName` fires), but the namer
+    // call is gated so we can soft-delete before it resolves.
+    let releaseNamer: () => void = () => {};
+    const namerGate = new Promise<void>((resolve) => { releaseNamer = resolve; });
+    class GatedNamerProvider implements LlmProvider {
+      readonly id: ProviderId = 'openrouter';
+      ready(): boolean { return true; }
+      async *stream(req: LlmRequest): AsyncIterable<LlmChunk> {
+        if ((req.systemPrompt ?? '').includes('name conversations')) {
+          await namerGate;
+          yield { type: 'text', delta: 'Generated Title' };
+          yield { type: 'done', finishReason: 'stop' };
+          return;
+        }
+        yield { type: 'text', delta: 'assistant reply body long enough to name from' };
+        yield { type: 'done', finishReason: 'stop' };
+      }
+    }
+
+    disposeActiveChats();
+    flushPendingSnapshot();
+    clearAppStorage();
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    installMockProvider(providers, new GatedNamerProvider());
+    // `canRoute` checks the real provider map (not the patched `resolve`), and a
+    // keyless test provider isn't "ready"; force it so the namer path runs.
+    (providers.router as unknown as { canRoute: () => boolean }).canRoute = () => true;
+    const chat = trackChat(new ChatStore(providers, registry, profile));
+
+    const threadId = chat.createThread();
+    chat.sendMessage('hello soft-delete naming');
+    await flush(10);
+    expect(chat.threads.find(t => t.id === threadId)?.naming).toBe(true);
+
+    chat.softDeleteThread(threadId);
+    releaseNamer();
+    await flush(10);
+
+    const thread = chat.threads.find(t => t.id === threadId);
+    expect(thread?.deletedAt).toBeTruthy();
+    expect(thread?.autoNamed).toBeFalsy();
+    expect(thread?.title).not.toBe('Generated Title');
+  });
+
   it('direct-image prompt uses only the user-authored body, not attachment footer context', async () => {
     const { chat } = setup();
     const threadId = chat.createThread();
@@ -1625,6 +2032,7 @@ describe('ChatStore', () => {
           comfyUpscaleFactor: 1,
         }),
       },
+      localRuntime: { ollamaBaseUrl: '', comfyReady: true },
       imageJobs: {
         enqueue: (input) => {
           enqueued.push(input);

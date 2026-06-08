@@ -198,8 +198,13 @@ describe('image_generate tool', () => {
       batch_name: 'Night Run',
     }, ctx);
 
-    expect(typeof out).toBe('string');
-    expect(out).toMatch(/Queued 2 jobs \/ 13 image renders/);
+    expect(out).toEqual(expect.objectContaining({
+      content: expect.stringMatching(/Queued 2 jobs \/ 13 image renders/),
+      artifacts: [
+        expect.objectContaining({ kind: 'image-job', count: 10 }),
+        expect.objectContaining({ kind: 'image-job', count: 3 }),
+      ],
+    }));
     expect(jobs.calls).toEqual([
       expect.objectContaining({
         prompt: 'portrait prompt one',
@@ -219,7 +224,7 @@ describe('image_generate tool', () => {
         seed: 2000,
         filenamePrefix: 'night-run-portrait-prompt-two',
         backend: 'openrouter-image',
-        notifyOnTerminal: false,
+        notifyOnTerminal: true,
       }),
     ]);
   });

@@ -1,6 +1,5 @@
-// Renders the editorial chat MarkdownFallback surface and its local interaction state.
-// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
-// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
+// A lightweight markdown renderer used as the fallback while the full
+// react-markdown chunk loads (and for simple inline tokens). Presentation only.
 import type { ReactNode } from 'react';
 import { isWorkspacePath } from '../../core/workspacePaths';
 import type { BridgeStore } from '../../stores/BridgeStore';

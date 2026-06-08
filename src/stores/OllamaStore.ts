@@ -11,6 +11,7 @@ import {
 } from '../services/ollamaStorage';
 import type { ModelRegistry } from './ModelRegistry';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
+import { logger } from '../services/diagnostics/logger';
 
 /**
  * Owns Ollama auth, tool-call settings, and the locally pulled model catalog.
@@ -91,6 +92,7 @@ export class OllamaStore {
       });
     } catch (err) {
       if (ctrl.signal.aborted) return;
+      logger.warn('models', 'Ollama catalog fetch failed', { err });
       runInAction(() => {
         this.lastError = err instanceof Error ? err.message : String(err);
         this.fetching = false;

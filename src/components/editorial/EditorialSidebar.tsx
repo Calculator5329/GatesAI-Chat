@@ -1,12 +1,12 @@
-// Renders the editorial chat EditorialSidebar surface and its local interaction state.
-// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
-// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
+// The thread-list navigation sidebar: search, pin, soft-delete + undo, and menu
+// section navigation. Rendered by the app shell; reads RootStore via hooks.
+// Invariant: persisted chat state stays in stores; this surface is presentation only.
 import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { MenuSectionKey, Thread } from '../../core/types';
 import { useChatStore, useRouterStore } from '../../stores/context';
-import { threadMatchesSearch, threadSidebarPreview } from '../../stores/ChatStore';
+import { threadMatchesSearch } from '../../stores/ChatStore';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
 
@@ -24,7 +24,7 @@ const MENU_LABELS: Record<MenuSectionKey, string> = {
 
 const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
   root: {
-    width: 240, flexShrink: 0,
+    width: 270, flexShrink: 0,
     background: 'transparent',
     borderRight: '1px solid var(--border)',
     display: 'flex', flexDirection: 'column',
@@ -48,11 +48,8 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
   title: (active: boolean) => ({
     fontSize: 13, color: active ? 'var(--text)' : 'var(--text-dim)',
     fontWeight: 400, letterSpacing: '-0.005em',
-  }),
-  preview: {
-    fontSize: 11, color: 'var(--text-faint)', marginTop: 2, fontStyle: 'italic',
     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-  },
+  }),
   // `scrollbarGutter: stable` reserves the scrollbar's space whether or not
   // the bar is currently rendered, so thread titles don't reflow (and the
   // history doesn't visibly jiggle) the moment the list grows past the
@@ -60,7 +57,7 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
   list: { flex: 1, overflowY: 'auto', paddingBottom: 16, scrollbarGutter: 'stable' as const },
   xBtn: {
     flex: 'none',
-    width: 32, height: 32, minWidth: 32, minHeight: 32, padding: 0,
+    width: 24, height: 24, minWidth: 24, minHeight: 24, padding: 0,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     background: 'transparent',
     border: 'none',
@@ -104,8 +101,8 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
     flex: 'none',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 4,
-    minWidth: 68,
+    gap: 2,
+    minWidth: 50,
     overflow: 'visible',
   },
   inlineInput: {
@@ -483,12 +480,11 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
               tabIndex={showActions ? 0 : -1}
               style={S.xBtn as CSSProperties}
             >
-              <Icons.Close />
+              <Icons.Trash />
             </button>
           </div>
         )}
       </div>
-      <div className="editorial-sidebar__preview" style={S.preview as CSSProperties}>{threadSidebarPreview(thread)}</div>
     </div>
   );
 });

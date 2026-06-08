@@ -47,7 +47,7 @@ export async function resolveBackend(
       };
     }
     case 'openrouter-image': {
-      if (!config.openRouterApiKey) return { error: 'OpenRouter API key is required for GPT-5.4 Image 2. Add one under Menu -> API -> OpenRouter.' };
+      if (!config.openRouterApiKey) return { error: 'OpenRouter API key is required for GPT-5.4 Image 2. Add one under Models → OpenRouter.' };
       const { OpenRouterImageClient } = await import('./openrouterImageClient');
       return { backend: new OpenRouterImageClient({ apiKey: config.openRouterApiKey, fetch: fetchImpl }) };
     }

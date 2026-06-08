@@ -5,6 +5,7 @@ import { autorun, makeAutoObservable, toJS } from 'mobx';
 import { BraveSearchClient, BraveSearchError } from '../services/search/braveClient';
 import { loadSearchConfig, saveSearchConfig, type SearchPersistedConfig } from '../services/searchStorage';
 import type { BraveFreshness, BraveSearchOptions, BraveSearchQueryResult, BraveSearchSource } from '../services/search/types';
+import { logger } from '../services/diagnostics/logger';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 50;
@@ -101,6 +102,7 @@ export class SearchStore {
       return { query, ok: true, sources };
     } catch (err) {
       const code = err instanceof BraveSearchError ? err.code : 'search_error';
+      logger.warn('search', 'Brave search failed', { query, errorCode: code, err });
       return {
         query,
         ok: false,

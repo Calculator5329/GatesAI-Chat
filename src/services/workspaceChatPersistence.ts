@@ -58,10 +58,12 @@ export function createWorkspaceChatPersistence(client: BridgeClientFacade): Work
         const parsed = JSON.parse(raw) as unknown;
         const envelope = parseEnvelope(parsed);
         if (!envelope) {
+          logger.warn('persistence', 'Workspace chat snapshot malformed', { error: 'Invalid workspace chat snapshot envelope.' });
           return { kind: 'malformed', raw, error: 'Invalid workspace chat snapshot envelope.' };
         }
         return { kind: 'loaded', snapshot: envelope.snapshot, envelope };
       } catch (err) {
+        logger.warn('persistence', 'Workspace chat snapshot malformed', { error: (err as Error).message });
         return { kind: 'malformed', raw, error: (err as Error).message };
       }
     },
@@ -86,7 +88,8 @@ export function createWorkspaceChatPersistence(client: BridgeClientFacade): Work
           from: WORKSPACE_CHAT_TMP_PATH,
           to: WORKSPACE_CHAT_STATE_PATH,
         });
-      } catch {
+      } catch (err) {
+        logger.warn('persistence', 'workspace chat atomic save fell back to direct write', err);
         await client.request('fs.write', {
           path: WORKSPACE_CHAT_STATE_PATH,
           content: raw,

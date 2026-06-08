@@ -131,12 +131,36 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
     }
   };
 
+  if (webLite) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <WebLiteNotice show={webLite}>
+          <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
+          the local /workspace bridge isn't available in the browser build. Chats and settings are saved in this browser.
+        </WebLiteNotice>
+        <Card>
+          <div style={S.label}>Desktop-only workspace capabilities</div>
+          <div style={{ ...S.sub, marginTop: 8, lineHeight: 1.6 }}>
+            The installed desktop app connects to a local bridge that unlocks the
+            features this section manages:
+          </div>
+          <ul style={{ margin: '12px 0 0', paddingLeft: 18, color: 'var(--text-dim)', fontSize: 12.5, lineHeight: 1.7 }}>
+            <li>Workspace file browser — <code style={S.inlineCode}>attachments/</code>, <code style={S.inlineCode}>notes/</code>, <code style={S.inlineCode}>artifacts/</code></li>
+            <li>Terminal, Python, SQLite, and Git tools over your files</li>
+            <li>Source workspace snapshot + build / test / package runner</li>
+            <li>Local image generation (ComfyUI) and local LLMs (Ollama)</li>
+          </ul>
+          <div style={{ ...S.sub, marginTop: 12 }}>
+            A future cloud backend can add server-side tools and hosted artifact
+            storage to the web app without a local bridge.
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <WebLiteNotice show={webLite}>
-        <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
-        the local /workspace bridge is not available in Firebase Hosting. Chats and settings stay in this browser for now.
-      </WebLiteNotice>
       {/* Bridge status */}
       <Card>
         <div style={S.row}>

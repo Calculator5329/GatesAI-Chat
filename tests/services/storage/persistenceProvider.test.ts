@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createJsonPersistenceProvider,
+  installMultiTabStorageListener,
   type KeyValuePersistence,
 } from '../../../src/services/storage/persistenceProvider';
+import { logger } from '../../../src/services/diagnostics/logger';
 import { createLocalChatSnapshotPersistenceProvider } from '../../../src/services/persistence';
 import { createProviderConfigsPersistence } from '../../../src/services/providerStorage';
 
@@ -92,7 +94,38 @@ describe('persistence providers', () => {
     expect(message?.role).toBe('assistant');
     if (message?.role !== 'assistant') throw new Error('expected assistant');
     expect(message.toolResults?.[0].content).toContain('[persisted tool result compacted]');
-    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy.mock.calls[0]?.[1]).toContain('attempting compaction');
+    expect(warnSpy.mock.calls[1]?.[1]).toContain('saved compacted chat snapshot');
+  });
+
+  it('installMultiTabStorageListener warns on cross-tab gatesai.* storage changes', () => {
+    const listeners = new Map<string, EventListener>();
+    vi.spyOn(window, 'addEventListener').mockImplementation((type, handler) => {
+      listeners.set(type, handler as EventListener);
+    });
+    const removeSpy = vi.spyOn(window, 'removeEventListener').mockImplementation(() => undefined);
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+
+    const uninstall = installMultiTabStorageListener();
+    const handler = listeners.get('storage');
+    expect(handler).toBeTypeOf('function');
+
+    handler!(new StorageEvent('storage', {
+      key: 'gatesai.chat.v1',
+      oldValue: 'old',
+      newValue: 'new',
+      storageArea: localStorage,
+    }));
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      'persistence',
+      'another browser tab modified localStorage',
+      { key: 'gatesai.chat.v1', hadPrevious: true },
+    );
+
+    uninstall();
+    expect(removeSpy).toHaveBeenCalledWith('storage', handler);
   });
 
   it('runs provider-config legacy cleanup against the injected backend', () => {

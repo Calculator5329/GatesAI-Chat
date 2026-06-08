@@ -1108,7 +1108,6 @@ body {
   .editorial-sidebar__brand-text,
   .editorial-sidebar__new-label,
   .editorial-sidebar__group,
-  .editorial-sidebar__preview,
   .bridge-status-pill__label {
     display: none !important;
   }
@@ -1266,7 +1265,6 @@ body {
 
   .runtime-web-lite .editorial-sidebar__new-label,
   .runtime-web-lite .editorial-sidebar__group,
-  .runtime-web-lite .editorial-sidebar__preview,
   .runtime-web-lite .bridge-status-pill {
     display: none !important;
   }
@@ -1624,10 +1622,6 @@ body {
     background: transparent;
   }
 
-  .runtime-web-lite .editorial-sidebar[data-mobile-open="true"] .editorial-sidebar__preview {
-    display: block !important;
-  }
-
   .runtime-web-lite .editorial-sidebar[data-mobile-open="true"] .bridge-status-pill {
     display: flex !important;
     flex: none;
@@ -1935,10 +1929,6 @@ body {
 
   .runtime-web-lite .editorial-sidebar__item:active {
     background: color-mix(in srgb, var(--text) 4%, transparent);
-  }
-
-  .runtime-web-lite .editorial-sidebar__preview {
-    display: block !important;
   }
 
   .runtime-web-lite .bridge-status-pill {
@@ -2341,14 +2331,12 @@ body {
   :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__brand > div,
   :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__brand-text,
   :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__new-label,
-  :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__preview,
   :is(.runtime-web-lite, .runtime-desktop) .bridge-status-pill__label {
     display: flex !important;
   }
 
   :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__brand-text,
   :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__new-label,
-  :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__preview,
   :is(.runtime-web-lite, .runtime-desktop) .bridge-status-pill__label {
     display: block !important;
   }

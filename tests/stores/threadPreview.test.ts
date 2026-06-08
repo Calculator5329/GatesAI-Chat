@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { threadMatchesSearch, threadSidebarPreview } from '../../src/stores/ChatStore';
+import { threadMatchesSearch } from '../../src/stores/ChatStore';
 import type { Message, Thread } from '../../src/core/types';
 
 function msg(role: 'user' | 'assistant', content: string, id = 'm'): Message {
@@ -19,35 +19,6 @@ function thread(messages: Message[], extra: Partial<Thread> = {}): Thread {
     ...extra,
   };
 }
-
-describe('threadSidebarPreview', () => {
-  it('returns empty string for a thread with no messages', () => {
-    expect(threadSidebarPreview(thread([]))).toBe('');
-  });
-
-  it('derives the preview from the most recent message with text', () => {
-    const t = thread([
-      msg('user', 'first question', 'm1'),
-      msg('assistant', 'the assistant reply', 'm2'),
-    ]);
-    expect(threadSidebarPreview(t)).toBe('the assistant reply');
-  });
-
-  it('skips trailing empty messages and collapses whitespace', () => {
-    const t = thread([
-      msg('user', 'hello   there\n\nworld', 'm1'),
-      msg('assistant', '   ', 'm2'),
-    ]);
-    expect(threadSidebarPreview(t)).toBe('hello there world');
-  });
-
-  it('truncates long previews with an ellipsis', () => {
-    const long = 'x'.repeat(150);
-    const preview = threadSidebarPreview(thread([msg('user', long)]));
-    expect(preview.endsWith('…')).toBe(true);
-    expect(preview.length).toBe(101);
-  });
-});
 
 describe('threadMatchesSearch', () => {
   const t = thread([msg('user', 'a question about zebras', 'm1')], { title: 'Animals', subtitle: 'wildlife notes' });

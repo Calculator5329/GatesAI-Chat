@@ -3,7 +3,8 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, toJS } from 'mobx';
 import type { Note, NotesSnapshot } from '../core/notes';
-import { loadNotes, saveNotes } from '../services/notesStorage';
+import { MAX_NOTE_BODY_CHARS, MAX_NOTE_TITLE_CHARS } from '../core/notes';
+import { consumeNotesLoadError, loadNotes, saveNotes } from '../services/notesStorage';
 
 function newId(): string {
   return `n-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -20,14 +21,17 @@ function newId(): string {
  *
  * Persisted to its own localStorage key (`gatesai.notes.v1`) so a notes
  * dump doesn't bloat the chat snapshot, and so future migration to
- * IndexedDB only touches one file.
+ * IndexedDB only touches one file. Body/title length is capped at
+ * `MAX_NOTE_*`; corrupt snapshots are quarantined like chat state.
  */
 export class NotesStore {
   notes: Note[] = [];
+  loadError: string | null = null;
 
   constructor() {
     const snap = loadNotes();
     if (snap) this.notes = snap.notes;
+    this.loadError = consumeNotesLoadError();
     makeAutoObservable(this);
     autorun(() => saveNotes(toJS({ notes: this.notes })));
   }
@@ -60,11 +64,13 @@ export class NotesStore {
   }
 
   create(input: { title: string; body: string; tags?: string[] }): Note {
+    const title = input.title.trim().slice(0, MAX_NOTE_TITLE_CHARS) || 'Untitled';
+    const body = input.body.slice(0, MAX_NOTE_BODY_CHARS);
     const now = Date.now();
     const note: Note = {
       id: newId(),
-      title: input.title.trim() || 'Untitled',
-      body: input.body,
+      title,
+      body,
       tags: input.tags && input.tags.length > 0 ? [...input.tags] : undefined,
       createdAt: now,
       updatedAt: now,
@@ -80,8 +86,10 @@ export class NotesStore {
   update(id: string, patch: { title?: string; body?: string; tags?: string[] }): Note | null {
     const note = this.findById(id);
     if (!note) return null;
-    if (patch.title !== undefined) note.title = patch.title.trim() || 'Untitled';
-    if (patch.body !== undefined) note.body = patch.body;
+    if (patch.title !== undefined) {
+      note.title = patch.title.trim().slice(0, MAX_NOTE_TITLE_CHARS) || 'Untitled';
+    }
+    if (patch.body !== undefined) note.body = patch.body.slice(0, MAX_NOTE_BODY_CHARS);
     if (patch.tags !== undefined) note.tags = patch.tags.length > 0 ? [...patch.tags] : undefined;
     note.updatedAt = Date.now();
     return note;

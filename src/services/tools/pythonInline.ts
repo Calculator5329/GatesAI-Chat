@@ -3,6 +3,7 @@
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ExecRunResp } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
+import { denyIfReferencesProtectedChatHistory } from './protectedWorkspacePaths';
 import type { Tool } from './types';
 
 const MAX_INLINE_CODE_CHARS = 8_000;
@@ -50,6 +51,10 @@ export const pythonInlineTool: Tool = {
 
     const stdin = typeof args.stdin === 'string' ? args.stdin : undefined;
     const timeout_ms = typeof args.timeout_ms === 'number' ? args.timeout_ms : 10_000;
+
+    // Audit C3 — scan inline Python for protected chat-history paths before exec.
+    const protectedDenial = denyIfReferencesProtectedChatHistory([code, stdin ?? ''], 'python_inline');
+    if (protectedDenial) return protectedDenial;
 
     try {
       const resp = await ctx.bridge.client.request<ExecRunResp>('exec.run', {

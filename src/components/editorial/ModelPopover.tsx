@@ -1,11 +1,20 @@
-// Renders the editorial chat ModelPopover surface and its local interaction state.
-// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
-// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
+// The model-picker popover: search, capability/source filtering, favorites, and
+// keyboard selection. Rendered by EditorialComposer; reads the model registry +
+// local-runtime store via hooks and derives all view state from props/hooks.
+// Invariant: persisted chat state stays in stores; this surface is presentation only.
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
 import { DEFAULT_MODEL_ID, DEFAULT_OPENROUTER_CATALOG_MODEL_IDS } from '../../core/models';
 import { modelSupportsVision } from '../../core/modelCapabilities';
+import { isWebLite } from '../../core/runtime';
+import {
+  availableSources,
+  isModelAvailable,
+  isVerifiedModelId,
+  type ModelPickerSource,
+  type RuntimeAvailability,
+} from '../../core/modelPickerAvailability';
 import { Icons } from '../ui/icons';
 import { useLocalRuntimeStore, useModelRegistry } from '../../stores/context';
 
@@ -15,7 +24,18 @@ interface ModelPopoverProps {
   onClose: () => void;
 }
 
-type SourceFilter = 'auto' | 'cloud' | 'local' | 'image';
+type SourceFilter = ModelPickerSource;
+type CapabilityFilter = 'vision' | 'tools' | 'reasoning' | 'fast' | 'free';
+
+const CAPABILITY_FILTERS: ReadonlyArray<{ id: CapabilityFilter; label: string }> = [
+  { id: 'vision', label: 'vision' },
+  { id: 'tools', label: 'tools' },
+  { id: 'reasoning', label: 'reasoning' },
+  { id: 'fast', label: 'fast' },
+  { id: 'free', label: 'free' },
+];
+
+const VERIFIED_SECTION_TITLE = 'Verified';
 
 interface ModelMeta {
   tag: string;
@@ -87,6 +107,7 @@ function VendorMark({ vendor, size = 12 }: { vendor: string; size?: number }) {
     case 'Favorites':
     case 'Recommended':
     case 'Recent':
+    case VERIFIED_SECTION_TITLE:
       return (
         <svg width={size} height={size} viewBox="0 0 16 16" fill="var(--accent)" style={{ flexShrink: 0, opacity: 0.9 }}>
           <path d="M8 1.5l2 4.5 5 .5-3.8 3.3 1.2 4.7L8 12l-4.4 2.5L4.8 9.8 1 6.5l5-.5z" />
@@ -114,12 +135,38 @@ function VendorMark({ vendor, size = 12 }: { vendor: string; size?: number }) {
 
 const SEGMENT_WRAP_STYLE: CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(4, 1fr)',
   gap: 3,
   padding: 4,
   borderBottom: '1px solid var(--border)',
   background: 'rgba(255,255,255,0.02)',
 };
+
+const CAP_WRAP_STYLE: CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 4,
+  padding: '6px 10px 8px',
+  borderBottom: '1px solid var(--border)',
+};
+
+function VerifiedMark({ size = 11 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="var(--accent)"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      style={{ flexShrink: 0, opacity: 0.9 }}
+    >
+      <path d="M2.5 8.5l3 3 8-8" />
+    </svg>
+  );
+}
 
 const SEGMENT_STYLE: CSSProperties = {
   height: 24,
@@ -202,9 +249,7 @@ interface RowProps {
   selected: boolean;
   active: boolean;
   isFavorite: boolean;
-  disabledReason?: string;
-  ollamaOnline: boolean;
-  comfyReady: boolean;
+  verified: boolean;
   flatIndex: number;
   onPick: (model: Model) => void;
   onToggleFavorite: (model: Model) => void;
@@ -212,42 +257,42 @@ interface RowProps {
 }
 
 const ModelRow = memo(function ModelRow({
-  model, meta, selected, active, isFavorite, disabledReason, ollamaOnline, comfyReady, flatIndex, onPick, onToggleFavorite, onHover,
+  model, meta, selected, active, isFavorite, verified, flatIndex, onPick, onToggleFavorite, onHover,
 }: RowProps) {
-  const disabled = !!disabledReason;
-  const subline = disabledReason ?? bestForLine(model, meta);
+  // Unusable models (offline Ollama / ComfyUI) are filtered out of the picker
+  // entirely by `isModelAvailable`, so every row rendered here is selectable.
+  const subline = bestForLine(model, meta);
   const rowStyle: CSSProperties = {
     position: 'relative',
     display: 'grid',
     gridTemplateColumns: 'minmax(0, 1fr) minmax(90px, auto)',
     rowGap: 1,
     padding: '7px 14px 7px 18px',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.42 : 1,
-    filter: disabled ? 'grayscale(0.8)' : undefined,
-    background: active && !disabled ? 'var(--panel-2)' : 'transparent',
-    borderLeft: selected ? `2px solid ${disabled ? 'var(--text-faint)' : 'var(--accent)'}` : '2px solid transparent',
+    cursor: 'pointer',
+    background: active ? 'var(--panel-2)' : 'transparent',
+    borderLeft: selected ? '2px solid var(--accent)' : '2px solid transparent',
     transition: 'background 80ms ease',
   };
   const nameStyle: CSSProperties = {
     ...NAME_STYLE_BASE,
-    color: disabled ? 'var(--text-faint)' : selected ? 'var(--text)' : 'var(--text-dim)',
+    color: selected ? 'var(--text)' : 'var(--text-dim)',
   };
   const sublineStyle: CSSProperties = {
     ...SUBLINE_STYLE_BASE,
-    color: disabled ? 'var(--text-dim)' : 'var(--text-faint)',
+    color: 'var(--text-faint)',
   };
   return (
     <div
       data-model-row={model.id}
-      onClick={() => { if (!disabled) onPick(model); }}
+      role="option"
+      aria-selected={selected}
+      onClick={() => onPick(model)}
       onMouseEnter={() => onHover(flatIndex)}
-      aria-disabled={disabled || undefined}
-      title={disabledReason}
       style={rowStyle}
     >
       <div style={ROW_LEFT_STYLE}>
         <span style={nameStyle}>{model.name}</span>
+        {verified && <span title="Verified — covered by the live model test suite"><VerifiedMark size={11} /></span>}
         <button
           type="button"
           className="model-popover__favorite"
@@ -274,7 +319,7 @@ const ModelRow = memo(function ModelRow({
         </button>
       </div>
       <div style={ROW_RIGHT_STYLE}>
-        {badgesForModel(model, ollamaOnline, comfyReady).map(badge => (
+        {badgesForModel(model).map(badge => (
           badge.icon
             ? <IconBadge key={badge.label} kind={badge.icon} tone={badge.tone === 'warn' ? 'warn' : 'muted'} title={badge.title ?? badge.label} />
             : <Badge key={badge.label} tone={badge.tone} title={badge.title}>{badge.label}</Badge>
@@ -293,6 +338,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const [source, setSource] = useState<SourceFilter>(() => registry.pickerSource());
+  const [caps, setCaps] = useState<ReadonlySet<CapabilityFilter>>(() => new Set());
   const [recentIds, setRecentIds] = useState<string[]>(() => registry.recentModelIds());
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => registry.favoriteModelIds());
 
@@ -308,32 +354,56 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     return () => document.removeEventListener('mousedown', handleDocClick);
   }, [onClose]);
 
-  const all = registry.all;
+  const registryAll = registry.all;
   const currentModel = registry.findById(currentModelId);
   const ollamaOnline = localRuntime.runtimes.ollama.status === 'online';
   const comfyReady = localRuntime.comfyReady;
 
+  // Runtime gating: which sources/models can actually be used right now. In
+  // web-lite there are no local backends, and offline/not-ready backends are
+  // hidden entirely rather than shown disabled.
+  const flags = useMemo<RuntimeAvailability>(
+    () => ({ webLite: isWebLite(), ollamaOnline, comfyReady }),
+    [ollamaOnline, comfyReady],
+  );
+  const sourceTabs = useMemo(() => availableSources(flags), [flags]);
+  const effectiveSource: SourceFilter = sourceTabs.includes(source) ? source : 'auto';
+
+  // Only ever surface models the user can pick and send in this runtime.
+  const all = useMemo(
+    () => registryAll.filter(model => isModelAvailable(model, flags)),
+    [registryAll, flags],
+  );
+
   // Resolve favorites through the registry (not just the deduped `all` map): a
   // favorited id can be a curated id that a dynamic catalog entry supersedes
   // under the same providerModelId, in which case it's absent from `all` but
-  // findById still resolves it via the curated fallback.
+  // findById still resolves it via the curated fallback. Unavailable favorites
+  // (e.g. offline local models) are still dropped so the menu stays honest.
   const favoriteModels = useMemo(() => {
-    const byId = new Map(all.map(model => [model.id, model]));
+    const byId = new Map(registryAll.map(model => [model.id, model]));
     return favoriteIds
       .map(id => byId.get(id) ?? registry.findById(id))
-      .filter((model): model is Model => Boolean(model));
-  }, [favoriteIds, registry, all]);
+      .filter((model): model is Model => Boolean(model))
+      .filter(model => isModelAvailable(model, flags));
+  }, [favoriteIds, registry, registryAll, flags]);
+
+  // The selected model is shown in Recommended only when it's actually usable.
+  const recommendableCurrent = currentModel && isModelAvailable(currentModel, flags)
+    ? currentModel
+    : undefined;
 
   const sections = useMemo(() => {
     return buildPickerSections({
       all,
-      currentModel,
+      currentModel: recommendableCurrent,
       query,
-      source,
+      caps,
+      source: effectiveSource,
       recentIds,
       favoriteModels,
     });
-  }, [all, currentModel, query, source, recentIds, favoriteModels]);
+  }, [all, recommendableCurrent, query, caps, effectiveSource, recentIds, favoriteModels]);
 
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
 
@@ -352,6 +422,15 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     setActiveIdx(0);
     registry.setPickerSource(next);
   };
+
+  const toggleCap = useCallback((cap: CapabilityFilter) => {
+    setActiveIdx(0);
+    setCaps(prev => {
+      const next = new Set(prev);
+      if (next.has(cap)) next.delete(cap); else next.add(cap);
+      return next;
+    });
+  }, []);
 
   const pickModel = useCallback((model: Model) => {
     const resolvedId = model.id === AUTO_MODEL.id ? DEFAULT_MODEL_ID : model.id;
@@ -377,7 +456,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const activeModel = flat[activeIdx];
-      if (activeModel && !disabledReasonForModel(activeModel, comfyReady)) pickModel(activeModel);
+      if (activeModel) pickModel(activeModel);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
@@ -402,19 +481,23 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
         fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
       }}
     >
-      <div style={SEGMENT_WRAP_STYLE} role="tablist" aria-label="Model source">
-        {(['auto', 'cloud', 'local', 'image'] as const).map(value => (
+      <div
+        style={{ ...SEGMENT_WRAP_STYLE, gridTemplateColumns: `repeat(${sourceTabs.length}, 1fr)` }}
+        role="tablist"
+        aria-label="Model source"
+      >
+        {sourceTabs.map(value => (
           <button
             key={value}
             type="button"
             onClick={() => setSourceAndPersist(value)}
             data-source-filter={value}
-            aria-selected={source === value}
+            aria-selected={effectiveSource === value}
             style={{
               ...SEGMENT_STYLE,
-              background: source === value ? 'var(--panel-2)' : 'transparent',
-              borderColor: source === value ? 'var(--border)' : 'transparent',
-              color: source === value ? 'var(--text-dim)' : 'var(--text-faint)',
+              background: effectiveSource === value ? 'var(--panel-2)' : 'transparent',
+              borderColor: effectiveSource === value ? 'var(--border)' : 'transparent',
+              color: effectiveSource === value ? 'var(--text-dim)' : 'var(--text-faint)',
             }}
           >
             {value}
@@ -448,7 +531,37 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
         )}
       </div>
 
-      <div style={{ overflowY: 'auto', flex: 1, paddingBottom: 6 }}>
+      <div style={CAP_WRAP_STYLE} role="group" aria-label="Capability filters">
+        {CAPABILITY_FILTERS.map(cap => {
+          const on = caps.has(cap.id);
+          return (
+            <button
+              key={cap.id}
+              type="button"
+              data-cap-filter={cap.id}
+              aria-pressed={on}
+              onClick={() => toggleCap(cap.id)}
+              style={{
+                height: 20,
+                padding: '0 8px',
+                borderRadius: 10,
+                border: `1px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
+                background: on ? 'rgba(var(--accent-rgb, 120 140 255), 0.14)' : 'transparent',
+                color: on ? 'var(--accent)' : 'var(--text-faint)',
+                fontFamily: '"Geist Mono", monospace',
+                fontSize: 10,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+              }}
+            >
+              {cap.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div role="listbox" aria-label="Models" style={{ overflowY: 'auto', flex: 1, paddingBottom: 6 }}>
         {displaySections.length === 0 && (
           <div style={{
             padding: '24px 16px', textAlign: 'center',
@@ -456,7 +569,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
             fontStyle: 'italic',
             fontFamily: '"Source Serif 4", Georgia, serif',
           }}>
-            No models match "{query}".
+            {emptyStateMessage(query, caps.size > 0, effectiveSource)}
           </div>
         )}
         {displaySections.map(({ title, models, favorite }) => (
@@ -485,7 +598,6 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
             {models.map(model => {
               const meta = META[model.id] ?? META_BY_PROVIDER_MODEL_ID[model.providerModelId] ?? null;
               const flatIndex = flatIndexById.get(model.id) ?? -1;
-              const disabledReason = disabledReasonForModel(model, comfyReady);
               const favoriteKey = model.id === AUTO_MODEL.id ? DEFAULT_MODEL_ID : model.id;
               const selected = model.id === AUTO_MODEL.id
                 ? currentModelId === DEFAULT_MODEL_ID
@@ -498,9 +610,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
                   selected={selected}
                   active={flatIndex === activeIdx}
                   isFavorite={favoriteSet.has(favoriteKey)}
-                  disabledReason={disabledReason}
-                  ollamaOnline={ollamaOnline}
-                  comfyReady={comfyReady}
+                  verified={isVerifiedModelId(model.id)}
                   flatIndex={flatIndex}
                   onPick={pickModel}
                   onToggleFavorite={toggleFavorite}
@@ -522,7 +632,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
           }}>
             {query.trim()
               ? `Showing the first ${flat.length} matches. Refine search to narrow ${hiddenCount} more.`
-              : `Showing top ${source} models. Search to find all ${totalMatching}.`}
+              : `Showing top ${effectiveSource} models. Search to find all ${totalMatching}.`}
           </div>
         )}
       </div>
@@ -549,35 +659,40 @@ function buildPickerSections(args: {
   all: readonly Model[];
   currentModel: Model | undefined;
   query: string;
+  caps: ReadonlySet<CapabilityFilter>;
   source: SourceFilter;
   recentIds: string[];
   favoriteModels: readonly Model[];
 }): PickerSection[] {
   const normalizedQuery = args.query.trim().toLowerCase();
+  const matches = (model: Model): boolean =>
+    (!normalizedQuery || matchesQuery(model, normalizedQuery)) && matchesCaps(model, args.caps);
   const allById = new Map(args.all.map(model => [model.id, model]));
   const sourceModels = args.all.filter(model => sourceMatches(model, args.source));
-  const base = normalizedQuery ? args.all.filter(model => matchesQuery(model, normalizedQuery)) : sourceModels;
+  const base = normalizedQuery ? args.all.filter(matches) : sourceModels.filter(matches);
   const sections: PickerSection[] = [];
 
   // User-pinned favorites lead the list in every source/search view (filtered
   // by the active source unless browsing "auto"), mirroring the recents pattern.
   const favorites = dedupeModels([...args.favoriteModels])
     .filter(model => args.source === 'auto' || sourceMatches(model, args.source))
-    .filter(model => !normalizedQuery || matchesQuery(model, normalizedQuery));
+    .filter(matches);
   const pushFavorites = (): void => {
     if (favorites.length) sections.push({ title: 'Favorites', models: favorites });
   };
-  const defaultCatalog = DEFAULT_OPENROUTER_CATALOG_MODEL_IDS
+  // The curated, live-verified catalog. Featured prominently because it's what
+  // gets used the overwhelming majority of the time.
+  const verified = DEFAULT_OPENROUTER_CATALOG_MODEL_IDS
     .map(id => allById.get(id))
     .filter((model): model is Model => Boolean(model))
     .filter(model => sourceMatches(model, args.source))
-    .filter(model => !normalizedQuery || matchesQuery(model, normalizedQuery));
+    .filter(matches);
 
   const rawRecommended = dedupeModels([
     AUTO_MODEL,
     ...(args.currentModel ? [args.currentModel] : []),
     firstLocalModel(args.all),
-  ]).filter(model => !normalizedQuery || matchesQuery(model, normalizedQuery));
+  ]).filter(matches);
   const recommended = args.source === 'auto'
     ? rawRecommended
     : rawRecommended.filter(model => sourceMatches(model, args.source));
@@ -586,11 +701,11 @@ function buildPickerSections(args: {
 
   if (args.source === 'auto' && recommended.length) {
     sections.push({ title: 'Recommended', models: recommended, favorite: true });
-    if (defaultCatalog.length) sections.push({ title: 'Default catalog', models: defaultCatalog });
+    if (verified.length) sections.push({ title: VERIFIED_SECTION_TITLE, models: verified, favorite: true });
     const recent = args.recentIds
       .map(id => allById.get(id))
       .filter((model): model is Model => Boolean(model))
-      .filter(model => !normalizedQuery || matchesQuery(model, normalizedQuery));
+      .filter(matches);
     if (recent.length) sections.push({ title: 'Recent', models: dedupeModels(recent) });
     return removeDuplicateRowsAcrossSections(sections);
   }
@@ -599,8 +714,8 @@ function buildPickerSections(args: {
     sections.push({ title: 'Recommended', models: recommended, favorite: true });
   }
 
-  if (defaultCatalog.length && (args.source === 'cloud' || args.source === 'auto')) {
-    sections.push({ title: 'Default catalog', models: defaultCatalog });
+  if (verified.length && (args.source === 'cloud' || args.source === 'auto')) {
+    sections.push({ title: VERIFIED_SECTION_TITLE, models: verified, favorite: true });
   }
 
   const sourceTitle = titleForSource(args.source);
@@ -613,7 +728,7 @@ function buildPickerSections(args: {
     .map(id => allById.get(id))
     .filter((model): model is Model => Boolean(model))
     .filter(model => sourceMatches(model, args.source))
-    .filter(model => !normalizedQuery || matchesQuery(model, normalizedQuery));
+    .filter(matches);
   if (recent.length) sections.push({ title: 'Recent', models: dedupeModels(recent) });
 
   return removeDuplicateRowsAcrossSections(sections);
@@ -688,11 +803,55 @@ function limitModelSections(sections: PickerSection[], query: string): PickerSec
   return sections
     .map(section => ({
       ...section,
-      models: section.favorite || section.title === 'Default catalog' || section.title === 'Favorites'
+      models: section.favorite || section.title === VERIFIED_SECTION_TITLE || section.title === 'Favorites'
         ? section.models
         : section.models.slice(0, BROWSE_SECTION_LIMIT),
     }))
     .filter(section => section.models.length > 0);
+}
+
+function metaFor(model: Model): ModelMeta | null {
+  return META[model.id] ?? META_BY_PROVIDER_MODEL_ID[model.providerModelId] ?? null;
+}
+
+/** Local runtimes have no per-token cost; cloud models are free only at $0. */
+function isFreeModel(model: Model): boolean {
+  if (model.providerId !== 'openrouter') return true;
+  const pricing = model.pricing;
+  if (!pricing) return false;
+  return (pricing.prompt ?? 0) === 0 && (pricing.completion ?? 0) === 0;
+}
+
+function modelHasCapability(model: Model, cap: CapabilityFilter): boolean {
+  switch (cap) {
+    case 'vision':
+      return modelSupportsVision(model);
+    case 'tools':
+      return model.providerId !== 'local-image' && model.supportsTools !== false;
+    case 'reasoning':
+      return metaFor(model)?.capabilities.includes('reasoning') ?? false;
+    case 'fast':
+      return metaFor(model)?.capabilities.includes('fast') ?? false;
+    case 'free':
+      return isFreeModel(model);
+  }
+}
+
+function matchesCaps(model: Model, caps: ReadonlySet<CapabilityFilter>): boolean {
+  for (const cap of caps) {
+    if (!modelHasCapability(model, cap)) return false;
+  }
+  return true;
+}
+
+function emptyStateMessage(query: string, hasCapFilters: boolean, source: SourceFilter): string {
+  const trimmed = query.trim();
+  if (trimmed && hasCapFilters) return `No models match "${trimmed}" with the selected capability filters.`;
+  if (trimmed) return `No models match "${trimmed}".`;
+  if (hasCapFilters) return 'No models match the selected capability filters.';
+  if (source === 'local') return 'No local models available. Start Ollama in Local settings.';
+  if (source === 'image') return 'No image models available. Start and connect ComfyUI in Local settings.';
+  return 'No models available.';
 }
 
 function bestForLine(model: Model, meta: ModelMeta | null): string {
@@ -706,7 +865,11 @@ function bestForLine(model: Model, meta: ModelMeta | null): string {
   return describeDynamic(model);
 }
 
-function badgesForModel(model: Model, ollamaOnline: boolean, comfyReady: boolean): Array<{ label: string; tone?: 'muted' | 'accent' | 'warn'; title?: string; icon?: 'vision' | 'tools' }> {
+// Every row reaching here passed `isModelAvailable`, so local models are always
+// online by construction — the picker hides offline Ollama/ComfyUI entirely
+// rather than rendering a disabled/"offline" row. The "online" badge is kept as
+// a positive "this is live" cue.
+function badgesForModel(model: Model): Array<{ label: string; tone?: 'muted' | 'accent' | 'warn'; title?: string; icon?: 'vision' | 'tools' }> {
   const meta = META[model.id] ?? META_BY_PROVIDER_MODEL_ID[model.providerModelId] ?? null;
   const badges: Array<{ label: string; tone?: 'muted' | 'accent' | 'warn'; title?: string; icon?: 'vision' | 'tools' }> = [];
   if (model.id === AUTO_MODEL.id) badges.push({ label: 'AUTO', tone: 'accent' });
@@ -714,17 +877,26 @@ function badgesForModel(model: Model, ollamaOnline: boolean, comfyReady: boolean
   else if (model.providerId === 'local-image') badges.push({ label: 'IMAGE' });
 
   if (model.providerId === 'ollama') {
-    badges.push({ label: ollamaOnline ? 'online' : 'offline', tone: ollamaOnline ? 'accent' : 'warn' });
+    badges.push({ label: 'online', tone: 'accent' });
     if (model.supportsTools !== false) badges.push({ label: 'tools', icon: 'tools', title: 'Tools' });
   } else if (model.providerId === 'local-image') {
-    badges.push({ label: comfyReady ? 'online' : 'offline', tone: comfyReady ? 'accent' : 'warn' });
+    badges.push({ label: 'online', tone: 'accent' });
   } else {
     if (modelSupportsVision(model)) badges.push({ label: 'vision', icon: 'vision', title: 'Vision' });
     if (model.supportsTools !== false) badges.push({ label: 'tools', icon: 'tools', title: 'Tools' });
+    const ctx = formatContext(model.contextLength ?? model.contextWindow);
+    if (ctx) badges.push({ label: ctx, title: 'Context window' });
   }
 
   if (meta?.costLabel) badges.push({ label: meta.costLabel, tone: meta.costLabel === '$$$' ? 'warn' : 'muted', title: 'Relative cost' });
   return badges.slice(0, 5);
+}
+
+function formatContext(tokens: number | undefined): string | undefined {
+  if (!tokens || tokens <= 0) return undefined;
+  if (tokens >= 1_000_000) return `${Math.round(tokens / 1_000_000)}M`;
+  if (tokens >= 1_000) return `${Math.round(tokens / 1_000)}K`;
+  return `${tokens}`;
 }
 
 function describeDynamic(model: Model): string {
@@ -748,9 +920,3 @@ function formatPrice(usdPerMillion: number): string {
   if (usdPerMillion === 0) return '0';
   return usdPerMillion.toFixed(2);
 }
-
-function disabledReasonForModel(model: Model, comfyReady: boolean): string | undefined {
-  if (model.providerId !== 'local-image' || comfyReady) return undefined;
-  return 'Enable and connect ComfyUI in Local settings to use local image generation.';
-}
-

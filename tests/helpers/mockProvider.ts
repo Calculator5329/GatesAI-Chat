@@ -31,7 +31,7 @@ export class MockProvider implements LlmProvider {
 }
 
 /** Replaces every provider in the router so tests are deterministic. */
-export function installMockProvider(providers: ProviderStore, mock: MockProvider): void {
+export function installMockProvider(providers: ProviderStore, mock: LlmProvider): void {
   // The router exposes `get(id)` reads only, so we monkey-patch the resolution.
   const router = providers.router as LlmRouter & {
     resolve: (modelId: string) => { provider: LlmProvider; providerModelId: string };

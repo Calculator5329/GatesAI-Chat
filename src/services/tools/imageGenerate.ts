@@ -10,6 +10,7 @@ import {
   type ImageAspectRatio,
   type ImageBackendId,
 } from '../image/types';
+import { PROTECTED_CHAT_HISTORY_DENIAL, denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
 import type { Tool } from './types';
 import type { FsReadResp } from '../../core/workspace';
 
@@ -202,7 +203,9 @@ async function enqueuePromptFileBatch(
   ctx: Parameters<Tool['execute']>[1],
   backend: ReturnType<NonNullable<Parameters<Tool['execute']>[1]['imageGen']>['toBackendConfig']>['primary'],
   promptFile: string,
-): Promise<string> {
+): Promise<string | { content: string; artifacts: { kind: 'image-job'; jobId: string; count: number }[] }> {
+  const denial = denyProtectedChatHistoryPath('image_generate', promptFile, PROTECTED_CHAT_HISTORY_DENIAL);
+  if (denial) return denial;
   const resp = await ctx.bridge!.client.request<FsReadResp>('fs.read', { path: promptFile });
   if (resp.encoding !== 'utf8') return 'Error: `prompt_file` must be a UTF-8 JSON file.';
 
@@ -267,7 +270,10 @@ async function enqueuePromptFileBatch(
     });
   }
 
-  for (const job of plannedJobs) {
+  for (let i = 0; i < plannedJobs.length; i++) {
+    const job = plannedJobs[i];
+    const isLast = i === plannedJobs.length - 1;
+    // Only the last prompt_file job triggers onTerminal chat follow-up; earlier jobs stay silent.
     const { jobId, count: scheduledCount } = ctx.imageJobs!.enqueue({
       threadId: ctx.threadId,
       prompt: job.prompt,
@@ -277,13 +283,22 @@ async function enqueuePromptFileBatch(
       seed: job.seed,
       backend: job.backend,
       filenamePrefix: job.filenamePrefix,
-      notifyOnTerminal: false,
+      notifyOnTerminal: isLast,
     });
     jobIds.push(jobId);
     totalImages += scheduledCount;
   }
 
-  return `Queued ${jobIds.length} jobs / ${totalImages} image renders from ${promptFile}. First job: ${jobIds[0]}.`;
+  const artifacts = jobIds.map((jobId, index) => ({
+    kind: 'image-job' as const,
+    jobId,
+    count: plannedJobs[index]?.count ?? 1,
+  }));
+
+  return {
+    content: `Queued ${jobIds.length} jobs / ${totalImages} image renders from ${promptFile}. First job: ${jobIds[0]}.`,
+    artifacts,
+  };
 }
 
 function resolveDimensions(input: {

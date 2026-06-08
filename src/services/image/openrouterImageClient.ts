@@ -29,7 +29,7 @@ export class OpenRouterImageClient implements ImageBackend {
 
   async generate(req: GenerateImageRequest): Promise<GenerateImageResult> {
     if (!this.apiKey) {
-      throw new Error('OpenRouter API key is required for GPT-5.4 Image 2. Add one under Menu -> API -> OpenRouter.');
+      throw new Error('OpenRouter API key is required for GPT-5.4 Image 2. Add one under Models → OpenRouter.');
     }
     const prompt = req.prompt.trim();
     if (!prompt) throw new Error('Image prompt is required.');

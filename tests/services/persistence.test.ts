@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { flushPendingSnapshot, loadSnapshot, saveSnapshot, scheduleSaveSnapshot } from '../../src/services/persistence';
+import {
+  flushPendingSnapshot,
+  loadSnapshot,
+  saveSnapshot,
+  scheduleSaveSnapshot,
+  setCompactionNoticeHandler,
+} from '../../src/services/persistence';
 import { clearAppStorage } from '../helpers/storage';
 
 describe('persistence', () => {
@@ -7,6 +13,35 @@ describe('persistence', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     clearAppStorage();
+  });
+
+  it('documents last-write-wins when two independent writers save without coordination', () => {
+    const snapshotA = {
+      threads: [{
+        id: 't1', title: 'Alpha only', subtitle: '', pinned: false,
+        modelId: 'or-gpt-5.4-mini',
+        createdAt: 1, updatedAt: 2,
+        messages: [{ id: 'm1', role: 'user' as const, content: 'alpha', createdAt: 3 }],
+      }],
+      activeThreadId: 't1',
+    };
+    const snapshotB = {
+      threads: [{
+        id: 't2', title: 'Beta only', subtitle: '', pinned: false,
+        modelId: 'or-gpt-5.4-mini',
+        createdAt: 4, updatedAt: 5,
+        messages: [{ id: 'm2', role: 'user' as const, content: 'beta', createdAt: 6 }],
+      }],
+      activeThreadId: 't2',
+    };
+
+    saveSnapshot(snapshotA);
+    saveSnapshot(snapshotB);
+    saveSnapshot(snapshotA);
+
+    const loaded = loadSnapshot();
+    expect(loaded?.threads[0].title).toBe('Alpha only');
+    expect(loaded?.threads).toHaveLength(1);
   });
 
   it('returns null when nothing is stored', () => {
@@ -127,6 +162,35 @@ describe('persistence', () => {
     };
     saveSnapshot(clean);
     expect(loadSnapshot()).toEqual(clean);
+  });
+
+  it('notifies listeners when an emergency compaction save succeeds', () => {
+    const notices: string[] = [];
+    setCompactionNoticeHandler(message => { notices.push(message); });
+    mockChatStorageQuota(2_000);
+
+    const snapshot = {
+      threads: [{
+        id: 't1', title: 'compaction notice', subtitle: '', pinned: false,
+        modelId: 'or-gpt-5.4-mini', createdAt: 1, updatedAt: 2,
+        messages: [{
+          id: 'a1', role: 'assistant' as const, content: 'done', createdAt: 3,
+          toolResults: [{
+            toolCallId: 'c1',
+            toolName: 'fs',
+            content: 'x'.repeat(20_000),
+            ranAt: 4,
+          }],
+        }],
+      }],
+      activeThreadId: 't1',
+    };
+
+    saveSnapshot(snapshot);
+
+    expect(notices).toHaveLength(1);
+    expect(notices[0]).toMatch(/compacted/i);
+    setCompactionNoticeHandler(null);
   });
 
   it('keeps conversation messages saved when oversized tool results exceed localStorage quota', () => {

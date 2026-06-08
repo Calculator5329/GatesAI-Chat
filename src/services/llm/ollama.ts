@@ -3,6 +3,7 @@
 // Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, ToolDef } from '../../core/llm';
 import { ensureOk } from './sse';
+import { logger } from '../diagnostics/logger';
 
 /**
  * Default base URL for a local Ollama daemon. Single source of truth — used
@@ -102,12 +103,19 @@ export class OllamaProvider implements LlmProvider {
       });
     } catch (err) {
       if (signal.aborted) { yield { type: 'done', finishReason: 'cancelled' }; return; }
-      yield { type: 'done', finishReason: 'error', error: (err as Error).message };
+      const message = (err as Error).message;
+      logger.warn('llm', 'Ollama stream error', { modelId: req.modelId, error: message });
+      yield { type: 'done', finishReason: 'error', error: message };
       return;
     }
 
     try { await ensureOk(response, 'Ollama'); }
-    catch (err) { yield { type: 'done', finishReason: 'error', error: (err as Error).message }; return; }
+    catch (err) {
+      const message = (err as Error).message;
+      logger.warn('llm', 'Ollama stream error', { modelId: req.modelId, error: message });
+      yield { type: 'done', finishReason: 'error', error: message };
+      return;
+    }
 
     if (!response.body) {
       yield { type: 'done', finishReason: 'error', error: 'Ollama: empty response body' };

@@ -22,6 +22,7 @@ import { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 import { configureLogSink, logger } from '../services/diagnostics/logger';
+import { installMultiTabStorageListener } from '../services/storage/persistenceProvider';
 import { isWebLite } from '../core/runtime';
 
 export class RootStore {
@@ -163,6 +164,16 @@ export class RootStore {
 
     // Boot the lazy summarizer.
     this.summary.start();
+
+    installMultiTabStorageListener();
+
+    let boundDraftThreadId: string | null = null;
+    autorun(() => {
+      const id = this.chat.activeThreadId;
+      if (id === boundDraftThreadId) return;
+      this.ui.bindDraftThread(id);
+      boundDraftThreadId = id;
+    });
 
     this.bindRouterToChat();
   }

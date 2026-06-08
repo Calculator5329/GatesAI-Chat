@@ -6,7 +6,7 @@
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app/)
 [![Vite](https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/)
 [![MobX](https://img.shields.io/badge/MobX-6-ff9955?style=flat-square&logo=mobx&logoColor=white)](https://mobx.js.org/)
-[![Tests](https://img.shields.io/badge/tests-627%20unit%20%2B%2011%20e2e-3fb950?style=flat-square)](#quality-gates)
+[![Tests](https://img.shields.io/badge/tests-683%20unit%20%2B%2019%20e2e-3fb950?style=flat-square)](#quality-gates)
 
 > **Live demo:** [calculator5329.github.io/GatesAI-Chat](https://calculator5329.github.io/GatesAI-Chat/)
 > — the browser **Web Lite** build. The full UI is interactive; chatting uses your own OpenRouter
@@ -45,8 +45,11 @@ activity timeline for everything the model does.
   `/workspace/chat-history` HTML/Markdown library.
 - **Agent tooling** — a registry of browser-side tools: `memory`, `notes`, `thread`,
   `chat_history`, `web_search` (Brave), `fs`, `terminal`, `inspect_file`, `python_inline`,
-  `sqlite_query`, `git`, `image_generate`, `describe_image`, and more. Adding a tool is one file
+  `sqlite_query`, `git`, `image_generate`, `describe_image`, `artifact`, `workspace`,
+  `source_workspace`, `source_build`, `query_script`, `time`, `logs`, and more. Adding a tool is one file
   plus one registry line.
+- **Self-diagnosis** — central `services/diagnostics/logger` (ring buffer + console +
+  bridge JSONL) and a `logs` tool so the assistant can read recent app logs.
 - **Companion bridge** (`../gatesai-bridge`, Go) — owns a `~/GatesAI/workspace/` folder behind a
   path jail and command allowlist, exposed over a single loopback WebSocket.
 - **Local image generation** — background image-job queue driving ComfyUI (FLUX.2 Klein / SDXL
@@ -99,7 +102,7 @@ Deeper design notes live in [`docs/architecture.md`](docs/architecture.md) and
 ## Tech stack
 
 React 19 · TypeScript 6 · Vite 8 · MobX 6 · Tauri 2 (Rust host) · Go bridge ·
-react-markdown / KaTeX / Mermaid / highlight.js · Vitest + jsdom · ESLint 9.
+react-markdown / KaTeX / Mermaid / highlight.js · Vitest + Playwright · ESLint 9.
 
 ## Getting started (development)
 
@@ -112,7 +115,7 @@ Requirements:
 ```powershell
 npm install        # install dependencies
 npm run dev        # Vite dev server (Web Lite mode in the browser)
-npm run tauri dev  # desktop app against the dev server
+npm run tauri:dev  # desktop app against the dev server
 ```
 
 Run the bridge from source during development:
@@ -127,9 +130,11 @@ go run ./cmd/gatesai-bridge
 ```powershell
 npm run typecheck  # tsc project build + test project typecheck
 npm run lint       # ESLint (includes the architecture-boundary import rules)
-npm run test       # Vitest unit/component suite (627 tests)
+npm run test       # Vitest unit/component suite (683 tests)
+npm run test:watch # Vitest in watch mode
+npm run test:models # Live OpenRouter compatibility (needs API key)
 npm run ci         # all three, in order
-npm run test:e2e   # Playwright UI suite (11 e2e tests; desktop-mocked + web-lite)
+npm run test:e2e   # Playwright UI suite (19 e2e tests; desktop-mocked + web-lite)
 ```
 
 The Playwright suite runs the real app in a browser two ways — a faked-bridge
@@ -165,8 +170,8 @@ src/
   app/          composition root
   components/   ui/ (primitives) · editorial/ (chat) · menu/ (settings) · media/ (shared image UI)
   stores/       MobX stores (Chat, Provider, Bridge, ImageJob, ... )
-  services/     llm/, tools/, image/, bridge, storage, router
+  services/     llm/, tools/, image/, bridge, storage, diagnostics/, local/, compat/, search/, router
   core/         types, models, providers, theme, runtime
 tests/          Vitest suite (kept out of the app build)
-docs/           architecture, tech spec, roadmap, changelog, plans, notes
+docs/           architecture, tech spec, roadmap, changelog, audits, plans, notes
 ```

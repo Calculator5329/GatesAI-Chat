@@ -92,7 +92,7 @@ describe('EditorialComposer API-key banner', () => {
     store = buildStore();
     const rendered = render(store);
 
-    expect(rendered.textContent).toContain('Add an API key to start chatting.');
+    expect(rendered.textContent).toContain('Add an OpenRouter key in Models to start chatting.');
 
     // Send button is the last visual control inside the composer row. The
     // wrapper div has cursor + opacity inline styles tied to canSend.
@@ -116,7 +116,7 @@ describe('EditorialComposer API-key banner', () => {
     act(() => store!.ui.setDraft('hello'));
 
     // Pre-condition: banner present, send disabled.
-    expect(rendered.textContent).toContain('Add an API key to start chatting.');
+    expect(rendered.textContent).toContain('Add an OpenRouter key in Models to start chatting.');
     let sendWrapper = sendControl(rendered);
     expect(sendWrapper.disabled).toBe(true);
     expect(sendWrapper.style.opacity).toBe('0.45');
@@ -127,7 +127,7 @@ describe('EditorialComposer API-key banner', () => {
     await flush(2);
 
     // Post-condition: banner gone, send enabled.
-    expect(rendered.textContent).not.toContain('Add an API key to start chatting.');
+    expect(rendered.textContent).not.toContain('Add an OpenRouter key in Models to start chatting.');
     sendWrapper = sendControl(rendered);
     expect(sendWrapper.disabled).toBe(false);
     expect(sendWrapper.style.opacity).toBe('1');
@@ -170,7 +170,7 @@ describe('EditorialComposer API-key banner', () => {
 
     expect(rendered.textContent).toContain('Gemini Flash latest');
     expect(rendered.textContent).not.toContain('Select model');
-    expect(rendered.textContent).not.toContain('Add an API key to start chatting.');
+    expect(rendered.textContent).not.toContain('Add an OpenRouter key in Models to start chatting.');
     const sendWrapper = sendControl(rendered);
     expect(sendWrapper.disabled).toBe(false);
     expect(sendWrapper.style.opacity).toBe('1');
@@ -203,7 +203,7 @@ describe('EditorialComposer API-key banner', () => {
 
     act(() => store!.ui.setDraft('a neon greenhouse at night'));
 
-    expect(rendered.textContent).not.toContain('Add an API key to start chatting.');
+    expect(rendered.textContent).not.toContain('Add an OpenRouter key in Models to start chatting.');
     expect(rendered.textContent).not.toContain('Start and connect ComfyUI');
     const sendWrapper = sendControl(rendered);
     expect(sendWrapper.disabled).toBe(false);
@@ -305,7 +305,7 @@ describe('EditorialComposer API-key banner', () => {
     expect(store.chat.activeThread?.modelId).toBe('or-gemini-3-flash');
   });
 
-  it('model picker source filters show local rows and Ollama readiness badges', () => {
+  it('hides the local tab and Ollama rows while the runtime is offline', () => {
     store = buildStore();
     store.registry.setDynamicForProvider('ollama', [{
       id: 'ollama-llama3',
@@ -320,13 +320,34 @@ describe('EditorialComposer API-key banner', () => {
     act(() => {
       rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
+
+    expect(rendered.querySelector('[data-source-filter="local"]')).toBeNull();
+    expect(rendered.querySelector('[data-model-row="ollama-llama3"]')).toBeNull();
+  });
+
+  it('shows local rows with readiness badges once Ollama is online', () => {
+    store = buildStore();
+    store.registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3',
+      name: 'Llama 3 Local',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3',
+      supportsTools: false,
+    }]);
+    runInAction(() => { store!.localRuntime.runtimes.ollama.status = 'online'; });
+    const rendered = render(store);
+
+    act(() => {
+      rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     act(() => {
       rendered.querySelector('[data-source-filter="local"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
     expect(rendered.textContent).toContain('Llama 3 Local');
     expect(rendered.textContent).toContain('LOCAL');
-    expect(rendered.textContent).toContain('offline');
+    expect(rendered.textContent).toContain('online');
     expect(rendered.textContent).toContain('tools off');
     expect(rendered.textContent).not.toContain('Auto: Gemini 3 Flash API');
   });
@@ -398,5 +419,58 @@ describe('EditorialComposer API-key banner', () => {
       filename: pasted.name,
       mime: 'image/png',
     });
+  });
+});
+
+describe('EditorialComposer audit banners and a11y (Batch B/C/E)', () => {
+  it('shows the Ollama offline banner when the thread model is local and Ollama is not ready', () => {
+    store = buildStore();
+    store.registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3',
+      name: 'Llama 3 Local',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3',
+    }]);
+    const threadId = store.chat.activeThreadId!;
+    store.chat.setThreadModel(threadId, 'ollama-llama3');
+
+    const rendered = render(store);
+    expect(rendered.textContent).toContain('Start Ollama to chat with this local model.');
+  });
+
+  it('exposes the model picker as an accessible button', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    const rendered = render(store);
+
+    const picker = rendered.querySelector('button.composer-model-label') as HTMLButtonElement | null;
+    expect(picker).not.toBeNull();
+    expect(picker?.getAttribute('type')).toBe('button');
+    expect(picker?.getAttribute('aria-haspopup')).toBe('listbox');
+    expect(picker?.getAttribute('aria-label')).toMatch(/^Model:/);
+  });
+
+  it('exposes the desktop menu button with an accessible label', () => {
+    store = buildStore();
+    const rendered = render(store);
+
+    const menu = rendered.querySelector('button.composer-menu-btn') as HTMLButtonElement | null;
+    expect(menu).not.toBeNull();
+    expect(menu?.getAttribute('aria-label')).toBe('Open menu');
+  });
+
+  it('renders persistence conflict and compaction notices', () => {
+    store = buildStore();
+    runInAction(() => {
+      store!.chat.persistenceConflict = 'Another browser tab updated chat history.';
+      store!.chat.compactionNotice = 'Chat history was compacted to fit browser storage.';
+    });
+
+    const rendered = render(store!);
+    expect(rendered.textContent).toContain('Another browser tab updated chat history.');
+    expect(rendered.textContent).toContain('Chat history was compacted to fit browser storage.');
+    expect(rendered.querySelector('button[aria-label="Dismiss notice"]')).not.toBeNull();
+    expect(rendered.textContent).toContain('Reload');
   });
 });

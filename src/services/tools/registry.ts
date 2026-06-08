@@ -4,6 +4,7 @@
 import type { JsonSchema, ToolCall, ToolDef } from '../../core/llm';
 import type { Tool, ToolContext, ToolExecuteResult, ToolOutcome, ToolValidationIssue } from './types';
 import { defaultToolUi, summarizeToolResult } from './activityDisplay';
+import { logger } from '../diagnostics/logger';
 import { memoryTool } from './memory';
 import { timeTool } from './time';
 import { logsTool } from './logs';
@@ -182,6 +183,7 @@ export class ToolRegistry {
       const out = await tool.execute(args, ctx);
       return normalizeToolOutput(name, out);
     } catch (err) {
+      logger.error('tools', 'Tool execution threw', { toolName: name, err });
       const summary = `Error executing ${name}: ${(err as Error).message}`;
       return {
         content: serializeToolOutcome(name, {

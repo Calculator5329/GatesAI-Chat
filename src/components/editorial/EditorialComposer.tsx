@@ -1,6 +1,7 @@
-// Renders the editorial chat EditorialComposer surface and its local interaction state.
-// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
-// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
+// The chat input composer: text entry, attachments, model picker trigger,
+// context meter, and provider/route banners. Rendered by EditorialChat; reads
+// RootStore via hooks and derives view state from props/hooks.
+// Invariant: persisted chat state stays in stores; this surface is presentation only.
 import { useCallback, useEffect, useRef, useState, type ClipboardEvent, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
@@ -156,6 +157,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   const registry = useModelRegistry();
   const providers = useProviderStore();
   const localRuntime = useLocalRuntimeStore();
+  const router = useRouterStore();
   const [modelOpen, setModelOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -213,9 +215,19 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   const hasAttachments = ui.attachments.length > 0;
   const directImageMode = currentModel?.providerId === 'local-image';
   const directImageReady = directImageMode && localRuntime.comfyReady;
-  const routeReady = currentModel
-    ? (directImageMode ? directImageReady : providers.isConnected(currentModel.providerId))
-    : false;
+  // Context-aware send gating: direct-image → Comfy health; Ollama model → Ollama
+  // health; everything else → OpenRouter/provider key. Mutually exclusive banners.
+  const routeBlock: 'models-key' | 'ollama-offline' | 'comfy-offline' | null = (() => {
+    if (directImageMode) return directImageReady ? null : 'comfy-offline';
+    if (currentModel?.providerId === 'ollama') {
+      return providers.isConnected('ollama') ? null : 'ollama-offline';
+    }
+    if (currentModel) {
+      return providers.isConnected(currentModel.providerId) ? null : 'models-key';
+    }
+    return 'models-key';
+  })();
+  const routeReady = routeBlock === null;
   // Send is enabled whenever there's text or at least one attachment. While
   // streaming, sending interrupts the in-flight reply and starts a new turn.
   // Direct-image mode is offline and only needs text; attachments are ignored
@@ -288,7 +300,24 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
       onDrop={onDrop}
     >
       <div className="editorial-composer__inner" style={{ width: 'min(750px, 70%)', margin: '0 auto', paddingTop: 4 }}>
-        {!routeReady && (directImageMode ? <LocalImageBanner /> : <ApiKeyBanner />)}
+        {/* Banner stack: route block → multi-tab conflict → compaction → per-thread error */}
+        {routeBlock === 'comfy-offline' && <LocalImageBanner />}
+        {routeBlock === 'ollama-offline' && <OllamaOfflineBanner />}
+        {routeBlock === 'models-key' && <ModelsKeyBanner />}
+        {chat.persistenceConflict && (
+          <NoticeBanner
+            message={chat.persistenceConflict}
+            actionLabel="Reload"
+            onAction={() => chat.reloadFromStorage()}
+            onDismiss={() => chat.dismissPersistenceConflict()}
+          />
+        )}
+        {chat.compactionNotice && (
+          <NoticeBanner
+            message={chat.compactionNotice}
+            onDismiss={() => chat.dismissCompactionNotice()}
+          />
+        )}
         {chat.lastError && (
           <div className="chat-error-banner" role="status">
             <span>{chat.lastError}</span>
@@ -343,11 +372,17 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                 >
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
                   {a.filename}
-                  <span
+                  <button
+                    type="button"
                     onClick={() => ui.removeAttachment(a.id)}
-                    style={{ cursor: 'pointer', opacity: 0.5, marginLeft: 2 }}
                     title="Remove"
-                  >×</span>
+                    aria-label={`Remove ${a.filename}`}
+                    style={{
+                      cursor: 'pointer', opacity: 0.5, marginLeft: 2,
+                      background: 'none', border: 'none', padding: 0,
+                      color: 'inherit', font: 'inherit', lineHeight: 1,
+                    }}
+                  >×</button>
                 </span>
               )
             ))}
@@ -430,19 +465,47 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               : <SendButton />}
           </button>
         </div>
-<div className="editorial-composer__meta" style={META_ROW_STYLE}>
+        <div className="editorial-composer__meta" style={META_ROW_STYLE}>
+          <button
+            type="button"
+            className="composer-menu-btn"
+            onClick={() => router.goMenu('models')}
+            aria-label="Open menu"
+            title="Models and settings"
+            style={{
+              flex: 'none',
+              padding: '2px 8px',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              background: 'transparent',
+              color: 'var(--text-dim)',
+              cursor: 'pointer',
+              fontSize: 11,
+              fontFamily: 'inherit',
+            }}
+          >
+            Menu
+          </button>
+          <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
           <div style={{ position: 'relative' }}>
-            <span
+            <button
+              type="button"
               className="composer-model-label"
+              aria-haspopup="listbox"
+              aria-expanded={modelOpen}
+              aria-label={`Model: ${currentModel?.name ?? 'Select model'}`}
               onClick={() => setModelOpen(o => !o)}
-              style={MODEL_LABEL_STYLE}
+              onKeyDown={e => {
+                if (e.key === 'Escape') setModelOpen(false);
+              }}
+              style={{ ...MODEL_LABEL_STYLE, border: 'none', background: 'transparent', font: 'inherit' }}
             >
               <span style={ACCENT_DOT_STYLE} />
               <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {currentModel?.name ?? 'Select model'}
               </span>
               <Icons.Chevron />
-            </span>
+            </button>
             {modelOpen && activeThread && (
               <ModelPopover
                 currentModelId={currentModel?.id ?? DEFAULT_MODEL_ID}
@@ -517,13 +580,16 @@ const ContextMeter = observer(function ContextMeter({ draftText }: { draftText: 
       ? '#d19a66'
       : 'var(--accent)';
 
+  const contextLabel = [
+    `Context estimate: ${formatTokens(usage.used)} of ${formatTokens(usage.window)} (${percent}%)`,
+    totalSpend > 0 ? `Spent in this chat: ${formatUsd(totalSpend)} (${formatUsd(llmSpend)} LLM, ${formatUsd(imageSpend)} images)` : '',
+  ].filter(Boolean).join('\n');
   return (
     <div
       className="context-meter"
-      title={[
-        `Context estimate: ${formatTokens(usage.used)} of ${formatTokens(usage.window)} (${percent}%)`,
-        totalSpend > 0 ? `Spent in this chat: ${formatUsd(totalSpend)} (${formatUsd(llmSpend)} LLM, ${formatUsd(imageSpend)} images)` : '',
-      ].filter(Boolean).join('\n')}
+      role="img"
+      aria-label={contextLabel}
+      title={contextLabel}
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
         flex: '1 1 auto',
@@ -570,7 +636,7 @@ const ContextMeter = observer(function ContextMeter({ draftText }: { draftText: 
   );
 });
 
-const ApiKeyBanner = observer(function ApiKeyBanner() {
+const ModelsKeyBanner = observer(function ModelsKeyBanner() {
   const router = useRouterStore();
   return (
     <div style={{
@@ -585,8 +651,9 @@ const ApiKeyBanner = observer(function ApiKeyBanner() {
       fontSize: 13,
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
     }}>
-      <span>Add an API key to start chatting.</span>
+      <span>Add an OpenRouter key in Models to start chatting.</span>
       <button
+        type="button"
         onClick={() => router.goMenu('models')}
         style={{
           padding: '4px 10px',
@@ -599,11 +666,68 @@ const ApiKeyBanner = observer(function ApiKeyBanner() {
           fontFamily: 'inherit',
         }}
       >
-        Open API settings
+        Open Models
       </button>
     </div>
   );
 });
+
+const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
+  const router = useRouterStore();
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 12,
+      padding: '8px 12px',
+      marginBottom: 8,
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      background: 'var(--panel)',
+      color: 'var(--text-dim)',
+      fontSize: 13,
+      fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+    }}>
+      <span>Start Ollama to chat with this local model.</span>
+      <button
+        type="button"
+        onClick={() => router.goMenu('local')}
+        style={{
+          padding: '4px 10px',
+          border: '1px solid var(--border)',
+          borderRadius: 6,
+          background: 'transparent',
+          color: 'var(--accent)',
+          cursor: 'pointer',
+          fontSize: 12,
+          fontFamily: 'inherit',
+        }}
+      >
+        Open Local settings
+      </button>
+    </div>
+  );
+});
+
+function NoticeBanner(props: {
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="chat-error-banner" role="status" style={{ marginBottom: 8 }}>
+      <span>{props.message}</span>
+      <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {props.actionLabel && props.onAction && (
+          <button type="button" onClick={props.onAction} style={{ fontSize: 12, color: 'var(--accent)' }}>
+            {props.actionLabel}
+          </button>
+        )}
+        <button type="button" onClick={props.onDismiss} aria-label="Dismiss notice">×</button>
+      </span>
+    </div>
+  );
+}
 
 const LocalImageBanner = observer(function LocalImageBanner() {
   const router = useRouterStore();
@@ -622,6 +746,7 @@ const LocalImageBanner = observer(function LocalImageBanner() {
     }}>
       <span>Start and connect ComfyUI to use local image generation.</span>
       <button
+        type="button"
         onClick={() => router.goMenu('local')}
         style={{
           padding: '4px 10px',

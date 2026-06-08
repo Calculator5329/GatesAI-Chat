@@ -1,16 +1,112 @@
-// Renders the editorial chat EditorialChat surface and its local interaction state.
-// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
-// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
+// The main chat view: the (windowed) message list, the composer, and the
+// empty/first-run state. Rendered by the app shell; reads RootStore via hooks.
+// Invariant: persisted chat state stays in stores; this surface is presentation only.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
-import { useChatStore, useModelRegistry, useRouterStore } from '../../stores/context';
+import { useChatStore, useModelRegistry, useProviderStore, useRouterStore } from '../../stores/context';
+import { isWebLite } from '../../core/runtime';
 import { EditorialMessage } from './EditorialMessage';
 import { EditorialComposer } from './EditorialComposer';
 
 const STICKY_BOTTOM_PX = 100;
 const INITIAL_RENDERED_MESSAGES = 120;
 const RENDERED_MESSAGE_PAGE_SIZE = 80;
+
+/**
+ * First-run / empty-thread panel. Replaces the previous cryptic "A blank page"
+ * line with something a first-time visitor can act on: a one-line description,
+ * a clear "add your key" call-to-action when no provider is usable yet, and a
+ * Web Lite note that conversations live in this browser.
+ */
+const ChatEmptyState = observer(function ChatEmptyState() {
+  const router = useRouterStore();
+  const providers = useProviderStore();
+  const chat = useChatStore();
+  const needsKey = !providers.hasUsableProvider;
+  const webLite = isWebLite();
+  const hasMessages = (chat.activeThread?.messages.length ?? 0) > 0;
+  const hasModel = Boolean(chat.activeThread?.modelId);
+
+  const checklist = [
+    { done: !needsKey, label: 'Connect OpenRouter in Models' },
+    { done: hasModel, label: 'Pick a model from the composer' },
+    { done: hasMessages, label: 'Send your first message' },
+  ];
+
+  return (
+    <div className="editorial-empty-state" style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+      padding: '64px 0 24px', textAlign: 'center',
+    }}>
+      <div style={{
+        fontFamily: '"Source Serif 4", Georgia, serif',
+        fontSize: 26, letterSpacing: '-0.01em', color: 'var(--text)',
+      }}>
+        GatesAI Chat
+      </div>
+      <div style={{
+        fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+        fontSize: 14, lineHeight: 1.5, color: 'var(--text-dim)',
+        maxWidth: 440,
+      }}>
+        A local-first AI workspace — chat with frontier models, run tools over
+        your files, and generate images, all from one window.
+      </div>
+
+      {needsKey ? (
+        <button
+          type="button"
+          onClick={() => router.goMenu('models')}
+          style={{
+            marginTop: 6,
+            padding: '8px 16px',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            background: 'var(--panel)',
+            color: 'var(--accent)',
+            cursor: 'pointer',
+            fontSize: 13,
+            fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+          }}
+        >
+          Add your OpenRouter key in Models
+        </button>
+      ) : (
+        <div style={{
+          fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+          fontSize: 13, color: 'var(--text-faint)',
+        }}>
+          Type a message below to begin.
+        </div>
+      )}
+
+      <ul style={{
+        listStyle: 'none', padding: 0, margin: '8px 0 0', textAlign: 'left',
+        fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+        fontSize: 13, color: 'var(--text-dim)', maxWidth: 320,
+      }}>
+        {checklist.map(item => (
+          <li key={item.label} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+            <span aria-hidden="true" style={{ color: item.done ? 'var(--accent)' : 'var(--text-faint)' }}>
+              {item.done ? '✓' : '○'}
+            </span>
+            <span style={{ opacity: item.done ? 0.7 : 1 }}>{item.label}</span>
+          </li>
+        ))}
+      </ul>
+
+      {webLite && (
+        <div style={{
+          fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+          fontSize: 12, color: 'var(--text-faint)', maxWidth: 360,
+        }}>
+          Your conversations are saved locally in this browser.
+        </div>
+      )}
+    </div>
+  );
+});
 
 export const EditorialChat = observer(function EditorialChat() {
   const chat = useChatStore();
@@ -152,18 +248,7 @@ export const EditorialChat = observer(function EditorialChat() {
     }}>
       <div ref={scrollRef} className="editorial-chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px' }}>
         <div style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
-          {messages.length === 0 && (
-            <div className="editorial-empty-state" style={{
-              fontFamily: '"Source Serif 4", Georgia, serif',
-              fontStyle: 'italic',
-              color: 'var(--text-faint)',
-              fontSize: 16,
-              padding: '48px 0',
-              textAlign: 'center',
-            }}>
-              A blank page. Say something.
-            </div>
-          )}
+          {messages.length === 0 && <ChatEmptyState />}
           {hiddenMessageCount > 0 && (
             <button
               type="button"

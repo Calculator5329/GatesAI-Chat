@@ -1,6 +1,7 @@
-// Renders the editorial chat EditorialMessage surface and its local interaction state.
-// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
-// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
+// Renders a single chat message (user or assistant): prose, attachments, work
+// notes, activity/tool rows, and image-job cards. Rendered by EditorialChat;
+// reads RootStore via hooks and derives view state from props/hooks.
+// Invariant: persisted chat state stays in stores; this surface is presentation only.
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { MouseEvent } from 'react';
@@ -93,7 +94,6 @@ export const EditorialMessage = observer(function EditorialMessage({
   const visibleWorkNotes = !isUser && message.role === 'assistant'
     ? (message.workNotes ?? []).map(note => note.trim()).filter(Boolean)
     : [];
-  const shouldHideAssistantTextForImageJob = !isUser && activities.some(activity => activity.kind === 'image-job');
   const finishNotice = !isUser && message.role === 'assistant'
     ? finishNoticeForReason(message.finishReason)
     : null;
@@ -249,8 +249,6 @@ export const EditorialMessage = observer(function EditorialMessage({
           </div>
         ) : isUser ? (
           <UserMessageContent body={userContent?.body ?? message.content} attachments={userContent?.attachments ?? []} />
-        ) : shouldHideAssistantTextForImageJob ? (
-          null
         ) : hasContent && streaming ? (
           <MarkdownBody content={visibleAssistantContent} />
         ) : hasContent ? (

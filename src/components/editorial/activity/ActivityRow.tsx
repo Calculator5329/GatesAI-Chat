@@ -10,10 +10,27 @@ import { iconForActivity } from './iconForActivity';
 
 const ActivityMarkdown = lazy(() => import('./ActivityMarkdown').then(m => ({ default: m.ActivityMarkdown })));
 
+function ImageJobArtifacts({ artifacts }: { artifacts: NonNullable<ActivityItem['artifacts']> }) {
+  return (
+    <div className="activity-row__image-jobs">
+      {artifacts.map((artifact, index) => {
+        if (artifact.kind === 'image') {
+          return <WorkspaceImage key={`image-${artifact.path}`} path={artifact.path} alt="Generated image" kind="image" />;
+        }
+        return <ImageJobCard key={`job-${artifact.jobId}-${index}`} jobId={artifact.jobId} expectedCount={artifact.count} />;
+      })}
+    </div>
+  );
+}
+
 export function ActivityRow({ item }: { item: ActivityItem }) {
+  const imageJobArtifacts = item.artifacts?.filter(
+    a => a.kind === 'image-job' || a.kind === 'image',
+  ) ?? [];
+  const hasImageJobArtifacts = imageJobArtifacts.length > 0;
   const [open, setOpen] = useState(false);
   const elapsed = useElapsedLabel(item.state === 'running', item.startedAt);
-  const expandable = Boolean(item.detail || item.artifacts?.length);
+  const expandable = Boolean(item.detail || (item.artifacts?.length && !hasImageJobArtifacts));
   const label = [item.verb, item.target].filter(Boolean).join(' ');
   const summary = item.state === 'failed' || item.state === 'cancelled' || item.state === 'done'
     ? item.summary
@@ -22,6 +39,10 @@ export function ActivityRow({ item }: { item: ActivityItem }) {
 
   return (
     <div className="activity-row" data-state={item.state} data-kind={item.kind}>
+      {/* Image-job cards render outside the collapsible row so direct/local
+          generation is not hidden behind a gray activity chip (audit Batch D). */}
+      {hasImageJobArtifacts && <ImageJobArtifacts artifacts={imageJobArtifacts} />}
+      {(expandable || !hasImageJobArtifacts) && (
       <button
         type="button"
         aria-label={label}
@@ -45,6 +66,7 @@ export function ActivityRow({ item }: { item: ActivityItem }) {
         )}
         {expandable && <span className="activity-row__chevron" aria-hidden="true">{open ? '⌃' : '⌄'}</span>}
       </button>
+      )}
       {open && expandable && (
         <div className="activity-row__detail">
           {item.detail?.type === 'markdown' && item.detail.content && (
@@ -64,11 +86,12 @@ export function ActivityRow({ item }: { item: ActivityItem }) {
               {item.state === 'running' && <span className="stream-caret" />}
             </pre>
           )}
-          {item.artifacts?.map((artifact, index) => {
+          {item.artifacts?.map((artifact) => {
             if (artifact.kind === 'image') {
               return <WorkspaceImage key={`image-${artifact.path}`} path={artifact.path} alt="Generated image" kind="image" />;
             }
-            return <ImageJobCard key={`job-${artifact.jobId}-${index}`} jobId={artifact.jobId} expectedCount={artifact.count} />;
+            if (artifact.kind === 'image-job') return null;
+            return null;
           })}
         </div>
       )}

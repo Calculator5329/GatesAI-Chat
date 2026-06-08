@@ -4,6 +4,7 @@
 import type { ExecRunResp } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
 import type { Tool } from './types';
+import { denyIfReferencesProtectedChatHistory } from './protectedWorkspacePaths';
 
 const VALID_ACTIONS = [
   'status',
@@ -91,6 +92,14 @@ export const gitTool: Tool = {
     const cwd = typeof args.cwd === 'string' ? args.cwd : undefined;
     const planned = planGitCommand(action, args);
     if (typeof planned === 'string') return planned;
+
+    // `git diff/show/log` on tracked chat-history files would otherwise expose
+    // transcripts the model isn't allowed to read directly (audit C3).
+    const denial = denyIfReferencesProtectedChatHistory(
+      [cwd ?? '', ...planned, ...stringArray(args.paths)],
+      'git',
+    );
+    if (denial) return denial;
 
     try {
       const resp = await ctx.bridge.client.request<ExecRunResp>('exec.run', {

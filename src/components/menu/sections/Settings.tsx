@@ -10,23 +10,38 @@ import { isWebLite } from '../../../core/runtime';
 
 export const SettingsSection = observer(function SettingsSection() {
   const router = useRouterStore();
+  const webLite = isWebLite();
   return (
     <div className="settings-page">
       <h1 style={tokens.h1}>Settings</h1>
-      <div style={tokens.kicker}>app preferences · danger zone</div>
+      <div style={tokens.kicker}>API key · app data · danger zone</div>
+
+      <Card
+        className="settings-apikey-card"
+        style={{ padding: '16px 18px', marginTop: 8, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}
+      >
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>OpenRouter API key</div>
+          <div style={{ fontSize: 12.5, color: 'var(--text-dim)', marginTop: 3, lineHeight: 1.5, maxWidth: 480 }}>
+            Your key unlocks cloud chat, vision, and image models. It's stored only in
+            this {webLite ? 'browser' : 'app'} and sent directly to OpenRouter — never to us.
+          </div>
+        </div>
+        <Button variant="accent" onClick={() => router.goMenu('models')}>Manage key</Button>
+      </Card>
 
       <div className="settings-quick-actions">
-        <button type="button" onClick={() => router.goMenu('models')}>API keys</button>
+        <button type="button" onClick={() => router.goMenu('models')}>Models &amp; keys</button>
         <button type="button" onClick={() => router.goMenu('local')}>Local runtimes</button>
         <button type="button" onClick={() => router.goMenu('workspace')}>Workspace</button>
         <button type="button" onClick={() => router.goMenu('gallery')}>Gallery</button>
       </div>
 
-      <Card className="settings-intro-card" style={{ padding: '14px 18px', marginBottom: 20 }}>
+      <Card className="settings-intro-card" style={{ padding: '14px 18px', marginTop: 12, marginBottom: 20 }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
-          Cloud model keys, catalog controls, and OpenRouter image generation are under{' '}
-          <strong style={{ color: 'var(--text)' }}>Models</strong>. Installed runtimes live under{' '}
-          <strong style={{ color: 'var(--text)' }}>Local</strong>. This page keeps reset actions in one place.
+          Catalog controls and OpenRouter image generation also live under{' '}
+          <strong style={{ color: 'var(--text)' }}>Models</strong>; installed runtimes (Ollama, ComfyUI) live under{' '}
+          <strong style={{ color: 'var(--text)' }}>Local</strong>. This page keeps your app data and reset actions in one place.
         </div>
       </Card>
 
@@ -253,9 +268,8 @@ const DangerZone = observer(function DangerZone() {
 
 function WebLiteBrowserData() {
   const ui = useUiStore();
-  const [usage, setUsage] = useState(() => ui.localDataUsage());
+  const [usage] = useState(() => ui.localDataUsage());
   const [confirming, setConfirming] = useState(false);
-  const [cleared, setCleared] = useState(false);
   if (!isWebLite()) return null;
 
   const total = usage.reduce((sum, slot) => sum + slot.bytes, 0);
@@ -264,20 +278,18 @@ function WebLiteBrowserData() {
 
   const clear = (): void => {
     ui.clearLocalDataExceptCredentials();
-    const next = ui.localDataUsage();
-    setUsage(next);
-    setConfirming(false);
-    setCleared(true);
+    window.location.reload();
   };
 
   return (
     <div className="settings-section settings-browser-data" style={{ ...tokens.section, marginBottom: 28 }}>
-      <div className="settings-section-title" style={tokens.sectionTitle}>Web Lite browser data</div>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Your data is saved in this browser</div>
       <Card className="settings-browser-card" style={{ padding: '14px 18px' }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
-          Conversations, memories, notes, preferences, model catalog cache, and image history stay in this browser's
+          In Web Lite, your conversations, memories, notes, preferences, model catalog cache, and image history are saved
+          locally in this browser's
           <code style={{ ...tokens.mono, margin: '0 4px' }}>localStorage</code>.
-          Firebase Hosting only serves the static app; it does not receive this local app data.
+          Nothing is sent to a server — the host only serves the static app — so clearing this browser's data resets the app.
         </div>
         <div className="settings-data-summary" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, marginTop: 12, fontSize: 12 }}>
           <div style={{ color: 'var(--text-dim)' }}>Tracked local data</div>
@@ -306,11 +318,6 @@ function WebLiteBrowserData() {
             </span>
           ))}
         </div>
-        {cleared && (
-          <div style={{ marginTop: 12, color: 'var(--accent)', fontSize: 12 }}>
-            Browser cache cleared. Refresh to boot into a completely clean local state.
-          </div>
-        )}
         <div className="settings-action-controls" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, marginTop: 14 }}>
           {confirming ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>

@@ -9,6 +9,20 @@ import { logger } from './diagnostics/logger';
 
 const STORAGE_KEY = 'gatesai.state.v1';
 const CORRUPT_STORAGE_KEY_PREFIX = `${STORAGE_KEY}.corrupt`;
+export const CHAT_SNAPSHOT_STORAGE_KEY = STORAGE_KEY;
+
+export type CompactionNoticeHandler = (message: string) => void;
+
+let compactionNoticeHandler: CompactionNoticeHandler | null = null;
+
+/**
+ * Surface a user-visible composer notice when emergency compaction succeeds.
+ * Chat saves log to `persistence` either way; profile/notes/ui-prefs saves in
+ * `createJsonPersistenceProvider` are log-only (no banner).
+ */
+export function setCompactionNoticeHandler(handler: CompactionNoticeHandler | null): void {
+  compactionNoticeHandler = handler;
+}
 const EMERGENCY_TOOL_RESULT_CHARS = 600;
 const EMERGENCY_TOOL_ARGUMENT_CHARS = 600;
 const LARGE_TOOL_ARGUMENT_KEYS = new Set(['body', 'content', 'stdin']);
@@ -34,13 +48,16 @@ export function createLocalChatSnapshotPersistenceProvider(
         if (!raw) return null;
         const parsed = parseChatSnapshotShape(JSON.parse(raw));
         if (!parsed.ok) {
+          logger.warn('persistence', 'quarantined corrupt chat snapshot', { reason: parsed.reason });
           quarantineUnreadableSnapshot(storage, raw, parsed.reason);
           return null;
         }
         return migrate(parsed.value);
       } catch (err) {
         if (raw) {
-          quarantineUnreadableSnapshot(storage, raw, `Saved chat state was unreadable: ${(err as Error).message}`);
+          const reason = `Saved chat state was unreadable: ${(err as Error).message}`;
+          logger.warn('persistence', 'quarantined unreadable chat snapshot', { reason });
+          quarantineUnreadableSnapshot(storage, raw, reason);
         }
         return null;
       }
@@ -53,20 +70,30 @@ export function createLocalChatSnapshotPersistenceProvider(
       const cleaned = cleanSnapshot(snapshot);
       try {
         storage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
-      } catch {
+      } catch (err) {
+        logger.warn('persistence', 'localStorage rejected full chat snapshot; attempting compaction', err);
         try {
           storage.setItem(STORAGE_KEY, JSON.stringify(compactSnapshotForEmergencySave(cleaned)));
           logger.warn('persistence', 'saved compacted chat snapshot after localStorage rejected full snapshot');
+          compactionNoticeHandler?.(
+            'Chat history was compacted to fit browser storage limits. Some tool output was shortened.',
+          );
         } catch (err) {
           logger.error('persistence', 'failed to save chat snapshot', err);
+          // Even compaction failed — storage is full. Don't fail silently:
+          // the user's in-memory session now differs from disk and will be
+          // lost on reload, so surface it through the same notice channel.
+          compactionNoticeHandler?.(
+            'Chat history could not be saved — browser storage is full. Recent changes may be lost if you reload. Free up space or clear old data.',
+          );
         }
       }
     },
     clear(): void {
       try {
         storage.removeItem(STORAGE_KEY);
-      } catch {
-        // ignore
+      } catch (err) {
+        logger.warn('persistence', 'Chat snapshot clear failed', { err });
       }
     },
   };
@@ -112,6 +139,15 @@ export function scheduleSaveSnapshot(snapshot: ChatSnapshot): void {
   });
 }
 
+/**
+ * Drop any queued (not-yet-written) deferred snapshot. Called by `ChatStore`
+ * when it pauses saving after a cross-tab write, so a microtask scheduled just
+ * before the pause cannot still clobber the other tab's data.
+ */
+export function cancelPendingDeferredSnapshot(): void {
+  pendingDeferredSnap = null;
+}
+
 /** Synchronously flush any pending deferred save. Call from unload handlers. */
 export function flushPendingSnapshot(): void {
   const snap = pendingDeferredSnap;
@@ -138,6 +174,7 @@ function quarantineUnreadableSnapshot(storage: KeyValuePersistence, raw: string,
   try {
     storage.setItem(`${CORRUPT_STORAGE_KEY_PREFIX}-${Date.now()}`, raw);
   } catch (err) {
+    logger.error('persistence', 'failed to save corrupt chat snapshot recovery copy', err);
     snapshotLoadError = `${reason} A recovery copy could not be saved: ${(err as Error).message}`;
   }
 }
@@ -260,9 +297,16 @@ function migrate(snap: ChatSnapshot): ChatSnapshot {
 function parseChatSnapshotShape(value: unknown): ParseResult<ChatSnapshot> {
   if (!isRecord(value)) return { ok: false, reason: 'Saved chat state had an invalid shape.' };
   if (!Array.isArray(value.threads)) return { ok: false, reason: 'Saved chat state had an invalid thread list.' };
+  const rawThreadCount = value.threads.length;
   const threads = value.threads
     .map(parseThread)
     .filter((thread): thread is Thread => thread !== null);
+  if (threads.length < rawThreadCount) {
+    logger.warn('persistence', 'Dropped invalid threads during chat load', {
+      droppedCount: rawThreadCount - threads.length,
+      keptCount: threads.length,
+    });
+  }
   const activeThreadId = typeof value.activeThreadId === 'string' || value.activeThreadId === null
     ? value.activeThreadId
     : null;

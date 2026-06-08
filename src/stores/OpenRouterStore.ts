@@ -10,6 +10,7 @@ import {
   saveOpenRouterCache,
 } from '../services/openrouterCache';
 import type { ModelRegistry } from './ModelRegistry';
+import { logger } from '../services/diagnostics/logger';
 
 /**
  * Owns the live OpenRouter catalog: hydration from cache on boot, manual
@@ -72,6 +73,7 @@ export class OpenRouterStore {
       saveOpenRouterCache({ fetchedAt, models });
     } catch (err) {
       if (controller.signal.aborted) return;
+      logger.warn('models', 'OpenRouter catalog fetch failed', { err });
       runInAction(() => {
         this.fetching = false;
         this.fetchError = err instanceof Error ? err.message : String(err);

@@ -664,7 +664,7 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.textContent).toContain('Wrote 200 bytes to /workspace/artifacts/two.html');
   });
 
-  it('hides queued image prose while the job card is pending', () => {
+  it('shows assistant prose alongside the pending image job card', () => {
     const imageJobs = new ImageJobStore();
     runInAction(() => {
       imageJobs.queue.push({
@@ -696,7 +696,10 @@ describe('EditorialMessage markdown rendering', () => {
       }],
     }, 'Assistant', false, undefined, imageJobs);
 
-    expect(rendered.textContent).not.toContain('I queued an image through OpenRouter');
+    // Audit I1: the assistant's prose must never be suppressed just because an
+    // image job is attached — direct image turns previously rendered only a gray
+    // chip with no text. Both the prose and the live job card should be visible.
+    expect(rendered.textContent).toContain('I queued an image through OpenRouter');
     expect(rendered.textContent).toContain('Generating image');
   });
 

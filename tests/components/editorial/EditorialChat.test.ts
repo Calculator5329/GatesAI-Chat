@@ -125,6 +125,30 @@ afterEach(async () => {
   clearAppStorage();
 });
 
+describe('EditorialChat empty state (Batch C)', () => {
+  it('renders the first-run checklist with undoned steps when no provider is configured', () => {
+    store = buildStore();
+    const rendered = renderChat(store);
+
+    expect(rendered.textContent).toContain('GatesAI Chat');
+    expect(rendered.textContent).toContain('Connect OpenRouter in Models');
+    expect(rendered.textContent).toContain('Pick a model from the composer');
+    expect(rendered.textContent).toContain('Send your first message');
+    expect(rendered.textContent).toContain('Add your OpenRouter key in Models');
+    expect(rendered.textContent).toContain('○');
+  });
+
+  it('marks checklist steps done when provider and model are ready', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    const rendered = renderChat(store);
+
+    expect(rendered.textContent).toContain('✓');
+    expect(rendered.textContent).toContain('Type a message below to begin.');
+    expect(rendered.textContent).not.toContain('Add your OpenRouter key in Models');
+  });
+});
+
 describe('EditorialChat long histories', () => {
   it('renders newest messages first and pages older history on demand', () => {
     store = buildStore();

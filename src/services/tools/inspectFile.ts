@@ -4,7 +4,7 @@
 import type { FsEntry, FsListResp, FsReadResp, FsSearchResp } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
 import { decodeFsRead, stripBom } from './textDecode';
-import { isProtectedChatHistoryPath, isProtectedChatHistoryScope } from './protectedWorkspacePaths';
+import { denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
 import type { Tool, ToolContext } from './types';
 
 type InspectFormat = 'csv' | 'json' | 'txt';
@@ -103,9 +103,12 @@ export const inspectFileTool: Tool = {
     if (!action) return 'Error: `action` is required for inspect_file.';
     if (action === 'workspace_profile') return inspectWorkspaceProfile(args, ctx);
     if (!path) return 'Error: `path` is required for inspect_file.';
-    if (isProtectedChatHistoryPath(path) || isProtectedChatHistoryScope(path)) {
-      return 'Error: app-managed chat history files are not exposed through inspect_file. Use the `chat_history` tool instead.';
-    }
+    const protectedDenial = denyProtectedChatHistoryPath(
+      'inspect_file',
+      path,
+      'Error: app-managed chat history files are not exposed through inspect_file. Use the `chat_history` tool instead.',
+    );
+    if (protectedDenial) return protectedDenial;
 
     try {
       const resp = await ctx.bridge.client.request<FsReadResp>('fs.read', { path });

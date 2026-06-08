@@ -155,6 +155,7 @@ export class BridgeStore {
             this.seededWorkspaceRoot = data.workspace_root;
           }
         } catch (err) {
+          logger.warn('bridge', 'Health OK but WebSocket connect failed', { err });
           runInAction(() => {
             this.state = 'offline';
             this.lastError = (err as Error).message;
@@ -174,6 +175,9 @@ export class BridgeStore {
           ? err.message
           : `Health check failed: ${(err as Error).message}`;
       });
+      if (wasOnline) {
+        logger.warn('bridge', 'Bridge went offline', { lastError: this.lastError, wasOnline });
+      }
       if (wasOnline) this.client.disconnect();
       if (wasOnline) {
         this.emitBridgeActivity({

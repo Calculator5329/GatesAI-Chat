@@ -1,7 +1,57 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { imageFailureAdvice, pickImageJobCardVariant } from '../../../src/components/editorial/ImageJobCard';
+import { act, createElement } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { runInAction } from 'mobx';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ImageJobCard, imageFailureAdvice, pickImageJobCardVariant } from '../../../src/components/editorial/ImageJobCard';
 import { __imageCacheTestApi, loadImageSource } from '../../../src/components/media/useImageDataUrl';
+import { BridgeStore } from '../../../src/stores/BridgeStore';
+import { ImageJobStore } from '../../../src/stores/ImageJobStore';
+import { StoreProvider } from '../../../src/stores/context';
+import type { RootStore } from '../../../src/stores/RootStore';
 import type { ImageJob, CompletedJob } from '../../../src/services/image/jobs/types';
+import { flush } from '../../helpers/mockProvider';
+import { clearAppStorage } from '../../helpers/storage';
+
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+let root: Root | null = null;
+let host: HTMLDivElement | null = null;
+
+function renderCard(store: RootStore, jobId: string): HTMLDivElement {
+  host = document.createElement('div');
+  document.body.appendChild(host);
+  root = createRoot(host);
+  act(() => {
+    root!.render(
+      createElement(StoreProvider, {
+        store,
+        children: createElement(ImageJobCard, { jobId, expectedCount: 2 }),
+      }),
+    );
+  });
+  return host;
+}
+
+function minimalStore(imageJobs: ImageJobStore, bridge: BridgeStore): RootStore {
+  return {
+    registry: {} as RootStore['registry'],
+    providers: {} as RootStore['providers'],
+    profile: {} as RootStore['profile'],
+    chat: {} as RootStore['chat'],
+    ui: {} as RootStore['ui'],
+    router: {} as RootStore['router'],
+    bridge,
+    execStream: {} as RootStore['execStream'],
+    localRuntime: {} as RootStore['localRuntime'],
+    imageJobs,
+  } as RootStore;
+}
+
+afterEach(() => {
+  if (root) act(() => root?.unmount());
+  host?.remove();
+  __imageCacheTestApi.reset();
+});
 
 const baseJob: ImageJob = {
   id: 'j',
@@ -40,6 +90,55 @@ describe('pickImageJobCardVariant', () => {
     expect(pickImageJobCardVariant(single)).toBe('done-single');
     expect(pickImageJobCardVariant(grid)).toBe('done-grid');
     expect(pickImageJobCardVariant(empty)).toBe('done-empty');
+  });
+});
+
+describe('ImageJobCard UI (Batch D)', () => {
+  beforeEach(() => clearAppStorage());
+
+  it('shows partial thumbnails and cancel copy when a job was cancelled mid-batch', async () => {
+    const imageJobs = new ImageJobStore();
+    const bridge = new BridgeStore();
+    runInAction(() => { bridge.state = 'online'; });
+    vi.spyOn(bridge, 'readAttachmentBase64').mockResolvedValue({ base64: 'AAA=', mime: 'image/png', size: 3 });
+
+    runInAction(() => {
+      imageJobs.history.push({
+        ...baseJob,
+        id: 'cancelled-partial',
+        status: 'cancelled',
+        results: ['/workspace/artifacts/images/local/a.png'],
+        count: 2,
+      });
+    });
+
+    const rendered = renderCard(minimalStore(imageJobs, bridge), 'cancelled-partial');
+    expect(rendered.textContent).toContain('Render cancelled');
+    expect(rendered.textContent).toContain('(1 of 2 completed before cancel)');
+    await flush(10);
+  });
+
+  it('shows Image file missing when the workspace artifact cannot be loaded', async () => {
+    const imageJobs = new ImageJobStore();
+    const bridge = new BridgeStore();
+    runInAction(() => { bridge.state = 'online'; });
+    vi.spyOn(bridge, 'readAttachmentBase64').mockResolvedValue(null);
+
+    runInAction(() => {
+      imageJobs.history.push({
+        ...baseJob,
+        id: 'done-missing-file',
+        status: 'done',
+        results: ['/workspace/artifacts/images/local/missing.png'],
+      });
+    });
+
+    const rendered = renderCard(minimalStore(imageJobs, bridge), 'done-missing-file');
+    await act(async () => {
+      await flush(30);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+    expect(rendered.textContent).toContain('Image file missing');
   });
 });
 

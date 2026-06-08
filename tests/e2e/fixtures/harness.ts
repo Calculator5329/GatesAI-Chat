@@ -111,6 +111,8 @@ export async function seedImageJobs(page: Page, history: SeedImageJob[]): Promis
 interface OpenRouterMockOptions {
   /** Assistant reply text streamed back as a single content delta. */
   reply?: string;
+  /** Delay the SSE response so streaming UI (stop button, etc.) is observable. */
+  delayMs?: number;
 }
 
 /** Mock the OpenRouter chat completion stream (SSE) and an empty catalog. */
@@ -119,7 +121,8 @@ export async function mockOpenRouter(page: Page, options: OpenRouterMockOptions 
   await page.route(OPENROUTER_MODELS_URL, route =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: [] }) }),
   );
-  await page.route(OPENROUTER_CHAT_URL, route => {
+  await page.route(OPENROUTER_CHAT_URL, async route => {
+    if (options.delayMs) await new Promise(resolve => setTimeout(resolve, options.delayMs));
     const body = [
       `data: ${JSON.stringify({ choices: [{ index: 0, delta: { content: reply } }] })}\n\n`,
       `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] })}\n\n`,

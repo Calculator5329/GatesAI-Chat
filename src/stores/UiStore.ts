@@ -10,6 +10,7 @@ import type {
   MarkdownStyleKey,
 } from '../core/types';
 import { loadUiPrefs, saveUiPrefs, type UiPrefsSnapshot } from '../services/uiPrefsStorage';
+import { logger } from '../services/diagnostics/logger';
 import {
   clearLocalDataExceptCredentials,
   formatBytes,
@@ -27,6 +28,9 @@ export type { LocalDataSlotUsage } from '../services/storage/webLiteLocalData';
 export class UiStore {
   draft = '';
   attachments: DraftAttachment[] = [];
+  /** Thread id currently bound to {@link draft} / {@link attachments}. */
+  private boundDraftThreadId: string | null = null;
+  private readonly draftByThread = new Map<string, { draft: string; attachments: DraftAttachment[] }>();
   /** True while at least one file from the most recent drop / picker is in flight. */
   uploading = false;
   /** Last upload error message. Cleared on each new upload attempt. */
@@ -85,12 +89,80 @@ export class UiStore {
     }
   }
 
-  setDraft(value: string): void { this.draft = value; }
-  clearDraft(): void { this.draft = ''; this.attachments = []; }
+  /**
+   * Swap the composer draft to match `threadId`. Persists the outgoing draft
+   * under the previously bound thread so unsent text does not leak across
+   * conversations.
+   */
+  bindDraftThread(threadId: string | null): void {
+    if (this.boundDraftThreadId) {
+      this.draftByThread.set(this.boundDraftThreadId, {
+        draft: this.draft,
+        attachments: [...this.attachments],
+      });
+    }
+    this.boundDraftThreadId = threadId;
+    if (!threadId) {
+      this.draft = '';
+      this.attachments = [];
+      return;
+    }
+    const saved = this.draftByThread.get(threadId);
+    this.draft = saved?.draft ?? '';
+    this.attachments = saved?.attachments ? [...saved.attachments] : [];
+  }
 
-  addAttachment(att: DraftAttachment): void { this.attachments.push(att); }
-  removeAttachment(id: string): void { this.attachments = this.attachments.filter(a => a.id !== id); }
-  clearAttachments(): void { this.attachments = []; }
+  setDraft(value: string): void {
+    this.draft = value;
+    if (this.boundDraftThreadId) {
+      const saved = this.draftByThread.get(this.boundDraftThreadId);
+      this.draftByThread.set(this.boundDraftThreadId, {
+        draft: value,
+        attachments: saved?.attachments ? [...saved.attachments] : [...this.attachments],
+      });
+    }
+  }
+
+  clearDraft(): void {
+    this.draft = '';
+    this.attachments = [];
+    if (this.boundDraftThreadId) {
+      this.draftByThread.set(this.boundDraftThreadId, { draft: '', attachments: [] });
+    }
+  }
+
+  addAttachment(att: DraftAttachment): void {
+    this.attachments.push(att);
+    if (this.boundDraftThreadId) {
+      const saved = this.draftByThread.get(this.boundDraftThreadId);
+      this.draftByThread.set(this.boundDraftThreadId, {
+        draft: saved?.draft ?? this.draft,
+        attachments: [...this.attachments],
+      });
+    }
+  }
+
+  removeAttachment(id: string): void {
+    this.attachments = this.attachments.filter(a => a.id !== id);
+    if (this.boundDraftThreadId) {
+      const saved = this.draftByThread.get(this.boundDraftThreadId);
+      this.draftByThread.set(this.boundDraftThreadId, {
+        draft: saved?.draft ?? this.draft,
+        attachments: [...this.attachments],
+      });
+    }
+  }
+
+  clearAttachments(): void {
+    this.attachments = [];
+    if (this.boundDraftThreadId) {
+      const saved = this.draftByThread.get(this.boundDraftThreadId);
+      this.draftByThread.set(this.boundDraftThreadId, {
+        draft: saved?.draft ?? this.draft,
+        attachments: [],
+      });
+    }
+  }
 
   /**
    * Sequentially upload a batch of files through the bridge and append
@@ -112,6 +184,7 @@ export class UiStore {
       }
     } catch (err) {
       const message = (err as Error).message;
+      logger.warn('attachments', 'Attachment upload failed', { err });
       runInAction(() => { this.uploadError = message; });
     } finally {
       runInAction(() => { this.uploading = false; });

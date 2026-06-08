@@ -516,6 +516,44 @@ describe('ImageJobStore (runner)', () => {
     expect(store.history.find(j => j.id === jobId)?.status).toBe('done');
   });
 
+  it('cancelled active job leaves the next queued job cancellable', async () => {
+    let dispatchCount = 0;
+    const deps = makeDeps({
+      dispatcher: async (req: GenerateImageRequest) => {
+        dispatchCount++;
+        await new Promise<void>((_, reject) => {
+          if (req.signal?.aborted) {
+            reject(new Error('cancelled'));
+            return;
+          }
+          req.signal?.addEventListener('abort', () => reject(new Error('cancelled')), { once: true });
+        });
+        throw new Error('cancelled');
+      },
+    });
+    const store = new ImageJobStore(deps);
+    const first = store.enqueue({ ...INPUT, prompt: 'first job' });
+    const second = store.enqueue({ ...INPUT, prompt: 'second job' });
+    for (let i = 0; i < 10; i++) await flushMicrotasks();
+    expect(store.active?.prompt).toBe('first job');
+    expect(dispatchCount).toBe(1);
+
+    store.cancel(first.jobId);
+    // Cancel no longer calls runNext synchronously — wait for the aborted
+    // dispatcher to settle and the runner lock to start the queued job.
+    for (let i = 0; i < 40; i++) await flushMicrotasks();
+    await new Promise(r => setTimeout(r, 5));
+    for (let i = 0; i < 10; i++) await flushMicrotasks();
+    expect(store.active?.prompt).toBe('second job');
+    expect(dispatchCount).toBe(2);
+
+    const secondId = second.jobId;
+    store.cancel(secondId);
+    for (let i = 0; i < 10; i++) await flushMicrotasks();
+    expect(store.history.find(j => j.id === secondId)?.status).toBe('cancelled');
+    expect(store.active).toBeNull();
+  });
+
   it('cancel during a running multi-image job marks cancelled and stops further iterations', async () => {
     let calls = 0;
     const deps = makeDeps({

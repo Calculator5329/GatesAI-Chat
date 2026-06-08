@@ -90,7 +90,13 @@ export class ImageJobStore {
   constructor(deps?: ImageJobStoreDeps) {
     this.deps = deps;
     const snapshot = loadImageJobsSnapshot();
-    this.history = recoverInterruptedJobs(snapshot.history, snapshot.active, snapshot.queue);
+    const { history, recoveredCount } = recoverInterruptedJobs(snapshot.history, snapshot.active, snapshot.queue);
+    if (recoveredCount > 0) {
+      logger.info('image-jobs', 'recovered interrupted jobs on boot', {
+        count: recoveredCount,
+      });
+    }
+    this.history = history;
     makeAutoObservable<this, 'idCounter' | 'inflight' | 'activeProgress' | 'deps'>(this, {
       idCounter: false,
       inflight: false,
@@ -123,15 +129,18 @@ export class ImageJobStore {
 
   cancel(jobId: string): void {
     if (this.active?.id === jobId) {
+      logger.info('image-jobs', 'active job cancelled', { jobId });
       this.inflight?.abort();
       void this.activeProgress?.cancel?.();
       this.moveToHistory(this.active, 'cancelled');
       runInAction(() => { this.active = null; });
-      void this.runNext();
+      // Do not start the next job here — the cancelled runJob's finally block
+      // calls runNext() once this promise settles (C2 runner lock).
       return;
     }
     const idx = this.queue.findIndex(j => j.id === jobId);
     if (idx >= 0) {
+      logger.info('image-jobs', 'queued job cancelled', { jobId });
       const [job] = this.queue.splice(idx, 1);
       this.moveToHistory(job, 'cancelled');
     }
@@ -165,6 +174,25 @@ export class ImageJobStore {
   delete(jobId: string): void {
     runInAction(() => {
       this.history = this.history.filter(j => j.id !== jobId);
+    });
+  }
+
+  /**
+   * Remove a single generated image from a completed multi-image job. The job
+   * entry is only dropped entirely when its last image is removed, so deleting
+   * one tile in the gallery no longer wipes the whole batch.
+   */
+  removeImage(jobId: string, path: string): void {
+    runInAction(() => {
+      const idx = this.history.findIndex(j => j.id === jobId);
+      if (idx < 0) return;
+      const job = this.history[idx];
+      const results = job.results.filter(p => p !== path);
+      if (results.length === 0) {
+        this.history = this.history.filter(j => j.id !== jobId);
+      } else {
+        this.history[idx] = { ...job, results };
+      }
     });
   }
 
@@ -205,6 +233,10 @@ export class ImageJobStore {
     clearImageJobsHistory();
   }
 
+  /**
+   * Single-runner queue drain. Cancel does not call this directly — the
+   * cancelled job's `finally` chains the next job once `runJob` settles (C2).
+   */
   private async runNext(): Promise<void> {
     if (this.active) return;
     const next = this.queue.shift();
@@ -233,11 +265,19 @@ export class ImageJobStore {
       // Only record failure if the job is still active (not already cancelled).
       const stillActive = this.active as ImageJob | null;
       if (stillActive?.id === next.id) {
-        logger.error('image-jobs', `dispatch ${next.id} failed: ${reason}`);
-        this.fail(next, reason);
+        if (reason === 'cancelled') {
+          logger.info('image-jobs', 'dispatch cancelled', { jobId: next.id });
+        } else {
+          logger.error('image-jobs', `dispatch ${next.id} failed: ${reason}`);
+          this.fail(next, reason);
+        }
       }
     } finally {
-      this.inflight = null;
+      // Only clear if this run still owns the controller — a cancelled job's
+      // finally must not clobber the next job's abort handle (C2).
+      if (this.inflight === ac) {
+        this.inflight = null;
+      }
     }
     void this.runNext();
   }
@@ -278,8 +318,8 @@ export class ImageJobStore {
     // The progress factory builds a WebSocket / poller. A synchronous
     // throw here (malformed URL, missing globalThis.WebSocket in some
     // webviews) must not abort the render — HTTP polling in the
-    // backend client still drives the actual job. Surface it to the
-    // console and continue with a null progress object.
+    // backend client still drives the actual job. Log it and continue
+    // with a null progress object.
     let progress: JobProgress | null = null;
     try {
       progress = progressFactory(job.backend, config);
@@ -413,9 +453,9 @@ function recoverInterruptedJobs(
   history: CompletedJob[],
   active?: ImageJob | null,
   queue: ImageJob[] = [],
-): CompletedJob[] {
+): { history: CompletedJob[]; recoveredCount: number } {
   const interrupted = [active, ...queue].filter(Boolean) as ImageJob[];
-  if (interrupted.length === 0) return history;
+  if (interrupted.length === 0) return { history, recoveredCount: 0 };
   const now = Date.now();
   const failed = interrupted.map(job => ({
     ...job,
@@ -424,7 +464,10 @@ function recoverInterruptedJobs(
     completedAt: now,
     progress: undefined,
   }));
-  return [...failed, ...history].slice(0, HISTORY_LIMIT);
+  return {
+    history: [...failed, ...history].slice(0, HISTORY_LIMIT),
+    recoveredCount: interrupted.length,
+  };
 }
 
 async function loadComfyWorkflow(

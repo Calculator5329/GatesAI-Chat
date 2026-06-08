@@ -1,6 +1,8 @@
 // Provides storage adapter behavior for webLiteLocalData.
 // Called by persistence-facing services and stores; depends on slot names and browser/local bridge availability.
 // Invariant: callers see parsed snapshots while corrupt/missing data falls back safely.
+// Web Lite clear removes all non-credential slots then reloads the page so in-memory stores reset.
+import { logger } from '../diagnostics/logger';
 export interface LocalDataSlot {
   key: string;
   label: string;
@@ -45,8 +47,8 @@ export function clearLocalDataExceptCredentials(): void {
     if (slot.credential) continue;
     try {
       localStorage.removeItem(slot.key);
-    } catch {
-      // Ignore storage errors in private/quota-restricted browsers.
+    } catch (err) {
+      logger.warn('persistence', 'Web Lite localStorage clear failed', { key: slot.key, err });
     }
   }
 }
@@ -62,7 +64,8 @@ export function formatBytes(bytes: number): string {
 function safeGet(key: string): string | null {
   try {
     return localStorage.getItem(key);
-  } catch {
+  } catch (err) {
+    logger.warn('persistence', 'Web Lite localStorage read failed', { key, err });
     return null;
   }
 }

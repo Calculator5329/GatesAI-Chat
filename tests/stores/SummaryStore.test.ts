@@ -86,6 +86,44 @@ describe('SummaryStore', () => {
     expect(mock.calls[0].modelId).toBe('google/gemini-3.1-flash-lite');
   });
 
+  it('skips summarization when any thread is streaming, not only the active one', async () => {
+    const hang: Parameters<MockProvider['setChunks']>[0] = [];
+    for (let i = 0; i < 200; i++) hang.push({ type: 'text', delta: 'x' });
+    hang.push({ type: 'done', finishReason: 'stop' });
+
+    const { chat, providers, registry } = setup();
+    const mock = new MockProvider([
+      { type: 'text', delta: 'should-not-run' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    installEverywhere(providers, mock);
+    mock.setChunks(hang);
+
+    const backgroundId = chat.createThread();
+    const background = chat.threads.find(x => x.id === backgroundId)!;
+    runInAction(() => {
+      background.messages.push(
+        { id: 'm1', role: 'user', content: 'one', createdAt: 1 },
+        { id: 'm2', role: 'assistant', content: 'two', createdAt: 2 },
+        { id: 'm3', role: 'user', content: 'three', createdAt: 3 },
+        { id: 'm4', role: 'assistant', content: 'four', createdAt: 4 },
+      );
+    });
+    chat.sendMessage('still streaming');
+    await flush(2);
+
+    const activeId = chat.createThread();
+    expect(chat.activeThreadId).toBe(activeId);
+    expect(chat.isThreadStreaming(backgroundId)).toBe(true);
+
+    const summary = new SummaryStore(chat, providers, registry);
+    (summary as unknown as { lastActivityAt: number }).lastActivityAt = 0;
+    await summary.tick();
+
+    expect(background.summary).toBeUndefined();
+    expect(mock.calls.filter(c => c.modelId === 'google/gemini-3.1-flash-lite')).toHaveLength(0);
+  });
+
   it('skips re-summarizing if not enough new messages have arrived', async () => {
     const { chat, providers, registry } = setup();
     const mock = new MockProvider([
@@ -143,5 +181,39 @@ describe('SummaryStore', () => {
     // Excluding the active thread itself.
     const excludeA = summary.recentSummariesExcluding(a);
     expect(excludeA).toEqual(['Billing: Picked Stripe']);
+  });
+
+  it('does not summarize or expose summaries for soft-deleted threads', async () => {
+    const { chat, providers, registry } = setup();
+    const mock = new MockProvider([
+      { type: 'text', delta: 'deleted thread summary' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    installEverywhere(providers, mock);
+
+    const deletedId = chat.createThread();
+    const deleted = chat.threads.find(t => t.id === deletedId)!;
+    runInAction(() => {
+      deleted.messages.push(
+        { id: 'm1', role: 'user', content: 'one', createdAt: 1 },
+        { id: 'm2', role: 'assistant', content: 'two', createdAt: 2 },
+        { id: 'm3', role: 'user', content: 'three', createdAt: 3 },
+        { id: 'm4', role: 'assistant', content: 'four', createdAt: 4 },
+      );
+      deleted.summary = 'Old summary on deleted thread';
+      deleted.summaryUpdatedAt = Date.now();
+      deleted.deletedAt = Date.now();
+    });
+
+    const activeId = chat.createThread();
+    expect(chat.activeThreadId).toBe(activeId);
+
+    const summary = new SummaryStore(chat, providers, registry);
+    (summary as unknown as { lastActivityAt: number }).lastActivityAt = 0;
+    await summary.tick();
+
+    expect(deleted.summary).toBe('Old summary on deleted thread');
+    expect(mock.calls.filter(c => c.modelId === 'google/gemini-3.1-flash-lite')).toHaveLength(0);
+    expect(summary.recentSummariesExcluding(activeId)).not.toContain('Untitled conversation: Old summary on deleted thread');
   });
 });

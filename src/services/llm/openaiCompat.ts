@@ -5,6 +5,7 @@ import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ProviderI
 import { parseJsonObject } from './json';
 import { openAiCompatBodyExtras } from './modelFormatProfiles';
 import { ensureOk, parseSse } from './sse';
+import { logger } from '../diagnostics/logger';
 
 export interface OpenAiCompatOptions {
   id: ProviderId;
@@ -104,14 +105,18 @@ export class OpenAiCompatProvider implements LlmProvider {
       });
     } catch (err) {
       if (signal.aborted) { yield { type: 'done', finishReason: 'cancelled' }; return; }
-      yield { type: 'done', finishReason: 'error', error: (err as Error).message };
+      const message = (err as Error).message;
+      logger.warn('llm', 'Provider stream error', { provider: this.name, modelId: req.modelId, error: message });
+      yield { type: 'done', finishReason: 'error', error: message };
       return;
     }
 
     try {
       await ensureOk(response, this.name);
     } catch (err) {
-      yield { type: 'done', finishReason: 'error', error: (err as Error).message };
+      const message = (err as Error).message;
+      logger.warn('llm', 'Provider stream error', { provider: this.name, modelId: req.modelId, error: message });
+      yield { type: 'done', finishReason: 'error', error: message };
       return;
     }
 

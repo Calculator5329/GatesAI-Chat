@@ -1,6 +1,7 @@
-// Renders the editorial chat ImageJobCard surface and its local interaction state.
-// Called by EditorialChat, EditorialMessage, or the sidebar shell; depends on RootStore hooks, core message types, and UI primitives.
-// Invariant: persisted chat state stays in stores while components derive view state from props/hooks.
+// Renders an image-generation job in the chat: live progress, the result
+// gallery, and per-image actions (open, save, delete).
+// Failed/cancelled multi-image jobs may still show partial `results[]` saved before
+// abort; missing workspace files surface via `useImageDataUrl` failed state (Batch D).
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useImageJobStore } from '../../stores/context';
@@ -138,6 +139,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
 
 const FailedCard = observer(function FailedCard({ job, onRetry }: { job: CompletedJob; onRetry: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const advice = imageFailureAdvice(job);
   const copyError = async () => {
     try {
@@ -149,36 +151,72 @@ const FailedCard = observer(function FailedCard({ job, onRetry }: { job: Complet
     }
   };
   return (
-    <div style={{ ...rectBase, padding: 12, color: 'var(--text-dim)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 7 }}>
-      <div style={{ color: 'var(--text)' }}>Image render failed</div>
-      <div style={{ fontSize: 11.5, opacity: 0.9 }}>{advice}</div>
-      <div title={job.error ?? 'Unknown error'} style={{ fontSize: 11, opacity: 0.75, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {job.error ?? 'Unknown error'}
-      </div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" onClick={onRetry} style={inlineBtn}>Retry</button>
-        <button type="button" onClick={copyError} style={inlineBtn}>{copied ? 'Copied' : 'Copy error'}</button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 600 }}>
+      {job.results.length > 0 && (
+        <>
+          {job.results.length === 1
+            ? <BigImage path={job.results[0]} alt="Partial render" onOpen={() => setLightboxIdx(0)} />
+            : <ImageGrid paths={job.results} onOpen={(i) => setLightboxIdx(i)} />}
+          {lightboxIdx !== null && (
+            <Lightbox
+              images={job.results.map(p => ({ path: p, alt: 'Partial render' }))}
+              startIndex={lightboxIdx}
+              prompt={job.prompt}
+              onClose={() => setLightboxIdx(null)}
+            />
+          )}
+        </>
+      )}
+      <div style={{ ...rectBase, padding: 12, color: 'var(--text-dim)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 7 }}>
+        <div style={{ color: 'var(--text)' }}>Image render failed</div>
+        <div style={{ fontSize: 11.5, opacity: 0.9 }}>{advice}</div>
+        <div title={job.error ?? 'Unknown error'} style={{ fontSize: 11, opacity: 0.75, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {job.error ?? 'Unknown error'}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" onClick={onRetry} style={inlineBtn}>Retry</button>
+          <button type="button" onClick={copyError} style={inlineBtn}>{copied ? 'Copied' : 'Copy error'}</button>
+        </div>
       </div>
     </div>
   );
 });
 
 const CancelledCard = observer(function CancelledCard({ job, onRetry }: { job: CompletedJob; onRetry: () => void }) {
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   return (
-    <div style={{ ...rectBase, padding: 12, color: 'var(--text-faint)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
-      <div>Render cancelled</div>
-      {job.results.length > 0 && <div style={{ fontSize: 11.5 }}>({job.results.length} of {job.count} completed before cancel)</div>}
-      <div><button type="button" onClick={onRetry} style={inlineBtn}>Retry</button></div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 600 }}>
+      {job.results.length > 0 && (
+        <>
+          {job.results.length === 1
+            ? <BigImage path={job.results[0]} alt="Partial render" onOpen={() => setLightboxIdx(0)} />
+            : <ImageGrid paths={job.results} onOpen={(i) => setLightboxIdx(i)} />}
+          {lightboxIdx !== null && (
+            <Lightbox
+              images={job.results.map(p => ({ path: p, alt: 'Partial render' }))}
+              startIndex={lightboxIdx}
+              prompt={job.prompt}
+              onClose={() => setLightboxIdx(null)}
+            />
+          )}
+        </>
+      )}
+      <div style={{ ...rectBase, padding: 12, color: 'var(--text-faint)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
+        <div>Render cancelled</div>
+        {job.results.length > 0 && <div style={{ fontSize: 11.5 }}>({job.results.length} of {job.count} completed before cancel)</div>}
+        <div><button type="button" onClick={onRetry} style={inlineBtn}>Retry</button></div>
+      </div>
     </div>
   );
 });
 
 const BigImage = observer(function BigImage({ path, alt, onOpen }: { path: string; alt: string; onOpen: () => void }) {
-  const { src: dataUrl } = useImageDataUrl(path);
+  const { src: dataUrl, failed } = useImageDataUrl(path);
   return (
     <button
       type="button"
       onClick={onOpen}
+      disabled={failed}
       style={{
         display: 'block',
         padding: 0,
@@ -186,15 +224,17 @@ const BigImage = observer(function BigImage({ path, alt, onOpen }: { path: strin
         borderRadius: 6,
         overflow: 'hidden',
         background: 'transparent',
-        cursor: 'pointer',
+        cursor: failed ? 'default' : 'pointer',
         maxWidth: 600,
       }}
-      title="Click to open"
+      title={failed ? 'Image file missing' : 'Click to open'}
       aria-label={alt}
     >
-      {dataUrl
-        ? <img src={dataUrl} alt={alt} style={{ display: 'block', width: '100%', height: 'auto' }} />
-        : <div style={{ width: 320, height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)' }}>…</div>}
+      {failed
+        ? <div style={{ width: 320, height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: 12 }}>Image file missing</div>
+        : dataUrl
+          ? <img src={dataUrl} alt={alt} style={{ display: 'block', width: '100%', height: 'auto' }} />
+          : <div style={{ width: 320, height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)' }}>…</div>}
     </button>
   );
 });
@@ -209,18 +249,21 @@ const ImageGrid = observer(function ImageGrid({ paths, onOpen }: { paths: string
 });
 
 const GridTile = observer(function GridTile({ path, onClick }: { path: string; onClick: () => void }) {
-  const { src: dataUrl } = useImageDataUrl(path);
+  const { src: dataUrl, failed } = useImageDataUrl(path);
   return (
     <button
       type="button"
       onClick={onClick}
-      style={{ padding: 0, border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', cursor: 'pointer', background: 'transparent', aspectRatio: '1 / 1' }}
-      title="Click to open"
+      disabled={failed}
+      style={{ padding: 0, border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', cursor: failed ? 'default' : 'pointer', background: 'transparent', aspectRatio: '1 / 1' }}
+      title={failed ? 'Image file missing' : 'Click to open'}
       aria-label="Open image"
     >
-      {dataUrl
-        ? <img src={dataUrl} alt="Generated image" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
-        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)' }}>…</div>}
+      {failed
+        ? <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: 10, padding: 4, textAlign: 'center' }}>Missing</div>
+        : dataUrl
+          ? <img src={dataUrl} alt="Generated image" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)' }}>…</div>}
     </button>
   );
 });

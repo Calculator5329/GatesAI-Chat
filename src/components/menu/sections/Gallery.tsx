@@ -29,12 +29,36 @@ export const GallerySection = observer(function GallerySection() {
   );
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
 
+  if (webLite) {
+    return (
+      <>
+        <WebLiteNotice show={webLite}>
+          <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
+          image generation and the artifact gallery are desktop-only today.
+        </WebLiteNotice>
+        <h1 style={{ ...tokens.h1, margin: 0 }}>Gallery</h1>
+        <div style={{ ...tokens.kicker, marginTop: 4, marginBottom: 16 }}>generated images appear here on desktop</div>
+        <div style={{
+          padding: '44px 28px', textAlign: 'center',
+          color: 'var(--text-faint)', fontSize: 13,
+          border: '1px dashed var(--border)', borderRadius: 8,
+        }}>
+          <div style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 18, color: 'var(--text-dim)', marginBottom: 8 }}>
+            Desktop-only feature
+          </div>
+          <div style={{ lineHeight: 1.55, maxWidth: 440, margin: '0 auto' }}>
+            The <strong style={{ color: 'var(--text-dim)' }}>image_generate</strong> tool runs against a local
+            ComfyUI backend in the installed desktop app, and finished images are saved under{' '}
+            <code style={tokens.mono}>/workspace/artifacts/images</code>. The hosted web app can't reach a local
+            backend, so the gallery is empty here. Cloud image persistence can be added in a future backend phase.
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <WebLiteNotice show={webLite}>
-        <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
-        image artifacts need the desktop bridge today. Cloud image persistence can be added in the Firebase backend phase.
-      </WebLiteNotice>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginBottom: completed.length > 0 ? 16 : 0 }}>
         <div>
           <h1 style={{ ...tokens.h1, margin: 0 }}>Gallery</h1>
@@ -63,7 +87,7 @@ export const GallerySection = observer(function GallerySection() {
                 path={path}
                 prompt={job.prompt}
                 onClick={() => setLightbox({ paths: job.results, index, prompt: job.prompt })}
-                onDelete={() => jobs.delete(job.id)}
+                onDelete={() => jobs.removeImage(job.id, path)}
               />
             ))}
           </div>
@@ -108,11 +132,13 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
 }) {
   const bridge = useBridgeStore();
   const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [missing, setMissing] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const loadedRef = useRef(false);
 
   useEffect(() => {
     setDataUrl(null);
+    setMissing(false);
     loadedRef.current = false;
   }, [path]);
 
@@ -128,7 +154,9 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
           loadedRef.current = true;
           observer.disconnect();
           void loadImageSource(bridge, path).then(url => {
-            if (!cancelled && url) setDataUrl(url);
+            if (cancelled) return;
+            if (url) setDataUrl(url);
+            else setMissing(true);
           });
         }
       },
@@ -155,7 +183,7 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
       >
         {dataUrl
           ? <img src={dataUrl} alt={prompt} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <div style={{ width: '100%', height: '100%', background: 'var(--surface-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: 18 }}>⋯</div>}
+          : <div style={{ width: '100%', height: '100%', background: 'var(--surface-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', fontSize: missing ? 11 : 18, textAlign: 'center', padding: 8 }}>{missing ? 'Image file missing' : '⋯'}</div>}
       </button>
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0,

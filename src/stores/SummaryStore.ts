@@ -22,6 +22,8 @@ import { logger } from '../services/diagnostics/logger';
  * Trigger policy:
  *   - the thread has ≥ MIN_MESSAGES (skip 1-message stubs)
  *   - it's not the currently-active thread
+ *   - no thread is currently streaming (background streams also block the scheduler)
+ *   - soft-deleted threads are excluded from `pickCandidate`
  *   - either the summary is missing OR ≥ MIN_NEW_MESSAGES new messages
  *     have arrived since `summaryMessageCount`
  *   - it's been ≥ IDLE_DEBOUNCE_MS since the user did anything on the
@@ -104,7 +106,7 @@ export class SummaryStore {
    */
   recentSummariesExcluding(excludeId: string | null, limit = 15): string[] {
     return this.chat.threads
-      .filter(t => t.id !== excludeId && !!t.summary?.trim())
+      .filter(t => t.id !== excludeId && t.deletedAt == null && !!t.summary?.trim())
       .sort((a, b) => (b.summaryUpdatedAt ?? 0) - (a.summaryUpdatedAt ?? 0))
       .slice(0, limit)
       .map(t => `${t.title}: ${t.summary!.trim()}`);
@@ -119,12 +121,14 @@ export class SummaryStore {
   async summarizeNow(threadId: string): Promise<boolean> {
     if (this.inFlight) return false;
     const thread = this.chat.threads.find(t => t.id === threadId);
-    if (!thread) return false;
+    if (!thread || thread.deletedAt != null) return false;
+    if (this.chat.isThreadStreaming(threadId)) return false;
     runInAction(() => { this.inFlight = thread.id; this.lastError = null; });
     try {
       await this.summarizeOne(thread);
       return true;
     } catch (err) {
+      logger.warn('summary', 'summarizeNow failed', { threadId, err });
       runInAction(() => { this.lastError = (err as Error).message; });
       return false;
     } finally {
@@ -139,7 +143,7 @@ export class SummaryStore {
    */
   async tick(): Promise<void> {
     if (this.inFlight) return;
-    if (this.chat.isStreaming) return;       // back off while the model is busy
+    if (this.chat.threads.some(t => this.chat.isThreadStreaming(t.id))) return;
     if (Date.now() - this.lastActivityAt < IDLE_DEBOUNCE_MS) return;
 
     const candidate = this.pickCandidate();
@@ -167,6 +171,7 @@ export class SummaryStore {
     const activeId = this.chat.activeThreadId;
     const eligible = this.chat.threads.filter(t => {
       if (t.id === activeId) return false;
+      if (t.deletedAt != null) return false;
       if (t.messages.length < MIN_MESSAGES) return false;
       const since = t.summaryMessageCount ?? 0;
       const newCount = t.messages.length - since;
@@ -205,7 +210,8 @@ export class SummaryStore {
           break;
         }
       }
-    } catch {
+    } catch (err) {
+      logger.warn('summary', 'summarization stream failed', { threadId: thread.id, err });
       errored = true;
     }
 
