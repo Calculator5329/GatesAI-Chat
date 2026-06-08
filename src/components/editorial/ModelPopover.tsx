@@ -57,7 +57,7 @@ const AUTO_MODEL: Model = {
   name: 'Auto: Gemini 3 Flash API',
   vendor: 'Recommended',
   providerId: 'openrouter',
-  providerModelId: 'google/gemini-3-flash',
+  providerModelId: '~google/gemini-flash-latest',
   description: 'default API chat, vision, reliable tools',
   supportsVision: true,
 };
@@ -85,7 +85,7 @@ const META: Record<string, ModelMeta> = {
 };
 
 const META_BY_PROVIDER_MODEL_ID: Record<string, ModelMeta> = {
-  'google/gemini-3-flash': META['or-gemini-3-flash'],
+  '~google/gemini-flash-latest': META['or-gemini-3-flash'],
   'deepseek/deepseek-v4-flash': META['or-deepseek-v4-flash'],
   'openai/gpt-5.5': META['or-gpt-5.5'],
   '~anthropic/claude-opus-latest': META['or-claude-opus-latest'],
@@ -396,9 +396,23 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     ? currentModel
     : undefined;
 
+  // Resolve the verified catalog through the registry, not just `all`. When the
+  // live OpenRouter catalog supersedes a curated entry (same providerModelId,
+  // different dynamic id), the curated id drops out of `all` — so a plain
+  // lookup would silently hide most verified models. findById recovers them by
+  // hydrating the curated entry with the dynamic data.
+  const verifiedModels = useMemo(
+    () => DEFAULT_OPENROUTER_CATALOG_MODEL_IDS
+      .map(id => registry.findById(id))
+      .filter((model): model is Model => Boolean(model))
+      .filter(model => isModelAvailable(model, flags)),
+    [registry, registryAll, flags],
+  );
+
   const sections = useMemo(() => {
     return buildPickerSections({
       all,
+      verifiedModels,
       currentModel: recommendableCurrent,
       query,
       caps,
@@ -406,7 +420,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       recentIds,
       favoriteModels,
     });
-  }, [all, recommendableCurrent, query, caps, effectiveSource, recentIds, favoriteModels]);
+  }, [all, verifiedModels, recommendableCurrent, query, caps, effectiveSource, recentIds, favoriteModels]);
 
   const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
 
@@ -660,6 +674,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
 // local runtimes or catalog refreshes update in the background.
 function buildPickerSections(args: {
   all: readonly Model[];
+  verifiedModels: readonly Model[];
   currentModel: Model | undefined;
   query: string;
   caps: ReadonlySet<CapabilityFilter>;
@@ -684,10 +699,9 @@ function buildPickerSections(args: {
     if (favorites.length) sections.push({ title: 'Favorites', models: favorites });
   };
   // The curated, live-verified catalog. Featured prominently because it's what
-  // gets used the overwhelming majority of the time.
-  const verified = DEFAULT_OPENROUTER_CATALOG_MODEL_IDS
-    .map(id => allById.get(id))
-    .filter((model): model is Model => Boolean(model))
+  // gets used the overwhelming majority of the time. Resolved by the caller
+  // (via the registry) so live-superseded curated entries are still included.
+  const verified = dedupeModels([...args.verifiedModels])
     .filter(model => sourceMatches(model, args.source))
     .filter(matches);
 
@@ -721,8 +735,14 @@ function buildPickerSections(args: {
     sections.push({ title: VERIFIED_SECTION_TITLE, models: verified, favorite: true });
   }
 
+  // A verified row resolves to its curated id, while the browse list carries the
+  // live-catalog twin under a different id (same providerModelId). Dedupe by
+  // provider+slug so a verified model isn't also listed plainly below.
+  const verifiedKeys = new Set(verified.map(model => `${model.providerId}::${model.providerModelId}`));
   const sourceTitle = titleForSource(args.source);
-  const sourceSectionModels = base.filter(model => sourceMatches(model, args.source));
+  const sourceSectionModels = base
+    .filter(model => sourceMatches(model, args.source))
+    .filter(model => !verifiedKeys.has(`${model.providerId}::${model.providerModelId}`));
   if (sourceSectionModels.length) {
     sections.push({ title: sourceTitle, models: sourceSectionModels });
   }
