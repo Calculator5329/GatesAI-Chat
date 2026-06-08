@@ -8,6 +8,7 @@ import { useChatStore, useRouterStore, useUiStore } from '../stores/context';
 import { EditorialSidebar } from '../components/editorial/EditorialSidebar';
 import { EditorialChat } from '../components/editorial/EditorialChat';
 import { runtimeMode } from '../core/runtime';
+import { primeClientPlatform } from '../core/clientPlatform';
 
 const GatesMenu = lazy(() => import('../components/menu/GatesMenu').then(m => ({ default: m.GatesMenu })));
 
@@ -61,6 +62,12 @@ export const App = observer(function App() {
   useEffect(() => {
     return () => chat.stopStreaming();
   }, [chat]);
+
+  // Resolve the client's CPU architecture once so Web Lite download
+  // recommendations (x64 vs ARM) are accurate by the first turn. Fire-and-forget.
+  useEffect(() => {
+    void primeClientPlatform();
+  }, []);
 
   return (
     <div style={stageStyle}>

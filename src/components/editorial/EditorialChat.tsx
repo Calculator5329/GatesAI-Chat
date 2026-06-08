@@ -6,6 +6,8 @@ import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
 import { useChatStore, useModelRegistry, useProviderStore, useRouterStore } from '../../stores/context';
 import { isWebLite } from '../../core/runtime';
+import { clientPlatform } from '../../core/clientPlatform';
+import { recommendedDownload } from '../../core/downloads';
 import { EditorialMessage } from './EditorialMessage';
 import { EditorialComposer } from './EditorialComposer';
 
@@ -104,9 +106,61 @@ const ChatEmptyState = observer(function ChatEmptyState() {
           Your conversations are saved locally in this browser.
         </div>
       )}
+
+      {webLite && <WebLiteDownloadCue />}
     </div>
   );
 });
+
+/**
+ * Web Lite → desktop upsell. Web Lite can't touch local files, run tools, or
+ * generate images; the desktop app can. We recommend the build that matches the
+ * visitor's detected platform (the x64 Windows installer for Windows users) and
+ * fall back to the GitHub repo for everything we don't ship a binary for, always
+ * stating what the download runs on.
+ */
+function WebLiteDownloadCue() {
+  const { os, arch } = clientPlatform();
+  const rec = recommendedDownload(os, arch);
+  const isSource = rec.kind === 'source';
+  return (
+    <div style={{
+      marginTop: 6,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+      fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+    }}>
+      <div style={{ fontSize: 12, color: 'var(--text-dim)', maxWidth: 380 }}>
+        Want local files, tools, and image generation? Get the desktop app.
+      </div>
+      <a
+        href={rec.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          padding: '8px 16px',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          background: 'var(--panel)',
+          color: 'var(--accent)',
+          cursor: 'pointer',
+          fontSize: 13,
+          textDecoration: 'none',
+        }}
+      >
+        {isSource ? 'Get it on GitHub' : rec.label}
+      </a>
+      <div style={{ fontSize: 11, color: 'var(--text-faint)', maxWidth: 380 }}>
+        {rec.runsOn}
+        {!isSource && ' · other platforms on GitHub'}
+      </div>
+      {rec.note && (
+        <div style={{ fontSize: 11, color: 'var(--text-faint)', maxWidth: 380 }}>
+          {rec.note}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export const EditorialChat = observer(function EditorialChat() {
   const chat = useChatStore();
