@@ -1,5 +1,83 @@
 # Changelog
 
+## 2026-06-07 — Sidebar previews + body search, model favorites, Playwright e2e
+
+- **Sidebar message previews + search:** the sidebar thread row now derives its
+  preview line from the latest message with text (attachment footers stripped on
+  user messages) via a pure `threadSidebarPreview(thread)`, instead of the unused
+  `Thread.subtitle`. Sidebar search now scans message bodies as well as the
+  title/subtitle through `threadMatchesSearch(thread, query)`. `Thread.subtitle`
+  is kept for back-compat but no longer drives the UI; nothing is copied onto the
+  thread (preview is derived on read).
+- **Real model favorites:** added persisted, user-togglable favorites. New
+  `gatesai.modelPicker.favorites.v1` storage (`loadFavoriteModelIds` /
+  `toggleFavoriteModelId`) exposed through `ModelRegistry` facade methods and a
+  per-row star toggle in the model picker, with a `Favorites` section above
+  `Recommended`. The hardcoded decorative star (`META.starred`) was removed.
+  Favorites resolve through `registry.findById` so a curated id that a dynamic
+  catalog entry supersedes still renders (fixes a silent empty-section case).
+- **Broad Playwright UI suite:** added `@playwright/test` + a two-project config
+  (`desktop-mocked` on the default build with a faked online bridge, `web-lite`
+  on the `firebase` build). Specs cover load/nav, the streamed chat flow,
+  previews + body search, favorites, attachment upload, gallery thumbnails, the
+  settings danger zone, and web-lite degraded states. The bridge is faked via
+  `routeWebSocket` (fs/exec ops) + a `/health` route, and the OpenRouter stream
+  is mocked as SSE. Run with `npm run test:e2e`.
+- **Unit tests:** added round-trip coverage for the favorites storage and for
+  `threadSidebarPreview` / `threadMatchesSearch`.
+- **Partial features kept as-is by design** (audited, no change needed): API-key
+  "rotate" (remove + reconnect already works), `inspect_file` csv/json/txt scope
+  (deliberate artifact-first foundation), OpenRouter manual catalog refresh (no
+  TTL by design), and web-search CORS (desktop works; web-lite degraded by
+  design).
+- Verified green: full Vitest suite (627 tests), typecheck, lint, and the
+  Playwright suite (11 e2e tests across both projects).
+
+## 2026-06-07 — OpenRouter default catalog + thinking controls
+
+- Rebuilt the curated OpenRouter catalog around the current leading model
+  families: GPT-5.5 / GPT Mini, Claude Opus/Sonnet/Haiku latest, Gemini
+  Pro/Flash latest plus Flash Lite, Grok 4.3/4.20, Llama 4, NVIDIA Nemotron 3,
+  DeepSeek V4, and Kimi K2.
+- Added Nemotron 3 Ultra/Super paid and free OpenRouter routes plus the free
+  Nano 30B route to the default live-tested catalog; Nemotron 3.5 Content
+  Safety is cataloged as a non-default guardrail model with tool calls disabled.
+- Added a `Default catalog` section to the model picker so the curated set is
+  visible ahead of the broader live OpenRouter browse list.
+- Added per-thread thinking effort (`none`, `low`, `medium`, `high`, `extra
+  high`) and mapped non-`none` values centrally to OpenRouter's `reasoning`
+  request payload; `none` omits the override so reasoning-mandatory models
+  keep their provider default.
+- Extended OpenRouter compatibility coverage: catalog unit tests, reasoning
+  request-body tests, Anthropic latest-alias tool-result normalization, and an
+  opt-in live suite that preflights `/api/v1/models` and probes text, strict
+  tools, tool-result continuation, and all thinking efforts, with throttling
+  for OpenRouter `:free` route rate limits.
+- Verified green: typecheck, lint, full offline Vitest suite, and the full
+  live OpenRouter compatibility suite (197 tests) using
+  `OPENROUTER_API_KEY`.
+
+## 2026-06-07 — Central logging + maxed-out lint enforcement
+
+- Added a central logger (`services/diagnostics/logger.ts`): leveled
+  `debug/info/warn/error`, a 500-entry in-memory ring buffer, a level-filtered
+  console (the single sanctioned `console` boundary), and a desktop JSONL file
+  sink at `/workspace/logs/app-<date>.log` wired from `RootStore`.
+- Added a `logs` tool (category `diagnostics`, always-on) so the assistant can
+  read its own recent logs and self-diagnose failures.
+- Migrated every `console.*` call in `src/` to the logger (~24 sites across 14
+  files); only the logger itself touches the console now.
+- Pushed the ESLint config to enforce more project patterns: `no-console`
+  (logger-exempt), `consistent-type-imports`, no `fetch()` in stores, no
+  `localStorage`/`sessionStorage` in stores or components, `import/no-cycle`
+  (with the TS resolver), and the `mobx/*-make-observable` correctness rules.
+- Resolved the violations the new rules surfaced without weakening them:
+  extracted the bridge `/health` probe into `services/bridge/health.ts`, and
+  routed the model picker's source-filter/recent-models persistence through a
+  new `services/storage/modelPickerStorage.ts` behind a `ModelRegistry` facade.
+- Added the three-sentence project pitch to the top of `README.md`.
+- Verified green: typecheck, lint (all new rules), and the 608-test suite.
+
 ## 2026-06-07 — Architecture audit, boundary enforcement, and showcase pass
 
 - Rewrote `README.md` as a recruiter-facing project showcase (highlights,

@@ -5,6 +5,7 @@ import type { ChatSnapshot, Message, MessageAttachmentRef, ToolResult, Thread, U
 import type { ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID, MODELS } from '../core/models';
 import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';
+import { logger } from './diagnostics/logger';
 
 const STORAGE_KEY = 'gatesai.state.v1';
 const CORRUPT_STORAGE_KEY_PREFIX = `${STORAGE_KEY}.corrupt`;
@@ -55,9 +56,9 @@ export function createLocalChatSnapshotPersistenceProvider(
       } catch {
         try {
           storage.setItem(STORAGE_KEY, JSON.stringify(compactSnapshotForEmergencySave(cleaned)));
-          console.warn('[persistence] saved compacted chat snapshot after localStorage rejected full snapshot');
+          logger.warn('persistence', 'saved compacted chat snapshot after localStorage rejected full snapshot');
         } catch (err) {
-          console.error('[persistence] failed to save chat snapshot', err);
+          logger.error('persistence', 'failed to save chat snapshot', err);
         }
       }
     },
@@ -286,6 +287,7 @@ function parseThread(value: unknown): Thread | null {
     modelId: stringField(value.modelId) ?? DEFAULT_MODEL_ID,
     messages: messages as Message[],
     contextMode: parseContextMode(value.contextMode),
+    thinkingEffort: parseThinkingEffort(value.thinkingEffort),
     deletedAt: numberField(value.deletedAt),
     threadContext: stringField(value.threadContext),
     summary: stringField(value.summary),
@@ -412,6 +414,12 @@ function parseStringArray(value: unknown): string[] | undefined {
 
 function parseContextMode(value: unknown): Thread['contextMode'] {
   return value === 'full' || value === 'system-tools' || value === 'bare' || value === 'micro' ? value : undefined;
+}
+
+function parseThinkingEffort(value: unknown): Thread['thinkingEffort'] {
+  return value === 'none' || value === 'low' || value === 'medium' || value === 'high' || value === 'xhigh'
+    ? value
+    : undefined;
 }
 
 function parsePreTokenLabel(value: unknown) {

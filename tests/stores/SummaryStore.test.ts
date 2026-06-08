@@ -83,7 +83,7 @@ describe('SummaryStore', () => {
     expect(fresh.summary).toContain('X');
     expect(fresh.summaryMessageCount).toBe(4);
     expect(fresh.summaryUpdatedAt).toBeGreaterThan(0);
-    expect(mock.calls[0].modelId).toBe('google/gemini-3.1-flash-lite-preview');
+    expect(mock.calls[0].modelId).toBe('google/gemini-3.1-flash-lite');
   });
 
   it('skips re-summarizing if not enough new messages have arrived', async () => {

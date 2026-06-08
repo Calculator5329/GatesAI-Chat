@@ -5,6 +5,17 @@ import { computed, makeAutoObservable } from 'mobx';
 import type { Model } from '../core/types';
 import type { ProviderId } from '../core/llm';
 import { MODELS as CURATED } from '../core/models';
+import {
+  loadFavoriteModelIds,
+  loadModelPickerSource,
+  loadRecentModelIds,
+  pushRecentModelId,
+  saveModelPickerSource,
+  toggleFavoriteModelId,
+  type ModelPickerSource,
+} from '../services/storage/modelPickerStorage';
+
+export type { ModelPickerSource } from '../services/storage/modelPickerStorage';
 
 /**
  * Single source of truth for "all known models".
@@ -93,4 +104,15 @@ export class ModelRegistry {
   clearDynamicForProvider(providerId: ProviderId): void {
     this.dynamic = this.dynamic.filter(m => m.providerId !== providerId);
   }
+
+  // ── Model-picker preferences (thin facade over services/storage) ──
+  // The picker UI persists its source filter and recent-models list through
+  // these passthroughs so it never imports the storage service directly. State
+  // lives in localStorage via the service; nothing observable is held here.
+  pickerSource(): ModelPickerSource { return loadModelPickerSource(); }
+  setPickerSource(next: ModelPickerSource): void { saveModelPickerSource(next); }
+  recentModelIds(): string[] { return loadRecentModelIds(); }
+  rememberRecentModel(modelId: string): string[] { return pushRecentModelId(modelId); }
+  favoriteModelIds(): string[] { return loadFavoriteModelIds(); }
+  toggleFavoriteModel(modelId: string): string[] { return toggleFavoriteModelId(modelId); }
 }

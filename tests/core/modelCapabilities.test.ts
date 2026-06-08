@@ -4,8 +4,12 @@ import { modelSupportsVision } from '../../src/core/modelCapabilities';
 describe('modelSupportsVision', () => {
   it('recognizes vision models behind OpenRouter by underlying vendor id', () => {
     expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'anthropic/claude-sonnet-4.6' })).toBe(true);
-    expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'google/gemini-3-flash-preview' })).toBe(true);
+    expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: '~anthropic/claude-opus-latest' })).toBe(true);
+    expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'google/gemini-3-flash' })).toBe(true);
+    expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: '~google/gemini-pro-latest' })).toBe(true);
     expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'openai/gpt-5.5' })).toBe(true);
+    expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'x-ai/grok-4.3' })).toBe(true);
+    expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'meta-llama/llama-4-maverick' })).toBe(true);
   });
 
   it('rejects text-only OpenRouter models', () => {

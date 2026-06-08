@@ -50,6 +50,34 @@ describe('OpenRouterProvider', () => {
     expect(messages.some(m => m.role === 'tool')).toBe(false);
   });
 
+  it('normalizes tool results for Anthropic latest aliases', async () => {
+    let body: unknown;
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return okSseResponse();
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new OpenRouterProvider('sk-or-test');
+    await drain(provider.stream({
+      modelId: '~anthropic/claude-sonnet-latest',
+      messages: [
+        { role: 'user', content: 'Read the file.' },
+        {
+          role: 'assistant',
+          content: '',
+          toolCalls: [{ id: 'call_fs', name: 'fs', arguments: { action: 'read', path: 'notes/a.md' } }],
+        },
+        { role: 'tool', toolCallId: 'call_fs', toolName: 'fs', content: 'file contents' },
+      ],
+      tools: [],
+    }, new AbortController().signal));
+
+    const messages = (body as { messages: Array<{ role: string; content: unknown }> }).messages;
+    expect(messages.at(-1)?.role).toBe('user');
+    expect(messages.some(m => m.role === 'tool')).toBe(false);
+  });
+
   it('keeps tool messages unchanged for non-Anthropic OpenRouter models', async () => {
     let body: unknown;
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
@@ -145,5 +173,23 @@ describe('OpenRouterProvider', () => {
 
     const tools = (body as { tools: Array<{ function: { strict?: boolean } }> }).tools;
     expect(tools[0].function.strict).toBeUndefined();
+  });
+
+  it('sends thinking effort through the OpenRouter reasoning parameter', async () => {
+    let body: unknown;
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return okSseResponse();
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new OpenRouterProvider('sk-or-test');
+    await drain(provider.stream({
+      modelId: 'openai/gpt-5.5',
+      messages: [{ role: 'user', content: 'hi' }],
+      thinkingEffort: 'high',
+    }, new AbortController().signal));
+
+    expect((body as { reasoning?: unknown }).reasoning).toEqual({ effort: 'high', exclude: true });
   });
 });

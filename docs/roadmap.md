@@ -83,12 +83,26 @@
       (scratch notes relocated under `docs/notes/`), dead code removed
       (`core/modelMenu.ts`, unused persistence/context exports), and
       previously-silent store failures logged
+- [x] Central logging + self-diagnosis: a `services/diagnostics/logger`
+      (ring buffer + console + bridge-file sinks), a `logs` tool so the
+      assistant can read its own logs, and a full `console.*` → logger migration
+- [x] Maxed-out lint enforcement: `no-console`, `consistent-type-imports`,
+      no `fetch` in stores, no `localStorage` in stores/UI, `import/no-cycle`,
+      and `mobx/*-make-observable` correctness rules — with the surfaced
+      violations refactored through services/facades
+- [x] Sidebar message previews (derived from messages) + body search, real
+      persisted user-togglable model favorites, and a broad Playwright UI suite
+      (faked-bridge desktop project + web-lite project, mocked OpenRouter stream)
 
 ## Near-term
 - [x] **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`
       - [x] Phase 1: Vision input (cloud + local), content-parts at the wire boundary
       - [x] Phase 2: Historical fal.ai cloud image generation; later removed from the foundation
       - [x] Phase 3: Local image-gen backend (ComfyUI) behind same `image_generate` tool
+- [x] Add a verified default OpenRouter catalog for the current leading
+      OpenAI, Anthropic, Gemini, Grok, Meta, NVIDIA Nemotron, DeepSeek, and
+      Kimi models, with per-thread thinking effort controls and opt-in live
+      compatibility tests.
 - [ ] Continue architecture cleanup: split large tools/components and keep
       slimming `ChatStore` where helpers can move out safely
 - [ ] Manually test the foundation surface before rebuilding optional integrations

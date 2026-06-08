@@ -21,6 +21,7 @@ import { SearchStore } from './SearchStore';
 import { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
+import { configureLogSink, logger } from '../services/diagnostics/logger';
 import { isWebLite } from '../core/runtime';
 
 export class RootStore {
@@ -108,7 +109,7 @@ export class RootStore {
         .then(ok => {
           if (ok) attemptedWorkspacePersistenceRoot = workspaceRoot;
         })
-        .catch(err => { console.warn('[persistence] workspace chat persistence boot failed', err); })
+        .catch(err => { logger.warn('persistence', 'workspace chat persistence boot failed', err); })
         .finally(() => { workspacePersistenceAttemptInFlight = false; });
     });
 
@@ -148,6 +149,13 @@ export class RootStore {
       // through the bridge whenever it's online.
       const bridge = this.bridge;
       configureChatLog({
+        get isOnline() { return bridge.isOnline; },
+        client: bridge.client,
+      });
+      // Persist app-wide logs to /workspace/logs/app-<date>.log while the
+      // bridge is online so failures survive reloads and the `logs` tool can
+      // surface them for self-diagnosis.
+      configureLogSink({
         get isOnline() { return bridge.isOnline; },
         client: bridge.client,
       });

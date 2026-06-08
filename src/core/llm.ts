@@ -18,6 +18,8 @@ export type ProviderId =
 
 export type LlmRole = 'user' | 'assistant' | 'system' | 'tool';
 
+export type ThinkingEffort = 'none' | 'low' | 'medium' | 'high' | 'xhigh';
+
 /**
  * Provider-agnostic message shape sent in `LlmRequest.messages`.
  *
@@ -91,6 +93,8 @@ export interface LlmRequest {
   maxTokens?: number;
   /** Tools the model may call. Omit (or pass []) to disable tool calling. */
   tools?: ToolDef[];
+  /** Optional provider-normalized reasoning depth for models that support it. */
+  thinkingEffort?: ThinkingEffort;
   /** Optional: threadId for diagnostic log routing. Not sent to providers. */
   threadId?: string;
 }

@@ -10,6 +10,7 @@ import {
   type ImageBackend,
 } from './types';
 import { buildFinalFlux2KleinWorkflow } from './workflows/finalFlux2Klein';
+import { logger } from '../diagnostics/logger';
 import { SDXL_LIGHTNING_QUICK_WORKFLOW } from './workflows/sdxlLightning';
 
 /**
@@ -182,7 +183,7 @@ export class ComfyClient implements ImageBackend {
             const nodeKeys = Object.keys(entry.outputs);
             const sampleNode = nodeKeys[0];
             const sampleKeys = sampleNode ? Object.keys(entry.outputs[sampleNode] ?? {}) : [];
-            console.warn(`[comfy] /history/${promptId} has outputs but no node exposed an "images" array. Nodes: [${nodeKeys.join(', ')}]; first node keys: [${sampleKeys.join(', ')}]. Likely a workflow output-node mismatch.`);
+            logger.warn('comfy', `/history/${promptId} has outputs but no node exposed an "images" array. Nodes: [${nodeKeys.join(', ')}]; first node keys: [${sampleKeys.join(', ')}]. Likely a workflow output-node mismatch.`);
             loggedShape = true;
           }
         }

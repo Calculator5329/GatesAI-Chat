@@ -8,6 +8,7 @@ import {
   prepareChatSnapshotForSave,
 } from './persistence';
 import type { BridgeClientFacade } from './tools/types';
+import { logger } from './diagnostics/logger';
 
 export const WORKSPACE_CHAT_DIR = '/workspace/.gatesai/chat';
 export const WORKSPACE_CHAT_STATE_PATH = `${WORKSPACE_CHAT_DIR}/state.v1.json`;
@@ -147,7 +148,7 @@ async function saveReadableChatLibrary(client: BridgeClientFacade, snapshot: Cha
     }
     await pruneStaleConversationFiles(client, expectedConversationPaths);
   } catch (err) {
-    console.warn('[persistence] failed to save readable chat history library', err);
+    logger.warn('persistence', 'failed to save readable chat history library', err);
   }
 }
 

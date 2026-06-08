@@ -6,8 +6,13 @@ import { visualizer } from 'rollup-plugin-visualizer'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const analyze = mode === 'analyze'
+  // Base public path override for static hosts that serve from a subpath, e.g.
+  // a GitHub Pages project site at /<repo>/. Defaults to root, so desktop
+  // (Tauri) and root-domain hosting builds are unaffected.
+  const base = process.env.VITE_BASE ?? '/'
 
   return {
+    base,
     plugins: [
       react(),
       babel({ presets: [reactCompilerPreset()] }),

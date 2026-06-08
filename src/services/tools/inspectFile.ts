@@ -164,7 +164,7 @@ async function inspectWorkspaceProfile(args: Record<string, unknown>, ctx: ToolC
   const query = strArg(args, 'query');
   if (query) {
     try {
-      const resp = await ctx.bridge.client.request<FsSearchResp>('fs.search', { path: '/workspace/artifacts', query, limit: 8 });
+      const resp = await ctx.bridge.client.request<FsSearchResp>('fs.search', { path: '/workspace/artifacts', query, max_hits: 8 });
       lines.push('search hints:');
       const hits = resp.hits ?? [];
       if (hits.length === 0) {

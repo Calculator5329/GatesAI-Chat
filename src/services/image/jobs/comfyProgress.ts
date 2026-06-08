@@ -2,6 +2,7 @@
 // Called by ImageJobStore and image backend clients; depends on image job status and ComfyUI payload shapes.
 // Invariant: progress updates are advisory while terminal job status remains authoritative.
 import type { JobProgress, ProgressEvent } from './progress';
+import { logger } from '../../diagnostics/logger';
 
 export interface ComfyProgressOptions {
   baseUrl: string;
@@ -31,7 +32,7 @@ export function createComfyProgress(opts: ComfyProgressOptions): JobProgress {
   try {
     ws = new WebSocket(wsUrl);
   } catch (err) {
-    console.warn('[comfy-progress] WebSocket construction failed; progress events will be silent.', err);
+    logger.warn('comfy-progress', 'WebSocket construction failed; progress events will be silent.', err);
   }
 
   if (ws) {
@@ -58,7 +59,7 @@ export function createComfyProgress(opts: ComfyProgressOptions): JobProgress {
           // event loop — the browser surfaces uncaught WS errors as
           // unhandled errors on `window`, which can destabilize the
           // renderer in some webview hosts.
-          console.warn('[comfy-progress] listener threw; ignoring.', err);
+          logger.warn('comfy-progress', 'listener threw; ignoring.', err);
         }
       }
     };
@@ -70,7 +71,7 @@ export function createComfyProgress(opts: ComfyProgressOptions): JobProgress {
     // handler so the event is consumed cleanly.
     ws.onerror = (ev) => {
       if (disposed) return;
-      console.warn(`[comfy-progress] WebSocket error for ${wsUrl}`, ev);
+      logger.warn('comfy-progress', `WebSocket error for ${wsUrl}`, ev);
     };
 
     ws.onclose = (ev) => {
@@ -78,7 +79,7 @@ export function createComfyProgress(opts: ComfyProgressOptions): JobProgress {
       // Render keeps going via HTTP polling in `comfyClient`; we just
       // stop emitting progress events. No state mutation needed.
       if (!ev.wasClean) {
-        console.warn(`[comfy-progress] WebSocket closed unexpectedly (code ${ev.code}); progress events will stop.`);
+        logger.warn('comfy-progress', `WebSocket closed unexpectedly (code ${ev.code}); progress events will stop.`);
       }
     };
   }

@@ -7,6 +7,7 @@ import type { Thread } from '../core/types';
 import type { ChatStore } from './ChatStore';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
+import { logger } from '../services/diagnostics/logger';
 
 /**
  * Cross-thread memory by way of lazy summarization.
@@ -150,7 +151,7 @@ export class SummaryStore {
     } catch (err) {
       // Background summarization has no UI surface, so log the failure
       // instead of letting it vanish into lastError unseen.
-      console.warn('[summary] background summarization failed', err);
+      logger.warn('summary', 'background summarization failed', err);
       runInAction(() => { this.lastError = (err as Error).message; });
     } finally {
       runInAction(() => { this.inFlight = null; });

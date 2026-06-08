@@ -7,22 +7,15 @@ import type { BridgeConnectionState, BridgeStatus } from '../core/workspace';
 import { isWorkspacePath, resolveWorkspacePath } from '../core/workspacePaths';
 import { uploadAttachment } from '../services/bridge/attachments';
 import { BridgeClient, BridgeOfflineError } from '../services/bridge/client';
+import { probeBridgeHealth } from '../services/bridge/health';
 import { ensureDefaultWorkspaceGuide } from '../services/bridge/defaultWorkspaceGuide';
 import { readAttachmentBase64 } from '../services/bridge/readAttachmentBytes';
 import { openUserGuideOnFirstInstall } from '../services/bridge/userGuideInstall';
 import { openExternal } from '../services/system/openExternal';
+import { logger } from '../services/diagnostics/logger';
 
-const HEALTH_URL = 'http://127.0.0.1:7331/health';
 const WS_URL = 'ws://127.0.0.1:7331/ws';
 const POLL_INTERVAL_MS = 5000;
-
-interface HealthResponse {
-  status: string;
-  version: string;
-  workspace_root: string;
-  platform: string;
-  allowlist: string[];
-}
 
 /**
  * Owns the bridge connection lifecycle. Polls /health every 5s; when the
@@ -117,7 +110,7 @@ export class BridgeStore {
       await openExternal(abs);
       return true;
     } catch (err) {
-      console.warn('[BridgeStore] openWorkspacePath failed', workspacePath, err);
+      logger.warn('BridgeStore', 'openWorkspacePath failed', { workspacePath, err });
       return false;
     }
   }
@@ -130,13 +123,8 @@ export class BridgeStore {
    */
   async poll(): Promise<void> {
     try {
-      const res = await fetch(HEALTH_URL, {
-        method: 'GET',
-        // Short timeout so the poller stays snappy when the bridge is gone.
-        signal: AbortSignal.timeout(1500),
-      });
-      if (!res.ok) throw new Error(`health ${res.status}`);
-      const data = (await res.json()) as HealthResponse;
+      // Short timeout so the poller stays snappy when the bridge is gone.
+      const data = await probeBridgeHealth(1500);
       const wasOffline = this.state !== 'online';
       const nextAllowlist = data.allowlist ?? [];
       runInAction(() => {

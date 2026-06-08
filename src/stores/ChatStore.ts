@@ -3,7 +3,7 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { ActivityDetail, ActivityItem, AssistantFinishReason, AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
-import type { LlmProvider, LlmRequest, LlmUsage, ToolCall, ToolDef } from '../core/llm';
+import type { LlmProvider, LlmRequest, LlmUsage, ThinkingEffort, ToolCall, ToolDef } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
 import { consumeSnapshotLoadError, flushPendingSnapshot, loadSnapshot, saveSnapshot, scheduleSaveSnapshot } from '../services/persistence';
@@ -22,6 +22,7 @@ import { generateThreadTitle } from '../services/threadNamer';
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
 import { isToolFailureContent, logToolCallFailure, safeJsonPreview } from '../services/chat/toolFailureLog';
 import { logEvent } from '../services/diagnostics/chatLog';
+import { logger } from '../services/diagnostics/logger';
 import { createWorkspaceChatPersistence, type WorkspaceChatPersistence } from '../services/workspaceChatPersistence';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
@@ -33,6 +34,7 @@ import type { CompletedJob } from '../services/image/jobs/types';
 
 type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search'>;
 export type ChatContextMode = NonNullable<Thread['contextMode']>;
+export type ChatThinkingEffort = ThinkingEffort;
 
 const MICRO_LOCAL_MAX_TOKENS = 512;
 const MICRO_LOCAL_SYSTEM_PROMPT = [
@@ -400,7 +402,7 @@ export class ChatStore {
         try {
           await persistence.backupMalformed(loaded.raw);
         } catch (err) {
-          console.warn('[persistence] failed to back up malformed workspace chat snapshot', err);
+          logger.warn('persistence', 'failed to back up malformed workspace chat snapshot', err);
         }
         await persistence.save(this.snapshot, 'localStorage-migration');
       } else {
@@ -411,7 +413,7 @@ export class ChatStore {
       this.scheduleWorkspaceSnapshotSave(this.snapshot);
       return true;
     } catch (err) {
-      console.warn('[persistence] workspace chat persistence unavailable', err);
+      logger.warn('persistence', 'workspace chat persistence unavailable', err);
       return false;
     } finally {
       this.workspacePersistenceHydrating = false;
@@ -539,6 +541,12 @@ export class ChatStore {
     const thread = this.findThread(threadId);
     if (!thread) return;
     thread.contextMode = mode;
+  }
+
+  setThreadThinkingEffort(threadId: string, effort: ChatThinkingEffort): void {
+    const thread = this.findThread(threadId);
+    if (!thread) return;
+    thread.thinkingEffort = effort;
   }
 
   /**
@@ -1332,6 +1340,7 @@ export class ChatStore {
       ...(finalSystemPrompt ? { systemPrompt: finalSystemPrompt } : {}),
       ...(tools ? { tools } : {}),
       ...(reservedOutputTokensForContextMode(mode) != null ? { maxTokens: reservedOutputTokensForContextMode(mode) } : {}),
+      ...(model?.providerId === 'openrouter' && thread.thinkingEffort ? { thinkingEffort: thread.thinkingEffort } : {}),
       threadId: thread.id,
     };
   }
@@ -1458,7 +1467,7 @@ export class ChatStore {
       // (e.g. every cheap model rejecting the request). Log it so a broken
       // namer is visible during harness iteration; the thread keeps its
       // fallback title either way.
-      console.warn('[chat] auto-naming failed; keeping fallback title', err);
+      logger.warn('chat', 'auto-naming failed; keeping fallback title', err);
       runInAction(() => { thread.naming = false; });
     });
   }
@@ -1892,7 +1901,7 @@ export class ChatStore {
     this.workspaceSaveInFlight = true;
     void this.workspacePersistence.save(snap)
       .catch(err => {
-        console.warn('[persistence] failed to save workspace chat snapshot', err);
+        logger.warn('persistence', 'failed to save workspace chat snapshot', err);
       })
       .finally(() => {
         this.workspaceSaveInFlight = false;
@@ -1922,6 +1931,7 @@ export class ChatStore {
       modelId: source.modelId,
       messages,
       ...(source.contextMode ? { contextMode: source.contextMode } : {}),
+      ...(source.thinkingEffort ? { thinkingEffort: source.thinkingEffort } : {}),
       ...(source.threadContext ? { threadContext: source.threadContext } : {}),
     };
     this.threads.unshift(branch);
@@ -1988,6 +1998,43 @@ export function threadLlmSpendUsd(thread: Thread | null): number {
         : inner
     ), 0);
   }, 0);
+}
+
+const SIDEBAR_PREVIEW_MAX_CHARS = 100;
+
+/**
+ * One-line preview for the sidebar, derived from the most recent message with
+ * visible text (newest first). User messages have their attachment footer
+ * stripped so the preview shows what the person actually typed. Returns an
+ * empty string for an untouched thread so the row simply shows no preview.
+ *
+ * Derived on read rather than stored on the thread: `subtitle` is never written
+ * during a turn, so duplicating message text onto the thread would just be a
+ * stale copy waiting to drift.
+ */
+export function threadSidebarPreview(thread: Thread): string {
+  for (let i = thread.messages.length - 1; i >= 0; i--) {
+    const message = thread.messages[i];
+    const raw = message.role === 'user' ? splitAttachmentFooter(message.content).body : message.content;
+    const text = raw.replace(/\s+/g, ' ').trim();
+    if (!text) continue;
+    return text.length > SIDEBAR_PREVIEW_MAX_CHARS
+      ? `${text.slice(0, SIDEBAR_PREVIEW_MAX_CHARS).trimEnd()}…`
+      : text;
+  }
+  return '';
+}
+
+/**
+ * Whether a thread matches the sidebar search query. Scans the title, the
+ * (legacy) subtitle, and every message body so search reaches conversation
+ * content, not just titles. `normalizedQuery` must already be lowercased and
+ * trimmed by the caller.
+ */
+export function threadMatchesSearch(thread: Thread, normalizedQuery: string): boolean {
+  if (!normalizedQuery) return true;
+  if (`${thread.title} ${thread.subtitle}`.toLowerCase().includes(normalizedQuery)) return true;
+  return thread.messages.some(message => message.content.toLowerCase().includes(normalizedQuery));
 }
 
 function stateForToolResult(result: ToolResult, artifactStatus?: string): ActivityItem['state'] {

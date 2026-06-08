@@ -8,6 +8,7 @@ import galleryUrl from '../../../docs/user-guide-assets/gallery.png?url';
 import modelPickerUrl from '../../../docs/user-guide-assets/model-picker.png?url';
 import modelsOpenrouterUrl from '../../../docs/user-guide-assets/models-openrouter.png?url';
 import workspaceUrl from '../../../docs/user-guide-assets/workspace.png?url';
+import { logger } from '../diagnostics/logger';
 
 interface BridgeRequestFacade {
   request<T = unknown>(op: string, data: unknown): Promise<T>;
@@ -70,7 +71,7 @@ export async function openUserGuideOnFirstInstall(
   try {
     await ensureUserGuide(client, options);
   } catch (err) {
-    console.warn('[userGuideInstall] failed to seed user guide', err);
+    logger.warn('userGuideInstall', 'failed to seed user guide', err);
     return false;
   }
   if (hasOpenedUserGuide()) return false;

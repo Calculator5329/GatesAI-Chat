@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ClipboardEvent, type CSS
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import { useBridgeStore, useChatStore, useImageJobStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
-import type { ChatContextMode } from '../../stores/ChatStore';
+import type { ChatContextMode, ChatThinkingEffort } from '../../stores/ChatStore';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
@@ -164,6 +164,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   const activeThreadId = activeThread?.id ?? null;
   const currentModel = registry.findById(activeThread?.modelId) ?? registry.findById(DEFAULT_MODEL_ID);
   const localContextMode = activeThread?.contextMode ?? (currentModel?.providerId === 'ollama' ? 'micro' : 'full');
+  const thinkingEffort = activeThread?.thinkingEffort ?? 'none';
 
   // Decouple textarea visual value from the MobX store: typing updates
   // local state instantly (no observers fire), and a 120ms trailing debounce
@@ -463,6 +464,23 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                 <option value="system-tools">system + tools</option>
                 <option value="bare">bare prompt</option>
                 <option value="micro">micro tools</option>
+              </select>
+              <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
+            </>
+          )}
+          {activeThread && currentModel?.providerId === 'openrouter' && (
+            <>
+              <select
+                value={thinkingEffort}
+                onChange={e => chat.setThreadThinkingEffort(activeThread.id, e.currentTarget.value as ChatThinkingEffort)}
+                title="Thinking effort"
+                style={LOCAL_CONTEXT_SELECT_STYLE}
+              >
+                <option value="none">thinking none</option>
+                <option value="low">thinking low</option>
+                <option value="medium">thinking medium</option>
+                <option value="high">thinking high</option>
+                <option value="xhigh">thinking extra high</option>
               </select>
               <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
             </>

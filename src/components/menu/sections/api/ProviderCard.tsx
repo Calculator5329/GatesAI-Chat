@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../../core/styleTokens';
 import type { ProviderId } from '../../../../core/llm';
-import { useProviderStore } from '../../../../stores/context';
+import type { useProviderStore } from '../../../../stores/context';
 import { Card, Pill, Input, Button, SecretKeyField } from '../../../ui';
 import { ProviderAvatar } from './ProviderAvatar';
 import { OpenRouterCatalogRow } from './OpenRouterCatalogRow';

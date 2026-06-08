@@ -6,6 +6,7 @@ import type { Tool, ToolContext, ToolExecuteResult, ToolOutcome, ToolValidationI
 import { defaultToolUi, summarizeToolResult } from './activityDisplay';
 import { memoryTool } from './memory';
 import { timeTool } from './time';
+import { logsTool } from './logs';
 import { notesTool } from './notes';
 import { threadTool } from './thread';
 import { chatHistoryTool } from './chatHistory';
@@ -86,6 +87,7 @@ export class ToolRegistry {
       'chat_history',
       'source_workspace',
       'source_build',
+      'logs',
     ]);
     const bridgeRelevant = ctx.bridgeOnline || /\b(file|files|attachment|attached|csv|json|data|dataset|text|txt|code|script|command|terminal|shell|git|build|test|workspace|artifact|artifacts|folder|directory|read|write|html|htm|webpage|website|page|game|canvas|app|demo|prototype|ui)\b/.test(text);
     const notesRelevant = /\b(note|notes|plan|plans|document|documents|doc|docs|memory|remember|search|list|read|write)\b/.test(text);
@@ -389,6 +391,7 @@ function safeInlineJson(value: unknown): string {
 export const toolRegistry = new ToolRegistry();
 toolRegistry.register(memoryTool);
 toolRegistry.register(timeTool);
+toolRegistry.register(logsTool);
 toolRegistry.register(notesTool);
 toolRegistry.register(threadTool);
 toolRegistry.register(chatHistoryTool);

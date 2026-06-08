@@ -36,7 +36,7 @@ describe('tool failure logging helpers', () => {
       readOnly: false,
     });
 
-    expect(warn).toHaveBeenCalledWith('[tool-call-failed]', expect.objectContaining({
+    expect(warn).toHaveBeenCalledWith('[tool-call-failed]', 'tool call failed', expect.objectContaining({
       toolName: 'terminal',
       toolCallId: 'call-1',
       threadId: 'thread-1',

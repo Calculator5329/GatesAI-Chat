@@ -16,7 +16,7 @@ export class OpenRouterProvider extends OpenAiCompatProvider {
   }
 
   protected override normalizeMessages(req: LlmRequest): LlmMessage[] {
-    if (!req.modelId.startsWith('anthropic/')) return req.messages;
+    if (!isAnthropicModelId(req.modelId)) return req.messages;
 
     const out: LlmMessage[] = [];
     for (const message of req.messages) {
@@ -35,6 +35,10 @@ export class OpenRouterProvider extends OpenAiCompatProvider {
     }
     return out;
   }
+}
+
+function isAnthropicModelId(modelId: string): boolean {
+  return modelId.startsWith('anthropic/') || modelId.startsWith('~anthropic/');
 }
 
 function formatToolResultAsUserText(message: LlmMessage): string {

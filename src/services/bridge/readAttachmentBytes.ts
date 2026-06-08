@@ -3,6 +3,7 @@
 // Invariant: bridge failures are surfaced as typed errors or user-readable strings.
 import type { FsReadResp } from '../../core/workspace';
 import { BridgeOfflineError, type BridgeClient } from './client';
+import { logger } from '../diagnostics/logger';
 
 /**
  * Narrow dependencies for {@link readAttachmentBase64} — just the bridge
@@ -39,7 +40,7 @@ export async function readAttachmentBase64(
     return { base64: resp.content, mime: resp.mime, size: resp.size };
   } catch (err) {
     if (!(err instanceof BridgeOfflineError)) {
-      console.warn('[readAttachmentBase64] failed', workspacePath, err);
+      logger.warn('readAttachmentBase64', 'failed', { workspacePath, err });
     }
     return null;
   }

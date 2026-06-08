@@ -2,6 +2,7 @@
 // Called by stores/services on critical-path events; depends on explicit configuration before logging.
 // Invariant: diagnostics are best-effort and never block user-visible work.
 import type { BridgeClient } from '../bridge/client';
+import { logger } from './logger';
 
 /**
  * Lightweight per-thread debug logger that appends JSONL lines to
@@ -41,7 +42,7 @@ export function logEvent(threadId: string | null | undefined, tag: string, paylo
   if (!shouldWrite && !shouldDebug) return;
 
   queueMicrotask(() => {
-    if (shouldDebug) console.log(`[log:${threadId ?? 'global'}] ${tag}`, payload ?? '');
+    if (shouldDebug) logger.debug(`log:${threadId ?? 'global'}`, tag, payload);
     if (!shouldWrite || !deps?.isOnline) return;
     const line = JSON.stringify({
       t: new Date().toISOString(),

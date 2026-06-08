@@ -6,6 +6,7 @@ import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { MenuSectionKey, Thread } from '../../core/types';
 import { useChatStore, useRouterStore } from '../../stores/context';
+import { threadMatchesSearch, threadSidebarPreview } from '../../stores/ChatStore';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
 
@@ -132,9 +133,9 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   }, [query]);
   const normalizedQuery = debouncedQuery.trim().toLowerCase();
   const visible = normalizedQuery
-    ? chat.visibleThreads.filter(t =>
-        `${t.title} ${t.subtitle}`.toLowerCase().includes(normalizedQuery)
-      ).slice(0, SEARCH_RESULT_LIMIT)
+    ? chat.visibleThreads
+        .filter(t => threadMatchesSearch(t, normalizedQuery))
+        .slice(0, SEARCH_RESULT_LIMIT)
     : chat.visibleThreads;
   const pinned = visible.filter(t => t.pinned);
   const unpinned = visible.filter(t => !t.pinned);
@@ -487,7 +488,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
           </div>
         )}
       </div>
-      <div className="editorial-sidebar__preview" style={S.preview as CSSProperties}>{thread.subtitle}</div>
+      <div className="editorial-sidebar__preview" style={S.preview as CSSProperties}>{threadSidebarPreview(thread)}</div>
     </div>
   );
 });

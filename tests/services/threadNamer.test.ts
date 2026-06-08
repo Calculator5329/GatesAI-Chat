@@ -17,7 +17,7 @@ describe('generateThreadTitle', () => {
     const router = {
       resolve: (modelId: string) => {
         if (modelId !== 'or-gemini-3.1-flash-lite') throw new Error(`unexpected model ${modelId}`);
-        return { provider, providerModelId: 'google/gemini-3.1-flash-lite-preview' };
+        return { provider, providerModelId: 'google/gemini-3.1-flash-lite' };
       },
     };
 
@@ -26,6 +26,6 @@ describe('generateThreadTitle', () => {
       assistantText: 'Yes, here is a plan.',
       fallbackModelId: 'or-gemini-3-flash',
     }, router)).resolves.toBe('Polish Plan');
-    expect(calls[0].modelId).toBe('google/gemini-3.1-flash-lite-preview');
+    expect(calls[0].modelId).toBe('google/gemini-3.1-flash-lite');
   });
 });

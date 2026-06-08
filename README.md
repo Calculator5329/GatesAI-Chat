@@ -1,5 +1,27 @@
 # GatesAI Chat
 
+[![Live demo](https://img.shields.io/badge/Live%20demo-Web%20Lite-e8a948?style=flat-square)](https://calculator5329.github.io/GatesAI-Chat/)
+[![React 19](https://img.shields.io/badge/React-19-20232a?style=flat-square&logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tauri 2](https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app/)
+[![Vite](https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/)
+[![MobX](https://img.shields.io/badge/MobX-6-ff9955?style=flat-square&logo=mobx&logoColor=white)](https://mobx.js.org/)
+[![Tests](https://img.shields.io/badge/tests-627%20unit%20%2B%2011%20e2e-3fb950?style=flat-square)](#quality-gates)
+
+> **Live demo:** [calculator5329.github.io/GatesAI-Chat](https://calculator5329.github.io/GatesAI-Chat/)
+> — the browser **Web Lite** build. The full UI is interactive; chatting uses your own OpenRouter
+> API key (entered in the Models menu and kept only in your browser). Desktop features that need the
+> local bridge (files, shell, image generation) are intentionally disabled in this mode.
+
+> **In three sentences:** GatesAI Chat is a local-first desktop AI workspace (React + Tauri)
+> where you bring your own models — OpenRouter in the cloud or Ollama on your own machine — and
+> chat in a calm, editorial interface. A sandboxed companion "bridge" process lets the assistant
+> actually *do* things locally: read and write files in a jailed workspace, run allowlisted
+> shell / Python / SQLite / git commands, search the web, and generate images through ComfyUI.
+> It's built on a strict UI → store → service architecture (MobX state, stateless services) that
+> ESLint enforces automatically, so the patterns stay consistent and both humans and AI agents
+> can keep extending it safely.
+
 A local-first AI chat workspace for Windows (with a browser "Web Lite" mode), built as a
 React 19 + TypeScript single-page app wrapped in a Tauri 2 desktop shell. It pairs a
 provider-agnostic LLM client with a sandboxed local **bridge** process so the assistant can
@@ -105,9 +127,15 @@ go run ./cmd/gatesai-bridge
 ```powershell
 npm run typecheck  # tsc project build + test project typecheck
 npm run lint       # ESLint (includes the architecture-boundary import rules)
-npm run test       # Vitest suite (600+ tests)
+npm run test       # Vitest unit/component suite (627 tests)
 npm run ci         # all three, in order
+npm run test:e2e   # Playwright UI suite (11 e2e tests; desktop-mocked + web-lite)
 ```
+
+The Playwright suite runs the real app in a browser two ways — a faked-bridge
+desktop build (attachments, image jobs, gallery, settings) and the Web Lite
+build (degraded-state assertions) — with the OpenRouter stream mocked. See
+[`docs/tech_spec.md`](docs/tech_spec.md#testing) for the mock strategy.
 
 ## Building the desktop app
 

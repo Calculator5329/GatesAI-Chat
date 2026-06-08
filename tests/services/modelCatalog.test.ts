@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_MODEL_ID, MODELS } from '../../src/core/models';
+import { DEFAULT_MODEL_ID, DEFAULT_OPENROUTER_CATALOG_MODEL_IDS, MODELS } from '../../src/core/models';
 
 describe('curated model catalog', () => {
   it('only exposes OpenRouter chat models and local image models in the curated foundation', () => {
@@ -21,6 +21,49 @@ describe('curated model catalog', () => {
         providerModelId: 'openai/gpt-5.5-pro',
       }),
     ]));
+  });
+
+  it('exposes a complete default OpenRouter catalog in curated order', () => {
+    const byId = new Map(MODELS.map(model => [model.id, model]));
+
+    expect(DEFAULT_OPENROUTER_CATALOG_MODEL_IDS.every(id => byId.has(id))).toBe(true);
+    expect(DEFAULT_OPENROUTER_CATALOG_MODEL_IDS.map(id => byId.get(id)?.providerId))
+      .toEqual(DEFAULT_OPENROUTER_CATALOG_MODEL_IDS.map(() => 'openrouter'));
+    expect(DEFAULT_OPENROUTER_CATALOG_MODEL_IDS.map(id => byId.get(id)?.providerModelId))
+      .toEqual(expect.arrayContaining([
+        'openai/gpt-5.5',
+        'openai/gpt-5.5-pro',
+        '~openai/gpt-mini-latest',
+        '~anthropic/claude-opus-latest',
+        '~anthropic/claude-sonnet-latest',
+        '~anthropic/claude-haiku-latest',
+        '~google/gemini-pro-latest',
+        '~google/gemini-flash-latest',
+        'x-ai/grok-4.20',
+        'meta-llama/llama-4-maverick',
+        'nvidia/nemotron-3-ultra-550b-a55b',
+        'nvidia/nemotron-3-ultra-550b-a55b:free',
+        'nvidia/nemotron-3-super-120b-a12b',
+        'nvidia/nemotron-3-super-120b-a12b:free',
+        'nvidia/nemotron-3-nano-30b-a3b:free',
+        'deepseek/deepseek-v4-pro',
+        'moonshotai/kimi-k2.6',
+      ]));
+  });
+
+  it('includes the full NVIDIA Nemotron 3 family, with Content Safety outside the default chat matrix', () => {
+    const byId = new Map(MODELS.map(model => [model.id, model]));
+
+    expect(byId.get('or-nemotron-3-ultra')?.providerModelId).toBe('nvidia/nemotron-3-ultra-550b-a55b');
+    expect(byId.get('or-nemotron-3-ultra-free')?.pricing).toEqual({ prompt: 0, completion: 0 });
+    expect(byId.get('or-nemotron-3-super')?.providerModelId).toBe('nvidia/nemotron-3-super-120b-a12b');
+    expect(byId.get('or-nemotron-3-super-free')?.pricing).toEqual({ prompt: 0, completion: 0 });
+    expect(byId.get('or-nemotron-3-nano-free')?.contextLength).toBe(256_000);
+    expect(byId.get('or-nemotron-3.5-content-safety')).toEqual(expect.objectContaining({
+      providerModelId: 'nvidia/nemotron-3.5-content-safety',
+      supportsTools: false,
+    }));
+    expect(DEFAULT_OPENROUTER_CATALOG_MODEL_IDS).not.toContain('or-nemotron-3.5-content-safety');
   });
 
   it('defaults normal chat to Gemini 3 Flash via OpenRouter', () => {

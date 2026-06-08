@@ -8,6 +8,7 @@ import {
   type ImageBackendConfig,
 } from '../services/image/imageBackend';
 import { createComfyProgress } from '../services/image/jobs/comfyProgress';
+import { logger } from '../services/diagnostics/logger';
 import type { JobProgress } from '../services/image/jobs/progress';
 import type {
   CompletedJob,
@@ -232,7 +233,7 @@ export class ImageJobStore {
       // Only record failure if the job is still active (not already cancelled).
       const stillActive = this.active as ImageJob | null;
       if (stillActive?.id === next.id) {
-        console.error(`[image-jobs] dispatch ${next.id} failed: ${reason}`);
+        logger.error('image-jobs', `dispatch ${next.id} failed: ${reason}`);
         this.fail(next, reason);
       }
     } finally {
@@ -284,7 +285,7 @@ export class ImageJobStore {
       progress = progressFactory(job.backend, config);
       this.activeProgress = progress;
     } catch (err) {
-      console.warn('[image-jobs] progress adapter failed to initialize; render will run without live progress.', err);
+      logger.warn('image-jobs', 'progress adapter failed to initialize; render will run without live progress.', err);
       this.activeProgress = null;
     }
     const progressUnsub = progress?.subscribe((e) => {
@@ -321,13 +322,13 @@ export class ImageJobStore {
         const perIterPrefix = job.filenamePrefix
           ? (job.count > 1 ? `${job.filenamePrefix}-${i + 1}` : job.filenamePrefix)
           : undefined;
-        console.info(`[image-jobs] dispatch ${job.id} (${i + 1}/${job.count}) backend=${job.backend} seed=${seed} dims=${job.width}x${job.height}${perIterPrefix ? ` prefix=${perIterPrefix}` : ''}`);
+        logger.info('image-jobs', `dispatch ${job.id} (${i + 1}/${job.count}) backend=${job.backend} seed=${seed} dims=${job.width}x${job.height}${perIterPrefix ? ` prefix=${perIterPrefix}` : ''}`);
         const t0 = performance.now();
         const { result } = await dispatcher(
           { prompt: job.prompt, width: job.width, height: job.height, seed, filenamePrefix: perIterPrefix, signal: ac.signal },
           config,
         );
-        console.info(`[image-jobs] dispatch ${job.id} returned in ${Math.round(performance.now() - t0)}ms (mime=${result.mime})`);
+        logger.info('image-jobs', `dispatch ${job.id} returned in ${Math.round(performance.now() - t0)}ms (mime=${result.mime})`);
 
         if (ac.signal.aborted) throw new Error('cancelled');
 
@@ -338,10 +339,10 @@ export class ImageJobStore {
         if (result.url) {
           const fetched = await fetchHostedImage(result.url, result.mime, deps.fetch);
           recordedPath = await writeArtifact(deps.bridge, job.backend, i, fetched.base64, fetched.mime, job.filenamePrefix);
-          console.info(`[image-jobs] fetched hosted url ${job.id} -> ${recordedPath}`);
+          logger.info('image-jobs', `fetched hosted url ${job.id} -> ${recordedPath}`);
         } else if (result.base64) {
           recordedPath = await writeArtifact(deps.bridge, job.backend, i, result.base64, result.mime, job.filenamePrefix);
-          console.info(`[image-jobs] fs.write ${job.id} -> ${recordedPath}`);
+          logger.info('image-jobs', `fs.write ${job.id} -> ${recordedPath}`);
         } else {
           throw new Error('backend returned neither url nor base64');
         }
@@ -397,7 +398,7 @@ export class ImageJobStore {
       try {
         this.deps?.onTerminal?.(completed);
       } catch (err) {
-        console.warn('[image-jobs] terminal notification failed', err);
+        logger.warn('image-jobs', 'terminal notification failed', err);
       }
     }
   }
@@ -511,7 +512,7 @@ async function writeArtifact(
     encoding: 'base64',
     append: false,
   });
-  console.info(`[image-jobs] fs.write -> ${resp.path} in ${Math.round(performance.now() - tWrite)}ms`);
+  logger.info('image-jobs', `fs.write -> ${resp.path} in ${Math.round(performance.now() - tWrite)}ms`);
   return resp.path;
 }
 

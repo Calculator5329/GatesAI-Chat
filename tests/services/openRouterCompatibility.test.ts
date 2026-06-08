@@ -20,15 +20,36 @@ describe('OpenRouter compatibility harness', () => {
   });
 
   it('centralizes model-specific OpenRouter body extras', () => {
-    expect(resolveModelFormatProfile('google/gemini-3-flash-preview').id).toBe('gemini-3-reasoning-budget');
+    expect(resolveModelFormatProfile('google/gemini-3-flash').id).toBe('gemini-3-reasoning-budget');
     expect(openAiCompatBodyExtras({
-      modelId: 'google/gemini-3-flash-preview',
+      modelId: 'google/gemini-3-flash',
       messages: [],
       maxTokens: 400,
     })).toEqual({
       max_tokens: 400,
       reasoning: { max_tokens: 200 },
     });
+  });
+
+  it('maps explicit thinking effort to OpenRouter reasoning payloads', () => {
+    expect(openAiCompatBodyExtras({
+      modelId: 'openai/gpt-5.5',
+      messages: [],
+      maxTokens: 400,
+      thinkingEffort: 'xhigh',
+    })).toEqual({
+      max_tokens: 400,
+      reasoning: { effort: 'xhigh', exclude: true },
+    });
+  });
+
+  it('omits reasoning when thinking effort is none', () => {
+    expect(openAiCompatBodyExtras({
+      modelId: 'openai/gpt-5.5-pro',
+      messages: [],
+      maxTokens: 400,
+      thinkingEffort: 'none',
+    })).toEqual({ max_tokens: 400 });
   });
 
   it('runs text and tool probes and writes markdown/jsonl logs', async () => {

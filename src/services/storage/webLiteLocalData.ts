@@ -24,6 +24,7 @@ export const LOCAL_DATA_SLOTS: LocalDataSlot[] = [
   { key: 'gatesai.local.v1', label: 'Local runtime settings' },
   { key: 'gatesai.modelPicker.source.v1', label: 'Model picker source' },
   { key: 'gatesai.modelPicker.recent.v1', label: 'Recent models' },
+  { key: 'gatesai.modelPicker.favorites.v1', label: 'Favorite models' },
   { key: 'gatesai.userGuide.opened.v1', label: 'Guide opened flag' },
   { key: 'gatesai.providers.v1', label: 'Provider API keys', credential: true },
 ];

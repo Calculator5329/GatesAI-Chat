@@ -461,6 +461,7 @@ describe('Tool loop — scripted', () => {
       await flush(80);
       expect(warn).toHaveBeenCalledWith(
         '[tool-call-failed]',
+        'tool call failed',
         expect.objectContaining({
           toolName: 'fs',
           toolCallId: 'fs-empty',
@@ -497,6 +498,7 @@ describe('Tool loop — scripted', () => {
       await flush(80);
       expect(warn).toHaveBeenCalledWith(
         '[tool-call-failed]',
+        'tool call failed',
         expect.objectContaining({
           toolName: 'terminal',
           toolCallId: 'bad-terminal',
@@ -535,7 +537,7 @@ describe('Tool loop — scripted', () => {
     try {
       chat.sendMessage('write this file');
       await flush(80);
-      const payload = warn.mock.calls[0]?.[1] as { argumentsPreview?: string };
+      const payload = warn.mock.calls[0]?.[2] as { argumentsPreview?: string };
       expect(payload.argumentsPreview).toContain('[redacted');
       expect(payload.argumentsPreview).not.toContain('super-secret-token');
     } finally {

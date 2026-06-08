@@ -168,7 +168,7 @@ describe('EditorialComposer API-key banner', () => {
     const rendered = render(store);
     act(() => store!.ui.setDraft('hello'));
 
-    expect(rendered.textContent).toContain('Gemini 3 Flash');
+    expect(rendered.textContent).toContain('Gemini Flash latest');
     expect(rendered.textContent).not.toContain('Select model');
     expect(rendered.textContent).not.toContain('Add an API key to start chatting.');
     const sendWrapper = sendControl(rendered);
@@ -231,7 +231,7 @@ describe('EditorialComposer API-key banner', () => {
         createdAt: Date.now(),
         usage: [{
           providerId: 'openrouter',
-          modelId: 'google/gemini-3-flash-preview',
+          modelId: 'google/gemini-3-flash',
           promptTokens: 100,
           completionTokens: 20,
           totalTokens: 120,

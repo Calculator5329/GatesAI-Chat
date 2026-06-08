@@ -1,12 +1,45 @@
 # Tech spec
 
 ## Stack
-- **React 19** + **TypeScript 5**
-- **Vite 7** (dev server, build)
+- **React 19** + **TypeScript 6**
+- **Vite 8** (dev server, build)
 - **MobX 6** + **mobx-react-lite** (state)
 - **react-markdown** + **remark-gfm** + **rehype-highlight** (rendering)
-- **Vitest 3** + **jsdom** (tests)
-- **ESLint 9** + **typescript-eslint** (lint)
+- **Vitest 3** + **jsdom** (unit/component tests)
+- **Playwright** (browser e2e tests)
+- **ESLint 9** + **typescript-eslint** (lint) — enforces the layered import
+  boundaries plus project patterns: `no-console` (only the diagnostics logger
+  may use the console), `consistent-type-imports`, no `fetch` in stores, no
+  `localStorage` in stores/UI, `import/no-cycle`, and the `mobx/*-make-observable`
+  correctness rules.
+
+## Logging & diagnostics
+All runtime logging goes through `services/diagnostics/logger.ts`
+(`logger.{debug,info,warn,error}(scope, message, data?)`). It keeps a 500-entry
+in-memory ring buffer, writes a level-filtered console (everything in dev,
+warn/error in prod), and on desktop appends JSONL to
+`/workspace/logs/app-<date>.log` via the bridge. The `logs` tool reads the ring
+buffer so the assistant can inspect recent failures and self-diagnose. UI never
+logs directly — it dispatches to a store, which logs.
+
+## Testing
+Two layers, both runnable offline:
+
+- **Unit / component (Vitest + jsdom):** `npm run test` runs `tests/**/*.test.ts`.
+  Stores, services, and components are tested in isolation with mock providers
+  and an in-memory `localStorage`. `npm run ci` chains test + typecheck + lint.
+- **End-to-end (Playwright):** `npm run test:e2e` runs `tests/e2e/**/*.spec.ts`
+  against two Vite dev servers via `playwright.config.ts`:
+  - `desktop-mocked` — the default build (runtime mode `desktop`, so the bridge
+    poller runs). The bridge is faked online with a `/health` route plus a
+    `routeWebSocket` server that answers the `BridgeClient` request/response
+    envelope protocol (`fs.*`, `exec.run`), so attachment upload, image-job
+    artifacts, and workspace seeding all succeed without a real sidecar.
+  - `web-lite` — the `firebase`-mode build (`VITE_GATESAI_WEB=1`), used to assert
+    the degraded states (web-lite pill, disabled attachments, section notices).
+  - The OpenRouter chat stream is mocked as SSE and provider keys / threads /
+    image-jobs are seeded into `localStorage` via `addInitScript`. Shared helpers
+    live in `tests/e2e/fixtures/harness.ts`. E2e output is gitignored.
 
 ## Domain model
 
@@ -116,6 +149,7 @@ interface LlmRequest {
   temperature?: number;
   maxTokens?: number;
   tools?: ToolDef[];          // omit or [] to disable tool calling
+  thinkingEffort?: 'none' | 'low' | 'medium' | 'high' | 'xhigh';
 }
 
 interface LlmMessage {
@@ -167,6 +201,13 @@ interface LlmProvider {
 | `gatesai.local.v1`               | runtime paths + toggles   | `LocalRuntimeStore`|
 | `gatesai.imagejobs.v1`           | completed-job history     | `ImageJobStore`    |
 | `gatesai.search.v1`              | Brave Search key          | `SearchStore`      |
+| `gatesai.modelPicker.source.v1`  | picker source filter      | `ModelRegistry`    |
+| `gatesai.modelPicker.recent.v1`  | recent model ids          | `ModelRegistry`    |
+
+The two `gatesai.modelPicker.*` keys back the model picker's source filter and
+recent-models list. They are owned by `services/storage/modelPickerStorage.ts`
+and exposed to the picker UI through thin `ModelRegistry` passthroughs, so the
+component never touches `localStorage` directly (an ESLint rule enforces this).
 
 Chat, provider, profile, notes, and UI preference snapshots are saved by their
 owning stores through the `PersistenceProvider<T>` boundary in
@@ -219,6 +260,26 @@ selectable presentation setting; all assistant work renders through the
 unified ambient activity timeline.
 `App` maps those keys to root classes while `.md-body` consumes the resulting
 CSS variables for prose, lists, headings, inline code, and fenced code blocks.
+
+## OpenRouter catalog and reasoning
+
+The curated cloud catalog in `core/models.ts` includes a default OpenRouter
+section for the current leading OpenAI, Anthropic, Gemini, Grok, Meta, NVIDIA
+Nemotron, DeepSeek, and Moonshot/Kimi models. The model picker renders this
+default catalog ahead of the broader live OpenRouter browse results, while the
+live catalog cache can still hydrate dynamic `or-live-*` entries. Nemotron 3.5
+Content Safety is cataloged as a guardrail model with `supportsTools: false`,
+but is intentionally kept out of the default live chat/tool matrix.
+
+Threads may carry a `thinkingEffort` of `none`, `low`, `medium`, `high`, or
+`xhigh` (`Extra high` in the UI). `ChatStore` attaches it only to OpenRouter
+requests, and `services/llm/modelFormatProfiles.ts` maps non-`none` values to
+OpenRouter's unified `reasoning` object with reasoning output excluded from
+the stream. `none` deliberately omits the reasoning override so
+reasoning-mandatory endpoints can keep their provider default instead of
+failing as "reasoning disabled." When no explicit effort is selected, existing
+model-format profiles still add provider-specific compatibility defaults such
+as Gemini hidden-token budgets.
 
 ## Streaming contract
 
@@ -286,7 +347,8 @@ Every tool registers itself with `toolRegistry` at module-load time. Each
 tool also carries internal metadata for category, read-only/side-effect
 classification, result policy, and safe concurrency decisions. The registry
 selects a conservative `ToolDef[]` per provider round via
-`toolDefsForTurn(...)`: `memory` and `thread` are always available;
+`toolDefsForTurn(...)`: `memory`, `thread`, `chat_history`, `logs`, and the
+source-workspace controls are always available;
 bridge tools (`workspace`, `fs`, `inspect_file`, `terminal`, `python_inline`,
 `sqlite_query`, `query_script`, `git`) are included when the bridge is online
 or the turn mentions files, attachments, code, commands, Git, tests/builds,

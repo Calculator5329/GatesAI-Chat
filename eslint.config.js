@@ -2,6 +2,8 @@ import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
+import importPlugin from 'eslint-plugin-import'
+import mobx from 'eslint-plugin-mobx'
 import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
@@ -15,18 +17,40 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    plugins: { import: importPlugin },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    settings: {
+      'import/resolver': { typescript: true, node: true },
+    },
     rules: {
+      // Circular imports compile fine in ESM but rot the layered architecture
+      // and cause subtle init-order bugs. Block them outright.
+      'import/no-cycle': ['error', { maxDepth: 8 }],
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       // Fast Refresh export-shape warnings are useful while authoring a
       // small Vite demo, but this app intentionally colocates typed helpers,
       // test APIs, and observer subcomponents. Keep production lint focused
       // on correctness rules that affect shipped behavior.
       'react-refresh/only-export-components': 'off',
+      // All runtime diagnostics go through services/diagnostics/logger, which is
+      // the single sanctioned console boundary (exempted below). Anywhere else,
+      // a raw console call is a logging-convention violation.
+      'no-console': 'error',
+      // Consistent `import type { ... }` keeps type-only deps obvious and plays
+      // nicely with verbatimModuleSyntax + tree-shaking.
+      '@typescript-eslint/consistent-type-imports': ['error', {
+        prefer: 'type-imports',
+        fixStyle: 'separate-type-imports',
+      }],
     },
+  },
+  {
+    // The logger is the one place allowed to touch the console.
+    files: ['src/services/diagnostics/logger.ts'],
+    rules: { 'no-console': 'off' },
   },
   // NOTE on flat-config rule semantics: when multiple config objects set the
   // SAME rule for overlapping files, the LAST one wins outright (options are
@@ -63,12 +87,34 @@ export default defineConfig([
   },
   {
     files: ['src/stores/**/*.ts'],
+    plugins: { mobx },
     rules: {
+      // Keep the MobX store pattern honest: every observable class must call
+      // make(Auto)Observable, annotations must be exhaustive, and the call must
+      // be unconditional.
+      'mobx/missing-make-observable': 'error',
+      'mobx/exhaustive-make-observable': 'error',
+      'mobx/unconditional-make-observable': 'error',
       'no-restricted-imports': ['error', {
         patterns: [{
           group: ['**/components/**', '**/app/**', 'react', 'mobx-react-lite'],
           message: 'stores/ must not import UI, React, or app composition code. Use stores/context.tsx as the React bridge.',
         }],
+      }],
+      // Network belongs in services. Stores orchestrate; they ask a service for
+      // data and own only the resulting observable state.
+      'no-restricted-syntax': ['error', {
+        selector: "CallExpression[callee.name='fetch']",
+        message: 'Do not call fetch() in a store. Put the network call in a service and have the store consume it.',
+      }],
+      // Persistence is a service concern. Stores read/write through a
+      // PersistenceProvider/storage service, never localStorage directly.
+      'no-restricted-globals': ['error', {
+        name: 'localStorage',
+        message: 'Do not use localStorage in a store. Go through a services/storage/* facade.',
+      }, {
+        name: 'sessionStorage',
+        message: 'Do not use sessionStorage in a store. Go through a services/storage/* facade.',
       }],
     },
   },
@@ -129,6 +175,20 @@ export default defineConfig([
             message: 'menu components must not import editorial components; move shared UI to components/ui or components/media.',
           },
         ],
+      }],
+    },
+  },
+  {
+    // Persistence is never a UI concern: components read/write app data through
+    // a store facade, which delegates to a services/storage/* module.
+    files: ['src/components/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': ['error', {
+        name: 'localStorage',
+        message: 'Do not use localStorage in UI. Expose it through a store facade backed by services/storage/*.',
+      }, {
+        name: 'sessionStorage',
+        message: 'Do not use sessionStorage in UI. Expose it through a store facade backed by services/storage/*.',
       }],
     },
   },

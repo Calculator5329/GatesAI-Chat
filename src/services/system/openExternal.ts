@@ -10,10 +10,11 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { isTauri } from '../../core/runtime';
+import { logger } from '../diagnostics/logger';
 
 export async function openExternal(absolutePath: string): Promise<void> {
   if (!isTauri()) {
-    console.warn('[openExternal] not running in Tauri, ignoring', absolutePath);
+    logger.warn('openExternal', 'not running in Tauri, ignoring', absolutePath);
     return;
   }
   await invoke('open_path', { path: absolutePath });

@@ -2,6 +2,12 @@
   "name": "gatesai-chat",
   "private": true,
   "version": "4.0.0",
+  "description": "Local-first desktop AI chat workspace (React 19 + Tauri 2) with a sandboxed local bridge for files, shell, SQLite, git, web search, and image generation.",
+  "homepage": "https://calculator5329.github.io/GatesAI-Chat/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Calculator5329/GatesAI-Chat.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,6 +21,7 @@
     "test": "vitest run --config vitest.config.mjs",
     "test:watch": "vitest",
     "test:models": "vitest run --config vitest.live.config.ts",
+    "test:e2e": "playwright test",
     "ci": "npm.cmd test && npm.cmd run typecheck && npm.cmd run lint",
     "preview": "vite preview",
     "tauri": "tauri",
@@ -38,6 +45,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.60.0",
     "@rolldown/plugin-babel": "^0.2.3",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/cli": "^2.10.1",
@@ -48,6 +56,9 @@
     "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9.39.4",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-mobx": "^0.0.14",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",

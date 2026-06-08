@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Local environment / secrets (keep tracked, public .env.firebase)
+.env
+.env.local
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -36,3 +41,9 @@ release/
 # Local generated previews and agent scratch worktrees
 preview-output/
 .claude/worktrees/
+
+# Playwright e2e output
+test-results/
+playwright-report/
+blob-report/
+.playwright/

@@ -4,7 +4,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
-import { DEFAULT_MODEL_ID } from '../../core/models';
+import { DEFAULT_MODEL_ID, DEFAULT_OPENROUTER_CATALOG_MODEL_IDS } from '../../core/models';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { Icons } from '../ui/icons';
 import { useLocalRuntimeStore, useModelRegistry } from '../../stores/context';
@@ -20,8 +20,7 @@ type SourceFilter = 'auto' | 'cloud' | 'local' | 'image';
 interface ModelMeta {
   tag: string;
   capabilities: Array<'vision' | 'reasoning' | 'fast' | 'tools'>;
-  costLabel?: '$' | '$$' | '$$$' | 'LOCAL';
-  starred?: boolean;
+  costLabel?: '$' | '$$' | '$$$' | 'LOCAL' | 'FREE';
 }
 
 interface PickerSection {
@@ -30,41 +29,50 @@ interface PickerSection {
   favorite?: boolean;
 }
 
-const SOURCE_FILTER_STORAGE_KEY = 'gatesai.modelPicker.source.v1';
-const RECENT_MODELS_STORAGE_KEY = 'gatesai.modelPicker.recent.v1';
 const BROWSE_SECTION_LIMIT = 8;
 const SEARCH_RESULT_LIMIT = 80;
-const MAX_RECENT_MODELS = 6;
 
 const AUTO_MODEL: Model = {
   id: 'auto-gemini-3-flash',
   name: 'Auto: Gemini 3 Flash API',
   vendor: 'Recommended',
   providerId: 'openrouter',
-  providerModelId: 'google/gemini-3-flash-preview',
+  providerModelId: '~google/gemini-flash-latest',
   description: 'default API chat, vision, reliable tools',
   supportsVision: true,
 };
 
 const META: Record<string, ModelMeta> = {
-  'auto-gemini-3-flash': { tag: 'default API chat, vision, reliable tools', capabilities: ['vision', 'tools', 'fast'], costLabel: '$', starred: true },
-  'or-gemini-3-flash': { tag: 'default API chat, vision, reliable tools', capabilities: ['vision', 'tools', 'fast'], costLabel: '$', starred: true },
-  'or-deepseek-v4-flash': { tag: 'fast low-cost reasoning', capabilities: ['fast', 'reasoning'], costLabel: '$', starred: true },
-  'or-gpt-5.5': { tag: 'strong API tools and reasoning', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$', starred: true },
-  'or-claude-opus-4.7': { tag: 'premium API reasoning', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$$', starred: true },
-  'or-gemini-3.1-pro': { tag: 'large API reasoning and vision', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$', starred: true },
-  'image-direct-comfy': { tag: 'local ComfyUI image generation', capabilities: ['fast'], costLabel: 'LOCAL', starred: true },
+  'auto-gemini-3-flash': { tag: 'default API chat, vision, reliable tools', capabilities: ['vision', 'tools', 'fast'], costLabel: '$' },
+  'or-gemini-3-flash': { tag: 'default API chat, vision, reliable tools', capabilities: ['vision', 'tools', 'fast'], costLabel: '$' },
+  'or-deepseek-v4-flash': { tag: 'fast low-cost reasoning', capabilities: ['fast', 'reasoning'], costLabel: '$' },
+  'or-gpt-5.5': { tag: 'strong API tools and reasoning', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$' },
+  'or-claude-opus-latest': { tag: 'latest premium Claude reasoning', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$$' },
+  'or-gemini-3.1-pro': { tag: 'large API reasoning and vision', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$' },
+  'image-direct-comfy': { tag: 'local ComfyUI image generation', capabilities: ['fast'], costLabel: 'LOCAL' },
   'or-deepseek-v4-pro': { tag: 'reasoning', capabilities: ['reasoning'] },
   'or-gpt-5.5-pro': { tag: 'premium API tools and reasoning', capabilities: ['vision', 'tools', 'reasoning'] },
   'or-gemini-3.1-flash-lite': { tag: 'fast API vision', capabilities: ['vision', 'fast'], costLabel: '$' },
+  'or-nemotron-3-ultra': { tag: 'open-weight frontier reasoning', capabilities: ['tools', 'reasoning'], costLabel: '$' },
+  'or-nemotron-3-ultra-free': { tag: 'free open-weight frontier reasoning', capabilities: ['tools', 'reasoning'], costLabel: 'FREE' },
+  'or-nemotron-3-super': { tag: 'open-weight efficient MoE reasoning', capabilities: ['tools', 'reasoning', 'fast'], costLabel: '$' },
+  'or-nemotron-3-super-free': { tag: 'free open-weight efficient MoE', capabilities: ['tools', 'reasoning', 'fast'], costLabel: 'FREE' },
+  'or-nemotron-3-nano-free': { tag: 'free open-weight 30B/3B active MoE', capabilities: ['tools', 'fast'], costLabel: 'FREE' },
+  'or-nemotron-3.5-content-safety': { tag: 'guardrail moderation model', capabilities: [], costLabel: '$' },
 };
 
 const META_BY_PROVIDER_MODEL_ID: Record<string, ModelMeta> = {
-  'google/gemini-3-flash-preview': META['or-gemini-3-flash'],
+  '~google/gemini-flash-latest': META['or-gemini-3-flash'],
   'deepseek/deepseek-v4-flash': META['or-deepseek-v4-flash'],
   'openai/gpt-5.5': META['or-gpt-5.5'],
-  'anthropic/claude-opus-4.7': META['or-claude-opus-4.7'],
-  'google/gemini-3.1-pro-preview': META['or-gemini-3.1-pro'],
+  '~anthropic/claude-opus-latest': META['or-claude-opus-latest'],
+  'google/gemini-3.1-pro': META['or-gemini-3.1-pro'],
+  'nvidia/nemotron-3-ultra-550b-a55b': META['or-nemotron-3-ultra'],
+  'nvidia/nemotron-3-ultra-550b-a55b:free': META['or-nemotron-3-ultra-free'],
+  'nvidia/nemotron-3-super-120b-a12b': META['or-nemotron-3-super'],
+  'nvidia/nemotron-3-super-120b-a12b:free': META['or-nemotron-3-super-free'],
+  'nvidia/nemotron-3-nano-30b-a3b:free': META['or-nemotron-3-nano-free'],
+  'nvidia/nemotron-3.5-content-safety': META['or-nemotron-3.5-content-safety'],
   'comfy-direct': META['image-direct-comfy'],
 };
 
@@ -76,6 +84,7 @@ function VendorMark({ vendor, size = 12 }: { vendor: string; size?: number }) {
     opacity: 0.85,
   };
   switch (vendor) {
+    case 'Favorites':
     case 'Recommended':
     case 'Recent':
       return (
@@ -192,16 +201,18 @@ interface RowProps {
   meta: ModelMeta | null;
   selected: boolean;
   active: boolean;
+  isFavorite: boolean;
   disabledReason?: string;
   ollamaOnline: boolean;
   comfyReady: boolean;
   flatIndex: number;
   onPick: (model: Model) => void;
+  onToggleFavorite: (model: Model) => void;
   onHover: (index: number) => void;
 }
 
 const ModelRow = memo(function ModelRow({
-  model, meta, selected, active, disabledReason, ollamaOnline, comfyReady, flatIndex, onPick, onHover,
+  model, meta, selected, active, isFavorite, disabledReason, ollamaOnline, comfyReady, flatIndex, onPick, onToggleFavorite, onHover,
 }: RowProps) {
   const disabled = !!disabledReason;
   const subline = disabledReason ?? bestForLine(model, meta);
@@ -237,11 +248,30 @@ const ModelRow = memo(function ModelRow({
     >
       <div style={ROW_LEFT_STYLE}>
         <span style={nameStyle}>{model.name}</span>
-        {meta?.starred && (
-          <svg width="9" height="9" viewBox="0 0 16 16" fill="var(--accent)" style={STAR_ICON_STYLE}>
+        <button
+          type="button"
+          className="model-popover__favorite"
+          aria-label={isFavorite ? `Unfavorite ${model.name}` : `Favorite ${model.name}`}
+          aria-pressed={isFavorite}
+          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite(model); }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            padding: 0, border: 'none', background: 'transparent', cursor: 'pointer',
+            flexShrink: 0, lineHeight: 0,
+            opacity: isFavorite ? 1 : 0.35,
+          }}
+        >
+          <svg
+            width="10" height="10" viewBox="0 0 16 16"
+            fill={isFavorite ? 'var(--accent)' : 'none'}
+            stroke={isFavorite ? 'var(--accent)' : 'var(--text-faint)'}
+            strokeWidth="1.4"
+            style={STAR_ICON_STYLE}
+          >
             <path d="M8 1.5l2 4.5 5 .5-3.8 3.3 1.2 4.7L8 12l-4.4 2.5L4.8 9.8 1 6.5l5-.5z" />
           </svg>
-        )}
+        </button>
       </div>
       <div style={ROW_RIGHT_STYLE}>
         {badgesForModel(model, ollamaOnline, comfyReady).map(badge => (
@@ -262,8 +292,9 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
-  const [source, setSource] = useState<SourceFilter>(() => loadSourceFilter());
-  const [recentIds, setRecentIds] = useState<string[]>(() => loadRecentModelIds());
+  const [source, setSource] = useState<SourceFilter>(() => registry.pickerSource());
+  const [recentIds, setRecentIds] = useState<string[]>(() => registry.recentModelIds());
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => registry.favoriteModelIds());
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -282,6 +313,17 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   const ollamaOnline = localRuntime.runtimes.ollama.status === 'online';
   const comfyReady = localRuntime.comfyReady;
 
+  // Resolve favorites through the registry (not just the deduped `all` map): a
+  // favorited id can be a curated id that a dynamic catalog entry supersedes
+  // under the same providerModelId, in which case it's absent from `all` but
+  // findById still resolves it via the curated fallback.
+  const favoriteModels = useMemo(() => {
+    const byId = new Map(all.map(model => [model.id, model]));
+    return favoriteIds
+      .map(id => byId.get(id) ?? registry.findById(id))
+      .filter((model): model is Model => Boolean(model));
+  }, [favoriteIds, registry, all]);
+
   const sections = useMemo(() => {
     return buildPickerSections({
       all,
@@ -289,8 +331,11 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       query,
       source,
       recentIds,
+      favoriteModels,
     });
-  }, [all, currentModel, query, source, recentIds]);
+  }, [all, currentModel, query, source, recentIds, favoriteModels]);
+
+  const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
 
   const displaySections = useMemo(() => limitModelSections(sections, query), [sections, query]);
   const flat = useMemo(() => displaySections.flatMap(g => g.models), [displaySections]);
@@ -305,16 +350,19 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   const setSourceAndPersist = (next: SourceFilter) => {
     setSource(next);
     setActiveIdx(0);
-    try { localStorage.setItem(SOURCE_FILTER_STORAGE_KEY, next); } catch { /* ignore */ }
+    registry.setPickerSource(next);
   };
 
   const pickModel = useCallback((model: Model) => {
     const resolvedId = model.id === AUTO_MODEL.id ? DEFAULT_MODEL_ID : model.id;
-    saveRecentModelId(resolvedId);
-    setRecentIds(loadRecentModelIds());
+    setRecentIds(registry.rememberRecentModel(resolvedId));
     onPick(resolvedId);
     onClose();
-  }, [onClose, onPick]);
+  }, [registry, onClose, onPick]);
+  const toggleFavorite = useCallback((model: Model) => {
+    const resolvedId = model.id === AUTO_MODEL.id ? DEFAULT_MODEL_ID : model.id;
+    setFavoriteIds(registry.toggleFavoriteModel(resolvedId));
+  }, [registry]);
   const hoverModelAt = useCallback((index: number) => {
     setActiveIdx(index);
   }, []);
@@ -438,6 +486,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
               const meta = META[model.id] ?? META_BY_PROVIDER_MODEL_ID[model.providerModelId] ?? null;
               const flatIndex = flatIndexById.get(model.id) ?? -1;
               const disabledReason = disabledReasonForModel(model, comfyReady);
+              const favoriteKey = model.id === AUTO_MODEL.id ? DEFAULT_MODEL_ID : model.id;
               const selected = model.id === AUTO_MODEL.id
                 ? currentModelId === DEFAULT_MODEL_ID
                 : model.id === currentModelId;
@@ -448,11 +497,13 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
                   meta={meta}
                   selected={selected}
                   active={flatIndex === activeIdx}
+                  isFavorite={favoriteSet.has(favoriteKey)}
                   disabledReason={disabledReason}
                   ollamaOnline={ollamaOnline}
                   comfyReady={comfyReady}
                   flatIndex={flatIndex}
                   onPick={pickModel}
+                  onToggleFavorite={toggleFavorite}
                   onHover={hoverModelAt}
                 />
               );
@@ -500,12 +551,27 @@ function buildPickerSections(args: {
   query: string;
   source: SourceFilter;
   recentIds: string[];
+  favoriteModels: readonly Model[];
 }): PickerSection[] {
   const normalizedQuery = args.query.trim().toLowerCase();
   const allById = new Map(args.all.map(model => [model.id, model]));
   const sourceModels = args.all.filter(model => sourceMatches(model, args.source));
   const base = normalizedQuery ? args.all.filter(model => matchesQuery(model, normalizedQuery)) : sourceModels;
   const sections: PickerSection[] = [];
+
+  // User-pinned favorites lead the list in every source/search view (filtered
+  // by the active source unless browsing "auto"), mirroring the recents pattern.
+  const favorites = dedupeModels([...args.favoriteModels])
+    .filter(model => args.source === 'auto' || sourceMatches(model, args.source))
+    .filter(model => !normalizedQuery || matchesQuery(model, normalizedQuery));
+  const pushFavorites = (): void => {
+    if (favorites.length) sections.push({ title: 'Favorites', models: favorites });
+  };
+  const defaultCatalog = DEFAULT_OPENROUTER_CATALOG_MODEL_IDS
+    .map(id => allById.get(id))
+    .filter((model): model is Model => Boolean(model))
+    .filter(model => sourceMatches(model, args.source))
+    .filter(model => !normalizedQuery || matchesQuery(model, normalizedQuery));
 
   const rawRecommended = dedupeModels([
     AUTO_MODEL,
@@ -516,8 +582,11 @@ function buildPickerSections(args: {
     ? rawRecommended
     : rawRecommended.filter(model => sourceMatches(model, args.source));
 
+  pushFavorites();
+
   if (args.source === 'auto' && recommended.length) {
     sections.push({ title: 'Recommended', models: recommended, favorite: true });
+    if (defaultCatalog.length) sections.push({ title: 'Default catalog', models: defaultCatalog });
     const recent = args.recentIds
       .map(id => allById.get(id))
       .filter((model): model is Model => Boolean(model))
@@ -528,6 +597,10 @@ function buildPickerSections(args: {
 
   if (!normalizedQuery && recommended.length) {
     sections.push({ title: 'Recommended', models: recommended, favorite: true });
+  }
+
+  if (defaultCatalog.length && (args.source === 'cloud' || args.source === 'auto')) {
+    sections.push({ title: 'Default catalog', models: defaultCatalog });
   }
 
   const sourceTitle = titleForSource(args.source);
@@ -587,7 +660,7 @@ function dedupeModels(models: Array<Model | undefined>): Model[] {
 function removeDuplicateRowsAcrossSections(sections: PickerSection[]): PickerSection[] {
   const seen = new Set<string>();
   return sections.map(section => {
-    if (section.title === 'Recent') return section;
+    if (section.title === 'Recent' || section.title === 'Favorites') return section;
     const models = section.models.filter(model => {
       const key = model.id;
       if (seen.has(key)) return false;
@@ -615,7 +688,9 @@ function limitModelSections(sections: PickerSection[], query: string): PickerSec
   return sections
     .map(section => ({
       ...section,
-      models: section.favorite ? section.models : section.models.slice(0, BROWSE_SECTION_LIMIT),
+      models: section.favorite || section.title === 'Default catalog' || section.title === 'Favorites'
+        ? section.models
+        : section.models.slice(0, BROWSE_SECTION_LIMIT),
     }))
     .filter(section => section.models.length > 0);
 }
@@ -679,25 +754,3 @@ function disabledReasonForModel(model: Model, comfyReady: boolean): string | und
   return 'Enable and connect ComfyUI in Local settings to use local image generation.';
 }
 
-function loadSourceFilter(): SourceFilter {
-  try {
-    const raw = localStorage.getItem(SOURCE_FILTER_STORAGE_KEY);
-    if (raw === 'auto' || raw === 'cloud' || raw === 'local' || raw === 'image') return raw;
-  } catch { /* ignore */ }
-  return 'auto';
-}
-
-function loadRecentModelIds(): string[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(RECENT_MODELS_STORAGE_KEY) || '[]');
-    if (Array.isArray(parsed)) return parsed.filter((id): id is string => typeof id === 'string').slice(0, MAX_RECENT_MODELS);
-  } catch { /* ignore */ }
-  return [];
-}
-
-function saveRecentModelId(modelId: string): void {
-  try {
-    const next = [modelId, ...loadRecentModelIds().filter(id => id !== modelId)].slice(0, MAX_RECENT_MODELS);
-    localStorage.setItem(RECENT_MODELS_STORAGE_KEY, JSON.stringify(next));
-  } catch { /* ignore */ }
-}

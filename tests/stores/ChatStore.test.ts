@@ -470,6 +470,19 @@ describe('ChatStore', () => {
     expect(chat.activeThread?.modelId).toBe('or-gemini-3-flash');
   });
 
+  it('passes per-thread thinking effort to model requests', async () => {
+    const { chat, mock } = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    chat.setThreadThinkingEffort(chat.activeThreadId!, 'high');
+
+    chat.sendMessage('think about this');
+    await flush(20);
+
+    expect(mock.calls[0].thinkingEffort).toBe('high');
+  });
+
   it('exposes web_search to model requests only when Brave Search is configured', async () => {
     const { chat, mock } = setup([
       { type: 'text', delta: 'ok' },
@@ -770,7 +783,7 @@ describe('ChatStore', () => {
         type: 'usage',
         usage: {
           providerId: 'openrouter',
-          modelId: 'google/gemini-3-flash-preview',
+          modelId: 'google/gemini-3-flash',
           promptTokens: 100,
           completionTokens: 20,
           totalTokens: 120,
@@ -876,7 +889,7 @@ describe('ChatStore', () => {
       { type: 'done', finishReason: 'stop' },
     ]);
     const id = chat.createThread();
-    chat.setThreadModel(id, 'or-gpt-5.5');
+    chat.setThreadModel(id, 'or-deepseek-v4-flash');
     profile.setDefaultSystemPrompt('z'.repeat(600_000));
 
     chat.sendMessage('hi');
@@ -895,7 +908,7 @@ describe('ChatStore', () => {
       { type: 'done', finishReason: 'stop' },
     ]);
     const id = chat.createThread();
-    chat.setThreadModel(id, 'or-gpt-5.5');
+    chat.setThreadModel(id, 'or-deepseek-v4-flash');
     const unavailableProvider: LlmProvider = {
       id: 'openrouter',
       ready: () => false,
@@ -905,7 +918,7 @@ describe('ChatStore', () => {
       resolve: (modelId: string) => { provider: LlmProvider; providerModelId: string };
     };
     router.resolve = (modelId: string) => {
-      if (modelId === 'or-gpt-5.5') return { provider: mock, providerModelId: modelId };
+      if (modelId === 'or-deepseek-v4-flash') return { provider: mock, providerModelId: modelId };
       return { provider: unavailableProvider, providerModelId: modelId };
     };
     runInAction(() => {
@@ -965,13 +978,13 @@ describe('ChatStore', () => {
       resolve: (modelId: string) => { provider: LlmProvider; providerModelId: string };
     };
     router.resolve = (modelId: string) => {
-      if (modelId === 'or-gemini-3.1-flash-lite') return { provider: compactorProvider, providerModelId: 'google/gemini-3.1-flash-lite-preview' };
+      if (modelId === 'or-gemini-3.1-flash-lite') return { provider: compactorProvider, providerModelId: 'google/gemini-3.1-flash-lite' };
       if (modelId === chat.activeThread?.modelId) return { provider: mock, providerModelId: modelId };
       return { provider: unavailableProvider, providerModelId: modelId };
     };
 
     const id = chat.createThread();
-    chat.setThreadModel(id, 'or-gpt-5.5');
+    chat.setThreadModel(id, 'or-deepseek-v4-flash');
     runInAction(() => {
       chat.activeThread!.messages.push({
         id: 'u-cheap-compact',
@@ -997,7 +1010,7 @@ describe('ChatStore', () => {
     chat.sendMessage('continue');
     await flush(100);
 
-    expect(compactModelIds).toEqual(['google/gemini-3.1-flash-lite-preview']);
+    expect(compactModelIds).toEqual(['google/gemini-3.1-flash-lite']);
     expect(mock.calls).toHaveLength(1);
     const compacted = chat.activeThread!.messages.find(m => m.id === 'a-cheap-compact');
     if (compacted?.role !== 'assistant') throw new Error('expected assistant');

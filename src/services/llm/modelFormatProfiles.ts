@@ -19,7 +19,7 @@ export const MODEL_FORMAT_PROFILES: ModelFormatProfile[] = [
   {
     id: 'gemini-3-reasoning-budget',
     label: 'Gemini 3 visible-output budget',
-    match: /(^|\/)gemini-3/i,
+    match: /(^|\/)gemini-3|^~google\/gemini-(pro|flash)-latest/i,
     maxTokens: 1024,
     notes: [
       'Caps default output budget for compatibility smoke tests.',
@@ -55,6 +55,13 @@ export function openAiCompatBodyExtras(req: LlmRequest): Record<string, unknown>
   const maxTokens = maxTokensForRequest(req);
   const extras: Record<string, unknown> = {};
   if (maxTokens != null) extras.max_tokens = maxTokens;
+  if (req.thinkingEffort && req.thinkingEffort !== 'none') {
+    extras.reasoning = {
+      effort: req.thinkingEffort,
+      exclude: true,
+    };
+    return extras;
+  }
   const reasoning = profile.openAiCompat;
   if (reasoning?.reasoningBudgetRatio && maxTokens != null) {
     extras.reasoning = {

@@ -19,7 +19,7 @@ const LOCAL_VISION_RE = /llava|qwen[^/]*vl|qwen-vl|llama-?3\.2-vision|minicpm-v|
 export function modelSupportsVision(model: Pick<Model, 'providerId' | 'providerModelId' | 'supportsVision'>): boolean {
   if (typeof model.supportsVision === 'boolean') return model.supportsVision;
 
-  const id = (model.providerModelId || '').toLowerCase();
+  const id = (model.providerModelId || '').toLowerCase().replace(/^~/, '');
 
   switch (model.providerId) {
     case 'openrouter':
@@ -32,7 +32,8 @@ export function modelSupportsVision(model: Pick<Model, 'providerId' | 'providerM
         id.startsWith('openai/o3') ||
         id.startsWith('openai/o4') ||
         id.startsWith('google/gemini-') ||
-        id.startsWith('x-ai/grok-') && id.includes('vision') ||
+        id.startsWith('x-ai/grok-') ||
+        id.startsWith('meta-llama/llama-4-') ||
         /\bvl\b|llava|vision|moondream|minicpm-v|internvl/.test(id)
       );
 

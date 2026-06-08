@@ -81,7 +81,13 @@ src/
     storage/
       persistenceProvider.ts      # injectable persistence ports + localStorage adapter
       jsonSlot.ts                 # compatibility wrapper for JSON-backed slots
+      modelPickerStorage.ts       # model-picker source filter + recent models
     router.ts                     # tiny hash-router parser/writer
+    diagnostics/
+      logger.ts                   # central logger: ring buffer + console + bridge-file sinks
+      chatLog.ts                  # per-thread forensic JSONL trail
+    bridge/
+      health.ts                   # /health probe (network kept out of the store)
     llm/
       router.ts                   # LlmRouter — picks a provider per Model
       openaiCompat.ts             # base for any OpenAI-shaped /chat/completions
@@ -145,6 +151,19 @@ rule across config objects): UI may not import `services/`, features may not
 import sibling features, and stores/services may not import UI. Tests are
 kept looser so they can reach into `src/` freely.
 
+On top of the import-direction rules, the lint config mechanically enforces
+several project patterns so the codebase stays safe for humans and AI agents to
+extend:
+
+| Rule | Scope | What it locks in |
+| --- | --- | --- |
+| `no-console` (logger exempt) | all `src/` | Runtime diagnostics go through `services/diagnostics/logger`, never raw `console.*`. |
+| `@typescript-eslint/consistent-type-imports` | all `src/` | Type-only deps use `import type`. |
+| `no-restricted-syntax` (no `fetch()`) | `stores/` | Network lives in services; stores consume it. |
+| `no-restricted-globals` (no `localStorage`/`sessionStorage`) | `stores/`, `components/` | Persistence goes through a `services/storage/*` facade. |
+| `import/no-cycle` | all `src/` | No circular imports (which ESM allows but the layers must not have). |
+| `mobx/{missing,exhaustive,unconditional}-make-observable` | `stores/` | Every observable store class is correctly wired. |
+
 ## State management
 
 - **MobX** with class-based stores; each store is a plain object model that
@@ -203,6 +222,26 @@ results without regexing the human-facing result string.
 `ChatStore.executeOneToolCall` runs the registry, persists the
 `content` and `summary` onto the assistant message's `toolResults`, and
 stashes `artifacts` next to it when present.
+
+The `logs` tool (category `diagnostics`) lets the assistant read the app's own
+recent log entries (see Logging below) so it can self-diagnose failures instead
+of guessing.
+
+## Logging & diagnostics
+
+All runtime diagnostics flow through `services/diagnostics/logger.ts`, the single
+sanctioned `console` boundary (the `no-console` lint rule exempts only this
+file). `logger.{debug,info,warn,error}(scope, message, data?)`:
+
+- keeps an in-memory **ring buffer** (last 500 entries) that the `logs` tool
+  reads, so self-diagnosis works in every runtime including Web Lite;
+- writes a **level-filtered console** (everything in dev; warn/error in prod);
+- appends a **JSONL file** to `/workspace/logs/app-<date>.log` via the bridge
+  when desktop is online, so failures survive reloads.
+
+`RootStore` wires the file sink (`configureLogSink`) alongside the per-thread
+forensic `chatLog`. Errors normalize to `{ name, message, stack }`. UI never
+logs directly — it dispatches to a store, which logs.
 
 ## Activity timeline
 

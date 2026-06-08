@@ -2,6 +2,7 @@
 // Called by ChatStore before/after provider or tool work; depends on thread/tool result contracts.
 // Invariant: helpers format diagnostics without mutating message history directly.
 import type { ToolCall } from '../../core/llm';
+import { logger } from '../diagnostics/logger';
 
 export function isToolFailureContent(toolName: string, content: string): boolean {
   const trimmed = content.trim();
@@ -41,7 +42,7 @@ export function logToolCallFailure(opts: {
   bridgeOnline: boolean | undefined;
   readOnly: boolean;
 }): void {
-  console.warn('[tool-call-failed]', {
+  logger.warn('tool-call-failed', 'tool call failed', {
     toolName: opts.call.name,
     toolCallId: opts.call.id,
     threadId: opts.threadId,
