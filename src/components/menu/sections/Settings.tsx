@@ -291,12 +291,25 @@ function WebLiteBrowserData() {
           <code style={{ ...tokens.mono, margin: '0 4px' }}>localStorage</code>.
           Nothing is sent to a server — the host only serves the static app — so clearing this browser's data resets the app.
         </div>
-        <div className="settings-data-summary" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, marginTop: 12, fontSize: 12 }}>
-          <div style={{ color: 'var(--text-dim)' }}>Tracked local data</div>
-          <div style={{ ...tokens.mono, color: 'var(--text-faint)' }}>{ui.formatBytes(total)}</div>
-          <div style={{ color: 'var(--text-dim)' }}>Provider key slot</div>
-          <div style={{ ...tokens.mono, color: keySlot?.present ? 'var(--accent)' : 'var(--text-faint)' }}>
-            {keySlot?.present ? 'present' : 'empty'}
+        <div
+          className="settings-data-summary"
+          style={{
+            marginTop: 14,
+            border: '1px solid var(--border)',
+            borderRadius: 9,
+            background: 'color-mix(in srgb, var(--panel) 55%, transparent)',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '11px 14px' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Tracked local data</span>
+            <span style={{ ...tokens.mono, fontSize: 15, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{ui.formatBytes(total)}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '11px 14px', borderTop: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Provider key slot</span>
+            <span style={{ ...tokens.mono, fontSize: 12, color: keySlot?.present ? 'var(--accent)' : 'var(--text-faint)' }}>
+              {keySlot?.present ? 'present' : 'empty'}
+            </span>
           </div>
         </div>
         <div className="settings-data-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
@@ -305,16 +318,22 @@ function WebLiteBrowserData() {
               key={slot.key}
               title={slot.key}
               style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
                 ...tokens.mono,
                 fontSize: 10.5,
-                color: slot.credential ? 'var(--accent)' : 'var(--text-faint)',
-                border: '1px solid var(--border)',
+                color: slot.credential ? 'var(--accent)' : 'var(--text-dim)',
+                border: `1px solid ${slot.credential ? 'color-mix(in srgb, var(--accent) 45%, var(--border))' : 'var(--border)'}`,
                 borderRadius: 999,
-                padding: '3px 7px',
-                background: 'color-mix(in srgb, var(--panel) 80%, transparent)',
+                padding: '3px 9px',
+                background: slot.credential
+                  ? 'color-mix(in srgb, var(--accent) 12%, transparent)'
+                  : 'color-mix(in srgb, var(--panel) 80%, transparent)',
               }}
             >
-              {slot.label} · {ui.formatBytes(slot.bytes)}
+              {slot.label}
+              <span style={{ color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>{ui.formatBytes(slot.bytes)}</span>
             </span>
           ))}
         </div>

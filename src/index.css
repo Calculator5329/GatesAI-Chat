@@ -486,29 +486,90 @@
 
 /* --- First-run menu discovery cue ----------------------------------------
    The GatesAI wordmark is the only entry point to the menu (the old composer
-   "Menu" button was retired). For first-time users we pulse the wordmark and
-   its accent dot until they open the menu through it. */
-@keyframes gatesBrandDotPulse {
-  0%, 100% { box-shadow: 0 0 0 0 transparent; transform: scale(1); }
-  50%      { box-shadow: 0 0 9px 2px var(--accent-glow); transform: scale(1.4); }
+   "Menu" button was retired). For first-time users we wrap the wordmark in a
+   pulsing accent halo and drop a clickable coachmark beneath it pointing back
+   up, so it reads unmistakably as "the menu / settings live here". Both clear
+   the moment the user opens the menu through it. */
+@keyframes gatesBrandHalo {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 11px color-mix(in srgb, var(--accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
 }
-@keyframes gatesBrandTextGlow {
-  0%, 100% { text-shadow: none; }
-  50%      { text-shadow: 0 0 14px var(--accent-glow); }
+@keyframes gatesBrandDotPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.5); box-shadow: 0 0 10px 2px var(--accent-glow); }
 }
 .editorial-sidebar__brand[data-hint="true"] {
   cursor: pointer;
 }
-.editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot {
-  animation: gatesBrandDotPulse 1.9s ease-in-out infinite;
+/* Halo hugs just the wordmark+dot group; negative margins cancel the padding
+   so adding the highlight never nudges the layout. */
+.editorial-sidebar__brand[data-hint="true"] > div:first-child {
+  border-radius: 9px;
+  padding: 4px 10px;
+  margin: -4px -10px;
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  animation: gatesBrandHalo 1.8s ease-out infinite;
 }
 .editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-text {
-  animation: gatesBrandTextGlow 1.9s ease-in-out infinite;
+  color: var(--accent);
+  text-shadow: 0 0 14px var(--accent-glow);
 }
+.editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot {
+  animation: gatesBrandDotPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes gatesCoachPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 42%, transparent); }
+  60%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+.editorial-sidebar__menu-coach {
+  position: relative;
+  margin: 2px 16px 14px;
+  padding: 8px 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 500 11.5px "Geist", ui-sans-serif, system-ui, sans-serif;
+  text-align: left;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
+  border-radius: 9px;
+  cursor: pointer;
+  animation: gatesCoachPulse 1.9s ease-in-out infinite;
+}
+.editorial-sidebar__menu-coach:hover {
+  background: color-mix(in srgb, var(--accent) 26%, var(--panel));
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--border));
+}
+/* Up-caret pointing at the wordmark above. */
+.editorial-sidebar__menu-coach::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 22px;
+  width: 9px;
+  height: 9px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--panel));
+  border-left: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
+  border-top: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
+  transform: rotate(45deg);
+}
+.editorial-sidebar__menu-coach-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .composer-reveal { transition: none; }
+  .editorial-sidebar__brand[data-hint="true"] > div:first-child,
   .editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot,
-  .editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-text {
+  .editorial-sidebar__menu-coach {
     animation: none;
   }
 }

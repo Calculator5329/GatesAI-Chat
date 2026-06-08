@@ -342,6 +342,19 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           </button>
         )}
       </div>
+      {showMenuHint && !mobileShell && (
+        <button
+          type="button"
+          className="editorial-sidebar__menu-coach"
+          onClick={() => {
+            ui.markMenuHintSeen();
+            router.goMenu();
+          }}
+        >
+          <span className="editorial-sidebar__menu-coach-dot" />
+          Settings &amp; menu live here
+        </button>
+      )}
       <div
         className="editorial-sidebar__new"
         style={S.newBtn as CSSProperties}

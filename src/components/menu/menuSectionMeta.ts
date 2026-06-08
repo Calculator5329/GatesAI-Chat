@@ -19,11 +19,13 @@ export interface MenuSectionMeta {
   badge?: 'Coming soon';
 }
 
+// Settings leads because the brand wordmark (the menu's entry point) opens to
+// it by default — the landing section should be the first, leftmost tab.
 export const MENU_SECTIONS: MenuSectionMeta[] = [
+  { key: 'settings',   label: 'Settings',   component: SettingsSection,   supported: true },
   { key: 'agent',      label: 'Agent',      component: AgentSection,      supported: true },
   { key: 'models',     label: 'Models',     component: ApiSection,        supported: true },
   { key: 'local',      label: 'Local',      component: LocalSection,      supported: true },
   { key: 'workspace',  label: 'Workspace',  component: WorkspaceSection,  supported: true },
   { key: 'gallery',    label: 'Gallery',    component: GallerySection,    supported: true },
-  { key: 'settings',   label: 'Settings',   component: SettingsSection,   supported: true },
 ];
