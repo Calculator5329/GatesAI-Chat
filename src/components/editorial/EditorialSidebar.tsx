@@ -34,7 +34,7 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
   },
   head: { padding: '24px 20px 16px', cursor: 'pointer' },
   newBtn: {
-    margin: '4px 16px 16px', padding: '8px 10px',
+    padding: '8px 10px',
     fontSize: 12, color: 'var(--text-dim)',
     border: '1px solid var(--border)', borderRadius: 2,
     cursor: 'pointer',
@@ -89,7 +89,6 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
     padding: '2px 4px',
   },
   search: {
-    margin: '0 16px 10px',
     height: 30,
     padding: '0 9px',
     border: '1px solid var(--border)',
@@ -365,17 +364,28 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           Settings &amp; menu live here
         </button>
       )}
-      <div
-        className="editorial-sidebar__new"
-        style={S.newBtn as CSSProperties}
-        onClick={() => {
-          router.goThread(chat.createThread());
-          setMobileOpen(false);
-        }}
-        role="button"
-      >
-        <Icons.Plus />
-        <span className="editorial-sidebar__new-label">Begin a new conversation</span>
+      <div className="editorial-sidebar__action-slot">
+        <div
+          className="editorial-sidebar__new"
+          style={S.newBtn as CSSProperties}
+          onClick={() => {
+            router.goThread(chat.createThread());
+            setMobileOpen(false);
+          }}
+          role="button"
+        >
+          <Icons.Plus />
+          <span className="editorial-sidebar__new-label">Begin a new conversation</span>
+        </div>
+        <input
+          className="editorial-sidebar__search"
+          type="search"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search threads"
+          aria-label="Search threads"
+          style={S.search as CSSProperties}
+        />
       </div>
       {mobileShell && (
         <div className="editorial-sidebar__mobile-actions">
@@ -390,17 +400,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           </button>
         </div>
       )}
-      <div className="editorial-sidebar__search-wrap">
-        <input
-          className="editorial-sidebar__search"
-          type="search"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search threads"
-          aria-label="Search threads"
-          style={S.search as CSSProperties}
-        />
-      </div>
       <div className="editorial-sidebar__list" style={S.list as CSSProperties}>
         {pinned.length > 0 && <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Pinned</div>}
         {pinned.map(renderItem)}

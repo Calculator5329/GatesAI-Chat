@@ -434,42 +434,68 @@
 
 /* --- Hover-revealed surfaces ---------------------------------------------
    Design principle: controls stay out of sight until the moment the user
-   reaches for them. The thread search box reveals when the sidebar is hovered
-   or focused; it overlays the chrome above the list (zero-height anchor) so
-   conversation history does not jump. The composer's context/thinking selects
-   slide out when the composer is engaged. Both are scoped to fine-pointer
-   (mouse) devices so touch users — who can't hover — always see the controls. */
+   reaches for them. On desktop, thread search swaps into the same fixed slot
+   as "new conversation" on sidebar hover — no overlap and no list reflow.
+   Touch users always see both controls stacked. Composer reveal selects use
+   the same hover pattern. */
+
+.editorial-sidebar__action-slot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 16px 12px;
+  position: relative;
+}
+
+.editorial-sidebar__action-slot .editorial-sidebar__new,
+.editorial-sidebar__action-slot .editorial-sidebar__search {
+  margin: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Native search clear (×) is redundant — users can select-all/delete or blur away. */
+.editorial-sidebar__search::-webkit-search-cancel-button,
+.editorial-sidebar__search::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
 
 @media (hover: hover) and (pointer: fine) and (min-width: 961px) {
-  .editorial-sidebar__search-wrap {
-    flex: none;
-    height: 0;
-    position: relative;
-    overflow: visible;
-    z-index: 2;
+  .editorial-sidebar__action-slot {
+    display: block;
+    height: 36px;
+    gap: 0;
   }
 
-  .editorial-sidebar__search {
+  .editorial-sidebar__action-slot .editorial-sidebar__new {
+    height: 100%;
+    transition: opacity 150ms ease;
+  }
+
+  .editorial-sidebar__action-slot .editorial-sidebar__search {
     position: absolute;
-    top: -40px;
-    left: 16px;
-    right: 16px;
-    width: auto !important;
-    height: 30px !important;
-    margin: 0 !important;
+    inset: 0;
+    height: 100% !important;
     opacity: 0;
     pointer-events: none;
-    transform: translateY(4px);
-    transition: opacity 150ms ease, transform 150ms ease;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    transition: opacity 150ms ease;
   }
 
-  .editorial-sidebar:hover .editorial-sidebar__search,
-  .editorial-sidebar:focus-within .editorial-sidebar__search,
-  .editorial-sidebar__search:not(:placeholder-shown) {
+  .editorial-sidebar:hover .editorial-sidebar__action-slot .editorial-sidebar__search,
+  .editorial-sidebar:focus-within .editorial-sidebar__action-slot .editorial-sidebar__search,
+  .editorial-sidebar__action-slot .editorial-sidebar__search:not(:placeholder-shown) {
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(0);
+  }
+
+  .editorial-sidebar:hover .editorial-sidebar__action-slot .editorial-sidebar__new,
+  .editorial-sidebar:focus-within .editorial-sidebar__action-slot .editorial-sidebar__new,
+  .editorial-sidebar__action-slot:has(.editorial-sidebar__search:not(:placeholder-shown)) .editorial-sidebar__new {
+    opacity: 0;
+    pointer-events: none;
   }
 }
 
@@ -1279,8 +1305,11 @@ body {
   .bridge-status-pill__label {
     display: none !important;
   }
-  .editorial-sidebar__new {
+  .editorial-sidebar__action-slot {
     margin: 4px 12px 12px !important;
+  }
+  .editorial-sidebar__new {
+    margin: 0 !important;
     padding: 8px !important;
     justify-content: center !important;
   }
@@ -1362,7 +1391,7 @@ body {
     padding-left: 10px !important;
     padding-right: 10px !important;
   }
-  .editorial-sidebar__new,
+  .editorial-sidebar__action-slot,
   .bridge-status-pill {
     margin-left: 10px !important;
     margin-right: 10px !important;
@@ -1420,12 +1449,23 @@ body {
     white-space: nowrap;
   }
 
-  .runtime-web-lite .editorial-sidebar__new {
+  .runtime-web-lite .editorial-sidebar__action-slot {
     grid-column: 2;
     grid-row: 1;
     width: 36px !important;
     height: 36px !important;
     margin: 6px 12px 6px 0 !important;
+    gap: 0;
+  }
+
+  .runtime-web-lite .editorial-sidebar__action-slot .editorial-sidebar__search {
+    display: none !important;
+  }
+
+  .runtime-web-lite .editorial-sidebar__new {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
     padding: 0 !important;
     border-radius: 8px !important;
     justify-content: center !important;
@@ -1702,11 +1742,15 @@ body {
     letter-spacing: 0 !important;
   }
 
+  .runtime-web-lite .editorial-sidebar__action-slot {
+    margin: 10px 8px !important;
+  }
+
   .runtime-web-lite .editorial-sidebar__new {
     flex: none;
     width: 40px !important;
     height: 40px !important;
-    margin: 10px 8px !important;
+    margin: 0 !important;
     padding: 0 !important;
     display: flex !important;
     align-items: center !important;
@@ -1715,10 +1759,15 @@ body {
     background: color-mix(in srgb, var(--panel) 82%, transparent);
   }
 
+  .runtime-web-lite .editorial-sidebar[data-mobile-open="true"] .editorial-sidebar__action-slot {
+    margin: 12px 14px 8px !important;
+    height: auto;
+  }
+
   .runtime-web-lite .editorial-sidebar[data-mobile-open="true"] .editorial-sidebar__new {
     width: auto !important;
     height: 42px !important;
-    margin: 12px 14px 8px !important;
+    margin: 0 !important;
     padding: 0 12px !important;
     justify-content: flex-start !important;
     gap: 10px !important;
@@ -2013,11 +2062,16 @@ body {
     -webkit-tap-highlight-color: transparent;
   }
 
+  .runtime-web-lite .editorial-sidebar__action-slot {
+    margin: 12px 12px 6px !important;
+    height: auto;
+  }
+
   .runtime-web-lite .editorial-sidebar__new {
     flex: none;
     width: auto !important;
     height: 42px !important;
-    margin: 12px 12px 6px !important;
+    margin: 0 !important;
     padding: 0 14px !important;
     display: flex !important;
     align-items: center !important;
@@ -2059,8 +2113,8 @@ body {
     cursor: pointer;
   }
 
-  .runtime-web-lite .editorial-sidebar input[type="search"] {
-    margin: 4px 12px 8px !important;
+  .runtime-web-lite .editorial-sidebar__action-slot input[type="search"] {
+    margin: 0 !important;
     height: 36px !important;
     border-radius: 9px !important;
     font-size: 13px !important;
@@ -2522,11 +2576,16 @@ body {
     cursor: pointer;
   }
 
+  :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__action-slot {
+    margin: 12px 12px 6px !important;
+    height: auto;
+  }
+
   :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__new {
     flex: none;
     width: auto !important;
     height: 42px !important;
-    margin: 12px 12px 6px !important;
+    margin: 0 !important;
     padding: 0 14px !important;
     display: flex !important;
     align-items: center !important;
@@ -2554,8 +2613,8 @@ body {
     cursor: pointer;
   }
 
-  :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar input[type="search"] {
-    margin: 4px 12px 8px !important;
+  :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__action-slot input[type="search"] {
+    margin: 0 !important;
     height: 36px !important;
     border-radius: 9px !important;
     font-size: 13px !important;
