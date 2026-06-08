@@ -3,6 +3,7 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, toJS } from 'mobx';
 import { loadProfile, saveProfile, type UserProfileSnapshot } from '../services/profileStorage';
+import { isWebLite } from '../core/runtime';
 
 /**
  * The user's persistent context — facts about them and a default
@@ -136,7 +137,10 @@ export class UserProfileStore {
     const ctx = (opts?.threadContext ?? '').trim();
     const recent = (opts?.recentSummaries ?? []).map(s => s.trim()).filter(Boolean);
 
-    const parts: string[] = [BRIDGE_HARNESS_PROMPT];
+    // In Web Lite (browser-only) there is no bridge, so the bridge contract
+    // would mislead the model into promising local tools it can't run. Swap in
+    // a harness that states the browser constraints and how to recommend the app.
+    const parts: string[] = [isWebLite() ? WEB_LITE_HARNESS_PROMPT : BRIDGE_HARNESS_PROMPT];
     if (runtime) parts.push(`Runtime context:\n${runtime}`);
     if (head) parts.push(head);
     if (bio) parts.push(`About the user:\n${bio}`);
@@ -178,6 +182,22 @@ const BRIDGE_HARNESS_PROMPT = [
   '- Batch only independent tool calls. If a read/run depends on a write or generated file, do the write first, wait for its result, then run/read.',
   '- For large or bulk data work, keep data in files, generate artifacts under /workspace/artifacts, and validate with counts, ranges, schema checks, or spot checks before claiming success.',
   '- Long-running terminal commands stream progress to the UI, but you only see the final captured result. Use reasonable timeouts and wait for completion before summarizing.',
+].join('\n');
+
+/**
+ * Browser-only "Web Lite" harness. Used instead of {@link BRIDGE_HARNESS_PROMPT}
+ * when {@link isWebLite} — there is no companion bridge, so the model must not
+ * promise local file/terminal/image work, and should point users wanting those
+ * capabilities at the desktop app. Concrete URLs and the user's detected
+ * platform arrive separately via the runtime context block, so this stays
+ * behavioral and avoids hard-coding links here.
+ */
+const WEB_LITE_HARNESS_PROMPT = [
+  'Runtime: Web Lite (browser-only).',
+  '- This is the GatesAI Chat app running entirely in the browser. You can chat with cloud models (via the user\'s OpenRouter key); responses and conversation memory work normally.',
+  '- There is NO local bridge here: you have no filesystem, terminal, SQLite, git, Python, web-search, or local image-generation tools. Do not claim to read/write the user\'s files, run commands, or generate images locally, and do not reference /workspace paths.',
+  '- The desktop app unlocks those local capabilities. When the user wants to work with their own files, run commands/tools, or generate images locally, recommend downloading the desktop app.',
+  '- The "Runtime context" block tells you the user\'s detected OS/architecture, the recommended download link, exactly what that build runs on, and the GitHub repo fallback. Recommend the matching installer when one fits their platform; otherwise point them to the repo to build from source or get another platform\'s build. Always be explicit about what the download runs on, and share the actual link from the runtime context.',
 ].join('\n');
 
 /**
