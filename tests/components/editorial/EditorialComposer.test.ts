@@ -168,7 +168,7 @@ describe('EditorialComposer API-key banner', () => {
     const rendered = render(store);
     act(() => store!.ui.setDraft('hello'));
 
-    expect(rendered.textContent).toContain('Gemini Flash latest');
+    expect(rendered.textContent).toContain('Gemini 3 Flash');
     expect(rendered.textContent).not.toContain('Select model');
     expect(rendered.textContent).not.toContain('Add an OpenRouter key in Models to start chatting.');
     const sendWrapper = sendControl(rendered);
@@ -251,7 +251,7 @@ describe('EditorialComposer API-key banner', () => {
     store.providers.setKey('openrouter', 'sk-test');
     const rendered = render(store);
 
-    expect(rendered.querySelector('.context-meter__tokens')?.textContent).toMatch(/\/ 128k/);
+    expect(rendered.querySelector('.context-meter__tokens')?.textContent).toMatch(/\/ 1M/);
   });
 
   it('does not show API source guidance in the composer footer', () => {
@@ -451,13 +451,11 @@ describe('EditorialComposer audit banners and a11y (Batch B/C/E)', () => {
     expect(picker?.getAttribute('aria-label')).toMatch(/^Model:/);
   });
 
-  it('exposes the desktop menu button with an accessible label', () => {
+  it('no longer renders a composer menu button (menu lives behind the brand wordmark)', () => {
     store = buildStore();
     const rendered = render(store);
 
-    const menu = rendered.querySelector('button.composer-menu-btn') as HTMLButtonElement | null;
-    expect(menu).not.toBeNull();
-    expect(menu?.getAttribute('aria-label')).toBe('Open menu');
+    expect(rendered.querySelector('button.composer-menu-btn')).toBeNull();
   });
 
   it('renders persistence conflict and compaction notices', () => {

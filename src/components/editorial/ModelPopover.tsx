@@ -57,7 +57,7 @@ const AUTO_MODEL: Model = {
   name: 'Auto: Gemini 3 Flash API',
   vendor: 'Recommended',
   providerId: 'openrouter',
-  providerModelId: '~google/gemini-flash-latest',
+  providerModelId: 'google/gemini-3-flash',
   description: 'default API chat, vision, reliable tools',
   supportsVision: true,
 };
@@ -67,6 +67,9 @@ const META: Record<string, ModelMeta> = {
   'or-gemini-3-flash': { tag: 'default API chat, vision, reliable tools', capabilities: ['vision', 'tools', 'fast'], costLabel: '$' },
   'or-deepseek-v4-flash': { tag: 'fast low-cost reasoning', capabilities: ['fast', 'reasoning'], costLabel: '$' },
   'or-gpt-5.5': { tag: 'strong API tools and reasoning', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$' },
+  'or-claude-opus-4.7': { tag: 'prior Claude Opus flagship', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$$' },
+  'or-claude-sonnet-4.7': { tag: 'daily-driver Claude coding and agents', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$' },
+  'or-claude-haiku-4.6': { tag: 'fast Claude for lightweight agent work', capabilities: ['vision', 'tools', 'fast'], costLabel: '$' },
   'or-claude-opus-latest': { tag: 'latest premium Claude reasoning', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$$' },
   'or-gemini-3.1-pro': { tag: 'large API reasoning and vision', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$' },
   'image-direct-comfy': { tag: 'local ComfyUI image generation', capabilities: ['fast'], costLabel: 'LOCAL' },
@@ -82,7 +85,7 @@ const META: Record<string, ModelMeta> = {
 };
 
 const META_BY_PROVIDER_MODEL_ID: Record<string, ModelMeta> = {
-  '~google/gemini-flash-latest': META['or-gemini-3-flash'],
+  'google/gemini-3-flash': META['or-gemini-3-flash'],
   'deepseek/deepseek-v4-flash': META['or-deepseek-v4-flash'],
   'openai/gpt-5.5': META['or-gpt-5.5'],
   '~anthropic/claude-opus-latest': META['or-claude-opus-latest'],

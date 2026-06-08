@@ -30,20 +30,13 @@ export const SettingsSection = observer(function SettingsSection() {
         <Button variant="accent" onClick={() => router.goMenu('models')}>Manage key</Button>
       </Card>
 
-      <div className="settings-quick-actions">
-        <button type="button" onClick={() => router.goMenu('models')}>Models &amp; keys</button>
-        <button type="button" onClick={() => router.goMenu('local')}>Local runtimes</button>
-        <button type="button" onClick={() => router.goMenu('workspace')}>Workspace</button>
-        <button type="button" onClick={() => router.goMenu('gallery')}>Gallery</button>
-      </div>
-
-      <Card className="settings-intro-card" style={{ padding: '14px 18px', marginTop: 12, marginBottom: 20 }}>
-        <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
-          Catalog controls and OpenRouter image generation also live under{' '}
-          <strong style={{ color: 'var(--text)' }}>Models</strong>; installed runtimes (Ollama, ComfyUI) live under{' '}
-          <strong style={{ color: 'var(--text)' }}>Local</strong>. This page keeps your app data and reset actions in one place.
-        </div>
-      </Card>
+      <p className="settings-help-line" style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55, margin: '0 0 22px' }}>
+        Model catalog and image generation live under{' '}
+        <button type="button" className="settings-inline-link" onClick={() => router.goMenu('models')}>Models</button>; installed
+        runtimes (Ollama, ComfyUI) under{' '}
+        <button type="button" className="settings-inline-link" onClick={() => router.goMenu('local')}>Local</button>. This page keeps
+        your app data and reset actions in one place.
+      </p>
 
       <WebLiteBrowserData />
       <DangerZone />
@@ -273,7 +266,6 @@ function WebLiteBrowserData() {
   if (!isWebLite()) return null;
 
   const total = usage.reduce((sum, slot) => sum + slot.bytes, 0);
-  const keySlot = usage.find(slot => slot.credential);
   const nonCredentialSlots = usage.filter(slot => !slot.credential && slot.present);
 
   const clear = (): void => {
@@ -301,40 +293,28 @@ function WebLiteBrowserData() {
             overflow: 'hidden',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '11px 14px' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Tracked local data</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 12.5, color: 'var(--text)', fontWeight: 500 }}>Tracked local data</span>
             <span style={{ ...tokens.mono, fontSize: 15, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>{ui.formatBytes(total)}</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, padding: '11px 14px', borderTop: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Provider key slot</span>
-            <span style={{ ...tokens.mono, fontSize: 12, color: keySlot?.present ? 'var(--accent)' : 'var(--text-faint)' }}>
-              {keySlot?.present ? 'present' : 'empty'}
-            </span>
-          </div>
-        </div>
-        <div className="settings-data-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
           {usage.filter(slot => slot.present).map(slot => (
-            <span
+            <div
               key={slot.key}
               title={slot.key}
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                ...tokens.mono,
-                fontSize: 10.5,
-                color: slot.credential ? 'var(--accent)' : 'var(--text-dim)',
-                border: `1px solid ${slot.credential ? 'color-mix(in srgb, var(--accent) 45%, var(--border))' : 'var(--border)'}`,
-                borderRadius: 999,
-                padding: '3px 9px',
-                background: slot.credential
-                  ? 'color-mix(in srgb, var(--accent) 12%, transparent)'
-                  : 'color-mix(in srgb, var(--panel) 80%, transparent)',
+                display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12,
+                padding: '8px 14px',
+                borderTop: '1px solid color-mix(in srgb, var(--border) 55%, transparent)',
+                background: slot.credential ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : 'transparent',
               }}
             >
-              {slot.label}
-              <span style={{ color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>{ui.formatBytes(slot.bytes)}</span>
-            </span>
+              <span style={{ fontSize: 12, color: slot.credential ? 'var(--accent)' : 'var(--text-dim)' }}>
+                {slot.label}{slot.credential ? ' (kept on clear)' : ''}
+              </span>
+              <span style={{ ...tokens.mono, fontSize: 11.5, color: 'var(--text-faint)', fontVariantNumeric: 'tabular-nums' }}>
+                {ui.formatBytes(slot.bytes)}
+              </span>
+            </div>
           ))}
         </div>
         <div className="settings-action-controls" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8, marginTop: 14 }}>
