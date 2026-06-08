@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { MenuSectionKey, Thread } from '../../core/types';
-import { useChatStore, useRouterStore } from '../../stores/context';
+import { useChatStore, useRouterStore, useUiStore } from '../../stores/context';
 import { threadMatchesSearch } from '../../stores/ChatStore';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
@@ -121,6 +121,7 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
 export const EditorialSidebar = observer(function EditorialSidebar() {
   const chat = useChatStore();
   const router = useRouterStore();
+  const ui = useUiStore();
   const onMenu = router.isMenu;
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -141,6 +142,9 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileShell, setMobileShell] = useState(false);
+  // First-run cue: pulse the brand wordmark until the user opens the menu
+  // through it. State + persistence live in UiStore (no direct storage here).
+  const showMenuHint = !ui.menuHintSeen && !onMenu;
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const mobileMenuTitle = MENU_LABELS[router.menuSection] ?? 'Menu';
   const mobileTitle = onMenu
@@ -304,20 +308,25 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     >
       <div
         className="editorial-sidebar__brand"
+        data-hint={showMenuHint || undefined}
         style={S.head as CSSProperties}
         onClick={() => {
           if (mobileShell) {
+            ui.markMenuHintSeen();
             setMobileOpen(open => !open);
             return;
           }
           if (onMenu) router.goThread(chat.activeThreadId);
-          else router.goMenu();
+          else {
+            ui.markMenuHintSeen();
+            router.goMenu();
+          }
         }}
         title={mobileShell ? (mobileOpen ? 'Collapse sidebar' : 'Expand sidebar') : (onMenu ? 'Back to chat' : 'Open menu')}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
           <div className="editorial-sidebar__brand-text" style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 22, fontWeight: 500, color: 'var(--text)', letterSpacing: '-0.02em' }}>GatesAI</div>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', alignSelf: 'center', marginBottom: 2 }} />
+          <div className="editorial-sidebar__brand-dot" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', alignSelf: 'center', marginBottom: 2 }} />
         </div>
         {mobileShell && (
           <button
@@ -359,6 +368,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         </div>
       )}
       <input
+        className="editorial-sidebar__search"
         type="search"
         value={query}
         onChange={e => setQuery(e.target.value)}

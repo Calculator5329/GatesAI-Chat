@@ -10,6 +10,7 @@ import type {
   MarkdownStyleKey,
 } from '../core/types';
 import { loadUiPrefs, saveUiPrefs, type UiPrefsSnapshot } from '../services/uiPrefsStorage';
+import { loadMenuHintSeen, saveMenuHintSeen } from '../services/storage/uiHintStorage';
 import { logger } from '../services/diagnostics/logger';
 import {
   clearLocalDataExceptCredentials,
@@ -43,6 +44,8 @@ export class UiStore {
   bodyFontSizePx = 17;
   readingWidthPx = 720;
   animationsEnabled = true;
+  /** First-run cue: pulse the brand wordmark until the user opens the menu. */
+  menuHintSeen = loadMenuHintSeen();
 
   constructor() {
     const prefs = loadUiPrefs();
@@ -200,6 +203,13 @@ export class UiStore {
   }
   setReadingWidthPx(value: number): void { this.readingWidthPx = value; }
   setAnimationsEnabled(value: boolean): void { this.animationsEnabled = value; }
+
+  /** Record that the user has discovered the menu; suppresses the brand cue. */
+  markMenuHintSeen(): void {
+    if (this.menuHintSeen) return;
+    this.menuHintSeen = true;
+    saveMenuHintSeen();
+  }
 
   // ── Web Lite browser-data maintenance (facade over services/storage) ──
   // These let the Settings UI inspect and clear browser-resident app data

@@ -78,6 +78,10 @@ const ACCENT_DOT_STYLE: CSSProperties = {
   width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)',
 };
 
+const SEP_STYLE: CSSProperties = {
+  color: 'var(--accent)', opacity: 0.5, flex: 'none',
+};
+
 const LOCAL_CONTEXT_SELECT_STYLE: CSSProperties = {
   appearance: 'none',
   background: 'var(--panel)',
@@ -157,7 +161,6 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   const registry = useModelRegistry();
   const providers = useProviderStore();
   const localRuntime = useLocalRuntimeStore();
-  const router = useRouterStore();
   const [modelOpen, setModelOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -466,27 +469,6 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           </button>
         </div>
         <div className="editorial-composer__meta" style={META_ROW_STYLE}>
-          <button
-            type="button"
-            className="composer-menu-btn"
-            onClick={() => router.goMenu('models')}
-            aria-label="Open menu"
-            title="Models and settings"
-            style={{
-              flex: 'none',
-              padding: '2px 8px',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              background: 'transparent',
-              color: 'var(--text-dim)',
-              cursor: 'pointer',
-              fontSize: 11,
-              fontFamily: 'inherit',
-            }}
-          >
-            Menu
-          </button>
-          <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
           <div style={{ position: 'relative' }}>
             <button
               type="button"
@@ -514,9 +496,13 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               />
             )}
           </div>
-          <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
+          {/* Local context / thinking controls stay tucked away until the
+              composer is hovered or focused, then slide out (see .composer-reveal
+              in index.css). On touch devices the reveal media query never
+              matches, so they remain visible. */}
           {activeThread && currentModel?.providerId === 'ollama' && (
-            <>
+            <span className="composer-reveal">
+              <span style={SEP_STYLE}>·</span>
               <select
                 value={localContextMode}
                 onChange={e => chat.setThreadContextMode(activeThread.id, e.currentTarget.value as ChatContextMode)}
@@ -528,11 +514,11 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                 <option value="bare">bare prompt</option>
                 <option value="micro">micro tools</option>
               </select>
-              <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
-            </>
+            </span>
           )}
           {activeThread && currentModel?.providerId === 'openrouter' && (
-            <>
+            <span className="composer-reveal">
+              <span style={SEP_STYLE}>·</span>
               <select
                 value={thinkingEffort}
                 onChange={e => chat.setThreadThinkingEffort(activeThread.id, e.currentTarget.value as ChatThinkingEffort)}
@@ -545,9 +531,9 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                 <option value="high">thinking high</option>
                 <option value="xhigh">thinking extra high</option>
               </select>
-              <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
-            </>
+            </span>
           )}
+          <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
           <ContextMeter draftText={value} />
           <span style={{
             marginLeft: 'auto',
