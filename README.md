@@ -32,6 +32,22 @@ It is designed to feel like a quiet, editorial writing room and developer consol
 SaaS dashboard: dark theme, serif chat prose, compact operational controls, and an ambient
 activity timeline for everything the model does.
 
+## Download
+
+Prebuilt desktop installers are published on the
+[**latest release**](https://github.com/Calculator5329/GatesAI-Chat/releases/latest). The desktop
+app bundles the local bridge, so files, shell tools, and image generation work out of the box.
+
+| Platform | Download | Runs on |
+| --- | --- | --- |
+| **Windows** | [`GatesAI-Chat-Setup-x64.exe`](https://github.com/Calculator5329/GatesAI-Chat/releases/latest/download/GatesAI-Chat-Setup-x64.exe) | Windows 10/11, 64-bit (runs on ARM via emulation) |
+| **Linux** | [`GatesAI-Chat-x86_64.AppImage`](https://github.com/Calculator5329/GatesAI-Chat/releases/latest/download/GatesAI-Chat-x86_64.AppImage) | Linux x86_64 |
+| **macOS / others** | [Build from source](#getting-started-development) | — (no prebuilt binary yet) |
+
+Prefer to try before installing? The browser **[Web Lite demo](https://calculator5329.github.io/GatesAI-Chat/)**
+runs the full UI with your own OpenRouter key (desktop-only local features are disabled there, and
+it points you to the matching download above).
+
 ---
 
 ## Highlights

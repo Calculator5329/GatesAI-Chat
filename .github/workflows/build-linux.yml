@@ -16,9 +16,8 @@ on:
         required: false
         default: false
         type: boolean
-  push:
-    tags:
-      - 'v*'
+  # Tag pushes are handled by release.yml (which also publishes a GitHub Release).
+  # This workflow stays manual-only for ad-hoc AppImage artifact builds.
 
 jobs:
   build-appimage:
