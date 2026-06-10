@@ -432,12 +432,11 @@
   transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
 }
 
-/* --- Hover-revealed surfaces ---------------------------------------------
-   Design principle: controls stay out of sight until the moment the user
-   reaches for them. On desktop, thread search swaps into the same fixed slot
-   as "new conversation" on sidebar hover — no overlap and no list reflow.
-   Touch users always see both controls stacked. Composer reveal selects use
-   the same hover pattern. */
+/* --- Sidebar action slot --------------------------------------------------
+   New-chat button and thread search are always visible and stacked, so neither
+   one ever overlaps or blocks the other and the thread list below never shifts.
+   (A previous hover-to-swap design made the new-chat button unclickable while
+   hovering the sidebar — exactly when you reach for it.) */
 
 .editorial-sidebar__action-slot {
   flex: none;
@@ -445,7 +444,6 @@
   flex-direction: column;
   gap: 8px;
   margin: 4px 16px 12px;
-  position: relative;
 }
 
 .editorial-sidebar__action-slot .editorial-sidebar__new,
@@ -461,42 +459,6 @@
   -webkit-appearance: none;
   appearance: none;
   display: none;
-}
-
-@media (hover: hover) and (pointer: fine) and (min-width: 961px) {
-  .editorial-sidebar__action-slot {
-    display: block;
-    height: 36px;
-    gap: 0;
-  }
-
-  .editorial-sidebar__action-slot .editorial-sidebar__new {
-    height: 100%;
-    transition: opacity 150ms ease;
-  }
-
-  .editorial-sidebar__action-slot .editorial-sidebar__search {
-    position: absolute;
-    inset: 0;
-    height: 100% !important;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 150ms ease;
-  }
-
-  .editorial-sidebar:hover .editorial-sidebar__action-slot .editorial-sidebar__search,
-  .editorial-sidebar:focus-within .editorial-sidebar__action-slot .editorial-sidebar__search,
-  .editorial-sidebar__action-slot .editorial-sidebar__search:not(:placeholder-shown) {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .editorial-sidebar:hover .editorial-sidebar__action-slot .editorial-sidebar__new,
-  .editorial-sidebar:focus-within .editorial-sidebar__action-slot .editorial-sidebar__new,
-  .editorial-sidebar__action-slot:has(.editorial-sidebar__search:not(:placeholder-shown)) .editorial-sidebar__new {
-    opacity: 0;
-    pointer-events: none;
-  }
 }
 
 .composer-reveal {
@@ -676,6 +638,140 @@ body {
   font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+}
+
+.editorial-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 58px 0 26px;
+  text-align: center;
+}
+
+.editorial-empty-state__eyebrow {
+  font: 11px/1.4 "Geist Mono", ui-monospace, monospace;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 78%, var(--text-dim));
+}
+
+.editorial-empty-state__title {
+  margin: -2px 0 0;
+  color: var(--text);
+  font: 600 38px/1.08 "Source Serif 4", Georgia, serif;
+  letter-spacing: 0;
+}
+
+.editorial-empty-state__lede {
+  max-width: 520px;
+  margin: 0;
+  color: color-mix(in srgb, var(--text-dim) 88%, var(--text));
+  font: 15px/1.65 "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+.editorial-empty-state__primary,
+.web-lite-download-cue__link {
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 88%, var(--accent) 5%);
+  color: var(--accent);
+  font: 13px "Geist", ui-sans-serif, system-ui, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.editorial-empty-state__primary:hover,
+.editorial-empty-state__primary:focus-visible,
+.web-lite-download-cue__link:hover,
+.web-lite-download-cue__link:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  background: color-mix(in srgb, var(--panel) 82%, var(--accent) 9%);
+  outline: none;
+}
+
+.editorial-empty-state__ready {
+  color: var(--text-faint);
+  font: 13px "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+.editorial-empty-state__checklist {
+  width: min(340px, 100%);
+  margin: 8px 0 0;
+  padding: 14px 0 0;
+  border-top: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  list-style: none;
+  color: var(--text-dim);
+  font: 13px/1.35 "Geist", ui-sans-serif, system-ui, sans-serif;
+  text-align: left;
+}
+
+.editorial-empty-state__checklist li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 24px;
+}
+
+.editorial-empty-state__checklist li + li {
+  margin-top: 4px;
+}
+
+.editorial-empty-state__checklist li[data-done="true"] {
+  color: color-mix(in srgb, var(--text-faint) 82%, var(--text-dim));
+}
+
+.editorial-empty-state__check {
+  width: 18px;
+  flex: none;
+  color: var(--text-faint);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  text-align: center;
+}
+
+.editorial-empty-state__checklist li[data-done="true"] .editorial-empty-state__check {
+  color: var(--accent);
+}
+
+.editorial-empty-state__local-note {
+  max-width: 380px;
+  color: var(--text-faint);
+  font: 12px/1.5 "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+.web-lite-download-cue {
+  width: min(420px, 100%);
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 62%, transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+.web-lite-download-cue__copy {
+  max-width: 380px;
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.web-lite-download-cue__link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.web-lite-download-cue__meta {
+  max-width: 380px;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .editorial-mobile-topbar {
@@ -2188,20 +2284,13 @@ body {
 
   .runtime-web-lite .editorial-empty-state {
     min-height: calc(100dvh - var(--mobile-topbar-height) - var(--mobile-composer-reserve) - 44px);
-    display: grid;
-    place-items: center;
-    padding: 0 !important;
+    justify-content: flex-start;
+    padding: 24px 0 0 !important;
   }
 
   .runtime-web-lite .editorial-empty-state::after {
-    content: "Try: create an image, summarize a file, or plan a project";
-    display: block;
-    max-width: 260px;
-    margin-top: 14px;
-    color: var(--text-faint);
-    font: 12px/1.55 "Geist", ui-sans-serif, system-ui, sans-serif;
-    text-align: center;
-    opacity: 0.72;
+    content: none;
+    display: none;
   }
 
   .runtime-web-lite .editorial-composer {

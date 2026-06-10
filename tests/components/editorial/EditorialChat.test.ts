@@ -131,6 +131,8 @@ describe('EditorialChat empty state (Batch C)', () => {
     const rendered = renderChat(store);
 
     expect(rendered.textContent).toContain('GatesAI Chat');
+    expect(rendered.textContent).toContain('Local-first AI workspace');
+    expect(rendered.textContent).toContain('Chat with frontier models');
     expect(rendered.textContent).toContain('Connect OpenRouter in Models');
     expect(rendered.textContent).toContain('Pick a model from the composer');
     expect(rendered.textContent).toContain('Send your first message');

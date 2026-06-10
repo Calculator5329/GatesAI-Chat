@@ -37,72 +37,42 @@ const ChatEmptyState = observer(function ChatEmptyState() {
   ];
 
   return (
-    <div className="editorial-empty-state" style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
-      padding: '64px 0 24px', textAlign: 'center',
-    }}>
-      <div style={{
-        fontFamily: '"Source Serif 4", Georgia, serif',
-        fontSize: 26, letterSpacing: '-0.01em', color: 'var(--text)',
-      }}>
-        GatesAI Chat
-      </div>
-      <div style={{
-        fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-        fontSize: 14, lineHeight: 1.5, color: 'var(--text-dim)',
-        maxWidth: 440,
-      }}>
-        A local-first AI workspace — chat with frontier models, run tools over
-        your files, and generate images, all from one window.
-      </div>
+    <div className="editorial-empty-state">
+      <div className="editorial-empty-state__eyebrow">Local-first AI workspace</div>
+      <h1 className="editorial-empty-state__title">GatesAI Chat</h1>
+      <p className="editorial-empty-state__lede">
+        {webLite
+          ? 'Chat with frontier models from this browser. Move to desktop when you want local files, tools, and image generation in the same workspace.'
+          : 'Chat with frontier models, run tools over local files, and generate images in one quiet workspace.'}
+      </p>
 
       {needsKey ? (
         <button
           type="button"
+          className="editorial-empty-state__primary"
           onClick={() => router.goMenu('models')}
-          style={{
-            marginTop: 6,
-            padding: '8px 16px',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            background: 'var(--panel)',
-            color: 'var(--accent)',
-            cursor: 'pointer',
-            fontSize: 13,
-            fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-          }}
         >
           Add your OpenRouter key in Models
         </button>
       ) : (
-        <div style={{
-          fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-          fontSize: 13, color: 'var(--text-faint)',
-        }}>
+        <div className="editorial-empty-state__ready">
           Type a message below to begin.
         </div>
       )}
 
-      <ul style={{
-        listStyle: 'none', padding: 0, margin: '8px 0 0', textAlign: 'left',
-        fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-        fontSize: 13, color: 'var(--text-dim)', maxWidth: 320,
-      }}>
+      <ul className="editorial-empty-state__checklist" aria-label="Setup checklist">
         {checklist.map(item => (
-          <li key={item.label} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
-            <span aria-hidden="true" style={{ color: item.done ? 'var(--accent)' : 'var(--text-faint)' }}>
+          <li key={item.label} data-done={item.done || undefined}>
+            <span aria-hidden="true" className="editorial-empty-state__check">
               {item.done ? '✓' : '○'}
             </span>
-            <span style={{ opacity: item.done ? 0.7 : 1 }}>{item.label}</span>
+            <span>{item.label}</span>
           </li>
         ))}
       </ul>
 
       {webLite && (
-        <div style={{
-          fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-          fontSize: 12, color: 'var(--text-faint)', maxWidth: 360,
-        }}>
+        <div className="editorial-empty-state__local-note">
           Your conversations are saved locally in this browser.
         </div>
       )}
@@ -124,37 +94,24 @@ function WebLiteDownloadCue() {
   const rec = recommendedDownload(os, arch);
   const isSource = rec.kind === 'source';
   return (
-    <div style={{
-      marginTop: 6,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-      fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-    }}>
-      <div style={{ fontSize: 12, color: 'var(--text-dim)', maxWidth: 380 }}>
+    <div className="web-lite-download-cue">
+      <div className="web-lite-download-cue__copy">
         Want local files, tools, and image generation? Get the desktop app.
       </div>
       <a
         href={rec.url}
         target="_blank"
         rel="noopener noreferrer"
-        style={{
-          padding: '8px 16px',
-          border: '1px solid var(--border)',
-          borderRadius: 8,
-          background: 'var(--panel)',
-          color: 'var(--accent)',
-          cursor: 'pointer',
-          fontSize: 13,
-          textDecoration: 'none',
-        }}
+        className="web-lite-download-cue__link"
       >
         {isSource ? 'Get it on GitHub' : rec.label}
       </a>
-      <div style={{ fontSize: 11, color: 'var(--text-faint)', maxWidth: 380 }}>
+      <div className="web-lite-download-cue__meta">
         {rec.runsOn}
         {!isSource && ' · other platforms on GitHub'}
       </div>
       {rec.note && (
-        <div style={{ fontSize: 11, color: 'var(--text-faint)', maxWidth: 380 }}>
+        <div className="web-lite-download-cue__meta">
           {rec.note}
         </div>
       )}
