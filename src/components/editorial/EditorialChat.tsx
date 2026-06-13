@@ -92,8 +92,23 @@ function WebLiteDownloadCue() {
   const { os, arch } = clientPlatform();
   const rec = recommendedDownload(os, arch);
   const isSource = rec.kind === 'source';
+  // Self-dismiss once the fade-out completes so the toast never lingers — an
+  // invisible fixed element would keep covering the composer. The timer is a
+  // fallback for environments that suppress CSS animations (prefers-reduced-
+  // motion), where `animationend` may never fire.
+  const [dismissed, setDismissed] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setDismissed(true), 11_000);
+    return () => clearTimeout(timer);
+  }, []);
+  if (dismissed) return null;
   return (
-    <div className="web-lite-download-cue">
+    <div
+      className="web-lite-download-cue"
+      onAnimationEnd={event => {
+        if (event.target === event.currentTarget) setDismissed(true);
+      }}
+    >
       <div className="web-lite-download-cue__copy">
         Want local files, tools, and image generation? Get the desktop app.
       </div>

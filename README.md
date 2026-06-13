@@ -189,5 +189,5 @@ src/
   services/     llm/, tools/, image/, bridge, storage, diagnostics/, local/, compat/, search/, router
   core/         types, models, providers, theme, runtime
 tests/          Vitest suite (kept out of the app build)
-docs/           architecture, tech spec, roadmap, changelog, audits, plans, notes
+docs/           handbook, architecture, tech spec, roadmap, changelog, audits, plans, notes
 ```
