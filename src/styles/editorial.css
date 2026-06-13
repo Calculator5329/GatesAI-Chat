@@ -616,42 +616,34 @@
 }
 
 @keyframes webLiteCueToast {
-  0% {
+  from {
     opacity: 0;
-    transform: translate(18px, 8px);
+    transform: translateY(6px);
   }
-  10% {
+  to {
     opacity: 1;
-    transform: translate(0, 0);
-  }
-  58% {
-    opacity: 1;
-    transform: translate(0, 0);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(0, 0);
+    transform: translateY(0);
   }
 }
 
 .web-lite-download-cue {
-  position: fixed;
-  right: max(18px, env(safe-area-inset-right));
-  bottom: max(18px, env(safe-area-inset-bottom));
-  z-index: 20;
-  width: min(360px, calc(100vw - 36px));
+  /* In-flow nudge that sits directly above the composer in the empty Web Lite
+     state (it unmounts once the first message is sent). Deliberately NOT a
+     fixed overlay, so it can never cover the composer's Send button. */
+  align-self: center;
+  width: min(360px, calc(100% - 36px));
+  margin: 0 auto 10px;
   padding: 14px;
   border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel) 94%, #050608 6%);
-  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.34);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
   font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
   text-align: left;
-  animation: webLiteCueToast 8.5s ease-out 0.25s both;
+  animation: webLiteCueToast 0.35s ease-out both;
 }
 
 .web-lite-download-cue:hover,

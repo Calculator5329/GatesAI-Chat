@@ -1,7 +1,7 @@
 {
   "name": "gatesai-chat",
   "private": true,
-  "version": "4.0.0",
+  "version": "4.0.2",
   "description": "Local-first desktop AI chat workspace (React 19 + Tauri 2) with a sandboxed local bridge for files, shell, SQLite, git, web search, and image generation.",
   "homepage": "https://calculator5329.github.io/GatesAI-Chat/",
   "repository": {
