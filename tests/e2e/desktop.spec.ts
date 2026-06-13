@@ -44,29 +44,6 @@ test.describe('desktop (mocked bridge + LLM)', () => {
     await expect(page.locator('.md-body', { hasText: 'Mock reply from the assistant.' })).toBeVisible();
   });
 
-  test('searches message bodies, not just titles', async ({ page }) => {
-    await seedThreads(
-      page,
-      [
-        makeThread('t1', 'Alpha thread', [
-          { id: 'm1', role: 'user', content: 'hello world apple', createdAt: 1 },
-          { id: 'm2', role: 'assistant', content: 'assistant reply about apples', createdAt: 2 },
-        ]),
-        makeThread('t2', 'Beta thread', [
-          { id: 'm3', role: 'user', content: 'completely zebra unique body', createdAt: 3 },
-        ]),
-      ],
-      't1',
-    );
-    await page.goto('/');
-
-    // Body search reaches conversation content, not just titles.
-    await page.locator('input[aria-label="Search threads"]').fill('zebra');
-    await page.waitForTimeout(150);
-    await expect(page.locator('.editorial-sidebar__item', { hasText: 'Beta thread' })).toHaveCount(1);
-    await expect(page.locator('.editorial-sidebar__item', { hasText: 'Alpha thread' })).toHaveCount(0);
-  });
-
   test('favoriting a model surfaces a Favorites section', async ({ page }) => {
     await page.goto('/');
     await page.locator('.composer-model-label').click();
@@ -93,14 +70,14 @@ test.describe('desktop (mocked bridge + LLM)', () => {
     );
     await page.goto('/');
 
+    // No debounce wait needed: clicking a sidebar item blurs the textarea,
+    // and the composer flushes the local draft to the store on blur.
     await page.locator('.composer-textarea').fill('draft for alpha');
-    await page.waitForTimeout(150);
 
     await page.locator('.editorial-sidebar__item', { hasText: 'Beta thread' }).click();
     await expect(page.locator('.composer-textarea')).toHaveValue('');
     await expect(page.getByText('hello from beta')).toBeVisible();
     await page.locator('.composer-textarea').fill('draft for beta');
-    await page.waitForTimeout(150);
 
     await page.locator('.editorial-sidebar__item', { hasText: 'Alpha thread' }).click();
     await expect(page.locator('.composer-textarea')).toHaveValue('draft for alpha');

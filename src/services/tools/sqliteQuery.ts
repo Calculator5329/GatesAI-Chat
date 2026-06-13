@@ -2,7 +2,7 @@
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ExecRunResp } from '../../core/workspace';
-import { BridgeOfflineError } from '../bridge/client';
+import { describeBridgeError, requireBridge } from './requireBridge';
 import { denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
 import type { Tool } from './types';
 
@@ -67,8 +67,8 @@ export const sqliteQueryTool: Tool = {
   },
 
   async execute(args, ctx) {
-    if (!ctx.bridge) return 'Error: bridge unavailable in this context.';
-    if (!ctx.bridge.isOnline) return 'Error: bridge offline. Start gatesai-bridge.';
+    const guard = requireBridge(ctx);
+    if (!guard.ok) return guard.error;
 
     const path = typeof args.path === 'string' ? args.path.trim() : '';
     const sql = typeof args.sql === 'string' ? args.sql.trim() : '';
@@ -92,7 +92,7 @@ export const sqliteQueryTool: Tool = {
     const timeout_ms = typeof args.timeout_ms === 'number' ? args.timeout_ms : 10_000;
 
     try {
-      const resp = await ctx.bridge.client.request<ExecRunResp>('exec.run', {
+      const resp = await guard.bridge.client.request<ExecRunResp>('exec.run', {
         cmd: 'python',
         args: ['-c', SQLITE_HELPER],
         cwd: undefined,
@@ -101,8 +101,7 @@ export const sqliteQueryTool: Tool = {
       });
       return formatSqliteResult(path, resp);
     } catch (err) {
-      const message = err instanceof BridgeOfflineError ? err.message : (err as Error).message;
-      return `Error: ${message}`;
+      return describeBridgeError(err);
     }
   },
 };

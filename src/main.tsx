@@ -8,6 +8,8 @@ import { StoreProvider } from './stores/context';
 const container = document.getElementById('root');
 if (!container) throw new Error('Root element #root not found');
 
+rootStore.boot();
+
 createRoot(container).render(
   <StrictMode>
     <StoreProvider store={rootStore}>

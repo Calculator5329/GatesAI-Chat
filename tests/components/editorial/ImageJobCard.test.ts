@@ -134,11 +134,34 @@ describe('ImageJobCard UI (Batch D)', () => {
     });
 
     const rendered = renderCard(minimalStore(imageJobs, bridge), 'done-missing-file');
-    await act(async () => {
-      await flush(30);
-      await new Promise(resolve => setTimeout(resolve, 50));
+    // State-based wait: poll until the failed artifact load renders the
+    // missing-file notice instead of sleeping a fixed 50ms. Each poll runs an
+    // empty act() so React flushes the MobX-triggered update before we read
+    // the DOM.
+    await vi.waitFor(async () => {
+      await act(async () => {});
+      expect(rendered.textContent).toContain('Image file missing');
     });
-    expect(rendered.textContent).toContain('Image file missing');
+  });
+
+  it('shows waiting-provider copy when OpenRouter synthetic progress reaches its cap', () => {
+    const imageJobs = new ImageJobStore();
+    const bridge = new BridgeStore();
+    runInAction(() => {
+      bridge.state = 'online';
+      imageJobs.active = {
+        ...baseJob,
+        id: 'openrouter-waiting',
+        backend: 'openrouter-image',
+        status: 'running',
+        startedAt: Date.now() - 130_000,
+        progress: { value: 92, max: 100 },
+      };
+    });
+
+    const rendered = renderCard(minimalStore(imageJobs, bridge), 'openrouter-waiting');
+    expect(rendered.textContent).toContain('Waiting on provider...');
+    expect(rendered.textContent).toContain('OpenRouter remote render');
   });
 });
 
@@ -236,5 +259,24 @@ describe('imageCache (LRU bounded)', () => {
     expect(b).toBe('data:image/png;base64,AAA=');
     expect(reads).toBe(1);
     expect(__imageCacheTestApi.inflightSize()).toBe(0);
+  });
+
+  it('keeps separate cache entries for different attachment cache keys on the same path', async () => {
+    let reads = 0;
+    const bridge = {
+      readAttachmentBase64: async () => {
+        reads++;
+        return { mime: 'image/png', base64: reads === 1 ? 'AAA=' : 'BBB=' };
+      },
+    };
+
+    const a = await loadImageSource(bridge as never, '/workspace/attachments/image.png', 'att-a');
+    const b = await loadImageSource(bridge as never, '/workspace/attachments/image.png', 'att-b');
+
+    expect(a).toBe('data:image/png;base64,AAA=');
+    expect(b).toBe('data:image/png;base64,BBB=');
+    expect(reads).toBe(2);
+    expect(__imageCacheTestApi.has('att-a')).toBe(true);
+    expect(__imageCacheTestApi.has('att-b')).toBe(true);
   });
 });

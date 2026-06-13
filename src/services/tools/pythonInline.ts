@@ -2,7 +2,7 @@
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ExecRunResp } from '../../core/workspace';
-import { BridgeOfflineError } from '../bridge/client';
+import { describeBridgeError, requireBridge } from './requireBridge';
 import { denyIfReferencesProtectedChatHistory } from './protectedWorkspacePaths';
 import type { Tool } from './types';
 
@@ -40,8 +40,8 @@ export const pythonInlineTool: Tool = {
   },
 
   async execute(args, ctx) {
-    if (!ctx.bridge) return 'Error: bridge unavailable in this context.';
-    if (!ctx.bridge.isOnline) return 'Error: bridge offline. Start gatesai-bridge.';
+    const guard = requireBridge(ctx);
+    if (!guard.ok) return guard.error;
 
     const code = typeof args.code === 'string' ? args.code : '';
     if (!code.trim()) return 'Error: `code` is required.';
@@ -57,7 +57,7 @@ export const pythonInlineTool: Tool = {
     if (protectedDenial) return protectedDenial;
 
     try {
-      const resp = await ctx.bridge.client.request<ExecRunResp>('exec.run', {
+      const resp = await guard.bridge.client.request<ExecRunResp>('exec.run', {
         cmd: 'python',
         args: ['-c', code],
         cwd: undefined,
@@ -66,8 +66,7 @@ export const pythonInlineTool: Tool = {
       });
       return formatPythonInlineResult(resp);
     } catch (err) {
-      const message = err instanceof BridgeOfflineError ? err.message : (err as Error).message;
-      return `Error: ${message}`;
+      return describeBridgeError(err);
     }
   },
 };

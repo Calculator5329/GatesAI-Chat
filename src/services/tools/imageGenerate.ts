@@ -11,8 +11,11 @@ import {
   type ImageBackendId,
 } from '../image/types';
 import { PROTECTED_CHAT_HISTORY_DENIAL, denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
+import { requireBridge } from './requireBridge';
 import type { Tool } from './types';
 import type { FsReadResp } from '../../core/workspace';
+
+const IMAGE_GENERATE_BRIDGE_OFFLINE = 'Error: bridge is offline. Start the gatesai-bridge companion process and try again.';
 
 /**
  * image_generate — enqueue an image-render job. The render runs in the
@@ -109,7 +112,11 @@ export const imageGenerateTool: Tool = {
     if (!prompt && !promptFile) return 'Error: `prompt` is required.';
     if (!ctx.imageGen) return 'Error: image-generation is not configured in this session.';
     if (!ctx.imageJobs) return 'Error: image-jobs subsystem is not available in this session.';
-    if (!ctx.bridge?.isOnline) return 'Error: bridge is offline. Start the gatesai-bridge companion process and try again.';
+    const guard = requireBridge(ctx, {
+      unavailable: IMAGE_GENERATE_BRIDGE_OFFLINE,
+      offline: IMAGE_GENERATE_BRIDGE_OFFLINE,
+    });
+    if (!guard.ok) return guard.error;
 
     const configuredSnapshot = ctx.imageGen.toBackendConfig();
     const backend = resolveBackendOverride(args.backend, configuredSnapshot.primary);

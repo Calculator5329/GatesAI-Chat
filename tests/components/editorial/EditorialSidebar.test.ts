@@ -95,41 +95,29 @@ beforeEach(() => {
   });
 });
 
-afterEach(async () => {
+afterEach(() => {
   if (root) act(() => root?.unmount());
   root = null;
   host?.remove();
   host = null;
   store?.router.destroy();
+  // dispose() drains the 250ms autosave throttle synchronously, so no timer
+  // can write to localStorage after clearAppStorage() (previously a 260ms sleep).
+  store?.chat.dispose();
   store = null;
   vi.useRealTimers();
   vi.restoreAllMocks();
-  await new Promise(resolve => setTimeout(resolve, 260));
   flushPendingSnapshot();
   clearAppStorage();
 });
 
-describe('EditorialSidebar search', () => {
-  it('debounces search and caps rendered matches while preserving the default 20-row history', () => {
+describe('EditorialSidebar history list', () => {
+  it('caps the unpinned history at 20 rows while still showing pinned threads', () => {
     store = buildStore();
     seedThreads(store.chat, 150);
 
     const rendered = renderSidebar(store);
+    expect(rendered.querySelector('input[type="search"]')).toBeNull();
     expect(rendered.querySelectorAll('.editorial-sidebar__item').length).toBe(20);
-
-    const input = rendered.querySelector('input[type="search"]') as HTMLInputElement | null;
-    if (!input) throw new Error('missing search input');
-
-    act(() => {
-      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
-      valueSetter?.call(input, 'alpha');
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    expect(rendered.querySelectorAll('.editorial-sidebar__item').length).toBe(20);
-
-    act(() => {
-      vi.advanceTimersByTime(120);
-    });
-    expect(rendered.querySelectorAll('.editorial-sidebar__item').length).toBe(100);
   });
 });

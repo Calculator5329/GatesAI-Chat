@@ -28,8 +28,26 @@ export const LOCAL_DATA_SLOTS: LocalDataSlot[] = [
   { key: 'gatesai.modelPicker.recent.v1', label: 'Recent models' },
   { key: 'gatesai.modelPicker.favorites.v1', label: 'Favorite models' },
   { key: 'gatesai.userGuide.opened.v1', label: 'Guide opened flag' },
+  { key: 'gatesai.menuHintSeen.v1', label: 'Menu hint seen flag' },
   { key: 'gatesai.providers.v1', label: 'Provider API keys', credential: true },
+  { key: 'gatesai.search.v1', label: 'Web search API key', credential: true },
 ];
+
+/** Matches quarantined snapshots like `gatesai.state.v1.corrupt-1717…`. */
+const CORRUPT_KEY_PATTERN = /^gatesai\..*\.corrupt-\d+$/;
+
+function corruptSnapshotKeys(): string[] {
+  const keys: string[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key && CORRUPT_KEY_PATTERN.test(key)) keys.push(key);
+    }
+  } catch (err) {
+    logger.warn('persistence', 'Web Lite localStorage key scan failed', { err });
+  }
+  return keys;
+}
 
 export function readLocalDataUsage(): LocalDataSlotUsage[] {
   return LOCAL_DATA_SLOTS.map(slot => {
@@ -43,12 +61,15 @@ export function readLocalDataUsage(): LocalDataSlotUsage[] {
 }
 
 export function clearLocalDataExceptCredentials(): void {
-  for (const slot of LOCAL_DATA_SLOTS) {
-    if (slot.credential) continue;
+  const keys = [
+    ...LOCAL_DATA_SLOTS.filter(slot => !slot.credential).map(slot => slot.key),
+    ...corruptSnapshotKeys(),
+  ];
+  for (const key of keys) {
     try {
-      localStorage.removeItem(slot.key);
+      localStorage.removeItem(key);
     } catch (err) {
-      logger.warn('persistence', 'Web Lite localStorage clear failed', { key: slot.key, err });
+      logger.warn('persistence', 'Web Lite localStorage clear failed', { key, err });
     }
   }
 }

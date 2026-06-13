@@ -15,13 +15,15 @@ export const WorkspaceImage = observer(function WorkspaceImage({
   path,
   alt,
   kind,
+  cacheKey,
 }: {
   path: string;
   alt: string;
   kind: string;
+  cacheKey?: string;
 }) {
   const bridge = useBridgeStore();
-  const { src, failed } = useImageDataUrl(path);
+  const { src, failed } = useImageDataUrl(path, cacheKey);
 
   return (
     <button

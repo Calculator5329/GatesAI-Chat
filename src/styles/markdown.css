@@ -1,0 +1,391 @@
+/*
+ * Markdown layer: rendered message bodies — themes/density variables,
+ * headings, code blocks, KaTeX trim, tables, and HTML artifact previews.
+ */
+
+.markdown-editorial,
+.markdown-technical,
+.markdown-compact {
+  --md-body-font: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --md-heading-font: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --md-code-bg-inline: rgba(255,255,255,0.06);
+  --md-code-bg-block: rgba(8, 10, 14, 0.9);
+  --md-code-head: rgba(14, 16, 22, 0.95);
+  --md-code-border: var(--border);
+  --md-code-text: var(--text);
+  --md-code-radius: 8px;
+  --md-code-shadow: none;
+  --md-p-gap: 14px;
+  --md-list-gap: 10px;
+  --md-block-gap: 16px;
+  --md-heading-weight: 600;
+  --md-heading-style: normal;
+}
+.markdown-technical {
+  --md-body-font: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --md-heading-font: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --md-heading-style: normal;
+  --md-heading-weight: 650;
+}
+.markdown-compact {
+  --md-p-gap: 10px;
+  --md-list-gap: 6px;
+  --md-block-gap: 12px;
+}
+.markdown-density-compact {
+  --md-p-gap: 9px;
+  --md-list-gap: 6px;
+  --md-block-gap: 12px;
+}
+.markdown-density-comfortable {
+  --md-p-gap: 14px;
+  --md-list-gap: 10px;
+  --md-block-gap: 16px;
+}
+.markdown-density-spacious {
+  --md-p-gap: 18px;
+  --md-list-gap: 14px;
+  --md-block-gap: 22px;
+}
+.code-obsidian {
+  --md-code-bg-inline: rgba(255,255,255,0.06);
+  --md-code-bg-block: rgba(8, 10, 14, 0.92);
+  --md-code-head: rgba(14, 16, 22, 0.95);
+  --md-code-border: var(--border);
+  --md-code-text: var(--text);
+  --md-code-radius: 8px;
+  --md-code-shadow: none;
+}
+.code-terminal {
+  --md-code-bg-inline: color-mix(in srgb, var(--accent) 10%, rgba(0,0,0,0.36));
+  --md-code-bg-block: #030504;
+  --md-code-head: color-mix(in srgb, var(--accent) 11%, #030504);
+  --md-code-border: color-mix(in srgb, var(--accent) 32%, transparent);
+  --md-code-text: color-mix(in srgb, var(--accent) 24%, var(--text));
+  --md-code-radius: 2px;
+  --md-code-shadow: inset 0 0 0 1px rgba(0,0,0,0.65), 0 0 18px color-mix(in srgb, var(--accent) 9%, transparent);
+}
+.code-paper {
+  --md-code-bg-inline: color-mix(in srgb, var(--panel-3) 80%, var(--text) 8%);
+  --md-code-bg-block: color-mix(in srgb, var(--panel-2) 88%, var(--text) 6%);
+  --md-code-head: color-mix(in srgb, var(--panel-3) 94%, var(--text) 6%);
+  --md-code-border: color-mix(in srgb, var(--text-faint) 32%, transparent);
+  --md-code-text: var(--text);
+  --md-code-radius: 4px;
+  --md-code-shadow: none;
+}
+.code-size-small {
+  --md-code-font-size: 11.5px;
+  --md-code-padding: 11px 13px;
+}
+.code-size-medium {
+  --md-code-font-size: 12.5px;
+  --md-code-padding: 14px 16px;
+}
+.code-size-large {
+  --md-code-font-size: 14px;
+  --md-code-padding: 16px 18px;
+}
+
+.md-body {
+  color: var(--text);
+  font-family: var(--md-body-font);
+  font-size: var(--md-body-font-size, 17px);
+}
+
+.md-body p { margin: 0 0 var(--md-p-gap); }
+.md-body p:last-child { margin-bottom: 0; }
+.md-body ol, .md-body ul { margin: 0 0 var(--md-p-gap); padding-left: 24px; display: flex; flex-direction: column; gap: var(--md-list-gap); }
+.md-body li { line-height: 1.6; }
+
+/* ---------- shared heading skeleton (no font-family — set per theme) ---------- */
+.md-body :is(h1, h2, h3, h4, h5, h6) {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  line-height: 1.25;
+}
+.md-body :is(h1, h2, h3, h4, h5, h6):first-child { margin-top: 0; }
+.md-body h1 { font-size: 1.32em; margin: 24px 0 10px; }
+.md-body h2 { font-size: 1.15em; margin: 22px 0 8px; }
+.md-body h3 { font-size: 1.02em; margin: 18px 0 6px; }
+.md-body h4 { font-size: 0.95em; margin: 14px 0 4px; color: var(--text-dim); text-transform: none; }
+.md-body h5,
+.md-body h6 { font-size: 0.9em;  margin: 12px 0 4px; color: var(--text-dim); }
+.md-body :is(h1, h2, h3) + :is(p, ul, ol, pre, table, blockquote) { margin-top: 0; }
+
+/* ---------- KaTeX trim — keep math inline-friendly with the serif body ---------- */
+.md-body .katex { font-size: 1em; }
+.md-body .katex-display { margin: 14px 0; overflow-x: auto; overflow-y: hidden; }
+.md-body .katex-display > .katex { white-space: nowrap; }
+
+/* Editorial heading voice — quiet serif in the same family as the prose, so
+   headings read like emphasized body copy. This is the only variant. */
+.md-body :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--md-heading-font);
+  font-weight: var(--md-heading-weight);
+}
+.md-body h1 { font-size: 1.35em; }
+.md-body h2 { font-size: 1.18em; }
+.md-body h3 { font-style: var(--md-heading-style); font-weight: 500; color: var(--text); }
+
+/* Hide horizontal rules — markdown emits <hr> for `---` and the default
+   browser styling produces a heavy line under every section, which fights
+   the quiet typographic rhythm. Reclaim the vertical space as breathing
+   room instead. */
+.md-body hr {
+  border: 0;
+  height: 0;
+  margin: 18px 0;
+}
+.md-body code:not(pre code) {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 0.9em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--md-code-bg-inline);
+  color: var(--md-code-text);
+}
+
+/*
+ * workspace-path-link: inline code that the model wrote as a /workspace/...
+ * path becomes a clickable chip the OS can open. Reads as a quiet link
+ * (accent color, underline on hover) but keeps the mono code interior so
+ * the path itself stays scannable.
+ */
+.md-body .workspace-path-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  text-align: inherit;
+  border-radius: 4px;
+}
+.md-body .workspace-path-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 2px;
+}
+.md-body .workspace-path-link code {
+  color: var(--accent);
+  background: var(--md-code-bg-inline);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  text-underline-offset: 3px;
+  transition: text-decoration-color 120ms ease;
+}
+.md-body .workspace-path-link:hover code {
+  text-decoration-color: var(--accent);
+}
+.md-body .workspace-path-link__glyph {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+.md-body pre {
+  margin: var(--md-block-gap) 0;
+  border-radius: var(--md-code-radius);
+  border: 1px solid var(--md-code-border);
+  background: var(--md-code-bg-block) !important;
+  box-shadow: var(--md-code-shadow);
+  overflow: hidden;
+}
+.md-body pre code.hljs {
+  display: block;
+  padding: var(--md-code-padding);
+  background: transparent !important;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: var(--md-code-font-size);
+  line-height: 1.6;
+  overflow-x: auto;
+}
+.mermaid-diagram {
+  margin: var(--md-block-gap) 0;
+  padding: 14px;
+  border: 1px solid var(--md-code-border);
+  border-radius: var(--md-code-radius);
+  background: var(--md-code-bg-block);
+  overflow-x: auto;
+}
+.mermaid-diagram svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+.mermaid-diagram--fallback {
+  color: var(--text-faint);
+}
+.mermaid-diagram--fallback code {
+  display: block;
+  padding: 0;
+  white-space: pre-wrap;
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: var(--md-code-font-size);
+}
+.md-body table {
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+  font-size: 13.5px;
+}
+.md-body th, .md-body td {
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  text-align: left;
+}
+.md-body th {
+  background: rgba(255,255,255,0.04);
+  font-weight: 600;
+}
+.md-body strong { color: var(--text); font-weight: 600; }
+.md-body a { color: var(--accent); }
+
+.streaming-plain-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.html-artifact-preview {
+  display: block;
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel, #111318) 86%, var(--text) 4%);
+  color: var(--text);
+  overflow: hidden;
+  cursor: pointer;
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+.html-artifact-preview__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.html-artifact-preview__meta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.html-artifact-preview__eyebrow {
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.html-artifact-preview__name {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.html-artifact-preview__path {
+  color: var(--text-faint);
+  background: transparent !important;
+  padding: 0 !important;
+  font-size: 10px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.html-artifact-preview__open,
+.html-artifact-fullscreen__actions button {
+  flex: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg) 82%, var(--text) 8%);
+  color: var(--text-dim);
+  padding: 6px 10px;
+  font: 12px "Geist", ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+.html-artifact-preview__open:hover,
+.html-artifact-fullscreen__actions button:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--text);
+}
+.html-artifact-preview__frame {
+  display: block;
+  height: clamp(260px, 44vw, 420px);
+  background: #ffffff;
+  overflow: hidden;
+}
+.html-artifact-preview__frame iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  pointer-events: none;
+}
+.html-artifact-preview__fallback {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  color: #687182;
+  background: #f7f8fb;
+  text-align: center;
+  font: 12px "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+.html-artifact-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  border-left: 1px solid var(--border);
+}
+.html-artifact-fullscreen__bar {
+  height: 48px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 92%, var(--text) 5%);
+}
+.html-artifact-fullscreen__meta {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font: 13px "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+.html-artifact-fullscreen__meta span {
+  flex: none;
+}
+.html-artifact-fullscreen__meta code {
+  color: var(--text-faint);
+  background: transparent;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.html-artifact-fullscreen__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.html-artifact-fullscreen iframe {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: #fff;
+}

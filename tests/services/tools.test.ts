@@ -843,6 +843,16 @@ describe('tool registry harness selection', () => {
     expect(names).not.toContain('time');
   });
 
+  it('hides desktop source controls when the runtime is Web Lite', () => {
+    const names = toolRegistry.toolDefsForTurn({
+      userText: 'tell me a story',
+      bridgeOnline: false,
+      desktopRuntime: false,
+    }).map(t => t.name);
+
+    expect(names).toEqual(['memory', 'logs', 'thread', 'chat_history']);
+  });
+
   it('includes workspace tools for attachment and code turns', () => {
     const names = toolRegistry.toolDefsForTurn({
       userText: 'convert this CSV attachment into JSON',
@@ -852,24 +862,24 @@ describe('tool registry harness selection', () => {
     expect(names).toEqual(expect.arrayContaining(['workspace', 'fs', 'inspect_file', 'artifact', 'terminal', 'python_inline', 'sqlite_query', 'query_script', 'git']));
   });
 
-  it('includes artifact tools for HTML game requests even without file keywords', () => {
+  it('does not expose bridge-backed artifact tools while the bridge is offline', () => {
     const names = toolRegistry.toolDefsForTurn({
       userText: 'make a cool html game',
       bridgeOnline: false,
     }).map(t => t.name);
 
-    expect(names).toEqual(expect.arrayContaining(['workspace', 'fs', 'artifact']));
+    expect(names).not.toEqual(expect.arrayContaining(['workspace', 'fs', 'artifact']));
   });
 
   it('only exposes image generation when an image backend is available', () => {
     const unavailable = toolRegistry.toolDefsForTurn({
       userText: 'generate an image of a glass greenhouse',
-      bridgeOnline: false,
+      bridgeOnline: true,
       imageGenAvailable: false,
     }).map(t => t.name);
     const available = toolRegistry.toolDefsForTurn({
       userText: 'generate an image of a glass greenhouse',
-      bridgeOnline: false,
+      bridgeOnline: true,
       imageGenAvailable: true,
     }).map(t => t.name);
 

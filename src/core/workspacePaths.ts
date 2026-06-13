@@ -32,6 +32,15 @@ export function isWorkspacePath(value: string): boolean {
 }
 
 /**
+ * Workspace path that points at an HTML document (ignoring query/hash).
+ * Used to decide when a path gets the inline HTML artifact preview.
+ */
+export function isHtmlWorkspacePath(path: string): boolean {
+  const clean = path.trim().split(/[?#]/, 1)[0]?.toLowerCase() ?? '';
+  return isWorkspacePath(path) && (clean.endsWith('.html') || clean.endsWith('.htm'));
+}
+
+/**
  * Resolve `/workspace/foo/bar.html` against the bridge's reported root.
  * Returns null if inputs are missing/invalid so callers can short-circuit
  * cleanly when the bridge is offline.

@@ -49,6 +49,8 @@ export interface UserMessage {
  * workspace path and lightweight metadata; no base64 bytes live here.
  */
 export interface MessageAttachmentRef {
+  /** Stable upload id. Legacy snapshots may not have one. */
+  id?: string;
   /** Workspace path, e.g. `/workspace/attachments/plan.csv`. */
   path: string;
   /** Short display name split from the path. */

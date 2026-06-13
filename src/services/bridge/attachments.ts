@@ -24,8 +24,9 @@ interface AttachmentBridge {
 export async function uploadAttachment(file: File, bridge: AttachmentBridge): Promise<DraftAttachment> {
   if (!bridge.isOnline) throw new Error('Bridge offline. Start gatesai-bridge to attach files.');
 
+  const id = newAttachmentId();
   const safeName = sanitizeFilename(file.name);
-  const targetPath = `/workspace/attachments/${safeName}`;
+  const targetPath = `/workspace/attachments/${id}-${safeName}`;
   const base64 = await fileToBase64(file);
 
   const resp = await bridge.client.request<FsWriteResp>('fs.write', {
@@ -36,12 +37,16 @@ export async function uploadAttachment(file: File, bridge: AttachmentBridge): Pr
   });
 
   return {
-    id: `att-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    id,
     filename: safeName,
     path: resp.path,
     size: file.size,
     mime: file.type || 'application/octet-stream',
   };
+}
+
+function newAttachmentId(): string {
+  return `att-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function sanitizeFilename(name: string): string {

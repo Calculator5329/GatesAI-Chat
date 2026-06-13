@@ -45,6 +45,7 @@ export interface BridgeClientFacade {
     op: string,
     data: unknown,
     onEvent?: (data: unknown) => void,
+    options?: { privileged?: boolean; timeoutMs?: number | null; resetTimeoutOnEvent?: boolean },
   ): Promise<T>;
 }
 
@@ -159,6 +160,12 @@ export interface ToolResultPolicy {
 
 export interface ToolMetadata {
   category: ToolCategory;
+  /** Capability id used by runtime/tool gating and UI copy as the manifest consolidates. */
+  capabilityId?: string;
+  /** Short hints for deciding when the model should see this tool. */
+  selectionHints?: string[];
+  /** Coarse side-effect risk for policy/UI grouping. */
+  risk?: 'low' | 'medium' | 'high';
   resultPolicy?: ToolResultPolicy;
   isReadOnly?: (args: Record<string, unknown>) => boolean;
   hasSideEffects?: (args: Record<string, unknown>) => boolean;

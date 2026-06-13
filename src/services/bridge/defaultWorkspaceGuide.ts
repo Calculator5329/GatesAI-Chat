@@ -7,13 +7,16 @@ interface BridgeRequestFacade {
 
 const ROOT_README_PATH = '/workspace/README.md';
 const AI_GUIDE_PATH = '/workspace/notes/GatesAI-AI-Operating-Context.md';
+const ROOT_GITIGNORE_PATH = '/workspace/.gitignore';
 
 export async function ensureDefaultWorkspaceGuide(client: BridgeRequestFacade): Promise<void> {
   await safeRequest(client, 'fs.mkdir', { path: '/workspace/notes' });
   await safeRequest(client, 'fs.mkdir', { path: '/workspace/artifacts' });
   await safeRequest(client, 'fs.mkdir', { path: '/workspace/attachments' });
   await ensureFile(client, ROOT_README_PATH, ROOT_README);
+  await ensureFile(client, ROOT_GITIGNORE_PATH, ROOT_GITIGNORE);
   await writeManagedFile(client, AI_GUIDE_PATH, AI_OPERATING_CONTEXT);
+  await safeRequest(client, 'exec.run', { cmd: 'git', args: ['init'], timeout_ms: 10_000 });
 }
 
 async function ensureFile(client: BridgeRequestFacade, path: string, content: string): Promise<void> {
@@ -65,6 +68,14 @@ For the user-facing guide, open:
 That guide documents how GatesAI Chat works from the model's point of view: available tools, workspace path rules, what the user can see, image-generation behavior, terminal/script limits, and artifact conventions.
 `;
 
+const ROOT_GITIGNORE = `.DS_Store
+Thumbs.db
+.gatesai/
+tmp/
+temp/
+*.tmp
+`;
+
 const AI_OPERATING_CONTEXT = `# GatesAI AI Operating Context
 
 This file is app-managed documentation for AI assistants running inside GatesAI Chat. Read it when you need facts about the application, tool environment, workspace layout, what the user sees, or how to produce durable outputs.
@@ -104,7 +115,7 @@ The user sees assistant prose in the chat timeline, rendered Markdown, user atta
 
 The user does not see raw provider payloads, hidden system prompt text, or internal tool-loop messages except as summarized by the assistant or rendered as tool artifacts.
 
-Image generation is intentionally asynchronous: the first assistant message should say the job is queued, the card shows progress/failure/success, and the app can post a completion follow-up when the job reaches a terminal state.
+Image generation is intentionally asynchronous: the first assistant message should say the job is queued, and the image job card is the source of truth for progress, failure, success, and cancellation. Do not post a separate "Here it is" follow-up unless the image itself is visibly attached to that message.
 
 ## Core Tools
 
@@ -144,7 +155,7 @@ Image generation is routed through the configured backend:
 - OpenRouter image generation saves final files under \`/workspace/artifacts/images/api/\`.
 - Local ComfyUI generation saves final files under \`/workspace/artifacts/images/local/\`.
 
-Treat an \`image_generate\` tool result as queued, not completed. The image job card is the source of truth for pending/running/success/failure/cancellation. If a render fails or is lost, explain the failure state and suggest a retry or settings check.
+Treat an \`image_generate\` tool result as queued, not completed. The image job card is the source of truth for pending/running/success/failure/cancellation. If a render fails or is lost, explain the failure state and suggest a retry or settings check without inventing a completed-image message.
 
 ## Limitations And Cautions
 
@@ -164,4 +175,5 @@ Be concise and concrete. Mention created files using \`/workspace/...\` paths. F
 export const DEFAULT_WORKSPACE_GUIDE_PATHS = {
   rootReadme: ROOT_README_PATH,
   aiGuide: AI_GUIDE_PATH,
+  rootGitignore: ROOT_GITIGNORE_PATH,
 } as const;

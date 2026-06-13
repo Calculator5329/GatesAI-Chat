@@ -2,7 +2,7 @@
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { FsEntry, FsListResp, FsReadResp, FsSearchResp } from '../../core/workspace';
-import { BridgeOfflineError } from '../bridge/client';
+import { describeBridgeError, requireBridge } from './requireBridge';
 import { decodeFsRead, stripBom } from './textDecode';
 import { denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
 import type { Tool, ToolContext } from './types';
@@ -95,8 +95,8 @@ export const inspectFileTool: Tool = {
   },
 
   async execute(args, ctx) {
-    if (!ctx.bridge) return 'Error: bridge unavailable in this context.';
-    if (!ctx.bridge.isOnline) return 'Error: bridge offline. Start gatesai-bridge.';
+    const guard = requireBridge(ctx);
+    if (!guard.ok) return guard.error;
 
     const action = strArg(args, 'action');
     const path = strArg(args, 'path');
@@ -111,7 +111,7 @@ export const inspectFileTool: Tool = {
     if (protectedDenial) return protectedDenial;
 
     try {
-      const resp = await ctx.bridge.client.request<FsReadResp>('fs.read', { path });
+      const resp = await guard.bridge.client.request<FsReadResp>('fs.read', { path });
       const decoded = decodeReadResponse(resp);
       if (!decoded.ok) return `Error: ${decoded.error}`;
 
@@ -129,15 +129,14 @@ export const inspectFileTool: Tool = {
           return inspectText(action, args, decoded.resp);
       }
     } catch (err) {
-      if (err instanceof BridgeOfflineError) return `Error: ${err.message}`;
-      return `Error: ${(err as Error).message}`;
+      return describeBridgeError(err);
     }
   },
 };
 
 async function inspectWorkspaceProfile(args: Record<string, unknown>, ctx: ToolContext): Promise<string> {
-  if (!ctx.bridge) return 'Error: bridge unavailable in this context.';
-  if (!ctx.bridge.isOnline) return 'Error: bridge offline. Start gatesai-bridge.';
+  const guard = requireBridge(ctx);
+  if (!guard.ok) return guard.error;
 
   const sections = [
     { title: 'artifacts', path: '/workspace/artifacts' },
@@ -152,7 +151,7 @@ async function inspectWorkspaceProfile(args: Record<string, unknown>, ctx: ToolC
 
   for (const section of sections) {
     try {
-      const resp = await ctx.bridge.client.request<FsListResp>('fs.list', { path: section.path });
+      const resp = await guard.bridge.client.request<FsListResp>('fs.list', { path: section.path });
       lines.push(`${section.title}:`);
       lines.push(...formatEntries(resp.entries ?? []));
       if (resp.truncated) lines.push('- truncated: true');
@@ -167,7 +166,7 @@ async function inspectWorkspaceProfile(args: Record<string, unknown>, ctx: ToolC
   const query = strArg(args, 'query');
   if (query) {
     try {
-      const resp = await ctx.bridge.client.request<FsSearchResp>('fs.search', { path: '/workspace/artifacts', query, max_hits: 8 });
+      const resp = await guard.bridge.client.request<FsSearchResp>('fs.search', { path: '/workspace/artifacts', query, max_hits: 8 });
       lines.push('search hints:');
       const hits = resp.hits ?? [];
       if (hits.length === 0) {

@@ -11,7 +11,12 @@ import { ProviderStore } from '../../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../../src/stores/UserProfileStore';
 import { EditorialMessage } from '../../../src/components/editorial/EditorialMessage';
-import { __htmlArtifactPreviewTestApi } from '../../../src/components/editorial/HtmlArtifactPreview';
+import {
+  __artifactPreviewTestApi,
+  loadHtmlArtifactPreview,
+  peekHtmlArtifactPreview,
+  type ArtifactPreviewBridge,
+} from '../../../src/services/bridge/artifactPreview';
 import type { RootStore } from '../../../src/stores/RootStore';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -62,6 +67,10 @@ function createTestStore(imageJobs = new ImageJobStore()): RootStore {
         }),
       },
       openWorkspacePath: vi.fn(async () => true),
+      peekHtmlArtifactPreview,
+      loadHtmlArtifactPreview(path: string) {
+        return loadHtmlArtifactPreview(this as unknown as ArtifactPreviewBridge, path);
+      },
     },
   } as unknown as RootStore;
 }
@@ -135,7 +144,7 @@ afterEach(() => {
   root = null;
   host?.remove();
   host = null;
-  __htmlArtifactPreviewTestApi.reset();
+  __artifactPreviewTestApi.reset();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });

@@ -2,7 +2,7 @@
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ExecRunResp } from '../../core/workspace';
-import { BridgeOfflineError } from '../bridge/client';
+import { describeBridgeError, requireBridge } from './requireBridge';
 import type { Tool } from './types';
 import { denyIfReferencesProtectedChatHistory } from './protectedWorkspacePaths';
 
@@ -82,8 +82,8 @@ export const gitTool: Tool = {
   },
 
   async execute(args, ctx) {
-    if (!ctx.bridge) return 'Error: bridge unavailable in this context.';
-    if (!ctx.bridge.isOnline) return 'Error: bridge offline. Start gatesai-bridge.';
+    const guard = requireBridge(ctx);
+    if (!guard.ok) return guard.error;
 
     const action = typeof args.action === 'string' ? args.action.trim() : '';
     if (!action) return `Error: \`action\` is required for git. Valid: ${VALID_ACTIONS_TEXT}.`;
@@ -102,7 +102,7 @@ export const gitTool: Tool = {
     if (denial) return denial;
 
     try {
-      const resp = await ctx.bridge.client.request<ExecRunResp>('exec.run', {
+      const resp = await guard.bridge.client.request<ExecRunResp>('exec.run', {
         cmd: 'git',
         args: planned,
         cwd,
@@ -110,8 +110,7 @@ export const gitTool: Tool = {
       });
       return formatResult(planned, resp);
     } catch (err) {
-      const message = err instanceof BridgeOfflineError ? err.message : (err as Error).message;
-      return `Error: ${message}`;
+      return describeBridgeError(err);
     }
   },
 };

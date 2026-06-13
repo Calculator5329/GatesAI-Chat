@@ -112,15 +112,17 @@ beforeEach(() => {
   vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
 });
 
-afterEach(async () => {
+afterEach(() => {
   if (root) act(() => root?.unmount());
   root = null;
   host?.remove();
   host = null;
   store?.router.destroy();
+  // dispose() drains the 250ms autosave throttle synchronously, so no timer
+  // can write to localStorage after clearAppStorage() (previously a 260ms sleep).
+  store?.chat.dispose();
   store = null;
   vi.restoreAllMocks();
-  await new Promise(resolve => setTimeout(resolve, 260));
   flushPendingSnapshot();
   clearAppStorage();
 });

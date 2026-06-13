@@ -1,24 +1,31 @@
 // Owns observable ChatStore state and actions for the app runtime.
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { autorun, makeAutoObservable, runInAction } from 'mobx';
-import type { ActivityDetail, ActivityItem, AssistantFinishReason, AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
-import type { LlmProvider, LlmRequest, LlmUsage, ThinkingEffort, ToolCall, ToolDef } from '../core/llm';
+//
+// Decomposition map (formerly all inline here):
+//   - persistence policy            → services/chat/chatPersistenceCoordinator
+//   - tool batch execution          → services/chat/toolBatchExecutor
+//   - context-mode request wiring   → services/chat/contextModes
+//   - activity timeline projection  → services/chat/activityProjection
+//   - turn failure/recovery copy    → services/chat/turnFormatting
+//   - image-turn copy               → services/chat/imageTurnFormatting
+//   - Ollama pseudo-tool rescue     → services/chat/pseudoToolRescue
+//   - pure thread selectors         → core/threadSelectors
+import { makeAutoObservable, runInAction } from 'mobx';
+import type { ActivityItem, AssistantFinishReason, AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
+import type { LlmProvider, LlmRequest, LlmUsage, ThinkingEffort, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
 import {
   CHAT_SNAPSHOT_STORAGE_KEY,
   cancelPendingDeferredSnapshot,
   consumeSnapshotLoadError,
-  flushPendingSnapshot,
   loadSnapshot,
   saveSnapshot,
-  scheduleSaveSnapshot,
   setCompactionNoticeHandler,
 } from '../services/persistence';
 import { setMultiTabWriteHandler } from '../services/storage/persistenceProvider';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, estimateTokens, type TokenUsage } from '../core/tokens';
-import { flattenForWire } from '../services/llm/wireFormat';
 import { resolveWireImages } from '../services/llm/resolveImages';
 import { modelSupportsVision } from '../core/modelCapabilities';
 import {
@@ -27,54 +34,52 @@ import {
   deterministicCompactToolResult,
 } from '../services/llm/contextCompaction';
 import { StreamingTextBuffer } from '../services/streaming/StreamingTextBuffer';
-import { toolRegistry, type ToolValidationResult } from '../services/tools/registry';
 import { generateThreadTitle } from '../services/threadNamer';
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
-import { isToolFailureContent, logToolCallFailure, safeJsonPreview } from '../services/chat/toolFailureLog';
 import { logEvent } from '../services/diagnostics/chatLog';
 import { logger } from '../services/diagnostics/logger';
-import { createWorkspaceChatPersistence, type WorkspaceChatPersistence } from '../services/workspaceChatPersistence';
+import { createWorkspaceChatPersistence } from '../services/workspaceChatPersistence';
+import {
+  ChatPersistenceCoordinator,
+  snapshotLatestUpdatedAt,
+} from './chatPersistenceCoordinator';
+import {
+  executeToolBatch,
+  type ToolStoreContext,
+} from '../services/chat/toolBatchExecutor';
+import {
+  appendImageGenAddendum,
+  effectiveContextMode,
+  latestUserMessageContent,
+  latestUserPromptBody,
+  reservedOutputTokensForContextMode,
+  systemPromptForContextMode,
+  toolsForContextMode,
+  wireMessagesForContextMode,
+  type ChatContextMode,
+} from '../services/chat/contextModes';
+import { buildActivitiesForMessage } from '../services/chat/activityProjection';
+import {
+  formatOversizedContextMessage,
+  formatProviderErrorRecovery,
+  formatRepeatedSideEffectLoopMessage,
+  formatToolRoundCapMessage,
+} from '../services/chat/turnFormatting';
+import {
+  directImageComfyMode,
+  estimatedImageDuration,
+  imageBackendDisplayName,
+} from '../services/chat/imageTurnFormatting';
+import { extractLocalPseudoToolCalls } from '../services/chat/pseudoToolRescue';
+import { threadLlmSpendUsd as threadSpendSelector } from '../core/threadSelectors';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
-import type { ToolContext } from '../services/tools/types';
 import type { BridgeClientFacade } from '../services/tools/types';
-import type { ImageBackendId, LocalComfyMode } from '../services/image/types';
 import type { CompletedJob } from '../services/image/jobs/types';
 
-type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search'>;
-export type ChatContextMode = NonNullable<Thread['contextMode']>;
+export type { ChatContextMode } from '../services/chat/contextModes';
 export type ChatThinkingEffort = ThinkingEffort;
-
-const MICRO_LOCAL_MAX_TOKENS = 512;
-const MICRO_LOCAL_SYSTEM_PROMPT = [
-  'Minimal local mode.',
-  'Answer briefly. No persona.',
-  'If a tool is available, call it with valid JSON. Do not print fake tool calls.',
-  'Workspace paths use /workspace. Put deliverables under /workspace/artifacts/.',
-  'After a successful write, stop calling tools and summarize the saved path.',
-].join('\n');
-
-const MICRO_FS_TOOL_DEF: ToolDef = {
-  name: 'fs',
-  description: 'Read/write/list/search files in /workspace. For edits call fs with JSON, e.g. {"action":"write","path":"/workspace/artifacts/reports/out.html","content":"..."}',
-  parameters: {
-    type: 'object',
-    properties: {
-      action: { type: 'string', enum: ['read', 'write', 'append', 'list', 'stat', 'search', 'mkdir'] },
-      path: { type: 'string' },
-      content: { type: 'string' },
-      encoding: { type: 'string', enum: ['utf8', 'utf-8', 'base64'] },
-      query: { type: 'string' },
-      recursive: { type: 'boolean' },
-      max_chars: { type: 'number' },
-      max_hits: { type: 'number' },
-    },
-    required: ['action'],
-    additionalProperties: false,
-  },
-  strict: true,
-};
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -93,28 +98,6 @@ function createEmptyThread(now = Date.now()): Thread {
   };
 }
 
-/**
- * Read nested thread/message fields purely to register MobX dependencies for
- * the persistence reaction. That reaction observes `snapshot` (the `threads`
- * array identity + `activeThreadId`), which does NOT track in-place edits like
- * appended messages, streamed tokens, renames, or summaries — those mutate
- * fields inside existing thread/message objects. Touching the fields here makes
- * those mutations invalidate the reaction so the throttled save runs. Returns a
- * cheap numeric signature so the reads aren't dead-code-eliminated.
- */
-function trackSnapshotDeep(threads: Thread[]): number {
-  let signature = threads.length;
-  for (const thread of threads) {
-    signature += thread.title.length + thread.updatedAt + thread.messages.length;
-    if (thread.pinned) signature += 1;
-    if (thread.deletedAt != null) signature += thread.deletedAt;
-    if (thread.summary) signature += thread.summary.length;
-    if (thread.threadContext) signature += thread.threadContext.length;
-    for (const message of thread.messages) signature += message.content.length;
-  }
-  return signature;
-}
-
 function normalizeActiveThreadId(threads: Thread[], activeThreadId: string | null): string | null {
   if (activeThreadId && threads.some(thread => thread.id === activeThreadId && thread.deletedAt == null)) {
     return activeThreadId;
@@ -123,10 +106,6 @@ function normalizeActiveThreadId(threads: Thread[], activeThreadId: string | nul
     .filter(thread => thread.deletedAt == null)
     .sort((a, b) => b.updatedAt - a.updatedAt);
   return visible[0]?.id ?? null;
-}
-
-function snapshotLatestUpdatedAt(snapshot: ChatSnapshot): number {
-  return snapshot.threads.reduce((latest, thread) => Math.max(latest, thread.updatedAt, thread.createdAt), 0);
 }
 
 function normalizeWorkNote(content: string): string | null {
@@ -200,7 +179,6 @@ function repeatedSideEffectLoop(calls: ToolCall[], message: AssistantMessage): {
 const MAX_TOOL_ROUNDS = 16;
 const MAX_WORK_NOTES = 8;
 const MAX_WORK_NOTE_CHARS = 4000;
-const TOOL_BATCH_WARN_THRESHOLD = 6;
 const REPEATED_SIDE_EFFECT_CALL_LIMIT = 3;
 const COMPACTION_TRIGGER_FRACTION = 0.9;
 const COMPACTION_MAX_TOKENS = 500;
@@ -213,18 +191,6 @@ const COMPACTION_INSTRUCTION = [
   'Preserve workspace paths, schemas, counts, date ranges, and migration-relevant facts.',
   'Return concise plain text only. No markdown preamble.',
 ].join(' ');
-
-function directImageComfyMode(providerModelId: string | undefined): LocalComfyMode {
-  switch (providerModelId) {
-    case 'comfy-direct-draft':
-      return 'draft';
-    case 'comfy-direct-upscale':
-      return 'upscale';
-    case 'comfy-direct':
-    default:
-      return 'normal';
-  }
-}
 
 /**
  * Owns the chat domain: threads, the active selection, and live streaming.
@@ -258,19 +224,14 @@ export class ChatStore {
   persistenceConflict: string | null = null;
   /** User-visible notice after an emergency compaction save. */
   compactionNotice: string | null = null;
-  private persistPaused = false;
 
   private readonly providers: ProviderStore;
   private readonly registry: ModelRegistry;
   private readonly profile: UserProfileStore;
   private readonly controllersByThread = new Map<string, AbortController>();
   private readonly textBuffer = new StreamingTextBuffer();
-  private workspacePersistence: WorkspaceChatPersistence | null = null;
-  private workspacePersistenceReady = false;
+  private readonly persistence: ChatPersistenceCoordinator;
   private workspacePersistenceHydrating = false;
-  private pendingWorkspaceSnap: ChatSnapshot | null = null;
-  private workspaceSaveInFlight = false;
-  private persistenceCleanup: (() => void) | null = null;
   /**
    * Late-bound source of "Recent conversations" digests. Wired by RootStore
    * to a SummaryStore call; left unset in tests that don't care about
@@ -311,8 +272,8 @@ export class ChatStore {
       runInAction(() => {
         this.persistenceConflict =
           'Another browser tab updated chat history. Saving is paused until you reload or dismiss this warning.';
-        this.persistPaused = true;
       });
+      this.persistence.pause();
       // Drop any save already queued for a microtask so it can't fire after the
       // pause and clobber the other tab's write.
       cancelPendingDeferredSnapshot();
@@ -321,97 +282,27 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'workspacePersistence' | 'workspacePersistenceReady' | 'workspacePersistenceHydrating' | 'pendingWorkspaceSnap' | 'workspaceSaveInFlight' | 'persistenceCleanup' | 'recentSummariesProvider' | 'toolStoresProvider' | 'persistPaused'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'persistence' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
       providers: false,
       registry: false,
       profile: false,
       controllersByThread: false,
       textBuffer: false,
-      workspacePersistence: false,
-      workspacePersistenceReady: false,
+      persistence: false,
       workspacePersistenceHydrating: false,
-      pendingWorkspaceSnap: false,
-      workspaceSaveInFlight: false,
-      persistenceCleanup: false,
       recentSummariesProvider: false,
       toolStoresProvider: false,
-      persistPaused: false,
     });
 
-    // Leading-edge + trailing-throttle the snapshot save: streaming fires
-    // thousands of observable mutations per turn; an unthrottled autorun
-    // would JSON.stringify every thread on each one. The first save runs
-    // synchronously (so a fresh-thread create persists immediately and
-    // tests can read it back without waiting), then subsequent updates
-    // are coalesced to once per FLUSH_MS. Page teardown flushes any
-    // pending save.
-    const FLUSH_MS = 250;
-    let lastSaveAt = 0;
-    let pendingSnap: ChatSnapshot | null = null;
-    let pendingTimer: ReturnType<typeof setTimeout> | null = null;
-    const flush = (): void => {
-      if (pendingTimer) {
-        clearTimeout(pendingTimer);
-        pendingTimer = null;
-      }
-      if (pendingSnap) {
-        this.schedulePersistSnapshot(pendingSnap);
-        lastSaveAt = Date.now();
-        pendingSnap = null;
-      }
-    };
-    const stopPersistAutorun = autorun(() => {
-      const snap = this.snapshot;
-      // Subscribe to nested thread/message fields. `snapshot` only tracks the
-      // threads array + activeThreadId, so without this an appended message or
-      // streamed token would never trigger a save (the bug where a single fresh
-      // conversation was lost on reload). The throttle below still bounds how
-      // often we actually write.
-      trackSnapshotDeep(this.threads);
-      const now = Date.now();
-      const elapsed = now - lastSaveAt;
-      if (elapsed >= FLUSH_MS) {
-        if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
-        pendingSnap = null;
-        this.schedulePersistSnapshot(snap);
-        lastSaveAt = now;
-        return;
-      }
-      pendingSnap = snap;
-      if (pendingTimer) return;
-      pendingTimer = setTimeout(flush, FLUSH_MS - elapsed);
-    });
-    let removeUnloadListeners = (): void => {};
-    const syncFlush = (): void => {
-      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
-      if (pendingSnap && !this.persistPaused) {
-        saveSnapshot(pendingSnap);
-        this.scheduleWorkspaceSnapshotSave(pendingSnap);
-        lastSaveAt = Date.now();
-        pendingSnap = null;
-      }
-      if (!this.persistPaused) flushPendingSnapshot();
-    };
-    if (typeof window !== 'undefined') {
-      // Unload paths must persist synchronously — drain the throttle queue
-      // and flush any microtask-deferred write before the page tears down.
-      window.addEventListener('pagehide', syncFlush);
-      window.addEventListener('beforeunload', syncFlush);
-      removeUnloadListeners = (): void => {
-        window.removeEventListener('pagehide', syncFlush);
-        window.removeEventListener('beforeunload', syncFlush);
-      };
-    }
-    this.persistenceCleanup = (): void => {
-      stopPersistAutorun();
-      syncFlush();
-      removeUnloadListeners();
-    };
+    // The coordinator owns the throttled autosave, unload flush, and the
+    // workspace save queue; the autorun it installs tracks `this.snapshot`
+    // (plus deep thread fields) through the callback below.
+    this.persistence = new ChatPersistenceCoordinator(() => this.snapshot);
+    this.persistence.start();
   }
 
   dispose(): void {
-    this.persistenceCleanup?.();
-    this.persistenceCleanup = null;
+    this.persistence.dispose();
   }
 
   get snapshot(): ChatSnapshot {
@@ -430,15 +321,7 @@ export class ChatStore {
   get llmSpendByThread(): Record<string, number> {
     const out: Record<string, number> = {};
     for (const thread of this.threads) {
-      let total = 0;
-      for (const message of thread.messages) {
-        if (message.role !== 'assistant') continue;
-        for (const usage of message.usage ?? []) {
-          if (usage.providerId === 'openrouter' && typeof usage.costUsd === 'number' && Number.isFinite(usage.costUsd)) {
-            total += usage.costUsd;
-          }
-        }
-      }
+      const total = threadSpendSelector(thread);
       if (total > 0) out[thread.id] = total;
     }
     return out;
@@ -486,9 +369,7 @@ export class ChatStore {
       } else {
         await persistence.save(this.snapshot, 'localStorage-migration');
       }
-      this.workspacePersistence = persistence;
-      this.workspacePersistenceReady = true;
-      this.scheduleWorkspaceSnapshotSave(this.snapshot);
+      this.persistence.attachWorkspacePersistence(persistence);
       return true;
     } catch (err) {
       logger.warn('persistence', 'workspace chat persistence unavailable', err);
@@ -609,22 +490,15 @@ export class ChatStore {
   }
 
   setThreadModel(threadId: string, modelId: string): void {
-    const idx = this.threads.findIndex(t => t.id === threadId);
-    if (idx < 0) return;
-    const thread = this.threads[idx];
-    this.threads[idx] = { ...thread, modelId };
+    this.updateThread(threadId, () => ({ modelId }));
   }
 
   setThreadContextMode(threadId: string, mode: ChatContextMode): void {
-    const thread = this.findThread(threadId);
-    if (!thread) return;
-    thread.contextMode = mode;
+    this.updateThread(threadId, () => ({ contextMode: mode }));
   }
 
   setThreadThinkingEffort(threadId: string, effort: ChatThinkingEffort): void {
-    const thread = this.findThread(threadId);
-    if (!thread) return;
-    thread.thinkingEffort = effort;
+    this.updateThread(threadId, () => ({ thinkingEffort: effort }));
   }
 
   /**
@@ -646,84 +520,12 @@ export class ChatStore {
   }
 
   activitiesForMessage(message: AssistantMessage, options: { streaming?: boolean } = {}): ActivityItem[] {
-    const extras = this.toolStoresProvider?.();
-    const results = message.toolResults ?? [];
-    const ownerThreadId = this.threadIdForMessage(message.id);
-    const items: ActivityItem[] = [];
-
-    const usedResultIndexes = new Set<number>();
-    for (const note of message.workNotes ?? []) {
-      const trimmed = note.trim();
-      if (!trimmed) continue;
-      items.push({
-        id: `${message.id}:work-note:${items.length}`,
-        kind: 'thinking',
-        state: 'done',
-        verb: 'Thinking',
-        detail: { type: 'markdown', content: trimmed },
-        startedAt: message.createdAt,
-        finishedAt: message.createdAt,
-      });
-    }
-    for (const call of message.toolCalls ?? []) {
-      const resultIndex = results.findIndex((candidate, index) => !usedResultIndexes.has(index) && candidate.toolCallId === call.id);
-      if (resultIndex >= 0) usedResultIndexes.add(resultIndex);
-      const result = resultIndex >= 0 ? results[resultIndex] : undefined;
-      const tool = toolRegistry.get(call.name);
-      const artifacts = result?.artifacts;
-      const imageJob = artifacts?.find(artifact => artifact.kind === 'image-job');
-      const state = result
-        ? stateForToolResult(result, imageJob ? extras?.imageJobs?.findById?.(imageJob.jobId)?.status : undefined)
-        : 'running';
-      const summary = result
-        ? (tool?.ui?.summary?.({
-            content: result.content,
-            summary: result.summary,
-            ok: result.ok,
-            errorCode: result.errorCode,
-            retryable: result.retryable,
-            artifacts: result.artifacts,
-          }) ?? result.summary)
-        : undefined;
-      const runningExec = !result && call.name === 'terminal' ? runningExecForCall(extras?.execStream?.jobs, ownerThreadId, call.id) : null;
-      items.push({
-        id: call.id,
-        kind: imageJob ? 'image-job' : 'tool',
-        state,
-        verb: tool?.ui?.verb(call.arguments) ?? 'Using',
-        target: tool?.ui?.target?.(call.arguments),
-        summary,
-        detail: runningExec
-          ? {
-              type: 'terminal',
-              lines: runningExec.tail,
-              placeholder: runningExec.tail.length ? undefined : '(no output yet)',
-            }
-          : result?.content
-            ? detailForToolResult(call.name, result.content)
-            : undefined,
-        artifacts,
-        startedAt: message.createdAt,
-        finishedAt: result?.ranAt,
-        toolCallId: call.id,
-        groupKey: imageJob ? undefined : `tool:${call.name}`,
-      });
-    }
-
-    for (const event of message.activityEvents ?? []) items.push(event);
-
-    if (options.streaming && message.content.trim().length === 0) {
-      const label = message.preTokenLabel ?? 'thinking';
-      items.push({
-        id: `${message.id}:pretoken`,
-        kind: 'thinking',
-        state: 'running',
-        verb: label[0].toUpperCase() + label.slice(1),
-        startedAt: message.createdAt,
-      });
-    }
-
-    return items;
+    return buildActivitiesForMessage({
+      message,
+      streaming: options.streaming,
+      ownerThreadId: this.threadIdForMessage(message.id),
+      extras: this.toolStoresProvider?.(),
+    });
   }
 
   recordActivityEvent(event: ActivityItem): void {
@@ -768,46 +570,10 @@ export class ChatStore {
   }
 
   notifyImageJobTerminal(job: CompletedJob): void {
-    const thread = this.findThread(job.threadId);
-    if (!thread) return;
-    const terminalKey = imageTerminalKey(job);
-    const alreadyNotified = thread.messages.some(message =>
-      message.role === 'assistant'
-      && message.toolCalls?.some(call =>
-        call.name === 'image_generate_complete'
-        && call.arguments.jobId === job.id
-        && call.arguments.terminalKey === terminalKey
-      )
-    );
-    if (alreadyNotified) return;
-
-    const backend = imageBackendDisplayName(job.backend);
-    const elapsed = formatImageElapsed(job);
-    const message: AssistantMessage = {
-      id: newId('m'),
-      role: 'assistant',
-      content: imageTerminalMessage(job, backend, elapsed),
-      createdAt: Date.now(),
-      model: thread.modelId,
-    };
-
-    const callId = newId('tc');
-    message.toolCalls = [{
-      id: callId,
-      name: 'image_generate_complete',
-      arguments: { jobId: job.id, status: job.status, terminalKey },
-    }];
-    message.toolResults = [{
-      toolCallId: callId,
-      toolName: 'image_generate_complete',
-      content: imageTerminalToolResult(job, backend, elapsed),
-      summary: `Image job ${job.status}.`,
-      ranAt: Date.now(),
-    }];
-
-    runInAction(() => {
-      this.appendMessage(job.threadId, message);
-    });
+    // The image job card is the terminal-state surface. Posting a normal
+    // assistant message here made completions look like out-of-order model
+    // prose when jobs finished asynchronously.
+    void job;
   }
 
   /**
@@ -815,10 +581,7 @@ export class ChatStore {
    * conversation:". Persists with the thread snapshot. No editor UI yet.
    */
   setThreadContext(threadId: string, context: string): void {
-    const idx = this.threads.findIndex(t => t.id === threadId);
-    if (idx < 0) return;
-    this.threads[idx] = { ...this.threads[idx], threadContext: context };
-    this.schedulePersistSnapshot(this.snapshot);
+    this.updateThread(threadId, () => ({ threadContext: context }));
   }
 
   /**
@@ -826,15 +589,11 @@ export class ChatStore {
    * UI. Sets `autoNamed: true` so `maybeAutoName` never overwrites manual titles.
    */
   renameThread(threadId: string, title: string): void {
-    const idx = this.threads.findIndex(t => t.id === threadId);
-    if (idx < 0) return;
     const next = title.trim();
-    this.threads[idx] = {
-      ...this.threads[idx],
+    this.updateThread(threadId, () => ({
       title: next || 'Untitled conversation',
       autoNamed: true,
-    };
-    this.schedulePersistSnapshot(this.snapshot);
+    }));
   }
 
   clearAllThreads(): void {
@@ -896,7 +655,7 @@ export class ChatStore {
       this.textBuffer.cancel(threadId);
       delete this.streamingByThread[threadId];
     }
-    thread.deletedAt = Date.now();
+    this.updateThread(threadId, () => ({ deletedAt: Date.now() }));
     if (this.activeThreadId === threadId) {
       const next = this.visibleThreads[0];
       this.activeThreadId = next ? next.id : this.createThread();
@@ -907,14 +666,13 @@ export class ChatStore {
   restoreThread(threadId: string): void {
     const thread = this.findThread(threadId);
     if (!thread || thread.deletedAt == null) return;
-    thread.deletedAt = undefined;
+    this.updateThread(threadId, () => ({ deletedAt: undefined }));
   }
 
   toggleThreadPinned(threadId: string): void {
     const thread = this.findThread(threadId);
     if (!thread || thread.deletedAt != null) return;
-    thread.pinned = !thread.pinned;
-    thread.updatedAt = Date.now();
+    this.updateThread(threadId, current => ({ pinned: !current.pinned }));
   }
 
   branchThreadFromMessage(threadId: string, messageId: string): string | null {
@@ -984,7 +742,7 @@ export class ChatStore {
    * turns don't see a half-thought as if it were complete) and a fresh
    * stream is started for the new turn. Other threads' streams are untouched.
    */
-  sendMessage(text: string, attachments: { filename: string; path: string; size: number; mime: string }[] = []): void {
+  sendMessage(text: string, attachments: { id?: string; filename: string; path: string; size: number; mime: string }[] = []): void {
     const thread = this.ensureThreadModel(this.activeThreadId);
     const trimmed = text.trim();
     if (!thread || (!trimmed && attachments.length === 0)) return;
@@ -1610,315 +1368,11 @@ export class ChatStore {
   }
 
   private async executeToolCalls(calls: ToolCall[], threadId: string, signal: AbortSignal): Promise<ToolResult[]> {
-    const results = new Array<ToolResult>(calls.length);
-    const invalidSeen = new Set<string>();
-    const batchStartedAt = Date.now();
-    const largeBatchWarning = calls.length > TOOL_BATCH_WARN_THRESHOLD
-      ? `status: warning\ntool: tool_batch_policy\nsummary: Large tool batch detected (${calls.length} calls). Prefer ${TOOL_BATCH_WARN_THRESHOLD} or fewer independent calls; dependent file-generation work should be sequential.`
-      : null;
-    if (largeBatchWarning) {
-      logEvent(threadId, 'tool.batch.warning', {
-        count: calls.length,
-        threshold: TOOL_BATCH_WARN_THRESHOLD,
-        toolNames: calls.map(call => call.name),
-      });
-    }
-    const validations = calls.map((call, index) => {
-      const validation = toolRegistry.validateToolCall(call);
-      this.logToolValidation(threadId, call, validation, index);
-      return validation;
-    });
-    const invalids = validations
-      .map((validation, index) => ({ validation, index, call: calls[index] }))
-      .filter(item => !item.validation.ok);
-    if (invalids.length > 0) {
-      const firstInvalidIndex = invalids[0].index;
-      const batchSummary = formatInterruptedToolBatchSummary(invalids, firstInvalidIndex);
-      logEvent(threadId, 'tool.batch.interrupted', {
-        count: calls.length,
-        invalid: invalids.length,
-        executedPrefix: firstInvalidIndex,
-        invalidIndexes: invalids.map(item => item.index),
-        errorCodes: invalids.map(item => item.validation.errorCode),
-      });
-      if (firstInvalidIndex > 0) {
-        const prefixResults = await this.executeValidatedToolCalls(calls.slice(0, firstInvalidIndex), threadId, signal);
-        prefixResults.forEach((result, index) => { results[index] = result; });
-      }
-      const invalidByIndex = new Map(invalids.map(item => [item.index, item]));
-      if (!signal.aborted) {
-        for (let index = firstInvalidIndex; index < calls.length; index += 1) {
-          const invalid = invalidByIndex.get(index);
-          results[index] = invalid
-            ? this.invalidToolCallResult(calls[index], invalid.validation, invalidSeen, threadId, {
-                callIndex: index,
-                batchSummary,
-              })
-            : this.skippedAfterInvalidToolCallResult(calls[index], index, batchSummary, firstInvalidIndex);
-        }
-      }
-      const finished = results.filter(Boolean);
-      if (largeBatchWarning && finished[0]) {
-        finished[0] = {
-          ...finished[0],
-          content: `${largeBatchWarning}\n\n${finished[0].content}`,
-          outputChars: `${largeBatchWarning}\n\n${finished[0].content}`.length,
-        };
-      }
-      logEvent(threadId, 'tool.batch.finished', {
-        count: calls.length,
-        results: finished.length,
-        invalid: invalids.length,
-        skipped: Math.max(0, calls.length - firstInvalidIndex - invalids.length),
-        durationMs: Date.now() - batchStartedAt,
-        largeBatch: Boolean(largeBatchWarning),
-        interrupted: true,
-        executedPrefix: firstInvalidIndex,
-      });
-      return finished;
-    }
-    const finished = await this.executeValidatedToolCalls(calls, threadId, signal);
-    if (largeBatchWarning && finished[0]) {
-      finished[0] = {
-        ...finished[0],
-        content: `${largeBatchWarning}\n\n${finished[0].content}`,
-        outputChars: `${largeBatchWarning}\n\n${finished[0].content}`.length,
-      };
-    }
-    logEvent(threadId, 'tool.batch.finished', {
-      count: calls.length,
-      results: finished.length,
-      invalid: finished.filter(result => result.ok === false).length,
-      durationMs: Date.now() - batchStartedAt,
-      largeBatch: Boolean(largeBatchWarning),
-    });
-    return finished;
-  }
-
-  private async executeValidatedToolCalls(calls: ToolCall[], threadId: string, signal: AbortSignal): Promise<ToolResult[]> {
-    const results = new Array<ToolResult>(calls.length);
-    let index = 0;
-    while (index < calls.length) {
-      if (signal.aborted) break;
-      const call = calls[index];
-      if (toolRegistry.isReadOnlyCall(call.name, call.arguments)) {
-        const groupStart = index;
-        const group: ToolCall[] = [];
-        while (
-          index < calls.length
-          && toolRegistry.isReadOnlyCall(calls[index].name, calls[index].arguments)
-        ) {
-          group.push(calls[index]);
-          index += 1;
-        }
-        const groupResults = await Promise.all(group.map(call => this.executeOneToolCall(call, threadId, signal)));
-        if (signal.aborted) break;
-        groupResults.forEach((result, offset) => { results[groupStart + offset] = result; });
-      } else {
-        const result = await this.executeOneToolCall(call, threadId, signal);
-        if (signal.aborted) break;
-        results[index] = result;
-        index += 1;
-      }
-    }
-    if (signal.aborted) {
-      for (let i = 0; i < calls.length; i += 1) {
-        if (!results[i]) results[i] = this.cancelledToolCallResult(calls[i]);
-      }
-    }
-    return results.filter(Boolean);
-  }
-
-  private cancelledToolCallResult(call: ToolCall): ToolResult {
-    const content = 'status: cancelled\ntool: ' + call.name + '\nsummary: Cancelled before this tool finished.';
-    return {
-      toolCallId: call.id,
-      toolName: call.name,
-      content,
-      summary: 'Cancelled before this tool finished.',
-      ok: false,
-      errorCode: 'cancelled',
-      retryable: true,
-      durationMs: 0,
-      outputChars: content.length,
-      ranAt: Date.now(),
-    };
-  }
-
-  private logToolValidation(threadId: string, call: ToolCall, validation: ToolValidationResult, index?: number): void {
-    logEvent(threadId, 'tool.call.validated', {
-      toolName: call.name,
-      toolCallId: call.id,
-      ...(index != null ? { index } : {}),
-      ok: validation.ok,
-      errorCode: validation.errorCode,
-      retryable: validation.retryable,
-      argumentsPreview: safeJsonPreview(call.arguments),
-      hasArgumentParseError: Boolean(call.argumentsError),
-    });
-  }
-
-  private invalidToolCallResult(
-    call: ToolCall,
-    validation: ToolValidationResult,
-    invalidSeen: Set<string>,
-    threadId: string,
-    batch?: { callIndex: number; batchSummary: string },
-  ): ToolResult {
-    const validationError = validation.content ?? `status: error\ntool: ${call.name}\nsummary: invalid tool call`;
-    const key = `${call.name}:${validationError}:${safeStableJson(call.arguments)}`;
-    const repeated = invalidSeen.has(key);
-    invalidSeen.add(key);
-    const startedAt = Date.now();
-    if (!repeated) {
-      const extras = this.toolStoresProvider?.() ?? ({} as ToolStoreContext);
-      logToolCallFailure({
-        call,
-        threadId,
-        content: validationError,
-        startedAt: Date.now(),
-        bridgeOnline: extras.bridge?.isOnline,
-        readOnly: false,
-      });
-      logEvent(threadId, 'tool.call.failed', {
-        toolName: call.name,
-        toolCallId: call.id,
-        phase: 'validation',
-        errorCode: validation.errorCode,
-        retryable: validation.retryable,
-        durationMs: 0,
-        outputChars: validationError.length,
-      });
-    }
-    const content = repeated
-      ? `status: error\ntool: ${call.name}\nerror_code: repeated_invalid_tool_call\nsummary: Skipped repeated invalid tool call.\nfix: Correct the prior validation error before retrying.\nretryable: true\nprevious_error: ${validation.summary ?? validationError.replace(/\s+/g, ' ').slice(0, 300)}`
-      : [
-          ...(batch ? [batch.batchSummary, `call_index: ${batch.callIndex}`] : []),
-          validationError,
-        ].join('\n');
-    return {
-      toolCallId: call.id,
-      toolName: call.name,
-      content,
-      summary: repeated ? 'Skipped repeated invalid tool call.' : validation.summary,
-      ok: false,
-      errorCode: repeated ? 'repeated_invalid_tool_call' : validation.errorCode,
-      retryable: repeated ? true : validation.retryable,
-      durationMs: Date.now() - startedAt,
-      outputChars: content.length,
-      ranAt: Date.now(),
-    };
-  }
-
-  private skippedAfterInvalidToolCallResult(call: ToolCall, callIndex: number, batchSummary: string, firstInvalidIndex: number): ToolResult {
-    const content = [
-      batchSummary,
-      `call_index: ${callIndex}`,
-      `first_invalid_call_index: ${firstInvalidIndex}`,
-      `status: error`,
-      `tool: ${call.name}`,
-      `error_code: skipped_after_invalid_tool_call`,
-      `summary: This valid-looking tool call was not executed because an earlier call in the same batch failed validation.`,
-      `fix: Retry this call only after correcting the earlier invalid call. Keep dependent side-effect work in separate sequential batches.`,
-      `retryable: true`,
-    ].join('\n');
-    return {
-      toolCallId: call.id,
-      toolName: call.name,
-      content,
-      summary: 'This valid-looking tool call was not executed because an earlier call in the same batch failed validation.',
-      ok: false,
-      errorCode: 'skipped_after_invalid_tool_call',
-      retryable: true,
-      durationMs: 0,
-      outputChars: content.length,
-      ranAt: Date.now(),
-    };
-  }
-
-  private async executeOneToolCall(call: ToolCall, threadId: string, signal: AbortSignal): Promise<ToolResult> {
-    const extras = this.toolStoresProvider?.() ?? ({} as ToolStoreContext);
-    const startedAt = Date.now();
-    if (signal.aborted) {
-      const content = 'Cancelled.';
-      return {
-        toolCallId: call.id,
-        toolName: call.name,
-        content,
-        summary: 'Cancelled.',
-        ok: false,
-        errorCode: 'cancelled',
-        retryable: true,
-        durationMs: 0,
-        outputChars: content.length,
-        ranAt: Date.now(),
-      };
-    }
-    logEvent(threadId, 'tool.call.started', {
-      toolName: call.name,
-      toolCallId: call.id,
-      readOnly: toolRegistry.isReadOnlyCall(call.name, call.arguments),
-      argumentsPreview: safeJsonPreview(call.arguments),
-      bridgeOnline: extras.bridge?.isOnline,
-    });
-    const { content, summary, artifacts, ok, errorCode, retryable } = await toolRegistry.execute(call.name, call.arguments, {
+    return executeToolBatch(calls, threadId, signal, {
       profile: this.profile,
       chat: this,
-      notes: extras.notes,
-      summary: extras.summary,
-      bridge: extras.bridge,
-      execStream: extras.execStream,
-      imageGen: extras.imageGen,
-      imageJobs: extras.imageJobs,
-      localRuntime: extras.localRuntime,
-      search: extras.search,
-      threadId,
-      toolCallId: call.id,
-      signal,
+      extras: this.toolStoresProvider?.() ?? ({} as ToolStoreContext),
     });
-    const durationMs = Date.now() - startedAt;
-    const failed = ok === false || isToolFailureContent(call.name, content);
-    if (failed) {
-      logToolCallFailure({
-        call,
-        threadId,
-        content,
-        startedAt,
-        bridgeOnline: extras.bridge?.isOnline,
-        readOnly: toolRegistry.isReadOnlyCall(call.name, call.arguments),
-      });
-      logEvent(threadId, 'tool.call.failed', {
-        toolName: call.name,
-        toolCallId: call.id,
-        phase: 'execution',
-        errorCode: errorCode ?? 'tool_error',
-        retryable,
-        durationMs,
-        outputChars: content.length,
-        bridgeOnline: extras.bridge?.isOnline,
-      });
-    } else {
-      logEvent(threadId, 'tool.call.finished', {
-        toolName: call.name,
-        toolCallId: call.id,
-        durationMs,
-        outputChars: content.length,
-        bridgeOnline: extras.bridge?.isOnline,
-      });
-    }
-    return {
-      toolCallId: call.id,
-      toolName: call.name,
-      content,
-      ...(summary ? { summary } : {}),
-      ok: !failed,
-      ...(failed && errorCode ? { errorCode } : {}),
-      ...(failed && retryable != null ? { retryable } : {}),
-      durationMs,
-      outputChars: content.length,
-      ranAt: Date.now(),
-      ...(artifacts && artifacts.length ? { artifacts } : {}),
-    };
   }
 
   /**
@@ -2032,31 +1486,7 @@ export class ChatStore {
   }
 
   private schedulePersistSnapshot(snapshot: ChatSnapshot): void {
-    if (this.persistPaused) return;
-    scheduleSaveSnapshot(snapshot);
-    this.scheduleWorkspaceSnapshotSave(snapshot);
-  }
-
-  private scheduleWorkspaceSnapshotSave(snapshot: ChatSnapshot): void {
-    if (!this.workspacePersistenceReady || !this.workspacePersistence) return;
-    this.pendingWorkspaceSnap = snapshot;
-    if (this.workspaceSaveInFlight) return;
-    this.drainWorkspaceSnapshotSave();
-  }
-
-  private drainWorkspaceSnapshotSave(): void {
-    if (!this.workspacePersistence || !this.pendingWorkspaceSnap) return;
-    const snap = this.pendingWorkspaceSnap;
-    this.pendingWorkspaceSnap = null;
-    this.workspaceSaveInFlight = true;
-    void this.workspacePersistence.save(snap)
-      .catch(err => {
-        logger.warn('persistence', 'failed to save workspace chat snapshot', err);
-      })
-      .finally(() => {
-        this.workspaceSaveInFlight = false;
-        if (this.pendingWorkspaceSnap) this.drainWorkspaceSnapshotSave();
-      });
+    this.persistence.schedule(snapshot);
   }
 
   private findMessage(threadId: string, messageId: string): Message | undefined {
@@ -2157,7 +1587,7 @@ export class ChatStore {
 
   private clearPersistenceConflict(): void {
     this.persistenceConflict = null;
-    this.persistPaused = false;
+    this.persistence.resume();
   }
 
   dismissCompactionNotice(): void {
@@ -2169,8 +1599,26 @@ export class ChatStore {
     if (!message) {
       delete this.lastErrorByThread[threadId];
     } else {
-      this.lastErrorByThread[threadId] = message;
+      const normalized = normalizeProviderErrorForBanner(message);
+      if (this.lastErrorByThread[threadId] === normalized) return;
+      this.lastErrorByThread[threadId] = normalized;
     }
+  }
+
+  private updateThread(threadId: string, updater: (thread: Thread) => Partial<Thread> | null | undefined): Thread | null {
+    const idx = this.threads.findIndex(t => t.id === threadId);
+    if (idx < 0) return null;
+    const current = this.threads[idx];
+    const patch = updater(current);
+    if (!patch) return current;
+    const next = {
+      ...current,
+      ...patch,
+      updatedAt: Date.now(),
+    };
+    this.threads[idx] = next;
+    this.schedulePersistSnapshot(this.snapshot);
+    return next;
   }
 
   private touchMessage(threadId: string, messageId: string): void {
@@ -2195,67 +1643,6 @@ function branchTitle(title: string): string {
   return base.endsWith(' (branch)') ? base : `${base} (branch)`;
 }
 
-export function threadLlmSpendUsd(thread: Thread | null): number {
-  if (!thread) return 0;
-  return thread.messages.reduce((sum, message) => {
-    if (message.role !== 'assistant') return sum;
-    return sum + (message.usage ?? []).reduce((inner, usage) => (
-      usage.providerId === 'openrouter' && typeof usage.costUsd === 'number' && Number.isFinite(usage.costUsd)
-        ? inner + usage.costUsd
-        : inner
-    ), 0);
-  }, 0);
-}
-
-/**
- * Whether a thread matches the sidebar search query. Scans the title, the
- * (legacy) subtitle, and every message body so search reaches conversation
- * content, not just titles. `normalizedQuery` must already be lowercased and
- * trimmed by the caller.
- */
-export function threadMatchesSearch(thread: Thread, normalizedQuery: string): boolean {
-  if (!normalizedQuery) return true;
-  if (`${thread.title} ${thread.subtitle}`.toLowerCase().includes(normalizedQuery)) return true;
-  return thread.messages.some(message => message.content.toLowerCase().includes(normalizedQuery));
-}
-
-function stateForToolResult(result: ToolResult, artifactStatus?: string): ActivityItem['state'] {
-  if (artifactStatus === 'cancelled') return 'cancelled';
-  if (artifactStatus === 'failed') return 'failed';
-  if (artifactStatus === 'pending' || artifactStatus === 'running') return 'running';
-  if (result.errorCode === 'cancelled') return 'cancelled';
-  if (result.ok === false || result.errorCode || isToolFailureContent(result.toolName, result.content)) return 'failed';
-  return 'done';
-}
-
-function detailForToolResult(toolName: string, content: string): ActivityDetail {
-  if (toolName === 'terminal' || toolName === 'git' || toolName === 'python_inline' || toolName === 'sqlite_query' || toolName === 'query_script') {
-    return {
-      type: 'terminal',
-      lines: content.split(/\r?\n/).map(text => ({ stream: 'stdout', text })),
-    };
-  }
-  return { type: 'markdown', content };
-}
-
-function runningExecForCall(jobs: NonNullable<ToolStoreContext['execStream']>['jobs'] | undefined, threadId: string | undefined, toolCallId: string) {
-  if (!jobs) return null;
-  const running = Object.values(jobs).filter(job =>
-    job.status === 'running'
-    && job.toolCallId === toolCallId
-    && (!threadId || !job.threadId || job.threadId === threadId)
-  );
-  if (running.length === 0) return null;
-  return running.reduce((a, b) => (a.startedAt > b.startedAt ? a : b));
-}
-
-const IMAGE_GEN_ADDENDUM = 'When you call image_generate, treat the tool result as queued, not successful. Tell the user the render is queued, name the backend if useful, and set expectation that it may take roughly a minute. Do not say the image was generated, completed, or successful just because the tool returned. The inline image-job card is the source of truth for pending, success, failure, cancellation, and failure reason; the app will post a completion follow-up when the job finishes.';
-
-function appendImageGenAddendum(systemPrompt: string | undefined, tools: { name: string }[] | undefined): string | undefined {
-  if (!tools || !tools.some(t => t.name === 'image_generate')) return systemPrompt;
-  return systemPrompt ? `${systemPrompt}\n\n${IMAGE_GEN_ADDENDUM}` : IMAGE_GEN_ADDENDUM;
-}
-
 function isImageGenerationAvailable(extras: ToolStoreContext | undefined): boolean {
   return Boolean(
     extras?.bridge?.isOnline
@@ -2264,235 +1651,6 @@ function isImageGenerationAvailable(extras: ToolStoreContext | undefined): boole
       || extras?.localRuntime?.comfyReady
     ),
   );
-}
-
-function imageBackendDisplayName(backend: ImageBackendId): string {
-  return backend === 'openrouter-image'
-    ? 'OpenRouter GPT-5.4 Image 2'
-    : 'local ComfyUI';
-}
-
-function estimatedImageDuration(backend: ImageBackendId): string {
-  return backend === 'openrouter-image'
-    ? 'about 30-90 seconds'
-    : 'about 10-60 seconds';
-}
-
-function formatImageElapsed(job: CompletedJob): string {
-  if (!job.startedAt || !job.completedAt || job.completedAt <= job.startedAt) return '';
-  const seconds = Math.max(1, Math.round((job.completedAt - job.startedAt) / 1000));
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  const rest = seconds % 60;
-  return rest ? `${minutes}m ${rest}s` : `${minutes}m`;
-}
-
-function imageTerminalMessage(job: CompletedJob, backend: string, elapsed: string): string {
-  const elapsedPart = elapsed ? ` in ${elapsed}` : '';
-  if (job.status === 'done') {
-    const count = job.results.length;
-    const noun = count === 1 ? 'image is' : `${count} images are`;
-    return `Here ${count === 1 ? 'it is' : 'they are'} — your ${noun} ready from ${backend}${elapsedPart}.`;
-  }
-  if (job.status === 'cancelled') {
-    return `The image render through ${backend} was cancelled${elapsedPart}.`;
-  }
-  const detail = job.error ? ` ${job.error}` : '';
-  return `The image render through ${backend} failed${elapsedPart}.${detail}`;
-}
-
-function imageTerminalToolResult(job: CompletedJob, backend: string, elapsed: string): string {
-  if (job.status === 'done') {
-    return `Image render completed through ${backend}${elapsed ? ` in ${elapsed}` : ''}.`;
-  }
-  if (job.status === 'cancelled') {
-    return `Image render cancelled through ${backend}${elapsed ? ` after ${elapsed}` : ''}.`;
-  }
-  return `Image render failed through ${backend}${elapsed ? ` after ${elapsed}` : ''}: ${job.error ?? 'Unknown error'}`;
-}
-
-function imageTerminalKey(job: CompletedJob): string {
-  return `${job.id}:${job.status}:${job.completedAt ?? 0}:${job.results.length}:${job.error ?? ''}`;
-}
-
-function latestUserMessageContent(thread: Thread): string {
-  for (let i = thread.messages.length - 1; i >= 0; i--) {
-    const message = thread.messages[i];
-    if (message.role === 'user') return message.content;
-  }
-  return '';
-}
-
-function latestUserMessage(thread: Thread): Message | null {
-  for (let i = thread.messages.length - 1; i >= 0; i--) {
-    const message = thread.messages[i];
-    if (message.role === 'user') return message;
-  }
-  return null;
-}
-
-function latestUserPromptBody(thread: Thread): string {
-  for (let i = thread.messages.length - 1; i >= 0; i--) {
-    const message = thread.messages[i];
-    if (message.role === 'user') return splitAttachmentFooter(message.content).body;
-  }
-  return '';
-}
-
-function effectiveContextMode(thread: Thread, model: { providerId: string } | undefined): ChatContextMode {
-  if (model?.providerId !== 'ollama') return 'full';
-  return thread.contextMode ?? 'micro';
-}
-
-function systemPromptForContextMode(mode: ChatContextMode, normalPrompt: () => string | undefined): string | undefined {
-  if (mode === 'bare') return undefined;
-  if (mode === 'micro') return MICRO_LOCAL_SYSTEM_PROMPT;
-  return normalPrompt();
-}
-
-function wireMessagesForContextMode(thread: Thread, mode: ChatContextMode) {
-  if (mode === 'full') return flattenForWire(thread.messages);
-  const latest = latestUserMessage(thread);
-  return latest ? flattenForWire([latest]) : [];
-}
-
-function toolsForContextMode(args: {
-  mode: ChatContextMode;
-  toolsAllowed: boolean;
-  userText: string;
-  bridgeOnline: boolean;
-  imageGenAvailable?: boolean;
-  webSearchAvailable?: boolean;
-}): ToolDef[] | undefined {
-  if (!args.toolsAllowed || args.mode === 'bare') return undefined;
-  if (args.mode === 'micro') {
-    const tools: ToolDef[] = [];
-    const sourceWorkspace = toolRegistry.get('source_workspace')?.def;
-    const sourceBuild = toolRegistry.get('source_build')?.def;
-    if (sourceWorkspace) tools.push(sourceWorkspace);
-    if (sourceBuild) tools.push(sourceBuild);
-    if (args.bridgeOnline && isMicroFsRelevant(args.userText)) tools.push(MICRO_FS_TOOL_DEF);
-    const webSearch = args.webSearchAvailable ? toolRegistry.get('web_search')?.def : undefined;
-    if (webSearch) tools.push(webSearch);
-    return tools.length > 0 ? tools : undefined;
-  }
-  return toolRegistry.toolDefsForTurn({
-    userText: args.userText,
-    bridgeOnline: args.bridgeOnline,
-    imageGenAvailable: args.imageGenAvailable,
-    webSearchAvailable: args.webSearchAvailable,
-  });
-}
-
-function isMicroFsRelevant(userText: string): boolean {
-  return /\b(file|files|folder|workspace|artifact|html|css|js|json|csv|txt|md|code|script|read|write|create|make|edit|save|open)\b/i.test(userText);
-}
-
-function reservedOutputTokensForContextMode(mode: ChatContextMode): number | undefined {
-  return mode === 'micro' ? MICRO_LOCAL_MAX_TOKENS : undefined;
-}
-
-function extractLocalPseudoToolCalls(text: string): ToolCall[] {
-  const calls: ToolCall[] = [];
-  let searchFrom = 0;
-  while (calls.length < 3) {
-    const idx = text.indexOf('fs.write', searchFrom);
-    if (idx < 0) break;
-    const openParen = text.indexOf('(', idx + 'fs.write'.length);
-    if (openParen < 0) break;
-    const inner = readBalancedParens(text, openParen);
-    if (!inner) {
-      searchFrom = idx + 'fs.write'.length;
-      continue;
-    }
-    const path = readObjectStringProperty(inner, 'path');
-    const content =
-      readObjectStringProperty(inner, 'content') ??
-      readObjectStringProperty(inner, 'contents');
-    if (path && content != null) {
-      calls.push({
-        id: newId('tc-rescue'),
-        name: 'fs',
-        arguments: {
-          action: 'write',
-          path: normalizeRescuedWorkspacePath(path),
-          content,
-        },
-      });
-    }
-    searchFrom = inner.end + 1;
-  }
-  return calls;
-}
-
-function readBalancedParens(text: string, openIndex: number): { value: string; end: number } | null {
-  let depth = 0;
-  let quote: '"' | "'" | '`' | null = null;
-  let escaped = false;
-  for (let i = openIndex; i < text.length; i++) {
-    const ch = text[i];
-    if (quote) {
-      if (escaped) {
-        escaped = false;
-      } else if (ch === '\\') {
-        escaped = true;
-      } else if (ch === quote) {
-        quote = null;
-      }
-      continue;
-    }
-    if (ch === '"' || ch === "'" || ch === '`') {
-      quote = ch;
-      continue;
-    }
-    if (ch === '(') depth += 1;
-    else if (ch === ')') {
-      depth -= 1;
-      if (depth === 0) return { value: text.slice(openIndex + 1, i), end: i };
-    }
-  }
-  return null;
-}
-
-function readObjectStringProperty(source: { value: string } | string, key: string): string | null {
-  const text = typeof source === 'string' ? source : source.value;
-  const keyMatch = new RegExp(`\\b${key}\\s*:`).exec(text);
-  if (!keyMatch) return null;
-  let i = keyMatch.index + keyMatch[0].length;
-  while (i < text.length && /\s/.test(text[i])) i += 1;
-  const quote = text[i];
-  if (quote !== '"' && quote !== "'" && quote !== '`') return null;
-  i += 1;
-  let out = '';
-  let escaped = false;
-  for (; i < text.length; i++) {
-    const ch = text[i];
-    if (escaped) {
-      out += decodeSimpleEscape(ch);
-      escaped = false;
-    } else if (ch === '\\') {
-      escaped = true;
-    } else if (ch === quote) {
-      return out;
-    } else {
-      out += ch;
-    }
-  }
-  return null;
-}
-
-function decodeSimpleEscape(ch: string): string {
-  if (ch === 'n') return '\n';
-  if (ch === 'r') return '\r';
-  if (ch === 't') return '\t';
-  return ch;
-}
-
-function normalizeRescuedWorkspacePath(path: string): string {
-  const trimmed = path.trim().replace(/\\/g, '/');
-  if (trimmed.startsWith('/workspace/')) return trimmed;
-  if (trimmed === '/workspace') return '/workspace';
-  return `/workspace/${trimmed.replace(/^\/+/, '')}`;
 }
 
 function hasAnyImageAttachment(messages: Message[]): boolean {
@@ -2505,101 +1663,16 @@ function hasAnyImageAttachment(messages: Message[]): boolean {
   return false;
 }
 
-function formatProviderErrorRecovery(message: AssistantMessage, error: string): string {
-  const progress = summarizeToolProgress(message);
-  if (!progress) return `_Error: ${error}_`;
-  return [
-    'I completed local tool work, but the model provider failed before I could finish the final summary.',
-    `Provider error: ${error}`,
-    progress,
-    'You can continue from the completed tool results above without re-running the successful workspace steps.',
-  ].join('\n\n');
-}
-
-function formatToolRoundCapMessage(maxRounds: number, message: AssistantMessage): string {
-  const progress = summarizeToolProgress(message);
-  return [
-    `Stopped after ${maxRounds} tool rounds to avoid an infinite loop.`,
-    progress ?? 'No completed tool results were available in this turn.',
-    'You can ask me to continue from the latest tool results.',
-  ].join('\n\n');
-}
-
-function formatRepeatedSideEffectLoopMessage(repeat: { path: string; action: string }): string {
-  const action = repeat.action === 'append' ? 'append to' : 'write';
-  return [
-    `Stopped the local tool loop after it tried to ${action} the same file repeatedly.`,
-    `Latest repeated path: ${repeat.path}`,
-    'The successful tool results above are still available, so you can open the artifact or ask me to continue from that file.',
-  ].join('\n\n');
-}
-
-function formatInterruptedToolBatchSummary(
-  invalids: Array<{ index: number; call: ToolCall; validation: ToolValidationResult }>,
-  firstInvalidIndex: number,
-): string {
-  const executed = firstInvalidIndex;
-  const prefixSummary = executed === 0
-    ? 'No earlier calls were executed.'
-    : `${executed} earlier tool call${executed === 1 ? '' : 's'} executed before the invalid call.`;
-  return [
-    'status: error',
-    'tool: tool_batch_policy',
-    'error_code: invalid_tool_batch',
-    `summary: Tool batch stopped at call ${firstInvalidIndex} because ${invalids.length} tool call${invalids.length === 1 ? '' : 's'} failed validation. ${prefixSummary} The invalid call and all later calls were not executed.`,
-    'invalid_calls:',
-    ...invalids.map(({ index, call, validation }) => (
-      `- call ${index} (${call.name}): ${validation.summary ?? validation.errorCode ?? 'invalid tool call'}`
-    )),
-    'fix: Correct the invalid call and retry from that point. Do not send placeholder or empty tool arguments. For finished HTML games/apps, prefer one artifact.create_html_artifact call with a complete document under /workspace/artifacts/exports/...',
-    'retryable: true',
-  ].join('\n');
-}
-
-function summarizeToolProgress(message: AssistantMessage): string | null {
-  const results = message.toolResults ?? [];
-  if (results.length === 0) return null;
-  const failures = results.filter(result => isToolFailureContent(result.toolName, result.content));
-  const artifactPaths = new Set<string>();
-  for (const result of results) {
-    for (const artifact of result.artifacts ?? []) {
-      if (artifact.kind === 'image') artifactPaths.add(artifact.path);
-      if (artifact.kind === 'image-job') artifactPaths.add(`image job ${artifact.jobId}`);
-    }
-    for (const match of result.content.matchAll(/\/workspace\/[^\s`)"']+/g)) {
-      artifactPaths.add(match[0].replace(/[.,;:]+$/, ''));
-    }
+function normalizeProviderErrorForBanner(message: string): string {
+  const trimmed = message.trim();
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.includes('openrouter 402')
+    || (lower.includes('"code":402') && lower.includes('openrouter'))
+    || (lower.includes('requires more credits') && lower.includes('max_tokens'))
+  ) {
+    return 'OpenRouter 402: credits or token limit hit. Add credits or reduce max tokens.';
   }
-  const lines = [
-    `Completed tool results: ${results.length}.`,
-    failures.length > 0 ? `Tool results with errors: ${failures.length}.` : '',
-  ].filter(Boolean);
-  const paths = [...artifactPaths].slice(0, 8);
-  if (paths.length > 0) {
-    lines.push('Artifacts/paths seen:');
-    lines.push(...paths.map(path => `- ${path}`));
-    if (artifactPaths.size > paths.length) lines.push(`- ...and ${artifactPaths.size - paths.length} more`);
-  }
-  return lines.join('\n');
+  return trimmed;
 }
 
-function formatOversizedContextMessage(used: number, window: number): string {
-  return [
-    `This thread is too large to send safely (${formatTokens(used)} of ${formatTokens(window)} tokens estimated).`,
-    'Large tool results are still in the conversation context. Compact the thread, start a fresh thread, or reference the generated artifact paths instead of re-reading full files.',
-  ].join('\n\n');
-}
-
-function safeStableJson(value: unknown): string {
-  try {
-    return JSON.stringify(value, Object.keys(value && typeof value === 'object' ? value as Record<string, unknown> : {}).sort());
-  } catch {
-    return String(value);
-  }
-}
-
-function formatTokens(tokens: number): string {
-  if (tokens < 1_000) return `${tokens}`;
-  if (tokens < 1_000_000) return `${Math.round(tokens / 1_000)}k`;
-  return `${(tokens / 1_000_000).toFixed(1)}M`;
-}

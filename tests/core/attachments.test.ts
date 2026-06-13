@@ -24,6 +24,7 @@ describe('attachment message footer formatting', () => {
     expect(parsed.body).toBe('Normalize this.');
     expect(parsed.attachments).toEqual([
       {
+        cacheKey: '/workspace/attachments/plan.csv:10.7KB:0:legacy',
         path: '/workspace/attachments/plan.csv',
         name: 'plan.csv',
         size: '10.7KB',
@@ -47,6 +48,7 @@ describe('resolveUserAttachments', () => {
   it('prefers structured refs over the legacy footer', () => {
     const refs = [
       toMessageAttachmentRef({
+        id: 'att-1',
         path: '/workspace/attachments/shot.png',
         filename: 'shot.png',
         size: 2_048,
@@ -61,6 +63,8 @@ describe('resolveUserAttachments', () => {
     expect(body).toBe('Look at this.');
     expect(attachments).toEqual([
       {
+        id: 'att-1',
+        cacheKey: 'att-1',
         path: '/workspace/attachments/shot.png',
         name: 'shot.png',
         size: '2.0KB',
@@ -77,6 +81,7 @@ describe('resolveUserAttachments', () => {
     ]);
     const refs = [
       toMessageAttachmentRef({
+        id: 'att-2',
         path: '/workspace/attachments/plan.csv',
         filename: 'plan.csv',
         size: 1024,
@@ -102,6 +107,7 @@ describe('resolveUserAttachments', () => {
     expect(body).toBe('Legacy.');
     expect(attachments).toEqual([
       {
+        cacheKey: '/workspace/attachments/old.json:512B:0:legacy',
         path: '/workspace/attachments/old.json',
         name: 'old.json',
         size: '512B',

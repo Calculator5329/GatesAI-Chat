@@ -2,7 +2,7 @@
 // context meter, and provider/route banners. Rendered by EditorialChat; reads
 // RootStore via hooks and derives view state from props/hooks.
 // Invariant: persisted chat state stays in stores; this surface is presentation only.
-import { useCallback, useEffect, useRef, useState, type ClipboardEvent, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ClipboardEvent, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import { useBridgeStore, useChatStore, useImageJobStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
@@ -10,7 +10,9 @@ import type { ChatContextMode, ChatThinkingEffort } from '../../stores/ChatStore
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
-import { ModelPopover } from './ModelPopover';
+// Lazy: the picker is a large surface (sections/badges/filter logic) that most
+// sessions never open before first paint; splitting it trims the main chunk.
+const ModelPopover = lazy(() => import('./ModelPopover'));
 import { WorkspaceImage } from './WorkspaceImage';
 
 /** Browsers without `field-sizing: content` need the JS height-recalc fallback. */
@@ -336,7 +338,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                   style={{ position: 'relative', display: 'inline-block' }}
                   title={a.filename}
                 >
-                  <WorkspaceImage path={a.path} alt={a.filename} kind={a.filename.split('.').pop()?.toUpperCase() || 'IMG'} />
+                  <WorkspaceImage path={a.path} alt={a.filename} kind={a.filename.split('.').pop()?.toUpperCase() || 'IMG'} cacheKey={a.id} />
                   <button
                     type="button"
                     onClick={() => ui.removeAttachment(a.id)}
@@ -489,11 +491,13 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               <Icons.Chevron />
             </button>
             {modelOpen && activeThread && (
-              <ModelPopover
-                currentModelId={currentModel?.id ?? DEFAULT_MODEL_ID}
-                onPick={pickModel}
-                onClose={closeModelPopover}
-              />
+              <Suspense fallback={null}>
+                <ModelPopover
+                  currentModelId={currentModel?.id ?? DEFAULT_MODEL_ID}
+                  onPick={pickModel}
+                  onClose={closeModelPopover}
+                />
+              </Suspense>
             )}
           </div>
           {/* Local context / thinking controls stay tucked away until the
@@ -533,7 +537,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               </select>
             </span>
           )}
-          <span style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
+          <span className="composer-meta__sep" style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
           <ContextMeter draftText={value} />
           <span style={{
             marginLeft: 'auto',

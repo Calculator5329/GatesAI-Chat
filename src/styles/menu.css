@@ -1,0 +1,52 @@
+/*
+ * Menu layer: GatesAI menu chrome and settings-section helpers.
+ */
+
+/* The menu tab strip scrolls horizontally on narrow widths, but the native
+   scrollbar reads as a stray bar across the header. Hide it; the tabs still
+   scroll via wheel/trackpad/touch. */
+.gates-menu__tabs {
+  scrollbar-width: none;
+}
+.gates-menu__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Inline accent links inside Settings copy — consistent with the app accent
+   instead of standalone pill buttons. */
+.settings-inline-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  cursor: pointer;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.settings-inline-link:hover {
+  border-bottom-color: var(--accent);
+}
+
+.settings-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 14px;
+}
+
+.settings-quick-actions button {
+  height: 28px;
+  min-width: 0;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel) 86%, transparent);
+  color: var(--text-dim);
+  font: 12px "Geist", ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.settings-quick-actions button:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  color: var(--text);
+}

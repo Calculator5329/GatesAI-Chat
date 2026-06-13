@@ -17,4 +17,24 @@ describe('webLiteLocalData (Batch E)', () => {
     expect(localStorage.getItem('gatesai.notes.v1')).toBeNull();
     expect(localStorage.getItem('gatesai.providers.v1')).toContain('keep-me');
   });
+
+  it('keeps the web search API key (credential slot)', () => {
+    localStorage.setItem('gatesai.search.v1', JSON.stringify({ brave: { apiKey: 'keep-me-too' } }));
+    localStorage.setItem('gatesai.menuHintSeen.v1', '1');
+
+    clearLocalDataExceptCredentials();
+
+    expect(localStorage.getItem('gatesai.search.v1')).toContain('keep-me-too');
+    expect(localStorage.getItem('gatesai.menuHintSeen.v1')).toBeNull();
+  });
+
+  it('sweeps quarantined corrupt snapshot keys', () => {
+    localStorage.setItem('gatesai.state.v1.corrupt-1717000000000', '{broken');
+    localStorage.setItem('gatesai.notes.v1.corrupt-1717000000001', '{broken');
+
+    clearLocalDataExceptCredentials();
+
+    expect(localStorage.getItem('gatesai.state.v1.corrupt-1717000000000')).toBeNull();
+    expect(localStorage.getItem('gatesai.notes.v1.corrupt-1717000000001')).toBeNull();
+  });
 });

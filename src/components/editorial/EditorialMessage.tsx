@@ -374,11 +374,17 @@ function UserMessageContent({ body, attachments }: { body: string; attachments: 
       {body.trim() && <p className="user-message-body">{body.trim()}</p>}
       {attachments.length > 0 && (
         <div className="user-attachments" aria-label="Attached files">
-          {imageAttachments.map(file => (
-            <WorkspaceImage key={`${file.path}-${file.size}`} path={file.path} alt={file.name} kind={file.kind} />
+          {imageAttachments.map((file, index) => (
+            <WorkspaceImage
+              key={file.cacheKey || `${file.path}-${file.size}-${index}`}
+              path={file.path}
+              alt={file.name}
+              kind={file.kind}
+              cacheKey={file.cacheKey}
+            />
           ))}
-          {visibleFiles.map(file => (
-            <FileAttachmentChip key={`${file.path}-${file.size}`} file={file} />
+          {visibleFiles.map((file, index) => (
+            <FileAttachmentChip key={file.cacheKey || `${file.path}-${file.size}-${index}`} file={file} />
           ))}
           {hiddenFileCount > 0 && (
             <div className="user-attachment-more" title={fileAttachments.slice(4).map(file => file.name).join('\n')}>

@@ -14,7 +14,7 @@ export const SettingsSection = observer(function SettingsSection() {
   return (
     <div className="settings-page">
       <h1 style={tokens.h1}>Settings</h1>
-      <div style={tokens.kicker}>API key · app data · danger zone</div>
+      <div className="settings-page__kicker" style={tokens.kicker}>API key · app data · danger zone</div>
 
       <Card
         className="settings-apikey-card"
@@ -57,19 +57,6 @@ const DangerZone = observer(function DangerZone() {
   const hasSystemPrompt = root.profile.defaultSystemPrompt.trim().length > 0;
   const hasProviderKeys = !!root.providers.getConfig('openrouter').apiKey || !!root.ollama.config.apiKey;
   const catalogCount = root.openrouter.count + root.ollama.count;
-
-  const resetWorkspaceFolder = async (path: string, children: string[] = []): Promise<void> => {
-    if (!root.bridge.isOnline) throw new Error('Bridge is offline.');
-    try {
-      await root.bridge.client.request('fs.delete', { path });
-    } catch {
-      // Missing folder is fine; the mkdir below gives us the desired end state.
-    }
-    await root.bridge.client.request('fs.mkdir', { path });
-    for (const child of children) {
-      await root.bridge.client.request('fs.mkdir', { path: child });
-    }
-  };
 
   const runAction = async (id: string, action: () => void | Promise<void>, done: string): Promise<void> => {
     setBusy(id);
@@ -189,7 +176,7 @@ const DangerZone = observer(function DangerZone() {
       confirm: 'Delete every file in /workspace/attachments?',
       done: 'Workspace uploads deleted.',
       disabled: !root.bridge.isOnline,
-      run: () => resetWorkspaceFolder('/workspace/attachments'),
+      run: () => root.bridge.resetWorkspaceDirectory('/workspace/attachments'),
     },
     {
       id: 'workspace-artifacts',
@@ -199,7 +186,7 @@ const DangerZone = observer(function DangerZone() {
       done: 'Workspace artifacts deleted.',
       disabled: !root.bridge.isOnline,
       run: async () => {
-        await resetWorkspaceFolder('/workspace/artifacts', [
+        await root.bridge.resetWorkspaceDirectory('/workspace/artifacts', [
           '/workspace/artifacts/images',
           '/workspace/artifacts/images/api',
           '/workspace/artifacts/images/local',

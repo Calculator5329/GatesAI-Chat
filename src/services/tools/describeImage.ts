@@ -3,6 +3,9 @@
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { Tool } from './types';
 import { PROTECTED_CHAT_HISTORY_DENIAL, denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
+import { requireBridge } from './requireBridge';
+
+const DESCRIBE_IMAGE_BRIDGE_OFFLINE = 'Error: bridge is offline, so GatesAI cannot read the image file.';
 
 export const describeImageTool: Tool = {
   def: {
@@ -23,10 +26,14 @@ export const describeImageTool: Tool = {
     if (!path) return 'Error: `path` is required.';
     const denial = denyProtectedChatHistoryPath('describe_image', path, PROTECTED_CHAT_HISTORY_DENIAL);
     if (denial) return denial;
-    if (!ctx.bridge?.isOnline) return 'Error: bridge is offline, so GatesAI cannot read the image file.';
+    const guard = requireBridge(ctx, {
+      unavailable: DESCRIBE_IMAGE_BRIDGE_OFFLINE,
+      offline: DESCRIBE_IMAGE_BRIDGE_OFFLINE,
+    });
+    if (!guard.ok) return guard.error;
     if (!ctx.localRuntime?.visionModel) return 'Error: No local vision model selected in the Local menu.';
 
-    const image = await ctx.bridge.readAttachmentBase64(path);
+    const image = await guard.bridge.readAttachmentBase64(path);
     if (!image) return `Error: could not read image at ${path}.`;
 
     const question = typeof args.question === 'string' && args.question.trim()

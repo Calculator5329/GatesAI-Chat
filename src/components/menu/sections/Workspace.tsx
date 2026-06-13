@@ -30,7 +30,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
     if (!bridge.isOnline) { setTree(null); return; }
     setLoading(true);
     try {
-      const resp = await bridge.client.request<FsListResp>('fs.list', { path: '/workspace', recursive: true });
+      const resp = await bridge.listWorkspaceDir('/workspace', true);
       setTree(resp);
     } catch (err) {
       setError((err as Error).message);

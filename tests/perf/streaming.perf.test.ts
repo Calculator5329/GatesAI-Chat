@@ -165,7 +165,9 @@ describe('ChatStore send path startup', () => {
 
     expect(mock.calls.length).toBe(1);
     expect(elapsed).toBeLessThan(250 * PERF_TOLERANCE);
-    await new Promise(resolve => setTimeout(resolve, 260));
+    // dispose() drains the 250ms autosave throttle synchronously, so no timer
+    // can write to localStorage after clearAppStorage() (previously a 260ms sleep).
+    chat.dispose();
     flushPendingSnapshot();
     clearAppStorage();
   });

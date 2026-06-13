@@ -43,7 +43,7 @@ export const MODELS: Model[] = [
   { id: 'or-gemini-pro-latest',       name: 'Gemini Pro latest',      vendor: 'Google', providerId: 'openrouter', providerModelId: '~google/gemini-pro-latest', description: 'OpenRouter latest alias for Gemini Pro.' },
   { id: 'or-gemini-3.1-pro',          name: 'Gemini 3.1 Pro',         vendor: 'Google', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-pro', description: 'Large Gemini reasoning and vision model with controllable thinking.', contextLength: 2_000_000, pricing: { prompt: 2.5, completion: 15 } },
   { id: 'or-gemini-3.5-flash',        name: 'Gemini 3.5 Flash',       vendor: 'Google', providerId: 'openrouter', providerModelId: 'google/gemini-3.5-flash', description: 'Newest Gemini Flash family model.', contextLength: 1_000_000, pricing: { prompt: 1.5, completion: 9 } },
-  { id: 'or-gemini-3-flash',          name: 'Gemini 3 Flash',         vendor: 'Google', providerId: 'openrouter', providerModelId: '~google/gemini-flash-latest', description: 'Default chat — fast, vision, reliable tools.', contextLength: 1_000_000, pricing: { prompt: 0.3, completion: 2.5 } },
+  { id: 'or-gemini-3-flash',          name: 'Gemini 3 Flash',         vendor: 'Google', providerId: 'openrouter', providerModelId: 'google/gemini-3-flash', description: 'Default chat — fast, vision, reliable tools.', contextLength: 1_000_000, pricing: { prompt: 0.3, completion: 2.5 } },
   { id: 'or-gemini-3.1-flash-lite',   name: 'Gemini 3.1 Flash Lite',  vendor: 'Google', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-flash-lite', description: 'Cost-efficient Gemini model with controllable thinking.', contextLength: 1_048_576, pricing: { prompt: 0.25, completion: 1.5 } },
 
   // xAI

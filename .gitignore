@@ -47,3 +47,7 @@ test-results/
 playwright-report/
 blob-report/
 .playwright/
+.playwright-mcp/
+
+# Firebase deploy cache
+.firebase/

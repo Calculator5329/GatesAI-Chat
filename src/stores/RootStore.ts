@@ -44,6 +44,8 @@ export class RootStore {
   readonly search: SearchStore;
   readonly openrouterCompatibility: OpenRouterCompatibilityStore;
   readonly sourceWorkspace: SourceWorkspaceStore;
+  private booted = false;
+  private readonly disposers: Array<() => void> = [];
 
   constructor() {
     let ollamaStore: OllamaStore | null = null;
@@ -66,22 +68,6 @@ export class RootStore {
         toolsEnabled: this.ollama.config.toolsEnabled,
       },
     }));
-    let attemptedOpenRouterCatalogHydrationForKey: string | null = null;
-    autorun(() => {
-      const key = this.providers.getConfig('openrouter').apiKey;
-      if (!key) {
-        attemptedOpenRouterCatalogHydrationForKey = null;
-        return;
-      }
-      if (
-        attemptedOpenRouterCatalogHydrationForKey !== key
-        && this.openrouter.count === 0
-        && !this.openrouter.fetching
-      ) {
-        attemptedOpenRouterCatalogHydrationForKey = key;
-        void this.openrouter.refresh();
-      }
-    });
     this.chat = new ChatStore(this.providers, this.registry, this.profile);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
@@ -94,24 +80,6 @@ export class RootStore {
       bridge: this.bridge,
       imageGen: this.imageGen,
       onTerminal: job => this.chat.notifyImageJobTerminal(job),
-    });
-
-    let attemptedWorkspacePersistenceRoot: string | undefined;
-    let workspacePersistenceAttemptInFlight = false;
-    autorun(() => {
-      if (isWebLite()) return;
-      if (!this.bridge.isOnline || !this.bridge.workspaceRoot) return;
-      if (attemptedWorkspacePersistenceRoot === this.bridge.workspaceRoot) return;
-      if (workspacePersistenceAttemptInFlight) return;
-      const workspaceRoot = this.bridge.workspaceRoot;
-      workspacePersistenceAttemptInFlight = true;
-      void this.bridge.client.connect()
-        .then(() => this.chat.enableWorkspacePersistence(this.bridge.client))
-        .then(ok => {
-          if (ok) attemptedWorkspacePersistenceRoot = workspaceRoot;
-        })
-        .catch(err => { logger.warn('persistence', 'workspace chat persistence boot failed', err); })
-        .finally(() => { workspacePersistenceAttemptInFlight = false; });
     });
 
     // Cross-thread awareness: ChatStore asks SummaryStore for the digest
@@ -134,48 +102,90 @@ export class RootStore {
       search: this.search,
     }));
 
+  }
+
+  boot(): void {
+    if (this.booted) return;
+    this.booted = true;
+
+    let attemptedOpenRouterCatalogHydrationForKey: string | null = null;
+    this.disposers.push(autorun(() => {
+      const key = this.providers.getConfig('openrouter').apiKey;
+      if (!key) {
+        attemptedOpenRouterCatalogHydrationForKey = null;
+        return;
+      }
+      if (
+        attemptedOpenRouterCatalogHydrationForKey !== key
+        && this.openrouter.count === 0
+        && !this.openrouter.fetching
+      ) {
+        attemptedOpenRouterCatalogHydrationForKey = key;
+        void this.openrouter.refresh();
+      }
+    }));
+
+    let attemptedWorkspacePersistenceRoot: string | undefined;
+    let workspacePersistenceAttemptInFlight = false;
+    this.disposers.push(autorun(() => {
+      if (isWebLite()) return;
+      if (!this.bridge.isOnline || !this.bridge.workspaceRoot) return;
+      if (attemptedWorkspacePersistenceRoot === this.bridge.workspaceRoot) return;
+      if (workspacePersistenceAttemptInFlight) return;
+      const workspaceRoot = this.bridge.workspaceRoot;
+      workspacePersistenceAttemptInFlight = true;
+      void this.bridge.client.connect()
+        .then(() => this.chat.enableWorkspacePersistence(this.bridge.client))
+        .then(ok => {
+          if (ok) attemptedWorkspacePersistenceRoot = workspaceRoot;
+        })
+        .catch(err => { logger.warn('persistence', 'workspace chat persistence boot failed', err); })
+        .finally(() => { workspacePersistenceAttemptInFlight = false; });
+    }));
+
     const deliveredBridgeActivityIds = new Set<string>();
-    autorun(() => {
+    this.disposers.push(autorun(() => {
       const events = this.bridge.activityEvents.filter(event => !deliveredBridgeActivityIds.has(event.id));
       for (const event of events) this.chat.recordActivityEvent(event);
       for (const event of events) deliveredBridgeActivityIds.add(event.id);
-    });
+    }));
 
     if (!isWebLite()) {
-      // Boot the bridge poller - chat keeps working if it never connects.
       this.bridge.start();
       void this.localRuntime.init();
 
-      // Diagnostics: route per-thread log lines to /workspace/logs/<id>.log
-      // through the bridge whenever it's online.
       const bridge = this.bridge;
       configureChatLog({
         get isOnline() { return bridge.isOnline; },
         client: bridge.client,
       });
-      // Persist app-wide logs to /workspace/logs/app-<date>.log while the
-      // bridge is online so failures survive reloads and the `logs` tool can
-      // surface them for self-diagnosis.
       configureLogSink({
         get isOnline() { return bridge.isOnline; },
         client: bridge.client,
       });
     }
 
-    // Boot the lazy summarizer.
     this.summary.start();
-
-    installMultiTabStorageListener();
+    this.disposers.push(installMultiTabStorageListener());
 
     let boundDraftThreadId: string | null = null;
-    autorun(() => {
+    this.disposers.push(autorun(() => {
       const id = this.chat.activeThreadId;
       if (id === boundDraftThreadId) return;
       this.ui.bindDraftThread(id);
       boundDraftThreadId = id;
-    });
+    }));
 
     this.bindRouterToChat();
+  }
+
+  dispose(): void {
+    while (this.disposers.length > 0) this.disposers.pop()?.();
+    this.summary.stop();
+    this.bridge.stop();
+    this.chat.dispose();
+    this.router.destroy();
+    this.booted = false;
   }
 
   /**
@@ -188,7 +198,7 @@ export class RootStore {
    */
   private bindRouterToChat(): void {
     // URL → store
-    reaction(
+    this.disposers.push(reaction(
       () => ({
         route: this.router.route,
         activeThreadId: this.chat.activeThreadId,
@@ -209,17 +219,17 @@ export class RootStore {
         }
       },
       { fireImmediately: true },
-    );
+    ));
 
     // store → URL (only while we're on the thread surface; menu routes are explicit)
-    reaction(
+    this.disposers.push(reaction(
       () => ({ route: this.router.route, activeThreadId: this.chat.activeThreadId }),
       ({ route, activeThreadId }) => {
         if (route.kind !== 'thread') return;
         if (activeThreadId && route.threadId !== activeThreadId) this.router.goThread(activeThreadId);
       },
       { fireImmediately: true },
-    );
+    ));
   }
 }
 

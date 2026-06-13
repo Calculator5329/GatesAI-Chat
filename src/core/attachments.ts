@@ -9,6 +9,10 @@ export function isImageMime(mime: string | undefined | null): boolean {
 }
 
 export interface RenderedAttachment {
+  /** Stable upload id when available. Legacy parsed footer attachments omit it. */
+  id?: string;
+  /** Stable UI/cache identity. Falls back to path/size/index for legacy refs. */
+  cacheKey: string;
   path: string;
   name: string;
   kind: string;
@@ -25,10 +29,10 @@ export interface RenderedAttachment {
  * display name from the path so we store a single source of truth.
  */
 export function toMessageAttachmentRef(
-  a: Pick<DraftAttachment, 'path' | 'mime' | 'size' | 'filename'>,
+  a: Pick<DraftAttachment, 'path' | 'mime' | 'size' | 'filename'> & { id?: string },
 ): MessageAttachmentRef {
   const name = a.filename || a.path.split(/[\\/]/).pop() || a.path;
-  return { path: a.path, name, mime: a.mime, size: a.size };
+  return { ...(a.id ? { id: a.id } : {}), path: a.path, name, mime: a.mime, size: a.size };
 }
 
 /**
@@ -50,8 +54,10 @@ export function resolveUserAttachments(message: Pick<UserMessage, 'content' | 'a
   return parsed;
 }
 
-function renderAttachment(ref: MessageAttachmentRef): RenderedAttachment {
+function renderAttachment(ref: MessageAttachmentRef, index: number): RenderedAttachment {
   return {
+    ...(ref.id ? { id: ref.id } : {}),
+    cacheKey: ref.id ?? `${ref.path}:${ref.size}:${index}`,
     path: ref.path,
     name: ref.name,
     size: formatSize(ref.size),
@@ -84,12 +90,13 @@ export function splitAttachmentFooter(content: string): { body: string; attachme
   return { body, attachments };
 }
 
-function parseAttachmentLine(line: string): RenderedAttachment | null {
+function parseAttachmentLine(line: string, index: number): RenderedAttachment | null {
   const match = line.trim().match(/^-\s+(.+?)\s+·\s+(.+?)\s+·\s+(.+)$/);
   if (!match) return null;
   const [, path, size, mime] = match;
   const name = path.split(/[\\/]/).pop() || path;
   return {
+    cacheKey: `${path}:${size}:${index}:legacy`,
     path,
     name,
     size,

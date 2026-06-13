@@ -36,10 +36,18 @@ describe('ensureDefaultWorkspaceGuide', () => {
       expect.objectContaining({
         op: 'fs.write',
         data: expect.objectContaining({
+          path: '/workspace/.gitignore',
+          content: expect.stringContaining('Thumbs.db'),
+        }),
+      }),
+      expect.objectContaining({
+        op: 'fs.write',
+        data: expect.objectContaining({
           path: '/workspace/notes/GatesAI-AI-Operating-Context.md',
           content: expect.stringContaining('GatesAI AI Operating Context'),
         }),
       }),
+      { op: 'exec.run', data: { cmd: 'git', args: ['init'], timeout_ms: 10000 } },
     ]));
   });
 

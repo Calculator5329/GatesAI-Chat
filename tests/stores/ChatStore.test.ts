@@ -1,6 +1,7 @@
 import { runInAction } from 'mobx';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatStore, threadLlmSpendUsd } from '../../src/stores/ChatStore';
+import { ChatStore } from '../../src/stores/ChatStore';
+import { threadLlmSpendUsd } from '../../src/core/threadSelectors';
 import { ProviderStore } from '../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../src/stores/UserProfileStore';
@@ -415,8 +416,7 @@ describe('ChatStore', () => {
 
     const threadId = chat.createThread();
     chat.sendMessage('stream please');
-    await flush(5);
-    expect(chat.isThreadStreaming(threadId)).toBe(true);
+    await vi.waitFor(() => expect(chat.isThreadStreaming(threadId)).toBe(true));
 
     // Another tab cleared storage; reloading must stop the in-flight stream
     // rather than let it keep appending into the freshly-loaded state.
@@ -588,6 +588,26 @@ describe('ChatStore', () => {
     const thread = snapshot.threads.find(t => t.id === threadId)!;
     expect(thread.messages.some(m => m.role === 'user' && m.content === 'remember me across reload')).toBe(true);
     expect(thread.messages.some(m => m.role === 'assistant' && m.content.includes('streamed reply body'))).toBe(true);
+  });
+
+  it('persists context mode and thinking effort without a later chat mutation', async () => {
+    const { chat } = setup();
+    const threadId = chat.activeThreadId!;
+
+    chat.setThreadContextMode(threadId, 'system-tools');
+    chat.setThreadThinkingEffort(threadId, 'high');
+
+    const snapshot = await waitForLocalStorageSnapshot(
+      s => {
+        const thread = s.threads.find(t => t.id === threadId);
+        return thread?.contextMode === 'system-tools' && thread.thinkingEffort === 'high';
+      },
+      'thread settings persisted to localStorage',
+    );
+
+    const thread = snapshot.threads.find(t => t.id === threadId)!;
+    expect(thread.contextMode).toBe('system-tools');
+    expect(thread.thinkingEffort).toBe('high');
   });
 
   it('repairs a live unresolved active model before sending', () => {
@@ -1737,10 +1757,11 @@ describe('ChatStore', () => {
     });
   });
 
-  it('posts an image completion follow-up to the originating thread even after switching threads', () => {
+  it('does not post an orphan image completion assistant message', () => {
     const { chat } = setup();
     const imageThreadId = chat.createThread();
     const otherThreadId = chat.createThread();
+    const beforeCount = chat.threads.find(t => t.id === imageThreadId)!.messages.length;
 
     chat.notifyImageJobTerminal({
       id: 'job-ready',
@@ -1759,15 +1780,10 @@ describe('ChatStore', () => {
 
     expect(chat.activeThreadId).toBe(otherThreadId);
     const imageThread = chat.threads.find(t => t.id === imageThreadId)!;
-    const followUp = imageThread.messages.at(-1);
-    expect(followUp).toMatchObject({
-      role: 'assistant',
-      content: expect.stringContaining('Here it is'),
-    });
-    expect(followUp?.role === 'assistant' ? followUp.toolResults?.[0].artifacts : undefined).toBeUndefined();
+    expect(imageThread.messages).toHaveLength(beforeCount);
   });
 
-  it('deduplicates the same image terminal event but allows later retry events', () => {
+  it('keeps image terminal events in the existing image job card instead of chat prose', () => {
     const { chat } = setup();
     const threadId = chat.createThread();
     const base = {
@@ -1788,11 +1804,11 @@ describe('ChatStore', () => {
     chat.notifyImageJobTerminal({ ...base, completedAt: 5000 });
     chat.notifyImageJobTerminal({ ...base, completedAt: 9000 });
 
-    const assistantFollowUps = chat.threads
+    const terminalMessages = chat.threads
       .find(t => t.id === threadId)!
       .messages
-      .filter(m => m.role === 'assistant' && m.toolCalls?.[0]?.name === 'image_generate_complete');
-    expect(assistantFollowUps).toHaveLength(2);
+      .filter(m => m.role === 'assistant' && m.toolCalls?.some(call => call.name === 'image_generate_complete'));
+    expect(terminalMessages).toHaveLength(0);
   });
 
   it.each([
@@ -1857,9 +1873,16 @@ describe('ChatStore', () => {
   });
 
   it('abandoned stream finalize does not stamp finishReason or auto-name after interrupt-resend', async () => {
+    // The first stream parks on a test-controlled gate after its partial
+    // chunk, so the test deterministically releases the "late" finalize after
+    // the interrupt-resend instead of racing a real setTimeout.
     class LateFinalizeMockProvider implements LlmProvider {
       readonly id: ProviderId = 'openrouter';
       calls: LlmRequest[] = [];
+      firstPartialDelivered = false;
+      firstStreamFinished = false;
+      release!: () => void;
+      private readonly firstGate = new Promise<void>(resolve => { this.release = resolve; });
       private callIndex = 0;
 
       ready(): boolean { return true; }
@@ -1868,9 +1891,14 @@ describe('ChatStore', () => {
         this.calls.push(req);
         const n = this.callIndex++;
         if (n === 0) {
-          yield { type: 'text', delta: 'partial abandoned' };
-          await new Promise(r => setTimeout(r, 20));
-          yield { type: 'done', finishReason: 'stop' };
+          try {
+            yield { type: 'text', delta: 'partial abandoned' };
+            this.firstPartialDelivered = true;
+            await this.firstGate;
+            yield { type: 'done', finishReason: 'stop' };
+          } finally {
+            this.firstStreamFinished = true;
+          }
           return;
         }
         yield { type: 'text', delta: 'real-reply' };
@@ -1890,9 +1918,13 @@ describe('ChatStore', () => {
 
     chat.createThread();
     chat.sendMessage('first');
-    await flush(5);
+    await vi.waitFor(() => expect(mock.firstPartialDelivered).toBe(true));
     chat.sendMessage('second');
-    await flush(30);
+    await vi.waitFor(() => expect(chat.activeThread!.messages.at(-1)).toMatchObject({ role: 'assistant', content: 'real-reply' }));
+    // Release the abandoned first stream so its finalize actually runs.
+    mock.release();
+    await vi.waitFor(() => expect(mock.firstStreamFinished).toBe(true));
+    await flush();
 
     const messages = chat.activeThread!.messages;
     const interrupted = messages.find(m => m.role === 'assistant' && m.content.includes('[interrupted]'));
@@ -1906,9 +1938,15 @@ describe('ChatStore', () => {
   });
 
   it('abandoned stream error finalize does not stamp finishReason after interrupt-resend', async () => {
+    // Same gate pattern as above: the abandoned stream's error finalize is
+    // released by the test instead of racing a real setTimeout.
     class LateErrorFinalizeMockProvider implements LlmProvider {
       readonly id: ProviderId = 'openrouter';
       calls: LlmRequest[] = [];
+      firstPartialDelivered = false;
+      firstStreamFinished = false;
+      release!: () => void;
+      private readonly firstGate = new Promise<void>(resolve => { this.release = resolve; });
       private callIndex = 0;
 
       ready(): boolean { return true; }
@@ -1917,9 +1955,14 @@ describe('ChatStore', () => {
         this.calls.push(req);
         const n = this.callIndex++;
         if (n === 0) {
-          yield { type: 'text', delta: 'partial abandoned' };
-          await new Promise(r => setTimeout(r, 20));
-          yield { type: 'done', finishReason: 'error', error: 'provider blew up' };
+          try {
+            yield { type: 'text', delta: 'partial abandoned' };
+            this.firstPartialDelivered = true;
+            await this.firstGate;
+            yield { type: 'done', finishReason: 'error', error: 'provider blew up' };
+          } finally {
+            this.firstStreamFinished = true;
+          }
           return;
         }
         yield { type: 'text', delta: 'real-reply' };
@@ -1939,9 +1982,13 @@ describe('ChatStore', () => {
 
     chat.createThread();
     chat.sendMessage('first');
-    await flush(5);
+    await vi.waitFor(() => expect(mock.firstPartialDelivered).toBe(true));
     chat.sendMessage('second');
-    await flush(30);
+    await vi.waitFor(() => expect(chat.activeThread!.messages.at(-1)).toMatchObject({ role: 'assistant', content: 'real-reply' }));
+    // Release the abandoned first stream so its error finalize actually runs.
+    mock.release();
+    await vi.waitFor(() => expect(mock.firstStreamFinished).toBe(true));
+    await flush();
 
     const messages = chat.activeThread!.messages;
     const interrupted = messages.find(m => m.role === 'assistant' && m.content.includes('[interrupted]'));

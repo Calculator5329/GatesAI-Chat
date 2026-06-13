@@ -539,12 +539,9 @@ describe('ImageJobStore (runner)', () => {
     expect(dispatchCount).toBe(1);
 
     store.cancel(first.jobId);
-    // Cancel no longer calls runNext synchronously — wait for the aborted
-    // dispatcher to settle and the runner lock to start the queued job.
-    for (let i = 0; i < 40; i++) await flushMicrotasks();
-    await new Promise(r => setTimeout(r, 5));
-    for (let i = 0; i < 10; i++) await flushMicrotasks();
-    expect(store.active?.prompt).toBe('second job');
+    // Cancel no longer calls runNext synchronously — poll until the aborted
+    // dispatcher settles and the runner lock starts the queued job.
+    await vi.waitFor(() => expect(store.active?.prompt).toBe('second job'));
     expect(dispatchCount).toBe(2);
 
     const secondId = second.jobId;
@@ -559,6 +556,8 @@ describe('ImageJobStore (runner)', () => {
     const deps = makeDeps({
       dispatcher: vi.fn(async (req: GenerateImageRequest) => {
         calls++;
+        // Intentional fixture delay: keeps each iteration in flight long
+        // enough for cancel() to land mid-job.
         await new Promise(r => setTimeout(r, 10));
         return {
           result: {
@@ -575,11 +574,11 @@ describe('ImageJobStore (runner)', () => {
     });
     const store = new ImageJobStore(deps);
     const { jobId } = store.enqueue({ ...INPUT, count: 5 });
-    // Let the first iteration begin.
-    await new Promise(r => setTimeout(r, 5));
+    // Poll until the first iteration is genuinely in flight.
+    await vi.waitFor(() => expect(calls).toBeGreaterThanOrEqual(1));
     store.cancel(jobId);
-    // Let any in-flight iteration settle.
-    await new Promise(r => setTimeout(r, 50));
+    // Poll until the in-flight iteration settles and the job is finalized.
+    await vi.waitFor(() => expect(store.history.find(j => j.id === jobId)?.status).toBe('cancelled'));
     const job = store.history.find(j => j.id === jobId);
     expect(job?.status).toBe('cancelled');
     expect(calls).toBeLessThan(5);

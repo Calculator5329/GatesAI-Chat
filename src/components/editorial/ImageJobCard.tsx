@@ -116,6 +116,28 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
   const backendLabel = job.backend === 'local-comfy' ? 'ComfyUI' : 'OpenRouter';
   const elapsedSeconds = job.startedAt ? Math.max(0, Math.floor((Date.now() - job.startedAt) / 1000)) : 0;
   const remote = job.backend === 'openrouter-image';
+  const waitingOnProvider = remote && pct >= 92;
+  if (waitingOnProvider) {
+    return (
+      <div style={{ ...rectBase, position: 'relative' }}>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontSize: 12 }}>
+          <span>Waiting on provider...</span>
+          <span style={{ marginTop: 4 }}>{backendLabel} remote render - {elapsedSeconds}s elapsed</span>
+          {job.count > 1 && <span style={{ marginTop: 4 }}>{job.results.length} / {job.count} done</span>}
+        </div>
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--border)' }}>
+          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: 'width 0.2s ease' }} />
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          title="Cancel render"
+          aria-label="Cancel render"
+          style={cancelBtn}
+        >x</button>
+      </div>
+    );
+  }
   return (
     <div style={{ ...rectBase, position: 'relative' }}>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontSize: 12 }}>

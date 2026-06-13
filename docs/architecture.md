@@ -21,7 +21,8 @@ Core (types, theme, models, providers, runtime, llm contract, seed)
 ```
 src/
   main.tsx                        # entry: mounts <App> with the root store
-  index.css
+  index.css                       # @import manifest only — real CSS lives in styles/
+  styles/                         # layered CSS: base / editorial / markdown / menu / responsive
   app/
     App.tsx                       # top-level shell — sidebar + (chat | menu)
   components/
@@ -40,7 +41,7 @@ src/
       EditorialChat.tsx
       EditorialMessage.tsx
       EditorialComposer.tsx
-      ModelPopover.tsx
+      ModelPopover.tsx            # presentation only (lazy-loaded); logic in core/modelPicker
     menu/                         # the GatesMenu surface
       GatesMenu.tsx
       sections/
@@ -50,6 +51,8 @@ src/
   stores/
     RootStore.ts                  # composes the store graph
     ChatStore.ts                  # threads, messages, streaming via LlmRouter
+    chatPersistenceCoordinator.ts # chat snapshot policy: throttled local autosave,
+                                  # unload flush, multi-tab pause, workspace save queue
     UiStore.ts                    # composer draft + persisted reading prefs
     ProviderStore.ts              # API keys + LlmRouter, persisted separately
     RouterStore.ts                # observable URL hash
@@ -78,7 +81,15 @@ src/
     imageGenStorage.ts            # gatesai.imagegen.v1 (ComfyUI quality + workflow override)
     imageJobsStorage.ts           # gatesai.imagejobs.v1 (completed-job history; in-flight discarded)
     searchStorage.ts              # gatesai.search.v1 (Brave Search key)
-    workspaceChatPersistence.ts   # bridge-backed chat snapshot + readable history library
+    workspaceChatPersistence.ts   # bridge-backed chat snapshot (privileged bridge requests)
+    chat/                         # chat-turn helpers extracted from ChatStore
+      contextModes.ts             #   full/micro/bare prompt + tools shaping
+      toolBatchExecutor.ts        #   validates + runs a turn's tool-call batch
+      activityProjection.ts       #   tool calls/results → ActivityItem[]
+      turnFormatting.ts           #   error/recovery/interrupt display text
+      imageTurnFormatting.ts      #   image-turn display text + terminal results
+      pseudoToolRescue.ts         #   rescue Ollama tool calls emitted as text
+      libraryExport.ts            #   /workspace/chat-history HTML/Markdown library renderer
     storage/
       persistenceProvider.ts      # injectable persistence ports + localStorage adapter
       jsonSlot.ts                 # compatibility wrapper for JSON-backed slots
@@ -113,6 +124,9 @@ src/
     types.ts                      # domain interfaces & persisted preference unions
     llm.ts                        # provider-agnostic LLM contract
     models.ts                     # curated Model catalog + DEFAULT_MODEL_ID
+    modelPicker.ts                # pure picker logic: sections, filters, badges, copy
+    threadSelectors.ts            # pure thread selectors (spend, sidebar search match)
+    breakpoints.ts                # MOBILE_SHELL_QUERY — the one mobile matchMedia source
     providers.ts                  # provider metadata (name, desc, key URL, etc.)
     runtime.ts                    # pure desktop-vs-web-lite mode detection (importable by every layer)
     theme.ts                      # accent/bg palettes, CSS-var builder
@@ -219,9 +233,12 @@ tool internals. The `image_generate` tool uses artifacts to surface the
 queued image job so the unified activity renderer can mount progress and
 results without regexing the human-facing result string.
 
-`ChatStore.executeOneToolCall` runs the registry, persists the
-`content` and `summary` onto the assistant message's `toolResults`, and
-stashes `artifacts` next to it when present.
+`services/chat/toolBatchExecutor.executeToolBatch` (called by `ChatStore`)
+validates a turn's tool-call batch, runs the registry (read-only calls in
+parallel), persists the `content` and `summary` onto the assistant message's
+`toolResults`, and stashes `artifacts` next to it when present. Tools that
+need the bridge share the `services/tools/requireBridge` guard middleware
+instead of copy-pasting offline checks.
 
 The `logs` tool (category `diagnostics`) lets the assistant read the app's own
 recent log entries (see Logging below) so it can self-diagnose failures instead
@@ -284,8 +301,12 @@ Workspace chat history is app-managed: `ChatStore` saves a JSON envelope under
 readable `/workspace/chat-history` HTML/Markdown library for users. App tools
 block direct access to **both** the JSON scope and the `chat-history/` mirror
 (`fs`, `inspect_file`, `terminal`, `python_inline`, `sqlite_query`); models
-use `chat_history` for bounded recent/search/read operations instead. Bridge-level
-enforcement is still a planned follow-up. `web_search`
+use `chat_history` for bounded recent/search/read operations instead. The Go
+bridge (sibling repo) now also enforces this server-side: unprivileged
+envelopes are denied fs access to `.gatesai/chat` + `chat-history` subtrees
+(hidden from list/search) and exec commands mentioning them are refused; only
+app-originated requests marked `privileged: true` (the wrapped client inside
+`workspaceChatPersistence`) may touch them. `web_search`
 routes through `SearchStore` and Brave's LLM Context endpoint, using a desktop
 Tauri proxy when running inside the packaged app.
 
@@ -406,8 +427,12 @@ the active thread's composer banner.
 ## CI
 
 ```
-npm run typecheck   # tsc -b && tsc -p tsconfig.test.json --noEmit
+npm run typecheck   # tsc -b && tsc -p tsconfig.test.json --noEmit (strict mode on)
 npm run lint        # ESLint over the repo (eslint .)
-npm run test        # Vitest (659+ offline tests)
+npm run test        # Vitest (700+ offline tests)
 npm run ci          # all three, in order (e2e is separate: npm run test:e2e)
 ```
+
+`.github/workflows/ci.yml` runs the unit/typecheck/lint job plus a Playwright
+e2e job on every push to `master` and on pull requests, so releases and
+deploys no longer ship ungated.

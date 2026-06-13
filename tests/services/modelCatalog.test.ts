@@ -43,7 +43,7 @@ describe('curated model catalog', () => {
         'anthropic/claude-haiku-4.6',
         '~google/gemini-pro-latest',
         'google/gemini-3.1-pro',
-        '~google/gemini-flash-latest',
+        'google/gemini-3-flash',
         'x-ai/grok-4.20',
         'meta-llama/llama-4-maverick',
         'nvidia/nemotron-3-ultra-550b-a55b',

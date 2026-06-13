@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { threadMatchesSearch } from '../../src/stores/ChatStore';
+import { threadMatchesSearch } from '../../src/core/threadSelectors';
 import type { Message, Thread } from '../../src/core/types';
 
 function msg(role: 'user' | 'assistant', content: string, id = 'm'): Message {

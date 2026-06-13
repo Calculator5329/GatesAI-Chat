@@ -24,6 +24,25 @@ interface Envelope {
   type: 'request' | 'event' | 'result' | 'error';
   op?: string;
   data?: unknown;
+  /**
+   * Marks requests issued by the app's own chat-persistence layer. The
+   * bridge denies access to the protected chat-history subtrees
+   * (`.gatesai/chat/`, `chat-history/`) unless this is set. Never set it
+   * on behalf of model tool calls.
+   */
+  privileged?: boolean;
+}
+
+export interface BridgeRequestOptions {
+  /** See {@link Envelope.privileged}. Persistence-layer use only. */
+  privileged?: boolean;
+  /**
+   * Envelope timeout for the bridge response. `undefined` uses the default,
+   * `null` disables the client-side envelope timeout for long streaming ops.
+   */
+  timeoutMs?: number | null;
+  /** Reset the envelope timeout whenever an `event` frame arrives. */
+  resetTimeoutOnEvent?: boolean;
 }
 
 interface ErrorPayload {
@@ -37,7 +56,9 @@ interface Pending {
   resolve: (value: unknown) => void;
   reject: (reason: Error) => void;
   onEvent?: EventHandler;
-  timer: ReturnType<typeof setTimeout>;
+  resetTimer?: () => void;
+  clearTimer: () => void;
+  resetTimeoutOnEvent: boolean;
 }
 
 export class BridgeOfflineError extends Error {
@@ -146,28 +167,49 @@ export class BridgeClient {
     op: string,
     data: unknown,
     onEvent?: EventHandler,
+    options?: BridgeRequestOptions,
   ): Promise<T> {
     if (!this.isOpen()) {
       throw new BridgeOfflineError();
     }
     const id = `j-${PROTOCOL_VERSION}-${this.nextId++}`;
-    const envelope: Envelope = { id, type: 'request', op, data };
+    const envelope: Envelope = {
+      id,
+      type: 'request',
+      op,
+      data,
+      ...(options?.privileged ? { privileged: true } : {}),
+    };
     return new Promise<T>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pending.delete(id);
-        reject(new BridgeError(`Bridge request timed out after ${Math.round(DEFAULT_REQUEST_TIMEOUT_MS / 1000)}s`, op, 'bridge_timeout'));
-      }, DEFAULT_REQUEST_TIMEOUT_MS);
+      const timeoutMs = options?.timeoutMs === null ? null : options?.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+      let timer: ReturnType<typeof setTimeout> | null = null;
+      const clearTimer = () => {
+        if (timer) clearTimeout(timer);
+        timer = null;
+      };
+      const resetTimer = timeoutMs === null
+        ? undefined
+        : () => {
+          clearTimer();
+          timer = setTimeout(() => {
+            this.pending.delete(id);
+            reject(new BridgeError(`Bridge request timed out after ${Math.round(timeoutMs / 1000)}s`, op, 'bridge_timeout'));
+          }, timeoutMs);
+        };
+      resetTimer?.();
       this.pending.set(id, {
         resolve: (v) => {
-          clearTimeout(timer);
+          clearTimer();
           resolve(v as T);
         },
         reject: (err) => {
-          clearTimeout(timer);
+          clearTimer();
           reject(err);
         },
         onEvent,
-        timer,
+        resetTimer,
+        clearTimer,
+        resetTimeoutOnEvent: Boolean(options?.resetTimeoutOnEvent),
       });
       try {
         this.socket!.send(JSON.stringify(envelope));
@@ -200,6 +242,7 @@ export class BridgeClient {
 
     switch (env.type) {
       case 'event':
+        if (pending.resetTimeoutOnEvent) pending.resetTimer?.();
         pending.onEvent?.(env.data);
         return;
       case 'result':

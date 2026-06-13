@@ -3,9 +3,15 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { makeAutoObservable, runInAction } from 'mobx';
 import type { ActivityItem, DraftAttachment } from '../core/types';
-import type { BridgeConnectionState, BridgeStatus } from '../core/workspace';
+import type { BridgeConnectionState, BridgeStatus, FsListResp } from '../core/workspace';
 import { isWorkspacePath, resolveWorkspacePath } from '../core/workspacePaths';
 import { uploadAttachment } from '../services/bridge/attachments';
+import {
+  loadHtmlArtifactPreview,
+  peekHtmlArtifactPreview,
+  type HtmlArtifactPreviewContent,
+  type HtmlArtifactPreviewResult,
+} from '../services/bridge/artifactPreview';
 import { BridgeClient, BridgeOfflineError } from '../services/bridge/client';
 import { probeBridgeHealth } from '../services/bridge/health';
 import { ensureDefaultWorkspaceGuide } from '../services/bridge/defaultWorkspaceGuide';
@@ -16,6 +22,10 @@ import { logger } from '../services/diagnostics/logger';
 
 const WS_URL = 'ws://127.0.0.1:7331/ws';
 const POLL_INTERVAL_MS = 5000;
+
+// Re-exported so UI components can type preview state through the store
+// facade without importing bridge service internals.
+export type { HtmlArtifactPreviewContent, HtmlArtifactPreviewResult };
 
 /**
  * Owns the bridge connection lifecycle. Polls /health every 5s; when the
@@ -113,6 +123,46 @@ export class BridgeStore {
       logger.warn('BridgeStore', 'openWorkspacePath failed', { workspacePath, err });
       return false;
     }
+  }
+
+  /**
+   * List a workspace directory through the bridge. Lives on the store so
+   * UI components ask the facade for workspace data instead of issuing
+   * raw bridge requests.
+   */
+  listWorkspaceDir(path: string, recursive = false): Promise<FsListResp> {
+    return this.client.request<FsListResp>('fs.list', { path, recursive });
+  }
+
+  /**
+   * Danger-zone reset: delete a workspace directory and recreate it empty,
+   * plus any child directories the layout expects. Used by the Settings
+   * danger zone for attachments/artifacts resets.
+   */
+  async resetWorkspaceDirectory(path: string, children: string[] = []): Promise<void> {
+    if (!this.isOnline) throw new Error('Bridge is offline.');
+    try {
+      await this.client.request('fs.delete', { path });
+    } catch {
+      // Missing folder is fine; the mkdir below gives us the desired end state.
+    }
+    await this.client.request('fs.mkdir', { path });
+    for (const child of children) {
+      await this.client.request('fs.mkdir', { path: child });
+    }
+  }
+
+  /** Synchronous cache peek for an already-prepared HTML artifact preview. */
+  peekHtmlArtifactPreview(path: string): HtmlArtifactPreviewContent | undefined {
+    return peekHtmlArtifactPreview(path);
+  }
+
+  /**
+   * Load a workspace HTML artifact and prepare it for a sandboxed iframe
+   * preview (assets inlined). Thin facade over the artifactPreview service.
+   */
+  loadHtmlArtifactPreview(path: string): Promise<HtmlArtifactPreviewResult> {
+    return loadHtmlArtifactPreview(this, path);
   }
 
   /**

@@ -29,6 +29,7 @@ import { sourceBuildTool } from './sourceBuild';
 export interface ToolSelectionContext {
   userText: string;
   bridgeOnline: boolean;
+  desktopRuntime?: boolean;
   /**
    * Whether ComfyUI is enabled and healthy for this session. The model should
    * never see image generation tools unless the backend can actually run them.
@@ -86,11 +87,13 @@ export class ToolRegistry {
       'memory',
       'thread',
       'chat_history',
-      'source_workspace',
-      'source_build',
       'logs',
     ]);
-    const bridgeRelevant = ctx.bridgeOnline || /\b(file|files|attachment|attached|csv|json|data|dataset|text|txt|code|script|command|terminal|shell|git|build|test|workspace|artifact|artifacts|folder|directory|read|write|html|htm|webpage|website|page|game|canvas|app|demo|prototype|ui)\b/.test(text);
+    if (ctx.desktopRuntime !== false) {
+      selected.add('source_workspace');
+      selected.add('source_build');
+    }
+    const bridgeRelevant = ctx.bridgeOnline;
     const notesRelevant = /\b(note|notes|plan|plans|document|documents|doc|docs|memory|remember|search|list|read|write)\b/.test(text);
     const imageGenRelevant = /\b(draw|drawing|paint|render|generate|make|create|design|illustrate|picture|image|photo|artwork|poster|logo|illustration|visual|scene|portrait|landscape|background|wallpaper)\b.*\b(image|picture|photo|art|artwork|drawing|poster|logo|illustration|scene|portrait|landscape|background|wallpaper)\b|\b(image[-_ ]?gen|imagegen|flux|stable ?diffusion|dall[-_ ]?e|midjourney|background|wallpaper)\b/i.test(text);
     const imageVisionRelevant = /\b(describe|caption|inspect|analy[sz]e|what(?:'s| is)|read)\b.*\b(image|picture|photo|screenshot|attachment|visual)\b|\b(image|picture|photo|screenshot)\b.*\b(describe|caption|inspect|analy[sz]e|read)\b/i.test(text);
@@ -108,8 +111,8 @@ export class ToolRegistry {
     }
     if (notesRelevant) selected.add('notes');
     if (ctx.webSearchAvailable) selected.add('web_search');
-    if (ctx.imageGenAvailable && imageGenRelevant) selected.add('image_generate');
-    if (imageVisionRelevant) {
+    if (ctx.bridgeOnline && ctx.imageGenAvailable && imageGenRelevant) selected.add('image_generate');
+    if (ctx.bridgeOnline && imageVisionRelevant) {
       selected.add('workspace');
       selected.add('fs');
       selected.add('describe_image');

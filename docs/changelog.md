@@ -1,5 +1,142 @@
 # Changelog
 
+## 2026-06-10 — Pin default chat to Gemini 3 Flash (not latest alias)
+
+- `or-gemini-3-flash` (and the Auto picker row) now route to the pinned
+  OpenRouter slug `google/gemini-3-flash` instead of `~google/gemini-flash-latest`,
+  so new threads stay on Gemini 3 Flash rather than whatever Google marks "latest".
+
+## 2026-06-10 — Remove sidebar thread search
+
+- Removed the "Search threads" input from `EditorialSidebar`; the "Begin a new
+  conversation" button (and mobile new-chat control) remain. History still shows
+  pinned threads plus the first 20 unpinned rows.
+- Dropped search-specific CSS in `editorial.css` / `responsive.css`; updated
+  sidebar unit test and removed the desktop e2e search spec.
+
+## 2026-06-09 — Test hardening: BridgeClient unit tests, two-tab e2e, deterministic waits
+
+- **`tests/services/bridge/client.test.ts` (new, 13 tests):** full coverage of
+  the previously untested `BridgeClient` WebSocket protocol via an injected
+  `FakeWebSocket` (vi.stubGlobal): connect resolve/error/3s-timeout +
+  idempotency, offline throw, out-of-order id correlation, event routing to
+  the right `onEvent` without settling, `BridgeError` message/op/code,
+  30s `bridge_timeout` + pending-entry cleanup, close-mid-request rejecting
+  all pending, the new `options.privileged` envelope flag (present only when
+  requested), and malformed-frame tolerance.
+- **`tests/e2e/multiTab.spec.ts` (new, 2 tests):** two pages in one browser
+  context exercise the real cross-tab `storage` event — tab B's chat write
+  raises the "Another browser tab updated chat history" banner in tab A;
+  Reload adopts B's snapshot; Dismiss clears the banner and resumes autosave
+  (verified by A's next write raising the banner in B).
+- **Replaced timing-based waits with state-based ones (tests only):**
+  the 260ms autosave-throttle sleeps in EditorialChat/EditorialSidebar/perf
+  teardowns now call `chat.dispose()` (drains the throttle synchronously);
+  ChatStore late-finalize tests gate the abandoned stream on a test-controlled
+  promise instead of `setTimeout(20)` + `flush(30)`; ImageJobStore/ImageJobCard
+  and the composer paste test poll with `vi.waitFor`; `desktop.spec.ts` drops
+  three `waitForTimeout(150)` calls (auto-retrying assertions cover the search
+  debounce; sidebar clicks blur-flush the draft). Intentional fixture delays
+  are commented as such.
+- Verified: typecheck green; e2e 21/21 (multiTab/desktop also 3x repeat-each);
+  unit 715 passing — the only failures are 3-4 model-picker tests in
+  `EditorialComposer.test.ts` that fail identically on the unmodified baseline
+  (concurrent ModelPopover work in flight; fixed in the same session — the
+  picker tests now await the lazy popover mount).
+
+## 2026-06-09 — Repo-improvement plan: CI gate, strict TS, ChatStore decomposition, bridge security, picker/persistence extraction
+
+Remaining items from the repo-wide improvement plan (the test-hardening,
+CSS/mobile, and requireBridge/UI-bridge entries nearby were the same session's
+parallel tracks).
+
+- **CI workflow (new `.github/workflows/ci.yml`):** unit tests + typecheck +
+  lint on push to `master` and on PRs, plus a Playwright e2e job with report
+  artifact upload. Releases/deploys are no longer ungated.
+- **Repo hygiene:** `.firebase/` and `.playwright-mcp/` gitignored; the
+  tracked Firebase hosting cache untracked.
+- **TypeScript strict mode enabled** in `tsconfig.app.json` and
+  `tsconfig.node.json` (test config inherits). No suppressions needed.
+- **Web Lite clear-data inventory completed:** `gatesai.menuHintSeen.v1` and
+  `gatesai.search.v1` (credential) added to the slot inventory; dynamic
+  `*.corrupt-<ts>` quarantine keys are now scanned and cleared too.
+- **ChatStore decomposed (2,429 → ~1,660 lines):** pure selectors moved to
+  `core/threadSelectors`; context-mode prompt/tool shaping to
+  `services/chat/contextModes`; Ollama pseudo-tool rescue to
+  `services/chat/pseudoToolRescue`; turn/error display text to
+  `services/chat/turnFormatting` + `imageTurnFormatting`; activity projection
+  to `services/chat/activityProjection`; the tool-call batch loop to
+  `services/chat/toolBatchExecutor`; and the three persistence paths
+  (throttled local autosave, unload flush, multi-tab pause, serialized
+  workspace save queue) behind `stores/chatPersistenceCoordinator`.
+- **Bridge-level protected-path enforcement (gatesai-bridge repo):** protocol
+  envelopes carry `privileged`; unprivileged fs ops on `.gatesai/chat` /
+  `chat-history` are denied and hidden from list/search; unprivileged exec
+  refuses commands/cwd referencing those subtrees. App-side
+  `workspaceChatPersistence` wraps its bridge client so all of its requests
+  are privileged. Go tests cover denial + hiding.
+- **Persistence/library split:** the ~1,000-line readable chat-history
+  renderer moved out of `workspaceChatPersistence` into
+  `services/chat/libraryExport` (persistence owns policy, export owns
+  presentation; export remains best-effort).
+- **ModelPopover slimmed + lazy:** all section/filter/badge/copy logic moved
+  to `core/modelPicker` (pure, unit-testable); the popover is now
+  `React.lazy`-loaded from the composer; Vite `manualChunks` (function form —
+  rolldown-vite) splits the markdown/KaTeX/highlight stack (~597 kB) out of
+  the eager main chunk.
+- Verified: typecheck, lint, production build, unit suite green (composer
+  picker tests updated to await the lazy popover mount).
+
+## 2026-06-09 — CSS consolidation + mobile-shell breakpoint unification
+
+- **Split `src/index.css` (~3,000 lines) into layered files** under
+  `src/styles/`: `base.css` (keyframes, resets, utilities), `editorial.css`
+  (chat/sidebar/composer), `markdown.css` (md body, code, KaTeX, artifacts),
+  `menu.css` (menu/settings chrome), `responsive.css` (all `@media` blocks).
+  `index.css` is now an `@import` manifest only; import order preserves the
+  original cascade (responsive last).
+- **Merged duplicate media blocks:** the two `@media (max-width: 480px)`
+  blocks are one block; the two mobile-shell blocks
+  (`max-width: 640px / 960px×480px`) are one block, with the earlier
+  `.runtime-web-lite` variable rule (topbar 50px, drawer 82vw, reserve 162px,
+  gutter 18px) deleted — the later `:is(.runtime-web-lite, .runtime-desktop)`
+  values (48px / 84vw / 118px / 16px) already won the cascade, so behavior is
+  unchanged.
+- **Removed brittle `[style*=...]` selectors:** composer meta separator now
+  carries `composer-meta__sep`, the Settings kicker carries
+  `settings-page__kicker`; the four attribute selectors target those classes.
+- **Unified the mobile-shell breakpoint:** new `src/core/breakpoints.ts`
+  exports `MOBILE_SHELL_QUERY`; `UiStore.mobileShell` observes it via a single
+  matchMedia subscription (guarded for jsdom); `EditorialSidebar` reads
+  `ui.mobileShell` instead of its own matchMedia effect. Sync comments link
+  the constant and the `responsive.css` block.
+- Verified: typecheck, lint (only the pre-existing ModelPopover useMemo
+  warning), 706/706 unit tests, production build.
+
+## 2026-06-09 — requireBridge tool middleware + bridge calls out of UI
+
+Refactor-plan tasks A/B. Full suite green (typecheck, lint, 706 unit).
+
+- **`services/tools/requireBridge.ts` (new):** shared bridge guard middleware —
+  `requireBridge(ctx, messages?)` (discriminated `{ ok: true, bridge } |
+  { ok: false, error }`), `requireBridgeOutcome(ctx)` for `ToolOutcome`-shaped
+  tools, and `bridgeErrorMessage` / `describeBridgeError` for catch blocks.
+  Refactored fs, git, terminal, sqlite_query, python_inline, inspect_file,
+  artifact, image_generate, and describe_image to use it; all guard/error
+  strings preserved byte-for-byte (per-tool wording via the `messages` param).
+- **Bridge orchestration moved out of UI components (facade rule):**
+  - `BridgeStore.resetWorkspaceDirectory(path, children)` — Settings danger
+    zone no longer issues raw `fs.delete`/`fs.mkdir` requests.
+  - `BridgeStore.listWorkspaceDir(path, recursive)` — Workspace section file
+    explorer goes through the store.
+  - `services/bridge/artifactPreview.ts` (new) — the HTML artifact
+    stat/read/asset-inlining preview pipeline (plus its LRU cache and inflight
+    dedupe) extracted from `HtmlArtifactPreview.tsx`; exposed via
+    `BridgeStore.loadHtmlArtifactPreview` / `peekHtmlArtifactPreview`.
+    `isHtmlWorkspacePath` moved to `core/workspacePaths` (re-exported from the
+    component for existing importers). Cache test hooks now live in
+    `__artifactPreviewTestApi` on the service.
+
 ## 2026-06-07 — Polish pass: sub-agent double-check + correctness hardening
 
 Ran three parallel audit sub-agents (dead-code, architecture, correctness) and

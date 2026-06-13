@@ -48,45 +48,45 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function loadHostedImage(url: string): Promise<string | null> {
-  const cached = cacheGet(url);
+async function loadHostedImage(url: string, cacheKey = url): Promise<string | null> {
+  const cached = cacheGet(cacheKey);
   if (cached) return cached;
   try {
     const resp = await fetch(url);
     if (!resp.ok) return null;
     const mime = resp.headers.get('content-type')?.split(';')[0] || 'image/png';
     const dataUrl = `data:${mime};base64,${bytesToBase64(new Uint8Array(await resp.arrayBuffer()))}`;
-    cacheSet(url, dataUrl);
+    cacheSet(cacheKey, dataUrl);
     return dataUrl;
   } catch {
     return null;
   }
 }
 
-export async function loadImageSource(bridge: BridgeStore, path: string): Promise<string | null> {
-  const cached = cacheGet(path);
+export async function loadImageSource(bridge: BridgeStore, path: string, cacheKey = path): Promise<string | null> {
+  const cached = cacheGet(cacheKey);
   if (cached) return cached;
-  const inflight = inflightLoads.get(path);
+  const inflight = inflightLoads.get(cacheKey);
   if (inflight) return inflight;
-  const promise = loadImageSourceUncached(bridge, path).finally(() => {
-    inflightLoads.delete(path);
+  const promise = loadImageSourceUncached(bridge, path, cacheKey).finally(() => {
+    inflightLoads.delete(cacheKey);
   });
-  inflightLoads.set(path, promise);
+  inflightLoads.set(cacheKey, promise);
   return promise;
 }
 
-async function loadImageSourceUncached(bridge: BridgeStore, path: string): Promise<string | null> {
+async function loadImageSourceUncached(bridge: BridgeStore, path: string, cacheKey = path): Promise<string | null> {
   if (/^https?:\/\//i.test(path)) {
     // Hosted URLs render directly via <img src> — but Lightbox's full-size
     // view needs the bytes inlined for cross-origin / WebView quirks, so
     // we cache them as data URLs too. Callers that prefer the bare URL
     // (thumbnail) can short-circuit before calling.
-    return loadHostedImage(path);
+    return loadHostedImage(path, cacheKey);
   }
   const result = await bridge.readAttachmentBase64(path);
   if (!result) return null;
   const url = `data:${result.mime};base64,${result.base64}`;
-  cacheSet(path, url);
+  cacheSet(cacheKey, url);
   return url;
 }
 
@@ -96,29 +96,29 @@ async function loadImageSourceUncached(bridge: BridgeStore, path: string): Promi
  * resolves; `failed` flips true on a hard miss. Cancellation safe across
  * unmount and path changes.
  */
-export function useImageDataUrl(path: string): { src: string | null; failed: boolean } {
+export function useImageDataUrl(path: string, cacheKey = path): { src: string | null; failed: boolean } {
   const bridge = useBridgeStore();
   const [loaded, setLoaded] = useState<{ path: string; src: string | null; failed: boolean }>(() => ({
-    path,
-    src: cacheGet(path) ?? null,
+    path: cacheKey,
+    src: cacheGet(cacheKey) ?? null,
     failed: false,
   }));
 
-  const cached = cacheGet(path);
-  const current = loaded.path === path
+  const cached = cacheGet(cacheKey);
+  const current = loaded.path === cacheKey
     ? loaded
-    : { path, src: cached ?? null, failed: false };
+    : { path: cacheKey, src: cached ?? null, failed: false };
 
   useEffect(() => {
-    const cached = cacheGet(path);
+    const cached = cacheGet(cacheKey);
     if (cached) return;
     let cancelled = false;
-    void loadImageSource(bridge, path).then(url => {
+    void loadImageSource(bridge, path, cacheKey).then(url => {
       if (cancelled) return;
-      setLoaded({ path, src: url, failed: !url });
+      setLoaded({ path: cacheKey, src: url, failed: !url });
     });
     return () => { cancelled = true; };
-  }, [bridge, path]);
+  }, [bridge, path, cacheKey]);
 
   return { src: current.src, failed: current.failed };
 }

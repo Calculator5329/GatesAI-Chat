@@ -8,7 +8,7 @@ import type {
   FsStatResp,
   FsWriteResp,
 } from '../../core/workspace';
-import { BridgeOfflineError } from '../bridge/client';
+import { describeBridgeError, requireBridge } from './requireBridge';
 import { decodeFsRead } from './textDecode';
 import {
   denyProtectedChatHistoryPath,
@@ -100,8 +100,8 @@ export const fsTool: Tool = {
   },
 
   async execute(args, ctx) {
-    if (!ctx.bridge) return 'Error: bridge unavailable in this context.';
-    if (!ctx.bridge.isOnline) return 'Error: bridge offline. Start gatesai-bridge.';
+    const guard = requireBridge(ctx);
+    if (!guard.ok) return guard.error;
 
     const action = typeof args.action === 'string' ? args.action.trim() : '';
     if (!action) {
@@ -124,8 +124,7 @@ export const fsTool: Tool = {
         default:       return `Error: unknown action "${action}". Valid: read, write, append, list, delete, move, copy, mkdir, stat, search.`;
       }
     } catch (err) {
-      if (err instanceof BridgeOfflineError) return `Error: ${err.message}`;
-      return `Error: ${(err as Error).message}`;
+      return describeBridgeError(err);
     }
   },
 };

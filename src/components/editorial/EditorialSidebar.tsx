@@ -1,4 +1,4 @@
-// The thread-list navigation sidebar: search, pin, soft-delete + undo, and menu
+// The thread-list navigation sidebar: pin, soft-delete + undo, and menu
 // section navigation. Rendered by the app shell; reads RootStore via hooks.
 // Invariant: persisted chat state stays in stores; this surface is presentation only.
 import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
@@ -6,15 +6,13 @@ import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { MenuSectionKey, Thread } from '../../core/types';
 import { useChatStore, useRouterStore, useUiStore } from '../../stores/context';
-import { threadMatchesSearch } from '../../stores/ChatStore';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
 
 const UNDO_TIMEOUT_MS = 8000;
 // First-run menu coach: show it briefly, then bow out on its own so it never nags.
 const MENU_HINT_TIMEOUT_MS = 9000;
-const SEARCH_DEBOUNCE_MS = 120;
-const SEARCH_RESULT_LIMIT = 100;
+const HISTORY_ROW_LIMIT = 20;
 const MENU_LABELS: Record<MenuSectionKey, string> = {
   agent: 'Agent',
   models: 'Models',
@@ -88,16 +86,6 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
     fontWeight: 500,
     padding: '2px 4px',
   },
-  search: {
-    height: 30,
-    padding: '0 9px',
-    border: '1px solid var(--border)',
-    borderRadius: 7,
-    background: 'var(--panel)',
-    color: 'var(--text)',
-    font: '12px "Geist", ui-sans-serif, system-ui, sans-serif',
-    outline: 'none',
-  },
   rowActions: {
     flex: 'none',
     display: 'inline-flex',
@@ -124,25 +112,14 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   const router = useRouterStore();
   const ui = useUiStore();
   const onMenu = router.isMenu;
-  const [query, setQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
-    return () => window.clearTimeout(timer);
-  }, [query]);
-  const normalizedQuery = debouncedQuery.trim().toLowerCase();
-  const visible = normalizedQuery
-    ? chat.visibleThreads
-        .filter(t => threadMatchesSearch(t, normalizedQuery))
-        .slice(0, SEARCH_RESULT_LIMIT)
-    : chat.visibleThreads;
-  const pinned = visible.filter(t => t.pinned);
-  const unpinned = visible.filter(t => !t.pinned);
-  const rest = normalizedQuery ? unpinned : unpinned.slice(0, 20);
+  const pinned = chat.visibleThreads.filter(t => t.pinned);
+  const rest = chat.visibleThreads.filter(t => !t.pinned).slice(0, HISTORY_ROW_LIMIT);
 
   const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileShell, setMobileShell] = useState(false);
+  // Single source of truth for the breakpoint lives in UiStore (matchMedia
+  // on MOBILE_SHELL_QUERY), shared with src/styles/responsive.css.
+  const mobileShell = ui.mobileShell;
   // First-run cue: surface the menu coachmark until the user opens the menu.
   // State + persistence live in UiStore (no direct storage here).
   const showMenuHint = !ui.menuHintSeen && !onMenu;
@@ -152,16 +129,10 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     ? mobileMenuTitle
     : (chat.activeThread?.title || 'New conversation');
 
+  // Leaving the mobile shell (e.g. rotating / resizing) closes the drawer.
   useEffect(() => {
-    const query = window.matchMedia('(max-width: 640px), (max-width: 960px) and (max-height: 480px)');
-    const update = () => {
-      setMobileShell(query.matches);
-      if (!query.matches) setMobileOpen(false);
-    };
-    update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
-  }, []);
+    if (!mobileShell) setMobileOpen(false);
+  }, [mobileShell]);
 
   useEffect(() => {
     if (!undo) return;
@@ -377,15 +348,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           <Icons.Plus />
           <span className="editorial-sidebar__new-label">Begin a new conversation</span>
         </div>
-        <input
-          className="editorial-sidebar__search"
-          type="search"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search threads"
-          aria-label="Search threads"
-          style={S.search as CSSProperties}
-        />
       </div>
       {mobileShell && (
         <div className="editorial-sidebar__mobile-actions">
@@ -403,11 +365,11 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       <div className="editorial-sidebar__list" style={S.list as CSSProperties}>
         {pinned.length > 0 && <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Pinned</div>}
         {pinned.map(renderItem)}
-        <div className="editorial-sidebar__group" style={S.group as CSSProperties}>{normalizedQuery ? 'Matches' : 'Earlier'}</div>
+        <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Earlier</div>
         {rest.map(renderItem)}
-        {visible.length === 0 && (
+        {pinned.length === 0 && rest.length === 0 && (
           <div style={{ padding: '12px 20px', color: 'var(--text-faint)', fontSize: 12, fontStyle: 'italic' }}>
-            No conversations found.
+            No conversations yet.
           </div>
         )}
       </div>

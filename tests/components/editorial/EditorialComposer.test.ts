@@ -67,6 +67,22 @@ function render(s: RootStore): HTMLDivElement {
   return host;
 }
 
+/**
+ * Opens the model picker. ModelPopover is React.lazy-loaded, so the click must
+ * be awaited inside async act for the dynamic import to resolve and render.
+ */
+async function openModelPicker(rendered: HTMLElement): Promise<void> {
+  await act(async () => {
+    rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
+  // The dynamic import may take several ticks under vite-node; poll until the
+  // popover's source tabs mount rather than assuming one microtask is enough.
+  await vi.waitFor(async () => {
+    await act(async () => {});
+    if (!rendered.querySelector('[data-source-filter]')) throw new Error('model picker not mounted yet');
+  });
+}
+
 function sendControl(rendered: HTMLElement, title = 'Send'): HTMLButtonElement {
   const button = rendered.querySelector(`button.composer-send-control[title="${title}"]`) as HTMLButtonElement | null;
   if (!button) throw new Error(`Missing composer send control: ${title}`);
@@ -282,7 +298,7 @@ describe('EditorialComposer API-key banner', () => {
     expect(rendered.textContent).not.toContain('local Ã‚· micro tools');
   });
 
-  it('model picker auto row selects Gemini 3 Flash API', () => {
+  it('model picker auto row selects Gemini 3 Flash API', async () => {
     store = buildStore();
     store.registry.setDynamicForProvider('ollama', [{
       id: 'ollama-llama3',
@@ -294,9 +310,7 @@ describe('EditorialComposer API-key banner', () => {
     store.chat.setThreadModel(store.chat.activeThreadId!, 'ollama-llama3');
     const rendered = render(store);
 
-    act(() => {
-      rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    await openModelPicker(rendered);
     expect(rendered.textContent).toContain('Auto: Gemini 3 Flash API');
     act(() => {
       rendered.querySelector('[data-model-row="auto-gemini-3-flash"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -305,7 +319,7 @@ describe('EditorialComposer API-key banner', () => {
     expect(store.chat.activeThread?.modelId).toBe('or-gemini-3-flash');
   });
 
-  it('hides the local tab and Ollama rows while the runtime is offline', () => {
+  it('hides the local tab and Ollama rows while the runtime is offline', async () => {
     store = buildStore();
     store.registry.setDynamicForProvider('ollama', [{
       id: 'ollama-llama3',
@@ -317,15 +331,14 @@ describe('EditorialComposer API-key banner', () => {
     }]);
     const rendered = render(store);
 
-    act(() => {
-      rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
+    await openModelPicker(rendered);
+    // The popover itself rendered (auto tab exists) but local is hidden.
+    expect(rendered.querySelector('[data-source-filter="auto"]')).toBeTruthy();
     expect(rendered.querySelector('[data-source-filter="local"]')).toBeNull();
     expect(rendered.querySelector('[data-model-row="ollama-llama3"]')).toBeNull();
   });
 
-  it('shows local rows with readiness badges once Ollama is online', () => {
+  it('shows local rows with readiness badges once Ollama is online', async () => {
     store = buildStore();
     store.registry.setDynamicForProvider('ollama', [{
       id: 'ollama-llama3',
@@ -338,9 +351,7 @@ describe('EditorialComposer API-key banner', () => {
     runInAction(() => { store!.localRuntime.runtimes.ollama.status = 'online'; });
     const rendered = render(store);
 
-    act(() => {
-      rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    await openModelPicker(rendered);
     act(() => {
       rendered.querySelector('[data-source-filter="local"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -352,13 +363,11 @@ describe('EditorialComposer API-key banner', () => {
     expect(rendered.textContent).not.toContain('Auto: Gemini 3 Flash API');
   });
 
-  it('model picker keeps recent selections without changing the active model until picked', () => {
+  it('model picker keeps recent selections without changing the active model until picked', async () => {
     store = buildStore();
     const rendered = render(store);
 
-    act(() => {
-      rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    await openModelPicker(rendered);
     act(() => {
       rendered.querySelector('[data-source-filter="cloud"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -370,9 +379,7 @@ describe('EditorialComposer API-key banner', () => {
     act(() => {
       store!.chat.setThreadModel(store!.chat.activeThreadId!, 'or-gemini-3-flash');
     });
-    act(() => {
-      rendered.querySelector('.composer-model-label')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
+    await openModelPicker(rendered);
 
     expect(rendered.textContent).toContain('Recent');
     expect(rendered.textContent).toContain('GPT-5.5');
@@ -408,7 +415,9 @@ describe('EditorialComposer API-key banner', () => {
 
     await act(async () => {
       textarea.dispatchEvent(event);
-      await flush(5);
+      // State-based wait: the paste handler uploads asynchronously, so poll
+      // until the attachment lands instead of draining a fixed tick count.
+      await vi.waitFor(() => expect(store!.ui.attachments.length).toBe(1));
     });
 
     expect(event.defaultPrevented).toBe(true);

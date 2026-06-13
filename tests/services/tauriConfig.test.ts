@@ -12,6 +12,8 @@ describe('tauri security config', () => {
     expect(csp).toContain('https://cdn.tailwindcss.com');
     expect(csp).toContain('https://cdn.jsdelivr.net');
     expect(csp).toContain("style-src 'self' 'unsafe-inline' https:");
+    expect(csp).toContain("frame-src 'self' blob: data:");
+    expect(csp).toContain("child-src 'self' blob: data:");
     expect(csp).toContain("object-src 'none'");
   });
 });

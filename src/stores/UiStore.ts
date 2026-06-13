@@ -2,6 +2,7 @@
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, runInAction, toJS } from 'mobx';
+import { MOBILE_SHELL_QUERY } from '../core/breakpoints';
 import type {
   CodeSizeKey,
   CodeStyleKey,
@@ -46,6 +47,12 @@ export class UiStore {
   animationsEnabled = true;
   /** First-run cue: pulse the brand wordmark until the user opens the menu. */
   menuHintSeen = loadMenuHintSeen();
+  /**
+   * True while the viewport matches {@link MOBILE_SHELL_QUERY} (fixed topbar
+   * + drawer sidebar layout). Single matchMedia subscription for the app;
+   * components read this instead of duplicating the CSS breakpoint in JS.
+   */
+  mobileShell = false;
 
   constructor() {
     const prefs = loadUiPrefs();
@@ -89,6 +96,14 @@ export class UiStore {
     if (typeof window !== 'undefined') {
       window.addEventListener('pagehide', flushPrefs);
       window.addEventListener('beforeunload', flushPrefs);
+    }
+    // jsdom test environments may lack matchMedia; default stays false there.
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+      const mediaQuery = window.matchMedia(MOBILE_SHELL_QUERY);
+      runInAction(() => { this.mobileShell = mediaQuery.matches; });
+      mediaQuery.addEventListener('change', (event) => {
+        runInAction(() => { this.mobileShell = event.matches; });
+      });
     }
   }
 

@@ -3,6 +3,12 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StoreProvider } from '../../../src/stores/context';
 import { HtmlArtifactPreview, __htmlArtifactPreviewTestApi } from '../../../src/components/editorial/HtmlArtifactPreview';
+import {
+  __artifactPreviewTestApi,
+  loadHtmlArtifactPreview,
+  peekHtmlArtifactPreview,
+  type ArtifactPreviewBridge,
+} from '../../../src/services/bridge/artifactPreview';
 import type { RootStore } from '../../../src/stores/RootStore';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -70,10 +76,24 @@ function onlineBridge(overrides: {
     }
     throw new Error(`unexpected op ${op}`);
   });
-  return {
+  return withPreviewFacade({
     isOnline: true,
     client: { request },
     openWorkspacePath: vi.fn(async () => true),
+  });
+}
+
+/** Mirrors the thin BridgeStore facade methods the component calls. */
+function withPreviewFacade<T extends object>(bridge: T): T & {
+  peekHtmlArtifactPreview: typeof peekHtmlArtifactPreview;
+  loadHtmlArtifactPreview: (path: string) => ReturnType<typeof loadHtmlArtifactPreview>;
+} {
+  return {
+    ...bridge,
+    peekHtmlArtifactPreview,
+    loadHtmlArtifactPreview(path: string) {
+      return loadHtmlArtifactPreview(this as unknown as ArtifactPreviewBridge, path);
+    },
   };
 }
 
@@ -83,7 +103,7 @@ afterEach(() => {
   host?.remove();
   host = null;
   document.querySelectorAll('.html-artifact-fullscreen').forEach(node => node.remove());
-  __htmlArtifactPreviewTestApi.reset();
+  __artifactPreviewTestApi.reset();
   vi.restoreAllMocks();
 });
 
@@ -160,11 +180,11 @@ describe('HtmlArtifactPreview', () => {
   });
 
   it('shows a fallback when the bridge is offline', async () => {
-    const rendered = renderPreview({
+    const rendered = renderPreview(withPreviewFacade({
       isOnline: false,
       client: { request: vi.fn() },
       openWorkspacePath: vi.fn(async () => true),
-    });
+    }));
 
     await act(async () => {
       await flushMicrotasks();

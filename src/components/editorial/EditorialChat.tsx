@@ -77,7 +77,6 @@ const ChatEmptyState = observer(function ChatEmptyState() {
         </div>
       )}
 
-      {webLite && <WebLiteDownloadCue />}
     </div>
   );
 });
@@ -290,6 +289,7 @@ export const EditorialChat = observer(function EditorialChat() {
           })}
         </div>
       </div>
+      {isWebLite() && messages.length === 0 && <WebLiteDownloadCue />}
       <EditorialComposer textareaRef={textareaRef} />
     </div>
   );

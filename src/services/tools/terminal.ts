@@ -2,9 +2,19 @@
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ExecRunResp, ExecEvent } from '../../core/workspace';
-import { BridgeOfflineError } from '../bridge/client';
+import { bridgeErrorMessage, requireBridge } from './requireBridge';
 import { denyIfReferencesProtectedChatHistory } from './protectedWorkspacePaths';
 import type { Tool } from './types';
+
+/**
+ * Envelope timeout used when the model doesn't set a process `timeout_ms`.
+ * The process itself stays uncapped (the bridge won't kill it), but we won't
+ * wait forever for a *result*: paired with `resetTimeoutOnEvent`, every
+ * stdout/stderr line resets this window, so a streaming command runs as long
+ * as it likes while a silently-wedged one (no output and no result) still
+ * frees the tool instead of hanging the turn indefinitely.
+ */
+const EXEC_IDLE_TIMEOUT_MS = 600_000;
 
 /**
  * terminal — run real shell commands inside the workspace via the bridge.
@@ -62,8 +72,8 @@ export const terminalTool: Tool = {
   },
 
   async execute(args, ctx) {
-    if (!ctx.bridge) return 'Error: bridge unavailable in this context.';
-    if (!ctx.bridge.isOnline) return 'Error: bridge offline. Start gatesai-bridge.';
+    const guard = requireBridge(ctx);
+    if (!guard.ok) return guard.error;
 
     const cmd = typeof args.cmd === 'string' ? args.cmd : '';
     if (!cmd) return 'Error: `cmd` is required.';
@@ -85,7 +95,7 @@ export const terminalTool: Tool = {
     ctx.execStream?.start(jobId, cmd, cmdArgs, { threadId: ctx.threadId, toolCallId: ctx.toolCallId });
 
     try {
-      const resp = await ctx.bridge.client.request<ExecRunResp>(
+      const resp = await guard.bridge.client.request<ExecRunResp>(
         'exec.run',
         { cmd, args: cmdArgs, cwd, stdin, timeout_ms },
         (data) => {
@@ -94,11 +104,15 @@ export const terminalTool: Tool = {
             ctx.execStream?.appendChunk(jobId, ev.stream, ev.chunk);
           }
         },
+        {
+          timeoutMs: typeof timeout_ms === 'number' ? timeout_ms + 15_000 : EXEC_IDLE_TIMEOUT_MS,
+          resetTimeoutOnEvent: true,
+        },
       );
       ctx.execStream?.finish(jobId, resp.exit_code, resp.duration_ms);
       return formatResult(cmd, cmdArgs, resp);
     } catch (err) {
-      const message = err instanceof BridgeOfflineError ? err.message : (err as Error).message;
+      const message = bridgeErrorMessage(err);
       ctx.execStream?.fail(jobId, message);
       return `Error: ${message}`;
     }

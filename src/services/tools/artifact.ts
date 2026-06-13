@@ -3,6 +3,7 @@
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { FsReadResp, FsStatResp, FsWriteResp } from '../../core/workspace';
 import { BridgeOfflineError } from '../bridge/client';
+import { requireBridgeOutcome } from './requireBridge';
 import type { Tool, ToolOutcome, ToolValidationIssue } from './types';
 
 type ArtifactAction = 'validate_html' | 'create_html_artifact';
@@ -45,8 +46,8 @@ export const artifactTool: Tool = {
   },
 
   async execute(args, ctx) {
-    if (!ctx.bridge) return errorOutcome('bridge_unavailable', 'Bridge unavailable in this context.', 'Retry when workspace tools are available.');
-    if (!ctx.bridge.isOnline) return errorOutcome('bridge_offline', 'Bridge offline. Start gatesai-bridge.', 'Start the bridge, then retry.');
+    const guard = requireBridgeOutcome(ctx);
+    if (!guard.ok) return guard;
 
     const action = stringArg(args.action) as ArtifactAction;
     const path = stringArg(args.path);
@@ -56,13 +57,13 @@ export const artifactTool: Tool = {
       if (action === 'create_html_artifact') {
         const content = typeof args.content === 'string' ? args.content : '';
         const dir = parentWorkspacePath(path);
-        if (dir) await ctx.bridge.client.request('fs.mkdir', { path: dir });
-        const write = await ctx.bridge.client.request<FsWriteResp>('fs.write', {
+        if (dir) await guard.bridge.client.request('fs.mkdir', { path: dir });
+        const write = await guard.bridge.client.request<FsWriteResp>('fs.write', {
           path,
           content,
           encoding: 'utf8',
         });
-        const validation = await validateHtmlArtifact(path, ctx.bridge.client);
+        const validation = await validateHtmlArtifact(path, guard.bridge.client);
         if (!validation.ok) return validation;
         return {
           ok: true,
@@ -76,7 +77,7 @@ export const artifactTool: Tool = {
       }
 
       if (action === 'validate_html') {
-        return await validateHtmlArtifact(path, ctx.bridge.client);
+        return await validateHtmlArtifact(path, guard.bridge.client);
       }
 
       return errorOutcome('unknown_action', `Unknown artifact action "${String(args.action)}".`, 'Use action "validate_html" or "create_html_artifact".');
