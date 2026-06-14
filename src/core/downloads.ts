@@ -8,14 +8,18 @@
 // until the first release exists.
 import type { ClientArch, ClientOs } from './clientPlatform';
 
-const REPO_URL = 'https://github.com/Calculator5329/GatesAI-Chat';
+// Source lives in a PRIVATE repo, so installers are published to a SEPARATE
+// PUBLIC repo (GatesAI-Chat-releases) and every public-facing link points there.
+// The `releases/latest/download/<asset>` form 404s for anonymous visitors on a
+// private repo — the public releases repo is what makes these links resolve.
+const RELEASES_REPO_URL = 'https://github.com/Calculator5329/GatesAI-Chat-releases';
 
 /** Public distribution links. Asset names are fixed by the release workflow. */
 export const downloadLinks = {
-  repo: REPO_URL,
-  releases: `${REPO_URL}/releases/latest`,
-  windowsExe: `${REPO_URL}/releases/latest/download/GatesAI-Chat-Setup-x64.exe`,
-  linuxAppImage: `${REPO_URL}/releases/latest/download/GatesAI-Chat-x86_64.AppImage`,
+  repo: RELEASES_REPO_URL,
+  releases: `${RELEASES_REPO_URL}/releases/latest`,
+  windowsExe: `${RELEASES_REPO_URL}/releases/latest/download/GatesAI-Chat-Setup-x64.exe`,
+  linuxAppImage: `${RELEASES_REPO_URL}/releases/latest/download/GatesAI-Chat-x86_64.AppImage`,
 } as const;
 
 export type DownloadKind = 'windows-exe' | 'linux-appimage' | 'source';
