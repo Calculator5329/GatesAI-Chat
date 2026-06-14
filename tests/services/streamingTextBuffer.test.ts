@@ -1,48 +1,59 @@
 import { describe, expect, it } from 'vitest';
 import { StreamingTextBuffer } from '../../src/services/streaming/StreamingTextBuffer';
 
+// Run every scheduled tick, including ones rescheduled while draining. An index
+// loop re-reads `.length` each iteration (unlike `forEach`, which snapshots it),
+// so it also runs ticks appended as the buffer drains.
+function drain(scheduled: Array<() => void>): void {
+  for (let i = 0; i < scheduled.length; i++) scheduled[i]();
+}
+
 describe('StreamingTextBuffer', () => {
-  it('coalesces multiple deltas into one scheduled flush per key', () => {
+  it('coalesces deltas and reveals them progressively, not all at once', () => {
     const scheduled: Array<() => void> = [];
-    const flushed: string[] = [];
-    const buffer = new StreamingTextBuffer((flush) => scheduled.push(flush));
+    const revealed: string[] = [];
+    const buffer = new StreamingTextBuffer(flush => scheduled.push(flush), { revealDivisor: 2, minRevealChars: 1 });
 
-    buffer.enqueue('message-1', 'Hel', text => flushed.push(text));
-    buffer.enqueue('message-1', 'lo', text => flushed.push(text));
+    buffer.enqueue('m', 'Hel', text => revealed.push(text));
+    buffer.enqueue('m', 'lo', text => revealed.push(text));
 
-    expect(flushed).toEqual([]);
+    // Nothing emitted synchronously; the two deltas share a single queued tick.
+    expect(revealed).toEqual([]);
     expect(scheduled).toHaveLength(1);
 
-    scheduled[0]();
+    drain(scheduled);
 
-    expect(flushed).toEqual(['Hello']);
+    expect(revealed.join('')).toBe('Hello');     // every char arrives, in order
+    expect(revealed.length).toBeGreaterThan(1);  // ...spread over multiple frames
   });
 
-  it('can flush or cancel a pending message immediately', () => {
+  it('flush drains all pending text at once; cancel discards it', () => {
     const scheduled: Array<() => void> = [];
-    const flushed: string[] = [];
-    const buffer = new StreamingTextBuffer((flush) => scheduled.push(flush));
+    const revealed: string[] = [];
+    const buffer = new StreamingTextBuffer(flush => scheduled.push(flush));
 
-    buffer.enqueue('message-1', 'final', text => flushed.push(text));
-    buffer.flush('message-1');
-    buffer.enqueue('message-2', 'discarded', text => flushed.push(text));
-    buffer.cancel('message-2');
-    scheduled.forEach(flush => flush());
+    buffer.enqueue('m1', 'final answer', text => revealed.push(text));
+    buffer.flush('m1');
+    buffer.enqueue('m2', 'discarded', text => revealed.push(text));
+    buffer.cancel('m2');
+    drain(scheduled); // queued ticks find their entries gone and no-op
 
-    expect(flushed).toEqual(['final']);
+    expect(revealed).toEqual(['final answer']);
   });
 
-  it('flushes immediately when pending text grows past the threshold', () => {
+  it('reveals a large burst over several frames instead of dumping it', () => {
     const scheduled: Array<() => void> = [];
-    const flushed: string[] = [];
-    const buffer = new StreamingTextBuffer((flush) => scheduled.push(flush), 6);
+    const revealed: string[] = [];
+    const buffer = new StreamingTextBuffer(flush => scheduled.push(flush), { revealDivisor: 6, minRevealChars: 2 });
 
-    buffer.enqueue('message-1', 'abc', text => flushed.push(text));
-    buffer.enqueue('message-1', 'def', text => flushed.push(text));
+    const burst = 'x'.repeat(120);
+    buffer.enqueue('m', burst, text => revealed.push(text));
 
-    expect(flushed).toEqual(['abcdef']);
-    expect(scheduled).toHaveLength(1);
     scheduled[0]();
-    expect(flushed).toEqual(['abcdef']);
+    expect(revealed[0]).toHaveLength(20);            // ceil(120 / 6), not the whole burst
+    expect(revealed[0]!.length).toBeLessThan(burst.length);
+
+    drain(scheduled);
+    expect(revealed.join('')).toBe(burst);
   });
 });

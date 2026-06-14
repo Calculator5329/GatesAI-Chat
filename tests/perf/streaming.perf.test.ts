@@ -32,7 +32,7 @@ function measure(label: string, fn: () => void): number {
 describe('StreamingTextBuffer throughput', () => {
   it('coalesces 10k single-char deltas with low overhead', () => {
     const flushed: string[] = [];
-    const buffer = new StreamingTextBuffer((flush) => flush(), 1024);
+    const buffer = new StreamingTextBuffer((flush) => flush());
 
     const elapsed = measure('10k deltas', () => {
       for (let i = 0; i < 10_000; i++) {
@@ -44,8 +44,9 @@ describe('StreamingTextBuffer throughput', () => {
     // Reassembling all bytes is the correctness guard.
     const total = flushed.reduce((acc, s) => acc + s.length, 0);
     expect(total).toBe(10_000);
-    // 10k enqueues + ~10 flushes (1024-char threshold) should complete in well
-    // under 250ms on a modern dev box. Allow generous CI headroom.
+    // 10k enqueues, each drained synchronously by the immediate scheduler,
+    // should complete in well under 250ms on a modern dev box. Generous CI
+    // headroom below.
     expect(elapsed).toBeLessThan(250 * PERF_TOLERANCE);
   });
 
@@ -61,7 +62,9 @@ describe('StreamingTextBuffer throughput', () => {
           buffer.enqueue(key, 'abc', (text) => flushed.set(key, (flushed.get(key) ?? 0) + text.length));
         }
       }
-      scheduled.forEach((f) => f());
+      // Index loop, not forEach: paced reveal reschedules by appending ticks,
+      // and a for-loop re-reads .length so every key drains fully.
+      for (let i = 0; i < scheduled.length; i++) scheduled[i]();
     });
 
     expect(flushed.size).toBe(1_000);
