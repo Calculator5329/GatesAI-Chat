@@ -1,7 +1,7 @@
 // Implements LLM provider plumbing for ollama.
 // Called by RouterStore/ChatStore through the LlmProvider interface; depends on core LLM messages, SSE/JSON parsing, and provider configs.
 // Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
-import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, ToolDef } from '../../core/llm';
+import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ToolDef } from '../../core/llm';
 import { ensureOk } from './sse';
 import { logger } from '../diagnostics/logger';
 
@@ -42,6 +42,8 @@ interface OllamaStreamFrame {
   done?: boolean;
   done_reason?: string;
   error?: string;
+  prompt_eval_count?: number;
+  eval_count?: number;
 }
 
 interface OllamaTool {
@@ -122,7 +124,7 @@ export class OllamaProvider implements LlmProvider {
       return;
     }
 
-    yield* this.parseNdjson(response.body, signal);
+    yield* this.parseNdjson(response.body, signal, req.modelId);
   }
 
   private buildMessages(messages: LlmMessage[], systemPrompt: string | undefined): OllamaWireMessage[] {
@@ -144,7 +146,7 @@ export class OllamaProvider implements LlmProvider {
     return out;
   }
 
-  private async *parseNdjson(body: ReadableStream<Uint8Array>, signal: AbortSignal): AsyncIterable<LlmChunk> {
+  private async *parseNdjson(body: ReadableStream<Uint8Array>, signal: AbortSignal, modelId: string): AsyncIterable<LlmChunk> {
     const reader = body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -207,6 +209,8 @@ export class OllamaProvider implements LlmProvider {
           }
 
           if (frame.done) {
+            const usage = parseOllamaUsage(frame, modelId);
+            if (usage) yield { type: 'usage', usage };
             yield { type: 'done', finishReason: toolUseSeen ? 'tool_use' : 'stop' };
             return;
           }
@@ -226,6 +230,8 @@ export class OllamaProvider implements LlmProvider {
             yield { type: 'text', delta: frame.message.content };
           }
           if (frame.done) {
+            const usage = parseOllamaUsage(frame, modelId);
+            if (usage) yield { type: 'usage', usage };
             yield { type: 'done', finishReason: toolUseSeen ? 'tool_use' : 'stop' };
             return;
           }
@@ -258,6 +264,8 @@ function parseOllamaStreamFrame(value: unknown): OllamaStreamFrame {
     done: typeof value.done === 'boolean' ? value.done : undefined,
     done_reason: typeof value.done_reason === 'string' ? value.done_reason : undefined,
     error: typeof value.error === 'string' ? value.error : undefined,
+    prompt_eval_count: finiteNumber(value.prompt_eval_count),
+    eval_count: finiteNumber(value.eval_count),
   };
 }
 
@@ -290,6 +298,25 @@ function parseOllamaToolFunction(value: unknown): NonNullable<NonNullable<NonNul
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
+}
+
+function parseOllamaUsage(frame: OllamaStreamFrame, modelId: string): LlmUsage | null {
+  if (frame.prompt_eval_count == null && frame.eval_count == null) return null;
+  const promptTokens = frame.prompt_eval_count;
+  const completionTokens = frame.eval_count;
+  return {
+    providerId: 'ollama',
+    modelId,
+    ...(promptTokens != null ? { promptTokens } : {}),
+    ...(completionTokens != null ? { completionTokens } : {}),
+    totalTokens: (promptTokens ?? 0) + (completionTokens ?? 0),
+    costUsd: 0,
+    costSource: 'local',
+  };
 }
 
 function toOllamaTool(t: ToolDef): OllamaTool {

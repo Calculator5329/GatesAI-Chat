@@ -62,6 +62,37 @@ describe('persistence', () => {
     expect(loadSnapshot()).toEqual(snapshot);
   });
 
+  it('round-trips assistant message usage records', () => {
+    const snapshot = {
+      threads: [{
+        id: 't1', title: 'usage', subtitle: '', pinned: false,
+        modelId: 'or-gemini-3-flash',
+        createdAt: 1, updatedAt: 2,
+        messages: [{
+          id: 'a1',
+          role: 'assistant' as const,
+          content: 'done',
+          createdAt: 3,
+          model: 'or-gemini-3-flash',
+          usage: [{
+            providerId: 'openrouter' as const,
+            modelId: 'google/gemini-3-flash',
+            promptTokens: 100,
+            completionTokens: 20,
+            totalTokens: 120,
+            costUsd: 0.0042,
+            costSource: 'provider' as const,
+          }],
+        }],
+      }],
+      activeThreadId: 't1',
+    };
+
+    saveSnapshot(snapshot);
+
+    expect(loadSnapshot()).toEqual(snapshot);
+  });
+
   it('returns null on malformed JSON', () => {
     localStorage.setItem('gatesai.state.v1', '{not json');
     expect(loadSnapshot()).toBeNull();
@@ -87,12 +118,16 @@ describe('persistence', () => {
             id: 'a1', role: 'assistant', content: '', createdAt: 2,
             model: 'claude-sonnet-4.5',
             toolCalls: [{ id: 'call_1', name: 'memory', arguments: { action: 'add', fact: 'jazz' } }],
+            usage: [{ providerId: 'openrouter', modelId: 'anthropic/claude-sonnet-4.5', promptTokens: 50, completionTokens: 10, totalTokens: 60, costUsd: 0.002 }],
           },
           {
             id: 'tool_1', role: 'tool', content: 'Saved.', createdAt: 3,
             toolCallId: 'call_1', toolName: 'memory',
           },
-          { id: 'a2', role: 'assistant', content: 'done — saved.', createdAt: 4 },
+          {
+            id: 'a2', role: 'assistant', content: 'done — saved.', createdAt: 4,
+            usage: [{ providerId: 'openrouter', modelId: 'anthropic/claude-sonnet-4.5', promptTokens: 20, completionTokens: 5, totalTokens: 25, costUsd: 0.001 }],
+          },
         ],
       }],
       activeThreadId: 't1',
@@ -112,6 +147,8 @@ describe('persistence', () => {
     expect(a.toolCalls?.[0].id).toBe('call_1');
     expect(a.toolResults).toHaveLength(1);
     expect(a.toolResults?.[0].content).toBe('Saved.');
+    expect(a.usage).toHaveLength(2);
+    expect(a.usage?.map(usage => usage.totalTokens)).toEqual([60, 25]);
     // Final round's prose wins.
     expect(a.content).toBe('done — saved.');
   });

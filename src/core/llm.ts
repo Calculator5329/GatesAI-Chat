@@ -107,6 +107,8 @@ export interface LlmUsage {
   totalTokens?: number;
   /** Provider-reported charge. OpenRouter reports this as account credits. */
   costUsd?: number;
+  /** Where `costUsd` came from, for display and auditing. */
+  costSource?: 'provider' | 'pricing' | 'free' | 'local';
 }
 
 /**

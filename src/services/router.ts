@@ -4,11 +4,10 @@
 import type { MenuSectionKey } from '../core/types';
 
 const DEFAULT_MENU_SECTION: MenuSectionKey = 'settings';
-const MENU_SECTIONS: MenuSectionKey[] = ['agent', 'models', 'local', 'workspace', 'gallery', 'settings'];
+const MENU_SECTIONS: MenuSectionKey[] = ['agent', 'models', 'local', 'workspace', 'gallery', 'settings', 'usage'];
 const LEGACY_MENU_SECTIONS: Record<string, MenuSectionKey> = {
   profile: 'agent',
   api: 'models',
-  usage: 'settings',
   appearance: 'settings',
 };
 

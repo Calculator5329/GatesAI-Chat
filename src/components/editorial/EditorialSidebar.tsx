@@ -20,6 +20,7 @@ const MENU_LABELS: Record<MenuSectionKey, string> = {
   workspace: 'Workspace',
   gallery: 'Gallery',
   settings: 'Settings',
+  usage: 'Usage',
 };
 
 const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {

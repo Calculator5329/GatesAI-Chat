@@ -2,7 +2,7 @@
 // Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
 // Invariant: services normalize legacy data before handing snapshots back to stores.
 import type { ChatSnapshot, Message, MessageAttachmentRef, ToolResult, Thread, UserMessage } from '../core/types';
-import type { ToolCall } from '../core/llm';
+import type { LlmUsage, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID, MODELS } from '../core/models';
 import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';
 import { logger } from './diagnostics/logger';
@@ -367,7 +367,7 @@ function parseLegacyMessage(value: unknown): LegacyMessage | null {
       workNotes: parseStringArray(value.workNotes),
       toolCalls: parseToolCalls(value.toolCalls),
       toolResults: parseToolResults(value.toolResults),
-      usage: Array.isArray(value.usage) ? value.usage.filter(isRecord) : undefined,
+      usage: parseLlmUsageArray(value.usage),
       finishReason: parseFinishReason(value.finishReason),
     };
   }
@@ -452,6 +452,34 @@ function parseToolResults(value: unknown): ToolResult[] | undefined {
   return results.length ? results : undefined;
 }
 
+function parseLlmUsageArray(value: unknown): LlmUsage[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const usage = value
+    .map(parseLlmUsage)
+    .filter((item): item is LlmUsage => item !== null);
+  return usage.length ? usage : undefined;
+}
+
+function parseLlmUsage(value: unknown): LlmUsage | null {
+  if (!isRecord(value)) return null;
+  const usage: LlmUsage = {};
+  const providerId = parseProviderId(value.providerId);
+  const modelId = stringField(value.modelId);
+  const promptTokens = numberField(value.promptTokens);
+  const completionTokens = numberField(value.completionTokens);
+  const totalTokens = numberField(value.totalTokens);
+  const costUsd = numberField(value.costUsd);
+  const costSource = parseCostSource(value.costSource);
+  if (providerId !== undefined) usage.providerId = providerId;
+  if (modelId !== undefined) usage.modelId = modelId;
+  if (promptTokens !== undefined) usage.promptTokens = promptTokens;
+  if (completionTokens !== undefined) usage.completionTokens = completionTokens;
+  if (totalTokens !== undefined) usage.totalTokens = totalTokens;
+  if (costUsd !== undefined) usage.costUsd = costUsd;
+  if (costSource !== undefined) usage.costSource = costSource;
+  return Object.keys(usage).length > 0 ? usage : null;
+}
+
 function parseStringArray(value: unknown): string[] | undefined {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : undefined;
 }
@@ -473,6 +501,14 @@ function parsePreTokenLabel(value: unknown) {
 
 function parseFinishReason(value: unknown) {
   return value === 'stop' || value === 'length' || value === 'tool_use' || value === 'cancelled' || value === 'content_filter' || value === 'error' ? value : undefined;
+}
+
+function parseProviderId(value: unknown): LlmUsage['providerId'] {
+  return value === 'openrouter' || value === 'ollama' || value === 'local-image' ? value : undefined;
+}
+
+function parseCostSource(value: unknown): LlmUsage['costSource'] {
+  return value === 'provider' || value === 'pricing' || value === 'free' || value === 'local' ? value : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -544,6 +580,7 @@ function foldAssistantRuns(messages: Message[]): Message[] {
     if (m.role === 'assistant' && prev?.role === 'assistant') {
       prev.toolCalls = [...(prev.toolCalls ?? []), ...(m.toolCalls ?? [])];
       prev.toolResults = [...(prev.toolResults ?? []), ...(m.toolResults ?? [])];
+      if (prev.usage || m.usage) prev.usage = [...(prev.usage ?? []), ...(m.usage ?? [])];
       if (m.content.trim().length > 0) prev.content = m.content;
       continue;
     }
