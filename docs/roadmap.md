@@ -117,8 +117,36 @@
       OpenAI, Anthropic, Gemini, Grok, Meta, NVIDIA Nemotron, DeepSeek, and
       Kimi models, with per-thread thinking effort controls and opt-in live
       compatibility tests.
-- [ ] Continue architecture cleanup: split large tools/components and keep
-      slimming `ChatStore` where helpers can move out safely
+- [x] **2026-07-02 delegated feature/refactor pipeline (waves A–C)**:
+      - [x] CI hygiene: Rust tests in CI (windows-latest), single vitest config,
+            portable `npm run ci`
+      - [x] Ctrl/Cmd+K command palette (thread search + actions) and app
+            keyboard shortcuts (Ctrl+N new thread, Ctrl+L composer, Ctrl+, menu)
+      - [x] Versioned JSON export/import of all app data (merge/replace modes,
+            secrets excluded and tested)
+      - [x] API keys in the OS credential store on desktop (`keyring` crate,
+            Windows Credential Manager) with Web Lite localStorage fallback and
+            safe one-time migration
+      - [x] `StreamingRoundExecutor` extracted from `ChatStore` with a unified
+            abort envelope and transient-provider retry policy (backoff, never
+            after user abort or first content)
+      - [x] Message edit-and-resend, regenerate, and branch-from-message with
+            inline destructive confirmations and a sidebar-clickability
+            regression test
+      - [x] Incremental streaming markdown chunking (append-only tail re-parse,
+            stable chunk keys, seeded equivalence tests)
+      - [x] Real usage/cost tracking: normalized per-message usage, per-thread /
+            per-model / per-day selectors, and a live Usage menu section
+      - [x] Persistence hardening: snapshot `schemaVersion` + migration
+            registry, future-version backup keys, IndexedDB archive tier
+            (20 hot threads, stubs + async hydration, write-order safety), and
+            a proactive 3.5MB archive threshold
+      - [x] MCP client support (streamable HTTP): server manager UI, dynamic
+            `mcp_<server>_<tool>` registry tools with schema passthrough,
+            32k result cap, header secrets via `secretStorage`
+- [ ] Wave D refactor: `TurnRunner` extraction from ChatStore, shared LLM
+      stream-parsing core (openaiCompat/ollama), `useEditorial()` store facade,
+      message-list windowing, ModelPopover memo consolidation
 - [ ] Manually test the foundation surface before rebuilding optional integrations
 - [x] Add basic unit tests around `ChatStore` (send, stream, switch, stop) —
       covered by `tests/stores/ChatStore.test.ts` and the full Vitest suite

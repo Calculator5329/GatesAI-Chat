@@ -4,7 +4,8 @@
 
 GatesAI Chat is a local-first AI workbench. It feels like a calm chat canvas,
 but underneath it can use cloud models, local models, image generation, files,
-terminal actions, web search, artifacts, and a controlled workspace.
+terminal actions, web search, artifacts, MCP tool servers, and a controlled
+workspace.
 
 The simplest mental model:
 
@@ -16,6 +17,28 @@ ChatGPT-style conversation
 + optional image generation
 + future self-improvement loop
 ```
+
+## Core goals (the bar every change is measured against)
+
+1. **Fast and performant.** Streaming feels instant, the UI never janks, long
+   threads stay smooth. Perceived speed is a feature, not a nice-to-have.
+2. **Easy and nice to use.** The surface reads like ChatGPT: type, send, read.
+   Good UI/UX beats feature count. Power is progressive — hidden until wanted.
+3. **Agentic depth on your machine.** Claude Code / Codex-style capabilities —
+   files, terminal, git, SQLite, artifacts, image generation, MCP servers —
+   scoped to a workspace the user owns and can inspect.
+4. **Any model, your choice.** Any OpenRouter model, any local Ollama model.
+   Switch mid-conversation. No model lock-in, no separate subscription.
+5. **Offline-capable and local-only data.** With local models the app works
+   with no internet. Everything the app stores lives on the user's device
+   (localStorage + IndexedDB + the workspace folder); nothing is phoned home.
+6. **Zero-friction start.** Download the exe → open → chat. No account, no
+   config file, no developer environment. Every step between "downloaded" and
+   "first useful answer" is a defect.
+
+Design north stars: **t3.chat** for how fast and pleasant a chat surface can
+feel; **Claude Code / Codex** for how trustworthy local agentic tooling should
+behave (visible actions, scoped access, user in control).
 
 ## Who it is for
 

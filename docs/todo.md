@@ -43,9 +43,9 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [x] Per-model context-window awareness (shown for OpenRouter live entries; need to wire counting + display per provider for the curated set too)
 - [x] Token counting / context-window estimation per request
 - [ ] Live catalog refresh for the direct providers (Anthropic / OpenAI / Gemini / Groq) — today only OpenRouter has a fetcher
-- [ ] Cost tracking per request (real numbers, not the mocked Usage panel)
+- [x] Cost tracking per request (normalized usage on messages + real Usage menu section, 2026-07-02)
 - [ ] Provider health checks + automatic fallback
-- [ ] Rate-limit handling with backoff
+- [x] Rate-limit handling with backoff (transient-provider retry policy in StreamingRoundExecutor, 2026-07-02)
 
 ---
 
@@ -53,6 +53,10 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 > **Heads-up (apr 2026):** considering moving from localStorage to a real
 > backend. Capturing the shape here so future decisions stay consistent.
+>
+> **Update (2026-07-02):** parked. Core goals now commit to local-only data
+> (localStorage + IndexedDB archive tier + workspace folder, all shipped).
+> Any cloud sync would be strictly opt-in and is not on the active roadmap.
 
 - [ ] **Firestore** for thread + message storage (multi-device sync)
   - Collection design: `users/{uid}/threads/{threadId}/messages/{messageId}`
@@ -64,8 +68,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
   - Reference URLs stored on the message, blobs in GCS
 - [ ] Firebase Auth (email + Google sign-in) — prerequisite for the above
 - [ ] Security rules: users can only read/write their own threads
-- [ ] Export / import (.zip of JSON + attachments) — same format works for
-      localStorage and Firestore
+- [x] Export / import (versioned JSON envelope, merge/replace modes, secrets excluded, 2026-07-02; attachments already live in the user's workspace folder)
 
 ---
 
@@ -84,7 +87,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 - [ ] Move appearance controls (accent, bg, header) out of the floating
       Tweaks panel and into the Appearance menu section
-- [ ] Real keyboard shortcuts (⌘K palette, ⌘N new thread, ⌘, menu, ⌘L composer)
+- [x] Real keyboard shortcuts (Ctrl/⌘K palette with thread search + actions, Ctrl/⌘N, Ctrl/⌘,, Ctrl/⌘L, 2026-07-02)
 - [ ] Thread search / filter in the sidebar
 - [ ] Rename + delete threads (right-click or hover affordance)
 - [ ] Pin / unpin threads (data is there, UI isn't)

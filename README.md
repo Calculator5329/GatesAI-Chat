@@ -25,8 +25,14 @@
 A local-first AI chat workspace for Windows (with a browser "Web Lite" mode), built as a
 React 19 + TypeScript single-page app wrapped in a Tauri 2 desktop shell. It pairs a
 provider-agnostic LLM client with a sandboxed local **bridge** process so the assistant can
-read and write real files, run allowlisted shell commands, query data, and generate images —
-all on your own machine.
+read and write real files, run allowlisted shell commands, query data, connect to MCP tool
+servers, and generate images — all on your own machine.
+
+The core promises: **fast** (instant-feeling streaming, no jank), **simple** (download the
+exe and chat — no account, no setup), **your models** (any OpenRouter model or any local
+Ollama model, switchable mid-conversation, fully offline-capable with local models), and
+**your data** (everything stays on your device — API keys in the OS credential store,
+history in local storage with an IndexedDB archive, files in a workspace folder you own).
 
 It is designed to feel like a quiet, editorial writing room and developer console rather than a
 SaaS dashboard: dark theme, serif chat prose, compact operational controls, and an ambient
