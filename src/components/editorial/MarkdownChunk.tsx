@@ -1,7 +1,7 @@
 // The full markdown block renderer (react-markdown + GFM/math) with
 // workspace-aware links, code blocks, and embedded diagram/artifact previews.
 // Lazy-loaded by EditorialMessage. Presentation only.
-import { memo, useSyncExternalStore, type ComponentPropsWithoutRef, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useSyncExternalStore, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -10,53 +10,12 @@ import { isWorkspacePath } from '../../core/workspacePaths';
 import type { BridgeStore } from '../../stores/BridgeStore';
 import { HtmlArtifactPreview, isHtmlWorkspacePath } from './HtmlArtifactPreview';
 import { MermaidDiagram } from './MermaidDiagram';
-
-/**
- * Lazy plugin loader for the heavy rehype plugins. `rehype-highlight` pulls
- * highlight.js and `rehype-katex` pulls katex plus its CSS and font assets.
- * Most messages have no code fences or math, so we only load these when
- * content actually needs them, then notify subscribed MarkdownChunks to
- * re-render with the new plugin set.
- */
-type RehypePlugin = PluggableList[number];
-let highlightPlugin: RehypePlugin | null = null;
-let highlightLoading: Promise<void> | null = null;
-let katexPlugin: RehypePlugin | null = null;
-let katexLoading: Promise<void> | null = null;
-let pluginVersion = 0;
-const pluginListeners = new Set<() => void>();
-
-function subscribePlugins(listener: () => void) {
-  pluginListeners.add(listener);
-  return () => { pluginListeners.delete(listener); };
-}
-function getPluginVersion() { return pluginVersion; }
-function bumpPluginVersion() {
-  pluginVersion += 1;
-  for (const l of pluginListeners) l();
-}
-
-function ensureHighlight() {
-  if (highlightPlugin || highlightLoading) return;
-  highlightLoading = Promise.all([
-    import('rehype-highlight'),
-    import('highlight.js/styles/github-dark.css'),
-  ]).then(([mod]) => {
-    highlightPlugin = mod.default as RehypePlugin;
-    bumpPluginVersion();
-  }).catch(() => { /* markdown still renders without highlight */ });
-}
-
-function ensureKatex() {
-  if (katexPlugin || katexLoading) return;
-  katexLoading = Promise.all([
-    import('rehype-katex'),
-    import('katex/dist/katex.min.css'),
-  ]).then(([mod]) => {
-    katexPlugin = [mod.default, { throwOnError: false, strict: 'ignore' }] as RehypePlugin;
-    bumpPluginVersion();
-  }).catch(() => { /* markdown still renders without katex */ });
-}
+import {
+  highlightPluginLoader,
+  katexPluginLoader,
+  type MarkdownPluginLoader,
+  type RehypePlugin,
+} from './markdownPluginLoader';
 
 const HAS_CODE_FENCE = (s: string) => s.includes('```');
 const MATH_RE = /\$\$[\s\S]+?\$\$|\\\(|\\\[/;
@@ -72,12 +31,10 @@ export interface MarkdownChunkProps {
  * strings on every token flush and skip re-rendering the heavy markdown tree.
  */
 export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge }: MarkdownChunkProps) {
-  useSyncExternalStore(subscribePlugins, getPluginVersion, getPluginVersion);
-
   const needsHighlight = HAS_CODE_FENCE(content);
   const needsKatex = HAS_MATH(content);
-  if (needsHighlight && !highlightPlugin) ensureHighlight();
-  if (needsKatex && !katexPlugin) ensureKatex();
+  const highlightPlugin = useLazyRehypePlugin(highlightPluginLoader, needsHighlight);
+  const katexPlugin = useLazyRehypePlugin(katexPluginLoader, needsKatex);
 
   const rehypePlugins: PluggableList = [];
   if (needsHighlight && highlightPlugin) rehypePlugins.push(highlightPlugin);
@@ -96,6 +53,22 @@ export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge }: Ma
     </ReactMarkdown>
   );
 });
+
+function useLazyRehypePlugin(loader: MarkdownPluginLoader, enabled: boolean): RehypePlugin | null {
+  const subscribe = useCallback((listener: () => void) => {
+    return enabled ? loader.subscribe(listener) : () => {};
+  }, [enabled, loader]);
+  const getSnapshot = useCallback(() => {
+    return enabled ? loader.get() : null;
+  }, [enabled, loader]);
+  const plugin = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  useEffect(() => {
+    if (enabled && !plugin) void loader.load();
+  }, [enabled, loader, plugin]);
+
+  return plugin;
+}
 
 interface CodeProps extends ComponentPropsWithoutRef<'code'> {
   bridge: BridgeStore;
