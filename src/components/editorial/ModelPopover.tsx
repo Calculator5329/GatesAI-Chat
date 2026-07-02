@@ -5,22 +5,15 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
-import { DEFAULT_MODEL_ID, DEFAULT_OPENROUTER_CATALOG_MODEL_IDS } from '../../core/models';
+import { DEFAULT_MODEL_ID } from '../../core/models';
 import { isWebLite } from '../../core/runtime';
-import {
-  availableSources,
-  isModelAvailable,
-  isVerifiedModelId,
-  type RuntimeAvailability,
-} from '../../core/modelPickerAvailability';
+import { isVerifiedModelId } from '../../core/modelPickerAvailability';
 import {
   AUTO_MODEL,
   badgesForModel,
   bestForLine,
-  buildPickerSections,
   CAPABILITY_FILTERS,
   emptyStateMessage,
-  limitModelSections,
   metaFor,
   VERIFIED_SECTION_TITLE,
   type CapabilityFilter,
@@ -28,7 +21,8 @@ import {
   type SourceFilter,
 } from '../../core/modelPicker';
 import { Icons } from '../ui/icons';
-import { useLocalRuntimeStore, useModelRegistry } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
+import { computeModelSections } from './modelPopoverSections';
 
 interface ModelPopoverProps {
   currentModelId: string | undefined;
@@ -277,8 +271,7 @@ const ModelRow = memo(function ModelRow({
 });
 
 export const ModelPopover = observer(function ModelPopover({ currentModelId, onPick, onClose }: ModelPopoverProps) {
-  const registry = useModelRegistry();
-  const localRuntime = useLocalRuntimeStore();
+  const { registry, localRuntime } = useEditorial();
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
@@ -301,81 +294,36 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   }, [onClose]);
 
   const registryAll = registry.all;
-  const currentModel = registry.findById(currentModelId);
   const ollamaOnline = localRuntime.runtimes.ollama.status === 'online';
   const comfyReady = localRuntime.comfyReady;
 
-  // Runtime gating: which sources/models can actually be used right now. In
-  // web-lite there are no local backends, and offline/not-ready backends are
-  // hidden entirely rather than shown disabled.
-  const flags = useMemo<RuntimeAvailability>(
-    () => ({ webLite: isWebLite(), ollamaOnline, comfyReady }),
-    [ollamaOnline, comfyReady],
-  );
-  const sourceTabs = useMemo(() => availableSources(flags), [flags]);
-  const effectiveSource: SourceFilter = sourceTabs.includes(source) ? source : 'auto';
-
-  // Only ever surface models the user can pick and send in this runtime.
-  const all = useMemo(
-    () => registryAll.filter(model => isModelAvailable(model, flags)),
-    [registryAll, flags],
-  );
-
-  // Resolve favorites through the registry (not just the deduped `all` map): a
-  // favorited id can be a curated id that a dynamic catalog entry supersedes
-  // under the same providerModelId, in which case it's absent from `all` but
-  // findById still resolves it via the curated fallback. Unavailable favorites
-  // (e.g. offline local models) are still dropped so the menu stays honest.
-  const favoriteModels = useMemo(() => {
-    const byId = new Map(registryAll.map(model => [model.id, model]));
-    return favoriteIds
-      .map(id => byId.get(id) ?? registry.findById(id))
-      .filter((model): model is Model => Boolean(model))
-      .filter(model => isModelAvailable(model, flags));
-  }, [favoriteIds, registry, registryAll, flags]);
-
-  // The selected model is shown in Recommended only when it's actually usable.
-  const recommendableCurrent = currentModel && isModelAvailable(currentModel, flags)
-    ? currentModel
-    : undefined;
-
-  // Resolve the verified catalog through the registry, not just `all`. When the
-  // live OpenRouter catalog supersedes a curated entry (same providerModelId,
-  // different dynamic id), the curated id drops out of `all` — so a plain
-  // lookup would silently hide most verified models. findById recovers them by
-  // hydrating the curated entry with the dynamic data.
-  const verifiedModels = useMemo(
-    () => DEFAULT_OPENROUTER_CATALOG_MODEL_IDS
-      .map(id => registry.findById(id))
-      .filter((model): model is Model => Boolean(model))
-      .filter(model => isModelAvailable(model, flags)),
-    // registryAll is not referenced directly, but findById resolves curated ids
-    // against the live catalog — keep it as a dependency so the verified list
-    // recomputes when the OpenRouter catalog loads or supersedes a curated entry.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [registry, registryAll, flags],
-  );
-
-  const sections = useMemo(() => {
-    return buildPickerSections({
-      all,
-      verifiedModels,
-      currentModel: recommendableCurrent,
-      query,
+  const webLite = isWebLite();
+  const computedSections = useMemo(() => computeModelSections(
+    {
+      all: registryAll,
+      findById: id => registry.findById(id),
+    },
+    query,
+    {
+      currentModelId,
+      source,
       caps,
-      source: effectiveSource,
       recentIds,
-      favoriteModels,
-    });
-  }, [all, verifiedModels, recommendableCurrent, query, caps, effectiveSource, recentIds, favoriteModels]);
+      runtime: { webLite, ollamaOnline, comfyReady },
+    },
+    favoriteIds,
+  ), [registry, registryAll, query, currentModelId, source, caps, recentIds, favoriteIds, webLite, ollamaOnline, comfyReady]);
 
-  const favoriteSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
-
-  const displaySections = useMemo(() => limitModelSections(sections, query), [sections, query]);
-  const flat = useMemo(() => displaySections.flatMap(g => g.models), [displaySections]);
-  const flatIndexById = useMemo(() => new Map(flat.map((m, index) => [m.id, index])), [flat]);
-  const totalMatching = sections.reduce((sum, section) => sum + section.models.length, 0);
-  const hiddenCount = totalMatching - flat.length;
+  const {
+    sourceTabs,
+    effectiveSource,
+    displaySections,
+    flat,
+    flatIndexById,
+    favoriteSet,
+    totalMatching,
+    hiddenCount,
+  } = computedSections;
 
   useEffect(() => {
     setActiveIdx(i => Math.min(i, Math.max(0, flat.length - 1)));

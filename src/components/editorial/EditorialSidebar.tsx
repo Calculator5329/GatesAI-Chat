@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { MenuSectionKey, Thread } from '../../core/types';
-import { useChatStore, useRouterStore, useUiStore } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
 
@@ -111,9 +111,7 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
 };
 
 export const EditorialSidebar = observer(function EditorialSidebar() {
-  const chat = useChatStore();
-  const router = useRouterStore();
-  const ui = useUiStore();
+  const { chat, router, ui } = useEditorial();
   const onMenu = router.isMenu;
   const pinned = chat.visibleThreads.filter(t => t.pinned);
   const rest = chat.visibleThreads.filter(t => !t.pinned).slice(0, HISTORY_ROW_LIMIT);
@@ -402,8 +400,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
   onDelete: (thread: Thread) => void;
   onCloseMobile: () => void;
 }) {
-  const chat = useChatStore();
-  const router = useRouterStore();
+  const { chat, router } = useEditorial();
   const [hovered, setHovered] = useState(false);
   const active = !onMenu && thread.id === chat.activeThreadId;
   const streaming = chat.isThreadStreaming(thread.id);

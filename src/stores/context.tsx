@@ -1,7 +1,7 @@
 // Owns observable context state and actions for the app runtime.
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { RootStore } from './RootStore';
 import type { ChatStore } from './ChatStore';
 import type { UiStore } from './UiStore';
@@ -94,4 +94,37 @@ export function useOpenRouterCompatibilityStore(): OpenRouterCompatibilityStore 
 
 export function useSourceWorkspaceStore(): SourceWorkspaceStore {
   return useRootStore().sourceWorkspace;
+}
+
+export interface EditorialStores {
+  chat: ChatStore;
+  ui: UiStore;
+  router: RouterStore;
+  bridge: BridgeStore;
+  registry: ModelRegistry;
+  providers: ProviderStore;
+  imageJobs: ImageJobStore;
+  localRuntime: LocalRuntimeStore;
+}
+
+export function useEditorial(): EditorialStores {
+  const chat = useChatStore();
+  const ui = useUiStore();
+  const router = useRouterStore();
+  const bridge = useBridgeStore();
+  const registry = useModelRegistry();
+  const providers = useProviderStore();
+  const imageJobs = useImageJobStore();
+  const localRuntime = useLocalRuntimeStore();
+
+  return useMemo(() => ({
+    chat,
+    ui,
+    router,
+    bridge,
+    registry,
+    providers,
+    imageJobs,
+    localRuntime,
+  }), [chat, ui, router, bridge, registry, providers, imageJobs, localRuntime]);
 }

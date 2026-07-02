@@ -1,5 +1,5 @@
 import { observer } from 'mobx-react-lite';
-import { useBridgeStore } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
 import { useImageDataUrl } from '../media/useImageDataUrl';
 
 /**
@@ -22,7 +22,7 @@ export const WorkspaceImage = observer(function WorkspaceImage({
   kind: string;
   cacheKey?: string;
 }) {
-  const bridge = useBridgeStore();
+  const { bridge } = useEditorial();
   const { src, failed } = useImageDataUrl(path, cacheKey);
 
   return (
