@@ -39,6 +39,9 @@ src-tauri/resources/source/
 release/
 release-assets/
 
+# Codex delegation prompts + launchers (session tooling, not product code)
+.codex-tasks/
+
 # Stray local dev-server logs
 vite-*.log
 .codex-vite-*.log
