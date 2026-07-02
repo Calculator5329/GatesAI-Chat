@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
-import { useChatStore, useModelRegistry, useProviderStore, useRouterStore } from '../../stores/context';
+import { useChatStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
 import { isWebLite } from '../../core/runtime';
 import { clientPlatform } from '../../core/clientPlatform';
 import { recommendedDownload } from '../../core/downloads';
@@ -137,6 +137,7 @@ export const EditorialChat = observer(function EditorialChat() {
   const chat = useChatStore();
   const router = useRouterStore();
   const registry = useModelRegistry();
+  const ui = useUiStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRafRef = useRef<number | null>(null);
@@ -187,6 +188,17 @@ export const EditorialChat = observer(function EditorialChat() {
   useEffect(() => () => {
     if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
   }, []);
+
+  useEffect(() => {
+    ui.setComposerFocusHandler(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      textarea.focus();
+      const end = textarea.value.length;
+      textarea.setSelectionRange(end, end);
+    });
+    return () => ui.setComposerFocusHandler(null);
+  }, [ui]);
 
   useEffect(() => {
     setRenderLimit(INITIAL_RENDERED_MESSAGES);
