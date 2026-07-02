@@ -8,6 +8,13 @@
       "port": 5173
     },
     {
+      "name": "dev-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5192", "--strictPort"],
+      "port": 5192,
+      "autoPort": false
+    },
+    {
       "name": "web-lite",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["vite", "--mode", "firebase", "--port", "5191", "--strictPort"],
