@@ -155,6 +155,7 @@ export const EditorialChat = observer(function EditorialChat() {
   const streamingId = chat.streamingMessageId;
   const messageCount = messages.length;
   const activeThreadStreaming = activeThreadId ? chat.isThreadStreaming(activeThreadId) : false;
+  const activeThreadHydrating = activeThreadId ? chat.isThreadHydrating(activeThreadId) : false;
   const [renderLimit, setRenderLimit] = useState(INITIAL_RENDERED_MESSAGES);
   const hiddenMessageCount = Math.max(0, messageCount - renderLimit);
   const visibleMessages = hiddenMessageCount > 0 ? messages.slice(hiddenMessageCount) : messages;
@@ -286,7 +287,12 @@ export const EditorialChat = observer(function EditorialChat() {
     }}>
       <div ref={scrollRef} className="editorial-chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px' }}>
         <div style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
-          {messages.length === 0 && <ChatEmptyState />}
+          {activeThreadHydrating && (
+            <div className="editorial-empty-state" role="status">
+              <div className="editorial-empty-state__ready">Loading conversation...</div>
+            </div>
+          )}
+          {!activeThreadHydrating && messages.length === 0 && <ChatEmptyState />}
           {hiddenMessageCount > 0 && (
             <button
               type="button"

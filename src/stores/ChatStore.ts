@@ -21,10 +21,12 @@ import {
   CHAT_SNAPSHOT_STORAGE_KEY,
   cancelPendingDeferredSnapshot,
   consumeSnapshotLoadError,
+  loadArchivedThread,
   loadSnapshot,
   saveSnapshot,
   setCompactionNoticeHandler,
 } from '../services/persistence';
+import { CURRENT_CHAT_SCHEMA_VERSION } from '../services/persistence/migrations';
 import { setMultiTabWriteHandler } from '../services/storage/persistenceProvider';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, estimateTokens, type TokenUsage } from '../core/tokens';
 import { normalizeLlmUsageForModel } from '../core/usage';
@@ -241,6 +243,8 @@ export class ChatStore {
   persistenceConflict: string | null = null;
   /** User-visible notice after an emergency compaction save. */
   compactionNotice: string | null = null;
+  /** Archived thread ids currently loading their full message history. */
+  hydratingThreadIds: Record<string, boolean> = {};
 
   private readonly providers: ProviderStore;
   private readonly registry: ModelRegistry;
@@ -249,6 +253,7 @@ export class ChatStore {
   private readonly roundExecutor = new StreamingRoundExecutor({ retryPolicy: transientProviderRetryPolicy });
   private readonly textBuffer = new StreamingTextBuffer();
   private readonly persistence: ChatPersistenceCoordinator;
+  private readonly hydrationByThread = new Map<string, Promise<Thread | null>>();
   private workspacePersistenceHydrating = false;
   /**
    * Late-bound source of "Recent conversations" digests. Wired by RootStore
@@ -281,9 +286,7 @@ export class ChatStore {
       this.activeThreadId = thread.id;
     }
     const snapshotLoadError = consumeSnapshotLoadError();
-    if (snapshotLoadError && this.activeThreadId) {
-      this.setThreadLastError(this.activeThreadId, snapshotLoadError);
-    }
+    if (snapshotLoadError) this.compactionNotice = snapshotLoadError;
     setMultiTabWriteHandler(key => {
       if (key !== CHAT_SNAPSHOT_STORAGE_KEY) return;
       logger.warn('persistence', 'Chat autosave paused after cross-tab write', { key });
@@ -300,7 +303,7 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'roundExecutor' | 'textBuffer' | 'persistence' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'roundExecutor' | 'textBuffer' | 'persistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -308,6 +311,7 @@ export class ChatStore {
       roundExecutor: false,
       textBuffer: false,
       persistence: false,
+      hydrationByThread: false,
       workspacePersistenceHydrating: false,
       recentSummariesProvider: false,
       toolStoresProvider: false,
@@ -318,6 +322,9 @@ export class ChatStore {
     // (plus deep thread fields) through the callback below.
     this.persistence = new ChatPersistenceCoordinator(() => this.snapshot);
     this.persistence.start();
+    if (this.activeThread?.archived) {
+      void this.hydrateThread(this.activeThread.id);
+    }
   }
 
   dispose(): void {
@@ -326,11 +333,23 @@ export class ChatStore {
   }
 
   get snapshot(): ChatSnapshot {
-    return { threads: this.threads, activeThreadId: this.activeThreadId };
+    return {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
+      threads: this.threads,
+      activeThreadId: this.activeThreadId,
+    };
   }
 
   get activeThread(): Thread | null {
     return this.threads.find(t => t.id === this.activeThreadId) ?? null;
+  }
+
+  get activeThreadHydrating(): boolean {
+    return this.activeThreadId ? this.isThreadHydrating(this.activeThreadId) : false;
+  }
+
+  isThreadHydrating(threadId: string): boolean {
+    return this.hydratingThreadIds[threadId] === true;
   }
 
   /** Error banner text for the active thread only. */
@@ -499,6 +518,7 @@ export class ChatStore {
     // Deferring this through View Transitions lets the router briefly see the
     // old active thread and can bounce the sidebar between conversations.
     this.activeThreadId = id;
+    if (thread.archived) void this.hydrateThread(id);
     return true;
   }
 
@@ -772,7 +792,20 @@ export class ChatStore {
     const thread = this.ensureThreadModel(this.activeThreadId);
     const trimmed = text.trim();
     if (!thread || (!trimmed && attachments.length === 0)) return;
+    if (thread.archived) {
+      void this.sendMessageAfterHydration(thread.id, text, attachments);
+      return;
+    }
+    this.sendMessageToHydratedThread(thread.id, trimmed, attachments);
+  }
 
+  private sendMessageToHydratedThread(
+    threadId: string,
+    trimmed: string,
+    attachments: { id?: string; filename: string; path: string; size: number; mime: string }[] = [],
+  ): void {
+    const thread = this.ensureThreadModel(threadId);
+    if (!thread || thread.archived || (!trimmed && attachments.length === 0)) return;
     const isReplacingInterruptedReply = this.isThreadStreaming(thread.id);
     if (this.isThreadStreaming(thread.id)) {
       this.interruptThread(thread.id);
@@ -804,6 +837,21 @@ export class ChatStore {
           this.clearStreamingState(targetThreadId);
         }
       }));
+  }
+
+  private async sendMessageAfterHydration(
+    threadId: string,
+    text: string,
+    attachments: { id?: string; filename: string; path: string; size: number; mime: string }[] = [],
+  ): Promise<void> {
+    const thread = await this.hydrateThread(threadId);
+    if (!thread || thread.deletedAt != null) return;
+    const trimmed = text.trim();
+    if (!trimmed && attachments.length === 0) return;
+    runInAction(() => {
+      this.activeThreadId = thread.id;
+      this.sendMessageToHydratedThread(thread.id, trimmed, attachments);
+    });
   }
 
   private startTurn(threadId: string, isReplacingInterruptedReply = false): void {
@@ -909,6 +957,59 @@ export class ChatStore {
         stallReason: undefined,
       };
     });
+  }
+
+  private hydrateThread(threadId: string): Promise<Thread | null> {
+    const existing = this.findThread(threadId);
+    if (!existing) return Promise.resolve(null);
+    if (!existing.archived) return Promise.resolve(existing);
+    const inFlight = this.hydrationByThread.get(threadId);
+    if (inFlight) return inFlight;
+
+    runInAction(() => {
+      this.hydratingThreadIds = { ...this.hydratingThreadIds, [threadId]: true };
+    });
+
+    const promise = loadArchivedThread(threadId)
+      .then(thread => {
+        if (!thread || thread.id !== threadId) {
+          runInAction(() => {
+            this.setThreadLastError(threadId, 'Archived conversation could not be loaded from browser storage.');
+          });
+          return null;
+        }
+
+        return runInAction(() => {
+          const idx = this.threads.findIndex(item => item.id === threadId);
+          if (idx < 0) return null;
+          const current = this.threads[idx];
+          if (!current.archived) return current;
+          const hydrated = this.registry.findById(thread.modelId)
+            ? thread
+            : { ...thread, modelId: DEFAULT_MODEL_ID };
+          const next = { ...hydrated };
+          delete next.archived;
+          this.threads[idx] = next;
+          return this.threads[idx];
+        });
+      })
+      .catch(err => {
+        logger.warn('persistence', 'archived thread hydration failed', { threadId, err });
+        runInAction(() => {
+          this.setThreadLastError(threadId, 'Archived conversation could not be loaded from browser storage.');
+        });
+        return null;
+      })
+      .finally(() => {
+        runInAction(() => {
+          const next = { ...this.hydratingThreadIds };
+          delete next[threadId];
+          this.hydratingThreadIds = next;
+          this.hydrationByThread.delete(threadId);
+        });
+      });
+    this.hydrationByThread.set(threadId, promise);
+    return promise;
   }
 
   private ensureThreadModel(threadId: string | null): Thread | null {

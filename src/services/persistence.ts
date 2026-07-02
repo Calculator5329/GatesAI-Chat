@@ -6,14 +6,31 @@ import type { LlmUsage, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID, MODELS } from '../core/models';
 import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';
 import { logger } from './diagnostics/logger';
+import {
+  CURRENT_CHAT_SCHEMA_VERSION,
+  migrateRawChatSnapshot,
+} from './persistence/migrations';
+import {
+  createIndexedDbThreadArchiveStore,
+  type ThreadArchiveStore,
+} from './persistence/idb';
 
 const STORAGE_KEY = 'gatesai.state.v1';
 const CORRUPT_STORAGE_KEY_PREFIX = `${STORAGE_KEY}.corrupt`;
+const FUTURE_STORAGE_KEY_PREFIX = 'gatesai.state.backup';
 export const CHAT_SNAPSHOT_STORAGE_KEY = STORAGE_KEY;
+export const HOT_THREAD_LIMIT = 20;
+export const PROACTIVE_HOT_THREAD_LIMIT = Math.max(1, Math.floor(HOT_THREAD_LIMIT / 2));
+export const PROACTIVE_SNAPSHOT_CHARS = 3_500_000;
 
 export type CompactionNoticeHandler = (message: string) => void;
 
 let compactionNoticeHandler: CompactionNoticeHandler | null = null;
+let defaultThreadArchiveStore: ThreadArchiveStore | null = null;
+let threadArchiveStoreForTests: ThreadArchiveStore | null | undefined;
+let idbUnavailableLogged = false;
+let proactiveQuotaLogged = false;
+let saveGeneration = 0;
 
 /**
  * Surface a user-visible composer notice when emergency compaction succeeds.
@@ -22,6 +39,12 @@ let compactionNoticeHandler: CompactionNoticeHandler | null = null;
  */
 export function setCompactionNoticeHandler(handler: CompactionNoticeHandler | null): void {
   compactionNoticeHandler = handler;
+}
+
+export function setThreadArchiveStoreForTests(store: ThreadArchiveStore | null | undefined): void {
+  threadArchiveStoreForTests = store;
+  idbUnavailableLogged = false;
+  proactiveQuotaLogged = false;
 }
 const EMERGENCY_TOOL_RESULT_CHARS = 600;
 const EMERGENCY_TOOL_ARGUMENT_CHARS = 600;
@@ -46,13 +69,9 @@ export function createLocalChatSnapshotPersistenceProvider(
       try {
         raw = storage.getItem(STORAGE_KEY);
         if (!raw) return null;
-        const parsed = parseChatSnapshotShape(JSON.parse(raw));
-        if (!parsed.ok) {
-          logger.warn('persistence', 'quarantined corrupt chat snapshot', { reason: parsed.reason });
-          quarantineUnreadableSnapshot(storage, raw, parsed.reason);
-          return null;
-        }
-        return migrate(parsed.value);
+        const parsed = parseChatSnapshotJson(storage, raw);
+        if (!parsed.ok) return null;
+        return parsed.value;
       } catch (err) {
         if (raw) {
           const reason = `Saved chat state was unreadable: ${(err as Error).message}`;
@@ -67,27 +86,7 @@ export function createLocalChatSnapshotPersistenceProvider(
         this.clear();
         return;
       }
-      const cleaned = cleanSnapshot(snapshot);
-      try {
-        storage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
-      } catch (err) {
-        logger.warn('persistence', 'localStorage rejected full chat snapshot; attempting compaction', err);
-        try {
-          storage.setItem(STORAGE_KEY, JSON.stringify(compactSnapshotForEmergencySave(cleaned)));
-          logger.warn('persistence', 'saved compacted chat snapshot after localStorage rejected full snapshot');
-          compactionNoticeHandler?.(
-            'Chat history was compacted to fit browser storage limits. Some tool output was shortened.',
-          );
-        } catch (err) {
-          logger.error('persistence', 'failed to save chat snapshot', err);
-          // Even compaction failed — storage is full. Don't fail silently:
-          // the user's in-memory session now differs from disk and will be
-          // lost on reload, so surface it through the same notice channel.
-          compactionNoticeHandler?.(
-            'Chat history could not be saved — browser storage is full. Recent changes may be lost if you reload. Free up space or clear old data.',
-          );
-        }
-      }
+      saveCleanedSnapshot(storage, cleanSnapshot(snapshot));
     },
     clear(): void {
       try {
@@ -161,12 +160,194 @@ function cleanSnapshot(snapshot: ChatSnapshot): ChatSnapshot {
   // are preserved.
   return {
     ...snapshot,
+    schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
     threads: snapshot.threads.map(t => {
       const copy = { ...t };
       delete (copy as { naming?: boolean }).naming;
       return copy;
     }),
   };
+}
+
+function saveCleanedSnapshot(storage: KeyValuePersistence, cleaned: ChatSnapshot): void {
+  const generation = ++saveGeneration;
+  const serialized = JSON.stringify(cleaned);
+  const proactive = serialized.length > PROACTIVE_SNAPSHOT_CHARS;
+  const shouldArchive = countFullThreads(cleaned) > (proactive ? PROACTIVE_HOT_THREAD_LIMIT : HOT_THREAD_LIMIT);
+
+  if (!shouldArchive) {
+    writeSnapshotToLocalStorage(storage, cleaned, serialized);
+    return;
+  }
+
+  if (proactive && !proactiveQuotaLogged) {
+    proactiveQuotaLogged = true;
+    logger.warn('persistence', 'chat snapshot exceeded proactive archive threshold; using smaller hot tier', {
+      chars: serialized.length,
+      threshold: PROACTIVE_SNAPSHOT_CHARS,
+      hotThreadLimit: PROACTIVE_HOT_THREAD_LIMIT,
+    });
+  }
+
+  if (!proactive) {
+    writeSnapshotToLocalStorage(storage, cleaned, serialized);
+  }
+
+  const hotLimit = proactive ? PROACTIVE_HOT_THREAD_LIMIT : HOT_THREAD_LIMIT;
+  const archiveSave = saveTieredSnapshot(storage, cleaned, hotLimit, generation);
+  trackArchiveSave(archiveSave);
+}
+
+async function saveTieredSnapshot(
+  storage: KeyValuePersistence,
+  snapshot: ChatSnapshot,
+  hotLimit: number,
+  generation: number,
+): Promise<void> {
+  const tiered = await prepareSnapshotForArchiveTier(snapshot, hotLimit);
+  if (generation !== saveGeneration) return;
+  writeSnapshotToLocalStorage(storage, tiered);
+}
+
+async function prepareSnapshotForArchiveTier(snapshot: ChatSnapshot, hotLimit: number): Promise<ChatSnapshot> {
+  const hotIds = new Set(
+    [...snapshot.threads]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, hotLimit)
+      .map(thread => thread.id),
+  );
+  const nextThreads: Thread[] = [];
+
+  for (const thread of snapshot.threads) {
+    if (thread.archived || hotIds.has(thread.id)) {
+      nextThreads.push(thread.archived ? createArchivedThreadStub(thread) : createHotThread(thread));
+      continue;
+    }
+
+    const store = getThreadArchiveStore();
+    if (!store) {
+      logIdbUnavailable('Thread archive store is disabled.');
+      nextThreads.push(thread);
+      continue;
+    }
+
+    try {
+      await store.putThread(createArchiveThread(thread));
+      nextThreads.push(createArchivedThreadStub(thread));
+    } catch (err) {
+      logIdbUnavailable('IndexedDB thread archive write failed; keeping thread in localStorage.', err);
+      nextThreads.push(thread);
+    }
+  }
+
+  return { ...snapshot, threads: nextThreads };
+}
+
+function writeSnapshotToLocalStorage(storage: KeyValuePersistence, snapshot: ChatSnapshot, serialized?: string): void {
+  try {
+    storage.setItem(STORAGE_KEY, serialized ?? JSON.stringify(snapshot));
+  } catch (err) {
+    logger.warn('persistence', 'localStorage rejected full chat snapshot; attempting compaction', err);
+    try {
+      storage.setItem(STORAGE_KEY, JSON.stringify(compactSnapshotForEmergencySave(snapshot)));
+      logger.warn('persistence', 'saved compacted chat snapshot after localStorage rejected full snapshot');
+      compactionNoticeHandler?.(
+        'Chat history was compacted to fit browser storage limits. Some tool output was shortened.',
+      );
+    } catch (err) {
+      logger.error('persistence', 'failed to save chat snapshot', err);
+      compactionNoticeHandler?.(
+        'Chat history could not be saved — browser storage is full. Recent changes may be lost if you reload. Free up space or clear old data.',
+      );
+    }
+  }
+}
+
+function countFullThreads(snapshot: ChatSnapshot): number {
+  return snapshot.threads.filter(thread => !thread.archived).length;
+}
+
+function createArchiveThread(thread: Thread): Thread {
+  const copy = JSON.parse(JSON.stringify({
+    ...thread,
+  })) as Thread;
+  delete (copy as { naming?: boolean }).naming;
+  delete copy.archived;
+  return copy;
+}
+
+function createHotThread(thread: Thread): Thread {
+  const copy = { ...thread };
+  delete copy.archived;
+  return copy;
+}
+
+function createArchivedThreadStub(thread: Thread): Thread {
+  const stub: Thread = {
+    id: thread.id,
+    title: thread.title,
+    subtitle: thread.subtitle,
+    createdAt: thread.createdAt,
+    updatedAt: thread.updatedAt,
+    pinned: thread.pinned,
+    modelId: thread.modelId,
+    messages: [],
+    archived: true,
+  };
+  if (thread.contextMode) stub.contextMode = thread.contextMode;
+  if (thread.thinkingEffort) stub.thinkingEffort = thread.thinkingEffort;
+  if (thread.deletedAt !== undefined) stub.deletedAt = thread.deletedAt;
+  if (thread.threadContext !== undefined) stub.threadContext = thread.threadContext;
+  if (thread.summary !== undefined) stub.summary = thread.summary;
+  if (thread.summaryUpdatedAt !== undefined) stub.summaryUpdatedAt = thread.summaryUpdatedAt;
+  if (thread.summaryMessageCount !== undefined) stub.summaryMessageCount = thread.summaryMessageCount;
+  if (thread.autoNamed !== undefined) stub.autoNamed = thread.autoNamed;
+  return stub;
+}
+
+function getThreadArchiveStore(): ThreadArchiveStore | null {
+  if (threadArchiveStoreForTests !== undefined) return threadArchiveStoreForTests;
+  defaultThreadArchiveStore ??= createIndexedDbThreadArchiveStore();
+  return defaultThreadArchiveStore;
+}
+
+function logIdbUnavailable(message: string, err?: unknown): void {
+  if (idbUnavailableLogged) return;
+  idbUnavailableLogged = true;
+  logger.warn('persistence', message, err);
+}
+
+const pendingArchiveSaves = new Set<Promise<void>>();
+
+function trackArchiveSave(promise: Promise<void>): void {
+  pendingArchiveSaves.add(promise);
+  void promise
+    .finally(() => pendingArchiveSaves.delete(promise))
+    .catch(() => undefined);
+}
+
+export async function flushThreadArchiveSavesForTests(): Promise<void> {
+  while (pendingArchiveSaves.size > 0) {
+    await Promise.allSettled([...pendingArchiveSaves]);
+  }
+}
+
+export async function loadArchivedThread(threadId: string): Promise<Thread | null> {
+  const store = getThreadArchiveStore();
+  if (!store) {
+    logIdbUnavailable('Thread archive store is disabled.');
+    return null;
+  }
+  try {
+    const thread = await store.getThread(threadId);
+    if (!thread) return null;
+    const hydrated = { ...thread };
+    delete hydrated.archived;
+    return hydrated;
+  } catch (err) {
+    logIdbUnavailable('IndexedDB thread archive read failed.', err);
+    return null;
+  }
 }
 
 function quarantineUnreadableSnapshot(storage: KeyValuePersistence, raw: string, reason: string): void {
@@ -179,15 +360,47 @@ function quarantineUnreadableSnapshot(storage: KeyValuePersistence, raw: string,
   }
 }
 
+function backupFutureSnapshot(storage: KeyValuePersistence, raw: string, version: number): void {
+  const reason = `Saved chat state uses schema version ${version}, which this version of GatesAI cannot read.`;
+  snapshotLoadError = `${reason} A backup copy was saved and GatesAI started with a fresh chat.`;
+  try {
+    storage.setItem(`${FUTURE_STORAGE_KEY_PREFIX}.${Date.now()}`, raw);
+  } catch (err) {
+    logger.error('persistence', 'failed to save future chat snapshot backup copy', err);
+    snapshotLoadError = `${reason} A backup copy could not be saved: ${(err as Error).message}`;
+  }
+}
+
 export function prepareChatSnapshotForSave(snapshot: ChatSnapshot): ChatSnapshot {
   return cleanSnapshot(snapshot);
 }
 
+function parseChatSnapshotJson(storage: KeyValuePersistence, raw: string): ParseResult<ChatSnapshot> {
+  const decoded = JSON.parse(raw) as unknown;
+  const migrated = migrateRawChatSnapshot(decoded);
+  if (!migrated.ok) {
+    logger.warn('persistence', 'found newer chat snapshot schema; preserving backup and starting fresh', {
+      schemaVersion: migrated.version,
+    });
+    backupFutureSnapshot(storage, raw, migrated.version);
+    return { ok: false, reason: 'Saved chat state was created by a newer version of GatesAI.' };
+  }
+  const parsed = parseChatSnapshotShape(migrated.value);
+  if (!parsed.ok) {
+    logger.warn('persistence', 'quarantined corrupt chat snapshot', { reason: parsed.reason });
+    quarantineUnreadableSnapshot(storage, raw, parsed.reason);
+    return parsed;
+  }
+  return { ok: true, value: migrateParsedSnapshot(parsed.value) };
+}
+
 export function parseChatSnapshotValue(value: unknown): ChatSnapshot | null {
   try {
-    const parsed = parseChatSnapshotShape(value);
+    const migrated = migrateRawChatSnapshot(value);
+    if (!migrated.ok) return null;
+    const parsed = parseChatSnapshotShape(migrated.value);
     if (!parsed.ok) return null;
-    return migrate(parsed.value);
+    return migrateParsedSnapshot(parsed.value);
   } catch {
     return null;
   }
@@ -285,7 +498,7 @@ function compactLargeString(opts: {
  *
  * Both are idempotent — clean snapshots round-trip unchanged.
  */
-function migrate(snap: ChatSnapshot): ChatSnapshot {
+function migrateParsedSnapshot(snap: ChatSnapshot): ChatSnapshot {
   const threads: Thread[] = snap.threads.map(t => ({
     ...t,
     modelId: isSupportedModelId(t.modelId) ? t.modelId : DEFAULT_MODEL_ID,
@@ -310,18 +523,28 @@ function parseChatSnapshotShape(value: unknown): ParseResult<ChatSnapshot> {
   const activeThreadId = typeof value.activeThreadId === 'string' || value.activeThreadId === null
     ? value.activeThreadId
     : null;
-  return { ok: true, value: { threads, activeThreadId } };
+  return {
+    ok: true,
+    value: {
+      schemaVersion: numberField(value.schemaVersion) ?? CURRENT_CHAT_SCHEMA_VERSION,
+      threads,
+      activeThreadId,
+    },
+  };
 }
 
 function parseThread(value: unknown): Thread | null {
   if (!isRecord(value)) return null;
   const id = stringField(value.id);
   const title = stringField(value.title);
+  const archived = booleanField(value.archived) ?? false;
   const messages = Array.isArray(value.messages)
     ? value.messages.map(parseLegacyMessage).filter((message): message is LegacyMessage => message !== null)
-    : null;
+    : archived
+      ? []
+      : null;
   if (!id || !title || !messages) return null;
-  return {
+  const thread: Thread = {
     id,
     title,
     subtitle: stringField(value.subtitle) ?? '',
@@ -339,6 +562,8 @@ function parseThread(value: unknown): Thread | null {
     summaryMessageCount: numberField(value.summaryMessageCount),
     autoNamed: booleanField(value.autoNamed),
   };
+  if (archived) thread.archived = true;
+  return thread;
 }
 
 function parseLegacyMessage(value: unknown): LegacyMessage | null {
@@ -490,8 +715,6 @@ function parseContextMode(value: unknown): Thread['contextMode'] {
 
 function parseThinkingEffort(value: unknown): Thread['thinkingEffort'] {
   if (value === 'low' || value === 'medium' || value === 'high') return value;
-  if (value === 'none') return 'low';
-  if (value === 'xhigh') return 'high';
   return undefined;
 }
 
