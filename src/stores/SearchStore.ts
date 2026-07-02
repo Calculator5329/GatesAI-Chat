@@ -1,11 +1,12 @@
 // Owns observable SearchStore state and actions for the app runtime.
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { autorun, makeAutoObservable, toJS } from 'mobx';
+import { autorun, makeAutoObservable, reaction, toJS } from 'mobx';
 import { BraveSearchClient, BraveSearchError } from '../services/search/braveClient';
 import { loadSearchConfig, saveSearchConfig, type SearchPersistedConfig } from '../services/searchStorage';
 import type { BraveFreshness, BraveSearchOptions, BraveSearchQueryResult, BraveSearchSource } from '../services/search/types';
 import { logger } from '../services/diagnostics/logger';
+import { deleteSecret, SECRET_NAMES, setSecret, usesTauriSecretBackend } from '../services/secretStorage';
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 50;
@@ -15,22 +16,64 @@ interface CacheEntry {
   sources: BraveSearchSource[];
 }
 
+interface SearchStoreOptions {
+  autoPersist?: boolean;
+  useKeychainSecrets?: boolean;
+}
+
 export class SearchStore {
   config: SearchPersistedConfig = {};
   private readonly client: Pick<BraveSearchClient, 'searchContext'>;
   private readonly cache = new Map<string, CacheEntry>();
+  private readonly useKeychainSecrets: boolean;
+  private configPersistenceDisposer: (() => void) | null = null;
+  private secretPersistenceDisposer: (() => void) | null = null;
 
-  constructor(client: Pick<BraveSearchClient, 'searchContext'> = new BraveSearchClient()) {
+  constructor(
+    client: Pick<BraveSearchClient, 'searchContext'> = new BraveSearchClient(),
+    options: SearchStoreOptions = {},
+  ) {
     this.client = client;
+    this.useKeychainSecrets = options.useKeychainSecrets ?? usesTauriSecretBackend();
     this.config = loadSearchConfig();
-    makeAutoObservable<this, 'client' | 'cache'>(this, {
+    makeAutoObservable<this,
+      'client'
+      | 'cache'
+      | 'useKeychainSecrets'
+      | 'configPersistenceDisposer'
+      | 'secretPersistenceDisposer'
+    >(this, {
       client: false,
       cache: false,
+      useKeychainSecrets: false,
+      configPersistenceDisposer: false,
+      secretPersistenceDisposer: false,
     });
 
-    autorun(() => {
-      saveSearchConfig(toJS(this.config));
+    if (options.autoPersist ?? true) this.startPersistence();
+  }
+
+  startPersistence(): void {
+    if (this.configPersistenceDisposer || this.secretPersistenceDisposer) return;
+    this.configPersistenceDisposer = autorun(() => {
+      saveSearchConfig(searchConfigForLocalPersistence(toJS(this.config), this.useKeychainSecrets));
     });
+    this.secretPersistenceDisposer = reaction(
+      () => this.config.brave?.apiKey ?? '',
+      apiKey => persistSecretValue(SECRET_NAMES.braveApiKey, apiKey, 'Brave Search API key'),
+      { fireImmediately: false },
+    );
+  }
+
+  dispose(): void {
+    this.secretPersistenceDisposer?.();
+    this.configPersistenceDisposer?.();
+    this.secretPersistenceDisposer = null;
+    this.configPersistenceDisposer = null;
+  }
+
+  hydrateBraveKey(apiKey: string | null | undefined): void {
+    this.setBraveKey(apiKey ?? '');
   }
 
   get braveReady(): boolean {
@@ -133,6 +176,25 @@ export class SearchStore {
       this.cache.delete(oldest);
     }
   }
+}
+
+function searchConfigForLocalPersistence(
+  config: SearchPersistedConfig,
+  stripSecrets: boolean,
+): SearchPersistedConfig {
+  if (!stripSecrets) return config;
+  const next: SearchPersistedConfig = { ...config };
+  if (next.brave?.apiKey) {
+    const { apiKey: _, ...rest } = next.brave;
+    if (Object.keys(rest).length > 0) next.brave = rest;
+    else delete next.brave;
+  }
+  return next;
+}
+
+function persistSecretValue(name: string, value: string, label: string): void {
+  const op = value ? setSecret(name, value) : deleteSecret(name);
+  void op.catch(err => logger.warn('persistence', `${label} persistence failed`, { err }));
 }
 
 function cacheKey(query: string, options: BraveSearchOptions): string {

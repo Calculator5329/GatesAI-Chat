@@ -20,8 +20,8 @@ export const ApiSection = observer(function ApiSection() {
       <Card style={{ padding: '14px 18px', marginBottom: 28, background: 'rgba(62,207,142,0.04)', borderColor: 'rgba(62,207,142,0.2)' }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
           Connect OpenRouter for cloud models and Brave Search for live web grounding. Keys are stored in{' '}
-          <code style={tokens.mono}>localStorage</code> on this device only and used only as the
-          required request header for each provider.
+          the OS credential store on desktop and <code style={tokens.mono}>localStorage</code> in the
+          browser, and used only as the required request header for each provider.
         </div>
       </Card>
 

@@ -12,6 +12,7 @@ export function clearAppStorage(): void {
     localStorage.removeItem('gatesai.imagejobs.v1');
     localStorage.removeItem('gatesai.local.v1');
     localStorage.removeItem('gatesai.search.v1');
+    localStorage.removeItem('gatesai.secrets.migrated.v1');
   } catch {
     // ignore
   }
