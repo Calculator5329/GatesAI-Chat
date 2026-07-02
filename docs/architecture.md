@@ -413,7 +413,7 @@ the active thread's composer banner.
 
 ## Testing
 
-- **Vitest** in jsdom, configured by `vitest.config.mjs` (`npm run test`).
+- **Vitest** in jsdom, configured by `vitest.config.ts` (`npm run test`).
 - **Playwright** e2e in `tests/e2e/` (`npm run test:e2e`): two projects —
   `desktop-mocked` (faked bridge + OpenRouter SSE) and `web-lite` (firebase
   build, degraded surfaces).

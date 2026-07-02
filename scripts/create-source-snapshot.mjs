@@ -27,7 +27,6 @@ export const includeRoots = [
   'tsconfig.node.json',
   'tsconfig.test.json',
   'vite.config.ts',
-  'vitest.config.mjs',
   'vitest.config.ts',
   'vitest.live.config.ts',
 ];
