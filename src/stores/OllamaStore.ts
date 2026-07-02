@@ -1,7 +1,7 @@
 // Owns observable OllamaStore state and actions for the app runtime.
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { autorun, makeAutoObservable, runInAction, toJS } from 'mobx';
+import { autorun, makeAutoObservable, reaction, runInAction, toJS } from 'mobx';
 import type { Model } from '../core/types';
 import { mapOllamaTagsToModels } from '../services/llm/ollamaCatalog';
 import {
@@ -12,6 +12,12 @@ import {
 import type { ModelRegistry } from './ModelRegistry';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
 import { logger } from '../services/diagnostics/logger';
+import { deleteSecret, SECRET_NAMES, setSecret, usesTauriSecretBackend } from '../services/secretStorage';
+
+interface OllamaStoreOptions {
+  autoPersist?: boolean;
+  useKeychainSecrets?: boolean;
+}
 
 /**
  * Owns Ollama auth, tool-call settings, and the locally pulled model catalog.
@@ -26,11 +32,15 @@ export class OllamaStore {
 
   private readonly registry: ModelRegistry;
   private readonly localRuntime: LocalRuntimeStore;
+  private readonly useKeychainSecrets: boolean;
   private inflight: AbortController | null = null;
+  private configPersistenceDisposer: (() => void) | null = null;
+  private secretPersistenceDisposer: (() => void) | null = null;
 
-  constructor(registry: ModelRegistry, localRuntime: LocalRuntimeStore) {
+  constructor(registry: ModelRegistry, localRuntime: LocalRuntimeStore, options: OllamaStoreOptions = {}) {
     this.registry = registry;
     this.localRuntime = localRuntime;
+    this.useKeychainSecrets = options.useKeychainSecrets ?? usesTauriSecretBackend();
     const persisted = loadOllamaConfig();
     this.config = {
       apiKey: persisted.apiKey,
@@ -39,21 +49,52 @@ export class OllamaStore {
     this.lastRefreshAt = persisted.lastRefreshAt;
     if (persisted.catalog.length) registry.setDynamicForProvider('ollama', persisted.catalog);
 
-    makeAutoObservable<this, 'registry' | 'localRuntime' | 'inflight'>(this, {
+    makeAutoObservable<this,
+      'registry'
+      | 'localRuntime'
+      | 'useKeychainSecrets'
+      | 'inflight'
+      | 'configPersistenceDisposer'
+      | 'secretPersistenceDisposer'
+    >(this, {
       registry: false,
       localRuntime: false,
+      useKeychainSecrets: false,
       inflight: false,
+      configPersistenceDisposer: false,
+      secretPersistenceDisposer: false,
     });
 
-    autorun(() => {
+    if (options.autoPersist ?? true) this.startPersistence();
+  }
+
+  startPersistence(): void {
+    if (this.configPersistenceDisposer || this.secretPersistenceDisposer) return;
+    this.configPersistenceDisposer = autorun(() => {
       const snap: OllamaPersistedConfig = {
         apiKey: this.config.apiKey,
         toolsEnabled: this.config.toolsEnabled,
         catalog: toJS(this.catalog),
         lastRefreshAt: this.lastRefreshAt,
       };
-      saveOllamaConfig(snap);
+      saveOllamaConfig(ollamaConfigForLocalPersistence(snap, this.useKeychainSecrets));
     });
+    this.secretPersistenceDisposer = reaction(
+      () => this.config.apiKey ?? '',
+      apiKey => persistSecretValue(SECRET_NAMES.ollamaApiKey, apiKey, 'Ollama API key'),
+      { fireImmediately: false },
+    );
+  }
+
+  dispose(): void {
+    this.secretPersistenceDisposer?.();
+    this.configPersistenceDisposer?.();
+    this.secretPersistenceDisposer = null;
+    this.configPersistenceDisposer = null;
+  }
+
+  hydrateApiKey(apiKey: string | null | undefined): void {
+    this.setKey(apiKey ?? '');
   }
 
   get count(): number { return this.catalog.length; }
@@ -110,4 +151,17 @@ export class OllamaStore {
     this.fetching = false;
     this.catalog = [];
   }
+}
+
+function ollamaConfigForLocalPersistence(
+  config: OllamaPersistedConfig,
+  stripSecrets: boolean,
+): OllamaPersistedConfig {
+  if (!stripSecrets) return config;
+  return { ...config, apiKey: undefined };
+}
+
+function persistSecretValue(name: string, value: string, label: string): void {
+  const op = value ? setSecret(name, value) : deleteSecret(name);
+  void op.catch(err => logger.warn('persistence', `${label} persistence failed`, { err }));
 }

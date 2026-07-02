@@ -32,6 +32,7 @@ import {
   type DataImportMode,
   type DataImportResult,
 } from '../services/chat/dataExport';
+import { getSecret, migrateDesktopSecretsFromLocalStorage, SECRET_NAMES } from '../services/secretStorage';
 
 export class RootStore {
   readonly registry: ModelRegistry;
@@ -66,8 +67,8 @@ export class RootStore {
     this.localRuntime = new LocalRuntimeStore({
       getOllamaCatalog: () => ollamaStore?.catalog ?? [],
     });
-    this.search = new SearchStore();
-    this.ollama = new OllamaStore(this.registry, this.localRuntime);
+    this.search = new SearchStore(undefined, { autoPersist: false });
+    this.ollama = new OllamaStore(this.registry, this.localRuntime, { autoPersist: false });
     ollamaStore = this.ollama;
     this.providers = new ProviderStore(this.registry, () => ({
       ollama: {
@@ -76,7 +77,7 @@ export class RootStore {
         available: this.localRuntime.runtimes.ollama.status === 'online',
         toolsEnabled: this.ollama.config.toolsEnabled,
       },
-    }));
+    }), { autoPersist: false });
     this.chat = new ChatStore(this.providers, this.registry, this.profile);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
@@ -116,6 +117,7 @@ export class RootStore {
   boot(): void {
     if (this.booted) return;
     this.booted = true;
+    void this.hydrateSecretsAtBoot();
 
     let attemptedOpenRouterCatalogHydrationForKey: string | null = null;
     this.disposers.push(autorun(() => {
@@ -210,6 +212,9 @@ export class RootStore {
     while (this.disposers.length > 0) this.disposers.pop()?.();
     this.summary.stop();
     this.bridge.stop();
+    this.providers.dispose();
+    this.search.dispose();
+    this.ollama.dispose();
     this.chat.dispose();
     this.ui.dispose();
     this.router.destroy();
@@ -270,6 +275,35 @@ export class RootStore {
       },
       { fireImmediately: true },
     ));
+  }
+
+  private async hydrateSecretsAtBoot(): Promise<void> {
+    const migration = await migrateDesktopSecretsFromLocalStorage().catch(err => {
+      logger.warn('persistence', 'desktop secret migration failed during boot', { err });
+      return null;
+    });
+    if (!migration) return;
+    if (!migration.ok) return;
+
+    try {
+      const [openrouterKey, braveKey, ollamaKey] = await Promise.all([
+        getSecret(SECRET_NAMES.openrouterApiKey),
+        getSecret(SECRET_NAMES.braveApiKey),
+        getSecret(SECRET_NAMES.ollamaApiKey),
+      ]);
+      if (!this.booted) return;
+      this.providers.hydrateOpenRouterKey(openrouterKey);
+      this.search.hydrateBraveKey(braveKey);
+      this.ollama.hydrateApiKey(ollamaKey);
+    } catch (err) {
+      logger.warn('persistence', 'secret hydration failed', { err });
+    } finally {
+      if (this.booted) {
+        this.providers.startPersistence();
+        this.search.startPersistence();
+        this.ollama.startPersistence();
+      }
+    }
   }
 }
 

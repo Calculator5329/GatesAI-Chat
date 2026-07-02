@@ -7,6 +7,7 @@ use tauri_plugin_shell::ShellExt;
 mod http_health;
 mod brave_search;
 mod local_runtime;
+mod secrets;
 mod source_build;
 mod source_workspace;
 
@@ -44,6 +45,9 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       open_path,
       brave_search::brave_llm_context,
+      secrets::secret_set,
+      secrets::secret_get,
+      secrets::secret_delete,
       local_runtime::spawn_runtime,
       local_runtime::stop_runtime,
       local_runtime::runtime_status,

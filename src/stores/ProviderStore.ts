@@ -1,13 +1,20 @@
 // Owns observable ProviderStore state and actions for the app runtime.
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { autorun, makeAutoObservable, toJS } from 'mobx';
+import { autorun, makeAutoObservable, reaction, toJS } from 'mobx';
 import type { ProviderConfig, ProviderConfigs, ProviderId } from '../core/llm';
 import { LlmRouter } from '../services/llm/router';
 import { loadProviderConfigs, saveProviderConfigs } from '../services/providerStorage';
+import { deleteSecret, SECRET_NAMES, setSecret, usesTauriSecretBackend } from '../services/secretStorage';
+import { logger } from '../services/diagnostics/logger';
 import type { ModelRegistry } from './ModelRegistry';
 
 type ProviderConfigOverlay = () => ProviderConfigs;
+
+interface ProviderStoreOptions {
+  autoPersist?: boolean;
+  useKeychainSecrets?: boolean;
+}
 
 /**
  * Owns provider credentials (API keys, base URLs) and the LLM router that
@@ -18,21 +25,68 @@ export class ProviderStore {
   configs: ProviderConfigs = {};
   readonly router: LlmRouter;
   private readonly overlayConfigs: ProviderConfigOverlay;
+  private readonly useKeychainSecrets: boolean;
+  private routerDisposer: (() => void) | null = null;
+  private configPersistenceDisposer: (() => void) | null = null;
+  private secretPersistenceDisposer: (() => void) | null = null;
 
-  constructor(registry: ModelRegistry, overlayConfigs: ProviderConfigOverlay = () => ({})) {
+  constructor(
+    registry: ModelRegistry,
+    overlayConfigs: ProviderConfigOverlay = () => ({}),
+    options: ProviderStoreOptions = {},
+  ) {
     this.configs = loadProviderConfigs();
     this.overlayConfigs = overlayConfigs;
+    this.useKeychainSecrets = options.useKeychainSecrets ?? usesTauriSecretBackend();
     this.router = new LlmRouter(registry, this.effectiveConfigs);
-    makeAutoObservable<this, 'router' | 'overlayConfigs'>(this, {
+    makeAutoObservable<this,
+      'router'
+      | 'overlayConfigs'
+      | 'useKeychainSecrets'
+      | 'routerDisposer'
+      | 'configPersistenceDisposer'
+      | 'secretPersistenceDisposer'
+    >(this, {
       router: false,
       overlayConfigs: false,
+      useKeychainSecrets: false,
+      routerDisposer: false,
+      configPersistenceDisposer: false,
+      secretPersistenceDisposer: false,
     });
 
-    autorun(() => {
-      const snap = toJS(this.configs);
-      saveProviderConfigs(snap);
+    this.routerDisposer = autorun(() => {
+      toJS(this.configs);
       this.router.updateConfigs(this.effectiveConfigs);
     });
+
+    if (options.autoPersist ?? true) this.startPersistence();
+  }
+
+  startPersistence(): void {
+    if (this.configPersistenceDisposer || this.secretPersistenceDisposer) return;
+    this.configPersistenceDisposer = autorun(() => {
+      const snap = toJS(this.configs);
+      saveProviderConfigs(providerConfigsForLocalPersistence(snap, this.useKeychainSecrets));
+    });
+    this.secretPersistenceDisposer = reaction(
+      () => this.configs.openrouter?.apiKey ?? '',
+      apiKey => persistSecretValue(SECRET_NAMES.openrouterApiKey, apiKey, 'OpenRouter API key'),
+      { fireImmediately: false },
+    );
+  }
+
+  dispose(): void {
+    this.secretPersistenceDisposer?.();
+    this.configPersistenceDisposer?.();
+    this.routerDisposer?.();
+    this.secretPersistenceDisposer = null;
+    this.configPersistenceDisposer = null;
+    this.routerDisposer = null;
+  }
+
+  hydrateOpenRouterKey(apiKey: string | null | undefined): void {
+    this.setKey('openrouter', apiKey ?? '');
   }
 
   get effectiveConfigs(): ProviderConfigs {
@@ -102,4 +156,21 @@ export class ProviderStore {
     void Object.keys(this.configs).length;
     return this.router.canRoute();
   }
+}
+
+function providerConfigsForLocalPersistence(configs: ProviderConfigs, stripSecrets: boolean): ProviderConfigs {
+  if (!stripSecrets) return configs;
+  const next: ProviderConfigs = { ...configs };
+  const openrouter = next.openrouter;
+  if (openrouter?.apiKey) {
+    const { apiKey: _, ...rest } = openrouter;
+    if (Object.keys(rest).length > 0) next.openrouter = rest;
+    else delete next.openrouter;
+  }
+  return next;
+}
+
+function persistSecretValue(name: string, value: string, label: string): void {
+  const op = value ? setSecret(name, value) : deleteSecret(name);
+  void op.catch(err => logger.warn('persistence', `${label} persistence failed`, { err }));
 }
