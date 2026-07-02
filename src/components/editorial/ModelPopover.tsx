@@ -299,7 +299,10 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
 
   const webLite = isWebLite();
   const computedSections = useMemo(() => computeModelSections(
-    registry,
+    {
+      all: registryAll,
+      findById: id => registry.findById(id),
+    },
     query,
     {
       currentModelId,
