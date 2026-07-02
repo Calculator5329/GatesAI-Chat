@@ -1,12 +1,14 @@
 // Renders the Settings menu section and the controls for its store-backed workflow.
 // Called by GatesMenu; depends on MobX stores, bridge services, and shared UI primitives.
 // Invariant: menu components present state and delegate side effects to stores/services.
-import { useState } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
-import { Button, Card, SettingsRow } from '../../ui';
+import { Button, Card, Input, SettingsRow } from '../../ui';
 import { useRootStore, useRouterStore, useUiStore } from '../../../stores/context';
 import { isWebLite } from '../../../core/runtime';
+
+type DataImportMode = 'merge' | 'replace';
 
 export const SettingsSection = observer(function SettingsSection() {
   const router = useRouterStore();
@@ -39,7 +41,126 @@ export const SettingsSection = observer(function SettingsSection() {
       </p>
 
       <WebLiteBrowserData />
+      <ExportImportBlock />
       <DangerZone />
+    </div>
+  );
+});
+
+const ExportImportBlock = observer(function ExportImportBlock() {
+  const root = useRootStore();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [mode, setMode] = useState<DataImportMode>('merge');
+  const [replaceConfirm, setReplaceConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [statusKind, setStatusKind] = useState<'ok' | 'error'>('ok');
+  const replaceReady = mode === 'merge' || replaceConfirm === root.replaceImportConfirmation;
+
+  const setResult = (message: string, kind: 'ok' | 'error' = 'ok'): void => {
+    setStatus(message);
+    setStatusKind(kind);
+  };
+
+  const handleExport = (): void => {
+    try {
+      root.downloadDataExport();
+      setResult('Export downloaded.');
+    } catch (err) {
+      setResult(err instanceof Error ? err.message : String(err), 'error');
+    }
+  };
+
+  const handleImportFile = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    setStatus(null);
+    try {
+      const text = await file.text();
+      const result = root.importDataFromJson(text, mode);
+      setResult(root.formatDataImportResult(result));
+      setReplaceConfirm('');
+    } catch (err) {
+      setResult(err instanceof Error ? err.message : String(err), 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="settings-section settings-export-import" style={{ ...tokens.section, marginBottom: 28 }}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Export & import</div>
+      {status && (
+        <div style={{ fontSize: 12, color: statusKind === 'error' ? '#ff7597' : 'var(--accent)', marginBottom: 8 }}>
+          {status}
+        </div>
+      )}
+      <SettingsRow label="Export app data">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+          <Button variant="accent" onClick={handleExport}>Export JSON</Button>
+          <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
+            Saves conversations, memories, notes, summaries, system prompt, and UI preferences.
+          </div>
+        </div>
+      </SettingsRow>
+      <SettingsRow label="Import mode">
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          {(['merge', 'replace'] as const).map(value => (
+            <label key={value} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--text-dim)' }}>
+              <input
+                type="radio"
+                name="settings-data-import-mode"
+                value={value}
+                checked={mode === value}
+                onChange={() => setMode(value)}
+              />
+              {value === 'merge' ? 'Merge' : 'Replace'}
+            </label>
+          ))}
+        </div>
+      </SettingsRow>
+      {mode === 'replace' && (
+        <SettingsRow label="Replace confirm">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.45 }}>
+              Type <code style={tokens.mono}>{root.replaceImportConfirmation}</code>
+            </div>
+            <Input
+              value={replaceConfirm}
+              onChange={event => setReplaceConfirm(event.currentTarget.value)}
+              placeholder={root.replaceImportConfirmation}
+              style={{ maxWidth: 320 }}
+            />
+          </div>
+        </SettingsRow>
+      )}
+      <SettingsRow label="Import file" last>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <Button
+            disabled={busy || !replaceReady}
+            variant={mode === 'replace' ? 'danger' : 'default'}
+            onClick={() => inputRef.current?.click()}
+          >
+            {busy ? 'Importing...' : 'Choose JSON'}
+          </Button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={event => { void handleImportFile(event); }}
+            style={{ display: 'none' }}
+          />
+          {mode === 'merge' ? (
+            <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Existing threads win on duplicate IDs.</span>
+          ) : (
+            <span style={{ fontSize: 12, color: replaceReady ? 'var(--text-faint)' : '#ff7597' }}>
+              Existing app state will be replaced.
+            </span>
+          )}
+        </div>
+      </SettingsRow>
     </div>
   );
 });

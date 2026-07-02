@@ -621,6 +621,16 @@ export class ChatStore {
     this.lastErrorByThread = {};
   }
 
+  applyImportedSnapshot(snapshot: ChatSnapshot): void {
+    this.abortAllStreams();
+    this.applySnapshot(snapshot);
+    this.streamActivityByThread = {};
+    this.lastErrorByThread = {};
+    this.persistenceConflict = null;
+    this.persistence.resume();
+    this.schedulePersistSnapshot(this.snapshot);
+  }
+
   /**
    * Abort every in-flight stream and drop all streaming bookkeeping. Used when
    * the thread list is about to be wholesale replaced (clear-all, cross-tab

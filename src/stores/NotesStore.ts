@@ -40,6 +40,30 @@ export class NotesStore {
     return { notes: this.notes };
   }
 
+  applyImportedNotes(snapshot: NotesSnapshot): void {
+    this.notes = snapshot.notes.map(cloneNote);
+  }
+
+  mergeImportedNotes(snapshot: NotesSnapshot): { imported: number; skipped: number } {
+    const existingBodies = new Set(this.notes.map(note => note.body));
+    const existingIds = new Set(this.notes.map(note => note.id));
+    let imported = 0;
+    let skipped = 0;
+    for (const note of snapshot.notes) {
+      if (existingBodies.has(note.body)) {
+        skipped += 1;
+        continue;
+      }
+      const next = cloneNote(note);
+      if (existingIds.has(next.id)) next.id = newId();
+      existingIds.add(next.id);
+      existingBodies.add(next.body);
+      this.notes.push(next);
+      imported += 1;
+    }
+    return { imported, skipped };
+  }
+
   /** Most-recently-updated first. */
   get sortedByRecency(): Note[] {
     return [...this.notes].sort((a, b) => b.updatedAt - a.updatedAt);
@@ -105,4 +129,11 @@ export class NotesStore {
   clear(): void {
     this.notes = [];
   }
+}
+
+function cloneNote(note: Note): Note {
+  return {
+    ...note,
+    tags: note.tags ? [...note.tags] : undefined,
+  };
 }

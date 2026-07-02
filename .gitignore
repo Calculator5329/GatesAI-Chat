@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.tmp/
+.tsbuild/
 *.local
 
 # Local environment / secrets (keep tracked, public .env.firebase)

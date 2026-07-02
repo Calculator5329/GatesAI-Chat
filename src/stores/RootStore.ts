@@ -24,6 +24,14 @@ import { configureChatLog } from '../services/diagnostics/chatLog';
 import { configureLogSink, logger } from '../services/diagnostics/logger';
 import { installMultiTabStorageListener } from '../services/storage/persistenceProvider';
 import { isWebLite } from '../core/runtime';
+import {
+  downloadDataExport,
+  formatDataImportResult,
+  importDataFromJson,
+  REPLACE_IMPORT_CONFIRMATION,
+  type DataImportMode,
+  type DataImportResult,
+} from '../services/chat/dataExport';
 
 export class RootStore {
   readonly registry: ModelRegistry;
@@ -46,6 +54,7 @@ export class RootStore {
   readonly sourceWorkspace: SourceWorkspaceStore;
   private booted = false;
   private readonly disposers: Array<() => void> = [];
+  readonly replaceImportConfirmation = REPLACE_IMPORT_CONFIRMATION;
 
   constructor() {
     let ollamaStore: OllamaStore | null = null;
@@ -205,6 +214,18 @@ export class RootStore {
     this.ui.dispose();
     this.router.destroy();
     this.booted = false;
+  }
+
+  downloadDataExport(): void {
+    downloadDataExport(this);
+  }
+
+  importDataFromJson(raw: string, mode: DataImportMode): DataImportResult {
+    return importDataFromJson(this, raw, mode);
+  }
+
+  formatDataImportResult(result: DataImportResult): string {
+    return formatDataImportResult(result);
   }
 
   /**

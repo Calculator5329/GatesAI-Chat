@@ -33,14 +33,33 @@ export class UserProfileStore {
 
   /** Parsed view of the bio. Order = display order (newest first by convention). */
   get facts(): string[] {
-    return this.bio
-      .split('\n')
-      .map(line => stripBullet(line.trim()))
-      .filter(line => line.length > 0);
+    return factsFromBio(this.bio);
   }
 
   setBio(value: string): void { this.bio = value; }
   setDefaultSystemPrompt(value: string): void { this.defaultSystemPrompt = value; }
+
+  applyImportedProfile(snapshot: UserProfileSnapshot): void {
+    this.bio = snapshot.bio;
+    this.defaultSystemPrompt = snapshot.defaultSystemPrompt;
+  }
+
+  mergeImportedProfile(snapshot: UserProfileSnapshot): { imported: number; skipped: number } {
+    const next = [...this.facts];
+    let imported = 0;
+    let skipped = 0;
+    for (const fact of factsFromBio(snapshot.bio)) {
+      if (next.includes(fact)) {
+        skipped += 1;
+        continue;
+      }
+      next.push(fact);
+      imported += 1;
+    }
+    this.bio = bioFromFacts(next);
+    this.defaultSystemPrompt = snapshot.defaultSystemPrompt;
+    return { imported, skipped };
+  }
 
   /**
    * Prepend a single fact. New facts go to the top so the most recent
@@ -210,6 +229,13 @@ const MEMORY_TOOL_NUDGE =
 
 function stripBullet(line: string): string {
   return line.replace(/^[·\-*•]\s*/, '').trim();
+}
+
+function factsFromBio(bio: string): string[] {
+  return bio
+    .split('\n')
+    .map(line => stripBullet(line.trim()))
+    .filter(line => line.length > 0);
 }
 
 function bioFromFacts(facts: string[]): string {
