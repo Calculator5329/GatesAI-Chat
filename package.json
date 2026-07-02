@@ -22,7 +22,7 @@
     "test:watch": "vitest",
     "test:models": "vitest run --config vitest.live.config.ts",
     "test:e2e": "playwright test",
-    "ci": "npm.cmd test && npm.cmd run typecheck && npm.cmd run lint",
+    "ci": "npm test && npm run typecheck && npm run lint",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
