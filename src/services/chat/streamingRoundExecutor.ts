@@ -221,7 +221,8 @@ export class StreamingRoundExecutor {
       emitActivity('connecting', { at: lastProviderAt });
       armStallTimer(this.initialStallMs);
 
-      for await (const chunk of abortFilteredChunks(options.stream(options.request, controller.signal), controller.signal)) {
+      for await (const chunk of options.stream(options.request, controller.signal)) {
+        if (controller.signal.aborted) continue;
         if (chunk.type !== 'done') {
           state.receivedContent = true;
           lastProviderAt = Date.now();
@@ -337,42 +338,6 @@ export async function delayWithAbort(delayMs: number, signal: AbortSignal): Prom
     const timer = setTimeout(() => finish(true), delayMs);
     signal.addEventListener('abort', onAbort, { once: true });
   });
-}
-
-async function* abortFilteredChunks(iterable: AsyncIterable<LlmChunk>, signal: AbortSignal): AsyncIterable<LlmChunk> {
-  const iterator = iterable[Symbol.asyncIterator]();
-  const aborted = abortPromise(signal);
-  try {
-    while (true) {
-      const next = await Promise.race([iterator.next(), aborted.promise]);
-      if (next === ABORTED || signal.aborted) return;
-      if (next.done) return;
-      yield next.value;
-    }
-  } finally {
-    aborted.cleanup();
-    if (signal.aborted) {
-      try {
-        void iterator.return?.().catch(() => undefined);
-      } catch {
-        // The abort outcome is already known; provider cleanup errors should not
-        // be reported as a separate round failure.
-      }
-    }
-  }
-}
-
-const ABORTED = Symbol('aborted');
-
-function abortPromise(signal: AbortSignal): { promise: Promise<typeof ABORTED>; cleanup: () => void } {
-  if (signal.aborted) return { promise: Promise.resolve(ABORTED), cleanup: () => undefined };
-  let cleanup: () => void = () => undefined;
-  const promise = new Promise<typeof ABORTED>(resolve => {
-    const onAbort = () => resolve(ABORTED);
-    cleanup = () => signal.removeEventListener('abort', onAbort);
-    signal.addEventListener('abort', onAbort, { once: true });
-  });
-  return { promise, cleanup };
 }
 
 function errorMessage(error: unknown): string {

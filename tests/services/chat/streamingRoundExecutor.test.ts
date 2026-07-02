@@ -182,7 +182,7 @@ describe('StreamingRoundExecutor', () => {
 
     const promise = executor.execute({
       request,
-      stream: async function*(): AsyncIterable<LlmChunk> {
+      stream: (): AsyncIterable<LlmChunk> => {
         calls += 1;
         throw new TypeError('Failed to fetch');
       },
