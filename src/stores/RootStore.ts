@@ -18,11 +18,14 @@ import { ImageGenStore } from './ImageGenStore';
 import { ImageJobStore } from './ImageJobStore';
 import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { SearchStore } from './SearchStore';
+import { McpStore } from './McpStore';
 import { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 import { configureLogSink, logger } from '../services/diagnostics/logger';
 import { installMultiTabStorageListener } from '../services/storage/persistenceProvider';
+import { toolRegistry } from '../services/tools/registry';
+import { createMcpRegistryTools } from '../services/mcp/toolIntegration';
 import { isWebLite } from '../core/runtime';
 import {
   downloadDataExport,
@@ -51,6 +54,7 @@ export class RootStore {
   readonly imageJobs: ImageJobStore;
   readonly localRuntime: LocalRuntimeStore;
   readonly search: SearchStore;
+  readonly mcp: McpStore;
   readonly openrouterCompatibility: OpenRouterCompatibilityStore;
   readonly sourceWorkspace: SourceWorkspaceStore;
   private booted = false;
@@ -68,6 +72,7 @@ export class RootStore {
       getOllamaCatalog: () => ollamaStore?.catalog ?? [],
     });
     this.search = new SearchStore(undefined, { autoPersist: false });
+    this.mcp = new McpStore({ autoPersist: false });
     this.ollama = new OllamaStore(this.registry, this.localRuntime, { autoPersist: false });
     ollamaStore = this.ollama;
     this.providers = new ProviderStore(this.registry, () => ({
@@ -112,6 +117,7 @@ export class RootStore {
       search: this.search,
     }));
 
+    this.disposers.push(toolRegistry.registerDynamicProvider(() => createMcpRegistryTools(this.mcp)));
   }
 
   boot(): void {
@@ -214,6 +220,7 @@ export class RootStore {
     this.bridge.stop();
     this.providers.dispose();
     this.search.dispose();
+    this.mcp.dispose();
     this.ollama.dispose();
     this.chat.dispose();
     this.ui.dispose();
@@ -291,6 +298,7 @@ export class RootStore {
         getSecret(SECRET_NAMES.braveApiKey),
         getSecret(SECRET_NAMES.ollamaApiKey),
       ]);
+      await this.mcp.hydrateHeaderSecrets();
       if (!this.booted) return;
       this.providers.hydrateOpenRouterKey(openrouterKey);
       this.search.hydrateBraveKey(braveKey);
@@ -301,6 +309,8 @@ export class RootStore {
       if (this.booted) {
         this.providers.startPersistence();
         this.search.startPersistence();
+        this.mcp.startPersistence();
+        void this.mcp.connectEnabledServers();
         this.ollama.startPersistence();
       }
     }

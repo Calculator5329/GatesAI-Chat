@@ -2,7 +2,7 @@
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { JsonSchema, ToolCall, ToolDef } from '../../core/llm';
-import type { Tool, ToolContext, ToolExecuteResult, ToolOutcome, ToolValidationIssue } from './types';
+import type { Tool, ToolCategory, ToolContext, ToolExecuteResult, ToolOutcome, ToolValidationIssue } from './types';
 import { defaultToolUi, summarizeToolResult } from './activityDisplay';
 import { logger } from '../diagnostics/logger';
 import { memoryTool } from './memory';
@@ -60,6 +60,7 @@ export interface ToolValidationResult {
  */
 export class ToolRegistry {
   private readonly tools = new Map<string, Tool>();
+  private readonly dynamicProviders = new Set<() => Tool[]>();
 
   register(tool: Tool): void {
     this.tools.set(tool.def.name, {
@@ -68,12 +69,23 @@ export class ToolRegistry {
     });
   }
 
+  registerDynamicProvider(provider: () => Tool[]): () => void {
+    this.dynamicProviders.add(provider);
+    return () => {
+      this.dynamicProviders.delete(provider);
+    };
+  }
+
   get(name: string): Tool | undefined {
-    return this.tools.get(name);
+    return this.tools.get(name) ?? this.dynamicTools().find(tool => tool.def.name === name);
   }
 
   list(): Tool[] {
-    return [...this.tools.values()];
+    return [...this.tools.values(), ...this.dynamicTools()];
+  }
+
+  toolDefsByCategory(category: ToolCategory): ToolDef[] {
+    return this.list().filter(tool => tool.meta?.category === category).map(tool => tool.def);
   }
 
   /** The shape providers want — array of `ToolDef`. Empty when no tools registered. */
@@ -116,6 +128,9 @@ export class ToolRegistry {
       selected.add('workspace');
       selected.add('fs');
       selected.add('describe_image');
+    }
+    for (const tool of this.list()) {
+      if (tool.meta?.category === 'mcp') selected.add(tool.def.name);
     }
 
     const out = this.list().filter(t => selected.has(t.def.name)).map(t => t.def);
@@ -202,6 +217,19 @@ export class ToolRegistry {
         retryable: true,
       };
     }
+  }
+
+  private dynamicTools(): Tool[] {
+    const out: Tool[] = [];
+    for (const provider of this.dynamicProviders) {
+      for (const tool of provider()) {
+        out.push({
+          ...tool,
+          ui: tool.ui ?? defaultToolUi(tool.def.name),
+        });
+      }
+    }
+    return out;
   }
 }
 
@@ -326,15 +354,16 @@ function validateJsonValue(schema: JsonSchema, value: unknown, label: string): T
       retryable: true,
     };
   }
-  if (!matchesJsonType(schema.type, value)) {
+  if (schema.type !== undefined && !matchesJsonType(schema.type, value)) {
+    const labelType = jsonTypeLabel(schema.type);
     return {
       errorCode: 'invalid_argument_type',
-      summary: `Invalid type for ${label}; expected ${schema.type}.`,
-      fix: `Retry with ${label} as ${article(schema.type)} ${schema.type}.`,
+      summary: `Invalid type for ${label}; expected ${labelType}.`,
+      fix: `Retry with ${label} as ${article(labelType)} ${labelType}.`,
       retryable: true,
     };
   }
-  if (schema.type === 'array' && schema.items && Array.isArray(value)) {
+  if (jsonTypeIncludes(schema.type, 'array') && schema.items && Array.isArray(value)) {
     for (let i = 0; i < value.length; i++) {
       const issue = validateJsonValue(schema.items, value[i], `${label}[${i}]`);
       if (issue) return issue;
@@ -344,10 +373,21 @@ function validateJsonValue(schema: JsonSchema, value: unknown, label: string): T
 }
 
 function matchesJsonType(type: JsonSchema['type'], value: unknown): boolean {
+  if (Array.isArray(type)) return type.some(item => matchesJsonType(item, value));
   if (type === 'array') return Array.isArray(value);
   if (type === 'number') return typeof value === 'number' && Number.isFinite(value);
   if (type === 'object') return typeof value === 'object' && value !== null && !Array.isArray(value);
-  return typeof value === type;
+  if (type === 'string' || type === 'boolean') return typeof value === type;
+  return true;
+}
+
+function jsonTypeIncludes(type: JsonSchema['type'], expected: string): boolean {
+  return Array.isArray(type) ? type.includes(expected) : type === expected;
+}
+
+function jsonTypeLabel(type: JsonSchema['type']): string {
+  if (Array.isArray(type)) return type.join(' or ');
+  return typeof type === 'string' && type ? type : 'value';
 }
 
 function isMissing(value: unknown): boolean {

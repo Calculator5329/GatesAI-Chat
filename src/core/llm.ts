@@ -63,15 +63,16 @@ export interface ToolDef {
   strict?: boolean;
 }
 
-/** Minimal JSON-Schema subset we actually use. Loose on purpose. */
+/** Minimal JSON-Schema subset we validate locally. Loose on purpose so provider/MCP schemas can pass through. */
 export type JsonSchema = {
-  type: 'object' | 'string' | 'number' | 'boolean' | 'array';
+  type?: 'object' | 'string' | 'number' | 'boolean' | 'array' | string | string[];
   description?: string;
   properties?: Record<string, JsonSchema>;
   required?: string[];
   items?: JsonSchema;
   enum?: unknown[];
-  additionalProperties?: boolean;
+  additionalProperties?: boolean | JsonSchema;
+  [key: string]: unknown;
 };
 
 /** A single tool invocation requested by the model. Arguments are already-parsed JSON. */

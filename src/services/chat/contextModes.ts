@@ -104,6 +104,7 @@ export function toolsForContextMode(args: {
     if (args.bridgeOnline && isMicroFsRelevant(args.userText)) tools.push(MICRO_FS_TOOL_DEF);
     const webSearch = args.webSearchAvailable ? toolRegistry.get('web_search')?.def : undefined;
     if (webSearch) tools.push(webSearch);
+    tools.push(...toolRegistry.toolDefsByCategory('mcp'));
     return tools.length > 0 ? tools : undefined;
   }
   return toolRegistry.toolDefsForTurn({
