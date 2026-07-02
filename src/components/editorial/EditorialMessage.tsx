@@ -27,9 +27,11 @@ interface MessageProps {
   onBranch?: (messageId: string) => void;
   onEditAndResend?: (messageId: string, text: string) => void;
   actionsDisabled?: boolean;
+  laterMessageCount?: number;
 }
 
 type CopyState = 'idle' | 'hint' | 'copied' | 'failed';
+type ConfirmAction = 'regenerate' | 'edit' | null;
 
 let copyHintSeen = false;
 const STREAM_SMOOTH_FRAME_MS = 16;
@@ -66,11 +68,13 @@ export const EditorialMessage = observer(function EditorialMessage({
   onBranch,
   onEditAndResend,
   actionsDisabled = false,
+  laterMessageCount = 0,
 }: MessageProps) {
   const rootStore = useRootStore();
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(message.content);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const isUser = message.role === 'user';
   const when = useMemo(
     () => message.createdAt
@@ -104,6 +108,11 @@ export const EditorialMessage = observer(function EditorialMessage({
     return () => window.clearTimeout(timeout);
   }, [copyState]);
 
+  useEffect(() => {
+    if (!editing) setEditText(message.content);
+    setConfirmAction(null);
+  }, [editing, message.content, message.id]);
+
   function showCopyHint() {
     if (copyHintSeen || copyState !== 'idle') return;
     copyHintSeen = true;
@@ -128,10 +137,45 @@ export const EditorialMessage = observer(function EditorialMessage({
 
   function submitEdit() {
     const next = editText.trim();
-    if (!next) return;
-    onEditAndResend?.(message.id, next);
+    if (!next || actionsDisabled || streaming || !onEditAndResend) return;
+    if (laterMessageCount > 0 && confirmAction !== 'edit') {
+      setConfirmAction('edit');
+      return;
+    }
+    onEditAndResend(message.id, next);
     setEditing(false);
+    setConfirmAction(null);
   }
+
+  function requestRegenerate() {
+    if (actionsDisabled || streaming || !onRegenerate) return;
+    if (laterMessageCount > 0) {
+      setConfirmAction('regenerate');
+      return;
+    }
+    onRegenerate(message.id);
+  }
+
+  function confirmDestructiveAction() {
+    if (actionsDisabled || streaming) return;
+    if (confirmAction === 'regenerate') {
+      onRegenerate?.(message.id);
+      setConfirmAction(null);
+      return;
+    }
+    const next = editText.trim();
+    if (!next || !onEditAndResend) return;
+    onEditAndResend(message.id, next);
+    setEditing(false);
+    setConfirmAction(null);
+  }
+
+  function cancelEdit() {
+    setEditing(false);
+    setConfirmAction(null);
+  }
+
+  const laterMessageLabel = `This removes ${laterMessageCount} later message${laterMessageCount === 1 ? '' : 's'}`;
 
   return (
     <div
@@ -153,10 +197,10 @@ export const EditorialMessage = observer(function EditorialMessage({
         position: 'relative',
       }}
     >
-      <div style={{
+      <div className="message-head-row">
+        <div style={{
         fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
         color: isUser ? 'var(--text-faint)' : 'var(--accent)',
-        marginBottom: 10,
         fontFamily: '"Geist", sans-serif',
       }}>
         {headLabel}
@@ -168,7 +212,7 @@ export const EditorialMessage = observer(function EditorialMessage({
           Ctrl/Cmd + click to copy
         </div>
       )}
-      <div className="message-actions" onClick={onActionClick}>
+        <div className="message-actions" onClick={onActionClick}>
         <button type="button" title={canCopy ? 'Copy message' : 'Nothing to copy yet'} aria-label="Copy message" disabled={!canCopy} onClick={() => void copyMessage()}>
           <Icons.Copy />
         </button>
@@ -178,7 +222,7 @@ export const EditorialMessage = observer(function EditorialMessage({
             title="Regenerate response"
             aria-label="Regenerate response"
             disabled={actionsDisabled || streaming || !onRegenerate}
-            onClick={() => onRegenerate?.(message.id)}
+            onClick={requestRegenerate}
           >
             <Icons.Refresh />
           </button>
@@ -191,6 +235,7 @@ export const EditorialMessage = observer(function EditorialMessage({
             disabled={actionsDisabled || streaming || !onEditAndResend}
             onClick={() => {
               setEditText(message.content);
+              setConfirmAction(null);
               setEditing(true);
             }}
           >
@@ -202,11 +247,22 @@ export const EditorialMessage = observer(function EditorialMessage({
           title="Branch conversation"
           aria-label="Branch conversation"
           disabled={actionsDisabled || streaming || !onBranch}
-          onClick={() => onBranch?.(message.id)}
+          onClick={() => {
+            setConfirmAction(null);
+            onBranch?.(message.id);
+          }}
         >
           <Icons.Branch />
         </button>
+        </div>
       </div>
+      {confirmAction === 'regenerate' && (
+        <div className="message-confirm-panel" onClick={event => event.stopPropagation()}>
+          <span>{laterMessageLabel}</span>
+          <button type="button" onClick={() => setConfirmAction(null)}>Cancel</button>
+          <button type="button" disabled={actionsDisabled || streaming} onClick={confirmDestructiveAction}>Regenerate</button>
+        </div>
+      )}
       <div style={{
         fontFamily: '"Source Serif 4", Iowan Old Style, Georgia, serif',
         fontSize: 16,
@@ -236,15 +292,31 @@ export const EditorialMessage = observer(function EditorialMessage({
               aria-label="Edited message"
               value={editText}
               autoFocus
-              onChange={event => setEditText(event.target.value)}
+              onChange={event => {
+                setEditText(event.target.value);
+                if (confirmAction === 'edit') setConfirmAction(null);
+              }}
               onKeyDown={event => {
-                if (event.key === 'Escape') setEditing(false);
-                if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submitEdit();
+                if (event.key === 'Escape') {
+                  cancelEdit();
+                  return;
+                }
+                if (event.key === 'Enter' && (event.ctrlKey || event.metaKey || !event.shiftKey)) {
+                  event.preventDefault();
+                  submitEdit();
+                }
               }}
             />
+            {confirmAction === 'edit' && (
+              <div className="message-confirm-panel message-confirm-panel--edit">
+                <span>{laterMessageLabel}</span>
+                <button type="button" onClick={() => setConfirmAction(null)}>Cancel</button>
+                <button type="button" disabled={actionsDisabled || streaming} onClick={confirmDestructiveAction}>Save &amp; resend</button>
+              </div>
+            )}
             <div>
-              <button type="button" onClick={() => setEditing(false)}>Cancel</button>
-              <button type="button" onClick={submitEdit}>Send branch</button>
+              <button type="button" onClick={cancelEdit}>Cancel</button>
+              <button type="button" onClick={submitEdit}>Save &amp; resend</button>
             </div>
           </div>
         ) : isUser ? (
