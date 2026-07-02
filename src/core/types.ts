@@ -216,6 +216,11 @@ export interface Thread {
   modelId: string;
   messages: Message[];
   /**
+   * True when this row is only the localStorage sidebar stub for a thread
+   * whose full message history lives in the IndexedDB archive tier.
+   */
+  archived?: boolean;
+  /**
    * Controls how much chat history is sent on the next model request.
    * Useful for small local Ollama models that cannot fit long threads.
    */
@@ -303,6 +308,8 @@ export interface Model {
 }
 
 export interface ChatSnapshot {
+  /** Missing on legacy v1 snapshots; save paths always stamp the current version. */
+  schemaVersion?: number;
   threads: Thread[];
   activeThreadId: string | null;
 }

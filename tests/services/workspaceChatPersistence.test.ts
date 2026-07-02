@@ -186,6 +186,7 @@ describe('workspace chat persistence', () => {
 
 function sampleSnapshot(id: string, title: string): ChatSnapshot {
   return {
+    schemaVersion: 2,
     activeThreadId: id,
     threads: [{
       id,
