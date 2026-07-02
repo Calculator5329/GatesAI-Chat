@@ -1026,7 +1026,35 @@ describe('ChatStore', () => {
 
     const assistant = chat.activeThread!.messages.find(m => m.role === 'assistant');
     expect(assistant?.role === 'assistant' ? assistant.usage?.[0].costUsd : undefined).toBe(0.0042);
+    expect(assistant?.role === 'assistant' ? assistant.usage?.[0].costSource : undefined).toBe('provider');
     expect(threadLlmSpendUsd(chat.activeThread)).toBe(0.0042);
+  });
+
+  it('stores computed OpenRouter usage cost when the provider omits cost', async () => {
+    const { chat } = setup([
+      { type: 'text', delta: 'Hello' },
+      {
+        type: 'usage',
+        usage: {
+          providerId: 'openrouter',
+          modelId: 'google/gemini-3-flash',
+          promptTokens: 100,
+          completionTokens: 20,
+          totalTokens: 120,
+        },
+      },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    chat.createThread();
+
+    chat.sendMessage('hi');
+    await flush(20);
+
+    const assistant = chat.activeThread!.messages.find(m => m.role === 'assistant');
+    const usage = assistant?.role === 'assistant' ? assistant.usage?.[0] : undefined;
+    expect(usage?.costUsd).toBeCloseTo(0.00008);
+    expect(usage?.costSource).toBe('pricing');
+    expect(threadLlmSpendUsd(chat.activeThread)).toBeCloseTo(0.00008);
   });
 
   it('attachment footer points data files toward inspect_file before fs', async () => {

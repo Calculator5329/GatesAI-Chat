@@ -97,6 +97,7 @@ export class OpenAiCompatProvider implements LlmProvider {
           ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
           // Centralized model profiles cap output and add provider quirks.
           ...openAiCompatBodyExtras(req),
+          ...(this.id === 'openrouter' ? { usage: { include: true } } : {}),
           // `reasoning.max_tokens` — we use max_tokens because it's precise
           ...(req.tools && req.tools.length > 0
             ? { tools: req.tools.map(toOpenAiTool), tool_choice: 'auto' }

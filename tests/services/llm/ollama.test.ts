@@ -155,6 +155,30 @@ describe('OllamaProvider — streaming response', () => {
     vi.unstubAllGlobals();
   });
 
+  it('emits local zero-cost usage from final token counts', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([
+      JSON.stringify({ message: { role: 'assistant', content: 'Hello' }, done: false }),
+      JSON.stringify({ done: true, done_reason: 'stop', prompt_eval_count: 42, eval_count: 7 }),
+    ])));
+    const p = new OllamaProvider({ baseUrl: 'http://h:1' });
+    const chunks = [];
+    for await (const c of p.stream({ modelId: 'llama3', messages: [] }, new AbortController().signal)) chunks.push(c);
+    expect(chunks).toContainEqual({
+      type: 'usage',
+      usage: {
+        providerId: 'ollama',
+        modelId: 'llama3',
+        promptTokens: 42,
+        completionTokens: 7,
+        totalTokens: 49,
+        costUsd: 0,
+        costSource: 'local',
+      },
+    });
+    expect(chunks[chunks.length - 1]).toEqual({ type: 'done', finishReason: 'stop' });
+    vi.unstubAllGlobals();
+  });
+
   it('emits tool_call chunks with synthesized ids', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([
       JSON.stringify({ message: { role: 'assistant', content: '', tool_calls: [

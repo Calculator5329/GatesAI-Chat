@@ -8,6 +8,7 @@ import { Icons } from '../ui/icons';
 import { useBridgeStore, useChatStore, useImageJobStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
 import { OPENROUTER_THINKING_PRESETS, normalizeOpenRouterThinkingEffort, type ChatContextMode, type ChatThinkingEffort } from '../../stores/ChatStore';
 import type { StreamActivity } from '../../core/types';
+import { formatUsd } from '../../core/usage';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
@@ -803,13 +804,6 @@ function timestampForPasteName(): string {
   const d = new Date();
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-}
-
-function formatUsd(value: number): string {
-  if (value < 0.001) return `$${value.toFixed(5)}`;
-  if (value < 0.01) return `$${value.toFixed(4)}`;
-  if (value < 1) return `$${value.toFixed(3)}`;
-  return `$${value.toFixed(2)}`;
 }
 
 function formatTokens(value: number): string {

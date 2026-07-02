@@ -141,6 +141,23 @@ describe('OpenRouterProvider', () => {
     });
   });
 
+  it('asks OpenRouter to include usage in streamed responses', async () => {
+    let body: unknown;
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return okSseResponse();
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new OpenRouterProvider('sk-or-test');
+    await drain(provider.stream({
+      modelId: 'openai/gpt-5.5',
+      messages: [{ role: 'user', content: 'hi' }],
+    }, new AbortController().signal));
+
+    expect((body as { usage?: unknown }).usage).toEqual({ include: true });
+  });
+
   it('maps provider token-limit finish reasons to length', async () => {
     const fetchMock = vi.fn(async () => new Response([
       'data: {"choices":[{"delta":{"content":"partial"},"finish_reason":"max_tokens"}]}',

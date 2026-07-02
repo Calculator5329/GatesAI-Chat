@@ -307,7 +307,7 @@ export interface ChatSnapshot {
   activeThreadId: string | null;
 }
 
-export type MenuSectionKey = 'agent' | 'models' | 'local' | 'workspace' | 'gallery' | 'settings';
+export type MenuSectionKey = 'agent' | 'models' | 'local' | 'workspace' | 'gallery' | 'settings' | 'usage';
 
 export type MarkdownStyleKey = 'editorial' | 'technical' | 'compact';
 export type CodeStyleKey = 'obsidian' | 'terminal' | 'paper';

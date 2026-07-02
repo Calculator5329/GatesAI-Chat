@@ -114,6 +114,12 @@ async function preloadApiSection(): Promise<void> {
   });
 }
 
+async function preloadUsageSection(): Promise<void> {
+  await act(async () => {
+    await import('../../../src/components/menu/sections/Usage');
+  });
+}
+
 afterEach(() => {
   if (root) act(() => root?.unmount());
   root = null;
@@ -128,7 +134,7 @@ describe('GatesMenu tab strip', () => {
     const rendered = renderMenu(store);
     await flushLazySections();
 
-    for (const label of ['Agent', 'Models', 'Local', 'Workspace', 'Gallery', 'Settings']) {
+    for (const label of ['Agent', 'Models', 'Local', 'Workspace', 'Gallery', 'Settings', 'Usage']) {
       const tab = findTab(rendered, label);
       expect(tab?.hasAttribute('disabled')).toBe(false);
       expect(tab?.style.cursor).toBe('pointer');
@@ -144,8 +150,43 @@ describe('GatesMenu tab strip', () => {
     await flushLazySections();
 
     expect(findTab(rendered, 'Profile')).toBeNull();
-    expect(findTab(rendered, 'Usage')).toBeNull();
     expect(findTab(rendered, 'API')).toBeNull();
+  });
+
+  it('renders the real Usage section from message usage', async () => {
+    await preloadUsageSection();
+    const { store } = buildStore('usage');
+    (store.chat as unknown as { threads: unknown[] }).threads = [{
+      id: 't1',
+      title: 'Usage thread',
+      subtitle: '',
+      pinned: false,
+      modelId: 'or-gemini-3-flash',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      messages: [{
+        id: 'a1',
+        role: 'assistant',
+        content: 'done',
+        createdAt: Date.now(),
+        model: 'or-gemini-3-flash',
+        usage: [{
+          providerId: 'openrouter',
+          modelId: 'google/gemini-3-flash',
+          promptTokens: 100,
+          completionTokens: 20,
+          totalTokens: 120,
+          costUsd: 0.0042,
+          costSource: 'provider',
+        }],
+      }],
+    }];
+    const rendered = renderMenu(store);
+    await flushLazySections();
+
+    expect(rendered.textContent).toContain('Usage');
+    expect(rendered.textContent).toContain('$0.0042');
+    expect(rendered.textContent).toContain('Gemini 3 Flash');
   });
 
   it('does not render the retired Appearance tab', async () => {

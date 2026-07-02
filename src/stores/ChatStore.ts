@@ -14,7 +14,7 @@
 //   - pure thread selectors         → core/threadSelectors
 import { makeAutoObservable, runInAction } from 'mobx';
 import type { ActivityItem, AssistantFinishReason, AssistantMessage, ChatSnapshot, Message, StreamActivity, Thread, ToolResult } from '../core/types';
-import type { LlmProvider, LlmRequest, ThinkingEffort, ToolCall } from '../core/llm';
+import type { LlmProvider, LlmRequest, LlmUsage, ThinkingEffort, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
 import {
@@ -27,6 +27,7 @@ import {
 } from '../services/persistence';
 import { setMultiTabWriteHandler } from '../services/storage/persistenceProvider';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, estimateTokens, type TokenUsage } from '../core/tokens';
+import { normalizeLlmUsageForModel } from '../core/usage';
 import { resolveWireImages } from '../services/llm/resolveImages';
 import { modelSupportsVision } from '../core/modelCapabilities';
 import {
@@ -1071,7 +1072,13 @@ export class ChatStore {
       });
 
       const collectedCalls = outcome.toolCalls;
-      const collectedUsage = outcome.usage;
+      const collectedUsage = outcome.usage
+        .map(usage => normalizeLlmUsageForModel({
+          ...usage,
+          providerId: usage.providerId ?? provider.id,
+          modelId: usage.modelId ?? providerModelId,
+        }, activeModel))
+        .filter((usage): usage is LlmUsage => usage !== null);
       const errored = outcome.status === 'errored' || outcome.status === 'stalled';
       const errorMessage = errored ? outcome.error : undefined;
       const finishReason: AssistantFinishReason | undefined = errored
