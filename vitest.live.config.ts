@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
 
 // Vitest config for the live integration suite under tests/integration/.
 // These tests hit real provider APIs and are opt-in. Run with:
@@ -13,7 +14,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': new URL('./src', import.meta.url).pathname,
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
 });

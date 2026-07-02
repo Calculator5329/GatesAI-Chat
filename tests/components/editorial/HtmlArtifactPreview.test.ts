@@ -149,6 +149,32 @@ describe('HtmlArtifactPreview', () => {
     expect(previewHtml).not.toContain('src="demo.js"');
   });
 
+  it('refreshes a cached preview when the workspace file changes', async () => {
+    __artifactPreviewTestApi.set(HTML_PATH, {
+      html: '<!doctype html><html><body><h1>Old plain preview</h1></body></html>',
+      size: 64,
+      mtime: 1,
+    });
+    const bridge = onlineBridge({
+      stat: { size: 64, mtime: 2 },
+      files: {
+        [HTML_PATH]: '<!doctype html><html><head><style>body { background: #000; color: #0ff; }</style></head><body><h1>Neon Invaders</h1></body></html>',
+      },
+    });
+    const rendered = renderPreview(bridge);
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    const previewHtml = htmlFromPreviewFrame(rendered.querySelector('iframe'));
+    expect(previewHtml).toContain('Neon Invaders');
+    expect(previewHtml).toContain('background: #000');
+    expect(previewHtml).not.toContain('Old plain preview');
+    expect(bridge.client.request).toHaveBeenCalledWith('fs.stat', { path: HTML_PATH });
+    expect(bridge.client.request).toHaveBeenCalledWith('fs.read', { path: HTML_PATH, encoding: 'utf8' });
+  });
+
   it('keeps inline styles and inlines parent-directory SVG assets', async () => {
     const htmlPath = '/workspace/artifacts/reports/portfolio_dashboard/index.html';
     const bridge = onlineBridge({

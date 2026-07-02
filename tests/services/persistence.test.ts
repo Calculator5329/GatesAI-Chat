@@ -164,6 +164,31 @@ describe('persistence', () => {
     expect(loadSnapshot()).toEqual(clean);
   });
 
+  it('normalizes legacy thinking effort values into the three visible presets', () => {
+    const snapshot = {
+      threads: [
+        {
+          id: 't-none', title: 'none', subtitle: '', pinned: false,
+          modelId: 'or-gpt-5.4-mini', createdAt: 1, updatedAt: 2,
+          thinkingEffort: 'none',
+          messages: [],
+        },
+        {
+          id: 't-xhigh', title: 'xhigh', subtitle: '', pinned: false,
+          modelId: 'or-gpt-5.4-mini', createdAt: 1, updatedAt: 2,
+          thinkingEffort: 'xhigh',
+          messages: [],
+        },
+      ],
+      activeThreadId: 't-none',
+    };
+    localStorage.setItem('gatesai.state.v1', JSON.stringify(snapshot));
+
+    const loaded = loadSnapshot();
+
+    expect(loaded?.threads.map(thread => thread.thinkingEffort)).toEqual(['low', 'high']);
+  });
+
   it('notifies listeners when an emergency compaction save succeeds', () => {
     const notices: string[] = [];
     setCompactionNoticeHandler(message => { notices.push(message); });

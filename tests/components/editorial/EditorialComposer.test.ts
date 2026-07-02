@@ -99,6 +99,8 @@ afterEach(() => {
   host?.remove();
   host = null;
   store?.router.destroy();
+  store?.chat.dispose();
+  store?.ui.dispose();
   store = null;
   clearAppStorage();
 });
@@ -268,6 +270,22 @@ describe('EditorialComposer API-key banner', () => {
     const rendered = render(store);
 
     expect(rendered.querySelector('.context-meter__tokens')?.textContent).toMatch(/\/ 1M/);
+  });
+
+  it('shows only the three user-facing OpenRouter thinking presets', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    const rendered = render(store);
+
+    const select = rendered.querySelector('select[title="Thinking effort"]') as HTMLSelectElement | null;
+    expect(select?.value).toBe('low');
+    expect(Array.from(select?.options ?? []).map(option => [option.value, option.textContent])).toEqual([
+      ['low', 'thinking fast'],
+      ['medium', 'thinking balanced'],
+      ['high', 'thinking deep'],
+    ]);
+    expect(rendered.textContent).not.toContain('thinking none');
+    expect(rendered.textContent).not.toContain('thinking extra high');
   });
 
   it('does not show API source guidance in the composer footer', () => {

@@ -121,6 +121,7 @@ afterEach(() => {
   // dispose() drains the 250ms autosave throttle synchronously, so no timer
   // can write to localStorage after clearAppStorage() (previously a 260ms sleep).
   store?.chat.dispose();
+  store?.ui.dispose();
   store = null;
   vi.restoreAllMocks();
   flushPendingSnapshot();

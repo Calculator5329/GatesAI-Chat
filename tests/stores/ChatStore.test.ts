@@ -1,6 +1,6 @@
 import { runInAction } from 'mobx';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatStore } from '../../src/stores/ChatStore';
+import { ChatStore, PROVIDER_STREAM_INITIAL_STALL_MS, PROVIDER_STREAM_STALL_MS } from '../../src/stores/ChatStore';
 import { threadLlmSpendUsd } from '../../src/core/threadSelectors';
 import { ProviderStore } from '../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
@@ -175,6 +175,7 @@ describe('ChatStore', () => {
     clearAppStorage();
   });
   afterEach(() => {
+    vi.useRealTimers();
     disposeActiveChats();
     flushPendingSnapshot();
     clearAppStorage();
@@ -630,6 +631,33 @@ describe('ChatStore', () => {
     await flush(20);
 
     expect(mock.calls[0].thinkingEffort).toBe('high');
+  });
+
+  it('defaults OpenRouter requests to low thinking effort', async () => {
+    const { chat, mock } = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+
+    chat.sendMessage('think about this');
+    await flush(20);
+
+    expect(mock.calls[0].thinkingEffort).toBe('low');
+  });
+
+  it('does not hard-cap OpenRouter output for tool-capable turns even with high thinking', async () => {
+    const { chat, mock } = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    chat.setThreadThinkingEffort(chat.activeThreadId!, 'high');
+
+    chat.sendMessage('Make a cool HTML game');
+    await flush(20);
+
+    expect(mock.calls[0].thinkingEffort).toBe('high');
+    expect(mock.calls[0].tools?.length).toBeGreaterThan(0);
+    expect(mock.calls[0].maxTokens).toBeUndefined();
   });
 
   it('exposes web_search to model requests only when Brave Search is configured', async () => {
@@ -1323,6 +1351,77 @@ describe('ChatStore', () => {
     chat.stopStreaming();
     const reply = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
     expect(reply.content).toBe('*[no response]*');
+  });
+
+  it('aborts and explains a provider stream that stops sending data', async () => {
+    vi.useFakeTimers();
+    const { chat, providers } = setup();
+    const stalledProvider: LlmProvider = {
+      id: 'openrouter',
+      ready: () => true,
+      async *stream(_req: LlmRequest, signal: AbortSignal) {
+        await new Promise<void>(resolve => {
+          if (signal.aborted) resolve();
+          else signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+        yield { type: 'done', finishReason: 'cancelled' };
+      },
+    };
+    installMockProvider(providers, stalledProvider);
+    chat.createThread();
+
+    chat.sendMessage('hang please');
+    await flush(5);
+    const messageId = chat.streamingMessageId;
+    expect(messageId).not.toBeNull();
+    expect(chat.streamActivityByThread[chat.activeThreadId!]).toMatchObject({
+      messageId,
+      phase: 'connecting',
+    });
+
+    vi.advanceTimersByTime(PROVIDER_STREAM_INITIAL_STALL_MS + 1);
+    await flush(20);
+
+    expect(chat.streamingMessageId).toBeNull();
+    const reply = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
+    expect(reply.finishReason).toBe('error');
+    expect(reply.content).toContain('No provider data arrived');
+    expect(chat.lastError).toContain('No provider data arrived');
+  });
+
+  it('aborts a provider stream that goes idle after partial text', async () => {
+    vi.useFakeTimers();
+    const { chat, providers } = setup();
+    const stalledProvider: LlmProvider = {
+      id: 'openrouter',
+      ready: () => true,
+      async *stream(_req: LlmRequest, signal: AbortSignal) {
+        yield { type: 'text', delta: 'Let me build that.' };
+        await new Promise<void>(resolve => {
+          if (signal.aborted) resolve();
+          else signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+        yield { type: 'done', finishReason: 'cancelled' };
+      },
+    };
+    installMockProvider(providers, stalledProvider);
+    chat.createThread();
+
+    chat.sendMessage('make a game');
+    await flush(10);
+    vi.advanceTimersByTime(30);
+    await flush(10);
+    expect(chat.activeThread!.messages.find(m => m.role === 'assistant')?.content).toContain('Let');
+    expect(chat.streamActivityByThread[chat.activeThreadId!]).toMatchObject({ phase: 'streaming' });
+
+    vi.advanceTimersByTime(PROVIDER_STREAM_STALL_MS + 1);
+    await flush(20);
+
+    expect(chat.streamingMessageId).toBeNull();
+    const reply = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
+    expect(reply.finishReason).toBe('error');
+    expect(reply.content).toContain('Let me build that.');
+    expect(reply.content).toContain('No provider data arrived');
   });
 
   it('persists snapshot to localStorage and restores on reload', async () => {

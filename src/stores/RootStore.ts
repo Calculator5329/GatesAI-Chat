@@ -125,6 +125,24 @@ export class RootStore {
       }
     }));
 
+    let attemptedOllamaCatalogHydrationForKey: string | null = null;
+    this.disposers.push(autorun(() => {
+      const online = this.localRuntime.runtimes.ollama.status === 'online';
+      const key = `${this.localRuntime.ollamaBaseUrl}|${this.ollama.config.apiKey ?? ''}`;
+      if (!online) {
+        attemptedOllamaCatalogHydrationForKey = null;
+        return;
+      }
+      if (
+        attemptedOllamaCatalogHydrationForKey !== key
+        && this.ollama.count === 0
+        && !this.ollama.fetching
+      ) {
+        attemptedOllamaCatalogHydrationForKey = key;
+        void this.ollama.refresh();
+      }
+    }));
+
     let attemptedWorkspacePersistenceRoot: string | undefined;
     let workspacePersistenceAttemptInFlight = false;
     this.disposers.push(autorun(() => {
@@ -184,6 +202,7 @@ export class RootStore {
     this.summary.stop();
     this.bridge.stop();
     this.chat.dispose();
+    this.ui.dispose();
     this.router.destroy();
     this.booted = false;
   }

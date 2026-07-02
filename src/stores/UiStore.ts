@@ -1,7 +1,7 @@
 // Owns observable UiStore state and actions for the app runtime.
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { autorun, makeAutoObservable, runInAction, toJS } from 'mobx';
+import { action, autorun, makeAutoObservable, runInAction, toJS } from 'mobx';
 import { MOBILE_SHELL_QUERY } from '../core/breakpoints';
 import type {
   CodeSizeKey,
@@ -37,6 +37,7 @@ export class UiStore {
   uploading = false;
   /** Last upload error message. Cleared on each new upload attempt. */
   uploadError: string | null = null;
+  private readonly disposers: Array<() => void> = [];
 
   markdownStyle: MarkdownStyleKey = 'compact';
   codeStyle: CodeStyleKey = 'obsidian';
@@ -63,7 +64,17 @@ export class UiStore {
     this.bodyFontSizePx = prefs.bodyFontSizePx;
     this.readingWidthPx = prefs.readingWidthPx;
     this.animationsEnabled = prefs.animationsEnabled;
-    makeAutoObservable(this);
+    makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'disposers'>(this, {
+      boundDraftThreadId: false,
+      draftByThread: false,
+      disposers: false,
+      bindDraftThread: action.bound,
+      setDraft: action.bound,
+      clearDraft: action.bound,
+      addAttachment: action.bound,
+      removeAttachment: action.bound,
+      clearAttachments: action.bound,
+    });
     // Debounce UI-prefs persistence: a slider drag (font size, reading width)
     // can fire dozens of mutations per second; without debouncing each one
     // would JSON.stringify + write to localStorage on the main thread.
@@ -80,7 +91,7 @@ export class UiStore {
         pendingPrefs = null;
       }
     };
-    autorun(() => {
+    this.disposers.push(autorun(() => {
       pendingPrefs = toJS({
         markdownStyle: this.markdownStyle,
         codeStyle: this.codeStyle,
@@ -92,19 +103,30 @@ export class UiStore {
       });
       if (pendingTimer) clearTimeout(pendingTimer);
       pendingTimer = setTimeout(flushPrefs, DEBOUNCE_MS);
-    });
+    }));
+    this.disposers.push(flushPrefs);
     if (typeof window !== 'undefined') {
       window.addEventListener('pagehide', flushPrefs);
       window.addEventListener('beforeunload', flushPrefs);
+      this.disposers.push(() => {
+        window.removeEventListener('pagehide', flushPrefs);
+        window.removeEventListener('beforeunload', flushPrefs);
+      });
     }
     // jsdom test environments may lack matchMedia; default stays false there.
     if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
       const mediaQuery = window.matchMedia(MOBILE_SHELL_QUERY);
       runInAction(() => { this.mobileShell = mediaQuery.matches; });
-      mediaQuery.addEventListener('change', (event) => {
+      const handleMobileShellChange = (event: MediaQueryListEvent) => {
         runInAction(() => { this.mobileShell = event.matches; });
-      });
+      };
+      mediaQuery.addEventListener('change', handleMobileShellChange);
+      this.disposers.push(() => mediaQuery.removeEventListener('change', handleMobileShellChange));
     }
+  }
+
+  dispose(): void {
+    while (this.disposers.length > 0) this.disposers.pop()?.();
   }
 
   /**

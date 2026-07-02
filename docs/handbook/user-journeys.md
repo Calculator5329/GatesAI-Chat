@@ -7,7 +7,8 @@ view. They are not implementation tickets by themselves, but they guide tickets.
 
 User goal:
 
-Try the app quickly from a link and understand why Desktop is worth installing.
+Try the app quickly from a link, feel the smooth chat experience, and understand
+why Desktop is worth installing.
 
 Expected path:
 
@@ -15,9 +16,13 @@ Expected path:
 2. App shows the real chat interface, not a marketing page.
 3. User adds an OpenRouter key.
 4. User sends a simple prompt.
-5. App explains that local files, shell, ComfyUI, and desktop-only powers need
+5. User can try different tested LLMs in different chats, or switch model
+   families mid-chat when the selected models support the current task.
+6. User can generate browser-safe inline artifacts, such as HTML previews, when
+   available.
+7. App explains that local files, shell, ComfyUI, and desktop-only powers need
    the Desktop app.
-6. User sees a clear download path.
+8. User sees a clear download path.
 
 What the app should hide:
 
@@ -27,8 +32,8 @@ What the app should hide:
 
 Success moment:
 
-The user thinks, "I get it. This is the desktop app's interface, and I can try
-the core chat feel right now."
+The user thinks, "This feels polished, I can switch models without changing
+apps, and Desktop is where the local powers unlock."
 
 Failure states to design:
 
@@ -40,17 +45,22 @@ Failure states to design:
 
 User goal:
 
-Install the desktop app, bring an API key, and start useful chat.
+Install the desktop app and choose the right starting path: OpenRouter, local
+models, or both.
 
 Expected path:
 
 1. User installs Desktop.
 2. App opens to a calm empty thread.
-3. User adds OpenRouter key.
-4. App recommends the best tested default model.
-5. User can open the model picker for tested alternatives.
-6. User sends a message.
-7. App streams an answer and keeps tool details quiet unless expanded.
+3. App presents two first-class paths: connect OpenRouter or connect local
+   runtimes.
+4. OpenRouter remains the easiest default path for broad model access.
+5. Local setup is presented as equally legitimate for users who want local
+   ownership, privacy, or lower ongoing cost.
+6. App recommends the best tested default model for the chosen path.
+7. User can open the model picker for tested alternatives.
+8. User sends a message.
+9. App streams an answer and keeps tool details quiet unless expanded.
 
 What the app should hide:
 
@@ -60,7 +70,8 @@ What the app should hide:
 
 Success moment:
 
-The user thinks, "This is my AI app. I pay for usage, not another subscription."
+The user thinks, "This is my AI app. I can pay for cloud usage, use local
+models, or mix both."
 
 Failure states to design:
 
@@ -153,6 +164,9 @@ What the app should hide:
 
 - Shell logs unless relevant.
 - Tools unavailable in Web Lite or bridge-offline states.
+- The workspace folder most of the time. It should appear naturally when the
+  assistant uses it and remain available in settings for users who want to
+  inspect it.
 
 Success moment:
 
@@ -175,11 +189,12 @@ Ask GatesAI to add or change a feature in GatesAI itself.
 Expected path:
 
 1. User opens a source-workspace mode.
-2. App duplicates the source into a separate workspace.
-3. Assistant audits the duplicate source.
-4. Assistant proposes a plan.
-5. User approves changes.
-6. Assistant edits duplicate code, runs tests, and builds.
+2. Desktop install includes, or can prepare, a copy of the source that builds
+   GatesAI Chat.
+3. Assistant works inside that source copy rather than the live installed app.
+4. Assistant edits files as needed.
+5. App runs the build script.
+6. Build produces a new EXE.
 7. User reviews output and chooses whether to install the new build.
 
 What the app should hide:

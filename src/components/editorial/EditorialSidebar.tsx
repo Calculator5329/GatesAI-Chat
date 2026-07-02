@@ -35,8 +35,10 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
     padding: '8px 10px',
     fontSize: 12, color: 'var(--text-dim)',
     border: '1px solid var(--border)', borderRadius: 2,
+    background: 'transparent',
     cursor: 'pointer',
     display: 'flex', alignItems: 'center', gap: 8,
+    width: '100%',
   },
   group: { padding: '8px 20px 4px', fontSize: 10, color: 'var(--text-faint)', letterSpacing: '0.12em', textTransform: 'uppercase' },
   item: (active: boolean) => ({
@@ -336,18 +338,19 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         </button>
       )}
       <div className="editorial-sidebar__action-slot">
-        <div
+        <button
+          type="button"
           className="editorial-sidebar__new"
+          aria-label="Begin a new conversation"
           style={S.newBtn as CSSProperties}
           onClick={() => {
             router.goThread(chat.createThread());
             setMobileOpen(false);
           }}
-          role="button"
         >
           <Icons.Plus />
           <span className="editorial-sidebar__new-label">Begin a new conversation</span>
-        </div>
+        </button>
       </div>
       {mobileShell && (
         <div className="editorial-sidebar__mobile-actions">

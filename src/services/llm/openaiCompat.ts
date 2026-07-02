@@ -245,6 +245,7 @@ function parseOpenRouterUsage(value: unknown): OpenRouterUsage | undefined {
 }
 
 function parseFinishReason(value: unknown): NonNullable<ChatChunk['choices']>[number]['finish_reason'] {
+  if (value === 'max_tokens' || value === 'max_output_tokens') return 'length';
   return value === 'stop' || value === 'length' || value === 'tool_calls' || value === 'content_filter' || value === null
     ? value
     : undefined;

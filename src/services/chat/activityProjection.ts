@@ -1,7 +1,7 @@
 // Projects an assistant message's tool calls/results, work notes, and bridge
 // activity events into the ActivityItem timeline the UI renders. Stateless:
 // ChatStore supplies the message plus live job/exec lookups via `extras`.
-import type { ActivityDetail, ActivityItem, AssistantMessage, ToolResult } from '../../core/types';
+import type { ActivityDetail, ActivityItem, AssistantMessage, StreamActivity, ToolResult } from '../../core/types';
 import { toolRegistry } from '../tools/registry';
 import { isToolFailureContent } from './toolFailureLog';
 import type { ToolContext } from '../tools/types';
@@ -13,8 +13,9 @@ export function buildActivitiesForMessage(args: {
   streaming?: boolean;
   ownerThreadId: string | undefined;
   extras: ActivityExtras | undefined;
+  streamActivity?: StreamActivity;
 }): ActivityItem[] {
-  const { message, streaming, ownerThreadId, extras } = args;
+  const { message, streaming, ownerThreadId, extras, streamActivity } = args;
   const results = message.toolResults ?? [];
   const items: ActivityItem[] = [];
 
@@ -32,7 +33,7 @@ export function buildActivitiesForMessage(args: {
       finishedAt: message.createdAt,
     });
   }
-  for (const call of message.toolCalls ?? []) {
+  for (const [callIndex, call] of (message.toolCalls ?? []).entries()) {
     const resultIndex = results.findIndex((candidate, index) => !usedResultIndexes.has(index) && candidate.toolCallId === call.id);
     if (resultIndex >= 0) usedResultIndexes.add(resultIndex);
     const result = resultIndex >= 0 ? results[resultIndex] : undefined;
@@ -54,7 +55,7 @@ export function buildActivitiesForMessage(args: {
       : undefined;
     const runningExec = !result && call.name === 'terminal' ? runningExecForCall(extras?.execStream?.jobs, ownerThreadId, call.id) : null;
     items.push({
-      id: call.id,
+      id: `${call.id}:${callIndex}`,
       kind: imageJob ? 'image-job' : 'tool',
       state,
       verb: tool?.ui?.verb(call.arguments) ?? 'Using',
@@ -79,7 +80,18 @@ export function buildActivitiesForMessage(args: {
 
   for (const event of message.activityEvents ?? []) items.push(event);
 
-  if (streaming && message.content.trim().length === 0) {
+  if (streaming && streamActivity?.messageId === message.id) {
+    const stalled = streamActivity.phase === 'stalled';
+    items.push({
+      id: `${message.id}:provider-stream`,
+      kind: 'thinking',
+      state: stalled ? 'failed' : 'running',
+      verb: providerStreamVerb(streamActivity.phase, message.preTokenLabel),
+      summary: stalled ? streamActivity.stallReason : undefined,
+      startedAt: streamActivity.lastProviderAt,
+      finishedAt: stalled ? Date.now() : undefined,
+    });
+  } else if (streaming && message.content.trim().length === 0) {
     const label = message.preTokenLabel ?? 'thinking';
     items.push({
       id: `${message.id}:pretoken`,
@@ -91,6 +103,15 @@ export function buildActivitiesForMessage(args: {
   }
 
   return items;
+}
+
+function providerStreamVerb(phase: StreamActivity['phase'], label: AssistantMessage['preTokenLabel']): string {
+  if (phase === 'stalled') return 'Provider stalled';
+  if (phase === 'connecting') return 'Waiting for provider';
+  if (label === 'responding') return 'Responding';
+  if (label === 'compacting') return 'Compacting';
+  if (label === 'generating') return 'Generating';
+  return 'Streaming';
 }
 
 function stateForToolResult(result: ToolResult, artifactStatus?: string): ActivityItem['state'] {

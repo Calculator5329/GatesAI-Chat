@@ -8,14 +8,34 @@ import type { ToolValidationResult } from '../tools/registry';
 import { isToolFailureContent } from './toolFailureLog';
 
 export function formatProviderErrorRecovery(message: AssistantMessage, error: string): string {
+  const normalizedError = normalizeProviderErrorMessage(error);
   const progress = summarizeToolProgress(message);
-  if (!progress) return `_Error: ${error}_`;
+  if (!progress) return `_Error: ${normalizedError}_`;
   return [
     'I completed local tool work, but the model provider failed before I could finish the final summary.',
-    `Provider error: ${error}`,
+    `Provider error: ${normalizedError}`,
     progress,
     'You can continue from the completed tool results above without re-running the successful workspace steps.',
   ].join('\n\n');
+}
+
+export function normalizeProviderErrorMessage(message: string): string {
+  const trimmed = message.trim();
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.includes('openrouter 402')
+    || (lower.includes('"code":402') && lower.includes('openrouter'))
+    || (lower.includes('requires more credits') && lower.includes('max_tokens'))
+  ) {
+    return 'OpenRouter 402: credits or provider token budget hit. Add credits, choose a lower-cost model, or reduce the thread context.';
+  }
+  if (
+    (lower.includes('maximum context length') || lower.includes('context length exceeded'))
+    && (lower.includes('token') || lower.includes('context'))
+  ) {
+    return 'The provider token limit was hit. Start a fresh conversation, compact the thread, or reduce the prompt/context and try again.';
+  }
+  return trimmed;
 }
 
 export function formatToolRoundCapMessage(maxRounds: number, message: AssistantMessage): string {

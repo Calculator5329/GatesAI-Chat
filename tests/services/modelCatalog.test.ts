@@ -39,10 +39,10 @@ describe('curated model catalog', () => {
         '~anthropic/claude-haiku-latest',
         'anthropic/claude-opus-4.8',
         'anthropic/claude-opus-4.7',
-        'anthropic/claude-sonnet-4.7',
-        'anthropic/claude-haiku-4.6',
+        '~anthropic/claude-sonnet-latest',
+        '~anthropic/claude-haiku-latest',
         '~google/gemini-pro-latest',
-        'google/gemini-3.1-pro',
+        'google/gemini-3.1-pro-preview',
         '~google/gemini-flash-latest',
         'x-ai/grok-4.20',
         'meta-llama/llama-4-maverick',
@@ -65,7 +65,7 @@ describe('curated model catalog', () => {
     expect(byId.get('or-nemotron-3-super-free')?.pricing).toEqual({ prompt: 0, completion: 0 });
     expect(byId.get('or-nemotron-3-nano-free')?.contextLength).toBe(256_000);
     expect(byId.get('or-nemotron-3.5-content-safety')).toEqual(expect.objectContaining({
-      providerModelId: 'nvidia/nemotron-3.5-content-safety',
+      providerModelId: 'nvidia/nemotron-3.5-content-safety:free',
       supportsTools: false,
     }));
     expect(DEFAULT_OPENROUTER_CATALOG_MODEL_IDS).not.toContain('or-nemotron-3.5-content-safety');

@@ -20,15 +20,10 @@ export const MODEL_FORMAT_PROFILES: ModelFormatProfile[] = [
     id: 'gemini-3-reasoning-budget',
     label: 'Gemini 3 visible-output budget',
     match: /(^|\/)gemini-3|^~google\/gemini-(pro|flash)-latest/i,
-    maxTokens: 1024,
     notes: [
-      'Caps default output budget for compatibility smoke tests.',
-      'Sets OpenRouter reasoning.max_tokens so hidden thinking does not consume the whole reply.',
+      'Does not cap normal chat output; explicit caller budgets still win for summaries and tests.',
+      'Keeps Gemini on the shared OpenRouter reasoning path so thinking effort can be controlled per thread.',
     ],
-    openAiCompat: {
-      reasoningBudgetRatio: 0.5,
-      minReasoningTokens: 64,
-    },
   },
 ];
 

@@ -104,6 +104,7 @@ afterEach(() => {
   // dispose() drains the 250ms autosave throttle synchronously, so no timer
   // can write to localStorage after clearAppStorage() (previously a 260ms sleep).
   store?.chat.dispose();
+  store?.ui.dispose();
   store = null;
   vi.useRealTimers();
   vi.restoreAllMocks();
@@ -119,5 +120,34 @@ describe('EditorialSidebar history list', () => {
     const rendered = renderSidebar(store);
     expect(rendered.querySelector('input[type="search"]')).toBeNull();
     expect(rendered.querySelectorAll('.editorial-sidebar__item').length).toBe(20);
+  });
+
+  it('keeps Begin a new conversation as a new-thread button', () => {
+    store = buildStore();
+    seedThreads(store.chat, 1);
+    const originalThreadId = store.chat.activeThreadId;
+
+    const rendered = renderSidebar(store);
+    const newConversation = rendered.querySelector<HTMLButtonElement>(
+      'button.editorial-sidebar__new[aria-label="Begin a new conversation"]',
+    );
+    expect(newConversation).not.toBeNull();
+    expect(rendered.querySelector('input[type="search"]')).toBeNull();
+
+    act(() => {
+      newConversation!.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+      newConversation!.focus();
+    });
+
+    expect(rendered.querySelector('input[type="search"]')).toBeNull();
+    expect(newConversation).toBe(document.activeElement);
+
+    act(() => {
+      newConversation!.click();
+    });
+
+    expect(store.chat.activeThreadId).not.toBe(originalThreadId);
+    expect(store.chat.activeThread?.title).toBe('New conversation');
+    expect(rendered.querySelector('input[type="search"]')).toBeNull();
   });
 });

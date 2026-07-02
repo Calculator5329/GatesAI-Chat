@@ -84,4 +84,18 @@ describe('RootStore — Ollama config bridge', () => {
     expect(root.providers.effectiveConfigs.ollama?.available).toBe(true);
     expect(root.providers.isConnected('ollama')).toBe(true);
   });
+
+  it('refreshes the Ollama model catalog when the runtime comes online', () => {
+    const root = new RootStore();
+    vi.spyOn(root.localRuntime, 'init').mockResolvedValue(undefined);
+    const refresh = vi.spyOn(root.ollama, 'refresh').mockResolvedValue(undefined);
+
+    root.boot();
+    runInAction(() => {
+      root.localRuntime.runtimes.ollama.status = 'online';
+    });
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    root.dispose();
+  });
 });

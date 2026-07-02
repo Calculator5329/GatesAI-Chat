@@ -11,6 +11,7 @@ import { defineConfig, devices } from '@playwright/test';
 const DESKTOP_PORT = 5273;
 const WEB_LITE_PORT = 5274;
 const isCI = !!process.env.CI;
+const workerCount = isCI ? 1 : process.platform === 'win32' ? 4 : undefined;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -18,8 +19,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
-  workers: isCI ? 1 : undefined,
+  workers: workerCount,
   reporter: isCI ? 'line' : 'list',
+  globalSetup: './tests/e2e/globalSetup.ts',
   use: {
     trace: 'on-first-retry',
   },
@@ -33,20 +35,6 @@ export default defineConfig({
       name: 'web-lite',
       testMatch: '**/web-lite.spec.ts',
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${WEB_LITE_PORT}` },
-    },
-  ],
-  webServer: [
-    {
-      command: `npm run dev -- --port ${DESKTOP_PORT} --strictPort`,
-      url: `http://localhost:${DESKTOP_PORT}`,
-      reuseExistingServer: !isCI,
-      timeout: 120_000,
-    },
-    {
-      command: `npm run dev -- --mode firebase --port ${WEB_LITE_PORT} --strictPort`,
-      url: `http://localhost:${WEB_LITE_PORT}`,
-      reuseExistingServer: !isCI,
-      timeout: 120_000,
     },
   ],
 });

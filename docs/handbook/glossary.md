@@ -49,6 +49,12 @@ The direction of making the app easier to understand by turning workflows into
 small blocks with clear jobs: capabilities, providers, tools, stores, services,
 artifacts, image jobs, and chat turn orchestration.
 
+## Plugin
+
+A future add-on that extends GatesAI beyond the built-in internal toolbelt.
+Plugins are out of scope for the immediate refactor, but the capability system
+should make future plugin boundaries easier to add.
+
 ## OpenRouter
 
 The supported cloud model provider. It gives GatesAI pay-as-you-go access to
@@ -83,7 +89,8 @@ web, running a command, generating an image, or writing an artifact.
 ## Web Lite
 
 The browser demo. It should show the real GatesAI interface and let users try
-OpenRouter chat, but it should not pretend to have desktop bridge powers.
+OpenRouter chat, model switching, and browser-safe artifacts, but it should not
+pretend to have desktop bridge powers.
 
 ## Workspace
 

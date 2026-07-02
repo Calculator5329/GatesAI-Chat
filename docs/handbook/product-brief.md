@@ -78,7 +78,11 @@ Web Lite is the demo. Desktop is the product.
 Web Lite should:
 
 - Let someone understand the interface quickly.
+- Showcase how smooth the chat surface feels.
 - Let someone try chat with their own OpenRouter key.
+- Show that chats can use different LLMs, including switching between tested
+  model families without moving to another app.
+- Show browser-safe artifacts such as inline generated HTML when available.
 - Clearly explain what is missing without feeling broken.
 - Push serious users to download Desktop.
 - Be good enough for a resume link, portfolio review, or quick product tour.
@@ -89,6 +93,9 @@ Desktop should:
 - Own the local workspace.
 - Use the bridge for files, shell, git, artifacts, and local runtime access.
 - Support OpenRouter, Ollama, and ComfyUI/local image workflows.
+- Let the user choose their setup path: OpenRouter key first, local runtime
+  first, or both. OpenRouter can be the easiest default, but local should feel
+  equally first-class on Desktop.
 - Become the home for future self-editing and plugin/customization workflows.
 
 ## Provider strategy
@@ -117,12 +124,29 @@ The long-term differentiator is a desktop app that can help improve itself.
 
 The intended safe flow:
 
-1. Duplicate the app source into a controlled source workspace.
-2. Let the assistant inspect and edit that duplicate.
-3. Run tests and builds against the duplicate.
-4. Produce a new desktop build.
-5. Let the user choose whether to install/update.
+1. Ship the Desktop install with, or next to, a source copy that can build
+   GatesAI Chat.
+2. Give the assistant access to that source copy through a controlled source
+   workspace.
+3. Let the assistant inspect and edit those files.
+4. Run the build script against that source copy.
+5. Produce a new Desktop executable.
+6. Let the user choose whether to install/update.
 
 This should never feel like magic hidden in the walls. It should feel like a
 transparent workshop where the assistant can help, but the user remains in
 control.
+
+## Future plugin direction
+
+Plugins are out of scope for the immediate refactor, but the architecture should
+leave room for them.
+
+Internal capabilities and tools are the built-in GatesAI toolbelt. They should
+always come with the app.
+
+Future plugins are additions on top of that built-in toolbelt. A plugin might
+add a new tool, a workflow, a UI panel, or a project-specific integration.
+Eventually GatesAI may help create its own plugins, but the first goal is to
+make the internal capability system clean enough that plugin boundaries are
+obvious later.

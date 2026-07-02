@@ -461,9 +461,10 @@ function parseContextMode(value: unknown): Thread['contextMode'] {
 }
 
 function parseThinkingEffort(value: unknown): Thread['thinkingEffort'] {
-  return value === 'none' || value === 'low' || value === 'medium' || value === 'high' || value === 'xhigh'
-    ? value
-    : undefined;
+  if (value === 'low' || value === 'medium' || value === 'high') return value;
+  if (value === 'none') return 'low';
+  if (value === 'xhigh') return 'high';
+  return undefined;
 }
 
 function parsePreTokenLabel(value: unknown) {

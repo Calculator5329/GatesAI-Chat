@@ -1,7 +1,8 @@
 /**
- * Live integration checks for the default OpenRouter catalog. Each model gets
- * tiny real calls for text, thinking effort, strict tool schema, and tool-result
- * continuation behavior.
+ * Live integration checks for every curated OpenRouter model GatesAI ships.
+ * Each model gets tiny real calls for text + the user-facing thinking presets;
+ * tool-capable models also get strict tool schema and tool-result continuation
+ * probes.
  *
  * These tests hit real provider APIs — they cost (a tiny amount of) money
  * and require network. Excluded from `npm run test`. Run on demand:
@@ -15,7 +16,7 @@ import { describe, it, expect } from 'vitest';
 import { LlmRouter } from '../../src/services/llm/router';
 import type { LlmMessage, ProviderConfigs, ThinkingEffort, ToolCall, ToolDef } from '../../src/core/llm';
 import type { Model } from '../../src/core/types';
-import { DEFAULT_OPENROUTER_CATALOG_MODEL_IDS, MODELS } from '../../src/core/models';
+import { MODELS } from '../../src/core/models';
 
 const KEYS = {
   openrouter: process.env.OPENROUTER_API_KEY,
@@ -32,11 +33,11 @@ function registryOf(models: readonly Model[]) {
   };
 }
 
-const DEFAULT_MODELS = DEFAULT_OPENROUTER_CATALOG_MODEL_IDS
-  .map(id => MODELS.find(model => model.id === id))
-  .filter((model): model is Model => Boolean(model));
+const CURATED_OPENROUTER_MODELS = MODELS
+  .filter(model => model.providerId === 'openrouter')
+  .filter(model => !model.dynamic);
 const router = new LlmRouter(registryOf(MODELS), CONFIGS);
-const THINKING_EFFORTS: ThinkingEffort[] = ['none', 'low', 'medium', 'high', 'xhigh'];
+const THINKING_EFFORTS: ThinkingEffort[] = ['low', 'medium', 'high'];
 
 const COMPAT_TOOL: ToolDef = {
   name: 'compat_echo',
@@ -59,6 +60,11 @@ interface ProbeOutput {
   error?: string;
 }
 
+interface OpenRouterKeyPreflight {
+  ok: boolean;
+  message?: string;
+}
+
 let lastFreeRouteStartedAt = 0;
 
 function delay(ms: number): Promise<void> {
@@ -77,6 +83,19 @@ async function fetchLiveOpenRouterIds(): Promise<Set<string>> {
   expect(res.ok, `OpenRouter model catalog HTTP ${res.status}`).toBe(true);
   const body = await res.json() as { data?: Array<{ id?: unknown }> };
   return new Set((body.data ?? []).map(item => item.id).filter((id): id is string => typeof id === 'string'));
+}
+
+async function verifyOpenRouterKey(): Promise<OpenRouterKeyPreflight> {
+  if (!KEYS.openrouter) return { ok: false, message: 'OPENROUTER_API_KEY is not set.' };
+  const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
+    headers: { Authorization: `Bearer ${KEYS.openrouter}` },
+  });
+  if (res.ok) return { ok: true };
+  const body = await res.text().catch(() => '');
+  return {
+    ok: false,
+    message: `OPENROUTER_API_KEY was rejected by OpenRouter: HTTP ${res.status} ${res.statusText}${body ? ` - ${body}` : ''}`,
+  };
 }
 
 async function runProbe(
@@ -136,9 +155,19 @@ async function runProbe(
 describe('top models — live smoke', () => {
   const skip = !KEYS.openrouter;
 
+  it('covers every curated OpenRouter model shipped by the app', () => {
+    const expected = MODELS
+      .filter(model => model.providerId === 'openrouter')
+      .filter(model => !model.dynamic)
+      .map(model => model.id);
+
+    expect(CURATED_OPENROUTER_MODELS.map(model => model.id)).toEqual(expected);
+    expect(CURATED_OPENROUTER_MODELS.length).toBeGreaterThan(30);
+  });
+
   (skip ? it.skip : it)('curated concrete model slugs exist in the live OpenRouter catalog', async () => {
     const liveIds = await fetchLiveOpenRouterIds();
-    const missing = DEFAULT_MODELS
+    const missing = CURATED_OPENROUTER_MODELS
       .map(model => model.providerModelId)
       .filter(id => !id.startsWith('~'))
       .filter(id => !liveIds.has(id));
@@ -146,22 +175,25 @@ describe('top models — live smoke', () => {
     expect(missing).toEqual([]);
   }, 30_000);
 
-  for (const model of DEFAULT_MODELS) {
-    for (const effort of THINKING_EFFORTS) {
-      (skip ? it.skip : it)(`${model.name} streams text with thinking=${effort}`, async () => {
+  (skip ? it.skip : it)('streams text, thinking presets, strict tools, and tool continuations for every curated model', async () => {
+    const auth = await verifyOpenRouterKey();
+    expect(auth.ok, auth.message).toBe(true);
+
+    const failures: string[] = [];
+    for (const model of CURATED_OPENROUTER_MODELS) {
+      for (const effort of THINKING_EFFORTS) {
         const out = await runProbe(model, {
           thinkingEffort: effort,
           messages: [{ role: 'user', content: 'Reply with exactly the word: pong.' }],
         });
 
-        expect(
-          out.text.trim().length,
-          `${model.providerModelId} effort=${effort} expected text; finish=${out.finishReason} error=${out.error}`,
-        ).toBeGreaterThan(0);
-      }, 150_000);
-    }
+        if (out.text.trim().length === 0) {
+          failures.push(`${model.providerModelId} effort=${effort} expected text; finish=${out.finishReason} error=${out.error}`);
+        }
+      }
 
-    (skip ? it.skip : it)(`${model.name} calls a strict JSON-schema tool`, async () => {
+      if (model.supportsTools === false) continue;
+
       const out = await runProbe(model, {
         systemPrompt: [
           'This is a tool-calling conformance test.',
@@ -177,22 +209,22 @@ describe('top models — live smoke', () => {
       });
       const call = out.toolCalls[0];
 
-      expect(
-        call,
-        `${model.providerModelId} expected tool call; text=${JSON.stringify(out.text.slice(0, 200))} finish=${out.finishReason} error=${out.error}`,
-      ).toBeTruthy();
-      expect(call.name).toBe('compat_echo');
-      expect(call.arguments).toEqual({ message: 'openrouter-live-ping' });
-      expect(call.argumentsError).toBeUndefined();
-    }, 150_000);
+      if (!call) {
+        failures.push(`${model.providerModelId} expected tool call; text=${JSON.stringify(out.text.slice(0, 200))} finish=${out.finishReason} error=${out.error}`);
+      } else {
+        if (call.name !== 'compat_echo') failures.push(`${model.providerModelId} called ${call.name}, expected compat_echo`);
+        if (JSON.stringify(call.arguments) !== JSON.stringify({ message: 'openrouter-live-ping' })) {
+          failures.push(`${model.providerModelId} tool args ${JSON.stringify(call.arguments)}, expected {"message":"openrouter-live-ping"}`);
+        }
+        if (call.argumentsError) failures.push(`${model.providerModelId} tool args parse error: ${call.argumentsError}`);
+      }
 
-    (skip ? it.skip : it)(`${model.name} continues after a tool result`, async () => {
       const toolCall: ToolCall = {
         id: 'compat-live-call',
         name: 'compat_echo',
         arguments: { message: 'openrouter-live-ping' },
       };
-      const out = await runProbe(model, {
+      const continuationOut = await runProbe(model, {
         messages: [
           { role: 'user', content: 'Call compat_echo, then use its result to answer done.' },
           { role: 'assistant', content: '', toolCalls: [toolCall] },
@@ -201,10 +233,11 @@ describe('top models — live smoke', () => {
         ],
       });
 
-      expect(
-        out.text.trim().length,
-        `${model.providerModelId} expected continuation text; finish=${out.finishReason} error=${out.error}`,
-      ).toBeGreaterThan(0);
-    }, 150_000);
-  }
+      if (continuationOut.text.trim().length === 0) {
+        failures.push(`${model.providerModelId} expected continuation text; finish=${continuationOut.finishReason} error=${continuationOut.error}`);
+      }
+    }
+
+    expect(failures).toEqual([]);
+  }, 45 * 60_000);
 });

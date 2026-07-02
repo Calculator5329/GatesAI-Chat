@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { LlmProvider, LlmRequest } from '../../src/core/llm';
+import { MODELS as CURATED_MODELS } from '../../src/core/models';
 import type { Model } from '../../src/core/types';
 import {
   runOpenRouterCompatibility,
@@ -25,10 +26,24 @@ describe('OpenRouter compatibility harness', () => {
       modelId: 'google/gemini-3-flash',
       messages: [],
       maxTokens: 400,
-    })).toEqual({
-      max_tokens: 400,
-      reasoning: { max_tokens: 200 },
-    });
+    })).toEqual({ max_tokens: 400 });
+
+    expect(openAiCompatBodyExtras({
+      modelId: 'google/gemini-3-flash',
+      messages: [],
+    })).toEqual({});
+  });
+
+  it('does not add default output caps for curated OpenRouter chat models', () => {
+    const openRouterModels = CURATED_MODELS.filter(model => model.providerId === 'openrouter');
+
+    expect(openRouterModels.length).toBeGreaterThan(0);
+    for (const model of openRouterModels) {
+      expect(openAiCompatBodyExtras({
+        modelId: model.providerModelId,
+        messages: [],
+      })).not.toHaveProperty('max_tokens');
+    }
   });
 
   it('maps explicit thinking effort to OpenRouter reasoning payloads', () => {

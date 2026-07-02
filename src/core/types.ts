@@ -181,6 +181,17 @@ export interface ActivityItem {
   groupKey?: string;
 }
 
+export interface StreamActivity {
+  messageId: string;
+  phase: 'connecting' | 'streaming' | 'tooling' | 'stalled';
+  startedAt: number;
+  lastProviderAt: number;
+  round: number;
+  providerId?: string;
+  providerModelId?: string;
+  stallReason?: string;
+}
+
 /**
  * One file the user has staged for the next send. Once uploaded to the bridge
  * it carries its workspace path; the composer turns the chip set into an

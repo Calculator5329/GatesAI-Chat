@@ -30,6 +30,7 @@ vi.mock('mermaid', () => ({
 
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
+const stores: RootStore[] = [];
 
 async function flushMicrotasks(): Promise<void> {
   await Promise.resolve();
@@ -52,7 +53,7 @@ function createTestStore(imageJobs = new ImageJobStore()): RootStore {
     execStream,
     imageJobs,
   }));
-  return {
+  const store = {
     chat,
     ui: new UiStore(),
     execStream,
@@ -73,6 +74,8 @@ function createTestStore(imageJobs = new ImageJobStore()): RootStore {
       },
     },
   } as unknown as RootStore;
+  stores.push(store);
+  return store;
 }
 
 function renderMessage(
@@ -144,12 +147,30 @@ afterEach(() => {
   root = null;
   host?.remove();
   host = null;
+  while (stores.length > 0) {
+    const store = stores.pop();
+    store?.chat.dispose();
+    store?.ui.dispose();
+  }
   __artifactPreviewTestApi.reset();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
 describe('EditorialMessage markdown rendering', () => {
+  it('shows a token-limit notice when a response is cut off', () => {
+    const rendered = renderMessage({
+      id: 'm-token-limit',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'Partial answer before the provider stopped.',
+      finishReason: 'length',
+    });
+
+    expect(rendered.textContent).toContain('Partial answer before the provider stopped.');
+    expect(rendered.querySelector('.message-finish-notice')?.textContent).toContain('token limit');
+  });
+
   it('renders dollar amounts as currency text instead of inline math', () => {
     const rendered = renderMessage({
       id: 'm-currency',
@@ -649,6 +670,7 @@ describe('EditorialMessage markdown rendering', () => {
   });
 
   it('pairs duplicate tool result ids by occurrence in the transcript', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const rendered = renderMessage({
       id: 'm-duplicate-tools',
       role: 'assistant',
@@ -671,6 +693,7 @@ describe('EditorialMessage markdown rendering', () => {
     });
     expect(rendered.textContent).toContain('Wrote 100 bytes to /workspace/artifacts/one.html');
     expect(rendered.textContent).toContain('Wrote 200 bytes to /workspace/artifacts/two.html');
+    expect(error.mock.calls.flat().some(value => String(value).includes('same key'))).toBe(false);
   });
 
   it('shows assistant prose alongside the pending image job card', () => {

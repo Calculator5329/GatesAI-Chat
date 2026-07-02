@@ -78,11 +78,13 @@ function buildStore(section: MenuSectionKey = 'settings'): { store: RootStore; r
     localRuntime: { resetConfig: () => {} },
     bridge: { isOnline: false, client: { request: async () => ({}) } },
   } as unknown as RootStore;
+  builtStores.push(store);
   return { store, router };
 }
 
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
+const builtStores: RootStore[] = [];
 
 function renderMenu(store: RootStore): HTMLDivElement {
   host = document.createElement('div');
@@ -117,6 +119,7 @@ afterEach(() => {
   root = null;
   host?.remove();
   host = null;
+  while (builtStores.length > 0) builtStores.pop()?.ui.dispose();
 });
 
 describe('GatesMenu tab strip', () => {

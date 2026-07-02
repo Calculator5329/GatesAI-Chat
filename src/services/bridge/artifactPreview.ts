@@ -19,6 +19,7 @@ export interface ArtifactPreviewBridge {
 export interface HtmlArtifactPreviewContent {
   html: string;
   size: number;
+  mtime?: number;
 }
 
 export type HtmlArtifactPreviewResult =
@@ -59,11 +60,16 @@ export async function loadHtmlArtifactPreview(
   bridge: ArtifactPreviewBridge,
   path: string,
 ): Promise<HtmlArtifactPreviewResult> {
+  if (!isHtmlWorkspacePath(path)) return { status: 'error', reason: 'Not an HTML artifact.' };
   const cached = cacheGet(path);
-  if (cached) return { status: 'ready', ...cached };
+  if (!bridge.isOnline) {
+    return cached
+      ? { status: 'ready', ...cached }
+      : { status: 'error', reason: 'Bridge offline. Open in OS when the workspace reconnects.' };
+  }
   const inflight = inflightLoads.get(path);
   if (inflight) return inflight;
-  const promise = loadHtmlArtifactUncached(bridge, path).finally(() => {
+  const promise = loadHtmlArtifactUncached(bridge, path, cached).finally(() => {
     inflightLoads.delete(path);
   });
   inflightLoads.set(path, promise);
@@ -73,17 +79,17 @@ export async function loadHtmlArtifactPreview(
 async function loadHtmlArtifactUncached(
   bridge: ArtifactPreviewBridge,
   path: string,
+  cached?: HtmlArtifactPreviewContent,
 ): Promise<HtmlArtifactPreviewResult> {
-  if (!isHtmlWorkspacePath(path)) return { status: 'error', reason: 'Not an HTML artifact.' };
-  if (!bridge.isOnline) return { status: 'error', reason: 'Bridge offline. Open in OS when the workspace reconnects.' };
   try {
     const stat = await bridge.client.request<FsStatResp>('fs.stat', { path });
     if (stat.kind !== 'file') return { status: 'error', reason: 'HTML preview is only available for files.' };
     if (stat.size > HTML_ARTIFACT_MAX_BYTES) return { status: 'error', reason: 'Preview skipped: HTML file is over 2 MB.' };
+    if (cached && cached.size === stat.size && cached.mtime === stat.mtime) return { status: 'ready', ...cached };
     const read = await bridge.client.request<FsReadResp>('fs.read', { path, encoding: 'utf8' });
     if (read.encoding !== 'utf8') return { status: 'error', reason: 'Preview unavailable: file is not UTF-8 text.' };
     const html = await prepareHtmlForPreview(bridge, path, read.content);
-    const value = { html, size: read.size };
+    const value = { html, size: stat.size || read.size, mtime: stat.mtime };
     cacheSet(path, value);
     return { status: 'ready', ...value };
   } catch {

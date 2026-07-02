@@ -37,6 +37,11 @@ src-tauri/resources/source/
 
 # Local release-staging output (zipped installer + DIRECTIONS bundle)
 release/
+release-assets/
+
+# Stray local dev-server logs
+vite-*.log
+.codex-vite-*.log
 
 # Local generated previews and agent scratch worktrees
 preview-output/

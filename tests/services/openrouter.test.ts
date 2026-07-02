@@ -141,6 +141,27 @@ describe('OpenRouterProvider', () => {
     });
   });
 
+  it('maps provider token-limit finish reasons to length', async () => {
+    const fetchMock = vi.fn(async () => new Response([
+      'data: {"choices":[{"delta":{"content":"partial"},"finish_reason":"max_tokens"}]}',
+      '',
+      'data: [DONE]',
+      '',
+    ].join('\n'), {
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new OpenRouterProvider('sk-or-test');
+    const chunks = await drain(provider.stream({
+      modelId: 'openai/gpt-5.5',
+      messages: [{ role: 'user', content: 'hi' }],
+    }, new AbortController().signal));
+
+    expect(chunks.at(-1)).toEqual({ type: 'done', finishReason: 'length' });
+  });
+
   it('does not send strict=true for action-based schemas with optional properties', async () => {
     let body: unknown;
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {

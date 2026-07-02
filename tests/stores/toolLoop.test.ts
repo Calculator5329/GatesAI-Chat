@@ -187,6 +187,34 @@ describe('Tool loop — scripted', () => {
     expect(chat.streamingMessageId).toBeNull();
   });
 
+  it('retries the final reply when a post-tool round hits the output limit with no text', async () => {
+    const { chat, mock, profile } = setupScripted([
+      [
+        { type: 'text', delta: 'Inspecting workspace before writing.' },
+        { type: 'tool_call', call: { id: 'remember-game', name: 'memory', arguments: { action: 'add', fact: 'Wrote game artifact' } } },
+        { type: 'done', finishReason: 'tool_use' },
+      ],
+      [{ type: 'done', finishReason: 'length' }],
+      [
+        { type: 'text', delta: 'Done - the game artifact is ready.' },
+        { type: 'done', finishReason: 'stop' },
+      ],
+    ]);
+    chat.createThread();
+
+    chat.sendMessage('make a cool game');
+    await flush(140);
+
+    expect(profile.facts).toContain('Wrote game artifact');
+    expect(mock.calls).toHaveLength(3);
+    const assistant = chat.activeThread!.messages.at(-1);
+    expect(assistant?.role).toBe('assistant');
+    if (assistant?.role !== 'assistant') return;
+    expect(assistant.content).toBe('Done - the game artifact is ready.');
+    expect(assistant.finishReason).toBe('stop');
+    expect(chat.streamingMessageId).toBeNull();
+  });
+
   it('stops a repeated fs.write loop before the global tool-round cap', async () => {
     const writeRound = (): import('../../src/core/llm').LlmChunk[] => [
       {
@@ -391,7 +419,7 @@ describe('Tool loop — scripted', () => {
     expect(assistant?.role).toBe('assistant');
     if (assistant?.role !== 'assistant') return;
     expect(assistant.content).toContain('completed local tool work');
-    expect(assistant.content).toContain('OpenRouter 402 Insufficient credits');
+    expect(assistant.content).toContain('OpenRouter 402: credits or provider token budget hit');
     expect(assistant.content).toContain('/workspace/artifacts/data/net_worth.json');
     expect(assistant.content).toContain('without re-running');
   });

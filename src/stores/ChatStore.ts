@@ -12,7 +12,7 @@
 //   - Ollama pseudo-tool rescue     → services/chat/pseudoToolRescue
 //   - pure thread selectors         → core/threadSelectors
 import { makeAutoObservable, runInAction } from 'mobx';
-import type { ActivityItem, AssistantFinishReason, AssistantMessage, ChatSnapshot, Message, Thread, ToolResult } from '../core/types';
+import type { ActivityItem, AssistantFinishReason, AssistantMessage, ChatSnapshot, Message, StreamActivity, Thread, ToolResult } from '../core/types';
 import type { LlmProvider, LlmRequest, LlmUsage, ThinkingEffort, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
@@ -64,6 +64,7 @@ import {
   formatProviderErrorRecovery,
   formatRepeatedSideEffectLoopMessage,
   formatToolRoundCapMessage,
+  normalizeProviderErrorMessage,
 } from '../services/chat/turnFormatting';
 import {
   directImageComfyMode,
@@ -79,7 +80,16 @@ import type { BridgeClientFacade } from '../services/tools/types';
 import type { CompletedJob } from '../services/image/jobs/types';
 
 export type { ChatContextMode } from '../services/chat/contextModes';
-export type ChatThinkingEffort = ThinkingEffort;
+export type ChatThinkingEffort = Extract<ThinkingEffort, 'low' | 'medium' | 'high'>;
+export const DEFAULT_OPENROUTER_THINKING_EFFORT: ChatThinkingEffort = 'low';
+export const OPENROUTER_THINKING_PRESETS: Array<{ value: ChatThinkingEffort; label: string; title: string }> = [
+  { value: 'low', label: 'fast', title: 'Fast: shorter reasoning for lower latency.' },
+  { value: 'medium', label: 'balanced', title: 'Balanced: normal reasoning depth.' },
+  { value: 'high', label: 'deep', title: 'Deep: more reasoning for harder tasks.' },
+];
+const OUTPUT_LIMIT_RETRY_ROUNDS = 2;
+export const PROVIDER_STREAM_STALL_MS = 120_000;
+export const PROVIDER_STREAM_INITIAL_STALL_MS = 180_000;
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -218,6 +228,7 @@ export class ChatStore {
   threads: Thread[] = [];
   activeThreadId: string | null = null;
   streamingByThread: Record<string, string> = {};
+  streamActivityByThread: Record<string, StreamActivity> = {};
   /** Per-thread send/stream errors; only the active thread surfaces via `lastError`. */
   lastErrorByThread: Record<string, string> = {};
   /** Set when another tab writes chat storage; local saves pause until dismissed. */
@@ -229,6 +240,7 @@ export class ChatStore {
   private readonly registry: ModelRegistry;
   private readonly profile: UserProfileStore;
   private readonly controllersByThread = new Map<string, AbortController>();
+  private readonly stallTimersByThread = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly textBuffer = new StreamingTextBuffer();
   private readonly persistence: ChatPersistenceCoordinator;
   private workspacePersistenceHydrating = false;
@@ -282,11 +294,12 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'textBuffer' | 'persistence' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'stallTimersByThread' | 'textBuffer' | 'persistence' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
       providers: false,
       registry: false,
       profile: false,
       controllersByThread: false,
+      stallTimersByThread: false,
       textBuffer: false,
       persistence: false,
       workspacePersistenceHydrating: false,
@@ -302,6 +315,8 @@ export class ChatStore {
   }
 
   dispose(): void {
+    for (const timer of this.stallTimersByThread.values()) clearTimeout(timer);
+    this.stallTimersByThread.clear();
     this.persistence.dispose();
   }
 
@@ -520,11 +535,13 @@ export class ChatStore {
   }
 
   activitiesForMessage(message: AssistantMessage, options: { streaming?: boolean } = {}): ActivityItem[] {
+    const ownerThreadId = this.threadIdForMessage(message.id);
     return buildActivitiesForMessage({
       message,
       streaming: options.streaming,
-      ownerThreadId: this.threadIdForMessage(message.id),
+      ownerThreadId,
       extras: this.toolStoresProvider?.(),
+      streamActivity: ownerThreadId ? this.streamActivityByThread[ownerThreadId] : undefined,
     });
   }
 
@@ -823,6 +840,8 @@ export class ChatStore {
   private clearStreamingState(threadId: string, expectedMessageId?: string): void {
     if (expectedMessageId && this.streamingByThread[threadId] !== expectedMessageId) return;
     delete this.streamingByThread[threadId];
+    delete this.streamActivityByThread[threadId];
+    this.clearProviderStallTimer(threadId);
     this.controllersByThread.delete(threadId);
   }
 
@@ -833,6 +852,93 @@ export class ChatStore {
    */
   private ownsStreamingTurn(threadId: string, messageId: string): boolean {
     return this.streamingByThread[threadId] === messageId;
+  }
+
+  private beginProviderStreamActivity(
+    threadId: string,
+    messageId: string,
+    round: number,
+    providerId: string,
+    providerModelId: string,
+  ): void {
+    const now = Date.now();
+    runInAction(() => {
+      const existing = this.streamActivityByThread[threadId];
+      this.streamActivityByThread[threadId] = {
+        messageId,
+        phase: 'connecting',
+        startedAt: existing?.startedAt ?? now,
+        lastProviderAt: now,
+        round,
+        providerId,
+        providerModelId,
+      };
+    });
+    this.armProviderStallTimer(threadId, messageId, PROVIDER_STREAM_INITIAL_STALL_MS);
+  }
+
+  private markProviderStreamActivity(
+    threadId: string,
+    messageId: string,
+    phase: StreamActivity['phase'],
+  ): void {
+    if (!this.ownsStreamingTurn(threadId, messageId)) return;
+    const now = Date.now();
+    runInAction(() => {
+      const existing = this.streamActivityByThread[threadId];
+      if (!existing || existing.messageId !== messageId || existing.phase === 'stalled') return;
+      this.streamActivityByThread[threadId] = {
+        ...existing,
+        phase,
+        lastProviderAt: now,
+        stallReason: undefined,
+      };
+    });
+    this.armProviderStallTimer(threadId, messageId, PROVIDER_STREAM_STALL_MS);
+  }
+
+  private armProviderStallTimer(threadId: string, messageId: string, timeoutMs: number): void {
+    this.clearProviderStallTimer(threadId);
+    const timer = setTimeout(() => {
+      const activity = this.streamActivityByThread[threadId];
+      if (!activity || activity.messageId !== messageId || !this.ownsStreamingTurn(threadId, messageId)) return;
+      const idleSeconds = Math.max(1, Math.round((Date.now() - activity.lastProviderAt) / 1000));
+      const reason = `No provider data arrived for ${idleSeconds}s, so GatesAI stopped the stalled stream.`;
+      logEvent(threadId, 'round.streamStalled', {
+        messageId,
+        idleSeconds,
+        providerId: activity.providerId,
+        providerModelId: activity.providerModelId,
+        round: activity.round,
+      });
+      runInAction(() => {
+        const current = this.streamActivityByThread[threadId];
+        if (!current || current.messageId !== messageId) return;
+        this.streamActivityByThread[threadId] = {
+          ...current,
+          phase: 'stalled',
+          stallReason: reason,
+        };
+      });
+      this.controllersByThread.get(threadId)?.abort();
+    }, timeoutMs);
+    this.stallTimersByThread.set(threadId, timer);
+  }
+
+  private clearProviderStallTimer(threadId: string): void {
+    const timer = this.stallTimersByThread.get(threadId);
+    if (timer) clearTimeout(timer);
+    this.stallTimersByThread.delete(threadId);
+  }
+
+  private isProviderStreamStalled(threadId: string, messageId: string): boolean {
+    const activity = this.streamActivityByThread[threadId];
+    return Boolean(activity && activity.messageId === messageId && activity.phase === 'stalled');
+  }
+
+  private providerStreamStallMessage(threadId: string): string {
+    return this.streamActivityByThread[threadId]?.stallReason
+      ?? 'The provider stream stopped sending data, so GatesAI stopped the stalled response.';
   }
 
   private ensureThreadModel(threadId: string | null): Thread | null {
@@ -901,6 +1007,7 @@ export class ChatStore {
       return;
     }
 
+    let outputLimitRetries = 0;
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       if (signal.aborted) return;
 
@@ -984,8 +1091,10 @@ export class ChatStore {
       let errorMessage: string | undefined;
       let finishReason: AssistantFinishReason | undefined;
       try {
+        this.beginProviderStreamActivity(threadId, assistantMessage.id, round, provider.id, providerModelId);
         for await (const chunk of provider.stream(request, signal)) {
           if (!this.ownsStreamingTurn(threadId, assistantMessage.id)) continue;
+          if (chunk.type !== 'done') this.markProviderStreamActivity(threadId, assistantMessage.id, 'streaming');
           if (chunk.type === 'text') {
             this.queueTextChunk(threadId, assistantMessage.id, chunk.delta);
           } else if (chunk.type === 'tool_call') {
@@ -998,20 +1107,45 @@ export class ChatStore {
             if (chunk.finishReason === 'error') {
               errored = true;
               errorMessage = chunk.error || 'Provider ended the response with an error.';
+            } else if (chunk.finishReason === 'cancelled' && this.isProviderStreamStalled(threadId, assistantMessage.id)) {
+              errored = true;
+              finishReason = 'error';
+              errorMessage = this.providerStreamStallMessage(threadId);
             }
             break;
           }
         }
       } catch (err) {
         if (signal.aborted) {
+          if (this.isProviderStreamStalled(threadId, assistantMessage.id)) {
+            errored = true;
+            finishReason = 'error';
+            errorMessage = this.providerStreamStallMessage(threadId);
+          } else {
+            this.textBuffer.flush(assistantMessage.id);
+            runInAction(() => this.clearStreamingState(threadId, assistantMessage.id));
+            return;
+          }
+        } else {
+          logEvent(thread.id, 'round.exception', { round, error: (err as Error).message, stack: (err as Error).stack });
+          logger.error('chat', 'provider stream exception', { threadId, round, err });
+          errored = true;
+          errorMessage = (err as Error).message;
+        }
+      } finally {
+        this.clearProviderStallTimer(threadId);
+      }
+
+      if (!errored && signal.aborted) {
+        if (this.isProviderStreamStalled(threadId, assistantMessage.id)) {
+          errored = true;
+          finishReason = 'error';
+          errorMessage = this.providerStreamStallMessage(threadId);
+        } else {
           this.textBuffer.flush(assistantMessage.id);
           runInAction(() => this.clearStreamingState(threadId, assistantMessage.id));
           return;
         }
-        logEvent(thread.id, 'round.exception', { round, error: (err as Error).message, stack: (err as Error).stack });
-        logger.error('chat', 'provider stream exception', { threadId, round, err });
-        errored = true;
-        errorMessage = (err as Error).message;
       }
 
       if (collectedUsage.length > 0) {
@@ -1095,6 +1229,28 @@ export class ChatStore {
             const current = this.findMessage(threadId, assistantMessage.id);
             if (current && current.role === 'assistant') {
               current.toolResults = [...(current.toolResults ?? []), ...results];
+            }
+          });
+          continue;
+        }
+      }
+
+      if (!errored && collectedCalls.length === 0 && finishReason === 'length') {
+        this.textBuffer.flush(assistantMessage.id);
+        const current = this.findMessage(threadId, assistantMessage.id);
+        const hasProgress = Boolean(
+          current
+          && current.role === 'assistant'
+          && ((current.toolResults?.length ?? 0) > 0 || (current.workNotes?.length ?? 0) > 0),
+        );
+        const hasVisibleText = Boolean(current && current.role === 'assistant' && current.content.trim());
+        if (hasProgress && !hasVisibleText && outputLimitRetries < OUTPUT_LIMIT_RETRY_ROUNDS) {
+          outputLimitRetries += 1;
+          logEvent(thread.id, 'round.lengthRetry', { round, outputLimitRetries });
+          runInAction(() => {
+            if (current && current.role === 'assistant') {
+              current.finishReason = undefined;
+              this.touchMessage(threadId, assistantMessage.id);
             }
           });
           continue;
@@ -1216,13 +1372,14 @@ export class ChatStore {
       webSearchAvailable: extras?.search?.braveReady ?? false,
     });
     const finalSystemPrompt = appendImageGenAddendum(systemPrompt, tools);
+    const maxTokens = reservedOutputTokensForContextMode(mode);
     return {
       modelId: providerModelId,
       messages: wireMessagesForContextMode(thread, mode),
       ...(finalSystemPrompt ? { systemPrompt: finalSystemPrompt } : {}),
       ...(tools ? { tools } : {}),
-      ...(reservedOutputTokensForContextMode(mode) != null ? { maxTokens: reservedOutputTokensForContextMode(mode) } : {}),
-      ...(model?.providerId === 'openrouter' && thread.thinkingEffort ? { thinkingEffort: thread.thinkingEffort } : {}),
+      ...(maxTokens != null ? { maxTokens } : {}),
+      ...(model?.providerId === 'openrouter' ? { thinkingEffort: normalizeOpenRouterThinkingEffort(thread.thinkingEffort) } : {}),
       threadId: thread.id,
     };
   }
@@ -1664,15 +1821,11 @@ function hasAnyImageAttachment(messages: Message[]): boolean {
 }
 
 function normalizeProviderErrorForBanner(message: string): string {
-  const trimmed = message.trim();
-  const lower = trimmed.toLowerCase();
-  if (
-    lower.includes('openrouter 402')
-    || (lower.includes('"code":402') && lower.includes('openrouter'))
-    || (lower.includes('requires more credits') && lower.includes('max_tokens'))
-  ) {
-    return 'OpenRouter 402: credits or token limit hit. Add credits or reduce max tokens.';
-  }
-  return trimmed;
+  return normalizeProviderErrorMessage(message);
 }
 
+export function normalizeOpenRouterThinkingEffort(effort: ThinkingEffort | undefined): ChatThinkingEffort {
+  if (effort === 'medium' || effort === 'high') return effort;
+  if (effort === 'xhigh') return 'high';
+  return DEFAULT_OPENROUTER_THINKING_EFFORT;
+}

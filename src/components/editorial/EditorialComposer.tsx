@@ -6,7 +6,8 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState, type Clipboar
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import { useBridgeStore, useChatStore, useImageJobStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
-import type { ChatContextMode, ChatThinkingEffort } from '../../stores/ChatStore';
+import { OPENROUTER_THINKING_PRESETS, normalizeOpenRouterThinkingEffort, type ChatContextMode, type ChatThinkingEffort } from '../../stores/ChatStore';
+import type { StreamActivity } from '../../core/types';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
@@ -171,7 +172,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   const activeThreadId = activeThread?.id ?? null;
   const currentModel = registry.findById(activeThread?.modelId) ?? registry.findById(DEFAULT_MODEL_ID);
   const localContextMode = activeThread?.contextMode ?? (currentModel?.providerId === 'ollama' ? 'micro' : 'full');
-  const thinkingEffort = activeThread?.thinkingEffort ?? 'none';
+  const thinkingEffort = normalizeOpenRouterThinkingEffort(activeThread?.thinkingEffort);
 
   // Decouple textarea visual value from the MobX store: typing updates
   // local state instantly (no observers fire), and a 120ms trailing debounce
@@ -216,6 +217,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
 
   const value = localDraft;
   const streaming = chat.isStreaming;
+  const streamActivity = activeThreadId ? chat.streamActivityByThread[activeThreadId] : undefined;
   const hasText = value.trim().length > 0;
   const hasAttachments = ui.attachments.length > 0;
   const directImageMode = currentModel?.providerId === 'local-image';
@@ -529,11 +531,11 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                 title="Thinking effort"
                 style={LOCAL_CONTEXT_SELECT_STYLE}
               >
-                <option value="none">thinking none</option>
-                <option value="low">thinking low</option>
-                <option value="medium">thinking medium</option>
-                <option value="high">thinking high</option>
-                <option value="xhigh">thinking extra high</option>
+                {OPENROUTER_THINKING_PRESETS.map(preset => (
+                  <option key={preset.value} value={preset.value} title={preset.title}>
+                    thinking {preset.label}
+                  </option>
+                ))}
               </select>
             </span>
           )}
@@ -548,13 +550,23 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             transition: 'opacity 160ms ease',
             letterSpacing: '0.06em',
           }}>
-            {streaming ? (hasText ? 'Enter to interrupt' : 'streaming...') : ''}
+            {streaming ? (hasText ? 'Enter to interrupt' : streamFooterLabel(streamActivity)) : ''}
           </span>
         </div>
       </div>
     </div>
   );
 });
+
+function streamFooterLabel(activity: StreamActivity | undefined): string {
+  switch (activity?.phase) {
+    case 'connecting': return 'waiting for provider...';
+    case 'stalled': return 'provider stalled';
+    case 'tooling': return 'running tools...';
+    case 'streaming': return 'streaming...';
+    default: return 'streaming...';
+  }
+}
 
 const ContextMeter = observer(function ContextMeter({ draftText }: { draftText: string }) {
   const chat = useChatStore();
