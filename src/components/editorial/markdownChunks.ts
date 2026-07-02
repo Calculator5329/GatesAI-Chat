@@ -11,9 +11,45 @@
  * memoized and skipped on every token flush — only the trailing chunk
  * re-parses while the model streams.
  */
+export interface MarkdownTextChunk {
+  content: string;
+  start: number;
+  end: number;
+  key: string;
+}
+
+export interface MarkdownChunkSnapshot {
+  content: string;
+  chunks: MarkdownTextChunk[];
+}
+
 export function splitMarkdownChunks(content: string): string[] {
+  return splitMarkdownChunkRecords(content).map(chunk => chunk.content);
+}
+
+export function splitMarkdownChunksIncremental(
+  content: string,
+  prev?: MarkdownChunkSnapshot,
+): MarkdownTextChunk[] {
+  if (!prev || !content.startsWith(prev.content)) {
+    return splitMarkdownChunkRecords(content);
+  }
+  if (content === prev.content) {
+    return prev.chunks;
+  }
+  if (prev.chunks.length === 0) {
+    return splitMarkdownChunkRecords(content);
+  }
+
+  const lastChunk = prev.chunks[prev.chunks.length - 1];
+  const stableChunks = prev.chunks.slice(0, -1);
+  const reparsedChunks = splitMarkdownChunkRecords(content.slice(lastChunk.start), lastChunk.start);
+  return stableChunks.concat(reparsedChunks);
+}
+
+function splitMarkdownChunkRecords(content: string, offset = 0): MarkdownTextChunk[] {
   if (!content) return [];
-  const chunks: string[] = [];
+  const chunks: MarkdownTextChunk[] = [];
   let start = 0;
   let inFence = false;
   let i = 0;
@@ -53,7 +89,7 @@ export function splitMarkdownChunks(content: string): string[] {
           break;
         }
       }
-      chunks.push(content.slice(start, boundaryEnd));
+      chunks.push(createChunk(content, start, boundaryEnd, offset));
       start = boundaryEnd;
       i = boundaryEnd;
       continue;
@@ -62,7 +98,18 @@ export function splitMarkdownChunks(content: string): string[] {
     i = nl + 1;
   }
   if (start < content.length) {
-    chunks.push(content.slice(start));
+    chunks.push(createChunk(content, start, content.length, offset));
   }
   return chunks;
+}
+
+function createChunk(source: string, start: number, end: number, offset: number): MarkdownTextChunk {
+  const absoluteStart = offset + start;
+  const absoluteEnd = offset + end;
+  return {
+    content: source.slice(start, end),
+    start: absoluteStart,
+    end: absoluteEnd,
+    key: `md-${absoluteStart}`,
+  };
 }
