@@ -82,7 +82,7 @@ mod tests {
       "openrouter/api-key",
       "openrouter:api-key",
       "openrouter.api-key!",
-      "a234567890123456789012345678901234567890123456789012345678901234",
+      "a2345678901234567890123456789012345678901234567890123456789012345",
       "brave\u{00e9}",
     ] {
       assert!(!is_valid_name(name), "{name} should be rejected");
