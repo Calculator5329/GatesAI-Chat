@@ -10,7 +10,10 @@ import { resolveUserAttachments, type RenderedAttachment } from '../../core/atta
 import { useBridgeStore, useRootStore } from '../../stores/context';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
 import { WorkspaceImage } from './WorkspaceImage';
-import { splitMarkdownChunks } from './markdownChunks';
+import {
+  splitMarkdownChunksIncremental,
+  type MarkdownChunkSnapshot,
+} from './markdownChunks';
 import { MarkdownFallback } from './MarkdownFallback';
 import { Icons } from '../ui/icons';
 import { ActivityStream } from './activity/ActivityStream';
@@ -322,7 +325,7 @@ export const EditorialMessage = observer(function EditorialMessage({
         ) : isUser ? (
           <UserMessageContent body={userContent?.body ?? message.content} attachments={userContent?.attachments ?? []} />
         ) : hasContent && streaming ? (
-          <MarkdownBody content={visibleAssistantContent} />
+          <MarkdownBody content={visibleAssistantContent} incremental />
         ) : hasContent ? (
           <MarkdownBody content={message.content} />
         ) : null}
@@ -414,20 +417,33 @@ function useSmoothedStreamingText(content: string, active: boolean): string {
   return visible;
 }
 
-function MarkdownBody({ content }: { content: string }) {
+function MarkdownBody({ content, incremental = false }: { content: string; incremental?: boolean }) {
   const bridge = useBridgeStore();
+  const chunkSnapshotRef = useRef<MarkdownChunkSnapshot | undefined>(undefined);
   // Split on paragraph boundaries (respecting fenced code blocks) so closed
   // chunks can be memoized. While streaming, only the trailing chunk's
   // content string changes, so only it re-parses through remark/rehype.
-  const chunks = useMemo(() => splitMarkdownChunks(content), [content]);
+  const chunks = useMemo(() => {
+    // This ref is a render-local derived cache for append-only streaming text,
+    // not UI state. It must be current before this render builds children.
+    // eslint-disable-next-line react-hooks/refs
+    const previous = incremental ? chunkSnapshotRef.current : undefined;
+    return splitMarkdownChunksIncremental(
+      content,
+      previous,
+    );
+  }, [content, incremental]);
+  // eslint-disable-next-line react-hooks/refs
+  chunkSnapshotRef.current = incremental ? { content, chunks } : undefined;
+
   return (
     <div className="md-body">
       <Suspense fallback={<MarkdownFallback content={content} bridge={bridge} />}>
-        {chunks.map((chunk, idx) => (
+        {chunks.map(chunk => (
           // Skip whitespace-only chunks; ReactMarkdown produces nothing for
           // them and they'd just burn a render.
-          chunk.trim() === '' ? null : (
-            <MarkdownChunk key={idx} content={chunk} bridge={bridge} />
+          chunk.content.trim() === '' ? null : (
+            <MarkdownChunk key={chunk.key} content={chunk.content} bridge={bridge} />
           )
         ))}
       </Suspense>
@@ -490,4 +506,3 @@ function FileAttachmentChip({ file }: { file: RenderedAttachment }) {
     </button>
   );
 }
-
