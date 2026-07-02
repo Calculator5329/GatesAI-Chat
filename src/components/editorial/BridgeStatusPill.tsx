@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useBridgeStore } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
 import { isWebLite } from '../../core/runtime';
 
 /**
@@ -15,7 +15,7 @@ import { isWebLite } from '../../core/runtime';
  * doesn't have to wait.
  */
 export const BridgeStatusPill = observer(function BridgeStatusPill() {
-  const bridge = useBridgeStore();
+  const { bridge } = useEditorial();
   const webLite = isWebLite();
 
   let dotColor = 'var(--text-faint)';

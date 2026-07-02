@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { isHtmlWorkspacePath } from '../../core/workspacePaths';
-import { useBridgeStore } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
 import type { HtmlArtifactPreviewResult } from '../../stores/BridgeStore';
 
 const HTML_SANDBOX = 'allow-scripts allow-forms allow-popups allow-downloads';
@@ -17,7 +17,7 @@ type PreviewDocumentUrl = { url: string; revoke?: () => void };
 export { isHtmlWorkspacePath };
 
 export function HtmlArtifactPreview({ path, label }: { path: string; label?: string }) {
-  const bridge = useBridgeStore();
+  const { bridge } = useEditorial();
   const [state, setState] = useState<HtmlLoadState>(() => {
     const cached = bridge.peekHtmlArtifactPreview(path);
     return cached ? { status: 'ready', ...cached } : { status: 'loading' };

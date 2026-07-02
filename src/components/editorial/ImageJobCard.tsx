@@ -4,7 +4,7 @@
 // abort; missing workspace files surface via `useImageDataUrl` failed state (Batch D).
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useImageJobStore } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
 import type { CompletedJob, ImageJob } from '../../stores/ImageJobStore';
 import { Lightbox } from '../media/Lightbox';
 import { useImageDataUrl } from '../media/useImageDataUrl';
@@ -59,7 +59,7 @@ export function imageFailureAdvice(job: CompletedJob): string {
  * opens the {@link Lightbox}.
  */
 export const ImageJobCard = observer(function ImageJobCard({ jobId, expectedCount }: ImageJobCardProps) {
-  const jobs = useImageJobStore();
+  const { imageJobs: jobs } = useEditorial();
   const job = jobs.findById(jobId);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 

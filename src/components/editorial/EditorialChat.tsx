@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
-import { useChatStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
 import { isWebLite } from '../../core/runtime';
 import { clientPlatform } from '../../core/clientPlatform';
 import { recommendedDownload } from '../../core/downloads';
@@ -22,9 +22,7 @@ const RENDERED_MESSAGE_PAGE_SIZE = 80;
  * Web Lite note that conversations live in this browser.
  */
 const ChatEmptyState = observer(function ChatEmptyState() {
-  const router = useRouterStore();
-  const providers = useProviderStore();
-  const chat = useChatStore();
+  const { chat, providers, router } = useEditorial();
   const needsKey = !providers.hasUsableProvider;
   const webLite = isWebLite();
   const hasMessages = (chat.activeThread?.messages.length ?? 0) > 0;
@@ -134,10 +132,7 @@ function WebLiteDownloadCue() {
 }
 
 export const EditorialChat = observer(function EditorialChat() {
-  const chat = useChatStore();
-  const router = useRouterStore();
-  const registry = useModelRegistry();
-  const ui = useUiStore();
+  const { chat, registry, router, ui } = useEditorial();
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRafRef = useRef<number | null>(null);

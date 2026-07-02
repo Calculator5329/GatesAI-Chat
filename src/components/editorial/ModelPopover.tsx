@@ -28,7 +28,7 @@ import {
   type SourceFilter,
 } from '../../core/modelPicker';
 import { Icons } from '../ui/icons';
-import { useLocalRuntimeStore, useModelRegistry } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
 
 interface ModelPopoverProps {
   currentModelId: string | undefined;
@@ -277,8 +277,7 @@ const ModelRow = memo(function ModelRow({
 });
 
 export const ModelPopover = observer(function ModelPopover({ currentModelId, onPick, onClose }: ModelPopoverProps) {
-  const registry = useModelRegistry();
-  const localRuntime = useLocalRuntimeStore();
+  const { registry, localRuntime } = useEditorial();
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');

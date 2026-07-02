@@ -5,7 +5,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ClipboardEvent, type CSSProperties, type DragEvent, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
-import { useBridgeStore, useChatStore, useImageJobStore, useLocalRuntimeStore, useModelRegistry, useProviderStore, useRouterStore, useUiStore } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
 import { OPENROUTER_THINKING_PRESETS, normalizeOpenRouterThinkingEffort, type ChatContextMode, type ChatThinkingEffort } from '../../stores/ChatStore';
 import type { StreamActivity } from '../../core/types';
 import { formatUsd } from '../../core/usage';
@@ -159,12 +159,7 @@ function StopButton(): ReactNode {
 }
 
 export const EditorialComposer = observer(function EditorialComposer({ textareaRef }: ComposerProps) {
-  const chat = useChatStore();
-  const ui = useUiStore();
-  const bridge = useBridgeStore();
-  const registry = useModelRegistry();
-  const providers = useProviderStore();
-  const localRuntime = useLocalRuntimeStore();
+  const { chat, ui, bridge, registry, providers, localRuntime } = useEditorial();
   const [modelOpen, setModelOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -570,8 +565,7 @@ function streamFooterLabel(activity: StreamActivity | undefined): string {
 }
 
 const ContextMeter = observer(function ContextMeter({ draftText }: { draftText: string }) {
-  const chat = useChatStore();
-  const imageJobs = useImageJobStore();
+  const { chat, imageJobs } = useEditorial();
   const usage = chat.tokenUsage(draftText);
   const llmSpend = chat.threadLlmSpendUsd(chat.activeThreadId);
   const imageSpend = imageJobs.threadCostUsd(chat.activeThreadId);
@@ -640,7 +634,7 @@ const ContextMeter = observer(function ContextMeter({ draftText }: { draftText: 
 });
 
 const ModelsKeyBanner = observer(function ModelsKeyBanner() {
-  const router = useRouterStore();
+  const { router } = useEditorial();
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -676,7 +670,7 @@ const ModelsKeyBanner = observer(function ModelsKeyBanner() {
 });
 
 const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
-  const router = useRouterStore();
+  const { router } = useEditorial();
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -733,7 +727,7 @@ function NoticeBanner(props: {
 }
 
 const LocalImageBanner = observer(function LocalImageBanner() {
-  const router = useRouterStore();
+  const { router } = useEditorial();
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',

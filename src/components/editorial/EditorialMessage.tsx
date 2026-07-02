@@ -7,7 +7,7 @@ import { observer } from 'mobx-react-lite';
 import type { MouseEvent } from 'react';
 import type { AssistantFinishReason, Message } from '../../core/types';
 import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
-import { useBridgeStore, useRootStore } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
 import { WorkspaceImage } from './WorkspaceImage';
 import {
@@ -73,7 +73,7 @@ export const EditorialMessage = observer(function EditorialMessage({
   actionsDisabled = false,
   laterMessageCount = 0,
 }: MessageProps) {
-  const rootStore = useRootStore();
+  const { chat } = useEditorial();
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(message.content);
@@ -96,7 +96,7 @@ export const EditorialMessage = observer(function EditorialMessage({
   );
   const userContent = isUser && message.role === 'user' ? resolveUserAttachments(message) : null;
   const activities = !isUser && message.role === 'assistant'
-    ? rootStore.chat.activitiesForMessage(preTokenLabel ? { ...message, preTokenLabel } : message, { streaming })
+    ? chat.activitiesForMessage(preTokenLabel ? { ...message, preTokenLabel } : message, { streaming })
     : [];
   const visibleWorkNotes = !isUser && message.role === 'assistant'
     ? (message.workNotes ?? []).map(note => note.trim()).filter(Boolean)
@@ -418,7 +418,7 @@ function useSmoothedStreamingText(content: string, active: boolean): string {
 }
 
 function MarkdownBody({ content, incremental = false }: { content: string; incremental?: boolean }) {
-  const bridge = useBridgeStore();
+  const { bridge } = useEditorial();
   const chunkSnapshotRef = useRef<MarkdownChunkSnapshot | undefined>(undefined);
   // Split on paragraph boundaries (respecting fenced code blocks) so closed
   // chunks can be memoized. While streaming, only the trailing chunk's
@@ -486,7 +486,7 @@ function UserMessageContent({ body, attachments }: { body: string; attachments: 
 }
 
 function FileAttachmentChip({ file }: { file: RenderedAttachment }) {
-  const bridge = useBridgeStore();
+  const { bridge } = useEditorial();
   return (
     <button
       type="button"
