@@ -706,7 +706,7 @@ export class ChatStore {
     this.updateThread(threadId, current => ({ pinned: !current.pinned }));
   }
 
-  branchThreadFromMessage(threadId: string, messageId: string): string | null {
+  branchFrom(threadId: string, messageId: string): string | null {
     const source = this.findThread(threadId);
     if (!source || source.deletedAt != null) return null;
     if (this.isThreadStreaming(source.id)) return null;
@@ -715,54 +715,48 @@ export class ChatStore {
     return this.createBranchThread(source, index);
   }
 
-  regenerateFromMessage(threadId: string, messageId: string): string | null {
+  branchThreadFromMessage(threadId: string, messageId: string): string | null {
+    return this.branchFrom(threadId, messageId);
+  }
+
+  regenerate(threadId: string, messageId: string): string | null {
     const thread = this.findThread(threadId);
     if (!thread || thread.deletedAt != null) return null;
+    if (this.isThreadStreaming(thread.id)) return null;
     const index = thread.messages.findIndex(message => message.id === messageId);
     const message = thread.messages[index];
     if (!message || message.role !== 'assistant') return null;
     const precedingUserIndex = findPrecedingUserIndex(thread.messages, index);
     if (precedingUserIndex < 0) return null;
 
-    const isLatestAssistant = index === thread.messages.length - 1;
-    if (this.isThreadStreaming(thread.id) && !isLatestAssistant) return null;
-    if (isLatestAssistant) {
-      if (this.isThreadStreaming(thread.id)) this.interruptThread(thread.id);
-      thread.messages.splice(index, 1);
-      thread.updatedAt = Date.now();
-      this.startTurn(thread.id, true);
-      return thread.id;
-    }
-
-    const branchId = this.createBranchThread(thread, precedingUserIndex);
-    if (!branchId) return null;
-    this.startTurn(branchId, true);
-    return branchId;
+    thread.messages.splice(index);
+    thread.updatedAt = Date.now();
+    this.startTurn(thread.id, true);
+    return thread.id;
   }
 
-  editAndResendFromMessage(threadId: string, messageId: string, text: string): string | null {
-    const source = this.findThread(threadId);
-    if (!source || source.deletedAt != null) return null;
-    if (this.isThreadStreaming(source.id)) return null;
-    const index = source.messages.findIndex(message => message.id === messageId);
-    const original = source.messages[index];
+  regenerateFromMessage(threadId: string, messageId: string): string | null {
+    return this.regenerate(threadId, messageId);
+  }
+
+  editAndResend(threadId: string, messageId: string, text: string): string | null {
+    const thread = this.findThread(threadId);
+    if (!thread || thread.deletedAt != null) return null;
+    if (this.isThreadStreaming(thread.id)) return null;
+    const index = thread.messages.findIndex(message => message.id === messageId);
+    const original = thread.messages[index];
     const trimmed = text.trim();
     if (!original || original.role !== 'user' || !trimmed) return null;
 
-    const branchId = this.createBranchThread(source, index - 1);
-    if (!branchId) return null;
-    const branch = this.findThread(branchId);
-    if (!branch) return null;
-    const userMessage: Message = {
-      id: newId('m'),
-      role: 'user',
-      content: trimmed,
-      createdAt: Date.now(),
-      ...(original.attachments ? { attachments: original.attachments.map(attachment => ({ ...attachment })) } : {}),
-    };
-    this.appendMessage(branch.id, userMessage);
-    this.startTurn(branch.id, true);
-    return branch.id;
+    original.content = trimmed;
+    thread.messages.splice(index + 1);
+    thread.updatedAt = Date.now();
+    this.startTurn(thread.id, true);
+    return thread.id;
+  }
+
+  editAndResendFromMessage(threadId: string, messageId: string, text: string): string | null {
+    return this.editAndResend(threadId, messageId, text);
   }
 
   /**
@@ -1612,7 +1606,7 @@ export class ChatStore {
   private createBranchThread(source: Thread, throughIndex: number): string | null {
     const now = Date.now();
     const through = Math.max(-1, Math.min(throughIndex, source.messages.length - 1));
-    const messages = through >= 0 ? cloneMessages(source.messages.slice(0, through + 1)) : [];
+    const messages = through >= 0 ? cloneMessagesForBranch(source.messages.slice(0, through + 1)) : [];
     const branch: Thread = {
       id: newId('t'),
       title: branchTitle(source.title),
@@ -1624,10 +1618,8 @@ export class ChatStore {
       messages,
       ...(source.contextMode ? { contextMode: source.contextMode } : {}),
       ...(source.thinkingEffort ? { thinkingEffort: source.thinkingEffort } : {}),
-      ...(source.threadContext ? { threadContext: source.threadContext } : {}),
     };
     this.threads.unshift(branch);
-    this.activeThreadId = branch.id;
     return branch.id;
   }
 
@@ -1746,8 +1738,30 @@ function findPrecedingUserIndex(messages: Message[], beforeIndex: number): numbe
   return -1;
 }
 
-function cloneMessages(messages: Message[]): Message[] {
-  return messages.map(message => JSON.parse(JSON.stringify(message)) as Message);
+function cloneMessagesForBranch(messages: Message[]): Message[] {
+  return messages.map(message => {
+    if (message.role === 'user') {
+      return {
+        id: newId('m'),
+        role: 'user',
+        content: message.content,
+        createdAt: message.createdAt,
+        ...(message.attachments ? { attachments: message.attachments.map(attachment => ({ ...attachment })) } : {}),
+      };
+    }
+    return {
+      id: newId('m'),
+      role: 'assistant',
+      content: message.content,
+      createdAt: message.createdAt,
+      ...(message.model ? { model: message.model } : {}),
+      ...(message.workNotes ? { workNotes: [...message.workNotes] } : {}),
+      ...(message.toolCalls ? { toolCalls: JSON.parse(JSON.stringify(message.toolCalls)) as AssistantMessage['toolCalls'] } : {}),
+      ...(message.toolResults ? { toolResults: JSON.parse(JSON.stringify(message.toolResults)) as AssistantMessage['toolResults'] } : {}),
+      ...(message.usage ? { usage: JSON.parse(JSON.stringify(message.usage)) as AssistantMessage['usage'] } : {}),
+      ...(message.finishReason ? { finishReason: message.finishReason } : {}),
+    };
+  });
 }
 
 function branchTitle(title: string): string {

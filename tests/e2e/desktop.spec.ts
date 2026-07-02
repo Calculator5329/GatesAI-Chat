@@ -132,7 +132,9 @@ test.describe('desktop (mocked bridge + LLM)', () => {
     );
     await page.route('https://openrouter.ai/api/v1/chat/completions', route =>
       route.fulfill({
-        status: 429,
+        // Keep this non-retryable so the test observes the thread-scoped error
+        // promptly instead of waiting through the transient-provider retry path.
+        status: 400,
         contentType: 'application/json',
         body: JSON.stringify({ error: { message: 'rate limit' } }),
       }),

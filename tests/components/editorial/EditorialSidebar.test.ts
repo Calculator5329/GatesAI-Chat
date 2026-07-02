@@ -14,6 +14,7 @@ import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
 import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
 import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { EditorialSidebar } from '../../../src/components/editorial/EditorialSidebar';
+import { EditorialChat } from '../../../src/components/editorial/EditorialChat';
 import { flushPendingSnapshot } from '../../../src/services/persistence';
 import type { RootStore } from '../../../src/stores/RootStore';
 import type { Thread } from '../../../src/core/types';
@@ -82,9 +83,31 @@ function renderSidebar(s: RootStore): HTMLDivElement {
   return host;
 }
 
+function renderSidebarWithChat(s: RootStore): HTMLDivElement {
+  host = document.createElement('div');
+  document.body.appendChild(host);
+  root = createRoot(host);
+  act(() => {
+    root!.render(
+      createElement(StoreProvider, {
+        store: s,
+        children: createElement('div', {
+          style: { display: 'flex', height: 800 },
+        }, createElement(EditorialSidebar), createElement(EditorialChat)),
+      }),
+    );
+  });
+  return host;
+}
+
 beforeEach(() => {
   clearAppStorage();
   vi.useFakeTimers();
+  vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+    callback(0);
+    return 0;
+  });
+  vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation(() => ({
@@ -149,5 +172,33 @@ describe('EditorialSidebar history list', () => {
     expect(store.chat.activeThreadId).not.toBe(originalThreadId);
     expect(store.chat.activeThread?.title).toBe('New conversation');
     expect(rendered.querySelector('input[type="search"]')).toBeNull();
+  });
+
+  it('keeps the new-conversation button clickable with a message action bar in the chat pane', () => {
+    store = buildStore();
+    const originalThreadId = store.chat.activeThreadId!;
+    runInAction(() => {
+      store!.chat.activeThread!.messages.push(
+        { id: 'u1', role: 'user', content: 'Question', createdAt: 1 },
+        { id: 'a1', role: 'assistant', content: 'Answer', createdAt: 2, model: 'or-gemini-3-flash' },
+      );
+    });
+
+    const rendered = renderSidebarWithChat(store);
+    expect(rendered.querySelector('[aria-label="Regenerate response"]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Branch conversation"]')).not.toBeNull();
+
+    const newConversation = rendered.querySelector<HTMLButtonElement>(
+      'button[aria-label="Begin a new conversation"]',
+    );
+    expect(newConversation).not.toBeNull();
+
+    act(() => {
+      newConversation!.click();
+    });
+
+    expect(store.chat.activeThreadId).not.toBe(originalThreadId);
+    expect(store.chat.activeThread?.messages).toEqual([]);
+    expect(store.chat.visibleThreads).toHaveLength(2);
   });
 });

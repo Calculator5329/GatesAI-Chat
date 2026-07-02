@@ -70,10 +70,16 @@
 .message-copy-feedback {
   color: var(--accent);
 }
+.message-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 31px;
+  margin-bottom: 10px;
+}
 .message-actions {
-  position: absolute;
-  top: 18px;
-  right: 0;
+  flex: none;
   display: inline-flex;
   gap: 4px;
   padding: 3px;
@@ -84,7 +90,6 @@
   transform: translateY(-2px);
   pointer-events: none;
   transition: opacity 120ms ease, transform 120ms ease;
-  z-index: 2;
 }
 .editorial-message:hover .message-actions,
 .editorial-message:focus-within .message-actions {
@@ -112,6 +117,41 @@
 .message-actions button:disabled {
   opacity: 0.35;
   cursor: default;
+}
+.message-confirm-panel {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 100%;
+  margin: 2px 0 12px;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--bg) 90%, var(--accent) 7%);
+  color: var(--text-dim);
+  font: 11.5px/1.35 "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+.message-confirm-panel button {
+  min-height: 24px;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-faint);
+  font: inherit;
+  cursor: pointer;
+}
+.message-confirm-panel button:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
+}
+.message-confirm-panel button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.message-confirm-panel button:last-child {
+  color: var(--accent);
 }
 .message-finish-notice {
   display: inline-flex;
@@ -184,6 +224,10 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+.message-edit-panel > .message-confirm-panel {
+  justify-content: flex-start;
+  margin: 0;
 }
 .message-edit-panel button {
   min-height: 30px;

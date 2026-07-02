@@ -784,24 +784,115 @@ describe('ChatStore', () => {
     expect(chat.threads.find(t => t.id === id)?.pinned).toBe(false);
   });
 
-  it('branches a thread through a selected message while preserving model and context', () => {
+  it.each([
+    {
+      label: 'middle user message',
+      targetId: 'u2',
+      expected: ['first', 'first answer', 'edited prompt', 'edited answer'],
+    },
+    {
+      label: 'first user message',
+      targetId: 'u1',
+      expected: ['edited prompt', 'edited answer'],
+    },
+    {
+      label: 'last user message',
+      targetId: 'u3',
+      expected: ['first', 'first answer', 'second', 'second answer', 'edited prompt', 'edited answer'],
+    },
+  ])('edit-and-resend truncates after the $label and re-runs in place', async ({ targetId, expected }) => {
+    const { chat, mock } = setup([
+      { type: 'text', delta: 'edited answer' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    const id = chat.createThread();
+    runInAction(() => {
+      chat.activeThread!.messages.push(
+        { id: 'u1', role: 'user', content: 'first', createdAt: 1 },
+        { id: 'a1', role: 'assistant', content: 'first answer', createdAt: 2, model: 'or-gemini-3-flash' },
+        {
+          id: 'u2',
+          role: 'user',
+          content: 'second',
+          createdAt: 3,
+          attachments: [{ path: '/workspace/attachments/a.txt', name: 'a.txt', mime: 'text/plain', size: 12 }],
+        },
+        { id: 'a2', role: 'assistant', content: 'second answer', createdAt: 4, model: 'or-gemini-3-flash' },
+        { id: 'u3', role: 'user', content: 'third', createdAt: 5 },
+      );
+    });
+
+    const resultId = chat.editAndResend(id, targetId, 'edited prompt');
+    await flush(20);
+
+    const thread = chat.threads.find(t => t.id === id)!;
+    expect(resultId).toBe(id);
+    expect(thread.messages.map(m => m.content)).toEqual(expected);
+    const edited = thread.messages.find(m => m.id === targetId);
+    expect(edited?.content).toBe('edited prompt');
+    if (targetId === 'u2') {
+      expect(edited?.role === 'user' ? edited.attachments?.[0].path : undefined).toBe('/workspace/attachments/a.txt');
+    }
+    expect(mock.calls).toHaveLength(1);
+  });
+
+  it('regenerates an assistant message by removing that message and everything after it', async () => {
+    const { chat, mock } = setup([
+      { type: 'text', delta: 'replacement answer' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    const id = chat.createThread();
+    runInAction(() => {
+      chat.activeThread!.messages.push(
+        { id: 'u1', role: 'user', content: 'first', createdAt: 1 },
+        { id: 'a1', role: 'assistant', content: 'first answer', createdAt: 2, model: 'or-gemini-3-flash' },
+        { id: 'u2', role: 'user', content: 'second', createdAt: 3 },
+        { id: 'a2', role: 'assistant', content: 'old second answer', createdAt: 4, model: 'or-gemini-3-flash' },
+        { id: 'u3', role: 'user', content: 'third', createdAt: 5 },
+        { id: 'a3', role: 'assistant', content: 'third answer', createdAt: 6, model: 'or-gemini-3-flash' },
+      );
+    });
+
+    const resultId = chat.regenerate(id, 'a2');
+    await flush(20);
+
+    const thread = chat.threads.find(t => t.id === id)!;
+    expect(resultId).toBe(id);
+    expect(thread.messages.map(m => m.content)).toEqual(['first', 'first answer', 'second', 'replacement answer']);
+    expect(mock.calls).toHaveLength(1);
+  });
+
+  it('branches a thread with copied message content, fresh message ids, and durable tool results', () => {
     const { chat } = setup();
     const id = chat.createThread();
     chat.setThreadModel(id, 'or-gpt-5.5');
     chat.setThreadContextMode(id, 'system-tools');
-    chat.setThreadContext(id, 'keep this context');
+    chat.setThreadThinkingEffort(id, 'high');
+    chat.setThreadContext(id, 'source-only context');
     runInAction(() => {
       chat.activeThread!.title = 'Research';
       chat.activeThread!.pinned = true;
       chat.activeThread!.autoNamed = true;
       chat.activeThread!.messages.push(
         { id: 'u1', role: 'user', content: 'one', createdAt: 1 },
-        { id: 'a1', role: 'assistant', content: 'two', createdAt: 2, model: 'or-gpt-5.5' },
-        { id: 'u2', role: 'user', content: 'three', createdAt: 3 },
+        {
+          id: 'a1',
+          role: 'assistant',
+          content: 'two',
+          createdAt: 2,
+          model: 'or-gpt-5.5',
+          preTokenLabel: 'responding',
+          toolCalls: [{ id: 'call-1', name: 'fs', arguments: { action: 'read', path: '/workspace/a.txt' } }],
+          toolResults: [{ toolCallId: 'call-1', toolName: 'fs', content: 'result', ranAt: 3 }],
+          activityEvents: [{ id: 'evt-1', kind: 'bridge', state: 'done', verb: 'Workspace online', startedAt: 4 }],
+        },
+        { id: 'u2', role: 'user', content: 'three', createdAt: 5 },
       );
     });
+    const source = chat.threads.find(t => t.id === id)!;
+    const sourceIds = source.messages.map(m => m.id);
 
-    const branchId = chat.branchThreadFromMessage(id, 'a1');
+    const branchId = chat.branchFrom(id, 'a1');
     const branch = chat.threads.find(t => t.id === branchId);
 
     expect(branch).toBeDefined();
@@ -810,12 +901,19 @@ describe('ChatStore', () => {
     expect(branch?.autoNamed).toBeUndefined();
     expect(branch?.modelId).toBe('or-gpt-5.5');
     expect(branch?.contextMode).toBe('system-tools');
-    expect(branch?.threadContext).toBe('keep this context');
-    expect(branch?.messages.map(m => m.id)).toEqual(['u1', 'a1']);
-    expect(chat.activeThreadId).toBe(branchId);
+    expect(branch?.thinkingEffort).toBe('high');
+    expect(branch?.threadContext).toBeUndefined();
+    expect(branch?.messages.map(m => m.content)).toEqual(['one', 'two']);
+    expect(branch?.messages.map(m => m.id)).not.toEqual(sourceIds.slice(0, 2));
+    expect(source.messages.map(m => m.content)).toEqual(['one', 'two', 'three']);
+    const copiedAssistant = branch?.messages[1];
+    expect(copiedAssistant?.role === 'assistant' ? copiedAssistant.toolResults?.[0].content : undefined).toBe('result');
+    expect(copiedAssistant?.role === 'assistant' ? copiedAssistant.preTokenLabel : undefined).toBeUndefined();
+    expect(copiedAssistant?.role === 'assistant' ? copiedAssistant.activityEvents : undefined).toBeUndefined();
+    expect(chat.activeThreadId).toBe(id);
   });
 
-  it('does not branch or edit-and-resend while the source thread is streaming', () => {
+  it('does not edit, regenerate, or branch while the source thread is streaming', () => {
     const { chat } = setup();
     const id = chat.createThread();
     runInAction(() => {
@@ -826,108 +924,41 @@ describe('ChatStore', () => {
       (chat as unknown as { streamingByThread: Record<string, string> }).streamingByThread[id] = 'a1';
     });
 
-    expect(chat.branchThreadFromMessage(id, 'u1')).toBeNull();
-    expect(chat.editAndResendFromMessage(id, 'u1', 'edited')).toBeNull();
+    expect(chat.editAndResend(id, 'u1', 'edited')).toBeNull();
+    expect(chat.regenerate(id, 'a1')).toBeNull();
+    expect(chat.branchFrom(id, 'u1')).toBeNull();
     expect(chat.threads).toHaveLength(2);
+    expect(chat.activeThread?.messages.map(m => m.content)).toEqual(['one', 'streaming']);
   });
 
-  it('regenerates the latest assistant response in place', async () => {
-    const { chat, mock } = setup([
-      { type: 'text', delta: 'replacement' },
+  it('persists edit-and-resend truncation through the autosave path', async () => {
+    const { chat } = setup([
+      { type: 'text', delta: 'persisted replacement' },
       { type: 'done', finishReason: 'stop' },
     ]);
     const id = chat.createThread();
     runInAction(() => {
       chat.activeThread!.messages.push(
-        { id: 'u1', role: 'user', content: 'prompt', createdAt: 1 },
+        { id: 'u1', role: 'user', content: 'old prompt', createdAt: 1 },
         { id: 'a1', role: 'assistant', content: 'old answer', createdAt: 2, model: 'or-gemini-3-flash' },
       );
     });
 
-    const resultId = chat.regenerateFromMessage(id, 'a1');
-    await flush(20);
+    chat.editAndResend(id, 'u1', 'persisted prompt');
 
-    expect(resultId).toBe(id);
-    expect(chat.activeThread?.messages.map(m => m.content)).toEqual(['prompt', 'replacement']);
-    expect(mock.calls).toHaveLength(1);
-  });
+    const snapshot = await waitForLocalStorageSnapshot(
+      s => {
+        const thread = s.threads.find(t => t.id === id);
+        return !!thread
+          && thread.messages.some(m => m.content === 'persisted prompt')
+          && thread.messages.some(m => m.content === 'persisted replacement')
+          && !thread.messages.some(m => m.content === 'old answer');
+      },
+      'edit-and-resend mutation persisted to localStorage',
+    );
 
-  it('regenerates a historical assistant response on a branch', async () => {
-    const { chat, mock } = setup([
-      { type: 'text', delta: 'branched answer' },
-      { type: 'done', finishReason: 'stop' },
-    ]);
-    const id = chat.createThread();
-    runInAction(() => {
-      chat.activeThread!.title = 'History';
-      chat.activeThread!.messages.push(
-        { id: 'u1', role: 'user', content: 'first', createdAt: 1 },
-        { id: 'a1', role: 'assistant', content: 'old first', createdAt: 2, model: 'or-gemini-3-flash' },
-        { id: 'u2', role: 'user', content: 'second', createdAt: 3 },
-        { id: 'a2', role: 'assistant', content: 'second answer', createdAt: 4, model: 'or-gemini-3-flash' },
-      );
-    });
-
-    const branchId = chat.regenerateFromMessage(id, 'a1');
-    await flush(20);
-
-    const original = chat.threads.find(t => t.id === id)!;
-    const branch = chat.threads.find(t => t.id === branchId)!;
-    expect(original.messages.map(m => m.content)).toEqual(['first', 'old first', 'second', 'second answer']);
-    expect(branch.title).toBe('History (branch)');
-    expect(branch.messages.map(m => m.content)).toEqual(['first', 'branched answer']);
-    expect(mock.calls).toHaveLength(1);
-  });
-
-  it('does not regenerate historical messages while the thread is streaming', () => {
-    const { chat } = setup();
-    const id = chat.createThread();
-    runInAction(() => {
-      chat.activeThread!.messages.push(
-        { id: 'u1', role: 'user', content: 'first', createdAt: 1 },
-        { id: 'a1', role: 'assistant', content: 'old first', createdAt: 2, model: 'or-gemini-3-flash' },
-        { id: 'u2', role: 'user', content: 'second', createdAt: 3 },
-        { id: 'a2', role: 'assistant', content: 'streaming second', createdAt: 4, model: 'or-gemini-3-flash' },
-      );
-      (chat as unknown as { streamingByThread: Record<string, string> }).streamingByThread[id] = 'a2';
-    });
-
-    expect(chat.regenerateFromMessage(id, 'a1')).toBeNull();
-    expect(chat.threads).toHaveLength(2);
-  });
-
-  it('edit-and-resend creates a branch before the edited user message and preserves attachments', async () => {
-    const { chat, mock } = setup([
-      { type: 'text', delta: 'edited answer' },
-      { type: 'done', finishReason: 'stop' },
-    ]);
-    const id = chat.createThread();
-    runInAction(() => {
-      chat.activeThread!.title = 'Draft';
-      chat.activeThread!.messages.push(
-        { id: 'u1', role: 'user', content: 'first', createdAt: 1 },
-        { id: 'a1', role: 'assistant', content: 'answer', createdAt: 2, model: 'or-gemini-3-flash' },
-        {
-          id: 'u2',
-          role: 'user',
-          content: 'original',
-          createdAt: 3,
-          attachments: [{ path: '/workspace/attachments/a.txt', name: 'a.txt', mime: 'text/plain', size: 12 }],
-        },
-        { id: 'a2', role: 'assistant', content: 'old second', createdAt: 4, model: 'or-gemini-3-flash' },
-      );
-    });
-
-    const branchId = chat.editAndResendFromMessage(id, 'u2', 'edited prompt');
-    await flush(20);
-
-    const original = chat.threads.find(t => t.id === id)!;
-    const branch = chat.threads.find(t => t.id === branchId)!;
-    expect(original.messages.map(m => m.content)).toEqual(['first', 'answer', 'original', 'old second']);
-    expect(branch.messages.map(m => m.content)).toEqual(['first', 'answer', 'edited prompt', 'edited answer']);
-    const edited = branch.messages[2];
-    expect(edited.role === 'user' ? edited.attachments?.[0].path : undefined).toBe('/workspace/attachments/a.txt');
-    expect(mock.calls).toHaveLength(1);
+    const thread = snapshot.threads.find(t => t.id === id)!;
+    expect(thread.messages.map(m => m.content)).toEqual(['persisted prompt', 'persisted replacement']);
   });
 
   it('softDeleteThread on the only remaining thread spawns a fresh empty one', () => {

@@ -86,7 +86,7 @@ function renderMessage(
   imageJobs = new ImageJobStore(),
   handlers: Pick<
     Parameters<typeof EditorialMessage>[0],
-    'onRegenerate' | 'onBranch' | 'onEditAndResend' | 'actionsDisabled'
+    'onRegenerate' | 'onBranch' | 'onEditAndResend' | 'actionsDisabled' | 'laterMessageCount'
   > = {},
 ): HTMLDivElement {
   host = document.createElement('div');
@@ -745,6 +745,10 @@ describe('EditorialMessage markdown rendering', () => {
       content: 'Done.',
     }, 'Assistant', false, undefined, new ImageJobStore(), { onRegenerate, onBranch });
 
+    expect(rendered.querySelector('[aria-label="Edit and resend"]')).toBeNull();
+    expect(rendered.querySelector('[aria-label="Regenerate response"]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Branch conversation"]')).not.toBeNull();
+
     act(() => {
       (rendered.querySelector('[aria-label="Regenerate response"]') as HTMLButtonElement).click();
       (rendered.querySelector('[aria-label="Branch conversation"]') as HTMLButtonElement).click();
@@ -752,6 +756,34 @@ describe('EditorialMessage markdown rendering', () => {
 
     expect(onRegenerate).toHaveBeenCalledWith('m-actions-assistant');
     expect(onBranch).toHaveBeenCalledWith('m-actions-assistant');
+  });
+
+  it('asks for confirmation before regenerating when later messages will be removed', () => {
+    const onRegenerate = vi.fn();
+    const rendered = renderMessage({
+      id: 'm-actions-assistant-confirm',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: 'Earlier answer.',
+    }, 'Assistant', false, undefined, new ImageJobStore(), {
+      laterMessageCount: 2,
+      onRegenerate,
+    });
+
+    act(() => {
+      (rendered.querySelector('[aria-label="Regenerate response"]') as HTMLButtonElement).click();
+    });
+
+    expect(onRegenerate).not.toHaveBeenCalled();
+    expect(rendered.textContent).toContain('This removes 2 later messages');
+
+    act(() => {
+      Array.from(rendered.querySelectorAll('.message-confirm-panel button'))
+        .find(button => button.textContent === 'Regenerate')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onRegenerate).toHaveBeenCalledWith('m-actions-assistant-confirm');
   });
 
   it('disables mutating message actions while the thread is busy', () => {
@@ -795,16 +827,60 @@ describe('EditorialMessage markdown rendering', () => {
       content: 'Original prompt',
     }, 'You', false, undefined, new ImageJobStore(), { onEditAndResend });
 
+    expect(rendered.querySelector('[aria-label="Regenerate response"]')).toBeNull();
+    expect(rendered.querySelector('[aria-label="Edit and resend"]')).not.toBeNull();
+    expect(rendered.querySelector('[aria-label="Branch conversation"]')).not.toBeNull();
+
     act(() => {
       (rendered.querySelector('[aria-label="Edit and resend"]') as HTMLButtonElement).click();
     });
 
     act(() => {
+      const textarea = rendered.querySelector('textarea[aria-label="Edited message"]') as HTMLTextAreaElement;
+      const valueSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
+      valueSetter?.call(textarea, 'Edited prompt');
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    act(() => {
       Array.from(rendered.querySelectorAll('.message-edit-panel button'))
-        .find(button => button.textContent === 'Send branch')!
+        .find(button => button.textContent === 'Save & resend')!
         .dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(onEditAndResend).toHaveBeenCalledWith('m-actions-user', 'Original prompt');
+    expect(onEditAndResend).toHaveBeenCalledWith('m-actions-user', 'Edited prompt');
+  });
+
+  it('asks for confirmation before edit-and-resend removes later messages', () => {
+    const onEditAndResend = vi.fn();
+    const rendered = renderMessage({
+      id: 'm-actions-user-confirm',
+      role: 'user',
+      createdAt: Date.now(),
+      content: 'Original prompt',
+    }, 'You', false, undefined, new ImageJobStore(), {
+      laterMessageCount: 1,
+      onEditAndResend,
+    });
+
+    act(() => {
+      (rendered.querySelector('[aria-label="Edit and resend"]') as HTMLButtonElement).click();
+    });
+    act(() => {
+      Array.from(rendered.querySelectorAll('.message-edit-panel > div:last-child button'))
+        .find(button => button.textContent === 'Save & resend')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onEditAndResend).not.toHaveBeenCalled();
+    expect(rendered.textContent).toContain('This removes 1 later message');
+
+    act(() => {
+      Array.from(rendered.querySelectorAll('.message-confirm-panel button'))
+        .find(button => button.textContent === 'Save & resend')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(onEditAndResend).toHaveBeenCalledWith('m-actions-user-confirm', 'Original prompt');
   });
 });

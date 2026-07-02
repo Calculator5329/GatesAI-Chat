@@ -170,19 +170,20 @@ export const EditorialChat = observer(function EditorialChat() {
 
   const goResultThread = useCallback((threadId: string | null) => {
     if (!threadId) return;
+    chat.selectThread(threadId);
     router.goThread(threadId);
-  }, [router]);
+  }, [chat, router]);
   const regenerateMessage = useCallback((messageId: string) => {
     if (!activeThreadId) return;
-    goResultThread(chat.regenerateFromMessage(activeThreadId, messageId));
+    goResultThread(chat.regenerate(activeThreadId, messageId));
   }, [activeThreadId, chat, goResultThread]);
   const branchMessage = useCallback((messageId: string) => {
     if (!activeThreadId) return;
-    goResultThread(chat.branchThreadFromMessage(activeThreadId, messageId));
+    goResultThread(chat.branchFrom(activeThreadId, messageId));
   }, [activeThreadId, chat, goResultThread]);
   const editAndResendMessage = useCallback((messageId: string, text: string) => {
     if (!activeThreadId) return;
-    goResultThread(chat.editAndResendFromMessage(activeThreadId, messageId, text));
+    goResultThread(chat.editAndResend(activeThreadId, messageId, text));
   }, [activeThreadId, chat, goResultThread]);
 
   useEffect(() => () => {
@@ -299,8 +300,9 @@ export const EditorialChat = observer(function EditorialChat() {
               Show {Math.min(RENDERED_MESSAGE_PAGE_SIZE, hiddenMessageCount)} earlier messages
             </button>
           )}
-          {visibleMessages.map(m => {
+          {visibleMessages.map((m, index) => {
             const modelId = m.role === 'assistant' ? m.model : undefined;
+            const originalIndex = hiddenMessageCount + index;
             return (
               <EditorialMessage
                 key={m.id}
@@ -308,6 +310,7 @@ export const EditorialChat = observer(function EditorialChat() {
                 modelName={modelId ? (registry.findById(modelId)?.name ?? modelId) : undefined}
                 streaming={m.id === chat.streamingMessageId}
                 actionsDisabled={activeThreadStreaming}
+                laterMessageCount={Math.max(0, messages.length - originalIndex - 1)}
                 onRegenerate={regenerateMessage}
                 onBranch={branchMessage}
                 onEditAndResend={editAndResendMessage}
