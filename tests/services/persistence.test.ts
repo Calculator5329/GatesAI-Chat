@@ -1,17 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  consumeSnapshotLoadError,
+  flushThreadArchiveSavesForTests,
   flushPendingSnapshot,
+  HOT_THREAD_LIMIT,
   loadSnapshot,
+  PROACTIVE_HOT_THREAD_LIMIT,
+  PROACTIVE_SNAPSHOT_CHARS,
   saveSnapshot,
   scheduleSaveSnapshot,
   setCompactionNoticeHandler,
+  setThreadArchiveStoreForTests,
 } from '../../src/services/persistence';
+import { CURRENT_CHAT_SCHEMA_VERSION } from '../../src/services/persistence/migrations';
+import type { ThreadArchiveStore } from '../../src/services/persistence/idb';
+import type { ChatSnapshot, Thread } from '../../src/core/types';
+import { logger } from '../../src/services/diagnostics/logger';
 import { clearAppStorage } from '../helpers/storage';
 
 describe('persistence', () => {
   beforeEach(() => clearAppStorage());
   afterEach(() => {
     vi.restoreAllMocks();
+    setThreadArchiveStoreForTests(undefined);
     clearAppStorage();
   });
 
@@ -50,6 +61,7 @@ describe('persistence', () => {
 
   it('round-trips a snapshot', () => {
     const snapshot = {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
       threads: [{
         id: 't1', title: 'hi', subtitle: '', pinned: false,
         modelId: 'or-gpt-5.4-mini',
@@ -64,6 +76,7 @@ describe('persistence', () => {
 
   it('round-trips assistant message usage records', () => {
     const snapshot = {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
       threads: [{
         id: 't1', title: 'usage', subtitle: '', pinned: false,
         modelId: 'or-gemini-3-flash',
@@ -101,6 +114,33 @@ describe('persistence', () => {
   it('returns null when threads is not an array', () => {
     localStorage.setItem('gatesai.state.v1', JSON.stringify({ threads: 'nope' }));
     expect(loadSnapshot()).toBeNull();
+  });
+
+  it('backs up future-version snapshots and starts fresh with a visible warning', () => {
+    const future = {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION + 10,
+      threads: [{
+        id: 'future-thread',
+        title: 'future',
+        subtitle: '',
+        pinned: false,
+        modelId: 'or-gpt-5.4-mini',
+        createdAt: 1,
+        updatedAt: 2,
+        messages: [],
+      }],
+      activeThreadId: 'future-thread',
+    };
+    const raw = JSON.stringify(future);
+    localStorage.setItem('gatesai.state.v1', raw);
+
+    expect(loadSnapshot()).toBeNull();
+
+    const backupKey = Object.keys(localStorage).find(key => key.startsWith('gatesai.state.backup.'));
+    expect(backupKey).toBeTruthy();
+    expect(localStorage.getItem(backupKey!)).toBe(raw);
+    expect(localStorage.getItem('gatesai.state.v1')).toBe(raw);
+    expect(consumeSnapshotLoadError()).toMatch(/newer version|backup copy/i);
   });
 
   it('migrates legacy role:"tool" messages and folds same-turn assistant rounds into one', () => {
@@ -183,6 +223,7 @@ describe('persistence', () => {
 
   it('migration is idempotent on already-clean snapshots', () => {
     const clean = {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
       threads: [{
         id: 't1', title: 'x', subtitle: '', pinned: false,
         modelId: 'or-gpt-5.4-mini', createdAt: 1, updatedAt: 2,
@@ -223,6 +264,7 @@ describe('persistence', () => {
 
     const loaded = loadSnapshot();
 
+    expect(loaded?.schemaVersion).toBe(CURRENT_CHAT_SCHEMA_VERSION);
     expect(loaded?.threads.map(thread => thread.thinkingEffort)).toEqual(['low', 'high']);
   });
 
@@ -339,6 +381,86 @@ describe('persistence', () => {
     expect(assistant.toolResults?.[0].content).toContain('Wrote 40010 bytes');
   });
 
+  it('archives older threads as stubs and swaps a touched archived thread back into the hot tier', async () => {
+    const archive = memoryThreadArchiveStore();
+    setThreadArchiveStoreForTests(archive);
+    const snapshot = snapshotWithThreads(25);
+
+    saveSnapshot(snapshot);
+    await flushThreadArchiveSavesForTests();
+
+    let stored = JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}') as ChatSnapshot;
+    expect(stored.threads.filter(thread => !thread.archived)).toHaveLength(HOT_THREAD_LIMIT);
+    expect(stored.threads.filter(thread => thread.archived)).toHaveLength(5);
+    expect(stored.threads.slice(0, 5).map(thread => [thread.id, thread.archived, thread.messages.length])).toEqual([
+      ['t1', true, 0],
+      ['t2', true, 0],
+      ['t3', true, 0],
+      ['t4', true, 0],
+      ['t5', true, 0],
+    ]);
+    expect(archive.threads.get('t1')?.messages).toHaveLength(1);
+
+    const touched = {
+      ...stored,
+      threads: stored.threads.map(thread =>
+        thread.id === 't1'
+          ? { ...archive.threads.get('t1')!, updatedAt: 30 }
+          : thread
+      ),
+    };
+    saveSnapshot(touched);
+    await flushThreadArchiveSavesForTests();
+
+    stored = JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}') as ChatSnapshot;
+    expect(stored.threads.find(thread => thread.id === 't1')?.archived).not.toBe(true);
+    expect(stored.threads.find(thread => thread.id === 't1')?.updatedAt).toBe(30);
+    expect(stored.threads.find(thread => thread.id === 't1')?.messages).toHaveLength(1);
+    expect(stored.threads.find(thread => thread.id === 't6')).toMatchObject({ archived: true });
+  });
+
+  it('falls back to the single localStorage snapshot when the archive store is unavailable', async () => {
+    setThreadArchiveStoreForTests(null);
+
+    saveSnapshot(snapshotWithThreads(25));
+    await flushThreadArchiveSavesForTests();
+
+    const stored = JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}') as ChatSnapshot;
+    expect(stored.threads).toHaveLength(25);
+    expect(stored.threads.every(thread => thread.archived !== true && thread.messages.length === 1)).toBe(true);
+  });
+
+  it('keeps a thread fully in localStorage when its archive write fails', async () => {
+    const archive = memoryThreadArchiveStore({ failPutFor: new Set(['t1']) });
+    setThreadArchiveStoreForTests(archive);
+
+    saveSnapshot(snapshotWithThreads(25));
+    await flushThreadArchiveSavesForTests();
+
+    const stored = JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}') as ChatSnapshot;
+    expect(stored.threads.find(thread => thread.id === 't1')?.archived).not.toBe(true);
+    expect(stored.threads.find(thread => thread.id === 't1')?.messages).toHaveLength(1);
+    expect(archive.threads.has('t1')).toBe(false);
+  });
+
+  it('archives more aggressively when the localStorage snapshot exceeds the proactive quota estimate', async () => {
+    const archive = memoryThreadArchiveStore();
+    const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    setThreadArchiveStoreForTests(archive);
+
+    saveSnapshot(snapshotWithThreads(25, { contentChars: Math.ceil(PROACTIVE_SNAPSHOT_CHARS / 20) }));
+    await flushThreadArchiveSavesForTests();
+
+    const stored = JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}') as ChatSnapshot;
+    expect(stored.threads.filter(thread => !thread.archived)).toHaveLength(PROACTIVE_HOT_THREAD_LIMIT);
+    expect(stored.threads.filter(thread => thread.archived)).toHaveLength(25 - PROACTIVE_HOT_THREAD_LIMIT);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'persistence',
+      'chat snapshot exceeded proactive archive threshold; using smaller hot tier',
+      expect.objectContaining({ hotThreadLimit: PROACTIVE_HOT_THREAD_LIMIT }),
+    );
+  });
+
   describe('scheduleSaveSnapshot', () => {
     const mkSnap = (title: string) => ({
       threads: [{
@@ -406,4 +528,48 @@ function mockChatStorageQuota(maxChars: number): void {
     return originalSetItem.call(this, key, value);
   });
   vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+}
+
+function snapshotWithThreads(count: number, options: { contentChars?: number } = {}): ChatSnapshot {
+  return {
+    schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
+    threads: Array.from({ length: count }, (_, index): Thread => {
+      const n = index + 1;
+      return {
+        id: `t${n}`,
+        title: `Thread ${n}`,
+        subtitle: '',
+        pinned: false,
+        modelId: 'or-gpt-5.4-mini',
+        createdAt: n,
+        updatedAt: n,
+        messages: [{
+          id: `m${n}`,
+          role: 'user',
+          content: options.contentChars ? `${n}:` + 'x'.repeat(options.contentChars) : `message ${n}`,
+          createdAt: n,
+        }],
+      };
+    }),
+    activeThreadId: `t${count}`,
+  };
+}
+
+function memoryThreadArchiveStore(
+  options: { failPutFor?: Set<string> } = {},
+): ThreadArchiveStore & { threads: Map<string, Thread> } {
+  const threads = new Map<string, Thread>();
+  return {
+    threads,
+    async getThread(id: string): Promise<Thread | null> {
+      return threads.get(id) ?? null;
+    },
+    async putThread(thread: Thread): Promise<void> {
+      if (options.failPutFor?.has(thread.id)) throw new Error(`failed put ${thread.id}`);
+      threads.set(thread.id, JSON.parse(JSON.stringify(thread)) as Thread);
+    },
+    async deleteThread(id: string): Promise<void> {
+      threads.delete(id);
+    },
+  };
 }

@@ -6,14 +6,20 @@ import { ProviderStore } from '../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../src/stores/UserProfileStore';
 import type { LlmChunk, LlmProvider, LlmRequest, ProviderId } from '../../src/core/llm';
-import type { ChatSnapshot } from '../../src/core/types';
+import type { ChatSnapshot, Thread } from '../../src/core/types';
 import type { LlmRouter } from '../../src/services/llm/router';
 import type { BridgeClientFacade, ToolContext } from '../../src/services/tools/types';
 import { MockProvider, flush, installMockProvider } from '../helpers/mockProvider';
 import { clearAppStorage } from '../helpers/storage';
 import { toolRegistry } from '../../src/services/tools/registry';
 import { WORKSPACE_CHAT_STATE_PATH } from '../../src/services/workspaceChatPersistence';
-import { CHAT_SNAPSHOT_STORAGE_KEY, flushPendingSnapshot, loadSnapshot } from '../../src/services/persistence';
+import {
+  CHAT_SNAPSHOT_STORAGE_KEY,
+  flushPendingSnapshot,
+  loadSnapshot,
+  setThreadArchiveStoreForTests,
+} from '../../src/services/persistence';
+import type { ThreadArchiveStore } from '../../src/services/persistence/idb';
 import { installMultiTabStorageListener } from '../../src/services/storage/persistenceProvider';
 
 const activeChats: ChatStore[] = [];
@@ -66,6 +72,66 @@ function chatSnapshot(id: string, title: string) {
       modelId: 'or-gpt-5.4-mini',
       messages: [{ id: `${id}-m1`, role: 'user' as const, content: title, createdAt: 3 }],
     }],
+  };
+}
+
+function archivedThreadPair(id = 'archived-thread'): { stub: Thread; full: Thread } {
+  const full: Thread = {
+    id,
+    title: 'Archived conversation',
+    subtitle: '',
+    createdAt: 1,
+    updatedAt: 2,
+    pinned: false,
+    modelId: 'or-gpt-5.4-mini',
+    messages: [{ id: 'm-archived', role: 'user', content: 'old message', createdAt: 1 }],
+  };
+  return {
+    full,
+    stub: {
+      ...full,
+      messages: [],
+      archived: true,
+    },
+  };
+}
+
+function deferredThreadArchiveStore(): ThreadArchiveStore & {
+  resolveGet(thread: Thread | null): void;
+  threads: Map<string, Thread>;
+} {
+  const threads = new Map<string, Thread>();
+  let resolveGet: ((thread: Thread | null) => void) | null = null;
+  return {
+    threads,
+    resolveGet(thread: Thread | null): void {
+      resolveGet?.(thread);
+      resolveGet = null;
+    },
+    async getThread(): Promise<Thread | null> {
+      return new Promise(resolve => { resolveGet = resolve; });
+    },
+    async putThread(thread: Thread): Promise<void> {
+      threads.set(thread.id, thread);
+    },
+    async deleteThread(id: string): Promise<void> {
+      threads.delete(id);
+    },
+  };
+}
+
+function memoryThreadArchiveStore(initial: Record<string, Thread>): ThreadArchiveStore {
+  const threads = new Map(Object.entries(initial));
+  return {
+    async getThread(id: string): Promise<Thread | null> {
+      return threads.get(id) ?? null;
+    },
+    async putThread(thread: Thread): Promise<void> {
+      threads.set(thread.id, thread);
+    },
+    async deleteThread(id: string): Promise<void> {
+      threads.delete(id);
+    },
   };
 }
 
@@ -171,12 +237,14 @@ async function waitForLocalStorageSnapshot(
 describe('ChatStore', () => {
   beforeEach(() => {
     disposeActiveChats();
+    setThreadArchiveStoreForTests(undefined);
     flushPendingSnapshot();
     clearAppStorage();
   });
   afterEach(() => {
     vi.useRealTimers();
     disposeActiveChats();
+    setThreadArchiveStoreForTests(undefined);
     flushPendingSnapshot();
     clearAppStorage();
   });
@@ -187,6 +255,87 @@ describe('ChatStore', () => {
     expect(chat.threads[0].messages).toEqual([]);
     expect(chat.threads[0].title).toBe('New conversation');
     expect(chat.activeThreadId).toBe(chat.threads[0].id);
+  });
+
+  it('hydrates an archived active thread from the archive store', async () => {
+    const { stub, full } = archivedThreadPair();
+    setThreadArchiveStoreForTests(memoryThreadArchiveStore({ [full.id]: full }));
+    localStorage.setItem('gatesai.state.v1', JSON.stringify({
+      schemaVersion: 2,
+      threads: [stub],
+      activeThreadId: stub.id,
+    }));
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    const mock = new MockProvider();
+    installMockProvider(providers, mock);
+
+    const chat = trackChat(new ChatStore(providers, registry, profile));
+
+    expect(chat.activeThread?.archived).toBe(true);
+    expect(chat.activeThreadHydrating).toBe(true);
+    await flush();
+    expect(chat.activeThread?.archived).not.toBe(true);
+    expect(chat.activeThread?.messages.map(message => message.content)).toEqual(['old message']);
+    expect(chat.activeThreadHydrating).toBe(false);
+  });
+
+  it('waits for archived-thread hydration before sending a message', async () => {
+    const { stub, full } = archivedThreadPair();
+    const archive = deferredThreadArchiveStore();
+    setThreadArchiveStoreForTests(archive);
+    localStorage.setItem('gatesai.state.v1', JSON.stringify({
+      schemaVersion: 2,
+      threads: [stub],
+      activeThreadId: stub.id,
+    }));
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    const mock = new MockProvider([{ type: 'text', delta: 'hydrated reply' }, { type: 'done', finishReason: 'stop' }]);
+    installMockProvider(providers, mock);
+    const chat = trackChat(new ChatStore(providers, registry, profile));
+
+    chat.sendMessage('new message');
+
+    expect(chat.activeThread?.messages).toEqual([]);
+    expect(mock.calls).toHaveLength(0);
+
+    archive.resolveGet(full);
+    await flush(10);
+
+    expect(chat.activeThread?.messages.map(message => message.content)).toContain('old message');
+    expect(chat.activeThread?.messages.map(message => message.content)).toContain('new message');
+    expect(mock.calls).toHaveLength(1);
+  });
+
+  it('surfaces a future-version snapshot warning as a persistence notice', () => {
+    localStorage.setItem('gatesai.state.v1', JSON.stringify({
+      schemaVersion: 999,
+      threads: [{
+        id: 'future',
+        title: 'Future',
+        subtitle: '',
+        createdAt: 1,
+        updatedAt: 2,
+        pinned: false,
+        modelId: 'or-gpt-5.4-mini',
+        messages: [],
+      }],
+      activeThreadId: 'future',
+    }));
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    installMockProvider(providers, new MockProvider());
+
+    const chat = trackChat(new ChatStore(providers, registry, profile));
+
+    expect(chat.threads).toHaveLength(1);
+    expect(chat.threads[0].title).toBe('New conversation');
+    expect(chat.compactionNotice).toMatch(/newer version|backup copy/i);
+    expect(Object.keys(localStorage).some(key => key.startsWith('gatesai.state.backup.'))).toBe(true);
   });
 
   it('derives one ambient activity list from thinking notes and tool state', () => {
