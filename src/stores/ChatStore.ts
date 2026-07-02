@@ -10,10 +10,11 @@
 //   - turn failure/recovery copy    → services/chat/turnFormatting
 //   - image-turn copy               → services/chat/imageTurnFormatting
 //   - Ollama pseudo-tool rescue     → services/chat/pseudoToolRescue
+//   - provider round streaming      → services/chat/streamingRoundExecutor
 //   - pure thread selectors         → core/threadSelectors
 import { makeAutoObservable, runInAction } from 'mobx';
 import type { ActivityItem, AssistantFinishReason, AssistantMessage, ChatSnapshot, Message, StreamActivity, Thread, ToolResult } from '../core/types';
-import type { LlmProvider, LlmRequest, LlmUsage, ThinkingEffort, ToolCall } from '../core/llm';
+import type { LlmProvider, LlmRequest, ThinkingEffort, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { formatAttachmentFooter, isImageMime, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
 import {
@@ -72,6 +73,12 @@ import {
   imageBackendDisplayName,
 } from '../services/chat/imageTurnFormatting';
 import { extractLocalPseudoToolCalls } from '../services/chat/pseudoToolRescue';
+import {
+  OUTPUT_LIMIT_RETRY_ROUNDS,
+  StreamingRoundExecutor,
+  transientProviderRetryPolicy,
+  type StreamingRoundActivityUpdate,
+} from '../services/chat/streamingRoundExecutor';
 import { threadLlmSpendUsd as threadSpendSelector } from '../core/threadSelectors';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
@@ -80,6 +87,7 @@ import type { BridgeClientFacade } from '../services/tools/types';
 import type { CompletedJob } from '../services/image/jobs/types';
 
 export type { ChatContextMode } from '../services/chat/contextModes';
+export { PROVIDER_STREAM_INITIAL_STALL_MS, PROVIDER_STREAM_STALL_MS } from '../services/chat/streamingRoundExecutor';
 export type ChatThinkingEffort = Extract<ThinkingEffort, 'low' | 'medium' | 'high'>;
 export const DEFAULT_OPENROUTER_THINKING_EFFORT: ChatThinkingEffort = 'low';
 export const OPENROUTER_THINKING_PRESETS: Array<{ value: ChatThinkingEffort; label: string; title: string }> = [
@@ -87,9 +95,6 @@ export const OPENROUTER_THINKING_PRESETS: Array<{ value: ChatThinkingEffort; lab
   { value: 'medium', label: 'balanced', title: 'Balanced: normal reasoning depth.' },
   { value: 'high', label: 'deep', title: 'Deep: more reasoning for harder tasks.' },
 ];
-const OUTPUT_LIMIT_RETRY_ROUNDS = 2;
-export const PROVIDER_STREAM_STALL_MS = 120_000;
-export const PROVIDER_STREAM_INITIAL_STALL_MS = 180_000;
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -240,7 +245,7 @@ export class ChatStore {
   private readonly registry: ModelRegistry;
   private readonly profile: UserProfileStore;
   private readonly controllersByThread = new Map<string, AbortController>();
-  private readonly stallTimersByThread = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly roundExecutor = new StreamingRoundExecutor({ retryPolicy: transientProviderRetryPolicy });
   private readonly textBuffer = new StreamingTextBuffer();
   private readonly persistence: ChatPersistenceCoordinator;
   private workspacePersistenceHydrating = false;
@@ -294,12 +299,12 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'stallTimersByThread' | 'textBuffer' | 'persistence' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'roundExecutor' | 'textBuffer' | 'persistence' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
       providers: false,
       registry: false,
       profile: false,
       controllersByThread: false,
-      stallTimersByThread: false,
+      roundExecutor: false,
       textBuffer: false,
       persistence: false,
       workspacePersistenceHydrating: false,
@@ -315,8 +320,7 @@ export class ChatStore {
   }
 
   dispose(): void {
-    for (const timer of this.stallTimersByThread.values()) clearTimeout(timer);
-    this.stallTimersByThread.clear();
+    this.abortAllStreams();
     this.persistence.dispose();
   }
 
@@ -851,7 +855,6 @@ export class ChatStore {
     if (expectedMessageId && this.streamingByThread[threadId] !== expectedMessageId) return;
     delete this.streamingByThread[threadId];
     delete this.streamActivityByThread[threadId];
-    this.clearProviderStallTimer(threadId);
     this.controllersByThread.delete(threadId);
   }
 
@@ -864,91 +867,53 @@ export class ChatStore {
     return this.streamingByThread[threadId] === messageId;
   }
 
-  private beginProviderStreamActivity(
-    threadId: string,
-    messageId: string,
-    round: number,
-    providerId: string,
-    providerModelId: string,
-  ): void {
-    const now = Date.now();
+  private applyRoundActivityUpdate(threadId: string, messageId: string, update: StreamingRoundActivityUpdate): void {
+    if (!this.ownsStreamingTurn(threadId, messageId)) return;
+    if (update.phase === 'stalled') {
+      logEvent(threadId, 'round.streamStalled', {
+        messageId,
+        idleSeconds: update.idleSeconds,
+        providerId: update.providerId,
+        providerModelId: update.providerModelId,
+        round: update.round,
+      });
+    }
     runInAction(() => {
       const existing = this.streamActivityByThread[threadId];
+      if (update.phase === 'connecting') {
+        this.streamActivityByThread[threadId] = {
+          messageId,
+          phase: 'connecting',
+          startedAt: existing?.startedAt ?? update.at,
+          lastProviderAt: update.at,
+          round: update.round,
+          providerId: update.providerId,
+          providerModelId: update.providerModelId,
+        };
+        return;
+      }
+      if (!existing || existing.messageId !== messageId || existing.phase === 'stalled') return;
       this.streamActivityByThread[threadId] = {
-        messageId,
-        phase: 'connecting',
-        startedAt: existing?.startedAt ?? now,
-        lastProviderAt: now,
-        round,
-        providerId,
-        providerModelId,
+        ...existing,
+        phase: update.phase,
+        lastProviderAt: update.phase === 'stalled' ? existing.lastProviderAt : update.at,
+        stallReason: update.phase === 'stalled' ? update.stallReason : undefined,
       };
     });
-    this.armProviderStallTimer(threadId, messageId, PROVIDER_STREAM_INITIAL_STALL_MS);
   }
 
-  private markProviderStreamActivity(
-    threadId: string,
-    messageId: string,
-    phase: StreamActivity['phase'],
-  ): void {
+  private markStreamActivityPhase(threadId: string, messageId: string, phase: StreamActivity['phase']): void {
     if (!this.ownsStreamingTurn(threadId, messageId)) return;
-    const now = Date.now();
     runInAction(() => {
       const existing = this.streamActivityByThread[threadId];
       if (!existing || existing.messageId !== messageId || existing.phase === 'stalled') return;
       this.streamActivityByThread[threadId] = {
         ...existing,
         phase,
-        lastProviderAt: now,
+        lastProviderAt: Date.now(),
         stallReason: undefined,
       };
     });
-    this.armProviderStallTimer(threadId, messageId, PROVIDER_STREAM_STALL_MS);
-  }
-
-  private armProviderStallTimer(threadId: string, messageId: string, timeoutMs: number): void {
-    this.clearProviderStallTimer(threadId);
-    const timer = setTimeout(() => {
-      const activity = this.streamActivityByThread[threadId];
-      if (!activity || activity.messageId !== messageId || !this.ownsStreamingTurn(threadId, messageId)) return;
-      const idleSeconds = Math.max(1, Math.round((Date.now() - activity.lastProviderAt) / 1000));
-      const reason = `No provider data arrived for ${idleSeconds}s, so GatesAI stopped the stalled stream.`;
-      logEvent(threadId, 'round.streamStalled', {
-        messageId,
-        idleSeconds,
-        providerId: activity.providerId,
-        providerModelId: activity.providerModelId,
-        round: activity.round,
-      });
-      runInAction(() => {
-        const current = this.streamActivityByThread[threadId];
-        if (!current || current.messageId !== messageId) return;
-        this.streamActivityByThread[threadId] = {
-          ...current,
-          phase: 'stalled',
-          stallReason: reason,
-        };
-      });
-      this.controllersByThread.get(threadId)?.abort();
-    }, timeoutMs);
-    this.stallTimersByThread.set(threadId, timer);
-  }
-
-  private clearProviderStallTimer(threadId: string): void {
-    const timer = this.stallTimersByThread.get(threadId);
-    if (timer) clearTimeout(timer);
-    this.stallTimersByThread.delete(threadId);
-  }
-
-  private isProviderStreamStalled(threadId: string, messageId: string): boolean {
-    const activity = this.streamActivityByThread[threadId];
-    return Boolean(activity && activity.messageId === messageId && activity.phase === 'stalled');
-  }
-
-  private providerStreamStallMessage(threadId: string): string {
-    return this.streamActivityByThread[threadId]?.stallReason
-      ?? 'The provider stream stopped sending data, so GatesAI stopped the stalled response.';
   }
 
   private ensureThreadModel(threadId: string | null): Thread | null {
@@ -1095,67 +1060,45 @@ export class ChatStore {
         return;
       }
 
-      const collectedCalls: ToolCall[] = [];
-      const collectedUsage: LlmUsage[] = [];
-      let errored = false;
-      let errorMessage: string | undefined;
-      let finishReason: AssistantFinishReason | undefined;
-      try {
-        this.beginProviderStreamActivity(threadId, assistantMessage.id, round, provider.id, providerModelId);
-        for await (const chunk of provider.stream(request, signal)) {
-          if (!this.ownsStreamingTurn(threadId, assistantMessage.id)) continue;
-          if (chunk.type !== 'done') this.markProviderStreamActivity(threadId, assistantMessage.id, 'streaming');
-          if (chunk.type === 'text') {
-            this.queueTextChunk(threadId, assistantMessage.id, chunk.delta);
-          } else if (chunk.type === 'tool_call') {
-            collectedCalls.push(chunk.call);
-          } else if (chunk.type === 'usage') {
-            collectedUsage.push(chunk.usage);
-          } else if (chunk.type === 'done') {
-            logEvent(thread.id, 'round.done', { round, finishReason: chunk.finishReason, error: chunk.error });
-            finishReason = chunk.finishReason;
-            if (chunk.finishReason === 'error') {
-              errored = true;
-              errorMessage = chunk.error || 'Provider ended the response with an error.';
-            } else if (chunk.finishReason === 'cancelled' && this.isProviderStreamStalled(threadId, assistantMessage.id)) {
-              errored = true;
-              finishReason = 'error';
-              errorMessage = this.providerStreamStallMessage(threadId);
-            }
-            break;
-          }
-        }
-      } catch (err) {
-        if (signal.aborted) {
-          if (this.isProviderStreamStalled(threadId, assistantMessage.id)) {
-            errored = true;
-            finishReason = 'error';
-            errorMessage = this.providerStreamStallMessage(threadId);
-          } else {
-            this.textBuffer.flush(assistantMessage.id);
-            runInAction(() => this.clearStreamingState(threadId, assistantMessage.id));
-            return;
-          }
-        } else {
-          logEvent(thread.id, 'round.exception', { round, error: (err as Error).message, stack: (err as Error).stack });
-          logger.error('chat', 'provider stream exception', { threadId, round, err });
-          errored = true;
-          errorMessage = (err as Error).message;
-        }
-      } finally {
-        this.clearProviderStallTimer(threadId);
+      const outcome = await this.roundExecutor.execute({
+        request,
+        stream: provider.stream.bind(provider),
+        signal,
+        round,
+        providerId: provider.id,
+        providerModelId,
+        callbacks: {
+          onActivityPhase: update => this.applyRoundActivityUpdate(threadId, assistantMessage.id, update),
+          onChunk: delta => {
+            if (!this.ownsStreamingTurn(threadId, assistantMessage.id)) return;
+            this.queueTextChunk(threadId, assistantMessage.id, delta);
+          },
+        },
+      });
+
+      const collectedCalls = outcome.toolCalls;
+      const collectedUsage = outcome.usage;
+      const errored = outcome.status === 'errored' || outcome.status === 'stalled';
+      const errorMessage = errored ? outcome.error : undefined;
+      const finishReason: AssistantFinishReason | undefined = errored
+        ? 'error'
+        : outcome.status === 'completed'
+          ? outcome.finishReason
+          : undefined;
+
+      if (outcome.status === 'aborted') {
+        this.textBuffer.flush(assistantMessage.id);
+        runInAction(() => this.clearStreamingState(threadId, assistantMessage.id));
+        return;
       }
 
-      if (!errored && signal.aborted) {
-        if (this.isProviderStreamStalled(threadId, assistantMessage.id)) {
-          errored = true;
-          finishReason = 'error';
-          errorMessage = this.providerStreamStallMessage(threadId);
-        } else {
-          this.textBuffer.flush(assistantMessage.id);
-          runInAction(() => this.clearStreamingState(threadId, assistantMessage.id));
-          return;
-        }
+      if (outcome.status === 'completed') {
+        logEvent(thread.id, 'round.done', { round, finishReason: outcome.finishReason });
+      } else if (outcome.status === 'stalled') {
+        logEvent(thread.id, 'round.done', { round, finishReason: 'error', error: outcome.error });
+      } else {
+        logEvent(thread.id, 'round.exception', { round, error: outcome.error });
+        logger.error('chat', 'provider stream exception', { threadId, round, err: outcome.cause ?? outcome.error });
       }
 
       if (collectedUsage.length > 0) {
@@ -1224,6 +1167,7 @@ export class ChatStore {
             }
           });
           this.textBuffer.cancel(assistantMessage.id);
+          this.markStreamActivityPhase(threadId, assistantMessage.id, 'tooling');
           const results = await this.executeToolCalls(rescuedCalls, threadId, signal);
           if (signal.aborted) {
             runInAction(() => {
@@ -1329,6 +1273,7 @@ export class ChatStore {
       });
       this.textBuffer.cancel(assistantMessage.id);
 
+      this.markStreamActivityPhase(threadId, assistantMessage.id, 'tooling');
       const results = await this.executeToolCalls(uniqueCollectedCalls, threadId, signal);
       if (signal.aborted) {
         runInAction(() => {
