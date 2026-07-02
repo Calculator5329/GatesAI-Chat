@@ -1,8 +1,9 @@
 // Implements LLM provider plumbing for ollama.
 // Called by RouterStore/ChatStore through the LlmProvider interface; depends on core LLM messages, SSE/JSON parsing, and provider configs.
 // Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
-import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ToolDef } from '../../core/llm';
+import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ToolCall, ToolDef } from '../../core/llm';
 import { ensureOk } from './sse';
+import { finiteNumber, isRecord, normalizeFinishReason, normalizeToolCallArguments, type StreamFinishReason } from './streamCore';
 import { logger } from '../diagnostics/logger';
 
 /**
@@ -34,10 +35,7 @@ interface OllamaStreamFrame {
   message?: {
     role?: string;
     content?: string;
-    tool_calls?: Array<{
-      id?: string;
-      function?: { name?: string; arguments?: Record<string, unknown> };
-    }>;
+    tool_calls?: unknown[];
   };
   done?: boolean;
   done_reason?: string;
@@ -171,49 +169,10 @@ export class OllamaProvider implements LlmProvider {
             continue; // skip malformed line
           }
 
-          if (frame.error) {
-            yield { type: 'done', finishReason: 'error', error: frame.error };
-            return;
-          }
-
-          const message = frame.message;
-          if (message?.content) {
-            yield { type: 'text', delta: message.content };
-          }
-
-          if (message?.tool_calls && message.tool_calls.length) {
-            for (let i = 0; i < message.tool_calls.length; i++) {
-              const tc = message.tool_calls[i];
-              const rawArgs = tc.function?.arguments;
-              const args = rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs)
-                ? rawArgs
-                : {};
-              yield {
-                type: 'tool_call',
-                call: {
-                  id: tc.id ?? this.nextToolCallId(i),
-                  name: tc.function?.name ?? 'unknown',
-                  arguments: args,
-                  ...(
-                    rawArgs && (typeof rawArgs !== 'object' || Array.isArray(rawArgs))
-                      ? {
-                        argumentsError: 'Ollama returned tool arguments that were not a JSON object.',
-                        rawArguments: String(rawArgs).slice(0, 500),
-                      }
-                      : {}
-                  ),
-                },
-              };
-            }
-            toolUseSeen = true;
-          }
-
-          if (frame.done) {
-            const usage = parseOllamaUsage(frame, modelId);
-            if (usage) yield { type: 'usage', usage };
-            yield { type: 'done', finishReason: toolUseSeen ? 'tool_use' : 'stop' };
-            return;
-          }
+          const result = this.consumeFrame(frame, modelId, toolUseSeen);
+          toolUseSeen = result.toolUseSeen;
+          for (const chunk of result.chunks) yield chunk;
+          if (result.terminal) return;
         }
       }
       // Flush the decoder and try to parse any trailing complete frame.
@@ -222,19 +181,10 @@ export class OllamaProvider implements LlmProvider {
       if (trailing) {
         try {
           const frame = parseOllamaStreamFrame(JSON.parse(trailing));
-          if (frame.error) {
-            yield { type: 'done', finishReason: 'error', error: frame.error };
-            return;
-          }
-          if (frame.message?.content) {
-            yield { type: 'text', delta: frame.message.content };
-          }
-          if (frame.done) {
-            const usage = parseOllamaUsage(frame, modelId);
-            if (usage) yield { type: 'usage', usage };
-            yield { type: 'done', finishReason: toolUseSeen ? 'tool_use' : 'stop' };
-            return;
-          }
+          const result = this.consumeFrame(frame, modelId, toolUseSeen);
+          toolUseSeen = result.toolUseSeen;
+          for (const chunk of result.chunks) yield chunk;
+          if (result.terminal) return;
         } catch {
           // Ignore — falls through to the missing-done error path below.
         }
@@ -255,6 +205,43 @@ export class OllamaProvider implements LlmProvider {
     const seq = this.toolCallSeq++;
     return `ollama-tool-${seq}-${index}`;
   }
+
+  private consumeFrame(
+    frame: OllamaStreamFrame,
+    modelId: string,
+    toolUseSeen: boolean,
+  ): { chunks: LlmChunk[]; terminal: boolean; toolUseSeen: boolean } {
+    const chunks: LlmChunk[] = [];
+    if (frame.error) {
+      chunks.push({ type: 'done', finishReason: 'error', error: frame.error });
+      return { chunks, terminal: true, toolUseSeen };
+    }
+
+    if (frame.message?.content) chunks.push({ type: 'text', delta: frame.message.content });
+    const toolCalls = frame.message?.tool_calls ?? [];
+    for (let i = 0; i < toolCalls.length; i++) {
+      const call = this.toToolCall(toolCalls[i], i);
+      if (!call) continue;
+      chunks.push({ type: 'tool_call', call });
+      toolUseSeen = true;
+    }
+
+    if (!frame.done) return { chunks, terminal: false, toolUseSeen };
+    const usage = parseOllamaUsage(frame, modelId);
+    if (usage) chunks.push({ type: 'usage', usage });
+    chunks.push({ type: 'done', finishReason: finishReasonForDone(frame.done_reason, toolUseSeen) });
+    return { chunks, terminal: true, toolUseSeen };
+  }
+
+  private toToolCall(value: unknown, index: number): ToolCall | null {
+    if (!isRecord(value)) return null;
+    const fn = isRecord(value.function) ? value.function : undefined;
+    return {
+      id: typeof value.id === 'string' ? value.id : this.nextToolCallId(index),
+      name: typeof fn?.name === 'string' ? fn.name : 'unknown',
+      ...normalizeToolCallArguments(fn?.arguments, 'Ollama returned tool arguments that were not a JSON object.'),
+    };
+  }
 }
 
 function parseOllamaStreamFrame(value: unknown): OllamaStreamFrame {
@@ -264,8 +251,8 @@ function parseOllamaStreamFrame(value: unknown): OllamaStreamFrame {
     done: typeof value.done === 'boolean' ? value.done : undefined,
     done_reason: typeof value.done_reason === 'string' ? value.done_reason : undefined,
     error: typeof value.error === 'string' ? value.error : undefined,
-    prompt_eval_count: finiteNumber(value.prompt_eval_count),
-    eval_count: finiteNumber(value.eval_count),
+    prompt_eval_count: finiteNumber(value.prompt_eval_count, 0),
+    eval_count: finiteNumber(value.eval_count, 0),
   };
 }
 
@@ -274,34 +261,8 @@ function parseOllamaMessage(value: unknown): OllamaStreamFrame['message'] {
   return {
     role: typeof value.role === 'string' ? value.role : undefined,
     content: typeof value.content === 'string' ? value.content : undefined,
-    tool_calls: Array.isArray(value.tool_calls)
-      ? value.tool_calls.map(parseOllamaToolCall).filter((call): call is NonNullable<NonNullable<OllamaStreamFrame['message']>['tool_calls']>[number] => call !== null)
-      : undefined,
+    tool_calls: Array.isArray(value.tool_calls) ? value.tool_calls : undefined,
   };
-}
-
-function parseOllamaToolCall(value: unknown): NonNullable<NonNullable<OllamaStreamFrame['message']>['tool_calls']>[number] | null {
-  if (!isRecord(value)) return null;
-  return {
-    id: typeof value.id === 'string' ? value.id : undefined,
-    function: parseOllamaToolFunction(value.function),
-  };
-}
-
-function parseOllamaToolFunction(value: unknown): NonNullable<NonNullable<NonNullable<OllamaStreamFrame['message']>['tool_calls']>[number]['function']> | undefined {
-  if (!isRecord(value)) return undefined;
-  return {
-    name: typeof value.name === 'string' ? value.name : undefined,
-    arguments: isRecord(value.arguments) ? value.arguments : undefined,
-  };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function finiteNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 
 function parseOllamaUsage(frame: OllamaStreamFrame, modelId: string): LlmUsage | null {
@@ -317,6 +278,10 @@ function parseOllamaUsage(frame: OllamaStreamFrame, modelId: string): LlmUsage |
     costUsd: 0,
     costSource: 'local',
   };
+}
+
+function finishReasonForDone(doneReason: string | undefined, toolUseSeen: boolean): StreamFinishReason {
+  return toolUseSeen ? 'tool_use' : normalizeFinishReason(doneReason) ?? 'stop';
 }
 
 function toOllamaTool(t: ToolDef): OllamaTool {

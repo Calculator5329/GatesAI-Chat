@@ -1,10 +1,10 @@
 // Implements LLM provider plumbing for openaiCompat.
 // Called by RouterStore/ChatStore through the LlmProvider interface; depends on core LLM messages, SSE/JSON parsing, and provider configs.
 // Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
-import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ProviderId, ToolCall, ToolDef } from '../../core/llm';
-import { parseJsonObject } from './json';
+import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ProviderId, ToolDef } from '../../core/llm';
 import { openAiCompatBodyExtras } from './modelFormatProfiles';
 import { ensureOk, parseSse } from './sse';
+import { accumulateToolCallDelta, createToolCallDeltaState, finalizeToolCallDeltas, finiteNumber, isRecord, normalizeFinishReason, type StreamFinishReason } from './streamCore';
 import { logger } from '../diagnostics/logger';
 
 export interface OpenAiCompatOptions {
@@ -18,15 +18,7 @@ export interface OpenAiCompatOptions {
 
 interface ChatChoiceDelta {
   content?: string | null;
-  tool_calls?: Array<{
-    index: number;
-    id?: string;
-    type?: 'function';
-    function?: {
-      name?: string;
-      arguments?: string;       // streamed as JSON-string fragments across chunks
-    };
-  }>;
+  tool_calls?: unknown[];
 }
 
 interface ChatChunk {
@@ -34,7 +26,7 @@ interface ChatChunk {
   usage?: OpenRouterUsage;
   choices?: Array<{
     delta?: ChatChoiceDelta;
-    finish_reason?: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null;
+    finish_reason?: string | null;
   }>;
 }
 
@@ -49,12 +41,6 @@ interface OpenRouterUsage {
  * Streams a chat completion from an OpenAI-compatible `/chat/completions`
  * endpoint. Used by OpenAI, Groq, OpenRouter, and local servers (Ollama,
  * LM Studio, vLLM, llama.cpp).
- *
- * Tool calls: OpenAI streams `delta.tool_calls[]` where each call's
- * `function.arguments` arrives as concatenated JSON-string fragments across
- * many chunks (and across multiple `tool_calls` entries by `index`). We
- * accumulate per-index, then on `finish_reason === 'tool_calls'` (or stream
- * end) parse and emit one `tool_call` chunk per call.
  */
 export class OpenAiCompatProvider implements LlmProvider {
   readonly id: ProviderId;
@@ -121,9 +107,8 @@ export class OpenAiCompatProvider implements LlmProvider {
       return;
     }
 
-    /** Per-call accumulator keyed by the `index` field OpenAI uses to dedupe call fragments. */
-    const pending = new Map<number, { id: string; name: string; argsBuf: string }>();
-    let finishReason: 'stop' | 'length' | 'tool_use' | 'content_filter' | undefined;
+    const pendingToolCalls = createToolCallDeltaState();
+    let finishReason: StreamFinishReason | undefined;
     try {
       for await (const data of parseSse(response, signal)) {
         if (data === '[DONE]') break;
@@ -143,20 +128,12 @@ export class OpenAiCompatProvider implements LlmProvider {
         const textDelta = choice?.delta?.content;
         if (textDelta) yield { type: 'text', delta: textDelta };
 
-        const callDeltas = choice?.delta?.tool_calls;
-        if (callDeltas) {
-          for (const cd of callDeltas) {
-            const slot = pending.get(cd.index) ?? { id: '', name: '', argsBuf: '' };
-            if (cd.id) slot.id = cd.id;
-            if (cd.function?.name) slot.name = cd.function.name;
-            if (cd.function?.arguments) slot.argsBuf += cd.function.arguments;
-            pending.set(cd.index, slot);
-          }
+        for (const callDelta of choice?.delta?.tool_calls ?? []) {
+          accumulateToolCallDelta(pendingToolCalls, callDelta);
         }
 
-        const fr = choice?.finish_reason;
-        if (fr === 'stop' || fr === 'length' || fr === 'content_filter') finishReason = fr;
-        else if (fr === 'tool_calls') finishReason = 'tool_use';
+        const normalizedFinishReason = normalizeFinishReason(choice?.finish_reason);
+        if (normalizedFinishReason) finishReason = normalizedFinishReason;
       }
     } catch (err) {
       if (signal.aborted) { yield { type: 'done', finishReason: 'cancelled' }; return; }
@@ -164,21 +141,7 @@ export class OpenAiCompatProvider implements LlmProvider {
       return;
     }
 
-    // Drain accumulated tool calls. Preserve malformed argument JSON so the
-    // tool loop can give the model a specific validation error instead of
-    // pretending the model intentionally sent `{}`.
-    for (const slot of pending.values()) {
-      if (!slot.name) continue;
-      const parsedArgs = parseJsonObject(slot.argsBuf);
-      const call: ToolCall = {
-        id: slot.id || `${slot.name}-${Math.random().toString(36).slice(2, 8)}`,
-        name: slot.name,
-        arguments: parsedArgs.value,
-        ...(!parsedArgs.ok ? {
-          argumentsError: parsedArgs.error,
-          rawArguments: parsedArgs.rawPreview,
-        } : {}),
-      };
+    for (const call of finalizeToolCallDeltas(pendingToolCalls)) {
       yield { type: 'tool_call', call };
     }
 
@@ -203,7 +166,9 @@ function parseChatChoice(value: unknown): NonNullable<ChatChunk['choices']>[numb
   if (!isRecord(value)) return null;
   return {
     delta: parseChatChoiceDelta(value.delta),
-    finish_reason: parseFinishReason(value.finish_reason),
+    finish_reason: typeof value.finish_reason === 'string' || value.finish_reason === null
+      ? value.finish_reason
+      : undefined,
   };
 }
 
@@ -211,27 +176,7 @@ function parseChatChoiceDelta(value: unknown): ChatChoiceDelta | undefined {
   if (!isRecord(value)) return undefined;
   return {
     content: typeof value.content === 'string' || value.content === null ? value.content : undefined,
-    tool_calls: Array.isArray(value.tool_calls)
-      ? value.tool_calls.map(parseToolCallDelta).filter((call): call is NonNullable<ChatChoiceDelta['tool_calls']>[number] => call !== null)
-      : undefined,
-  };
-}
-
-function parseToolCallDelta(value: unknown): NonNullable<ChatChoiceDelta['tool_calls']>[number] | null {
-  if (!isRecord(value) || typeof value.index !== 'number' || !Number.isInteger(value.index)) return null;
-  return {
-    index: value.index,
-    id: typeof value.id === 'string' ? value.id : undefined,
-    type: value.type === 'function' ? value.type : undefined,
-    function: parseToolCallFunction(value.function),
-  };
-}
-
-function parseToolCallFunction(value: unknown): NonNullable<NonNullable<ChatChoiceDelta['tool_calls']>[number]['function']> | undefined {
-  if (!isRecord(value)) return undefined;
-  return {
-    name: typeof value.name === 'string' ? value.name : undefined,
-    arguments: typeof value.arguments === 'string' ? value.arguments : undefined,
+    tool_calls: Array.isArray(value.tool_calls) ? value.tool_calls : undefined,
   };
 }
 
@@ -243,21 +188,6 @@ function parseOpenRouterUsage(value: unknown): OpenRouterUsage | undefined {
     total_tokens: finiteNumber(value.total_tokens),
     cost: finiteNumber(value.cost),
   };
-}
-
-function parseFinishReason(value: unknown): NonNullable<ChatChunk['choices']>[number]['finish_reason'] {
-  if (value === 'max_tokens' || value === 'max_output_tokens') return 'length';
-  return value === 'stop' || value === 'length' || value === 'tool_calls' || value === 'content_filter' || value === null
-    ? value
-    : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function finiteNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
 function parseProviderUsage(
