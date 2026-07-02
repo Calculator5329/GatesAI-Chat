@@ -49,9 +49,9 @@ describe('McpClient', () => {
         });
       }
       throw new Error(`unexpected ${body.method}`);
-    }) as unknown as typeof fetch;
+    });
 
-    const client = await new McpClient({ fetch: fetchMock, clientVersion: '9.8.7' })
+    const client = await new McpClient({ fetch: fetchMock as unknown as typeof fetch, clientVersion: '9.8.7' })
       .connect('https://mcp.example.test/mcp', { Authorization: 'Bearer token' });
     const tools = await client.listTools();
 
@@ -101,9 +101,9 @@ describe('McpClient', () => {
         });
       }
       throw new Error(`unexpected ${body.method}`);
-    }) as unknown as typeof fetch;
+    });
 
-    const client = await new McpClient({ fetch: fetchMock }).connect('https://mcp.example.test/mcp');
+    const client = await new McpClient({ fetch: fetchMock as unknown as typeof fetch }).connect('https://mcp.example.test/mcp');
     const result = await client.callTool('render', { prompt: 'hi' });
 
     expect(result.content).toEqual([
@@ -120,9 +120,9 @@ describe('McpClient', () => {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
       })
-    ) as unknown as typeof fetch;
+    );
 
-    await expect(new McpClient({ fetch: fetchMock }).connect('https://mcp.example.test/mcp'))
+    await expect(new McpClient({ fetch: fetchMock as unknown as typeof fetch }).connect('https://mcp.example.test/mcp'))
       .rejects.toMatchObject({ kind: 'auth', status: 401, message: 'bad token' });
   });
 
@@ -131,9 +131,9 @@ describe('McpClient', () => {
       new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true });
       })
-    ) as unknown as typeof fetch;
+    );
 
-    await expect(new McpClient({ fetch: fetchMock, requestTimeoutMs: 5 }).connect('https://mcp.example.test/mcp'))
+    await expect(new McpClient({ fetch: fetchMock as unknown as typeof fetch, requestTimeoutMs: 5 }).connect('https://mcp.example.test/mcp'))
       .rejects.toMatchObject({ kind: 'timeout' });
   });
 
@@ -145,9 +145,9 @@ describe('McpClient', () => {
         id: body.id,
         error: { code: -32602, message: 'unsupported' },
       });
-    }) as unknown as typeof fetch;
+    });
 
-    await expect(new McpClient({ fetch: rpcErrorFetch }).connect('https://mcp.example.test/mcp'))
+    await expect(new McpClient({ fetch: rpcErrorFetch as unknown as typeof fetch }).connect('https://mcp.example.test/mcp'))
       .rejects.toMatchObject({ kind: 'protocol', code: -32602 });
 
     const oldVersionFetch = vi.fn(async (_url: string, init?: RequestInit) => {
@@ -157,9 +157,9 @@ describe('McpClient', () => {
         id: body.id,
         result: { protocolVersion: '2024-11-05', capabilities: {}, serverInfo: { name: 'old', version: '1' } },
       });
-    }) as unknown as typeof fetch;
+    });
 
-    const promise = new McpClient({ fetch: oldVersionFetch }).connect('https://mcp.example.test/mcp');
+    const promise = new McpClient({ fetch: oldVersionFetch as unknown as typeof fetch }).connect('https://mcp.example.test/mcp');
     await expect(promise).rejects.toBeInstanceOf(McpError);
     await expect(promise).rejects.toMatchObject({ kind: 'protocol' });
   });

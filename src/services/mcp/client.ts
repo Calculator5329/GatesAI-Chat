@@ -1,10 +1,8 @@
-import packageJson from '../../../package.json';
-
 export const MCP_PROTOCOL_VERSION = '2025-03-26';
 export const MCP_DEFAULT_TIMEOUT_MS = 30_000;
 
 const CLIENT_NAME = 'gatesai-chat';
-const CLIENT_VERSION = typeof packageJson.version === 'string' ? packageJson.version : '0.0.0';
+const CLIENT_VERSION = String(import.meta.env.VITE_APP_VERSION || import.meta.env.npm_package_version || '4.0.4');
 
 export type McpErrorKind = 'connect' | 'auth' | 'timeout' | 'protocol';
 

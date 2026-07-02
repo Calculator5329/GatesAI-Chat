@@ -1,7 +1,6 @@
 import type { JsonSchema, ToolDef } from '../../core/llm';
 import type { Tool, ToolExecuteResult } from '../tools/types';
 import type { McpTool, McpToolResult } from './client';
-import type { McpConnectedServer } from '../../stores/McpStore';
 
 export const MCP_TOOL_RESULT_MAX_CHARS = 32_000;
 const TOOL_NAME_MAX_CHARS = 64;
@@ -15,8 +14,16 @@ export interface McpToolBinding {
   def: ToolDef;
 }
 
+export interface McpConnectedToolServer {
+  server: {
+    id: string;
+    label: string;
+  };
+  tools: McpTool[];
+}
+
 export interface McpToolSource {
-  readonly connectedServers: McpConnectedServer[];
+  readonly connectedServers: McpConnectedToolServer[];
   callTool(serverId: string, toolName: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<McpToolResult>;
 }
 
@@ -40,7 +47,7 @@ export function createMcpRegistryTools(source: McpToolSource): Tool[] {
   }));
 }
 
-export function buildMcpToolBindings(servers: McpConnectedServer[]): McpToolBinding[] {
+export function buildMcpToolBindings(servers: McpConnectedToolServer[]): McpToolBinding[] {
   const used = new Set<string>();
   const bindings: McpToolBinding[] = [];
   for (const { server, tools } of servers) {

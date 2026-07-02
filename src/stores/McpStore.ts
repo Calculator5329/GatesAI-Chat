@@ -13,6 +13,8 @@ import { createSecretStorage, type SecretStorage } from '../services/secretStora
 import type { KeyValuePersistence, PersistenceProvider } from '../services/storage/persistenceProvider';
 import { logger } from '../services/diagnostics/logger';
 
+export type { McpServerConfig } from '../services/mcp/mcpStorage';
+
 export type McpConnectionState = 'disabled' | 'disconnected' | 'connecting' | 'connected' | 'error';
 
 export interface McpConnectionStatus {

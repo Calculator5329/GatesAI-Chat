@@ -11,6 +11,7 @@ import {
   Pill,
 } from '../../ui';
 import { useChatStore, useUserProfileStore } from '../../../stores/context';
+import { McpSettingsBlock } from './McpSettings';
 
 interface AgentAbility {
   name: string;
@@ -61,6 +62,7 @@ export const AgentSection = observer(function AgentSection() {
 
       <MemorySection />
       <RecentConversations summaries={recentSummaries} />
+      <McpSettingsBlock />
 
       <div style={tokens.section}>
         <div style={tokens.sectionTitle}>

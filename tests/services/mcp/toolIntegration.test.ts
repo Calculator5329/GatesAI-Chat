@@ -6,18 +6,15 @@ import {
   buildMcpToolBindings,
   createMcpRegistryTools,
   formatMcpToolResult,
+  type McpConnectedToolServer,
   type McpToolSource,
 } from '../../../src/services/mcp/toolIntegration';
-import type { McpConnectedServer } from '../../../src/stores/McpStore';
 
-function connectedServer(label: string, tools: McpConnectedServer['tools']): McpConnectedServer {
+function connectedServer(label: string, tools: McpConnectedToolServer['tools']): McpConnectedToolServer {
   return {
     server: {
       id: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       label,
-      url: 'https://mcp.example.test/mcp',
-      enabled: true,
-      headers: {},
     },
     tools,
   };
