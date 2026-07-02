@@ -174,15 +174,9 @@ export const EditorialChat = observer(function EditorialChat() {
   const [renderLimit, setRenderLimit] = useState(INITIAL_RENDERED_MESSAGES);
   const hiddenMessageCount = Math.max(0, messageCount - renderLimit);
   const visibleMessages = hiddenMessageCount > 0 ? messages.slice(hiddenMessageCount) : messages;
-  const visibleMessageIds = useMemo(
-    () => visibleMessages.map(message => message.id),
-    [hiddenMessageCount, messageCount, visibleMessages],
-  );
-  const edgeRenderedIds = useMemo(() => edgeRenderedMessageIds(visibleMessageIds), [visibleMessageIds]);
-  const streamingNeighborIds = useMemo(
-    () => streamingNeighborMessageIds(visibleMessageIds, streamingId),
-    [streamingId, visibleMessageIds],
-  );
+  const visibleMessageIds = visibleMessages.map(message => message.id);
+  const edgeRenderedIds = edgeRenderedMessageIds(visibleMessageIds);
+  const streamingNeighborIds = streamingNeighborMessageIds(visibleMessageIds, streamingId);
 
   const scheduleScrollToBottom = useCallback(() => {
     if (scrollRafRef.current !== null) return;
