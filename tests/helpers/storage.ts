@@ -13,6 +13,9 @@ export function clearAppStorage(): void {
     localStorage.removeItem('gatesai.local.v1');
     localStorage.removeItem('gatesai.search.v1');
     localStorage.removeItem('gatesai.secrets.migrated.v1');
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('gatesai.state.backup.')) localStorage.removeItem(key);
+    }
   } catch {
     // ignore
   }

@@ -3,6 +3,7 @@ import type { NotesSnapshot } from '../../core/notes';
 import type { ChatSnapshot, CodeSizeKey, CodeStyleKey, MarkdownDensityKey, MarkdownStyleKey, Thread } from '../../core/types';
 import type { UserProfileSnapshot } from '../profileStorage';
 import { parseChatSnapshotValue, prepareChatSnapshotForSave } from '../persistence';
+import { CURRENT_CHAT_SCHEMA_VERSION } from '../persistence/migrations';
 import { DEFAULT_UI_PREFS, type UiPrefsSnapshot } from '../uiPrefsStorage';
 
 export const DATA_EXPORT_FORMAT = 'gatesai-chat-export';
@@ -301,6 +302,7 @@ function mergeChatSnapshots(
     : null;
   return {
     snapshot: {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
       threads,
       activeThreadId: currentActive ?? incomingActive ?? importedThreads[0]?.id ?? current.activeThreadId,
     },
@@ -323,6 +325,7 @@ function isEmptyPlaceholderSnapshot(snapshot: ChatSnapshot): boolean {
 
 function chatSnapshotFromData(data: GatesAiChatExportData): ChatSnapshot {
   return {
+    schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
     threads: data.threads,
     activeThreadId: data.activeThreadId,
   };
