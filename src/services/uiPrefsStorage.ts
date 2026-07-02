@@ -17,7 +17,7 @@ export interface UiPrefsSnapshot {
 }
 
 const KEY = 'gatesai.uiprefs.v1';
-const DEFAULT: UiPrefsSnapshot = {
+export const DEFAULT_UI_PREFS: UiPrefsSnapshot = {
   markdownStyle: 'compact',
   codeStyle: 'obsidian',
   markdownDensity: 'compact',
@@ -29,7 +29,7 @@ const DEFAULT: UiPrefsSnapshot = {
 
 export const uiPrefsPersistence = createJsonPersistenceProvider<UiPrefsSnapshot>({
   key: KEY,
-  parse: () => DEFAULT,
+  parse: () => DEFAULT_UI_PREFS,
 });
 
 export function loadUiPrefs(): UiPrefsSnapshot {
@@ -37,5 +37,5 @@ export function loadUiPrefs(): UiPrefsSnapshot {
 }
 
 export function saveUiPrefs(snap: UiPrefsSnapshot): void {
-  uiPrefsPersistence.save({ ...snap, ...DEFAULT });
+  uiPrefsPersistence.save({ ...snap, ...DEFAULT_UI_PREFS });
 }

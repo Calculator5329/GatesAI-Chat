@@ -141,6 +141,28 @@ export class UiStore {
     while (this.disposers.length > 0) this.disposers.pop()?.();
   }
 
+  get prefsSnapshot(): UiPrefsSnapshot {
+    return {
+      markdownStyle: this.markdownStyle,
+      codeStyle: this.codeStyle,
+      markdownDensity: this.markdownDensity,
+      codeSize: this.codeSize,
+      bodyFontSizePx: this.bodyFontSizePx,
+      readingWidthPx: this.readingWidthPx,
+      animationsEnabled: this.animationsEnabled,
+    };
+  }
+
+  applyImportedPrefs(snapshot: UiPrefsSnapshot): void {
+    this.markdownStyle = snapshot.markdownStyle;
+    this.codeStyle = snapshot.codeStyle;
+    this.markdownDensity = snapshot.markdownDensity;
+    this.codeSize = snapshot.codeSize;
+    this.bodyFontSizePx = snapshot.bodyFontSizePx;
+    this.readingWidthPx = snapshot.readingWidthPx;
+    this.animationsEnabled = snapshot.animationsEnabled;
+  }
+
   /**
    * Swap the composer draft to match `threadId`. Persists the outgoing draft
    * under the previously bound thread so unsent text does not leak across
