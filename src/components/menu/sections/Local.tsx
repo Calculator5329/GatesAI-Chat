@@ -478,6 +478,7 @@ const LogModal = observer(function LogModal({ runtimeId, onClose }: { runtimeId:
 
   return (
     <div
+      data-local-runtime-log-modal
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',

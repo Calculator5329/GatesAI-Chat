@@ -57,6 +57,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
       role="dialog"
       aria-modal="true"
       aria-label="Image viewer"
+      data-gates-lightbox-backdrop
       onClick={onClose}
       style={{
         position: 'fixed',
@@ -273,4 +274,3 @@ const promptText: React.CSSProperties = {
   wordBreak: 'break-word',
   outline: 'none',
 };
-

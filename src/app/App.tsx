@@ -4,11 +4,13 @@
 import { Suspense, lazy, useEffect, useMemo, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { buildTheme, themeToCssVars } from '../core/theme';
-import { useChatStore, useRouterStore, useUiStore } from '../stores/context';
+import { useChatStore, useRootStore, useRouterStore, useUiStore } from '../stores/context';
 import { EditorialSidebar } from '../components/editorial/EditorialSidebar';
 import { EditorialChat } from '../components/editorial/EditorialChat';
+import { CommandPalette } from '../components/palette/CommandPalette';
 import { runtimeMode } from '../core/runtime';
 import { primeClientPlatform } from '../core/clientPlatform';
+import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 
 const GatesMenu = lazy(() => import('../components/menu/GatesMenu').then(m => ({ default: m.GatesMenu })));
 
@@ -32,6 +34,7 @@ const rootStyle: CSSProperties = {
 };
 
 export const App = observer(function App() {
+  const root = useRootStore();
   const ui = useUiStore();
   const chat = useChatStore();
   const router = useRouterStore();
@@ -49,15 +52,7 @@ export const App = observer(function App() {
     ['--reading-width' as string]: `${ui.readingWidthPx}px`,
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape' && router.isMenu) {
-        router.goThread(chat.activeThreadId);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [router, chat]);
+  useKeyboardShortcuts(root);
 
   useEffect(() => {
     return () => chat.stopStreaming();
@@ -81,6 +76,7 @@ export const App = observer(function App() {
           )
           : <EditorialChat />
         }
+        {ui.paletteOpen && <CommandPalette />}
       </div>
     </div>
   );

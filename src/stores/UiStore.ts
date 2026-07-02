@@ -37,6 +37,10 @@ export class UiStore {
   uploading = false;
   /** Last upload error message. Cleared on each new upload attempt. */
   uploadError: string | null = null;
+  /** Command palette visibility; the component is unmounted whenever false. */
+  paletteOpen = false;
+  private composerFocus: (() => void) | null = null;
+  private composerFocusPending = false;
   private readonly disposers: Array<() => void> = [];
 
   markdownStyle: MarkdownStyleKey = 'compact';
@@ -64,9 +68,11 @@ export class UiStore {
     this.bodyFontSizePx = prefs.bodyFontSizePx;
     this.readingWidthPx = prefs.readingWidthPx;
     this.animationsEnabled = prefs.animationsEnabled;
-    makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'disposers'>(this, {
+    makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'composerFocus' | 'composerFocusPending' | 'disposers'>(this, {
       boundDraftThreadId: false,
       draftByThread: false,
+      composerFocus: false,
+      composerFocusPending: false,
       disposers: false,
       bindDraftThread: action.bound,
       setDraft: action.bound,
@@ -74,6 +80,12 @@ export class UiStore {
       addAttachment: action.bound,
       removeAttachment: action.bound,
       clearAttachments: action.bound,
+      setPaletteOpen: action.bound,
+      openPalette: action.bound,
+      closePalette: action.bound,
+      togglePalette: action.bound,
+      setComposerFocusHandler: action.bound,
+      focusComposer: action.bound,
     });
     // Debounce UI-prefs persistence: a slider drag (font size, reading width)
     // can fire dozens of mutations per second; without debouncing each one
@@ -202,6 +214,26 @@ export class UiStore {
         attachments: [],
       });
     }
+  }
+
+  setPaletteOpen(value: boolean): void { this.paletteOpen = value; }
+  openPalette(): void { this.paletteOpen = true; }
+  closePalette(): void { this.paletteOpen = false; }
+  togglePalette(): void { this.paletteOpen = !this.paletteOpen; }
+
+  setComposerFocusHandler(handler: (() => void) | null): void {
+    this.composerFocus = handler;
+    if (!handler || !this.composerFocusPending) return;
+    this.composerFocusPending = false;
+    handler();
+  }
+
+  focusComposer(): void {
+    if (this.composerFocus) {
+      this.composerFocus();
+      return;
+    }
+    this.composerFocusPending = true;
   }
 
   /**
