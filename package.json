@@ -18,7 +18,7 @@
     "analyze": "vite build --mode analyze --sourcemap",
     "lint": "eslint .",
     "typecheck": "tsc -b && tsc -p tsconfig.test.json --noEmit",
-    "test": "vitest run --config vitest.config.ts",
+    "test": "vitest run --config vitest.config.ts --configLoader runner",
     "test:watch": "vitest",
     "test:models": "vitest run --config vitest.live.config.ts",
     "test:e2e": "playwright test",

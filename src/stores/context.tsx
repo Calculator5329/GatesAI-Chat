@@ -16,6 +16,7 @@ import type { ImageJobStore } from './ImageJobStore';
 import type { OllamaStore } from './OllamaStore';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
 import type { SearchStore } from './SearchStore';
+import type { McpStore } from './McpStore';
 import type { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import type { SourceWorkspaceStore } from './SourceWorkspaceStore';
 
@@ -81,6 +82,10 @@ export function useLocalRuntimeStore(): LocalRuntimeStore {
 
 export function useSearchStore(): SearchStore {
   return useRootStore().search;
+}
+
+export function useMcpStore(): McpStore {
+  return useRootStore().mcp;
 }
 
 export function useOpenRouterCompatibilityStore(): OpenRouterCompatibilityStore {
