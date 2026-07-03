@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, CSSProperties } from 'react';
+import { tokens } from '../../core/styleTokens';
 
 type ButtonVariant = 'default' | 'accent' | 'danger';
 
@@ -25,16 +26,21 @@ const VARIANT: Record<ButtonVariant, CSSProperties> = {
   },
 };
 
-export function Button({ variant = 'default', style, ...rest }: ButtonProps) {
+export function Button({ variant = 'default', style, className, disabled, ...rest }: ButtonProps) {
+  const classes = ['ui-button', `ui-button--${variant}`, className].filter(Boolean).join(' ');
   return (
     <button
       {...rest}
+      className={classes}
+      disabled={disabled}
+      data-variant={variant}
       style={{
         borderRadius: 6,
         padding: '6px 11px',
         fontSize: 12,
-        cursor: 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer',
         fontFamily: 'inherit',
+        transition: tokens.motion.interactive,
         ...VARIANT[variant],
         ...style,
       }}

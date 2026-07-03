@@ -170,9 +170,10 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
   }, [bridge, path, dataUrl]);
 
   return (
-    <div ref={ref} style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+    <div ref={ref} className="gallery-tile" style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
       <button
         type="button"
+        className="gallery-tile__image"
         onClick={onClick}
         title={prompt}
         aria-label={prompt}
@@ -194,6 +195,7 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
       }}>{prompt}</div>
       <button
         type="button"
+        className="gallery-tile__remove"
         onClick={(e) => { e.stopPropagation(); if (window.confirm('Remove from gallery?')) onDelete(); }}
         title="Remove from gallery"
         aria-label="Remove from gallery"

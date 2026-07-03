@@ -223,9 +223,12 @@ const ModelRow = memo(function ModelRow({
   };
   return (
     <div
+      className="model-popover__row"
       data-model-row={model.id}
       role="option"
       aria-selected={selected}
+      data-active={active || undefined}
+      data-selected={selected || undefined}
       onClick={() => onPick(model)}
       onMouseEnter={() => onHover(flatIndex)}
       style={rowStyle}
@@ -402,8 +405,11 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
           <button
             key={value}
             type="button"
+            className="model-popover__segment"
+            role="tab"
             onClick={() => setSourceAndPersist(value)}
             data-source-filter={value}
+            data-active={effectiveSource === value || undefined}
             aria-selected={effectiveSource === value}
             style={{
               ...SEGMENT_STYLE,
@@ -436,10 +442,13 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
           }}
         />
         {query && (
-          <span
+          <button
+            type="button"
+            className="model-popover__clear"
+            aria-label="Clear model search"
             onClick={() => setQuery('')}
-            style={{ color: 'var(--text-faint)', cursor: 'pointer', display: 'flex' }}
-          ><Icons.Close /></span>
+            style={{ color: 'var(--text-faint)', cursor: 'pointer', display: 'flex', border: 0, background: 'transparent', padding: 0 }}
+          ><Icons.Close /></button>
         )}
       </div>
 
@@ -450,8 +459,10 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
             <button
               key={cap.id}
               type="button"
+              className="model-popover__cap-filter"
               data-cap-filter={cap.id}
               aria-pressed={on}
+              data-active={on || undefined}
               onClick={() => toggleCap(cap.id)}
               style={{
                 height: 20,

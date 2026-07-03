@@ -44,9 +44,16 @@ export const BridgeStatusPill = observer(function BridgeStatusPill() {
     <div
       className="bridge-status-pill"
       onClick={() => { if (!webLite) void bridge.poll(); }}
+      onKeyDown={event => {
+        if (webLite || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        void bridge.poll();
+      }}
       title={title}
       style={S.root}
-      role="button"
+      role={webLite ? 'status' : 'button'}
+      tabIndex={webLite ? undefined : 0}
+      aria-disabled={webLite || undefined}
     >
       <span style={{ ...S.dot, background: dotColor }} />
       <span className="bridge-status-pill__label" style={{ ...S.label, color: labelColor }}>{label}</span>

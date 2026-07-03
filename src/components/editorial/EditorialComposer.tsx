@@ -350,6 +350,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                   <WorkspaceImage path={a.path} alt={a.filename} kind={a.filename.split('.').pop()?.toUpperCase() || 'IMG'} cacheKey={a.id} />
                   <button
                     type="button"
+                    className="composer-attachment-remove"
                     onClick={() => ui.removeAttachment(a.id)}
                     title="Remove"
                     aria-label={`Remove ${a.filename}`}
@@ -388,6 +389,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                   {a.filename}
                   <button
                     type="button"
+                    className="composer-attachment-remove"
                     onClick={() => ui.removeAttachment(a.id)}
                     title="Remove"
                     aria-label={`Remove ${a.filename}`}
@@ -517,6 +519,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             <span className="composer-reveal">
               <span style={SEP_STYLE}>·</span>
               <select
+                className="composer-local-select"
                 value={localContextMode}
                 onChange={e => chat.setThreadContextMode(activeThread.id, e.currentTarget.value as ChatContextMode)}
                 title="Local context mode"
@@ -533,6 +536,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             <span className="composer-reveal">
               <span style={SEP_STYLE}>·</span>
               <select
+                className="composer-local-select"
                 value={thinkingEffort}
                 onChange={e => chat.setThreadThinkingEffort(activeThread.id, e.currentTarget.value as ChatThinkingEffort)}
                 title="Thinking effort"
@@ -662,6 +666,7 @@ const ModelsKeyBanner = observer(function ModelsKeyBanner() {
       <span>Add an OpenRouter key in Models to start chatting.</span>
       <button
         type="button"
+        className="editorial-banner-action"
         onClick={() => router.goMenu('models')}
         style={{
           padding: '4px 10px',
@@ -698,6 +703,7 @@ const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
       <span>Start Ollama to chat with this local model.</span>
       <button
         type="button"
+        className="editorial-banner-action"
         onClick={() => router.goMenu('local')}
         style={{
           padding: '4px 10px',
@@ -727,11 +733,11 @@ function NoticeBanner(props: {
       <span>{props.message}</span>
       <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         {props.actionLabel && props.onAction && (
-          <button type="button" onClick={props.onAction} style={{ fontSize: 12, color: 'var(--accent)' }}>
+          <button type="button" className="editorial-banner-action" onClick={props.onAction} style={{ fontSize: 12, color: 'var(--accent)' }}>
             {props.actionLabel}
           </button>
         )}
-        <button type="button" onClick={props.onDismiss} aria-label="Dismiss notice">×</button>
+        <button type="button" className="editorial-banner-action" onClick={props.onDismiss} aria-label="Dismiss notice">×</button>
       </span>
     </div>
   );
@@ -755,6 +761,7 @@ const LocalImageBanner = observer(function LocalImageBanner() {
       <span>Start and connect ComfyUI to use local image generation.</span>
       <button
         type="button"
+        className="editorial-banner-action"
         onClick={() => router.goMenu('local')}
         style={{
           padding: '4px 10px',

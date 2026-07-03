@@ -164,6 +164,7 @@ const RuntimeRow = observer(function RuntimeRow({ id, runtime, onOpenLogs, last 
             Auto-detect couldn't find {runtimeLabel(id)} on this machine. {' '}
             <button
               type="button"
+              className="menu-inline-link"
               onClick={() => { void bridge.openWorkspacePath(id === 'ollama' ? '/workspace/docs/gatesai-local-image-prereqs.md' : '/workspace/docs/comfyui-setup.md'); }}
               style={inlineLinkStyle}
             >
@@ -180,7 +181,7 @@ const RuntimeRow = observer(function RuntimeRow({ id, runtime, onOpenLogs, last 
           <div role="alert" style={errorRowStyle}>
             <span style={{ flex: 1 }}>{runtime.lastError}</span>
             {runtime.logs.length > 0 && (
-              <button type="button" onClick={() => onOpenLogs(id)} style={inlineLinkStyle}>
+              <button type="button" className="menu-inline-link" onClick={() => onOpenLogs(id)} style={inlineLinkStyle}>
                 View logs
               </button>
             )}
@@ -433,7 +434,7 @@ const PullSnippet = observer(function PullSnippet({ command, hint }: { command: 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: 'var(--text-faint)' }}>
       <code style={{ ...tokens.mono, flex: 'none' }}>{command}</code>
-      <button type="button" onClick={onCopy} style={inlineLinkStyle} title="Copy command">
+      <button type="button" className="menu-inline-link" onClick={onCopy} style={inlineLinkStyle} title="Copy command">
         {copied ? 'copied' : 'copy'}
       </button>
       {hint && <span style={{ flex: 1 }}>{hint}</span>}

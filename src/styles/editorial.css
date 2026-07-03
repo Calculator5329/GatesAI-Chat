@@ -3,6 +3,271 @@
  * state, and composer chrome. Class names must match component markup.
  */
 
+:root {
+  --motion-fast: 140ms ease;
+  --motion-fade: 160ms ease;
+  --focus-ring: color-mix(in srgb, var(--accent) 56%, transparent);
+  --focus-ring-glow: color-mix(in srgb, var(--accent) 18%, transparent);
+  --interactive-hover: color-mix(in srgb, var(--text) 8%, transparent);
+  --interactive-active: color-mix(in srgb, var(--accent) 12%, transparent);
+  --interactive-disabled-opacity: 0.45;
+}
+
+:where(button, [role="button"], input, textarea, select, a[href]):focus-visible {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 3px var(--focus-ring-glow);
+}
+
+:where(button, [role="button"]):disabled,
+:where(button, [role="button"])[aria-disabled="true"],
+.ui-field:disabled {
+  opacity: var(--interactive-disabled-opacity);
+  cursor: not-allowed !important;
+}
+
+:where(button, [role="button"]) svg,
+.ui-button svg {
+  vertical-align: middle;
+}
+
+.ui-button,
+.ui-field,
+.ui-segmented__button,
+.ui-toggle,
+.settings-inline-link,
+.menu-inline-link,
+.gates-menu__tab,
+.palette-row,
+.model-popover__row,
+.workspace-action-button,
+.workspace-tree-row,
+.menu-icon-button,
+.editorial-banner-action,
+.composer-attachment-remove {
+  transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+
+.ui-button:hover:not(:disabled),
+.ui-segmented__button:hover,
+.workspace-action-button:hover:not(:disabled),
+.editorial-banner-action:hover:not(:disabled),
+.menu-icon-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border)) !important;
+  background: var(--interactive-hover) !important;
+  color: var(--text) !important;
+}
+
+.settings-inline-link:focus-visible,
+.menu-inline-link:hover:not(:disabled),
+.menu-inline-link:focus-visible {
+  color: var(--text) !important;
+  border-bottom-color: var(--accent) !important;
+}
+
+.ui-button--accent:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 86%, var(--text) 14%) !important;
+  border-color: color-mix(in srgb, var(--accent) 86%, var(--text) 14%) !important;
+  color: #06120a !important;
+}
+
+.ui-button--danger:hover:not(:disabled),
+.menu-icon-button[data-tone="danger"]:hover:not(:disabled) {
+  border-color: rgba(255,117,151,0.52) !important;
+  background: rgba(255,117,151,0.08) !important;
+  color: #ff9ab3 !important;
+}
+
+.ui-button:active:not(:disabled),
+.ui-segmented__button:active,
+.workspace-action-button:active:not(:disabled),
+.editorial-banner-action:active:not(:disabled),
+.menu-icon-button:active:not(:disabled),
+.palette-row:active,
+.model-popover__row:active,
+.editorial-sidebar__item:active,
+.editorial-sidebar__new:active:not(:disabled),
+.message-actions button:active:not(:disabled),
+.composer-attach-btn:active:not(:disabled),
+.composer-send-control:active:not(:disabled) {
+  background: var(--interactive-active) !important;
+}
+
+.ui-field:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border)) !important;
+}
+
+.ui-field:focus-visible,
+.message-edit-panel textarea:focus-visible,
+.composer-textarea:focus-visible,
+.composer-local-select:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--border)) !important;
+}
+
+.ui-segmented__button[data-active="true"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
+  background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+  color: var(--accent) !important;
+}
+
+.ui-toggle:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px var(--focus-ring-glow);
+}
+
+.ui-toggle:active:not(:disabled) .ui-toggle__thumb {
+  transform: scale(0.92);
+}
+
+.bridge-status-pill,
+.editorial-sidebar__brand,
+.editorial-sidebar__new,
+.editorial-sidebar__item,
+.editorial-sidebar__close,
+.editorial-sidebar__mobile-action,
+.editorial-sidebar__pin-button,
+.editorial-sidebar__delete-button,
+.editorial-mobile-topbar__button,
+.editorial-mobile-topbar__title,
+.editorial-mobile-topbar__new,
+.editorial-mobile-topbar__share,
+.editorial-mobile-topbar__more,
+.editorial-show-earlier,
+.message-actions button,
+.message-confirm-panel button,
+.message-edit-panel button,
+.chat-error-banner button,
+.composer-attach-btn,
+.composer-send-control,
+.composer-model-label,
+.model-popover__segment,
+.model-popover__cap-filter,
+.model-popover__favorite,
+.model-popover__clear,
+.gallery-tile__image,
+.gallery-tile__remove,
+.image-job-card__cancel,
+.image-job-card__action,
+.image-job-card__image,
+.image-job-card__grid-tile,
+.html-artifact-preview,
+.html-artifact-preview__open,
+.html-artifact-fullscreen__action,
+.user-attachment-chip,
+.user-attachment-thumb,
+.editorial-empty-state__primary,
+.web-lite-download-cue__link {
+  transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+
+.bridge-status-pill:hover:not([aria-disabled="true"]),
+.editorial-sidebar__brand:hover,
+.editorial-sidebar__new:hover:not(:disabled),
+.editorial-sidebar__close:hover:not(:disabled),
+.editorial-sidebar__mobile-action:hover:not(:disabled),
+.editorial-sidebar__pin-button:focus-visible,
+.editorial-sidebar__delete-button:focus-visible,
+.editorial-mobile-topbar__button:hover:not(:disabled),
+.editorial-mobile-topbar__button:focus-visible,
+.editorial-mobile-topbar__title:hover:not(:disabled),
+.editorial-mobile-topbar__title:focus-visible,
+.editorial-mobile-topbar__new:hover:not(:disabled),
+.editorial-mobile-topbar__new:focus-visible,
+.editorial-mobile-topbar__share:hover:not(:disabled),
+.editorial-mobile-topbar__share:focus-visible,
+.editorial-mobile-topbar__more:hover:not(:disabled),
+.editorial-mobile-topbar__more:focus-visible,
+.editorial-sidebar__item:hover,
+.editorial-sidebar__item:focus-visible,
+.activity-row__button:hover:not(:disabled),
+.activity-row__button:focus-visible,
+.message-actions button:focus-visible,
+.message-confirm-panel button:focus-visible,
+.message-edit-panel button:hover:not(:disabled),
+.message-edit-panel button:focus-visible,
+.chat-error-banner button:focus-visible,
+.composer-model-label:focus-visible,
+.composer-local-select:hover:not(:disabled),
+.model-popover__segment:hover:not(:disabled),
+.model-popover__segment:focus-visible,
+.model-popover__cap-filter:hover:not(:disabled),
+.model-popover__cap-filter:focus-visible,
+.model-popover__favorite:hover:not(:disabled),
+.model-popover__favorite:focus-visible,
+.model-popover__clear:hover:not(:disabled),
+.model-popover__clear:focus-visible,
+.palette-row:hover,
+.palette-row:focus-visible,
+.workspace-tree-row:hover,
+.workspace-tree-row:focus-visible,
+.gallery-tile__image:hover:not(:disabled),
+.gallery-tile__image:focus-visible,
+.gallery-tile__remove:hover:not(:disabled),
+.gallery-tile__remove:focus-visible,
+.image-job-card__cancel:hover:not(:disabled),
+.image-job-card__cancel:focus-visible,
+.image-job-card__action:hover:not(:disabled),
+.image-job-card__action:focus-visible,
+.image-job-card__image:hover:not(:disabled),
+.image-job-card__image:focus-visible,
+.image-job-card__grid-tile:hover:not(:disabled),
+.image-job-card__grid-tile:focus-visible,
+.html-artifact-preview:hover,
+.html-artifact-preview:focus-visible,
+.html-artifact-preview__open:hover:not(:disabled),
+.html-artifact-preview__open:focus-visible,
+.html-artifact-fullscreen__action:hover:not(:disabled),
+.html-artifact-fullscreen__action:focus-visible,
+.user-attachment-chip:focus-visible,
+.user-attachment-thumb:focus-visible {
+  background: var(--interactive-hover) !important;
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--border)) !important;
+  color: var(--text) !important;
+}
+
+.gates-menu__tab:hover:not(:disabled),
+.gates-menu__tab:focus-visible {
+  background: color-mix(in srgb, var(--text) 6%, transparent) !important;
+  color: var(--text) !important;
+}
+
+.gates-menu__tab[data-active="true"] {
+  color: var(--text) !important;
+}
+
+.palette-row[data-selected="true"],
+.model-popover__row[data-active="true"],
+.workspace-tree-row[data-open="true"] {
+  background: var(--interactive-hover) !important;
+}
+
+.model-popover__row:hover {
+  background: color-mix(in srgb, var(--text) 7%, transparent) !important;
+}
+
+.model-popover__cap-filter[data-active="true"] {
+  border-color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 14%, transparent) !important;
+  color: var(--accent) !important;
+}
+
+.gallery-tile__remove,
+.image-job-card__cancel,
+.composer-attachment-remove {
+  transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+
+.gallery-tile__remove:hover:not(:disabled),
+.composer-attachment-remove:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bg) 58%, var(--accent) 18%) !important;
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border)) !important;
+}
+
+.html-artifact-fullscreen__action,
+.html-artifact-preview__open,
+.image-job-card__action {
+  border-color: var(--border);
+}
+
 .stream-caret {
   display: inline-block;
   width: 2px;

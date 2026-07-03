@@ -44,6 +44,8 @@ export const GatesMenu = observer(function GatesMenu() {
             <button
               type="button"
               key={s.key}
+              className="gates-menu__tab"
+              data-active={active || undefined}
               disabled={!s.supported}
               onClick={onSelect}
               style={{

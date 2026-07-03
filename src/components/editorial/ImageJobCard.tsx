@@ -130,6 +130,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
         </div>
         <button
           type="button"
+          className="image-job-card__cancel"
           onClick={onCancel}
           title="Cancel render"
           aria-label="Cancel render"
@@ -150,6 +151,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
       </div>
       <button
         type="button"
+        className="image-job-card__cancel"
         onClick={onCancel}
         title="Cancel render"
         aria-label="Cancel render"
@@ -196,8 +198,8 @@ const FailedCard = observer(function FailedCard({ job, onRetry }: { job: Complet
           {job.error ?? 'Unknown error'}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" onClick={onRetry} style={inlineBtn}>Retry</button>
-          <button type="button" onClick={copyError} style={inlineBtn}>{copied ? 'Copied' : 'Copy error'}</button>
+          <button type="button" className="image-job-card__action" onClick={onRetry} style={inlineBtn}>Retry</button>
+          <button type="button" className="image-job-card__action" onClick={copyError} style={inlineBtn}>{copied ? 'Copied' : 'Copy error'}</button>
         </div>
       </div>
     </div>
@@ -226,7 +228,7 @@ const CancelledCard = observer(function CancelledCard({ job, onRetry }: { job: C
       <div style={{ ...rectBase, padding: 12, color: 'var(--text-faint)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
         <div>Render cancelled</div>
         {job.results.length > 0 && <div style={{ fontSize: 11.5 }}>({job.results.length} of {job.count} completed before cancel)</div>}
-        <div><button type="button" onClick={onRetry} style={inlineBtn}>Retry</button></div>
+        <div><button type="button" className="image-job-card__action" onClick={onRetry} style={inlineBtn}>Retry</button></div>
       </div>
     </div>
   );
@@ -237,6 +239,7 @@ const BigImage = observer(function BigImage({ path, alt, onOpen }: { path: strin
   return (
     <button
       type="button"
+      className="image-job-card__image"
       onClick={onOpen}
       disabled={failed}
       style={{
@@ -275,6 +278,7 @@ const GridTile = observer(function GridTile({ path, onClick }: { path: string; o
   return (
     <button
       type="button"
+      className="image-job-card__grid-tile"
       onClick={onClick}
       disabled={failed}
       style={{ padding: 0, border: '1px solid var(--border)', borderRadius: 4, overflow: 'hidden', cursor: failed ? 'default' : 'pointer', background: 'transparent', aspectRatio: '1 / 1' }}
@@ -322,4 +326,3 @@ const inlineBtn: React.CSSProperties = {
   cursor: 'pointer',
   color: 'var(--text-dim)',
 };
-

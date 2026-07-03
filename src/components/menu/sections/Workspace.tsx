@@ -173,7 +173,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
                 : bridge.lastError ?? 'No connection yet.'}
             </div>
           </div>
-          <button onClick={() => { void bridge.poll(); }} style={S.btn}>Re-poll</button>
+          <button type="button" className="workspace-action-button" onClick={() => { void bridge.poll(); }} style={S.btn}>Re-poll</button>
         </div>
       </Card>
 
@@ -182,6 +182,8 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={S.label}>Workspace root</div>
           <button
+            type="button"
+            className="workspace-action-button"
             onClick={() => { void bridge.openWorkspacePath('/workspace'); }}
             disabled={!bridge.isOnline}
             title={bridge.isOnline ? 'Open the workspace folder' : 'Bridge must be online to open the workspace.'}
@@ -240,6 +242,8 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
           <div style={S.label}>Workspace contents</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
+              type="button"
+              className="workspace-action-button"
               onClick={() => { void bridge.openWorkspacePath('/workspace'); }}
               disabled={!bridge.isOnline}
               title={bridge.isOnline ? 'Open the workspace folder' : 'Bridge must be online to open the workspace.'}
@@ -247,7 +251,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
             >
               Open workspace
             </button>
-            <button onClick={() => { void refresh(); }} style={S.btn}>
+            <button type="button" className="workspace-action-button" onClick={() => { void refresh(); }} style={S.btn}>
               {loading ? 'Refreshing…' : 'Refresh'}
             </button>
           </div>
@@ -324,11 +328,11 @@ function SourceWorkspaceCard({
         <div style={{ ...S.empty, marginTop: 8 }}>Source workspace controls are available in the installed desktop app.</div>
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <button onClick={onPrepare} disabled={unavailable || loading || !status?.available} style={S.btn}>
+        <button type="button" className="workspace-action-button" onClick={onPrepare} disabled={unavailable || loading || !status?.available} style={S.btn}>
           {loading ? 'Working…' : status?.stale ? 'Refresh source' : 'Prepare source'}
         </button>
-        <button onClick={onOpen} disabled={unavailable || !status?.prepared} style={S.btn}>Open source</button>
-        <button onClick={onRefresh} disabled={unavailable || loading} style={S.btn}>Refresh</button>
+        <button type="button" className="workspace-action-button" onClick={onOpen} disabled={unavailable || !status?.prepared} style={S.btn}>Open source</button>
+        <button type="button" className="workspace-action-button" onClick={onRefresh} disabled={unavailable || loading} style={S.btn}>Refresh</button>
       </div>
     </Card>
   );
@@ -392,12 +396,12 @@ function SourceBuildCard({
         <pre style={S.logTail}>{status.logs.slice(-12).join('\n')}</pre>
       ) : null}
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <button onClick={() => onStart('install')} disabled={disabled} style={S.btn}>Install deps</button>
-        <button onClick={() => onStart('test')} disabled={disabled} style={S.btn}>Test</button>
-        <button onClick={() => onStart('build')} disabled={disabled} style={S.btn}>Build</button>
-        <button onClick={() => onStart('package')} disabled={disabled} style={S.btn}>Package</button>
-        <button onClick={onRefresh} disabled={unavailable || loading} style={S.btn}>Refresh</button>
-        <button onClick={onClear} disabled={unavailable || loading || running} style={S.btn}>Clear</button>
+        <button type="button" className="workspace-action-button" onClick={() => onStart('install')} disabled={disabled} style={S.btn}>Install deps</button>
+        <button type="button" className="workspace-action-button" onClick={() => onStart('test')} disabled={disabled} style={S.btn}>Test</button>
+        <button type="button" className="workspace-action-button" onClick={() => onStart('build')} disabled={disabled} style={S.btn}>Build</button>
+        <button type="button" className="workspace-action-button" onClick={() => onStart('package')} disabled={disabled} style={S.btn}>Package</button>
+        <button type="button" className="workspace-action-button" onClick={onRefresh} disabled={unavailable || loading} style={S.btn}>Refresh</button>
+        <button type="button" className="workspace-action-button" onClick={onClear} disabled={unavailable || loading || running} style={S.btn}>Clear</button>
       </div>
     </Card>
   );
@@ -473,17 +477,27 @@ function TreeRow({ node, depth }: { node: TreeNode; depth: number }) {
   const isDir = node.kind === 'dir';
 
   const folderColor = folderAccent(node.name);
+  const activate = (): void => {
+    if (isDir) {
+      setOpen(o => !o);
+      return;
+    }
+    void bridge.openWorkspacePath(node.path);
+  };
 
   return (
     <div>
       <div
-        role={isDir ? 'button' : undefined}
-        tabIndex={isDir ? 0 : undefined}
-        onClick={() => {
-          if (isDir) { setOpen(o => !o); return; }
-          void bridge.openWorkspacePath(node.path);
+        className="workspace-tree-row"
+        role="button"
+        tabIndex={0}
+        data-open={isDir && open ? 'true' : undefined}
+        onClick={activate}
+        onKeyDown={e => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          activate();
         }}
-        onKeyDown={e => { if (isDir && (e.key === 'Enter' || e.key === ' ')) setOpen(o => !o); }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         style={{
@@ -493,7 +507,7 @@ function TreeRow({ node, depth }: { node: TreeNode; depth: number }) {
           padding: '4px 6px',
           paddingLeft: `${6 + depth * 16}px`,
           borderRadius: 5,
-          cursor: isDir ? 'pointer' : 'default',
+          cursor: 'pointer',
           background: hovered ? 'rgba(255,255,255,0.05)' : 'transparent',
           userSelect: 'none',
           transition: 'background 0.1s',

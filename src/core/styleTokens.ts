@@ -4,6 +4,12 @@
  * `src/components/ui/` instead — these are the leftover bare style objects.
  */
 export const tokens = {
+  motion: {
+    fast: 'var(--motion-fast)',
+    fade: 'var(--motion-fade)',
+    interactive: 'background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast)',
+  },
+
   h1: {
     fontFamily: '"Source Serif 4", Iowan Old Style, Georgia, serif',
     fontSize: 28, fontWeight: 400, margin: '0 0 4px',

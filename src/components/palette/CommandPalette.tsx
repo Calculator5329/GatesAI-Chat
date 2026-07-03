@@ -189,7 +189,7 @@ export const CommandPalette = observer(function CommandPalette() {
             style={INPUT_STYLE}
           />
         </div>
-        <div role="listbox" aria-label="Command results" style={LIST_STYLE}>
+        <div className="command-palette__list" role="listbox" aria-label="Command results" style={LIST_STYLE}>
           {ranked.length === 0 && <div style={EMPTY_STYLE}>No matches</div>}
           {ranked.map((item, index) => (
             <PaletteRow
@@ -237,7 +237,9 @@ function PaletteRow({
     <button
       type="button"
       role="option"
+      className="palette-row"
       aria-selected={selected}
+      data-selected={selected || undefined}
       data-palette-kind={item.kind}
       onMouseEnter={onHover}
       onFocus={onHover}
