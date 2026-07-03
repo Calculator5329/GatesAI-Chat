@@ -8,6 +8,7 @@ import { Icons } from '../ui/icons';
 import { useEditorial } from '../../stores/context';
 import { OPENROUTER_THINKING_PRESETS, normalizeOpenRouterThinkingEffort, type ChatContextMode, type ChatThinkingEffort } from '../../stores/ChatStore';
 import type { StreamActivity } from '../../core/types';
+import { tokens } from '../../core/styleTokens';
 import { formatUsd } from '../../core/usage';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
@@ -31,14 +32,14 @@ const ATTACH_BTN_STYLE: CSSProperties = {
   color: 'var(--text-faint)',
   flex: 'none',
   alignSelf: 'center',
-  transition: 'background 100ms ease',
+  transition: `background-color ${tokens.motion.fast}`,
 };
 
 const SEND_BTN_STYLE: CSSProperties = {
   width: 28, height: 28, borderRadius: 6,
   color: 'var(--accent)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  transition: 'background 100ms ease, opacity 100ms ease',
+  transition: `background-color ${tokens.motion.fast}, opacity ${tokens.motion.fast}`,
 };
 
 const STOP_BTN_OUTER_STYLE: CSSProperties = {
@@ -56,14 +57,14 @@ const STOP_BTN_INNER_STYLE: CSSProperties = {
 
 const ROW_STYLE: CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 8,
-  padding: '9px 13px 9px 8px',
+  padding: '8px 12px 8px 8px',
   background: 'var(--panel)',
   borderRadius: 10,
-  transition: 'border-color 120ms ease',
+  transition: `border-color ${tokens.motion.fast}`,
 };
 
 const META_ROW_STYLE: CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 8, marginTop: 7,
+  display: 'flex', alignItems: 'center', gap: 8, marginTop: 8,
   fontSize: 11.5, color: 'var(--accent)',
   position: 'relative',
   minHeight: 18,
@@ -95,7 +96,7 @@ const LOCAL_CONTEXT_SELECT_STYLE: CSSProperties = {
   fontFamily: '"Geist Mono", monospace',
   fontSize: 10.5,
   height: 22,
-  padding: '0 7px',
+  padding: '0 8px',
   outline: 'none',
 };
 
@@ -350,6 +351,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                   <WorkspaceImage path={a.path} alt={a.filename} kind={a.filename.split('.').pop()?.toUpperCase() || 'IMG'} cacheKey={a.id} />
                   <button
                     type="button"
+                    className="composer-attachment-remove"
                     onClick={() => ui.removeAttachment(a.id)}
                     title="Remove"
                     aria-label={`Remove ${a.filename}`}
@@ -388,6 +390,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
                   {a.filename}
                   <button
                     type="button"
+                    className="composer-attachment-remove"
                     onClick={() => ui.removeAttachment(a.id)}
                     title="Remove"
                     aria-label={`Remove ${a.filename}`}
@@ -461,6 +464,8 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           <button
             type="button"
             className="composer-send-control"
+            data-ready={(streaming || canSend) || undefined}
+            data-mode={streaming && !hasText ? 'stop' : 'send'}
             onClick={streaming && !hasText ? onStop : onSend}
             title={sendTitle}
             aria-label={sendTitle}
@@ -517,6 +522,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             <span className="composer-reveal">
               <span style={SEP_STYLE}>·</span>
               <select
+                className="composer-local-select"
                 value={localContextMode}
                 onChange={e => chat.setThreadContextMode(activeThread.id, e.currentTarget.value as ChatContextMode)}
                 title="Local context mode"
@@ -533,6 +539,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             <span className="composer-reveal">
               <span style={SEP_STYLE}>·</span>
               <select
+                className="composer-local-select"
                 value={thinkingEffort}
                 onChange={e => chat.setThreadThinkingEffort(activeThread.id, e.currentTarget.value as ChatThinkingEffort)}
                 title="Thinking effort"
@@ -548,14 +555,21 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           )}
           <span className="composer-meta__sep" style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
           <ContextMeter draftText={value} />
-          <span style={{
+          <span
+            className="composer-stream-label"
+            aria-live="polite"
+            style={{
             marginLeft: 'auto',
             flex: 'none',
             fontFamily: '"Geist Mono", monospace',
             color: 'var(--accent)',
             opacity: streaming ? 0.85 : 0,
-            transition: 'opacity 160ms ease',
+            transition: `opacity ${tokens.motion.fade}`,
             letterSpacing: '0.06em',
+            minHeight: 18,
+            minWidth: '20ch',
+            textAlign: 'right',
+            whiteSpace: 'nowrap',
           }}>
             {streaming ? (hasText ? 'Enter to interrupt' : streamFooterLabel(streamActivity)) : ''}
           </span>
@@ -662,6 +676,7 @@ const ModelsKeyBanner = observer(function ModelsKeyBanner() {
       <span>Add an OpenRouter key in Models to start chatting.</span>
       <button
         type="button"
+        className="editorial-banner-action"
         onClick={() => router.goMenu('models')}
         style={{
           padding: '4px 10px',
@@ -674,7 +689,7 @@ const ModelsKeyBanner = observer(function ModelsKeyBanner() {
           fontFamily: 'inherit',
         }}
       >
-        Open Models
+        Open models
       </button>
     </div>
   );
@@ -698,6 +713,7 @@ const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
       <span>Start Ollama to chat with this local model.</span>
       <button
         type="button"
+        className="editorial-banner-action"
         onClick={() => router.goMenu('local')}
         style={{
           padding: '4px 10px',
@@ -710,7 +726,7 @@ const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
           fontFamily: 'inherit',
         }}
       >
-        Open Local settings
+        Open local settings
       </button>
     </div>
   );
@@ -727,11 +743,11 @@ function NoticeBanner(props: {
       <span>{props.message}</span>
       <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         {props.actionLabel && props.onAction && (
-          <button type="button" onClick={props.onAction} style={{ fontSize: 12, color: 'var(--accent)' }}>
+          <button type="button" className="editorial-banner-action" onClick={props.onAction} style={{ fontSize: 12, color: 'var(--accent)' }}>
             {props.actionLabel}
           </button>
         )}
-        <button type="button" onClick={props.onDismiss} aria-label="Dismiss notice">×</button>
+        <button type="button" className="editorial-banner-action" onClick={props.onDismiss} aria-label="Dismiss notice">×</button>
       </span>
     </div>
   );
@@ -755,6 +771,7 @@ const LocalImageBanner = observer(function LocalImageBanner() {
       <span>Start and connect ComfyUI to use local image generation.</span>
       <button
         type="button"
+        className="editorial-banner-action"
         onClick={() => router.goMenu('local')}
         style={{
           padding: '4px 10px',
@@ -767,7 +784,7 @@ const LocalImageBanner = observer(function LocalImageBanner() {
           fontFamily: 'inherit',
         }}
       >
-        Open Local settings
+        Open local settings
       </button>
     </div>
   );

@@ -173,13 +173,13 @@ const MemorySection = observer(function MemorySection() {
                 <div style={rowActions}>
                   {isEditing ? (
                     <>
-                      <button style={iconBtn} onClick={saveEdit} title="Save">save</button>
-                      <button style={iconBtn} onClick={cancelEdit} title="Cancel">cancel</button>
+                      <button type="button" className="menu-icon-button" style={iconBtn} onClick={saveEdit} title="Save">save</button>
+                      <button type="button" className="menu-icon-button" style={iconBtn} onClick={cancelEdit} title="Cancel">cancel</button>
                     </>
                   ) : (
                     <>
-                      <button style={iconBtn} onClick={() => startEdit(i, fact)} title="Edit">edit</button>
-                      <button style={{ ...iconBtn, color: 'var(--text-faint)' }} onClick={() => profile.removeFactAt(i)} title="Delete">delete</button>
+                      <button type="button" className="menu-icon-button" style={iconBtn} onClick={() => startEdit(i, fact)} title="Edit">edit</button>
+                      <button type="button" className="menu-icon-button" data-tone="danger" style={{ ...iconBtn, color: 'var(--text-faint)' }} onClick={() => profile.removeFactAt(i)} title="Delete">delete</button>
                     </>
                   )}
                 </div>
@@ -203,6 +203,9 @@ const MemorySection = observer(function MemorySection() {
       {facts.length > 0 && (
         <div style={{ marginTop: 12, textAlign: 'right' }}>
           <button
+            type="button"
+            className="menu-icon-button"
+            data-tone="danger"
             style={{ ...iconBtn, color: 'var(--text-faint)', fontSize: 11 }}
             onClick={() => {
               if (window.confirm(`Delete all ${facts.length} memories? This can't be undone.`)) {

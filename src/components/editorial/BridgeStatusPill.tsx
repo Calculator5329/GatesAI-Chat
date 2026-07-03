@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useEditorial } from '../../stores/context';
 import { isWebLite } from '../../core/runtime';
+import { tokens } from '../../core/styleTokens';
 
 /**
  * Tiny status indicator at the bottom of the sidebar. Three states:
@@ -44,9 +45,16 @@ export const BridgeStatusPill = observer(function BridgeStatusPill() {
     <div
       className="bridge-status-pill"
       onClick={() => { if (!webLite) void bridge.poll(); }}
+      onKeyDown={event => {
+        if (webLite || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        void bridge.poll();
+      }}
       title={title}
       style={S.root}
-      role="button"
+      role={webLite ? 'status' : 'button'}
+      tabIndex={webLite ? undefined : 0}
+      aria-disabled={webLite || undefined}
     >
       <span style={{ ...S.dot, background: dotColor }} />
       <span className="bridge-status-pill__label" style={{ ...S.label, color: labelColor }}>{label}</span>
@@ -68,7 +76,7 @@ const S: Record<string, CSSProperties> = {
   dot: {
     width: 7, height: 7, borderRadius: '50%',
     flex: 'none',
-    transition: 'background 200ms ease',
+    transition: `background-color ${tokens.motion.fade}`,
   },
   label: {
     overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',

@@ -7,6 +7,7 @@ import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
 import { DEFAULT_MODEL_ID } from '../../core/models';
 import { isWebLite } from '../../core/runtime';
+import { tokens } from '../../core/styleTokens';
 import { isVerifiedModelId } from '../../core/modelPickerAvailability';
 import {
   AUTO_MODEL,
@@ -115,7 +116,7 @@ const SEGMENT_STYLE: CSSProperties = {
   cursor: 'pointer',
 };
 
-const ROW_LEFT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 };
+const ROW_LEFT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 };
 const ROW_RIGHT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, minWidth: 0, flexWrap: 'wrap' };
 const STAR_ICON_STYLE: CSSProperties = { flexShrink: 0, opacity: 0.85 };
 const NAME_STYLE_BASE: CSSProperties = {
@@ -207,11 +208,11 @@ const ModelRow = memo(function ModelRow({
     display: 'grid',
     gridTemplateColumns: 'minmax(0, 1fr) minmax(90px, auto)',
     rowGap: 1,
-    padding: '7px 14px 7px 18px',
+    padding: '8px 14px 8px 18px',
     cursor: 'pointer',
     background: active ? 'var(--panel-2)' : 'transparent',
     borderLeft: selected ? '2px solid var(--accent)' : '2px solid transparent',
-    transition: 'background 80ms ease',
+    transition: tokens.motion.interactive,
   };
   const nameStyle: CSSProperties = {
     ...NAME_STYLE_BASE,
@@ -223,9 +224,12 @@ const ModelRow = memo(function ModelRow({
   };
   return (
     <div
+      className="model-popover__row"
       data-model-row={model.id}
       role="option"
       aria-selected={selected}
+      data-active={active || undefined}
+      data-selected={selected || undefined}
       onClick={() => onPick(model)}
       onMouseEnter={() => onHover(flatIndex)}
       style={rowStyle}
@@ -402,8 +406,11 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
           <button
             key={value}
             type="button"
+            className="model-popover__segment"
+            role="tab"
             onClick={() => setSourceAndPersist(value)}
             data-source-filter={value}
+            data-active={effectiveSource === value || undefined}
             aria-selected={effectiveSource === value}
             style={{
               ...SEGMENT_STYLE,
@@ -436,10 +443,13 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
           }}
         />
         {query && (
-          <span
+          <button
+            type="button"
+            className="model-popover__clear"
+            aria-label="Clear model search"
             onClick={() => setQuery('')}
-            style={{ color: 'var(--text-faint)', cursor: 'pointer', display: 'flex' }}
-          ><Icons.Close /></span>
+            style={{ color: 'var(--text-faint)', cursor: 'pointer', display: 'flex', border: 0, background: 'transparent', padding: 0 }}
+          ><Icons.Close /></button>
         )}
       </div>
 
@@ -450,8 +460,10 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
             <button
               key={cap.id}
               type="button"
+              className="model-popover__cap-filter"
               data-cap-filter={cap.id}
               aria-pressed={on}
+              data-active={on || undefined}
               onClick={() => toggleCap(cap.id)}
               style={{
                 height: 20,
@@ -473,7 +485,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
         })}
       </div>
 
-      <div role="listbox" aria-label="Models" style={{ overflowY: 'auto', flex: 1, paddingBottom: 6 }}>
+      <div className="model-popover__list" role="listbox" aria-label="Models" style={{ overflowY: 'auto', flex: 1, paddingBottom: 6 }}>
         {displaySections.length === 0 && (
           <div style={{
             padding: '24px 16px', textAlign: 'center',
@@ -550,7 +562,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       </div>
 
       <div style={{
-        padding: '7px 14px',
+        padding: '8px 14px',
         borderTop: '1px solid var(--border)',
         fontFamily: '"Geist Mono", monospace',
         fontSize: 10, color: 'var(--text-faint)',

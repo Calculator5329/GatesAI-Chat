@@ -4,10 +4,6 @@
  * Imported last so overrides keep their original cascade position.
  */
 
-@media (prefers-reduced-motion: reduce) {
-  .editorial-message { animation: none; }
-}
-
 @media (pointer: coarse) {
   .message-actions {
     position: static;
@@ -31,7 +27,7 @@
     overflow: hidden;
     transform: translateX(-6px);
     pointer-events: none;
-    transition: max-width 240ms ease, opacity 160ms ease, transform 240ms ease;
+    transition: max-width var(--motion-fade), opacity var(--motion-fade), transform var(--motion-fade);
   }
   .editorial-composer:hover .composer-reveal,
   .editorial-composer:focus-within .composer-reveal {
@@ -39,14 +35,6 @@
     opacity: 1;
     transform: translateX(0);
     pointer-events: auto;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .composer-reveal { transition: none; }
-  .editorial-sidebar__menu-coach,
-  .editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot {
-    animation: none;
   }
 }
 
@@ -286,7 +274,7 @@
     max-width: 148px;
     min-width: 72px;
     height: 34px;
-    padding: 7px 10px !important;
+    padding: 8px 10px !important;
     border-left: 0 !important;
     border-radius: 9px;
     background: color-mix(in srgb, var(--panel) 72%, transparent);
@@ -457,7 +445,7 @@
     background: color-mix(in srgb, var(--bg) 96%, var(--text) 4%) !important;
     box-shadow: none;
     overflow: hidden !important;
-    transition: width 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+    transition: width var(--motion-fade), box-shadow var(--motion-fade), background-color var(--motion-fade);
     touch-action: pan-y;
   }
 
@@ -490,7 +478,7 @@
   .runtime-web-lite .editorial-sidebar__brand::after {
     content: "›";
     position: absolute;
-    right: 7px;
+    right: 8px;
     bottom: 8px;
     color: var(--text-faint);
     font: 18px "Geist", ui-sans-serif, system-ui, sans-serif;
@@ -644,7 +632,7 @@
   }
 
   .runtime-web-lite .editorial-chat-scroll {
-    padding: 20px max(13px, env(safe-area-inset-right)) 8px 13px !important;
+    padding: 20px max(14px, env(safe-area-inset-right)) 8px 14px !important;
   }
 
   .runtime-web-lite .editorial-composer {
@@ -657,14 +645,14 @@
     z-index: 20;
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 7px !important;
+    gap: 8px !important;
     padding: 10px 10px 0 !important;
     background: var(--bg);
   }
 
   .runtime-web-lite .gates-menu__tabs > button {
     min-height: 32px;
-    padding: 7px 4px !important;
+    padding: 8px 4px !important;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -788,7 +776,7 @@
     display: flex !important;
     flex-direction: column !important;
     transform: translateX(calc(-1 * var(--mobile-drawer-width))) !important;
-    transition: transform 190ms ease;
+    transition: transform var(--motion-fade);
     border-right: 1px solid var(--border) !important;
     border-bottom: 0 !important;
     background: color-mix(in srgb, var(--bg) 98%, var(--text) 4%) !important;
@@ -1010,7 +998,7 @@
 
   .runtime-web-lite .gates-menu__tabs > button {
     min-height: 40px;
-    padding: 7px 4px !important;
+    padding: 8px 4px !important;
     font-size: 10px !important;
   }
 
@@ -1080,7 +1068,7 @@
   .runtime-web-lite .settings-section-title {
     font-size: 10px !important;
     line-height: 1.4 !important;
-    margin-bottom: 9px !important;
+    margin-bottom: 8px !important;
   }
 
   .runtime-web-lite .settings-muted-copy {
@@ -1089,7 +1077,7 @@
 
   .runtime-web-lite .settings-row {
     display: block !important;
-    padding: 13px 12px !important;
+    padding: 12px !important;
     margin-bottom: 8px;
     border: 1px solid var(--border) !important;
     border-radius: 12px;
@@ -1097,7 +1085,7 @@
   }
 
   .runtime-web-lite .settings-row__label {
-    margin-bottom: 7px;
+    margin-bottom: 8px;
     font-size: 11px !important;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1122,7 +1110,7 @@
   .runtime-web-lite .settings-row__content button {
     min-height: 40px;
     border-radius: 10px !important;
-    padding: 0 13px !important;
+    padding: 0 12px !important;
     font-size: 12.5px !important;
   }
 
@@ -1136,7 +1124,7 @@
   }
 
   .runtime-web-lite .settings-data-summary > div:nth-child(even) {
-    margin-bottom: 7px;
+    margin-bottom: 8px;
   }
 
   .runtime-web-lite .settings-data-chips {
@@ -1149,7 +1137,7 @@
     width: 100%;
     box-sizing: border-box;
     border-radius: 10px !important;
-    padding: 7px 9px !important;
+    padding: 8px 10px !important;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1284,7 +1272,7 @@
     display: flex !important;
     flex-direction: column !important;
     transform: translateX(calc(-1 * var(--mobile-drawer-width))) !important;
-    transition: transform 190ms ease;
+    transition: transform var(--motion-fade);
     border-right: 1px solid var(--border) !important;
     border-bottom: 0 !important;
     background: color-mix(in srgb, var(--bg) 98%, var(--text) 4%) !important;
@@ -1478,7 +1466,7 @@
 
   :is(.runtime-web-lite, .runtime-desktop) .editorial-composer__meta {
     min-height: 22px;
-    margin-top: 7px !important;
+    margin-top: 8px !important;
     gap: 0 !important;
     display: flex !important;
     align-items: center !important;
@@ -1524,7 +1512,7 @@
     top: calc(var(--mobile-topbar-height) + env(safe-area-inset-top));
     display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 7px !important;
+    gap: 8px !important;
     padding: 10px var(--mobile-gutter) 8px !important;
     overflow: visible !important;
   }
@@ -1533,7 +1521,7 @@
     min-width: 0;
     width: 100%;
     min-height: 40px;
-    padding: 7px 4px !important;
+    padding: 8px 4px !important;
     border-radius: 9px 9px 0 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1593,12 +1581,12 @@
   :is(.runtime-web-lite, .runtime-desktop) .settings-section-title {
     font-size: 10px !important;
     line-height: 1.4 !important;
-    margin-bottom: 9px !important;
+    margin-bottom: 8px !important;
   }
 
   :is(.runtime-web-lite, .runtime-desktop) .settings-row {
     display: block !important;
-    padding: 13px 12px !important;
+    padding: 12px !important;
     margin-bottom: 8px;
     border: 1px solid var(--border) !important;
     border-radius: 12px;
@@ -1606,7 +1594,7 @@
   }
 
   :is(.runtime-web-lite, .runtime-desktop) .settings-row__label {
-    margin-bottom: 7px;
+    margin-bottom: 8px;
     font-size: 11px !important;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1631,7 +1619,7 @@
   :is(.runtime-web-lite, .runtime-desktop) .settings-row__content button {
     min-height: 40px;
     border-radius: 10px !important;
-    padding: 0 13px !important;
+    padding: 0 12px !important;
     font-size: 12.5px !important;
   }
 

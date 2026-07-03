@@ -33,7 +33,7 @@
   --md-block-gap: 12px;
 }
 .markdown-density-compact {
-  --md-p-gap: 9px;
+  --md-p-gap: 10px;
   --md-list-gap: 6px;
   --md-block-gap: 12px;
 }
@@ -76,7 +76,7 @@
 }
 .code-size-small {
   --md-code-font-size: 11.5px;
-  --md-code-padding: 11px 13px;
+  --md-code-padding: 12px;
 }
 .code-size-medium {
   --md-code-font-size: 12.5px;
@@ -177,7 +177,7 @@
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
   text-underline-offset: 3px;
-  transition: text-decoration-color 120ms ease;
+  transition: text-decoration-color var(--motion-fast);
 }
 .md-body .workspace-path-link:hover code {
   text-decoration-color: var(--accent);
@@ -189,6 +189,7 @@
 }
 .md-body pre {
   margin: var(--md-block-gap) 0;
+  max-width: 100%;
   border-radius: var(--md-code-radius);
   border: 1px solid var(--md-code-border);
   background: var(--md-code-bg-block) !important;
@@ -197,12 +198,14 @@
 }
 .md-body pre code.hljs {
   display: block;
+  max-width: 100%;
   padding: var(--md-code-padding);
   background: transparent !important;
   font-family: "Geist Mono", ui-monospace, monospace;
   font-size: var(--md-code-font-size);
   line-height: 1.6;
   overflow-x: auto;
+  overflow-y: hidden;
 }
 .mermaid-diagram {
   margin: var(--md-block-gap) 0;
@@ -229,6 +232,10 @@
   font-size: var(--md-code-font-size);
 }
 .md-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-collapse: collapse;
   margin: 14px 0;
   font-family: "Geist", ui-sans-serif, system-ui, sans-serif;

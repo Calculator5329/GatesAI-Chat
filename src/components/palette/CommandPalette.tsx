@@ -7,6 +7,7 @@ import { useChatStore, useRouterStore, useUiStore } from '../../stores/context';
 import { Icons } from '../ui/icons';
 import { rankPaletteItems } from './ranking';
 import type { MenuSectionKey, Thread } from '../../core/types';
+import { tokens } from '../../core/styleTokens';
 
 type PaletteItemKind = 'action' | 'thread';
 
@@ -45,14 +46,14 @@ const PANEL_STYLE: CSSProperties = {
   color: 'var(--text)',
   boxShadow: '0 28px 90px rgba(0,0,0,0.58)',
   fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-  animation: 'fadeIn 0.14s ease',
+  animation: `fadeIn ${tokens.motion.fade}`,
 };
 
 const SEARCH_WRAP_STYLE: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 10,
-  padding: '15px 17px',
+  padding: '16px 18px',
   borderBottom: '1px solid var(--border)',
   background: 'color-mix(in srgb, var(--panel-2) 58%, transparent)',
 };
@@ -189,8 +190,8 @@ export const CommandPalette = observer(function CommandPalette() {
             style={INPUT_STYLE}
           />
         </div>
-        <div role="listbox" aria-label="Command results" style={LIST_STYLE}>
-          {ranked.length === 0 && <div style={EMPTY_STYLE}>No matches</div>}
+        <div className="command-palette__list" role="listbox" aria-label="Command results" style={LIST_STYLE}>
+          {ranked.length === 0 && <div style={EMPTY_STYLE}>No matching command or thread.</div>}
           {ranked.map((item, index) => (
             <PaletteRow
               key={item.id}
@@ -237,7 +238,9 @@ function PaletteRow({
     <button
       type="button"
       role="option"
+      className="palette-row"
       aria-selected={selected}
+      data-selected={selected || undefined}
       data-palette-kind={item.kind}
       onMouseEnter={onHover}
       onFocus={onHover}

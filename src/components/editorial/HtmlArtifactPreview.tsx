@@ -135,8 +135,8 @@ function HtmlArtifactFullscreen({
           <code>{path}</code>
         </div>
         <div className="html-artifact-fullscreen__actions">
-          <button type="button" onClick={onOpenOs}>Open in OS</button>
-          <button type="button" aria-label="Close HTML preview" onClick={onClose}>Close</button>
+          <button type="button" className="html-artifact-fullscreen__action" onClick={onOpenOs}>Open in OS</button>
+          <button type="button" className="html-artifact-fullscreen__action" aria-label="Close HTML preview" onClick={onClose}>Close</button>
         </div>
       </div>
       <iframe

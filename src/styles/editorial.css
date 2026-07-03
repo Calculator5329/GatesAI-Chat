@@ -3,6 +3,383 @@
  * state, and composer chrome. Class names must match component markup.
  */
 
+:root {
+  --motion-fast: 140ms ease;
+  --motion-fade: 160ms ease;
+  --focus-ring: color-mix(in srgb, var(--accent) 56%, transparent);
+  --focus-ring-glow: color-mix(in srgb, var(--accent) 18%, transparent);
+  --interactive-hover: color-mix(in srgb, var(--text) 8%, transparent);
+  --interactive-active: color-mix(in srgb, var(--accent) 12%, transparent);
+  --interactive-disabled-opacity: 0.45;
+  --scrollbar-thumb: color-mix(in srgb, var(--border) 72%, var(--accent) 10%);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--border) 62%, var(--accent) 24%);
+}
+
+:where(button, [role="button"], input, textarea, select, a[href]):focus-visible {
+  outline: 2px solid var(--focus-ring) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 3px var(--focus-ring-glow);
+}
+
+:where(button, [role="button"]):disabled,
+:where(button, [role="button"])[aria-disabled="true"],
+.ui-field:disabled {
+  opacity: var(--interactive-disabled-opacity);
+  cursor: not-allowed !important;
+}
+
+:where(button, [role="button"]) svg,
+.ui-button svg {
+  display: block;
+  vertical-align: middle;
+}
+
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.2;
+}
+
+.ui-button,
+.ui-field,
+.ui-segmented__button,
+.ui-toggle,
+.settings-inline-link,
+.menu-inline-link,
+.gates-menu__tab,
+.palette-row,
+.model-popover__row,
+.workspace-action-button,
+.workspace-tree-row,
+.menu-icon-button,
+.editorial-banner-action,
+.composer-attachment-remove {
+  transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+
+.ui-button:hover:not(:disabled),
+.ui-segmented__button:hover,
+.workspace-action-button:hover:not(:disabled),
+.editorial-banner-action:hover:not(:disabled),
+.menu-icon-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border)) !important;
+  background: var(--interactive-hover) !important;
+  color: var(--text) !important;
+}
+
+.settings-inline-link:focus-visible,
+.menu-inline-link:hover:not(:disabled),
+.menu-inline-link:focus-visible {
+  color: var(--text) !important;
+  border-bottom-color: var(--accent) !important;
+}
+
+.ui-button--accent:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 86%, var(--text) 14%) !important;
+  border-color: color-mix(in srgb, var(--accent) 86%, var(--text) 14%) !important;
+  color: #06120a !important;
+}
+
+.ui-button--danger:hover:not(:disabled),
+.menu-icon-button[data-tone="danger"]:hover:not(:disabled) {
+  border-color: rgba(255,117,151,0.52) !important;
+  background: rgba(255,117,151,0.08) !important;
+  color: #ff9ab3 !important;
+}
+
+.ui-button:active:not(:disabled),
+.ui-segmented__button:active,
+.workspace-action-button:active:not(:disabled),
+.editorial-banner-action:active:not(:disabled),
+.menu-icon-button:active:not(:disabled),
+.palette-row:active,
+.model-popover__row:active,
+.editorial-sidebar__item:active,
+.editorial-sidebar__new:active:not(:disabled),
+.message-actions button:active:not(:disabled),
+.composer-attach-btn:active:not(:disabled),
+.composer-send-control:active:not(:disabled) {
+  background: var(--interactive-active) !important;
+}
+
+.ui-field:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border)) !important;
+}
+
+.ui-field:focus-visible,
+.message-edit-panel textarea:focus-visible,
+.composer-textarea:focus-visible,
+.composer-local-select:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 65%, var(--border)) !important;
+}
+
+.ui-segmented__button[data-active="true"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border)) !important;
+  background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+  color: var(--accent) !important;
+}
+
+.ui-toggle:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px var(--focus-ring-glow);
+}
+
+.ui-toggle:active:not(:disabled) .ui-toggle__thumb {
+  transform: scale(0.92);
+}
+
+:where(
+  .editorial-chat-scroll,
+  .editorial-sidebar__list,
+  .command-palette__list,
+  .gates-menu__body,
+  .model-popover__list,
+  .md-body pre code.hljs,
+  .md-body table,
+  .usage-model-table
+) {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+:where(
+  .editorial-chat-scroll,
+  .editorial-sidebar__list,
+  .command-palette__list,
+  .gates-menu__body,
+  .model-popover__list,
+  .md-body pre code.hljs,
+  .md-body table,
+  .usage-model-table
+):hover {
+  scrollbar-color: var(--scrollbar-thumb-hover) transparent;
+}
+
+:where(
+  .editorial-chat-scroll,
+  .editorial-sidebar__list,
+  .command-palette__list,
+  .gates-menu__body,
+  .model-popover__list,
+  .md-body pre code.hljs,
+  .md-body table,
+  .usage-model-table
+)::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+:where(
+  .editorial-chat-scroll,
+  .editorial-sidebar__list,
+  .command-palette__list,
+  .gates-menu__body,
+  .model-popover__list,
+  .md-body pre code.hljs,
+  .md-body table,
+  .usage-model-table
+)::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+:where(
+  .editorial-chat-scroll,
+  .editorial-sidebar__list,
+  .command-palette__list,
+  .gates-menu__body,
+  .model-popover__list,
+  .md-body pre code.hljs,
+  .md-body table,
+  .usage-model-table
+)::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+}
+
+:where(
+  .editorial-chat-scroll,
+  .editorial-sidebar__list,
+  .command-palette__list,
+  .gates-menu__body,
+  .model-popover__list,
+  .md-body pre code.hljs,
+  .md-body table,
+  .usage-model-table
+):hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+}
+
+.editorial-chat-scroll,
+.gates-menu__body,
+.command-palette__list,
+.model-popover__list {
+  overflow-x: hidden;
+}
+
+.editorial-stream,
+.editorial-message,
+.md-body {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.md-body {
+  overflow-wrap: anywhere;
+}
+
+.bridge-status-pill,
+.editorial-sidebar__brand,
+.editorial-sidebar__new,
+.editorial-sidebar__item,
+.editorial-sidebar__close,
+.editorial-sidebar__mobile-action,
+.editorial-sidebar__pin-button,
+.editorial-sidebar__delete-button,
+.editorial-mobile-topbar__button,
+.editorial-mobile-topbar__title,
+.editorial-mobile-topbar__new,
+.editorial-mobile-topbar__share,
+.editorial-mobile-topbar__more,
+.editorial-show-earlier,
+.message-actions button,
+.message-confirm-panel button,
+.message-edit-panel button,
+.chat-error-banner button,
+.composer-attach-btn,
+.composer-send-control,
+.composer-model-label,
+.model-popover__segment,
+.model-popover__cap-filter,
+.model-popover__favorite,
+.model-popover__clear,
+.gallery-tile__image,
+.gallery-tile__remove,
+.image-job-card__cancel,
+.image-job-card__action,
+.image-job-card__image,
+.image-job-card__grid-tile,
+.html-artifact-preview,
+.html-artifact-preview__open,
+.html-artifact-fullscreen__action,
+.user-attachment-chip,
+.user-attachment-thumb,
+.editorial-empty-state__primary,
+.web-lite-download-cue__link {
+  transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+
+.bridge-status-pill:hover:not([aria-disabled="true"]),
+.editorial-sidebar__brand:hover,
+.editorial-sidebar__new:hover:not(:disabled),
+.editorial-sidebar__close:hover:not(:disabled),
+.editorial-sidebar__mobile-action:hover:not(:disabled),
+.editorial-sidebar__pin-button:focus-visible,
+.editorial-sidebar__delete-button:focus-visible,
+.editorial-mobile-topbar__button:hover:not(:disabled),
+.editorial-mobile-topbar__button:focus-visible,
+.editorial-mobile-topbar__title:hover:not(:disabled),
+.editorial-mobile-topbar__title:focus-visible,
+.editorial-mobile-topbar__new:hover:not(:disabled),
+.editorial-mobile-topbar__new:focus-visible,
+.editorial-mobile-topbar__share:hover:not(:disabled),
+.editorial-mobile-topbar__share:focus-visible,
+.editorial-mobile-topbar__more:hover:not(:disabled),
+.editorial-mobile-topbar__more:focus-visible,
+.editorial-sidebar__item:hover,
+.editorial-sidebar__item:focus-visible,
+.activity-row__button:hover:not(:disabled),
+.activity-row__button:focus-visible,
+.message-actions button:focus-visible,
+.message-confirm-panel button:focus-visible,
+.message-edit-panel button:hover:not(:disabled),
+.message-edit-panel button:focus-visible,
+.chat-error-banner button:focus-visible,
+.composer-model-label:focus-visible,
+.composer-local-select:hover:not(:disabled),
+.model-popover__segment:hover:not(:disabled),
+.model-popover__segment:focus-visible,
+.model-popover__cap-filter:hover:not(:disabled),
+.model-popover__cap-filter:focus-visible,
+.model-popover__favorite:hover:not(:disabled),
+.model-popover__favorite:focus-visible,
+.model-popover__clear:hover:not(:disabled),
+.model-popover__clear:focus-visible,
+.palette-row:hover,
+.palette-row:focus-visible,
+.workspace-tree-row:hover,
+.workspace-tree-row:focus-visible,
+.gallery-tile__image:hover:not(:disabled),
+.gallery-tile__image:focus-visible,
+.gallery-tile__remove:hover:not(:disabled),
+.gallery-tile__remove:focus-visible,
+.image-job-card__cancel:hover:not(:disabled),
+.image-job-card__cancel:focus-visible,
+.image-job-card__action:hover:not(:disabled),
+.image-job-card__action:focus-visible,
+.image-job-card__image:hover:not(:disabled),
+.image-job-card__image:focus-visible,
+.image-job-card__grid-tile:hover:not(:disabled),
+.image-job-card__grid-tile:focus-visible,
+.html-artifact-preview:hover,
+.html-artifact-preview:focus-visible,
+.html-artifact-preview__open:hover:not(:disabled),
+.html-artifact-preview__open:focus-visible,
+.html-artifact-fullscreen__action:hover:not(:disabled),
+.html-artifact-fullscreen__action:focus-visible,
+.user-attachment-chip:focus-visible,
+.user-attachment-thumb:focus-visible {
+  background: var(--interactive-hover) !important;
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--border)) !important;
+  color: var(--text) !important;
+}
+
+.gates-menu__tab:hover:not(:disabled),
+.gates-menu__tab:focus-visible {
+  background: color-mix(in srgb, var(--text) 6%, transparent) !important;
+  color: var(--text) !important;
+}
+
+.gates-menu__tab[data-active="true"] {
+  color: var(--text) !important;
+}
+
+.palette-row[data-selected="true"],
+.model-popover__row[data-active="true"],
+.workspace-tree-row[data-open="true"] {
+  background: var(--interactive-hover) !important;
+}
+
+.model-popover__row:hover {
+  background: color-mix(in srgb, var(--text) 7%, transparent) !important;
+}
+
+.model-popover__cap-filter[data-active="true"] {
+  border-color: var(--accent) !important;
+  background: color-mix(in srgb, var(--accent) 14%, transparent) !important;
+  color: var(--accent) !important;
+}
+
+.gallery-tile__remove,
+.image-job-card__cancel,
+.composer-attachment-remove {
+  transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+
+.gallery-tile__remove:hover:not(:disabled),
+.composer-attachment-remove:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bg) 58%, var(--accent) 18%) !important;
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border)) !important;
+}
+
+.html-artifact-fullscreen__action,
+.html-artifact-preview__open,
+.image-job-card__action {
+  border-color: var(--border);
+}
+
 .stream-caret {
   display: inline-block;
   width: 2px;
@@ -25,7 +402,7 @@
   contain: layout style paint;
   /* Brief fade-in/slide-up so the optimistic user message and the new
      assistant placeholder both feel like they "arrive" rather than pop. */
-  animation: fadeIn 180ms ease-out both;
+  animation: fadeIn var(--motion-fade) ease both;
 }
 
 .editorial-message:active {
@@ -34,7 +411,7 @@
 .editorial-show-earlier {
   display: block;
   margin: 0 auto 28px;
-  padding: 7px 12px;
+  padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: color-mix(in srgb, var(--bg) 94%, var(--text) 6%);
@@ -56,7 +433,7 @@
   position: absolute;
   top: 20px;
   right: 0;
-  padding: 4px 7px;
+  padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -65,17 +442,17 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   pointer-events: none;
-  animation: fadeIn 160ms ease-out;
+  animation: fadeIn var(--motion-fade) ease;
 }
 .message-copy-feedback {
   color: var(--accent);
 }
 .message-head-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 31px;
+  min-height: 32px;
   margin-bottom: 10px;
 }
 .message-actions {
@@ -89,7 +466,7 @@
   opacity: 0;
   transform: translateY(-2px);
   pointer-events: none;
-  transition: opacity 120ms ease, transform 120ms ease;
+  transition: opacity var(--motion-fast), transform var(--motion-fast);
 }
 .editorial-message:hover .message-actions,
 .editorial-message:focus-within .message-actions {
@@ -134,7 +511,7 @@
 }
 .message-confirm-panel button {
   min-height: 24px;
-  padding: 0 7px;
+  padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 5px;
   background: transparent;
@@ -156,7 +533,7 @@
 .message-finish-notice {
   display: inline-flex;
   margin-top: 10px;
-  padding: 4px 7px;
+  padding: 4px 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--border));
   border-radius: 6px;
   background: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -348,7 +725,7 @@
 
 .activity-row__chevron {
   opacity: 0;
-  transition: opacity 120ms ease;
+  transition: opacity var(--motion-fast);
 }
 
 .activity-row:hover .activity-row__chevron,
@@ -444,7 +821,7 @@
   height: 32px;
   min-height: 32px;
   overflow: visible;
-  transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+  transition: background-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast);
 }
 
 /* --- Sidebar action slot --------------------------------------------------
@@ -494,7 +871,7 @@
 .editorial-sidebar__menu-coach {
   position: relative;
   margin: 2px 16px 14px;
-  padding: 9px 12px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -505,9 +882,7 @@
   border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
   border-radius: 9px;
   cursor: pointer;
-  animation:
-    gatesCoachIn 0.35s ease-out both,
-    gatesCoachPulse 1.9s ease-in-out 0.35s infinite;
+  animation: gatesCoachIn var(--motion-fade) ease both;
 }
 .editorial-sidebar__menu-coach:hover {
   background: color-mix(in srgb, var(--accent) 30%, var(--panel));
@@ -537,7 +912,7 @@
 /* While the cue is live, the wordmark's accent dot breathes to draw the eye
    to the actual button (the coachmark just below explains what it opens). */
 .editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot {
-  animation: gatesBrandDotPulse 1.9s ease-in-out infinite;
+  box-shadow: 0 0 8px 1px var(--accent-glow);
 }
 
 .thinking-dots {
@@ -612,7 +987,12 @@
 
 .editorial-empty-state__ready {
   color: var(--text-faint);
-  font: 13px "Geist", ui-sans-serif, system-ui, sans-serif;
+  font: italic 14px/1.55 "Source Serif 4", Georgia, serif;
+}
+
+.editorial-empty-copy {
+  color: var(--text-faint);
+  font: italic 14px/1.55 "Source Serif 4", Georgia, serif;
 }
 
 .editorial-onboarding {
@@ -705,7 +1085,7 @@
 .editorial-empty-state__checklist li {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   min-height: 24px;
 }
 
@@ -776,7 +1156,19 @@
   gap: 8px;
   font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
   text-align: left;
-  animation: webLiteCueToast 8.5s ease-out 0.25s both;
+  opacity: 0;
+  transform: translate(12px, 8px);
+  transition: opacity var(--motion-fade), transform var(--motion-fade);
+}
+
+.web-lite-download-cue[data-visible="true"] {
+  opacity: 1;
+  transform: translate(0, 0);
+}
+
+.web-lite-download-cue[data-leaving="true"] {
+  opacity: 0;
+  transform: translate(0, 0);
 }
 
 .web-lite-download-cue:hover,
@@ -829,7 +1221,7 @@
   width: min(190px, 100%);
   min-width: 132px;
   height: 42px;
-  padding: 6px 9px 6px 7px;
+  padding: 6px 10px 6px 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   border-radius: 7px;
   background: color-mix(in srgb, var(--accent) 7%, transparent);
@@ -838,7 +1230,7 @@
   font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
   line-height: 1;
   text-align: left;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  transition: border-color var(--motion-fast), background-color var(--motion-fast), transform var(--motion-fast);
 }
 .user-attachment-chip:hover {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
@@ -905,7 +1297,7 @@
   margin: 0;
   cursor: pointer;
   line-height: 0;
-  transition: border-color 120ms ease, transform 120ms ease;
+  transition: border-color var(--motion-fast), transform var(--motion-fast);
 }
 .user-attachment-thumb:hover {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
@@ -934,13 +1326,17 @@
   box-sizing: border-box;
   min-width: 0;
   overflow: visible;
-  transition: border-color 100ms ease;
+  transition: border-color var(--motion-fast);
 }
 .composer-row[data-drag-active] {
   border: 1px dashed var(--accent);
 }
+.composer-row:not([data-drag-active]):has(.composer-textarea:focus) {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  box-shadow: 0 0 0 3px var(--focus-ring-glow);
+}
 .composer-row:not([data-drag-active]):has(.composer-textarea:focus:not(:placeholder-shown)) {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 62%, var(--border));
 }
 
 /* Hover affordances for composer chrome — replaces per-event style mutation
@@ -963,8 +1359,32 @@
 .composer-send-control:hover > div {
   background: rgba(255, 255, 255, 0.045);
 }
+.composer-send-control > div {
+  transition: background-color var(--motion-fast), color var(--motion-fast), box-shadow var(--motion-fast), opacity var(--motion-fast);
+}
+.composer-send-control[data-ready="true"] > div {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.composer-send-control[data-ready="true"]:hover > div,
+.composer-send-control[data-ready="true"]:focus-visible > div {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent);
+}
+.composer-send-control:disabled > div {
+  background: color-mix(in srgb, var(--text-faint) 8%, transparent);
+  color: var(--text-faint);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 68%, transparent);
+}
+.composer-send-control[data-mode="stop"] > div {
+  color: var(--text-dim);
+}
 .composer-model-label:hover {
   background: rgba(255, 255, 255, 0.04);
+}
+
+.composer-stream-label {
+  line-height: 18px;
 }
 
 .user-attachment-thumb-fallback {

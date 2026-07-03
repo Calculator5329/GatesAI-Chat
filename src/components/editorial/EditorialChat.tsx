@@ -60,8 +60,8 @@ const ChatEmptyState = observer(function ChatEmptyState() {
 
   const normalMessage = readyMessage
     ?? (activeProviderReady
-      ? 'Type a message below to begin.'
-      : 'Look around freely. Connect a cloud or local model when you are ready to chat.');
+      ? 'A blank thread is ready; write below when you want to begin.'
+      : 'A blank thread is waiting; connect a cloud or local model when you are ready.');
 
   return (
     <div className="editorial-empty-state">
@@ -321,19 +321,28 @@ function WebLiteDownloadCue() {
   const isSource = rec.kind === 'source';
   // Self-dismiss once the fade-out completes so the toast never lingers — an
   // invisible fixed element would keep covering the composer. The timer is a
-  // fallback for environments that suppress CSS animations (prefers-reduced-
-  // motion), where `animationend` may never fire.
+  // fallback for environments that suppress CSS transitions.
   const [dismissed, setDismissed] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   useEffect(() => {
-    const timer = setTimeout(() => setDismissed(true), 11_000);
-    return () => clearTimeout(timer);
+    const show = requestAnimationFrame(() => setVisible(true));
+    const leave = setTimeout(() => setLeaving(true), 10_840);
+    const dismiss = setTimeout(() => setDismissed(true), 11_000);
+    return () => {
+      cancelAnimationFrame(show);
+      clearTimeout(leave);
+      clearTimeout(dismiss);
+    };
   }, []);
   if (dismissed) return null;
   return (
     <div
       className="web-lite-download-cue"
-      onAnimationEnd={event => {
-        if (event.target === event.currentTarget) setDismissed(true);
+      data-visible={visible || undefined}
+      data-leaving={leaving || undefined}
+      onTransitionEnd={event => {
+        if (leaving && event.target === event.currentTarget) setDismissed(true);
       }}
     >
       <div className="web-lite-download-cue__copy">

@@ -107,19 +107,11 @@ export const GallerySection = observer(function GallerySection() {
 
 function EmptyState() {
   return (
-    <div style={{
+    <div className="editorial-empty-copy" style={{
       padding: '44px 28px', textAlign: 'center',
-      color: 'var(--text-faint)', fontSize: 13,
       border: '1px dashed var(--border)', borderRadius: 8,
     }}>
-      <div style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 18, color: 'var(--text-dim)', marginBottom: 8 }}>
-        No images yet
-      </div>
-      <div style={{ lineHeight: 1.55, maxWidth: 420, margin: '0 auto' }}>
-        Ask the assistant to generate an image, or use <strong style={{ color: 'var(--text-dim)' }}>image_generate</strong>{' '}
-        with the configured backend. Finished images are kept here and saved under{' '}
-        <code style={tokens.mono}>/workspace/artifacts/images</code>.
-      </div>
+      Generated images will collect here after a prompt produces a result.
     </div>
   );
 }
@@ -170,9 +162,10 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
   }, [bridge, path, dataUrl]);
 
   return (
-    <div ref={ref} style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+    <div ref={ref} className="gallery-tile" style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
       <button
         type="button"
+        className="gallery-tile__image"
         onClick={onClick}
         title={prompt}
         aria-label={prompt}
@@ -194,6 +187,7 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
       }}>{prompt}</div>
       <button
         type="button"
+        className="gallery-tile__remove"
         onClick={(e) => { e.stopPropagation(); if (window.confirm('Remove from gallery?')) onDelete(); }}
         title="Remove from gallery"
         aria-label="Remove from gallery"

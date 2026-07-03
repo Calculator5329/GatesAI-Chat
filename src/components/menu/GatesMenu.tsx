@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useRouterStore } from '../../stores/context';
 import { MENU_SECTIONS } from './menuSectionMeta';
+import { tokens } from '../../core/styleTokens';
 
 const badgeStyle: React.CSSProperties = {
   fontSize: 9,
@@ -29,7 +30,7 @@ export const GatesMenu = observer(function GatesMenu() {
       display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0,
       background: 'var(--bg)', color: 'var(--text)',
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-      animation: 'fadeIn 0.18s ease',
+      animation: `fadeIn ${tokens.motion.fade}`,
     }}>
       <div className="gates-menu__tabs" style={{
         display: 'flex', alignItems: 'flex-end', gap: 2,
@@ -44,6 +45,8 @@ export const GatesMenu = observer(function GatesMenu() {
             <button
               type="button"
               key={s.key}
+              className="gates-menu__tab"
+              data-active={active || undefined}
               disabled={!s.supported}
               onClick={onSelect}
               style={{

@@ -1,3 +1,5 @@
+import { tokens } from '../../core/styleTokens';
+
 interface SegmentedControlProps<T extends string> {
   options: readonly T[];
   value: T;
@@ -6,12 +8,16 @@ interface SegmentedControlProps<T extends string> {
 
 export function SegmentedControl<T extends string>({ options, value, onChange }: SegmentedControlProps<T>) {
   return (
-    <div style={{ display: 'flex', gap: 6 }}>
+    <div className="ui-segmented" style={{ display: 'flex', gap: 6 }}>
       {options.map(opt => {
         const active = opt === value;
         return (
-          <div
+          <button
+            type="button"
             key={opt}
+            className="ui-segmented__button"
+            aria-pressed={active}
+            data-active={active || undefined}
             onClick={() => onChange(opt)}
             style={{
               padding: '5px 10px',
@@ -23,10 +29,11 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
               border: active ? '1px solid rgba(62,207,142,0.4)' : '1px solid var(--border)',
               fontFamily: '"Geist Mono", monospace',
               letterSpacing: '0.04em',
+              transition: tokens.motion.interactive,
             }}
           >
             {opt}
-          </div>
+          </button>
         );
       })}
     </div>

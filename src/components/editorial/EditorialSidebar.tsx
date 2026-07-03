@@ -203,6 +203,19 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     />
   );
 
+  const activateBrand = (): void => {
+    if (mobileShell) {
+      ui.markMenuHintSeen();
+      setMobileOpen(open => !open);
+      return;
+    }
+    if (onMenu) router.goThread(chat.activeThreadId);
+    else {
+      ui.markMenuHintSeen();
+      router.goMenu();
+    }
+  };
+
   return (
     <>
     {mobileShell && (
@@ -291,18 +304,14 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         className="editorial-sidebar__brand"
         data-hint={showMenuHint && !mobileShell ? 'true' : undefined}
         style={S.head as CSSProperties}
-        onClick={() => {
-          if (mobileShell) {
-            ui.markMenuHintSeen();
-            setMobileOpen(open => !open);
-            return;
-          }
-          if (onMenu) router.goThread(chat.activeThreadId);
-          else {
-            ui.markMenuHintSeen();
-            router.goMenu();
-          }
+        onClick={activateBrand}
+        onKeyDown={event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          activateBrand();
         }}
+        role="button"
+        tabIndex={0}
         title={mobileShell ? (mobileOpen ? 'Collapse sidebar' : 'Expand sidebar') : (onMenu ? 'Back to chat' : 'Open menu')}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
@@ -355,6 +364,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         <div className="editorial-sidebar__mobile-actions">
           <button
             type="button"
+            className="editorial-sidebar__mobile-action"
             onClick={() => {
               router.goMenu();
               setMobileOpen(false);
@@ -370,7 +380,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Earlier</div>
         {rest.map(renderItem)}
         {pinned.length === 0 && rest.length === 0 && (
-          <div style={{ padding: '12px 20px', color: 'var(--text-faint)', fontSize: 12, fontStyle: 'italic' }}>
+          <div className="editorial-sidebar__empty" style={{ padding: '12px 20px', color: 'var(--text-faint)', fontSize: 12, fontStyle: 'italic' }}>
             No conversations yet.
           </div>
         )}

@@ -30,8 +30,8 @@ export const UsageSection = observer(function UsageSection() {
       </div>
 
       {empty ? (
-        <Card className="usage-empty" style={{ padding: '18px', color: 'var(--text-dim)', fontSize: 13 }}>
-          No recorded usage yet.
+        <Card className="usage-empty editorial-empty-copy" style={{ padding: '18px' }}>
+          Usage will appear here after the first completed model response.
         </Card>
       ) : (
         <>
