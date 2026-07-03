@@ -290,7 +290,7 @@
   contain: layout style paint;
   /* Brief fade-in/slide-up so the optimistic user message and the new
      assistant placeholder both feel like they "arrive" rather than pop. */
-  animation: fadeIn 180ms ease-out both;
+  animation: fadeIn var(--motion-fade) ease both;
 }
 
 .editorial-message:active {
@@ -330,7 +330,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   pointer-events: none;
-  animation: fadeIn 160ms ease-out;
+  animation: fadeIn var(--motion-fade) ease;
 }
 .message-copy-feedback {
   color: var(--accent);
@@ -354,7 +354,7 @@
   opacity: 0;
   transform: translateY(-2px);
   pointer-events: none;
-  transition: opacity 120ms ease, transform 120ms ease;
+  transition: opacity var(--motion-fast), transform var(--motion-fast);
 }
 .editorial-message:hover .message-actions,
 .editorial-message:focus-within .message-actions {
@@ -613,7 +613,7 @@
 
 .activity-row__chevron {
   opacity: 0;
-  transition: opacity 120ms ease;
+  transition: opacity var(--motion-fast);
 }
 
 .activity-row:hover .activity-row__chevron,
@@ -709,7 +709,7 @@
   height: 32px;
   min-height: 32px;
   overflow: visible;
-  transition: background 120ms ease, color 120ms ease, opacity 120ms ease;
+  transition: background-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast);
 }
 
 /* --- Sidebar action slot --------------------------------------------------
@@ -770,9 +770,7 @@
   border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
   border-radius: 9px;
   cursor: pointer;
-  animation:
-    gatesCoachIn 0.35s ease-out both,
-    gatesCoachPulse 1.9s ease-in-out 0.35s infinite;
+  animation: gatesCoachIn var(--motion-fade) ease both;
 }
 .editorial-sidebar__menu-coach:hover {
   background: color-mix(in srgb, var(--accent) 30%, var(--panel));
@@ -802,7 +800,7 @@
 /* While the cue is live, the wordmark's accent dot breathes to draw the eye
    to the actual button (the coachmark just below explains what it opens). */
 .editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot {
-  animation: gatesBrandDotPulse 1.9s ease-in-out infinite;
+  box-shadow: 0 0 8px 1px var(--accent-glow);
 }
 
 .thinking-dots {
@@ -1041,7 +1039,19 @@
   gap: 8px;
   font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
   text-align: left;
-  animation: webLiteCueToast 8.5s ease-out 0.25s both;
+  opacity: 0;
+  transform: translate(12px, 8px);
+  transition: opacity var(--motion-fade), transform var(--motion-fade);
+}
+
+.web-lite-download-cue[data-visible="true"] {
+  opacity: 1;
+  transform: translate(0, 0);
+}
+
+.web-lite-download-cue[data-leaving="true"] {
+  opacity: 0;
+  transform: translate(0, 0);
 }
 
 .web-lite-download-cue:hover,
@@ -1103,7 +1113,7 @@
   font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
   line-height: 1;
   text-align: left;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  transition: border-color var(--motion-fast), background-color var(--motion-fast), transform var(--motion-fast);
 }
 .user-attachment-chip:hover {
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
@@ -1170,7 +1180,7 @@
   margin: 0;
   cursor: pointer;
   line-height: 0;
-  transition: border-color 120ms ease, transform 120ms ease;
+  transition: border-color var(--motion-fast), transform var(--motion-fast);
 }
 .user-attachment-thumb:hover {
   border-color: color-mix(in srgb, var(--accent) 55%, transparent);
@@ -1199,7 +1209,7 @@
   box-sizing: border-box;
   min-width: 0;
   overflow: visible;
-  transition: border-color 100ms ease;
+  transition: border-color var(--motion-fast);
 }
 .composer-row[data-drag-active] {
   border: 1px dashed var(--accent);

@@ -177,7 +177,7 @@
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
   text-underline-offset: 3px;
-  transition: text-decoration-color 120ms ease;
+  transition: text-decoration-color var(--motion-fast);
 }
 .md-body .workspace-path-link:hover code {
   text-decoration-color: var(--accent);

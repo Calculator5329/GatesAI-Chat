@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useEditorial } from '../../stores/context';
 import { isWebLite } from '../../core/runtime';
+import { tokens } from '../../core/styleTokens';
 
 /**
  * Tiny status indicator at the bottom of the sidebar. Three states:
@@ -75,7 +76,7 @@ const S: Record<string, CSSProperties> = {
   dot: {
     width: 7, height: 7, borderRadius: '50%',
     flex: 'none',
-    transition: 'background 200ms ease',
+    transition: `background-color ${tokens.motion.fade}`,
   },
   label: {
     overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis',

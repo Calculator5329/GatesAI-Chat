@@ -8,6 +8,7 @@ import { useEditorial } from '../../stores/context';
 import type { CompletedJob, ImageJob } from '../../stores/ImageJobStore';
 import { Lightbox } from '../media/Lightbox';
 import { useImageDataUrl } from '../media/useImageDataUrl';
+import { tokens } from '../../core/styleTokens';
 
 interface ImageJobCardProps {
   jobId: string;
@@ -126,7 +127,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
           {job.count > 1 && <span style={{ marginTop: 4 }}>{job.results.length} / {job.count} done</span>}
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--border)' }}>
-          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: 'width 0.2s ease' }} />
+          <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: `width ${tokens.motion.fade}` }} />
         </div>
         <button
           type="button"
@@ -147,7 +148,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
         {job.count > 1 && <span style={{ marginTop: 4 }}>{job.results.length} / {job.count} done</span>}
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--border)' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: 'width 0.2s ease' }} />
+        <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: `width ${tokens.motion.fade}` }} />
       </div>
       <button
         type="button"

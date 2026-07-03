@@ -7,6 +7,7 @@ import { useChatStore, useRouterStore, useUiStore } from '../../stores/context';
 import { Icons } from '../ui/icons';
 import { rankPaletteItems } from './ranking';
 import type { MenuSectionKey, Thread } from '../../core/types';
+import { tokens } from '../../core/styleTokens';
 
 type PaletteItemKind = 'action' | 'thread';
 
@@ -45,7 +46,7 @@ const PANEL_STYLE: CSSProperties = {
   color: 'var(--text)',
   boxShadow: '0 28px 90px rgba(0,0,0,0.58)',
   fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-  animation: 'fadeIn 0.14s ease',
+  animation: `fadeIn ${tokens.motion.fade}`,
 };
 
 const SEARCH_WRAP_STYLE: CSSProperties = {

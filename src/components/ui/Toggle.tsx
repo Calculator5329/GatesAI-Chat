@@ -1,3 +1,5 @@
+import { tokens } from '../../core/styleTokens';
+
 interface ToggleProps {
   on: boolean;
   onChange: (next: boolean) => void;
@@ -22,7 +24,7 @@ export function Toggle({ on, onChange, disabled }: ToggleProps) {
         position: 'relative',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
-        transition: 'background-color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast)',
+        transition: `background-color ${tokens.motion.fast}, opacity ${tokens.motion.fast}, box-shadow ${tokens.motion.fast}`,
       }}
     >
       <span
@@ -33,7 +35,7 @@ export function Toggle({ on, onChange, disabled }: ToggleProps) {
           background: on ? '#06120a' : '#e4e7ef',
           position: 'absolute', top: 2,
           left: on ? 16 : 2,
-          transition: 'left var(--motion-fast), background-color var(--motion-fast)',
+          transition: `left ${tokens.motion.fast}, background-color ${tokens.motion.fast}`,
         }}
       />
     </button>

@@ -4,10 +4,6 @@
  * Imported last so overrides keep their original cascade position.
  */
 
-@media (prefers-reduced-motion: reduce) {
-  .editorial-message { animation: none; }
-}
-
 @media (pointer: coarse) {
   .message-actions {
     position: static;
@@ -31,7 +27,7 @@
     overflow: hidden;
     transform: translateX(-6px);
     pointer-events: none;
-    transition: max-width 240ms ease, opacity 160ms ease, transform 240ms ease;
+    transition: max-width var(--motion-fade), opacity var(--motion-fade), transform var(--motion-fade);
   }
   .editorial-composer:hover .composer-reveal,
   .editorial-composer:focus-within .composer-reveal {
@@ -39,14 +35,6 @@
     opacity: 1;
     transform: translateX(0);
     pointer-events: auto;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .composer-reveal { transition: none; }
-  .editorial-sidebar__menu-coach,
-  .editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot {
-    animation: none;
   }
 }
 
@@ -457,7 +445,7 @@
     background: color-mix(in srgb, var(--bg) 96%, var(--text) 4%) !important;
     box-shadow: none;
     overflow: hidden !important;
-    transition: width 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+    transition: width var(--motion-fade), box-shadow var(--motion-fade), background-color var(--motion-fade);
     touch-action: pan-y;
   }
 
@@ -788,7 +776,7 @@
     display: flex !important;
     flex-direction: column !important;
     transform: translateX(calc(-1 * var(--mobile-drawer-width))) !important;
-    transition: transform 190ms ease;
+    transition: transform var(--motion-fade);
     border-right: 1px solid var(--border) !important;
     border-bottom: 0 !important;
     background: color-mix(in srgb, var(--bg) 98%, var(--text) 4%) !important;
@@ -1284,7 +1272,7 @@
     display: flex !important;
     flex-direction: column !important;
     transform: translateX(calc(-1 * var(--mobile-drawer-width))) !important;
-    transition: transform 190ms ease;
+    transition: transform var(--motion-fade);
     border-right: 1px solid var(--border) !important;
     border-bottom: 0 !important;
     background: color-mix(in srgb, var(--bg) 98%, var(--text) 4%) !important;

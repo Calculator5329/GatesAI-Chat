@@ -8,6 +8,7 @@ import type { FsEntry, FsListResp } from '../../../core/workspace';
 import { Card } from '../../ui/Card';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
 import { isTauri, isWebLite } from '../../../core/runtime';
+import { tokens } from '../../../core/styleTokens';
 import type { SourceWorkspaceStatus } from '../../../stores/SourceWorkspaceStore';
 import type { SourceBuildCommand, SourceBuildStatus } from '../../../stores/SourceWorkspaceStore';
 
@@ -510,7 +511,7 @@ function TreeRow({ node, depth }: { node: TreeNode; depth: number }) {
           cursor: 'pointer',
           background: hovered ? 'rgba(255,255,255,0.05)' : 'transparent',
           userSelect: 'none',
-          transition: 'background 0.1s',
+          transition: `background-color ${tokens.motion.fast}`,
         }}
       >
         {/* Chevron for dirs */}
@@ -520,7 +521,7 @@ function TreeRow({ node, depth }: { node: TreeNode; depth: number }) {
           fontSize: 9,
           flexShrink: 0,
           transform: isDir && open ? 'rotate(90deg)' : 'none',
-          transition: 'transform 0.15s',
+          transition: `transform ${tokens.motion.fast}`,
           visibility: isDir ? 'visible' : 'hidden',
         }}>▶</span>
 

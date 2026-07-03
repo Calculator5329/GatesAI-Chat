@@ -8,6 +8,7 @@ import { Icons } from '../ui/icons';
 import { useEditorial } from '../../stores/context';
 import { OPENROUTER_THINKING_PRESETS, normalizeOpenRouterThinkingEffort, type ChatContextMode, type ChatThinkingEffort } from '../../stores/ChatStore';
 import type { StreamActivity } from '../../core/types';
+import { tokens } from '../../core/styleTokens';
 import { formatUsd } from '../../core/usage';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
@@ -31,14 +32,14 @@ const ATTACH_BTN_STYLE: CSSProperties = {
   color: 'var(--text-faint)',
   flex: 'none',
   alignSelf: 'center',
-  transition: 'background 100ms ease',
+  transition: `background-color ${tokens.motion.fast}`,
 };
 
 const SEND_BTN_STYLE: CSSProperties = {
   width: 28, height: 28, borderRadius: 6,
   color: 'var(--accent)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  transition: 'background 100ms ease, opacity 100ms ease',
+  transition: `background-color ${tokens.motion.fast}, opacity ${tokens.motion.fast}`,
 };
 
 const STOP_BTN_OUTER_STYLE: CSSProperties = {
@@ -59,7 +60,7 @@ const ROW_STYLE: CSSProperties = {
   padding: '9px 13px 9px 8px',
   background: 'var(--panel)',
   borderRadius: 10,
-  transition: 'border-color 120ms ease',
+  transition: `border-color ${tokens.motion.fast}`,
 };
 
 const META_ROW_STYLE: CSSProperties = {
@@ -558,7 +559,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             fontFamily: '"Geist Mono", monospace',
             color: 'var(--accent)',
             opacity: streaming ? 0.85 : 0,
-            transition: 'opacity 160ms ease',
+            transition: `opacity ${tokens.motion.fade}`,
             letterSpacing: '0.06em',
           }}>
             {streaming ? (hasText ? 'Enter to interrupt' : streamFooterLabel(streamActivity)) : ''}

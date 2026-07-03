@@ -7,6 +7,7 @@ import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
 import { DEFAULT_MODEL_ID } from '../../core/models';
 import { isWebLite } from '../../core/runtime';
+import { tokens } from '../../core/styleTokens';
 import { isVerifiedModelId } from '../../core/modelPickerAvailability';
 import {
   AUTO_MODEL,
@@ -211,7 +212,7 @@ const ModelRow = memo(function ModelRow({
     cursor: 'pointer',
     background: active ? 'var(--panel-2)' : 'transparent',
     borderLeft: selected ? '2px solid var(--accent)' : '2px solid transparent',
-    transition: 'background 80ms ease',
+    transition: tokens.motion.interactive,
   };
   const nameStyle: CSSProperties = {
     ...NAME_STYLE_BASE,
