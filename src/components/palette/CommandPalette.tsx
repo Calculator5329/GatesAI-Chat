@@ -53,7 +53,7 @@ const SEARCH_WRAP_STYLE: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: 10,
-  padding: '15px 17px',
+  padding: '16px 18px',
   borderBottom: '1px solid var(--border)',
   background: 'color-mix(in srgb, var(--panel-2) 58%, transparent)',
 };

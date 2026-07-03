@@ -33,7 +33,7 @@
   --md-block-gap: 12px;
 }
 .markdown-density-compact {
-  --md-p-gap: 9px;
+  --md-p-gap: 10px;
   --md-list-gap: 6px;
   --md-block-gap: 12px;
 }
@@ -76,7 +76,7 @@
 }
 .code-size-small {
   --md-code-font-size: 11.5px;
-  --md-code-padding: 11px 13px;
+  --md-code-padding: 12px;
 }
 .code-size-medium {
   --md-code-font-size: 12.5px;

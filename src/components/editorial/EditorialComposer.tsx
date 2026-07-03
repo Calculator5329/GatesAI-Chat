@@ -57,14 +57,14 @@ const STOP_BTN_INNER_STYLE: CSSProperties = {
 
 const ROW_STYLE: CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 8,
-  padding: '9px 13px 9px 8px',
+  padding: '8px 12px 8px 8px',
   background: 'var(--panel)',
   borderRadius: 10,
   transition: `border-color ${tokens.motion.fast}`,
 };
 
 const META_ROW_STYLE: CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 8, marginTop: 7,
+  display: 'flex', alignItems: 'center', gap: 8, marginTop: 8,
   fontSize: 11.5, color: 'var(--accent)',
   position: 'relative',
   minHeight: 18,
@@ -96,7 +96,7 @@ const LOCAL_CONTEXT_SELECT_STYLE: CSSProperties = {
   fontFamily: '"Geist Mono", monospace',
   fontSize: 10.5,
   height: 22,
-  padding: '0 7px',
+  padding: '0 8px',
   outline: 'none',
 };
 

@@ -5,7 +5,7 @@ const BASE: CSSProperties = {
   background: 'var(--panel)',
   border: '1px solid var(--border)',
   borderRadius: 6,
-  padding: '7px 10px',
+  padding: '8px 10px',
   color: 'var(--text)',
   fontFamily: 'inherit',
   fontSize: 13,

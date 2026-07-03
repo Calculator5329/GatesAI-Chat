@@ -28,7 +28,16 @@
 
 :where(button, [role="button"]) svg,
 .ui-button svg {
+  display: block;
   vertical-align: middle;
+}
+
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.2;
 }
 
 .ui-button,
@@ -299,7 +308,7 @@
 .editorial-show-earlier {
   display: block;
   margin: 0 auto 28px;
-  padding: 7px 12px;
+  padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: color-mix(in srgb, var(--bg) 94%, var(--text) 6%);
@@ -321,7 +330,7 @@
   position: absolute;
   top: 20px;
   right: 0;
-  padding: 4px 7px;
+  padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -337,10 +346,10 @@
 }
 .message-head-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 31px;
+  min-height: 32px;
   margin-bottom: 10px;
 }
 .message-actions {
@@ -399,7 +408,7 @@
 }
 .message-confirm-panel button {
   min-height: 24px;
-  padding: 0 7px;
+  padding: 0 8px;
   border: 1px solid var(--border);
   border-radius: 5px;
   background: transparent;
@@ -421,7 +430,7 @@
 .message-finish-notice {
   display: inline-flex;
   margin-top: 10px;
-  padding: 4px 7px;
+  padding: 4px 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--border));
   border-radius: 6px;
   background: color-mix(in srgb, var(--accent) 10%, transparent);
@@ -759,7 +768,7 @@
 .editorial-sidebar__menu-coach {
   position: relative;
   margin: 2px 16px 14px;
-  padding: 9px 12px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -968,7 +977,7 @@
 .editorial-empty-state__checklist li {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   min-height: 24px;
 }
 
@@ -1104,7 +1113,7 @@
   width: min(190px, 100%);
   min-width: 132px;
   height: 42px;
-  padding: 6px 9px 6px 7px;
+  padding: 6px 10px 6px 8px;
   border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   border-radius: 7px;
   background: color-mix(in srgb, var(--accent) 7%, transparent);

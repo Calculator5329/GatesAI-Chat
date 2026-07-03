@@ -108,7 +108,7 @@ const ExportImportBlock = observer(function ExportImportBlock() {
       <SettingsRow label="Import mode">
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {(['merge', 'replace'] as const).map(value => (
-            <label key={value} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: 'var(--text-dim)' }}>
+            <label key={value} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text-dim)' }}>
               <input
                 type="radio"
                 name="settings-data-import-mode"

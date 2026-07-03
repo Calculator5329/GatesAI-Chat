@@ -116,7 +116,7 @@ const SEGMENT_STYLE: CSSProperties = {
   cursor: 'pointer',
 };
 
-const ROW_LEFT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 };
+const ROW_LEFT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 };
 const ROW_RIGHT_STYLE: CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4, minWidth: 0, flexWrap: 'wrap' };
 const STAR_ICON_STYLE: CSSProperties = { flexShrink: 0, opacity: 0.85 };
 const NAME_STYLE_BASE: CSSProperties = {
@@ -208,7 +208,7 @@ const ModelRow = memo(function ModelRow({
     display: 'grid',
     gridTemplateColumns: 'minmax(0, 1fr) minmax(90px, auto)',
     rowGap: 1,
-    padding: '7px 14px 7px 18px',
+    padding: '8px 14px 8px 18px',
     cursor: 'pointer',
     background: active ? 'var(--panel-2)' : 'transparent',
     borderLeft: selected ? '2px solid var(--accent)' : '2px solid transparent',
@@ -562,7 +562,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       </div>
 
       <div style={{
-        padding: '7px 14px',
+        padding: '8px 14px',
         borderTop: '1px solid var(--border)',
         fontFamily: '"Geist Mono", monospace',
         fontSize: 10, color: 'var(--text-faint)',

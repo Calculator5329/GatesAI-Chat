@@ -192,7 +192,7 @@ const FailedCard = observer(function FailedCard({ job, onRetry }: { job: Complet
           )}
         </>
       )}
-      <div style={{ ...rectBase, padding: 12, color: 'var(--text-dim)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 7 }}>
+      <div style={{ ...rectBase, padding: 12, color: 'var(--text-dim)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8 }}>
         <div style={{ color: 'var(--text)' }}>Image render failed</div>
         <div style={{ fontSize: 11.5, opacity: 0.9 }}>{advice}</div>
         <div title={job.error ?? 'Unknown error'} style={{ fontSize: 11, opacity: 0.75, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
