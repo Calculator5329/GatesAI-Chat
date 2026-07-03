@@ -4,11 +4,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
-import { useEditorial } from '../../stores/context';
-import { isWebLite } from '../../core/runtime';
+import { useEditorial, useOllamaStore, useOpenRouterStore } from '../../stores/context';
+import { isTauri, isWebLite } from '../../core/runtime';
 import { clientPlatform } from '../../core/clientPlatform';
 import { recommendedDownload } from '../../core/downloads';
-import type { Message } from '../../core/types';
+import type { Message, Model } from '../../core/types';
+import { SecretKeyField } from '../ui';
 import { EditorialMessage } from './EditorialMessage';
 import { EditorialComposer } from './EditorialComposer';
 import {
@@ -37,17 +38,30 @@ const MESSAGE_PLACEHOLDER_STYLE: CSSProperties = {
  * Web Lite note that conversations live in this browser.
  */
 const ChatEmptyState = observer(function ChatEmptyState() {
-  const { chat, providers, router } = useEditorial();
-  const needsKey = !providers.hasUsableProvider;
+  const { chat, providers, registry, ui } = useEditorial();
   const webLite = isWebLite();
   const hasMessages = (chat.activeThread?.messages.length ?? 0) > 0;
-  const hasModel = Boolean(chat.activeThread?.modelId);
+  const hasPriorMessages = chat.threads.some(thread => thread.messages.length > 0);
+  const activeModel = registry.findById(chat.activeThread?.modelId ?? '');
+  const activeProviderReady = activeModel
+    ? providers.isConnected(activeModel.providerId)
+    : providers.hasUsableProvider;
+  const [readyMessage, setReadyMessage] = useState<string | null>(null);
 
-  const checklist = [
-    { done: !needsKey, label: 'Connect OpenRouter in Models' },
-    { done: hasModel, label: 'Pick a model from the composer' },
-    { done: hasMessages, label: 'Send your first message' },
-  ];
+  useEffect(() => {
+    if (hasPriorMessages && !ui.onboardingDismissed) ui.setOnboardingDismissed(true);
+  }, [hasPriorMessages, ui]);
+
+  const showOnboarding =
+    !ui.onboardingDismissed
+    && !activeProviderReady
+    && !hasPriorMessages
+    && !hasMessages;
+
+  const normalMessage = readyMessage
+    ?? (activeProviderReady
+      ? 'Type a message below to begin.'
+      : 'Look around freely. Connect a cloud or local model when you are ready to chat.');
 
   return (
     <div className="editorial-empty-state">
@@ -59,30 +73,13 @@ const ChatEmptyState = observer(function ChatEmptyState() {
           : 'Chat with frontier models, run tools over local files, and generate images in one quiet workspace.'}
       </p>
 
-      {needsKey ? (
-        <button
-          type="button"
-          className="editorial-empty-state__primary"
-          onClick={() => router.goMenu('models')}
-        >
-          Add your OpenRouter key in Models
-        </button>
+      {showOnboarding ? (
+        <FirstRunOnboardingPanel onReady={setReadyMessage} />
       ) : (
         <div className="editorial-empty-state__ready">
-          Type a message below to begin.
+          {normalMessage}
         </div>
       )}
-
-      <ul className="editorial-empty-state__checklist" aria-label="Setup checklist">
-        {checklist.map(item => (
-          <li key={item.label} data-done={item.done || undefined}>
-            <span aria-hidden="true" className="editorial-empty-state__check">
-              {item.done ? '✓' : '○'}
-            </span>
-            <span>{item.label}</span>
-          </li>
-        ))}
-      </ul>
 
       {webLite && (
         <div className="editorial-empty-state__local-note">
@@ -93,6 +90,223 @@ const ChatEmptyState = observer(function ChatEmptyState() {
     </div>
   );
 });
+
+const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
+  onReady,
+}: {
+  onReady: (message: string) => void;
+}) {
+  const { chat, providers, registry, localRuntime, ui } = useEditorial();
+  const openrouter = useOpenRouterStore();
+  const ollama = useOllamaStore();
+  const webLite = isWebLite();
+  const [cloudState, setCloudState] = useState<'idle' | 'checking' | 'error'>('idle');
+  const [cloudMessage, setCloudMessage] = useState<string | null>(null);
+  const [localChecking, setLocalChecking] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (webLite || !isTauri()) return;
+    localRuntime.refreshAll();
+  }, [localRuntime, webLite]);
+
+  const validateOpenRouterKey = useCallback(async (key: string) => {
+    if (cloudState === 'checking') return;
+    setCloudState('checking');
+    setCloudMessage('Checking OpenRouter...');
+    await openrouter.refresh(key);
+    if (openrouter.fetchError) {
+      setCloudState('error');
+      setCloudMessage(formatOpenRouterKeyError(openrouter.fetchError));
+      return;
+    }
+    providers.setKey('openrouter', key);
+    const message = `Key works - ${formatModelCount(openrouter.count)} available.`;
+    onReady(message);
+    setCloudState('idle');
+    setCloudMessage(message);
+    ui.setOnboardingDismissed(true);
+    ui.focusComposer();
+  }, [cloudState, onReady, openrouter, providers, ui]);
+
+  const refreshLocal = useCallback(async () => {
+    if (localChecking) return;
+    setLocalChecking(true);
+    setLocalError(null);
+    try {
+      if (!localRuntime.autoDetectComplete && !localRuntime.runtimes.ollama.installPath) {
+        await localRuntime.autoDetect();
+      }
+      await localRuntime.refreshStatus('ollama');
+      if (localRuntime.runtimes.ollama.status === 'online') {
+        await ollama.refresh();
+      }
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLocalChecking(false);
+    }
+  }, [localChecking, localRuntime, ollama]);
+
+  const localModels = registry.all.filter(model => model.providerId === 'ollama');
+  const selectLocalModel = useCallback(() => {
+    const threadId = chat.activeThreadId;
+    const model = bestLocalModel(localModels);
+    if (!threadId || !model) return;
+    chat.setThreadModel(threadId, model.id);
+    const message = `Ollama detected - ${formatModelCount(localModels.length)} ready.`;
+    onReady(message);
+    ui.setOnboardingDismissed(true);
+    ui.focusComposer();
+  }, [chat, localModels, onReady, ui]);
+
+  const dismiss = useCallback(() => {
+    ui.setOnboardingDismissed(true);
+  }, [ui]);
+
+  return (
+    <div className="editorial-onboarding" aria-label="Choose how to start chatting">
+      <section className="editorial-onboarding__card">
+        <div className="editorial-onboarding__kicker">Cloud</div>
+        <h2>Use cloud models</h2>
+        <p>
+          Paste an OpenRouter API key. OpenRouter requires a key for every route, including free models.
+        </p>
+        <SecretKeyField
+          value={providers.getConfig('openrouter').apiKey ?? ''}
+          onSet={validateOpenRouterKey}
+          onClear={() => providers.remove('openrouter')}
+          placeholder="Paste your OpenRouter API key..."
+          getKeyUrl="https://openrouter.ai/keys"
+          connectLabel={cloudState === 'checking' ? 'Checking...' : 'Connect'}
+          submitOnPaste
+        />
+        {cloudMessage && (
+          <div
+            className="editorial-onboarding__status"
+            data-tone={cloudState === 'error' ? 'error' : 'ok'}
+            role={cloudState === 'error' ? 'alert' : 'status'}
+          >
+            {cloudMessage}
+          </div>
+        )}
+      </section>
+
+      {!webLite && (
+        <OllamaOnboardingCard
+          models={localModels}
+          checking={localChecking || ollama.fetching || localRuntime.autoDetecting}
+          error={localError ?? ollama.lastError ?? null}
+          onRefresh={refreshLocal}
+          onSelect={selectLocalModel}
+        />
+      )}
+
+      <section className="editorial-onboarding__card editorial-onboarding__card--muted">
+        <div className="editorial-onboarding__kicker">Explore</div>
+        <h2>Just look around</h2>
+        <p>
+          Hide this setup panel and keep the normal empty chat surface. You can connect a provider later.
+        </p>
+        <button type="button" className="editorial-empty-state__primary" onClick={dismiss}>
+          Look around
+        </button>
+      </section>
+    </div>
+  );
+});
+
+const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
+  models,
+  checking,
+  error,
+  onRefresh,
+  onSelect,
+}: {
+  models: Model[];
+  checking: boolean;
+  error: string | null;
+  onRefresh: () => void;
+  onSelect: () => void;
+}) {
+  const { bridge, localRuntime } = useEditorial();
+  const runtime = localRuntime.runtimes.ollama;
+  const online = runtime.status === 'online';
+  const ready = online && models.length > 0;
+  const notDetected = !runtime.installPath && runtime.status !== 'online';
+  const buttonLabel = checking ? 'Checking...' : 'Check again';
+
+  return (
+    <section className="editorial-onboarding__card">
+      <div className="editorial-onboarding__kicker">Local</div>
+      <h2>Use local models</h2>
+      {ready ? (
+        <>
+          <p>Ollama detected - {formatModelCount(models.length)} ready.</p>
+          <button type="button" className="editorial-empty-state__primary" onClick={onSelect}>
+            Use {bestLocalModel(models)?.name ?? 'local model'}
+          </button>
+        </>
+      ) : online ? (
+        <>
+          <p>Ollama is running, but no models are pulled yet. Run <code>ollama pull llama3.1</code>, then check again.</p>
+          <button type="button" className="editorial-empty-state__primary" onClick={onRefresh} disabled={checking}>
+            {buttonLabel}
+          </button>
+        </>
+      ) : notDetected ? (
+        <>
+          <p>
+            Ollama is not detected. Install it from{' '}
+            <a
+              href="https://ollama.com"
+              target="_blank"
+              rel="noreferrer"
+              onClick={event => {
+                if (!isTauri()) return;
+                event.preventDefault();
+                void bridge.openExternalTarget('https://ollama.com');
+              }}
+            >
+              ollama.com
+            </a>
+            , then check again.
+          </p>
+          <button type="button" className="editorial-empty-state__primary" onClick={onRefresh} disabled={checking}>
+            {buttonLabel}
+          </button>
+        </>
+      ) : (
+        <>
+          <p>Start Ollama, then check again. If no models appear, run <code>ollama pull llama3.1</code>.</p>
+          <button type="button" className="editorial-empty-state__primary" onClick={onRefresh} disabled={checking}>
+            {buttonLabel}
+          </button>
+        </>
+      )}
+      {error && (
+        <div className="editorial-onboarding__status" data-tone="error" role="alert">
+          {error}
+        </div>
+      )}
+    </section>
+  );
+});
+
+function formatOpenRouterKeyError(error: string): string {
+  if (/\b(401|403)\b/.test(error)) {
+    return 'OpenRouter rejected this key. Check the key and paste it again.';
+  }
+  return `Could not validate the key: ${error}`;
+}
+
+function formatModelCount(count: number): string {
+  return `${count} model${count === 1 ? '' : 's'}`;
+}
+
+function bestLocalModel(models: Model[]): Model | undefined {
+  return models.find(model => model.supportsTools !== false) ?? models[0];
+}
 
 /**
  * Web Lite → desktop upsell. Web Lite can't touch local files, run tools, or

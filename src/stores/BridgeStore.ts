@@ -125,6 +125,16 @@ export class BridgeStore {
     }
   }
 
+  async openExternalTarget(target: string): Promise<boolean> {
+    try {
+      await openExternal(target);
+      return true;
+    } catch (err) {
+      logger.warn('BridgeStore', 'openExternalTarget failed', { target, err });
+      return false;
+    }
+  }
+
   /**
    * List a workspace directory through the bridge. Lives on the store so
    * UI components ask the facade for workspace data instead of issuing

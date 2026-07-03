@@ -40,10 +40,12 @@ test.describe('web lite without a configured provider', () => {
     await mockOpenRouter(page);
   });
 
-  test('shows the API key banner on the composer', async ({ page }) => {
+  test('shows OpenRouter onboarding without local runtimes', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByText('Add an OpenRouter key in Models to start chatting.')).toBeVisible();
+    await expect(page.getByText('Use cloud models')).toBeVisible();
+    await expect(page.getByText('OpenRouter requires a key')).toBeVisible();
+    await expect(page.getByText('Use local models')).toHaveCount(0);
     await expect(page.locator('button.composer-send-control[aria-label="Send"]')).toBeDisabled();
   });
 

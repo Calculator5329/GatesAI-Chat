@@ -615,6 +615,82 @@
   font: 13px "Geist", ui-sans-serif, system-ui, sans-serif;
 }
 
+.editorial-onboarding {
+  width: min(720px, 100%);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+  text-align: left;
+}
+
+.editorial-onboarding__card {
+  min-width: 0;
+  min-height: 218px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 88%, var(--bg) 12%);
+}
+
+.editorial-onboarding__card--muted {
+  background: color-mix(in srgb, var(--panel) 76%, var(--bg) 24%);
+}
+
+.editorial-onboarding__kicker {
+  font: 10.5px/1.3 "Geist Mono", ui-monospace, monospace;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 74%, var(--text-dim));
+}
+
+.editorial-onboarding__card h2 {
+  margin: 0;
+  color: var(--text);
+  font: 600 20px/1.15 "Source Serif 4", Georgia, serif;
+  letter-spacing: 0;
+}
+
+.editorial-onboarding__card p {
+  margin: 0;
+  color: var(--text-dim);
+  font: 12.5px/1.5 "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+.editorial-onboarding__card code {
+  color: var(--text);
+  font: 11.5px/1.3 "Geist Mono", ui-monospace, monospace;
+}
+
+.editorial-onboarding__card a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.editorial-onboarding__card a:hover,
+.editorial-onboarding__card a:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.editorial-onboarding__card .editorial-empty-state__primary {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.editorial-onboarding__status {
+  color: var(--accent);
+  font: 11.5px/1.45 "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+.editorial-onboarding__status[data-tone="error"] {
+  color: #ff7597;
+}
+
 .editorial-empty-state__checklist {
   width: min(340px, 100%);
   margin: 8px 0 0;

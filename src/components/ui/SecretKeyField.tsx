@@ -10,7 +10,7 @@ export interface SecretKeyFieldProps {
   /** The currently-stored key (empty / undefined → connect mode). */
   value: string;
   /** Called with the trimmed-non-empty key when the user submits. */
-  onSet: (next: string) => void;
+  onSet: (next: string) => void | Promise<void>;
   /** Called when the user clears the stored key. */
   onClear: () => void;
   placeholder?: string;
@@ -20,6 +20,8 @@ export interface SecretKeyFieldProps {
   connectLabel?: string;
   /** Label on the action button after connect (none renders by default). */
   removeLabel?: string;
+  /** Submit immediately when a user pastes a non-empty value. */
+  submitOnPaste?: boolean;
 }
 
 function maskKey(key: string): string {
@@ -43,6 +45,7 @@ export function SecretKeyField({
   getKeyUrl,
   connectLabel = 'Connect',
   removeLabel = 'Remove',
+  submitOnPaste = false,
 }: SecretKeyFieldProps) {
   const [draft, setDraft] = useState('');
   const [revealed, setRevealed] = useState(false);
@@ -72,7 +75,14 @@ export function SecretKeyField({
   const submit = (): void => {
     const trimmed = draft.trim();
     if (!trimmed) return;
-    onSet(trimmed);
+    void onSet(trimmed);
+    setDraft('');
+  };
+
+  const submitValue = (value: string): void => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    void onSet(trimmed);
     setDraft('');
   };
 
@@ -85,6 +95,13 @@ export function SecretKeyField({
           value={draft}
           onChange={e => setDraft(e.currentTarget.value)}
           style={{ flex: 1 }}
+          onPaste={e => {
+            if (!submitOnPaste) return;
+            const pasted = e.clipboardData.getData('text');
+            if (!pasted.trim()) return;
+            e.preventDefault();
+            submitValue(pasted);
+          }}
           onKeyDown={e => { if (e.key === 'Enter') submit(); }}
         />
         <Button variant="accent" onClick={submit} disabled={!draft.trim()}>{connectLabel}</Button>

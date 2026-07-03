@@ -14,6 +14,7 @@ export interface UiPrefsSnapshot {
   bodyFontSizePx: number;
   readingWidthPx: number;
   animationsEnabled: boolean;
+  onboardingDismissed: boolean;
 }
 
 const KEY = 'gatesai.uiprefs.v1';
@@ -25,11 +26,20 @@ export const DEFAULT_UI_PREFS: UiPrefsSnapshot = {
   bodyFontSizePx: 17,
   readingWidthPx: 720,
   animationsEnabled: true,
+  onboardingDismissed: false,
 };
 
 export const uiPrefsPersistence = createJsonPersistenceProvider<UiPrefsSnapshot>({
   key: KEY,
-  parse: () => DEFAULT_UI_PREFS,
+  parse: raw => {
+    const parsed = raw && typeof raw === 'object' ? raw as Partial<UiPrefsSnapshot> : {};
+    return {
+      ...DEFAULT_UI_PREFS,
+      onboardingDismissed: typeof parsed.onboardingDismissed === 'boolean'
+        ? parsed.onboardingDismissed
+        : DEFAULT_UI_PREFS.onboardingDismissed,
+    };
+  },
 });
 
 export function loadUiPrefs(): UiPrefsSnapshot {
@@ -37,5 +47,5 @@ export function loadUiPrefs(): UiPrefsSnapshot {
 }
 
 export function saveUiPrefs(snap: UiPrefsSnapshot): void {
-  uiPrefsPersistence.save({ ...snap, ...DEFAULT_UI_PREFS });
+  uiPrefsPersistence.save({ ...DEFAULT_UI_PREFS, onboardingDismissed: snap.onboardingDismissed });
 }

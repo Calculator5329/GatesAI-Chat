@@ -168,11 +168,12 @@ test.describe('desktop without a configured provider', () => {
     await mockBridgeOnline(page);
   });
 
-  test('shows the API key banner and disables send', async ({ page }) => {
+  test('shows first-run onboarding and disables send', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByText('Add an OpenRouter key in Models to start chatting.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Open Models' })).toBeVisible();
+    await expect(page.getByText('Use cloud models')).toBeVisible();
+    await expect(page.getByText('Use local models')).toBeVisible();
+    await expect(page.getByText('Just look around')).toBeVisible();
     await page.locator('.composer-textarea').fill('hello without a key');
     await expect(page.locator('button.composer-send-control[aria-label="Send"]')).toBeDisabled();
   });

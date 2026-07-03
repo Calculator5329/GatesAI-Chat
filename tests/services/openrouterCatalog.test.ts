@@ -63,4 +63,21 @@ describe('fetchOpenRouterModels', () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, statusText: 'X' })));
     await expect(fetchOpenRouterModels()).rejects.toThrow(/500/);
   });
+
+  it('sends an authorization header when a key is provided', async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => SAMPLE,
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchOpenRouterModels(undefined, ' sk-or-test ');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://openrouter.ai/api/v1/models',
+      expect.objectContaining({
+        headers: { Authorization: 'Bearer sk-or-test' },
+      }),
+    );
+  });
 });

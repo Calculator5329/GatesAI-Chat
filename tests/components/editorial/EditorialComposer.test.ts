@@ -108,6 +108,7 @@ afterEach(() => {
 describe('EditorialComposer API-key banner', () => {
   it('shows the API-key banner and disables send when no provider is configured', () => {
     store = buildStore();
+    store.ui.setOnboardingDismissed(true);
     const rendered = render(store);
 
     expect(rendered.textContent).toContain('Add an OpenRouter key in Models to start chatting.');
@@ -130,6 +131,7 @@ describe('EditorialComposer API-key banner', () => {
     // ProviderStore.hasUsableProvider). Without that touch, the observer
     // would never re-render and the post-setKey assertions would fail.
     store = buildStore();
+    store.ui.setOnboardingDismissed(true);
     const rendered = render(store);
     act(() => store!.ui.setDraft('hello'));
 
