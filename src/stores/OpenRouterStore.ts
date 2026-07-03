@@ -26,17 +26,20 @@ export class OpenRouterStore {
   fetchError: string | null = null;
 
   private readonly registry: ModelRegistry;
+  private readonly getApiKey: () => string | undefined;
   private inflight: AbortController | null = null;
 
-  constructor(registry: ModelRegistry) {
+  constructor(registry: ModelRegistry, getApiKey: () => string | undefined = () => undefined) {
     this.registry = registry;
+    this.getApiKey = getApiKey;
     const cached = loadOpenRouterCache();
     if (cached) {
       this.fetchedAt = cached.fetchedAt;
       this.registry.setDynamicForProvider('openrouter', cached.models);
     }
-    makeAutoObservable<this, 'registry' | 'inflight'>(this, {
+    makeAutoObservable<this, 'registry' | 'getApiKey' | 'inflight'>(this, {
       registry: false,
+      getApiKey: false,
       inflight: false,
     });
   }
@@ -53,7 +56,7 @@ export class OpenRouterStore {
     return this.models.length;
   }
 
-  async refresh(): Promise<void> {
+  async refresh(apiKey = this.getApiKey()): Promise<void> {
     if (this.inflight) this.inflight.abort();
     const controller = new AbortController();
     this.inflight = controller;
@@ -62,7 +65,7 @@ export class OpenRouterStore {
       this.fetchError = null;
     });
     try {
-      const models = await fetchOpenRouterModels(controller.signal);
+      const models = await fetchOpenRouterModels(controller.signal, apiKey);
       if (controller.signal.aborted) return;
       const fetchedAt = Date.now();
       runInAction(() => {

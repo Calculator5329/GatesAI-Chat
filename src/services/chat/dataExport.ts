@@ -268,6 +268,9 @@ function parseUiPrefsSnapshot(value: unknown): UiPrefsSnapshot {
     animationsEnabled: typeof r.animationsEnabled === 'boolean'
       ? r.animationsEnabled
       : DEFAULT_UI_PREFS.animationsEnabled,
+    onboardingDismissed: typeof r.onboardingDismissed === 'boolean'
+      ? r.onboardingDismissed
+      : DEFAULT_UI_PREFS.onboardingDismissed,
   };
 }
 

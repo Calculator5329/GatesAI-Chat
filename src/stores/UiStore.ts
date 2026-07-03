@@ -50,6 +50,7 @@ export class UiStore {
   bodyFontSizePx = 17;
   readingWidthPx = 720;
   animationsEnabled = true;
+  onboardingDismissed = false;
   /** First-run cue: pulse the brand wordmark until the user opens the menu. */
   menuHintSeen = loadMenuHintSeen();
   /**
@@ -68,6 +69,7 @@ export class UiStore {
     this.bodyFontSizePx = prefs.bodyFontSizePx;
     this.readingWidthPx = prefs.readingWidthPx;
     this.animationsEnabled = prefs.animationsEnabled;
+    this.onboardingDismissed = prefs.onboardingDismissed;
     makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'composerFocus' | 'composerFocusPending' | 'disposers'>(this, {
       boundDraftThreadId: false,
       draftByThread: false,
@@ -86,6 +88,7 @@ export class UiStore {
       togglePalette: action.bound,
       setComposerFocusHandler: action.bound,
       focusComposer: action.bound,
+      setOnboardingDismissed: action.bound,
     });
     // Debounce UI-prefs persistence: a slider drag (font size, reading width)
     // can fire dozens of mutations per second; without debouncing each one
@@ -112,6 +115,7 @@ export class UiStore {
         bodyFontSizePx: this.bodyFontSizePx,
         readingWidthPx: this.readingWidthPx,
         animationsEnabled: this.animationsEnabled,
+        onboardingDismissed: this.onboardingDismissed,
       });
       if (pendingTimer) clearTimeout(pendingTimer);
       pendingTimer = setTimeout(flushPrefs, DEBOUNCE_MS);
@@ -150,6 +154,7 @@ export class UiStore {
       bodyFontSizePx: this.bodyFontSizePx,
       readingWidthPx: this.readingWidthPx,
       animationsEnabled: this.animationsEnabled,
+      onboardingDismissed: this.onboardingDismissed,
     };
   }
 
@@ -161,6 +166,7 @@ export class UiStore {
     this.bodyFontSizePx = snapshot.bodyFontSizePx;
     this.readingWidthPx = snapshot.readingWidthPx;
     this.animationsEnabled = snapshot.animationsEnabled;
+    this.onboardingDismissed = snapshot.onboardingDismissed;
   }
 
   /**
@@ -294,6 +300,7 @@ export class UiStore {
   }
   setReadingWidthPx(value: number): void { this.readingWidthPx = value; }
   setAnimationsEnabled(value: boolean): void { this.animationsEnabled = value; }
+  setOnboardingDismissed(value: boolean): void { this.onboardingDismissed = value; }
 
   /** Record that the user has discovered the menu; suppresses the brand cue. */
   markMenuHintSeen(): void {

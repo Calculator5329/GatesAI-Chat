@@ -13,6 +13,8 @@ import { BridgeStore } from '../../../src/stores/BridgeStore';
 import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
 import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
 import { ImageJobStore } from '../../../src/stores/ImageJobStore';
+import { OpenRouterStore } from '../../../src/stores/OpenRouterStore';
+import { OllamaStore } from '../../../src/stores/OllamaStore';
 import { EditorialChat } from '../../../src/components/editorial/EditorialChat';
 import { flushPendingSnapshot } from '../../../src/services/persistence';
 import type { RootStore } from '../../../src/stores/RootStore';
@@ -48,14 +50,23 @@ let store: RootStore | null = null;
 
 function buildStore(): RootStore {
   const registry = new ModelRegistry();
-  const providers = new ProviderStore(registry);
   const profile = new UserProfileStore();
-  const chat = new ChatStore(providers, registry, profile);
   const ui = new UiStore();
   const router = new RouterStore();
   const bridge = new BridgeStore();
   const execStream = new ExecStreamStore();
   const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
+  const ollama = new OllamaStore(registry, localRuntime);
+  const providers = new ProviderStore(registry, () => ({
+    ollama: {
+      baseUrl: localRuntime.ollamaBaseUrl,
+      apiKey: ollama.config.apiKey,
+      available: localRuntime.runtimes.ollama.status === 'online',
+      toolsEnabled: ollama.config.toolsEnabled,
+    },
+  }));
+  const openrouter = new OpenRouterStore(registry, () => providers.getConfig('openrouter').apiKey);
+  const chat = new ChatStore(providers, registry, profile);
   const imageJobs = new ImageJobStore();
   return {
     registry,
@@ -67,6 +78,8 @@ function buildStore(): RootStore {
     bridge,
     execStream,
     localRuntime,
+    openrouter,
+    ollama,
     imageJobs,
   } as RootStore;
 }
@@ -122,35 +135,127 @@ afterEach(() => {
   // can write to localStorage after clearAppStorage() (previously a 260ms sleep).
   store?.chat.dispose();
   store?.ui.dispose();
+  store?.ollama.dispose();
+  store?.providers.dispose();
   store = null;
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   flushPendingSnapshot();
   clearAppStorage();
 });
 
 describe('EditorialChat empty state (Batch C)', () => {
-  it('renders the first-run checklist with undoned steps when no provider is configured', () => {
+  it('renders onboarding paths when no provider and no prior messages are configured', () => {
     store = buildStore();
     const rendered = renderChat(store);
 
     expect(rendered.textContent).toContain('GatesAI Chat');
     expect(rendered.textContent).toContain('Local-first AI workspace');
     expect(rendered.textContent).toContain('Chat with frontier models');
-    expect(rendered.textContent).toContain('Connect OpenRouter in Models');
-    expect(rendered.textContent).toContain('Pick a model from the composer');
-    expect(rendered.textContent).toContain('Send your first message');
-    expect(rendered.textContent).toContain('Add your OpenRouter key in Models');
-    expect(rendered.textContent).toContain('○');
+    expect(rendered.textContent).toContain('Use cloud models');
+    expect(rendered.textContent).toContain('Use local models');
+    expect(rendered.textContent).toContain('Just look around');
+    expect(rendered.textContent).toContain('OpenRouter requires a key');
+    expect(rendered.textContent).not.toContain('Connect OpenRouter in Models');
   });
 
-  it('marks checklist steps done when provider and model are ready', () => {
+  it('hides onboarding once a provider key is ready', () => {
     store = buildStore();
     store.providers.setKey('openrouter', 'sk-test');
     const rendered = renderChat(store);
 
-    expect(rendered.textContent).toContain('✓');
     expect(rendered.textContent).toContain('Type a message below to begin.');
-    expect(rendered.textContent).not.toContain('Add your OpenRouter key in Models');
+    expect(rendered.textContent).not.toContain('Use cloud models');
+    expect(rendered.textContent).not.toContain('Connect OpenRouter in Models');
+  });
+
+  it('stores a valid OpenRouter key through ProviderStore and hides onboarding', async () => {
+    store = buildStore();
+    const setKey = vi.spyOn(store.providers, 'setKey');
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        data: [{
+          id: 'google/gemini-3-flash',
+          name: 'Gemini 3 Flash',
+          architecture: { output_modalities: ['text'] },
+        }],
+      }),
+    })));
+    const rendered = renderChat(store);
+    const input = rendered.querySelector('input[placeholder="Paste your OpenRouter API key..."]') as HTMLInputElement;
+    const event = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(event, 'clipboardData', {
+      value: { getData: () => ' sk-or-good ' },
+    });
+
+    await act(async () => {
+      input.dispatchEvent(event);
+      await vi.waitFor(() => expect(store!.providers.getConfig('openrouter').apiKey).toBe('sk-or-good'));
+    });
+
+    expect(setKey).toHaveBeenCalledWith('openrouter', 'sk-or-good');
+    expect(store.ui.onboardingDismissed).toBe(true);
+    expect(rendered.textContent).not.toContain('Use cloud models');
+    expect(rendered.textContent).toContain('Key works - 1 model available.');
+  });
+
+  it('selects an online Ollama model and dismisses onboarding', () => {
+    store = buildStore();
+    store.registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3',
+      name: 'Llama 3 Local',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3',
+    }]);
+    runInAction(() => {
+      store!.localRuntime.runtimes.ollama.status = 'online';
+    });
+    const rendered = renderChat(store);
+    const useLocal = Array.from(rendered.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Use Llama 3 Local')) as HTMLButtonElement | undefined;
+
+    act(() => useLocal?.click());
+
+    expect(store.chat.activeThread?.modelId).toBe('ollama-llama3');
+    expect(store.ui.onboardingDismissed).toBe(true);
+    expect(rendered.textContent).not.toContain('Use cloud models');
+    expect(rendered.textContent).toContain('Ollama detected - 1 model ready.');
+  });
+
+  it('look around dismisses onboarding and persists the preference', () => {
+    store = buildStore();
+    const rendered = renderChat(store);
+    const lookAround = Array.from(rendered.querySelectorAll('button'))
+      .find(button => button.textContent === 'Look around') as HTMLButtonElement | undefined;
+
+    act(() => lookAround?.click());
+    store.ui.dispose();
+
+    expect(store.ui.onboardingDismissed).toBe(true);
+    expect(rendered.textContent).not.toContain('Use cloud models');
+    expect(JSON.parse(localStorage.getItem('gatesai.uiprefs.v1') ?? '{}').onboardingDismissed).toBe(true);
+  });
+
+  it('hides the local path in Web Lite onboarding', () => {
+    vi.stubEnv('VITE_GATESAI_WEB', '1');
+    store = buildStore();
+    const rendered = renderChat(store);
+
+    expect(rendered.textContent).toContain('Use cloud models');
+    expect(rendered.textContent).not.toContain('Use local models');
+  });
+
+  it('does not render onboarding when any prior thread has messages', () => {
+    store = buildStore();
+    seedMessages(store.chat, 1);
+    store.chat.createThread();
+    const rendered = renderChat(store);
+
+    expect(rendered.textContent).not.toContain('Use cloud models');
+    expect(store.ui.onboardingDismissed).toBe(true);
   });
 });
 

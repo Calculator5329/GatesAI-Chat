@@ -64,6 +64,9 @@
   .editorial-composer {
     padding: 0 28px 14px !important;
   }
+  .editorial-onboarding {
+    grid-template-columns: 1fr;
+  }
   .gates-menu__tabs {
     padding: 18px 28px 0 !important;
   }
@@ -122,6 +125,9 @@
   }
   .editorial-composer {
     padding: 0 16px 12px !important;
+  }
+  .editorial-onboarding__card {
+    min-height: 0;
   }
   .editorial-composer__meta {
     flex-wrap: wrap !important;

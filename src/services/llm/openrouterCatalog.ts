@@ -33,8 +33,10 @@ const ENDPOINT = 'https://openrouter.ai/api/v1/models';
  * curated `or-*` ids hand-coded in `core/models.ts`. The registry then
  * dedupes when both sides describe the same `providerModelId`.
  */
-export async function fetchOpenRouterModels(signal?: AbortSignal): Promise<Model[]> {
-  const res = await fetch(ENDPOINT, { signal });
+export async function fetchOpenRouterModels(signal?: AbortSignal, apiKey?: string): Promise<Model[]> {
+  const headers: Record<string, string> = {};
+  if (apiKey?.trim()) headers.Authorization = `Bearer ${apiKey.trim()}`;
+  const res = await fetch(ENDPOINT, { signal, headers });
   if (!res.ok) {
     throw new Error(`OpenRouter catalog HTTP ${res.status} — ${res.statusText}`);
   }

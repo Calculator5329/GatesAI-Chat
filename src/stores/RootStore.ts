@@ -67,7 +67,6 @@ export class RootStore {
     this.profile = new UserProfileStore();
     this.ui = new UiStore();
     this.router = new RouterStore();
-    this.openrouter = new OpenRouterStore(this.registry);
     this.localRuntime = new LocalRuntimeStore({
       getOllamaCatalog: () => ollamaStore?.catalog ?? [],
     });
@@ -83,6 +82,7 @@ export class RootStore {
         toolsEnabled: this.ollama.config.toolsEnabled,
       },
     }), { autoPersist: false });
+    this.openrouter = new OpenRouterStore(this.registry, () => this.providers.getConfig('openrouter').apiKey);
     this.chat = new ChatStore(this.providers, this.registry, this.profile);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
@@ -202,6 +202,13 @@ export class RootStore {
 
     this.summary.start();
     this.disposers.push(installMultiTabStorageListener());
+
+    this.disposers.push(autorun(() => {
+      if (this.ui.onboardingDismissed) return;
+      if (this.chat.threads.some(thread => thread.messages.length > 0)) {
+        this.ui.setOnboardingDismissed(true);
+      }
+    }));
 
     let boundDraftThreadId: string | null = null;
     this.disposers.push(autorun(() => {

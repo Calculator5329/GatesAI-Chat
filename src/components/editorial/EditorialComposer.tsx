@@ -218,6 +218,14 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   const hasAttachments = ui.attachments.length > 0;
   const directImageMode = currentModel?.providerId === 'local-image';
   const directImageReady = directImageMode && localRuntime.comfyReady;
+  const activeProviderReady = currentModel
+    ? providers.isConnected(currentModel.providerId)
+    : providers.hasUsableProvider;
+  const onboardingVisible =
+    !ui.onboardingDismissed
+    && !activeProviderReady
+    && (activeThread?.messages.length ?? 0) === 0
+    && !chat.threads.some(thread => thread.messages.length > 0);
   // Context-aware send gating: direct-image → Comfy health; Ollama model → Ollama
   // health; everything else → OpenRouter/provider key. Mutually exclusive banners.
   const routeBlock: 'models-key' | 'ollama-offline' | 'comfy-offline' | null = (() => {
@@ -236,6 +244,9 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   // Direct-image mode is offline and only needs text; attachments are ignored
   // by the image job enqueue path.
   const canSend = (hasText || (!directImageMode && hasAttachments)) && routeReady;
+  const placeholder = routeReady && (activeThread?.messages.length ?? 0) === 0
+    ? 'Ask your first question...'
+    : 'Continue the thought...';
 
   const onSend = () => {
     if (!canSend) return;
@@ -306,7 +317,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
         {/* Banner stack: route block → multi-tab conflict → compaction → per-thread error */}
         {routeBlock === 'comfy-offline' && <LocalImageBanner />}
         {routeBlock === 'ollama-offline' && <OllamaOfflineBanner />}
-        {routeBlock === 'models-key' && <ModelsKeyBanner />}
+        {routeBlock === 'models-key' && !onboardingVisible && <ModelsKeyBanner />}
         {chat.persistenceConflict && (
           <NoticeBanner
             message={chat.persistenceConflict}
@@ -434,7 +445,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             onBlur={flushDraft}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
-            placeholder="Continue the thought..."
+            placeholder={placeholder}
             rows={1}
             style={textareaStyle}
             // CSS field-sizing: content handles autoresize natively when

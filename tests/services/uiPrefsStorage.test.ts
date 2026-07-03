@@ -10,6 +10,7 @@ const DEFAULTS = {
   bodyFontSizePx: 17,
   readingWidthPx: 720,
   animationsEnabled: true,
+  onboardingDismissed: false,
 } as const;
 
 describe('uiPrefsStorage', () => {
@@ -28,9 +29,10 @@ describe('uiPrefsStorage', () => {
       bodyFontSizePx: 19,
       readingWidthPx: 860,
       animationsEnabled: false,
+      onboardingDismissed: true,
     });
 
-    expect(loadUiPrefs()).toEqual(DEFAULTS);
+    expect(loadUiPrefs()).toEqual({ ...DEFAULTS, onboardingDismissed: true });
   });
 
   it('falls back per field when persisted values are invalid', () => {
@@ -43,6 +45,7 @@ describe('uiPrefsStorage', () => {
       bodyFontSizePx: 'big',
       readingWidthPx: 999,
       animationsEnabled: 'sure',
+      onboardingDismissed: 'nope',
     }));
 
     expect(loadUiPrefs()).toEqual(DEFAULTS);
