@@ -464,6 +464,8 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           <button
             type="button"
             className="composer-send-control"
+            data-ready={(streaming || canSend) || undefined}
+            data-mode={streaming && !hasText ? 'stop' : 'send'}
             onClick={streaming && !hasText ? onStop : onSend}
             title={sendTitle}
             aria-label={sendTitle}
@@ -553,7 +555,10 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           )}
           <span className="composer-meta__sep" style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
           <ContextMeter draftText={value} />
-          <span style={{
+          <span
+            className="composer-stream-label"
+            aria-live="polite"
+            style={{
             marginLeft: 'auto',
             flex: 'none',
             fontFamily: '"Geist Mono", monospace',
@@ -561,6 +566,10 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             opacity: streaming ? 0.85 : 0,
             transition: `opacity ${tokens.motion.fade}`,
             letterSpacing: '0.06em',
+            minHeight: 18,
+            minWidth: '20ch',
+            textAlign: 'right',
+            whiteSpace: 'nowrap',
           }}>
             {streaming ? (hasText ? 'Enter to interrupt' : streamFooterLabel(streamActivity)) : ''}
           </span>
