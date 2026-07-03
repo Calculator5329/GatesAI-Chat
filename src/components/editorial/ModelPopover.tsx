@@ -485,7 +485,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
         })}
       </div>
 
-      <div role="listbox" aria-label="Models" style={{ overflowY: 'auto', flex: 1, paddingBottom: 6 }}>
+      <div className="model-popover__list" role="listbox" aria-label="Models" style={{ overflowY: 'auto', flex: 1, paddingBottom: 6 }}>
         {displaySections.length === 0 && (
           <div style={{
             padding: '24px 16px', textAlign: 'center',
