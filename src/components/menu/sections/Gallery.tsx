@@ -107,19 +107,11 @@ export const GallerySection = observer(function GallerySection() {
 
 function EmptyState() {
   return (
-    <div style={{
+    <div className="editorial-empty-copy" style={{
       padding: '44px 28px', textAlign: 'center',
-      color: 'var(--text-faint)', fontSize: 13,
       border: '1px dashed var(--border)', borderRadius: 8,
     }}>
-      <div style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 18, color: 'var(--text-dim)', marginBottom: 8 }}>
-        No images yet
-      </div>
-      <div style={{ lineHeight: 1.55, maxWidth: 420, margin: '0 auto' }}>
-        Ask the assistant to generate an image, or use <strong style={{ color: 'var(--text-dim)' }}>image_generate</strong>{' '}
-        with the configured backend. Finished images are kept here and saved under{' '}
-        <code style={tokens.mono}>/workspace/artifacts/images</code>.
-      </div>
+      Generated images will collect here after a prompt produces a result.
     </div>
   );
 }

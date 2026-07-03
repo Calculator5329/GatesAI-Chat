@@ -60,8 +60,8 @@ const ChatEmptyState = observer(function ChatEmptyState() {
 
   const normalMessage = readyMessage
     ?? (activeProviderReady
-      ? 'Type a message below to begin.'
-      : 'Look around freely. Connect a cloud or local model when you are ready to chat.');
+      ? 'A blank thread is ready; write below when you want to begin.'
+      : 'A blank thread is waiting; connect a cloud or local model when you are ready.');
 
   return (
     <div className="editorial-empty-state">

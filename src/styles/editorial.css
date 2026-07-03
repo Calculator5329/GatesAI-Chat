@@ -987,7 +987,12 @@
 
 .editorial-empty-state__ready {
   color: var(--text-faint);
-  font: 13px "Geist", ui-sans-serif, system-ui, sans-serif;
+  font: italic 14px/1.55 "Source Serif 4", Georgia, serif;
+}
+
+.editorial-empty-copy {
+  color: var(--text-faint);
+  font: italic 14px/1.55 "Source Serif 4", Georgia, serif;
 }
 
 .editorial-onboarding {

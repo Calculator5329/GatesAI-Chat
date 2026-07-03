@@ -191,7 +191,7 @@ export const CommandPalette = observer(function CommandPalette() {
           />
         </div>
         <div className="command-palette__list" role="listbox" aria-label="Command results" style={LIST_STYLE}>
-          {ranked.length === 0 && <div style={EMPTY_STYLE}>No matches</div>}
+          {ranked.length === 0 && <div style={EMPTY_STYLE}>No matching command or thread.</div>}
           {ranked.map((item, index) => (
             <PaletteRow
               key={item.id}

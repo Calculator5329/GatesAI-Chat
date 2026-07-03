@@ -680,7 +680,7 @@ const ModelsKeyBanner = observer(function ModelsKeyBanner() {
           fontFamily: 'inherit',
         }}
       >
-        Open Models
+        Open models
       </button>
     </div>
   );
@@ -717,7 +717,7 @@ const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
           fontFamily: 'inherit',
         }}
       >
-        Open Local settings
+        Open local settings
       </button>
     </div>
   );
@@ -775,7 +775,7 @@ const LocalImageBanner = observer(function LocalImageBanner() {
           fontFamily: 'inherit',
         }}
       >
-        Open Local settings
+        Open local settings
       </button>
     </div>
   );
