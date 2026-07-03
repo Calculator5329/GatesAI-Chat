@@ -165,7 +165,7 @@ describe('EditorialChat empty state (Batch C)', () => {
     store.providers.setKey('openrouter', 'sk-test');
     const rendered = renderChat(store);
 
-    expect(rendered.textContent).toContain('Type a message below to begin.');
+    expect(rendered.textContent).toContain('A blank thread is ready; write below when you want to begin.');
     expect(rendered.textContent).not.toContain('Use cloud models');
     expect(rendered.textContent).not.toContain('Connect OpenRouter in Models');
   });
