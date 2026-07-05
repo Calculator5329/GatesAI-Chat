@@ -23,6 +23,7 @@ import { inspectFileTool } from './inspectFile';
 import { imageGenerateTool } from './imageGenerate';
 import { describeImageTool } from './describeImage';
 import { webSearchTool } from './webSearch';
+import { fetchPageTool } from './fetchPage';
 import { artifactTool } from './artifact';
 import { sourceWorkspaceTool } from './sourceWorkspace';
 import { sourceBuildTool } from './sourceBuild';
@@ -125,6 +126,7 @@ export class ToolRegistry {
     }
     if (notesRelevant) selected.add('notes');
     if (ctx.webSearchAvailable) selected.add('web_search');
+    if (ctx.desktopRuntime !== false && (ctx.webSearchAvailable || isFetchPageRelevant(text))) selected.add('fetch_page');
     if (ctx.semanticRecallAvailable) selected.add('recall');
     if (ctx.bridgeOnline && ctx.imageGenAvailable && imageGenRelevant) selected.add('image_generate');
     if (ctx.bridgeOnline && imageVisionRelevant) {
@@ -426,6 +428,10 @@ function requiredHint(name: string, key: string): string {
   return '';
 }
 
+function isFetchPageRelevant(text: string): boolean {
+  return /\b(?:url|link|website|webpage|web page|page|article|fetch|browse)\b|https?:\/\//i.test(text);
+}
+
 function safeInlineJson(value: unknown): string {
   try {
     const json = JSON.stringify(value);
@@ -458,3 +464,4 @@ toolRegistry.register(gitTool);
 toolRegistry.register(imageGenerateTool);
 toolRegistry.register(describeImageTool);
 toolRegistry.register(webSearchTool);
+toolRegistry.register(fetchPageTool);

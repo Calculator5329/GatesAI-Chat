@@ -50,6 +50,15 @@ function compactText(value: string, max: number): string {
   return oneLine.length > max ? `${oneLine.slice(0, max - 1)}…` : oneLine;
 }
 
+function domainForUrl(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  try {
+    return new URL(value).hostname || value;
+  } catch {
+    return value;
+  }
+}
+
 function formatToolName(name: string): string {
   return name.replace(/_/g, ' ');
 }
@@ -150,5 +159,10 @@ const TOOL_UI: Record<string, ToolActivityUi> = {
     verb: () => 'Searching',
     target: args => stringArrayArg(args, 'queries')[0],
     summary: result => summarizeToolResult('web_search', result),
+  },
+  fetch_page: {
+    verb: () => 'Reading',
+    target: args => domainForUrl(stringArg(args, 'url')),
+    summary: result => domainForUrl(result.content.match(/^Source:\s*(.+)$/m)?.[1]?.trim()) ?? summarizeToolResult('fetch_page', result),
   },
 };

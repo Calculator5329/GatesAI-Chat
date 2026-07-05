@@ -99,8 +99,10 @@ export function toolsForContextMode(args: {
     if (!isWebLite()) {
       const sourceWorkspace = toolRegistry.get('source_workspace')?.def;
       const sourceBuild = toolRegistry.get('source_build')?.def;
+      const fetchPage = toolRegistry.get('fetch_page')?.def;
       if (sourceWorkspace) tools.push(sourceWorkspace);
       if (sourceBuild) tools.push(sourceBuild);
+      if (fetchPage && (args.webSearchAvailable || isFetchPageRelevant(args.userText))) tools.push(fetchPage);
     }
     if (args.bridgeOnline && isMicroFsRelevant(args.userText)) tools.push(MICRO_FS_TOOL_DEF);
     const webSearch = args.webSearchAvailable ? toolRegistry.get('web_search')?.def : undefined;
@@ -122,6 +124,10 @@ export function toolsForContextMode(args: {
 
 function isMicroFsRelevant(userText: string): boolean {
   return /\b(file|files|folder|workspace|artifact|html|css|js|json|csv|txt|md|code|script|read|write|create|make|edit|save|open)\b/i.test(userText);
+}
+
+function isFetchPageRelevant(userText: string): boolean {
+  return /\b(?:url|link|website|webpage|web page|page|article|fetch|browse)\b|https?:\/\//i.test(userText);
 }
 
 export function reservedOutputTokensForContextMode(mode: ChatContextMode): number | undefined {
