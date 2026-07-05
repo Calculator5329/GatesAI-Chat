@@ -236,7 +236,7 @@ export function buildTheme(bg: string, accent: string, scheme: ThemeColorScheme 
       panel3: '#fffefa',
       border: 'rgba(58,52,42,0.14)',
       text: '#1d211d',
-      textDim: '#646961',
+      textDim: '#5f645d',
       textFaint: '#858b82',
       font: FONTS.serif,
       fontUi: FONTS.ui,

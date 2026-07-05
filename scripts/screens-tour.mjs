@@ -4,12 +4,15 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const playwrightCli = path.join(root, 'node_modules', '@playwright', 'test', 'cli.js');
+const themeArg = process.argv.find(arg => arg === '--light' || arg.startsWith('--theme='));
+const forcedTheme = themeArg === '--light' ? 'light' : themeArg?.slice('--theme='.length);
 const child = spawn(process.execPath, [playwrightCli, 'test', 'tests/e2e/screensTour.spec.ts'], {
   stdio: 'inherit',
   shell: false,
   env: {
     ...process.env,
     SCREENS_TOUR: '1',
+    ...(forcedTheme ? { SCREENS_TOUR_THEME: forcedTheme } : {}),
   },
 });
 
