@@ -9,6 +9,10 @@ const TAGS_OK = {
   models: [{ name: 'llama3.1:8b', model: 'llama3.1:8b', size: 4.7e9, modified_at: '2026-04-20T00:00:00Z' }],
 };
 
+const STARTER_TAGS = {
+  models: [{ name: 'llama3.2:3b', model: 'llama3.2:3b', size: 2e9, modified_at: '2026-04-20T00:00:00Z' }],
+};
+
 function makeLocalRuntime(): LocalRuntimeStore {
   return new LocalRuntimeStore({
     service: {
@@ -105,4 +109,82 @@ describe('OllamaStore', () => {
     expect(store.catalog).toEqual([]);
     expect(reg.all.some(m => m.providerId === 'ollama')).toBe(false);
   });
+
+  it('startPull() enforces one active pull and duplicate guard', async () => {
+    const local = makeLocalRuntime();
+    runInAction(() => { local.runtimes.ollama.status = 'online'; });
+    const store = new OllamaStore(new ModelRegistry(), local);
+    vi.stubGlobal('fetch', vi.fn(async () => pendingPullResponse()));
+
+    const first = store.startPull('llama3.2:3b');
+    await vi.waitFor(() => expect(store.isPulling('llama3.2:3b')).toBe(true));
+
+    await expect(store.startPull('llama3.2:3b')).resolves.toBe(false);
+    await expect(store.startPull('qwen2.5:7b')).resolves.toBe(false);
+    expect(store.pulls.get('qwen2.5:7b')?.error).toMatch(/Finish or cancel llama3\.2:3b/);
+
+    store.cancelPull('llama3.2:3b');
+    await first;
+  });
+
+  it('startPull() refreshes the catalog after completion', async () => {
+    const fetchTags = vi.fn(async () => STARTER_TAGS);
+    const local = makeLocalRuntime();
+    (local as unknown as { service: { fetchOllamaTags: typeof fetchTags } }).service.fetchOllamaTags = fetchTags;
+    runInAction(() => { local.runtimes.ollama.status = 'online'; });
+    const reg = new ModelRegistry();
+    const store = new OllamaStore(reg, local);
+    vi.stubGlobal('fetch', vi.fn(async () => pullResponse([{ status: 'success' }])));
+
+    await expect(store.startPull('llama3.2:3b')).resolves.toBe(true);
+
+    expect(fetchTags).toHaveBeenCalled();
+    expect(store.pulls.get('llama3.2:3b')).toEqual({ percent: 100, phase: 'Installed' });
+    expect(reg.all.some(model => model.providerId === 'ollama' && model.providerModelId === 'llama3.2:3b')).toBe(true);
+  });
+
+  it('cancelPull() aborts the active pull', async () => {
+    const local = makeLocalRuntime();
+    runInAction(() => { local.runtimes.ollama.status = 'online'; });
+    const store = new OllamaStore(new ModelRegistry(), local);
+    vi.stubGlobal('fetch', vi.fn(async () => pendingPullResponse()));
+
+    const promise = store.startPull('llama3.2:3b');
+    await vi.waitFor(() => expect(store.isPulling('llama3.2:3b')).toBe(true));
+    store.cancelPull('llama3.2:3b');
+
+    await expect(promise).resolves.toBe(false);
+    expect(store.pulls.get('llama3.2:3b')?.phase).toBe('Cancelled');
+  });
 });
+
+function pullResponse(frames: unknown[]): Response {
+  const enc = new TextEncoder();
+  return {
+    ok: true,
+    headers: new Headers({ 'content-type': 'application/x-ndjson' }),
+    body: new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (const frame of frames) controller.enqueue(enc.encode(`${JSON.stringify(frame)}\n`));
+        controller.close();
+      },
+    }),
+  } as unknown as Response;
+}
+
+function pendingPullResponse(): Response {
+  const enc = new TextEncoder();
+  return {
+    ok: true,
+    headers: new Headers({ 'content-type': 'application/x-ndjson' }),
+    body: new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(enc.encode(`${JSON.stringify({ status: 'pulling layer', digest: 'a', total: 100, completed: 10 })}\n`));
+        setTimeout(() => {
+          controller.enqueue(enc.encode(`${JSON.stringify({ status: 'success' })}\n`));
+          controller.close();
+        }, 50);
+      },
+    }),
+  } as unknown as Response;
+}

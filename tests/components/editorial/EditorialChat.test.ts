@@ -228,6 +228,59 @@ describe('EditorialChat empty state (Batch C)', () => {
     expect(rendered.textContent).toContain('Ollama detected - 1 model ready.');
   });
 
+  it('pulls a starter Ollama model from the zero-model onboarding state', async () => {
+    store = buildStore();
+    runInAction(() => {
+      store!.localRuntime.runtimes.ollama.status = 'online';
+    });
+    vi.spyOn(store.ollama, 'startPull').mockImplementation(async () => {
+      store!.registry.setDynamicForProvider('ollama', [{
+        id: 'ollama-llama3.2:3b',
+        name: 'llama3.2:3b',
+        vendor: 'Ollama',
+        providerId: 'ollama',
+        providerModelId: 'llama3.2:3b',
+      }]);
+      return true;
+    });
+    const rendered = renderChat(store);
+    const starter = Array.from(rendered.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Get a starter model')) as HTMLButtonElement | undefined;
+
+    await act(async () => {
+      starter?.click();
+      await vi.waitFor(() => expect(store!.chat.activeThread?.modelId).toBe('ollama-llama3.2:3b'));
+    });
+
+    expect(store.ollama.startPull).toHaveBeenCalledWith('llama3.2:3b');
+    expect(store.ui.onboardingDismissed).toBe(true);
+    expect(rendered.textContent).toContain('Ollama detected - llama3.2:3b ready.');
+  });
+
+  it('offers optional semantic memory after a local model is ready', () => {
+    store = buildStore();
+    store.registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3.2:3b',
+      name: 'llama3.2:3b',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3.2:3b',
+    }]);
+    runInAction(() => {
+      store!.localRuntime.runtimes.ollama.status = 'online';
+      store!.chat.activeThread!.modelId = 'ollama-llama3.2:3b';
+    });
+    const pull = vi.spyOn(store.ollama, 'startPull').mockResolvedValue(true);
+    const rendered = renderChat(store);
+
+    expect(rendered.textContent).toContain('Optional: add semantic memory');
+    const button = Array.from(rendered.querySelectorAll('button'))
+      .find(item => item.textContent?.includes('Pull nomic-embed-text')) as HTMLButtonElement | undefined;
+    act(() => button?.click());
+
+    expect(pull).toHaveBeenCalledWith('nomic-embed-text');
+  });
+
   it('look around dismisses onboarding and persists the preference', () => {
     store = buildStore();
     const rendered = renderChat(store);

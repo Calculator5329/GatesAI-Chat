@@ -39,6 +39,7 @@ const MESSAGE_PLACEHOLDER_STYLE: CSSProperties = {
  */
 const ChatEmptyState = observer(function ChatEmptyState() {
   const { chat, providers, registry, ui } = useEditorial();
+  const ollama = useOllamaStore();
   const webLite = isWebLite();
   const hasMessages = (chat.activeThread?.messages.length ?? 0) > 0;
   const hasPriorMessages = chat.threads.some(thread => thread.messages.length > 0);
@@ -76,9 +77,14 @@ const ChatEmptyState = observer(function ChatEmptyState() {
       {showOnboarding ? (
         <FirstRunOnboardingPanel onReady={setReadyMessage} />
       ) : (
-        <div className="editorial-empty-state__ready">
-          {normalMessage}
-        </div>
+        <>
+          <div className="editorial-empty-state__ready">
+            {normalMessage}
+          </div>
+          {!webLite && activeModel?.providerId === 'ollama' && !ollama.hasModelTag('nomic-embed-text') && (
+            <SemanticMemoryNudge />
+          )}
+        </>
       )}
 
       {webLite && (
@@ -87,6 +93,44 @@ const ChatEmptyState = observer(function ChatEmptyState() {
         </div>
       )}
 
+    </div>
+  );
+});
+
+const SemanticMemoryNudge = observer(function SemanticMemoryNudge() {
+  const ollama = useOllamaStore();
+  const [dismissed, setDismissed] = useState(false);
+  const model = 'nomic-embed-text';
+  const state = ollama.pulls.get(model);
+  if (dismissed || ollama.hasModelTag(model)) return null;
+  return (
+    <div style={{
+      margin: '12px auto 0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      color: 'var(--text-faint)',
+      fontSize: 12,
+      flexWrap: 'wrap',
+    }}>
+      <span>Optional: add semantic memory</span>
+      {ollama.isPulling(model) ? (
+        <>
+          <span>{state?.phase ?? 'Pulling'} · {Math.round(state?.percent ?? 0)}%</span>
+          <button type="button" className="editorial-empty-state__secondary" onClick={() => ollama.cancelPull(model)}>
+            Cancel
+          </button>
+        </>
+      ) : (
+        <button type="button" className="editorial-empty-state__secondary" onClick={() => { void ollama.startPull(model); }}>
+          Pull nomic-embed-text
+        </button>
+      )}
+      <button type="button" className="editorial-empty-state__secondary" onClick={() => setDismissed(true)}>
+        Dismiss
+      </button>
+      {state?.error && <span role="alert" style={{ color: '#ff7597' }}>{state.error}</span>}
     </div>
   );
 });
@@ -160,6 +204,20 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
     ui.focusComposer();
   }, [chat, localModels, onReady, ui]);
 
+  const startStarterPull = useCallback(async () => {
+    const ok = await ollama.startPull('llama3.2:3b');
+    if (!ok) return;
+    const threadId = chat.activeThreadId;
+    const model = registry.all.find(item => item.providerId === 'ollama' && item.providerModelId === 'llama3.2:3b')
+      ?? bestLocalModel(registry.all.filter(item => item.providerId === 'ollama'));
+    if (!threadId || !model) return;
+    chat.setThreadModel(threadId, model.id);
+    const message = `Ollama detected - ${model.name} ready.`;
+    onReady(message);
+    ui.setOnboardingDismissed(true);
+    ui.focusComposer();
+  }, [chat, ollama, onReady, registry, ui]);
+
   const dismiss = useCallback(() => {
     ui.setOnboardingDismissed(true);
   }, [ui]);
@@ -199,6 +257,7 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
           error={localError ?? ollama.lastError ?? null}
           onRefresh={refreshLocal}
           onSelect={selectLocalModel}
+          onStarterPull={startStarterPull}
         />
       )}
 
@@ -222,19 +281,24 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
   error,
   onRefresh,
   onSelect,
+  onStarterPull,
 }: {
   models: Model[];
   checking: boolean;
   error: string | null;
   onRefresh: () => void;
   onSelect: () => void;
+  onStarterPull: () => void;
 }) {
   const { bridge, localRuntime } = useEditorial();
+  const ollama = useOllamaStore();
   const runtime = localRuntime.runtimes.ollama;
   const online = runtime.status === 'online';
   const ready = online && models.length > 0;
   const notDetected = !runtime.installPath && runtime.status !== 'online';
   const buttonLabel = checking ? 'Checking...' : 'Check again';
+  const starter = 'llama3.2:3b';
+  const starterState = ollama.pulls.get(starter);
 
   return (
     <section className="editorial-onboarding__card">
@@ -249,10 +313,24 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
         </>
       ) : online ? (
         <>
-          <p>Ollama is running, but no models are pulled yet. Run <code>ollama pull llama3.1</code>, then check again.</p>
-          <button type="button" className="editorial-empty-state__primary" onClick={onRefresh} disabled={checking}>
-            {buttonLabel}
+          <p>Ollama is running, but no chat models are pulled yet.</p>
+          <button
+            type="button"
+            className="editorial-empty-state__primary"
+            onClick={onStarterPull}
+            disabled={checking || ollama.isPulling(starter)}
+          >
+            {ollama.isPulling(starter) ? `Pulling ${Math.round(starterState?.percent ?? 0)}%` : 'Get a starter model'}
           </button>
+          {starterState && (
+            <div
+              className="editorial-onboarding__status"
+              data-tone={starterState.error ? 'error' : 'ok'}
+              role={starterState.error ? 'alert' : 'status'}
+            >
+              {starterState.error ? starterState.error : `${starterState.phase} · ${Math.round(starterState.percent)}%`}
+            </div>
+          )}
         </>
       ) : notDetected ? (
         <>

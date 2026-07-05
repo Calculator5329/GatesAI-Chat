@@ -82,6 +82,38 @@ export function finiteNumber(value: unknown, min = Number.NEGATIVE_INFINITY): nu
   return typeof value === 'number' && Number.isFinite(value) && value >= min ? value : undefined;
 }
 
+export async function* readUtf8Lines(
+  body: ReadableStream<Uint8Array>,
+  signal?: AbortSignal,
+): AsyncIterable<string> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (!signal?.aborted) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (signal?.aborted) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let nl: number;
+      while ((nl = buffer.indexOf('\n')) >= 0) {
+        const line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        if (line) yield line;
+        if (signal?.aborted) return;
+      }
+    }
+
+    buffer += decoder.decode();
+    const trailing = buffer.trim();
+    if (trailing && !signal?.aborted) yield trailing;
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 function parseToolCallDeltaFragment(value: unknown): { index: number; id?: string; name?: string; argumentsDelta?: string } | null {
   if (!isRecord(value) || typeof value.index !== 'number' || !Number.isInteger(value.index)) return null;
   const fn = isRecord(value.function) ? value.function : undefined;

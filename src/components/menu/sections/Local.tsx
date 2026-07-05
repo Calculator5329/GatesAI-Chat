@@ -237,14 +237,10 @@ const LocalLlmCard = observer(function LocalLlmCard() {
           <span style={hintStyle}>Off if your local model behaves badly with tools.</span>
         </div>
       </SettingsRow>
-      <SettingsRow label="Catalog" last>
+      <SettingsRow label="Catalog">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ flex: 1, color: 'var(--text-faint)' }}>
-            {!online
-              ? 'Start Ollama to load the catalog.'
-              : ollama.count
-                ? `${ollama.count} model${ollama.count === 1 ? '' : 's'} loaded`
-                : 'No models pulled yet — run an `ollama pull` to add one.'}
+            {catalogSummaryText(online, ollama.count)}
           </span>
           <Button
             onClick={() => { void ollama.refresh(); }}
@@ -260,8 +256,162 @@ const LocalLlmCard = observer(function LocalLlmCard() {
           </div>
         )}
       </SettingsRow>
-      <PullSnippet command="ollama pull llama3.1" hint="Add a local chat model." />
+      <RecommendedModelsBlock online={online} />
     </Card>
+  );
+});
+
+const RECOMMENDED_CHAT_MODELS = [
+  { model: 'qwen2.5:7b', label: 'Qwen 2.5 7B', desc: 'Balanced default', size: '~4.7 GB' },
+  { model: 'llama3.2:3b', label: 'Llama 3.2 3B', desc: 'Small and fast', size: '~2.0 GB' },
+  { model: 'qwen2.5-coder:14b', label: 'Qwen 2.5 Coder 14B', desc: 'Coding work', size: '~9 GB' },
+];
+
+const RECOMMENDED_EMBED_MODEL = {
+  model: 'nomic-embed-text',
+  label: 'Nomic Embed Text',
+  desc: 'Enables semantic memory',
+  size: '~275 MB',
+};
+
+const RecommendedModelsBlock = observer(function RecommendedModelsBlock({ online }: { online: boolean }) {
+  const [customModel, setCustomModel] = useState('');
+  const trimmedCustom = customModel.trim();
+
+  return (
+    <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+        <div style={{ ...tokens.mono, color: 'var(--text-dim)', fontSize: 11.5 }}>Recommended models</div>
+        {!online && <span style={hintStyle}>Start Ollama first.</span>}
+      </div>
+      <div style={{ display: 'grid', gap: 8 }}>
+        {RECOMMENDED_CHAT_MODELS.map(item => (
+          <OllamaPullRow key={item.model} {...item} online={online} category="Chat" />
+        ))}
+        <OllamaPullRow {...RECOMMENDED_EMBED_MODEL} online={online} category="Embedding" semantic />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, marginTop: 10, alignItems: 'center' }}>
+        <Input
+          value={customModel}
+          onChange={event => setCustomModel(event.currentTarget.value)}
+          placeholder="any model from ollama.com/library"
+          style={{ ...tokens.mono, fontSize: 12 }}
+        />
+        <OllamaPullButton model={trimmedCustom} online={online} label="Pull" disabled={!trimmedCustom} />
+      </div>
+      {trimmedCustom && <OllamaPullProgress model={trimmedCustom} />}
+    </div>
+  );
+});
+
+const OllamaPullRow = observer(function OllamaPullRow({
+  model,
+  label,
+  desc,
+  size,
+  category,
+  online,
+  semantic,
+}: {
+  model: string;
+  label: string;
+  desc: string;
+  size: string;
+  category: 'Chat' | 'Embedding';
+  online: boolean;
+  semantic?: boolean;
+}) {
+  const ollama = useOllamaStore();
+  const installed = ollama.hasModelTag(model);
+  const pulling = ollama.isPulling(model);
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: '1fr auto',
+      gap: 10,
+      alignItems: 'center',
+      padding: '9px 10px',
+      border: semantic ? '1px solid rgba(113, 185, 138, 0.35)' : '1px solid var(--border)',
+      borderRadius: 6,
+      background: semantic ? 'rgba(113, 185, 138, 0.06)' : 'rgba(255,255,255,0.018)',
+    }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ color: 'var(--text)', fontSize: 13 }}>{label}</span>
+          <span style={{ ...tokens.mono, color: 'var(--text-faint)', fontSize: 10.5 }}>{category}</span>
+          <span style={{ ...tokens.mono, color: 'var(--text-faint)', fontSize: 10.5 }}>{size}</span>
+        </div>
+        <div style={{ marginTop: 3, color: 'var(--text-faint)', fontSize: 11.5 }}>
+          <code style={tokens.mono}>{model}</code> · {desc}
+        </div>
+        <OllamaPullProgress model={model} />
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {installed ? (
+          <>
+            <span style={{ color: 'var(--accent)', fontSize: 12 }}>✓ Installed</span>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (window.confirm(`Delete ${model} from Ollama?`)) void ollama.deleteModel(model);
+              }}
+            >
+              Delete
+            </Button>
+          </>
+        ) : pulling ? (
+          <Button variant="danger" onClick={() => ollama.cancelPull(model)}>Cancel</Button>
+        ) : (
+          <OllamaPullButton model={model} online={online} label="Pull" />
+        )}
+      </div>
+    </div>
+  );
+});
+
+const OllamaPullButton = observer(function OllamaPullButton({
+  model,
+  online,
+  label,
+  disabled,
+}: {
+  model: string;
+  online: boolean;
+  label: string;
+  disabled?: boolean;
+}) {
+  const ollama = useOllamaStore();
+  return (
+    <Button
+      variant="accent"
+      disabled={disabled || !online || !model || ollama.isPulling(model) || ollama.hasModelTag(model)}
+      title={!online ? 'Start Ollama first.' : undefined}
+      onClick={() => { void ollama.startPull(model); }}
+    >
+      {label}
+    </Button>
+  );
+});
+
+const OllamaPullProgress = observer(function OllamaPullProgress({ model }: { model: string }) {
+  const ollama = useOllamaStore();
+  const state = ollama.pulls.get(model);
+  if (!state) return null;
+  return (
+    <div style={{ marginTop: 7, display: 'grid', gap: 4 }}>
+      <div style={{ height: 5, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%',
+          width: `${Math.max(0, Math.min(100, state.percent))}%`,
+          background: state.error ? '#ff7597' : 'var(--accent)',
+          transition: 'width 160ms ease',
+        }} />
+      </div>
+      <div role={state.error ? 'alert' : 'status'} style={{ fontSize: 11, color: state.error ? '#ff7597' : 'var(--text-faint)' }}>
+        {state.error ? state.error : `${state.phase} · ${Math.round(state.percent)}%`}
+      </div>
+    </div>
   );
 });
 
@@ -555,6 +705,12 @@ function AnimatedDot() {
 
 function runtimeLabel(id: LocalRuntimeId): string {
   return id === 'ollama' ? 'Ollama' : 'ComfyUI';
+}
+
+function catalogSummaryText(online: boolean, count: number): string {
+  if (!online) return 'Start Ollama to load the catalog.';
+  if (count > 0) return `${count} model${count === 1 ? '' : 's'} loaded`;
+  return 'No chat models pulled yet.';
 }
 
 function formatRelativeTime(ts: number): string {
