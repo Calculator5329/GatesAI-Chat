@@ -21,6 +21,7 @@ import type { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStor
 import type { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import type { RagStore } from '../services/rag/RagStore';
 import type { SkillsStore } from './SkillsStore';
+import type { SchedulesStore } from './SchedulesStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -100,6 +101,10 @@ export function useSourceWorkspaceStore(): SourceWorkspaceStore {
 
 export function useSkillsStore(): SkillsStore {
   return useRootStore().skills;
+}
+
+export function useSchedulesStore(): SchedulesStore {
+  return useRootStore().schedules;
 }
 
 export function useRagStore(): RagStore {

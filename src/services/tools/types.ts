@@ -3,6 +3,7 @@
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { LlmMessage, ToolDef } from '../../core/llm';
 import type { Note } from '../../core/notes';
+import type { Schedule, ScheduleInput } from '../../core/schedules';
 import type { Thread, ToolResultArtifact } from '../../core/types';
 
 /**
@@ -43,6 +44,15 @@ export interface NotesFacade {
   update(id: string, patch: { title?: string; body?: string; tags?: string[] }): Note | null;
   remove(id: string): Note | null;
   search(query: string): Note[];
+}
+
+export interface SchedulesFacade {
+  readonly sorted: Schedule[];
+  create(input: ScheduleInput): Schedule;
+  findById(id: string): Schedule | null;
+  remove(id: string): Schedule | null;
+  runNow(id: string): { ok: boolean; message: string; threadId?: string };
+  nextRunAt(id: string): number | null;
 }
 
 export interface SummaryFacade {
@@ -159,6 +169,7 @@ export interface ToolContext {
   profile: ProfileFacade;
   chat: ChatFacade;
   notes?: NotesFacade;
+  schedules?: SchedulesFacade;
   summary?: SummaryFacade;
   bridge?: BridgeFacade;
   imageGen?: ImageGenFacade;
@@ -176,7 +187,7 @@ export interface ToolContext {
   signal?: AbortSignal;
 }
 
-export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'source' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision' | 'web' | 'diagnostics' | 'mcp';
+export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'source' | 'shell' | 'git' | 'thread' | 'notes' | 'schedules' | 'time' | 'vision' | 'web' | 'diagnostics' | 'mcp';
 
 export interface ToolResultPolicy {
   /** Default max chars returned to the model before compaction. */

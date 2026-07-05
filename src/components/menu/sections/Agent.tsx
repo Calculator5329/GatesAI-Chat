@@ -5,13 +5,23 @@ import { useState, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import { isWebLite } from '../../../core/runtime';
+import type { Schedule, ScheduleCadence, ScheduleInput, ScheduleIntervalHours } from '../../../core/schedules';
+import { SCHEDULE_INTERVAL_HOURS } from '../../../core/schedules';
 import {
   Button,
   Input,
   Textarea,
   Pill,
 } from '../../ui';
-import { useChatStore, useRagStore, useSkillsStore, useUserProfileStore } from '../../../stores/context';
+import {
+  useChatStore,
+  useModelRegistry,
+  useRagStore,
+  useRouterStore,
+  useSchedulesStore,
+  useSkillsStore,
+  useUserProfileStore,
+} from '../../../stores/context';
 import { McpSettingsBlock } from './McpSettings';
 
 interface AgentAbility {
@@ -63,6 +73,7 @@ export const AgentSection = observer(function AgentSection() {
 
       <MemorySection />
       <SemanticMemorySection />
+      <SchedulesSection />
       <RecentConversations summaries={recentSummaries} />
       <McpSettingsBlock />
       {!isWebLite() && <WorkspaceSkillsSection />}
@@ -102,6 +113,257 @@ export const AgentSection = observer(function AgentSection() {
     </>
   );
 });
+
+interface ScheduleFormState {
+  title: string;
+  instructions: string;
+  model: string;
+  cadenceKind: ScheduleCadence['kind'];
+  hours: number;
+  hour: number;
+  minute: number;
+  catchUp: boolean;
+}
+
+const emptyScheduleForm: ScheduleFormState = {
+  title: '',
+  instructions: '',
+  model: '',
+  cadenceKind: 'interval',
+  hours: 24,
+  hour: 9,
+  minute: 0,
+  catchUp: false,
+};
+
+const SchedulesSection = observer(function SchedulesSection() {
+  const schedules = useSchedulesStore();
+  const registry = useModelRegistry();
+  const router = useRouterStore();
+  const [draft, setDraft] = useState<ScheduleFormState>(emptyScheduleForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<ScheduleFormState>(emptyScheduleForm);
+  const usableModels = registry.all.filter(model => model.supportsTools !== false && model.providerId !== 'local-image');
+
+  const submitCreate = () => {
+    if (!draft.title.trim() || !draft.instructions.trim()) return;
+    schedules.create(formToInput(draft));
+    setDraft(emptyScheduleForm);
+  };
+
+  const startEdit = (schedule: Schedule) => {
+    setEditingId(schedule.id);
+    setEditDraft(scheduleToForm(schedule));
+  };
+
+  const saveEdit = () => {
+    if (!editingId || !editDraft.title.trim() || !editDraft.instructions.trim()) return;
+    schedules.update(editingId, formToInput(editDraft));
+    setEditingId(null);
+  };
+
+  return (
+    <div style={tokens.section}>
+      <div style={tokens.sectionTitle}>
+        Schedules · {schedules.count}
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 14, lineHeight: 1.55 }}>
+        Recurring agent tasks. Runs while GatesAI is open.
+      </div>
+
+      {schedules.sorted.length === 0 ? (
+        <div style={emptyBoxStyle}>
+          No schedules yet.
+        </div>
+      ) : (
+        <div style={{ marginBottom: 14 }}>
+          {schedules.sorted.map((schedule, i) => {
+            const nextRunAt = schedules.nextRunAt(schedule.id);
+            const isEditing = editingId === schedule.id;
+            return (
+              <div
+                key={schedule.id}
+                style={{
+                  padding: '12px 0',
+                  borderBottom: i === schedules.sorted.length - 1 ? 'none' : '1px solid var(--border)',
+                  display: 'grid',
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12, alignItems: 'start' }}>
+                  <div>
+                    <div style={{
+                      fontFamily: '"Source Serif 4", Georgia, serif',
+                      fontSize: 15,
+                      color: 'var(--text)',
+                      lineHeight: 1.35,
+                    }}>
+                      {schedule.title}
+                    </div>
+                    <div style={{ ...tokens.mono, color: 'var(--text-faint)', fontSize: 10.5, marginTop: 4 }}>
+                      {formatScheduleCadence(schedule.cadence)} · {schedule.enabled ? `next ${formatMenuTime(nextRunAt)}` : 'paused'} · runs while GatesAI is open
+                    </div>
+                    {schedule.lastResultThreadId && (
+                      <button
+                        type="button"
+                        className="menu-icon-button"
+                        style={{ ...iconBtn, paddingLeft: 0, marginTop: 4 }}
+                        onClick={() => router.goThread(schedule.lastResultThreadId ?? null)}
+                      >
+                        open last result
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ ...rowActions, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <label style={{ ...tokens.mono, color: 'var(--text-dim)', fontSize: 11, display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={schedule.enabled}
+                        onChange={e => schedules.setEnabled(schedule.id, e.target.checked)}
+                      />
+                      enabled
+                    </label>
+                    <button type="button" className="menu-icon-button" style={iconBtn} onClick={() => schedules.runNow(schedule.id)}>run now</button>
+                    <button type="button" className="menu-icon-button" style={iconBtn} onClick={() => startEdit(schedule)}>edit</button>
+                    <button
+                      type="button"
+                      className="menu-icon-button"
+                      data-tone="danger"
+                      style={{ ...iconBtn, color: 'var(--text-faint)' }}
+                      onClick={() => {
+                        if (window.confirm(`Delete schedule "${schedule.title}"? This can't be undone.`)) {
+                          schedules.remove(schedule.id);
+                        }
+                      }}
+                    >
+                      delete
+                    </button>
+                  </div>
+                </div>
+                {isEditing && (
+                  <ScheduleEditor
+                    value={editDraft}
+                    onChange={setEditDraft}
+                    models={usableModels}
+                    primaryLabel="Save"
+                    onSubmit={saveEdit}
+                    onCancel={() => setEditingId(null)}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <ScheduleEditor
+        value={draft}
+        onChange={setDraft}
+        models={usableModels}
+        primaryLabel="Add"
+        onSubmit={submitCreate}
+      />
+    </div>
+  );
+});
+
+function ScheduleEditor({
+  value,
+  onChange,
+  models,
+  primaryLabel,
+  onSubmit,
+  onCancel,
+}: {
+  value: ScheduleFormState;
+  onChange: (next: ScheduleFormState) => void;
+  models: Array<{ id: string; name: string; vendor: string }>;
+  primaryLabel: string;
+  onSubmit: () => void;
+  onCancel?: () => void;
+}) {
+  const patch = (next: Partial<ScheduleFormState>) => onChange({ ...value, ...next });
+  const disabled = !value.title.trim() || !value.instructions.trim();
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: 8 }}>
+        <Input
+          value={value.title}
+          onChange={e => patch({ title: e.target.value })}
+          placeholder="Title"
+        />
+        <select
+          value={value.model}
+          onChange={e => patch({ model: e.target.value })}
+          style={selectStyle}
+        >
+          <option value="">Default model</option>
+          {models.map(model => (
+            <option key={model.id} value={model.id}>{model.vendor} · {model.name}</option>
+          ))}
+        </select>
+      </div>
+      <Textarea
+        value={value.instructions}
+        onChange={e => patch({ instructions: e.target.value })}
+        placeholder="Instructions for the recurring background agent"
+        style={{ minHeight: 80, resize: 'vertical' }}
+      />
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <select
+          value={value.cadenceKind}
+          onChange={e => patch({ cadenceKind: e.target.value as ScheduleCadence['kind'] })}
+          style={selectStyle}
+        >
+          <option value="interval">Interval</option>
+          <option value="daily">Daily</option>
+        </select>
+        {value.cadenceKind === 'interval' ? (
+          <select
+            value={value.hours}
+            onChange={e => patch({ hours: Number(e.target.value) })}
+            style={selectStyle}
+          >
+            {SCHEDULE_INTERVAL_HOURS.map(hours => (
+              <option key={hours} value={hours}>Every {hours}h</option>
+            ))}
+          </select>
+        ) : (
+          <>
+            <Input
+              type="number"
+              min={0}
+              max={23}
+              value={value.hour}
+              onChange={e => patch({ hour: Number(e.target.value) })}
+              style={{ width: 72 }}
+            />
+            <Input
+              type="number"
+              min={0}
+              max={59}
+              value={value.minute}
+              onChange={e => patch({ minute: Number(e.target.value) })}
+              style={{ width: 72 }}
+            />
+          </>
+        )}
+        <label style={{ ...tokens.mono, color: 'var(--text-dim)', fontSize: 11, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <input
+            type="checkbox"
+            checked={value.catchUp}
+            onChange={e => patch({ catchUp: e.target.checked })}
+          />
+          catch up on boot
+        </label>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          {onCancel && <Button onClick={onCancel}>Cancel</Button>}
+          <Button onClick={onSubmit} disabled={disabled}>{primaryLabel}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const WorkspaceSkillsSection = observer(function WorkspaceSkillsSection() {
   const skills = useSkillsStore();
@@ -446,6 +708,68 @@ function RecentConversations({ summaries }: { summaries: RecentSummary[] }) {
   );
 }
 
+function formToInput(form: ScheduleFormState): ScheduleInput {
+  const cadence: ScheduleCadence = form.cadenceKind === 'interval'
+    ? {
+        kind: 'interval',
+        hours: SCHEDULE_INTERVAL_HOURS.includes(form.hours as ScheduleIntervalHours)
+          ? form.hours as ScheduleIntervalHours
+          : 24,
+      }
+    : {
+        kind: 'daily',
+        hour: Math.min(23, Math.max(0, Math.floor(form.hour))),
+        minute: Math.min(59, Math.max(0, Math.floor(form.minute))),
+      };
+  return {
+    title: form.title,
+    instructions: form.instructions,
+    cadence,
+    model: form.model || undefined,
+    catchUp: form.catchUp,
+  };
+}
+
+function scheduleToForm(schedule: Schedule): ScheduleFormState {
+  if (schedule.cadence.kind === 'interval') {
+    return {
+      title: schedule.title,
+      instructions: schedule.instructions,
+      model: schedule.model ?? '',
+      cadenceKind: 'interval',
+      hours: schedule.cadence.hours,
+      hour: 9,
+      minute: 0,
+      catchUp: schedule.catchUp,
+    };
+  }
+  return {
+    title: schedule.title,
+    instructions: schedule.instructions,
+    model: schedule.model ?? '',
+    cadenceKind: 'daily',
+    hours: 24,
+    hour: schedule.cadence.hour,
+    minute: schedule.cadence.minute,
+    catchUp: schedule.catchUp,
+  };
+}
+
+function formatScheduleCadence(cadence: ScheduleCadence): string {
+  if (cadence.kind === 'interval') return `every ${cadence.hours}h`;
+  return `daily ${String(cadence.hour).padStart(2, '0')}:${String(cadence.minute).padStart(2, '0')}`;
+}
+
+function formatMenuTime(ts: number | null): string {
+  if (!ts) return 'unknown';
+  return new Date(ts).toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 const emptyBoxStyle: CSSProperties = {
   padding: '14px 16px',
   border: '1px dashed var(--border)',
@@ -470,6 +794,17 @@ const inlineCodeStyle: CSSProperties = {
   fontFamily: '"Geist Mono", monospace',
   fontSize: 11,
   color: 'var(--text-dim)',
+};
+
+const selectStyle: CSSProperties = {
+  background: 'var(--panel)',
+  border: '1px solid var(--border)',
+  borderRadius: 6,
+  padding: '8px 10px',
+  color: 'var(--text)',
+  fontFamily: 'inherit',
+  fontSize: 13,
+  outline: 'none',
 };
 
 const iconBtn: CSSProperties = {

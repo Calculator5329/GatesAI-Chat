@@ -10,6 +10,7 @@ import { recallTool } from './recall';
 import { timeTool } from './time';
 import { logsTool } from './logs';
 import { notesTool } from './notes';
+import { schedulesTool } from './schedules';
 import { threadTool } from './thread';
 import { chatHistoryTool } from './chatHistory';
 import { fsTool } from './fs';
@@ -116,6 +117,7 @@ export class ToolRegistry {
     }
     const bridgeRelevant = ctx.bridgeOnline;
     const notesRelevant = /\b(note|notes|plan|plans|document|documents|doc|docs|memory|remember|search|list|read|write)\b/.test(text);
+    const schedulesRelevant = /\b(schedule|scheduled|schedules|recurring|repeat|daily|hourly|interval|automation|automate|remind|reminder)\b/.test(text);
     const imageGenRelevant = /\b(draw|drawing|paint|render|generate|make|create|design|illustrate|picture|image|photo|artwork|poster|logo|illustration|visual|scene|portrait|landscape|background|wallpaper)\b.*\b(image|picture|photo|art|artwork|drawing|poster|logo|illustration|scene|portrait|landscape|background|wallpaper)\b|\b(image[-_ ]?gen|imagegen|flux|stable ?diffusion|dall[-_ ]?e|midjourney|background|wallpaper)\b/i.test(text);
     const imageVisionRelevant = /\b(describe|caption|inspect|analy[sz]e|what(?:'s| is)|read)\b.*\b(image|picture|photo|screenshot|attachment|visual)\b|\b(image|picture|photo|screenshot)\b.*\b(describe|caption|inspect|analy[sz]e|read)\b/i.test(text);
 
@@ -131,6 +133,7 @@ export class ToolRegistry {
       selected.add('git');
     }
     if (notesRelevant) selected.add('notes');
+    if (schedulesRelevant) selected.add('schedules');
     if (ctx.webSearchAvailable) selected.add('web_search');
     if (ctx.desktopRuntime !== false && (ctx.webSearchAvailable || isFetchPageRelevant(text))) selected.add('fetch_page');
     if (ctx.semanticRecallAvailable) selected.add('recall');
@@ -469,6 +472,7 @@ toolRegistry.register(recallTool);
 toolRegistry.register(timeTool);
 toolRegistry.register(logsTool);
 toolRegistry.register(notesTool);
+toolRegistry.register(schedulesTool);
 toolRegistry.register(threadTool);
 toolRegistry.register(chatHistoryTool);
 toolRegistry.register(workspaceTool);
