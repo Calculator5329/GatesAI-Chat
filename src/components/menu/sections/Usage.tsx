@@ -20,13 +20,15 @@ export const UsageSection = observer(function UsageSection() {
   return (
     <div className="usage-page">
       <h1 style={tokens.h1}>Usage</h1>
-      <div className="usage-page__kicker" style={tokens.kicker}>LLM spend and token totals</div>
+      <div className="usage-page__kicker" style={tokens.kicker}>LLM usage - cloud spend and local tokens</div>
+      <div style={splitLineStyle}>
+        Cloud {formatUsd(summary.cloud.costUsd)} - Local {formatTokenCount(summary.local.totalTokens)} tokens (free)
+      </div>
 
       <div className="usage-summary-grid" style={summaryGridStyle}>
-        <UsageStat label="All-time spend" value={formatUsd(summary.allTime.costUsd)} />
-        <UsageStat label="Last 30 days" value={formatUsd(summary.last30Days.costUsd)} />
-        <UsageStat label="Requests" value={formatTokenCount(summary.allTime.requests)} />
-        <UsageStat label="Tokens in / out" value={`${formatTokenCount(summary.allTime.promptTokens)} / ${formatTokenCount(summary.allTime.completionTokens)}`} />
+        {usageStatRows(summary).map(stat => (
+          <UsageStat key={stat.label} label={stat.label} value={stat.value} />
+        ))}
       </div>
 
       {empty ? (
@@ -50,6 +52,20 @@ function UsageStat({ label, value }: { label: string; value: string }) {
       <div style={tokens.numberLabel}>{label}</div>
     </Card>
   );
+}
+
+function usageStatRows(summary: ReturnType<typeof usageSummary>): Array<{ label: string; value: string }> {
+  const spendStats = [
+    { label: 'All-time spend', value: formatUsd(summary.allTime.costUsd) },
+    { label: 'Last 30 days', value: formatUsd(summary.last30Days.costUsd) },
+  ];
+  const volumeStats = [
+    { label: 'Requests', value: formatTokenCount(summary.allTime.requests) },
+    { label: 'Tokens in / out', value: `${formatTokenCount(summary.allTime.promptTokens)} / ${formatTokenCount(summary.allTime.completionTokens)}` },
+  ];
+  return summary.presentationMode === 'local-led'
+    ? [...volumeStats, ...spendStats]
+    : [...spendStats, ...volumeStats];
 }
 
 function ModelUsageTable({ rows }: { rows: UsageModelTotal[] }) {
@@ -79,7 +95,7 @@ function ModelUsageTable({ rows }: { rows: UsageModelTotal[] }) {
             <span style={rightAlignStyle}>{formatTokenCount(row.requests)}</span>
             <span style={rightAlignStyle}>{formatTokenCount(row.promptTokens)}</span>
             <span style={rightAlignStyle}>{formatTokenCount(row.completionTokens)}</span>
-            <span style={{ ...rightAlignStyle, color: 'var(--accent)' }}>{formatUsd(row.costUsd)}</span>
+            <span style={{ ...rightAlignStyle, color: 'var(--accent)' }}>{row.costSources.includes('local') ? 'local' : formatUsd(row.costUsd)}</span>
           </div>
         ))}
       </Card>
@@ -149,6 +165,13 @@ const summaryGridStyle: CSSProperties = {
   gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
   gap: 10,
   marginBottom: 28,
+};
+
+const splitLineStyle: CSSProperties = {
+  marginTop: 8,
+  marginBottom: 18,
+  color: 'var(--text-dim)',
+  fontSize: 12.5,
 };
 
 const modelRowStyle: CSSProperties = {

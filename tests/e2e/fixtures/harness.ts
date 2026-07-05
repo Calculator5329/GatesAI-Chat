@@ -7,6 +7,7 @@ const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
 const BRIDGE_HEALTH_URL = 'http://127.0.0.1:7331/health';
 const BRIDGE_WS_URL = 'ws://127.0.0.1:7331/ws';
+const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
 
 // A valid 1x1 transparent PNG so image tiles that read bytes via the bridge
 // render a real <img> instead of the loading placeholder.
@@ -129,6 +130,41 @@ export async function mockOpenRouter(page: Page, options: OpenRouterMockOptions 
       'data: [DONE]\n\n',
     ].join('');
     return route.fulfill({ status: 200, headers: { 'content-type': 'text/event-stream' }, body });
+  });
+}
+
+interface OllamaMockOptions {
+  reply?: string;
+  models?: string[];
+}
+
+export async function mockOllama(page: Page, options: OllamaMockOptions = {}): Promise<void> {
+  const reply = options.reply ?? 'Mock local reply from Ollama.';
+  const models = options.models ?? ['qwen2.5:7b', 'llama3.2:3b'];
+  await page.route(`${OLLAMA_BASE_URL}/api/version`, route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ version: '0.12.0-test' }) }),
+  );
+  await page.route(`${OLLAMA_BASE_URL}/api/tags`, route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        models: models.map(name => ({
+          name,
+          model: name,
+          modified_at: '2026-07-05T00:00:00Z',
+          size: 4_000_000_000,
+          digest: `sha256:${name}`,
+        })),
+      }),
+    }),
+  );
+  await page.route(`${OLLAMA_BASE_URL}/api/chat`, route => {
+    const body = [
+      JSON.stringify({ message: { role: 'assistant', content: reply }, done: false }),
+      JSON.stringify({ done: true, done_reason: 'stop', prompt_eval_count: 128, eval_count: 42 }),
+    ].join('\n') + '\n';
+    return route.fulfill({ status: 200, headers: { 'content-type': 'application/x-ndjson' }, body });
   });
 }
 

@@ -31,6 +31,7 @@ export interface RuntimeState {
   pid?: number;
   uptimeMs?: number;
   lastError?: string;
+  lastErrorKind?: 'not-found' | 'error';
   logs: string[];
 }
 
@@ -181,15 +182,18 @@ export class LocalRuntimeStore {
     const runtime = this.runtimes[id];
     if (!runtime.managed) {
       runtime.lastError = 'Enable "Manage this process from GatesAI" before starting it here.';
+      runtime.lastErrorKind = 'error';
       return;
     }
     if (!runtime.installPath) {
       runtime.lastError = `Choose a ${id === 'ollama' ? 'Ollama executable' : 'ComfyUI portable folder'} first.`;
+      runtime.lastErrorKind = 'error';
       return;
     }
 
     runtime.status = 'starting';
     runtime.lastError = undefined;
+    runtime.lastErrorKind = undefined;
     this.armWatchdog(id);
     try {
       await this.service.startRuntime(id, {
@@ -216,6 +220,7 @@ export class LocalRuntimeStore {
       runInAction(() => {
         runtime.status = 'crashed';
         runtime.lastError = message;
+        runtime.lastErrorKind = 'error';
       });
     }
   }
@@ -260,6 +265,7 @@ export class LocalRuntimeStore {
         if (runtime.status !== 'starting') return;
         runtime.status = 'crashed';
         runtime.lastError = `${id === 'ollama' ? 'Ollama' : 'ComfyUI'} did not become healthy within ${Math.round(STARTING_WATCHDOG_MS / 1000)}s. Open Logs to see why.`;
+        runtime.lastErrorKind = 'error';
       });
     }, STARTING_WATCHDOG_MS);
     this.watchdogs.set(id, timer);
@@ -312,6 +318,7 @@ export class LocalRuntimeStore {
       // string from the host while we're still booting.
       if (!(inStartWindow && (reportedStatus === 'offline' || reportedStatus === 'stopped'))) {
         runtime.lastError = snapshot.lastError;
+        runtime.lastErrorKind = snapshot.lastError ? 'error' : undefined;
       }
     });
     if (snapshot.status === 'online' || snapshot.status === 'crashed') {
@@ -353,6 +360,7 @@ function toRuntimeState(persisted: LocalRuntimePersistedConfig['ollama']): Runti
     managed: persisted.managed,
     baseUrl: persisted.baseUrl,
     status: 'stopped',
+    lastErrorKind: undefined,
     logs: [],
   };
 }

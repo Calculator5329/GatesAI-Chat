@@ -1,7 +1,7 @@
 import { mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { mockBridgeOnline, mockOpenRouter } from './fixtures/harness';
+import { mockBridgeOnline, mockOllama, mockOpenRouter } from './fixtures/harness';
 
 test.skip(!process.env.SCREENS_TOUR, 'Set SCREENS_TOUR=1 or run npm run screens:tour to capture the screen corpus.');
 
@@ -17,6 +17,9 @@ const TOUR_REPLY = [
   '- Keep screenshots deterministic.',
   '- Re-run the tour before design reviews.',
 ].join('\n');
+const LOCAL_MODEL_ID = 'ollama-qwen2.5:7b';
+const LOCAL_PROVIDER_MODEL_ID = 'qwen2.5:7b';
+const LOCAL_TOUR_REPLY = 'Mock local reply from Ollama with a short private-model answer.';
 
 interface TourMessage {
   id: string;
@@ -37,13 +40,13 @@ interface TourMessage {
     ranAt: number;
   }>;
   usage?: Array<{
-    providerId: 'openrouter';
+    providerId: 'openrouter' | 'ollama';
     modelId: string;
     promptTokens: number;
     completionTokens: number;
     totalTokens: number;
     costUsd: number;
-    costSource: 'pricing';
+    costSource: 'pricing' | 'local';
   }>;
 }
 
@@ -82,8 +85,10 @@ test('captures the screenshot tour', async ({ page }, testInfo) => {
   const project = testInfo.project.name;
   if (project === 'desktop-mocked') {
     await mockOpenRouter(page, { reply: TOUR_REPLY });
+    await mockOllama(page, { reply: LOCAL_TOUR_REPLY, models: [LOCAL_PROVIDER_MODEL_ID, 'llama3.2:3b'] });
     await mockBridgeOnline(page, { files: workspaceFiles() });
     await captureDesktopTour(page, testInfo);
+    await captureLocalOnlyTour(page);
     return;
   }
 
@@ -209,9 +214,60 @@ async function captureWebLiteTour(page: Page, testInfo: TestInfo): Promise<void>
   await shot(page, outDir, index++, 'mobile-active-chat');
 }
 
+async function captureLocalOnlyTour(page: Page): Promise<void> {
+  const outDir = await prepareNamedDir('local-only');
+  let index = 1;
+
+  await page.setViewportSize(DESKTOP_VIEWPORT);
+  await resetStorage(page, { onboardingDismissed: false });
+  await gotoApp(page, '/');
+  await forceFirstRunState(page);
+  await forceOllamaOnline(page, { keepOnboarding: true });
+  await expect(page.getByRole('button', { name: /Use qwen2\.5:7b/ })).toBeVisible();
+  await shot(page, outDir, index++, 'first-run-local-online');
+
+  await resetStorage(page, localOnlySeed('local-active'));
+  await gotoApp(page, '/#/thread/local-active');
+  await forceOllamaOnline(page);
+  await sendPrompt(page, 'Draft a local-only screenshot note.');
+  await expect(page.locator('.md-body', { hasText: LOCAL_TOUR_REPLY }).first()).toBeVisible();
+  await forceActionRows(page);
+  await shot(page, outDir, index++, 'active-chat-local-model');
+
+  await resetStorage(page, localOnlySeed('local-active'));
+  await gotoApp(page, '/#/thread/local-active');
+  await forceOllamaOnline(page);
+  await page.locator('.composer-model-label').click();
+  await expect(page.locator('.model-popover')).toBeVisible();
+  await page.locator('[data-source-filter="local"]').click();
+  await expect(page.locator('.model-popover__list', { hasText: 'Local' })).toBeVisible();
+  await shot(page, outDir, index++, 'model-popover-local-section');
+
+  await resetStorage(page, localOnlySeed('local-active'));
+  await gotoApp(page, '/#/menu/local');
+  await forceOllamaOnline(page);
+  await expect(page.getByText('Local LLMs')).toBeVisible();
+  await shot(page, outDir, index++, 'menu-local-online');
+
+  await resetStorage(page, localOnlySeed('local-active'));
+  await gotoApp(page, '/#/menu/usage');
+  await forceOllamaOnline(page);
+  await expect(page.getByText(/Cloud \$0\.00 - Local/)).toBeVisible();
+  await shot(page, outDir, index++, 'menu-usage-local-led');
+
+  await resetStorage(page, localOnlySeed('local-active'));
+  await gotoApp(page, '/#/menu/models');
+  await forceOllamaOnline(page);
+  await expect(page.getByText('Ollama online - 2 models')).toBeVisible();
+  await shot(page, outDir, index++, 'menu-models-local-row');
+}
+
 async function prepareProjectDir(testInfo: TestInfo): Promise<string> {
-  const project = testInfo.project.name;
-  const outDir = path.join(process.cwd(), 'docs', 'screens', project);
+  return prepareNamedDir(testInfo.project.name);
+}
+
+async function prepareNamedDir(name: string): Promise<string> {
+  const outDir = path.join(process.cwd(), 'docs', 'screens', name);
   await mkdir(outDir, { recursive: true });
   const entries = await readdir(outDir, { withFileTypes: true }).catch(() => []);
   await Promise.all(entries
@@ -305,6 +361,56 @@ async function forceFirstRunState(page: Page): Promise<void> {
   await page.waitForTimeout(50);
 }
 
+async function forceOllamaOnline(page: Page, options: { keepOnboarding?: boolean } = {}): Promise<void> {
+  await page.evaluate(async ({ keepOnboarding }) => {
+    const devWindow = window as Window & {
+      __gatesai?: {
+        store?: {
+          providers?: { remove: (provider: string) => void };
+          ui?: { setOnboardingDismissed: (value: boolean) => void };
+          chat?: {
+            activeThreadId: string | null;
+            threads: Array<{ id: string; modelId: string; contextMode?: string }>;
+            setThreadModel: (threadId: string, modelId: string) => void;
+            setThreadContextMode: (threadId: string, mode: string) => void;
+          };
+          localRuntime?: {
+            runtimes: {
+              ollama: { status: string; installPath: string; lastError?: string; lastErrorKind?: string };
+              comfyui: { status: string };
+            };
+          };
+          ollama?: { refresh: () => Promise<void> };
+        };
+      };
+    };
+    const store = devWindow.__gatesai?.store;
+    store?.providers?.remove('openrouter');
+    if (store?.localRuntime) {
+      store.localRuntime.runtimes.ollama.status = 'online';
+      store.localRuntime.runtimes.ollama.installPath = 'C:\\Program Files\\Ollama\\ollama.exe';
+      store.localRuntime.runtimes.ollama.lastError = undefined;
+      store.localRuntime.runtimes.ollama.lastErrorKind = undefined;
+      store.localRuntime.runtimes.comfyui.status = 'stopped';
+    }
+    await store?.ollama?.refresh();
+    const threadId = store?.chat?.activeThreadId;
+    if (keepOnboarding && threadId) {
+      store?.chat?.setThreadModel(threadId, 'or-gpt-5.5');
+      const active = store?.chat?.threads.find(thread => thread.id === threadId);
+      if (active) active.modelId = 'or-gpt-5.5';
+      store?.ui?.setOnboardingDismissed(false);
+    } else if (threadId) {
+      store?.chat?.setThreadModel(threadId, 'ollama-qwen2.5:7b');
+      const active = store?.chat?.threads.find(thread => thread.id === threadId);
+      if (active) active.modelId = 'ollama-qwen2.5:7b';
+      store?.chat?.setThreadContextMode(threadId, 'micro');
+      if (active) active.contextMode = 'micro';
+    }
+  }, options);
+  await page.waitForTimeout(100);
+}
+
 async function shot(page: Page, outDir: string, index: number, name: string): Promise<void> {
   await page.screenshot({
     path: path.join(outDir, `${String(index).padStart(2, '0')}-${name}.png`),
@@ -350,6 +456,47 @@ function baseSeed(activeThreadId: string): SeedState {
     }],
     ragSettings: { autoInject: true, embeddingModel: 'nomic-embed-text' },
   };
+}
+
+function localOnlySeed(activeThreadId: string): SeedState {
+  const now = Date.now();
+  return {
+    readyProvider: false,
+    onboardingDismissed: true,
+    activeThreadId,
+    threads: localOnlyThreads(now),
+    profile: {
+      bio: '- User is auditing local-only Ollama workflows.',
+      defaultSystemPrompt: 'Prefer concise local-first answers.',
+    },
+    ragSettings: { autoInject: true, embeddingModel: 'nomic-embed-text' },
+  };
+}
+
+function localOnlyThreads(now: number): TourThread[] {
+  return [
+    {
+      id: 'local-active',
+      title: 'Local-only planning',
+      subtitle: 'Ollama private model workflow',
+      createdAt: now - 900_000,
+      updatedAt: now - 300_000,
+      pinned: true,
+      modelId: LOCAL_MODEL_ID,
+      summary: 'Exercises local-only usage, picker, and menu screenshots.',
+      messages: [
+        { id: 'local-user', role: 'user', content: 'Can you keep this workflow fully local?', createdAt: now - 600_000 },
+        {
+          id: 'local-assistant',
+          role: 'assistant',
+          content: 'Yes. This thread is pinned to an Ollama model, and usage is tracked as local tokens with no cloud spend.',
+          createdAt: now - 590_000,
+          model: LOCAL_MODEL_ID,
+          usage: [localUsage(LOCAL_PROVIDER_MODEL_ID, 840, 260)],
+        },
+      ],
+    },
+  ];
 }
 
 function tourThreads(now: number): TourThread[] {
@@ -466,6 +613,18 @@ function usage(modelId: string, promptTokens: number, completionTokens: number, 
     totalTokens: promptTokens + completionTokens,
     costUsd,
     costSource: 'pricing' as const,
+  };
+}
+
+function localUsage(modelId: string, promptTokens: number, completionTokens: number) {
+  return {
+    providerId: 'ollama' as const,
+    modelId,
+    promptTokens,
+    completionTokens,
+    totalTokens: promptTokens + completionTokens,
+    costUsd: 0,
+    costSource: 'local' as const,
   };
 }
 

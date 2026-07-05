@@ -4,8 +4,10 @@ import {
   threadLlmSpendUsd,
   threadLlmUsageTotal,
   usageAllTimeTotal,
+  usageCloudLocalTotals,
   usageByDayLast30,
   usageByModel,
+  usageSummary,
 } from '../../src/core/threadSelectors';
 import type { Thread } from '../../src/core/types';
 
@@ -77,6 +79,42 @@ describe('thread usage selectors', () => {
       costUsd: 0.003,
     });
   });
+
+  it('splits cloud spend from local free tokens and selects local-led mode', () => {
+    const threads = [
+      thread('local', 'ollama-qwen2.5:7b', [
+        assistant('a1', 'ollama-qwen2.5:7b', Date.UTC(2026, 0, 1), 320, 80, 0, 'ollama'),
+      ]),
+    ];
+
+    const split = usageCloudLocalTotals(threads);
+    expect(split.cloud.requests).toBe(0);
+    expect(split.cloud.costUsd).toBe(0);
+    expect(split.local).toMatchObject({
+      requests: 1,
+      promptTokens: 320,
+      completionTokens: 80,
+      totalTokens: 400,
+      costUsd: 0,
+    });
+
+    const summary = usageSummary(threads, MODELS, Date.UTC(2026, 0, 2));
+    expect(summary.presentationMode).toBe('local-led');
+  });
+
+  it('keeps spend-led mode when zero-cost cloud usage is present', () => {
+    const threads = [
+      thread('mixed', 'or-nemotron-3-super-free', [
+        assistant('free-cloud', 'or-nemotron-3-super-free', Date.UTC(2026, 0, 1), 100, 20, 0),
+        assistant('local', 'ollama-llama3.2:3b', Date.UTC(2026, 0, 1), 200, 50, 0, 'ollama'),
+      ]),
+    ];
+
+    const summary = usageSummary(threads, MODELS, Date.UTC(2026, 0, 2));
+    expect(summary.cloud.requests).toBe(1);
+    expect(summary.local.requests).toBe(1);
+    expect(summary.presentationMode).toBe('spend-led');
+  });
 });
 
 function thread(id: string, modelId: string, messages: Thread['messages']): Thread {
@@ -99,6 +137,7 @@ function assistant(
   promptTokens: number,
   completionTokens: number,
   costUsd: number,
+  providerId: 'openrouter' | 'ollama' = 'openrouter',
 ): Thread['messages'][number] {
   return {
     id,
@@ -107,13 +146,13 @@ function assistant(
     createdAt,
     model,
     usage: [{
-      providerId: 'openrouter',
+      providerId,
       modelId: MODELS.find(item => item.id === model)?.providerModelId ?? model,
       promptTokens,
       completionTokens,
       totalTokens: promptTokens + completionTokens,
       costUsd,
-      costSource: 'provider',
+      costSource: providerId === 'ollama' ? 'local' : 'provider',
     }],
   };
 }
