@@ -130,6 +130,11 @@ export interface SearchFacade {
   }): Promise<BraveSearchQueryResult[]>;
 }
 
+export interface RagFacade {
+  readonly active: boolean;
+  recall(query: string, k?: number): Promise<string>;
+}
+
 export interface ToolContext {
   profile: ProfileFacade;
   chat: ChatFacade;
@@ -141,6 +146,7 @@ export interface ToolContext {
   localRuntime?: LocalRuntimeFacade;
   execStream?: ExecStreamFacade;
   search?: SearchFacade;
+  rag?: RagFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;
   /** The provider tool-call id that triggered this execution. */

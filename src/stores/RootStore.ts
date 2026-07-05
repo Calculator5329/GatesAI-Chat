@@ -21,6 +21,7 @@ import { SearchStore } from './SearchStore';
 import { McpStore } from './McpStore';
 import { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import { SourceWorkspaceStore } from './SourceWorkspaceStore';
+import { RagStore } from '../services/rag/RagStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 import { configureLogSink, logger } from '../services/diagnostics/logger';
 import { installMultiTabStorageListener } from '../services/storage/persistenceProvider';
@@ -57,6 +58,7 @@ export class RootStore {
   readonly mcp: McpStore;
   readonly openrouterCompatibility: OpenRouterCompatibilityStore;
   readonly sourceWorkspace: SourceWorkspaceStore;
+  readonly rag: RagStore;
   private booted = false;
   private readonly disposers: Array<() => void> = [];
   readonly replaceImportConfirmation = REPLACE_IMPORT_CONFIRMATION;
@@ -86,6 +88,18 @@ export class RootStore {
     this.chat = new ChatStore(this.providers, this.registry, this.profile);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
+    this.rag = new RagStore({
+      getSources: () => ({
+        threads: this.chat.threads,
+        notes: this.notes.notes,
+        facts: this.profile.facts,
+      }),
+      getOllamaOnline: () => this.ollama.online,
+      getOllamaTagNames: () => this.ollama.tagNames,
+      getOllamaBaseUrl: () => this.localRuntime.ollamaBaseUrl,
+      getOllamaApiKey: () => this.ollama.config.apiKey,
+      isStreaming: () => this.chat.threads.some(thread => this.chat.isThreadStreaming(thread.id)),
+    });
     this.bridge = new BridgeStore();
     this.openrouterCompatibility = new OpenRouterCompatibilityStore(this.providers, this.registry, this.bridge);
     this.sourceWorkspace = new SourceWorkspaceStore();
@@ -103,6 +117,7 @@ export class RootStore {
     this.chat.setRecentSummariesProvider(() =>
       this.summary.recentSummariesExcluding(this.chat.activeThreadId)
     );
+    this.chat.setSemanticContextProvider(userText => this.rag.semanticContextForUserText(userText));
 
     // Auxiliary stores tools need at execution time. Lazy getter so the
     // wiring stays one-way (tools reach back through ChatStore's context).
@@ -115,6 +130,7 @@ export class RootStore {
       imageJobs: this.imageJobs,
       localRuntime: this.localRuntime,
       search: this.search,
+      rag: this.rag,
     }));
 
     this.disposers.push(toolRegistry.registerDynamicProvider(() => createMcpRegistryTools(this.mcp)));
@@ -201,6 +217,7 @@ export class RootStore {
     }
 
     this.summary.start();
+    this.rag.start();
     this.disposers.push(installMultiTabStorageListener());
 
     this.disposers.push(autorun(() => {
@@ -224,6 +241,7 @@ export class RootStore {
   dispose(): void {
     while (this.disposers.length > 0) this.disposers.pop()?.();
     this.summary.stop();
+    this.rag.dispose();
     this.bridge.stop();
     this.providers.dispose();
     this.search.dispose();

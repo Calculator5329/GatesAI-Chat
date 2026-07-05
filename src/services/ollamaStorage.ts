@@ -5,6 +5,7 @@ export interface OllamaPersistedConfig {
   apiKey?: string;
   toolsEnabled: boolean;
   catalog: Model[];
+  tagNames: string[];
   lastRefreshAt: number | null;
 }
 
@@ -12,6 +13,7 @@ export const OLLAMA_DEFAULTS: OllamaPersistedConfig = {
   apiKey: undefined,
   toolsEnabled: true,
   catalog: [],
+  tagNames: [],
   lastRefreshAt: null,
 };
 

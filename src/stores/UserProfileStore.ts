@@ -149,11 +149,12 @@ export class UserProfileStore {
    * a curation tool available — keeps memory growing naturally without
    * the user having to ask "remember this" every time.
    */
-  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[] }): string | undefined {
+  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; semanticContext?: string }): string | undefined {
     const head = this.defaultSystemPrompt.trim();
     const bio = this.bio.trim();
     const runtime = (opts?.runtimeContext ?? '').trim();
     const ctx = (opts?.threadContext ?? '').trim();
+    const semantic = (opts?.semanticContext ?? '').trim();
     const recent = (opts?.recentSummaries ?? []).map(s => s.trim()).filter(Boolean);
 
     // In Web Lite (browser-only) there is no bridge, so the bridge contract
@@ -166,6 +167,7 @@ export class UserProfileStore {
     if (recent.length) {
       parts.push(`Recent conversations:\n${recent.map(s => `· ${s}`).join('\n')}`);
     }
+    if (semantic) parts.push(semantic);
     if (ctx) parts.push(`About this conversation:\n${ctx}`);
 
     // Soft nudge for proactive memory use — only when memory is actually wired

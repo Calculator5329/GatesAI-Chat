@@ -98,4 +98,15 @@ describe('RootStore — Ollama config bridge', () => {
     expect(refresh).toHaveBeenCalledTimes(1);
     root.dispose();
   });
+
+  it('boots semantic memory as a no-op when Ollama is absent', () => {
+    const root = new RootStore();
+    vi.spyOn(root.localRuntime, 'init').mockResolvedValue(undefined);
+
+    expect(() => root.boot()).not.toThrow();
+    expect(root.rag.active).toBe(false);
+    expect(root.rag.status).toBe('ollama_offline');
+
+    root.dispose();
+  });
 });

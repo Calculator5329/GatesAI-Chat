@@ -3,7 +3,7 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, reaction, runInAction, toJS } from 'mobx';
 import type { Model } from '../core/types';
-import { mapOllamaTagsToModels } from '../services/llm/ollamaCatalog';
+import { extractOllamaTagNames, mapOllamaTagsToModels } from '../services/llm/ollamaCatalog';
 import {
   loadOllamaConfig,
   saveOllamaConfig,
@@ -26,6 +26,7 @@ interface OllamaStoreOptions {
  */
 export class OllamaStore {
   config: { apiKey: string | undefined; toolsEnabled: boolean };
+  tagNames: string[] = [];
   lastRefreshAt: number | null = null;
   fetching = false;
   lastError: string | undefined;
@@ -46,6 +47,7 @@ export class OllamaStore {
       apiKey: persisted.apiKey,
       toolsEnabled: persisted.toolsEnabled,
     };
+    this.tagNames = persisted.tagNames;
     this.lastRefreshAt = persisted.lastRefreshAt;
     if (persisted.catalog.length) registry.setDynamicForProvider('ollama', persisted.catalog);
 
@@ -75,6 +77,7 @@ export class OllamaStore {
         apiKey: this.config.apiKey,
         toolsEnabled: this.config.toolsEnabled,
         catalog: toJS(this.catalog),
+        tagNames: toJS(this.tagNames),
         lastRefreshAt: this.lastRefreshAt,
       };
       saveOllamaConfig(ollamaConfigForLocalPersistence(snap, this.useKeychainSecrets));
@@ -116,6 +119,12 @@ export class OllamaStore {
     this.config = { ...this.config, toolsEnabled: v };
   }
 
+  hasTagStartingWith(prefix: string): boolean {
+    const p = prefix.trim();
+    if (!p) return false;
+    return this.tagNames.some(name => name.startsWith(p));
+  }
+
   async refresh(): Promise<void> {
     if (this.inflight) this.inflight.abort();
     const ctrl = new AbortController();
@@ -125,8 +134,10 @@ export class OllamaStore {
     try {
       const json = await this.localRuntime.fetchOllamaTags(this.config.apiKey);
       if (ctrl.signal.aborted) return;
+      const tagNames = extractOllamaTagNames(json);
       const models = mapOllamaTagsToModels(json);
       runInAction(() => {
+        this.tagNames = tagNames;
         this.catalog = models;
         this.lastRefreshAt = Date.now();
         this.fetching = false;
@@ -146,6 +157,7 @@ export class OllamaStore {
   clearCatalog(): void {
     if (this.inflight) { this.inflight.abort(); this.inflight = null; }
     this.catalog = [];
+    this.tagNames = [];
     this.lastRefreshAt = null;
     this.lastError = undefined;
     this.fetching = false;
