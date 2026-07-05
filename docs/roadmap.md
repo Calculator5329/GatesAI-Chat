@@ -170,11 +170,22 @@
 - [x] Sub-agents v1: `spawn_task` tool running a scoped background TurnRunner
       loop (one concurrent, round-capped), status surface, results linked back
 
-## Next agentic wave (queued)
-- [ ] Self-improvement loop UI: in-app diff review for source-workspace edits,
-      build-output panel, install handoff with explicit user approval
-- [ ] Scheduled tasks (needs bridge cron or app-open scheduler v1)
-- [ ] MCP stdio transport (needs bridge/Rust process spawning + scoping)
+## Wave G — agentic depth (in progress, 2026-07-05)
+- [ ] Sub-agents v2: multiple parallel tasks, model-customizable model/system
+      prompt/delayed start per task
+- [ ] Screenshot tour harness: Playwright script capturing every screen/menu
+      section (desktop-mocked + web-lite) into docs/screens/ for future audits
+- [ ] Self-improvement loop UI: diff review for source-workspace edits,
+      build-output panel, install handoff, source-change context for the model
+- [ ] Scheduled tasks v1 (app-open scheduler + schedule_task tool)
+- [ ] MCP stdio transport (user-configured local server processes, Rust-managed)
+
+## Open-models-first audit (queued — after Wave G)
+- [ ] Walk EVERY screen with the lens "what do I do if I'm running open/local
+      models only?" — the app currently reads API-first in many surfaces
+      (model picker defaults, usage panel framing, onboarding order, error
+      copy, thinking-effort controls that are OpenRouter-only, catalog
+      language). Use the docs/screens/ corpus + user-story review per screen.
 
 ## Future ideas backlog (2026-07-03 analysis)
 
