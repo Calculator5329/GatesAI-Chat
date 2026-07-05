@@ -1,11 +1,15 @@
 // Store facade over the desktop-only source-workspace and source-build services.
-// Keeps the Workspace menu UI free of direct service imports: the panel calls
-// these methods and owns only its transient view state. No observable state of
-// its own — it is a thin, stateless bridge to the Tauri-backed services.
+// Keeps menu and runtime-context callers free of direct Tauri service imports.
+import { makeAutoObservable } from 'mobx';
+import { isTauri } from '../core/runtime';
 import {
+  getSourceChangedFiles,
   getSourceWorkspaceStatus,
   openSourceWorkspace,
   prepareSourceWorkspace,
+  revertSourceFile,
+  type SourceChangedFiles,
+  type SourceRevertResult,
   type SourceWorkspaceStatus,
 } from '../services/sourceWorkspace';
 import {
@@ -15,16 +19,129 @@ import {
   type SourceBuildCommand,
   type SourceBuildStatus,
 } from '../services/sourceBuild';
+import { openExternal } from '../services/system/openExternal';
+import { diffLines, type LineDiffRow } from '../services/diff/lineDiff';
 
-export type { SourceWorkspaceStatus } from '../services/sourceWorkspace';
+export type {
+  SourceChangedFile,
+  SourceChangedFiles,
+  SourceChangeKind,
+  SourceRevertResult,
+  SourceWorkspaceStatus,
+} from '../services/sourceWorkspace';
 export type { SourceBuildCommand, SourceBuildStatus } from '../services/sourceBuild';
+export type { LineDiffRow } from '../services/diff/lineDiff';
+
+export interface SourceWorkspaceRuntimeSnapshot {
+  prepared: boolean;
+  changedFileCount?: number;
+  lastBuildStatus?: SourceBuildStatus['status'];
+  lastBuildFinishedAtUnix?: number;
+  lastBuildStartedAtUnix?: number;
+}
 
 export class SourceWorkspaceStore {
-  status(): Promise<SourceWorkspaceStatus> { return getSourceWorkspaceStatus(); }
-  prepare(): Promise<SourceWorkspaceStatus> { return prepareSourceWorkspace(); }
-  open(): Promise<void> { return openSourceWorkspace(); }
+  statusSnapshot: SourceWorkspaceStatus | null = null;
+  changedFilesSnapshot: SourceChangedFiles | null = null;
+  buildSnapshot: SourceBuildStatus | null = null;
+  runtimeRefreshInFlight = false;
 
-  buildStatus(): Promise<SourceBuildStatus> { return getSourceBuildStatus(); }
-  startBuild(command: SourceBuildCommand): Promise<SourceBuildStatus> { return startSourceBuild(command); }
-  clearBuild(): Promise<SourceBuildStatus> { return clearSourceBuild(); }
+  constructor() {
+    makeAutoObservable(this, {}, { autoBind: true });
+  }
+
+  async status(): Promise<SourceWorkspaceStatus> {
+    const status = await getSourceWorkspaceStatus();
+    this.statusSnapshot = status;
+    return status;
+  }
+
+  async prepare(): Promise<SourceWorkspaceStatus> {
+    const status = await prepareSourceWorkspace();
+    this.statusSnapshot = status;
+    await this.refreshChangesIfPrepared(status);
+    return status;
+  }
+
+  open(): Promise<void> {
+    return openSourceWorkspace();
+  }
+
+  async changedFiles(): Promise<SourceChangedFiles> {
+    const files = await getSourceChangedFiles();
+    this.changedFilesSnapshot = files;
+    return files;
+  }
+
+  async revertFile(path: string): Promise<SourceRevertResult> {
+    const result = await revertSourceFile(path);
+    await this.changedFiles();
+    return result;
+  }
+
+  async buildStatus(): Promise<SourceBuildStatus> {
+    const status = await getSourceBuildStatus();
+    this.buildSnapshot = status;
+    return status;
+  }
+
+  async startBuild(command: SourceBuildCommand): Promise<SourceBuildStatus> {
+    const status = await startSourceBuild(command);
+    this.buildSnapshot = status;
+    return status;
+  }
+
+  async clearBuild(): Promise<SourceBuildStatus> {
+    const status = await clearSourceBuild();
+    this.buildSnapshot = status;
+    return status;
+  }
+
+  async openOutputFolder(artifactPath: string): Promise<void> {
+    await openExternal(parentPath(artifactPath));
+  }
+
+  diffRowsForFile(file: { originalContent?: string; currentContent?: string }): LineDiffRow[] {
+    return diffLines(file.originalContent ?? '', file.currentContent ?? '');
+  }
+
+  get runtimeSnapshot(): SourceWorkspaceRuntimeSnapshot | null {
+    if (!this.statusSnapshot?.prepared || this.statusSnapshot.stale) return null;
+    return {
+      prepared: true,
+      changedFileCount: this.changedFilesSnapshot?.files.length,
+      lastBuildStatus: this.buildSnapshot?.status,
+      lastBuildFinishedAtUnix: this.buildSnapshot?.finishedAtUnix,
+      lastBuildStartedAtUnix: this.buildSnapshot?.startedAtUnix,
+    };
+  }
+
+  async refreshRuntimeContext(): Promise<void> {
+    if (!isTauri() || this.runtimeRefreshInFlight) return;
+    this.runtimeRefreshInFlight = true;
+    try {
+      const status = await this.status();
+      await Promise.all([
+        this.refreshChangesIfPrepared(status),
+        this.buildStatus().catch(() => undefined),
+      ]);
+    } finally {
+      this.runtimeRefreshInFlight = false;
+    }
+  }
+
+  private async refreshChangesIfPrepared(status: SourceWorkspaceStatus): Promise<void> {
+    if (!status.available || !status.prepared || status.stale) {
+      this.changedFilesSnapshot = null;
+      return;
+    }
+    await this.changedFiles().catch(() => undefined);
+  }
+}
+
+function parentPath(path: string): string {
+  const normalized = path.replace(/\\/g, '/');
+  const index = normalized.lastIndexOf('/');
+  if (index <= 0) return path;
+  return path.slice(0, index);
 }

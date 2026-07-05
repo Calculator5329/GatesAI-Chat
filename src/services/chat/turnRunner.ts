@@ -491,7 +491,7 @@ export class TurnRunner {
       ? buildAgentTaskSystemPrompt(thread.agentTaskSystemPrompt)
       : systemPromptForContextMode(mode, () =>
           this.profile.composeSystemPrompt({
-            runtimeContext: buildRuntimeContext({ bridge }),
+            runtimeContext: buildRuntimeContext({ bridge, sourceWorkspace: extras?.sourceWorkspace?.runtimeSnapshot }),
             threadContext: mode === 'full' ? thread.threadContext : undefined,
             recentSummaries: mode === 'full' ? recentSummaries : [],
             semanticContext: mode === 'full' ? semanticContext : undefined,

@@ -64,6 +64,27 @@ export interface SourceWorkspaceSearch {
   truncated: boolean;
 }
 
+export type SourceChangeKind = 'added' | 'modified' | 'deleted';
+
+export interface SourceChangedFile {
+  path: string;
+  change: SourceChangeKind;
+  originalSize?: number;
+  currentSize?: number;
+  previewAvailable: boolean;
+  originalContent?: string;
+  currentContent?: string;
+}
+
+export interface SourceChangedFiles {
+  files: SourceChangedFile[];
+}
+
+export interface SourceRevertResult {
+  path: string;
+  change: SourceChangeKind;
+}
+
 export async function getSourceWorkspaceStatus(): Promise<SourceWorkspaceStatus> {
   ensureTauri('read source workspace status');
   return await invoke<SourceWorkspaceStatus>('source_workspace_status');
@@ -106,6 +127,16 @@ export async function searchSourceWorkspace(
 ): Promise<SourceWorkspaceSearch> {
   ensureTauri('search source workspace files');
   return await invoke<SourceWorkspaceSearch>('source_workspace_search', { query, path, maxHits });
+}
+
+export async function getSourceChangedFiles(): Promise<SourceChangedFiles> {
+  ensureTauri('review source workspace changes');
+  return await invoke<SourceChangedFiles>('source_changed_files');
+}
+
+export async function revertSourceFile(path: string): Promise<SourceRevertResult> {
+  ensureTauri('revert source workspace file');
+  return await invoke<SourceRevertResult>('source_revert_file', { path });
 }
 
 function ensureTauri(action: string): void {

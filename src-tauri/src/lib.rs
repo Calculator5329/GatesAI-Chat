@@ -67,6 +67,8 @@ pub fn run() {
       source_workspace::source_workspace_write,
       source_workspace::source_workspace_stat,
       source_workspace::source_workspace_search,
+      source_workspace::source_changed_files,
+      source_workspace::source_revert_file,
       source_build::source_build_status,
       source_build::source_build_start,
       source_build::source_build_clear,

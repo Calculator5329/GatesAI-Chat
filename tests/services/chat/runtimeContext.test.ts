@@ -23,6 +23,31 @@ describe('runtime context composition', () => {
     expect(context).toContain('terminal_cwd: bridge workspace root');
   });
 
+  it('injects source workspace state only when prepared', () => {
+    const off = buildRuntimeContext({
+      bridge: { isOnline: true },
+      sourceWorkspace: null,
+      now: new Date('2026-04-25T20:00:00.000Z'),
+      timeZone: 'UTC',
+    });
+    const on = buildRuntimeContext({
+      bridge: { isOnline: true },
+      sourceWorkspace: {
+        prepared: true,
+        changedFileCount: 3,
+        lastBuildStatus: 'succeeded',
+        lastBuildFinishedAtUnix: 1_777_136_400,
+      },
+      now: new Date('2026-04-25T20:00:00.000Z'),
+      timeZone: 'UTC',
+    });
+
+    expect(off).not.toContain('source_workspace:');
+    expect(on).toContain('source_workspace: prepared; changed_files: 3');
+    expect(on).toContain('source_build: succeeded at 2026-04-25T17:00:00.000Z');
+    expect(on).toContain('user must approve any installer/update');
+  });
+
   it('emits download facts and omits bridge/workspace lines in Web Lite', () => {
     vi.stubEnv('VITE_GATESAI_WEB', '1');
     const context = buildRuntimeContext({

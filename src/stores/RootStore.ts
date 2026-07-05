@@ -135,6 +135,7 @@ export class RootStore {
       localRuntime: this.localRuntime,
       search: this.search,
       rag: this.rag,
+      sourceWorkspace: this.sourceWorkspace,
     }));
 
     this.disposers.push(toolRegistry.registerDynamicProvider(() => createMcpRegistryTools(this.mcp)));

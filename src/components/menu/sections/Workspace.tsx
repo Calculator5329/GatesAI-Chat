@@ -9,7 +9,7 @@ import { Card } from '../../ui/Card';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
 import { isTauri, isWebLite } from '../../../core/runtime';
 import { tokens } from '../../../core/styleTokens';
-import type { SourceWorkspaceStatus } from '../../../stores/SourceWorkspaceStore';
+import type { LineDiffRow, SourceChangedFile, SourceChangedFiles, SourceWorkspaceStatus } from '../../../stores/SourceWorkspaceStore';
 import type { SourceBuildCommand, SourceBuildStatus } from '../../../stores/SourceWorkspaceStore';
 
 export const WorkspaceSection = observer(function WorkspaceSection() {
@@ -22,6 +22,8 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
   const [sourceStatus, setSourceStatus] = useState<SourceWorkspaceStatus | null>(null);
   const [sourceLoading, setSourceLoading] = useState(false);
   const [sourceError, setSourceError] = useState<string | null>(null);
+  const [changedFiles, setChangedFiles] = useState<SourceChangedFiles | null>(null);
+  const [changesLoading, setChangesLoading] = useState(false);
   const [buildStatus, setBuildStatus] = useState<SourceBuildStatus | null>(null);
   const [buildLoading, setBuildLoading] = useState(false);
   const [buildError, setBuildError] = useState<string | null>(null);
@@ -66,7 +68,10 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
     }
     setSourceLoading(true);
     try {
-      setSourceStatus(await source.status());
+      const status = await source.status();
+      setSourceStatus(status);
+      if (status.prepared && !status.stale) void refreshChangedFiles();
+      else setChangedFiles(null);
     } catch (err) {
       setSourceError((err as Error).message);
     } finally {
@@ -78,7 +83,38 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
     setSourceError(null);
     setSourceLoading(true);
     try {
-      setSourceStatus(await source.prepare());
+      const status = await source.prepare();
+      setSourceStatus(status);
+      if (status.prepared && !status.stale) void refreshChangedFiles();
+    } catch (err) {
+      setSourceError((err as Error).message);
+    } finally {
+      setSourceLoading(false);
+    }
+  };
+
+  const refreshChangedFiles = async () => {
+    setSourceError(null);
+    if (webLite || !isTauri()) {
+      setChangedFiles(null);
+      return;
+    }
+    setChangesLoading(true);
+    try {
+      setChangedFiles(await source.changedFiles());
+    } catch (err) {
+      setSourceError((err as Error).message);
+    } finally {
+      setChangesLoading(false);
+    }
+  };
+
+  const revertSourceFile = async (path: string) => {
+    setSourceError(null);
+    setSourceLoading(true);
+    try {
+      await source.revertFile(path);
+      setChangedFiles(await source.changedFiles());
     } catch (err) {
       setSourceError((err as Error).message);
     } finally {
@@ -129,6 +165,15 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
       setBuildError((err as Error).message);
     } finally {
       setBuildLoading(false);
+    }
+  };
+
+  const openBuildOutputFolder = async (artifactPath: string) => {
+    setBuildError(null);
+    try {
+      await source.openOutputFolder(artifactPath);
+    } catch (err) {
+      setBuildError((err as Error).message);
     }
   };
 
@@ -207,17 +252,23 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
         onPrepare={prepareSource}
         onRefresh={refreshSourceWorkspace}
         onOpen={openSource}
+        changes={changedFiles}
+        changesLoading={changesLoading}
+        onRefreshChanges={refreshChangedFiles}
+        onRevertFile={revertSourceFile}
+        diffRowsForFile={source.diffRowsForFile}
       />
 
       <SourceBuildCard
         status={buildStatus}
-        sourcePrepared={Boolean(sourceStatus?.prepared)}
+        sourcePrepared={Boolean(sourceStatus?.prepared && !sourceStatus.stale)}
         loading={buildLoading}
         error={buildError}
         unavailable={webLite || !isTauri()}
         onStart={startBuild}
         onRefresh={refreshSourceBuild}
         onClear={clearBuild}
+        onOpenOutputFolder={openBuildOutputFolder}
       />
 
       {/* Allowlist */}
@@ -275,17 +326,27 @@ function SourceWorkspaceCard({
   loading,
   error,
   unavailable,
+  changes,
+  changesLoading,
   onPrepare,
   onRefresh,
   onOpen,
+  onRefreshChanges,
+  onRevertFile,
+  diffRowsForFile,
 }: {
   status: SourceWorkspaceStatus | null;
   loading: boolean;
   error: string | null;
   unavailable: boolean;
+  changes: SourceChangedFiles | null;
+  changesLoading: boolean;
   onPrepare: () => void;
   onRefresh: () => void;
   onOpen: () => void;
+  onRefreshChanges: () => void;
+  onRevertFile: (path: string) => void;
+  diffRowsForFile: (file: SourceChangedFile) => LineDiffRow[];
 }) {
   const ready = Boolean(status?.available && status.prepared && !status.stale);
   const needsPrepare = Boolean(status?.available && (!status.prepared || status.stale));
@@ -335,11 +396,128 @@ function SourceWorkspaceCard({
         <button type="button" className="workspace-action-button" onClick={onOpen} disabled={unavailable || !status?.prepared} style={S.btn}>Open source</button>
         <button type="button" className="workspace-action-button" onClick={onRefresh} disabled={unavailable || loading} style={S.btn}>Refresh</button>
       </div>
+      {status?.prepared && !status.stale && (
+        <SourceChangesReview
+          changes={changes}
+          loading={changesLoading}
+          disabled={unavailable || loading}
+          onRefresh={onRefreshChanges}
+          onRevertFile={onRevertFile}
+          diffRowsForFile={diffRowsForFile}
+        />
+      )}
     </Card>
   );
 }
 
-function SourceBuildCard({
+export function SourceChangesReview({
+  changes,
+  loading,
+  disabled,
+  onRefresh,
+  onRevertFile,
+  diffRowsForFile,
+}: {
+  changes: SourceChangedFiles | null;
+  loading: boolean;
+  disabled: boolean;
+  onRefresh: () => void;
+  onRevertFile: (path: string) => void;
+  diffRowsForFile: (file: SourceChangedFile) => LineDiffRow[];
+}) {
+  const files = changes?.files ?? [];
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [confirmPath, setConfirmPath] = useState<string | null>(null);
+  const selected = files.find(file => file.path === selectedPath) ?? files[0] ?? null;
+
+  return (
+    <div style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        <div>
+          <div style={S.label}>Changed files</div>
+          <div style={S.sub}>{files.length ? `${files.length} file${files.length === 1 ? '' : 's'} differ from the bundled snapshot.` : 'No source changes detected.'}</div>
+        </div>
+        <button type="button" className="workspace-action-button" onClick={onRefresh} disabled={disabled || loading} style={S.btn}>
+          {loading ? 'Refreshing...' : 'Refresh changes'}
+        </button>
+      </div>
+      {files.length > 0 && (
+        <div style={S.reviewGrid}>
+          <div style={S.changedList}>
+            {files.map(file => {
+              const active = selected?.path === file.path;
+              return (
+                <button
+                  key={file.path}
+                  type="button"
+                  onClick={() => { setSelectedPath(file.path); setConfirmPath(null); }}
+                  style={S.changedFileButton(active)}
+                >
+                  <span style={S.changeKind(file.change)}>{file.change}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.path.replace(/^source:\/\//, '')}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div style={S.diffPanel}>
+            {selected && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ ...S.label, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selected.path}</div>
+                    <div style={S.sub}>{changeSizeLabel(selected)}</div>
+                  </div>
+                  {confirmPath === selected.path ? (
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button type="button" onClick={() => { onRevertFile(selected.path); setConfirmPath(null); }} disabled={disabled} style={S.dangerBtn}>Confirm</button>
+                      <button type="button" onClick={() => setConfirmPath(null)} style={S.btn}>Cancel</button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setConfirmPath(selected.path)} disabled={disabled} style={S.btn}>Revert</button>
+                  )}
+                </div>
+                <DiffPreview file={selected} diffRowsForFile={diffRowsForFile} />
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DiffPreview({
+  file,
+  diffRowsForFile,
+}: {
+  file: SourceChangedFile;
+  diffRowsForFile: (file: SourceChangedFile) => LineDiffRow[];
+}) {
+  if (!file.previewAvailable) {
+    return <div style={S.empty}>changed (no diff preview)</div>;
+  }
+  const rows = diffRowsForFile(file);
+  if (rows.length === 0) {
+    return <div style={S.empty}>No line-level text changes.</div>;
+  }
+  return (
+    <pre style={S.diffCode}>
+      {rows.map((row, index) => {
+        const sign = row.type === 'added' ? '+' : row.type === 'removed' ? '-' : ' ';
+        const lineNo = row.type === 'added' ? row.newLine : row.type === 'removed' ? row.oldLine : row.newLine;
+        return (
+          <div key={`${row.type}-${index}`} style={S.diffLine(row.type)}>
+            <span style={S.diffGutter}>{String(lineNo).padStart(4, ' ')}</span>
+            <span style={S.diffSign}>{sign}</span>
+            <span>{row.text || ' '}</span>
+          </div>
+        );
+      })}
+    </pre>
+  );
+}
+
+export function SourceBuildCard({
   status,
   sourcePrepared,
   loading,
@@ -348,6 +526,7 @@ function SourceBuildCard({
   onStart,
   onRefresh,
   onClear,
+  onOpenOutputFolder,
 }: {
   status: SourceBuildStatus | null;
   sourcePrepared: boolean;
@@ -357,6 +536,7 @@ function SourceBuildCard({
   onStart: (command: SourceBuildCommand) => void;
   onRefresh: () => void;
   onClear: () => void;
+  onOpenOutputFolder: (artifactPath: string) => void;
 }) {
   const running = status?.status === 'running';
   const disabled = unavailable || loading || running || !sourcePrepared;
@@ -381,10 +561,14 @@ function SourceBuildCard({
       <div style={{ ...S.sub, marginTop: 10 }}>
         {status?.cmdline ?? 'No build job has run yet.'}
         {status?.exitCode != null ? ` · exit ${status.exitCode}` : ''}
+        {status?.startedAtUnix ? ` · ${formatDuration(status)}` : ''}
       </div>
       {status?.installerPath && (
-        <div style={{ ...S.code, marginTop: 8 }}>
-          installer: {status.installerPath} {status.installerBytes ? `(${formatSize(status.installerBytes)})` : ''}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+          <div style={{ ...S.code, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            artifact: {status.installerPath} {status.installerBytes ? `(${formatSize(status.installerBytes)})` : ''}
+          </div>
+          <button type="button" className="workspace-action-button" onClick={() => onOpenOutputFolder(status.installerPath!)} style={S.btn}>Open output folder</button>
         </div>
       )}
       {(error || status?.lastError) && (
@@ -394,13 +578,13 @@ function SourceBuildCard({
         <div style={{ ...S.empty, marginTop: 8 }}>Prepare the source workspace before running builds.</div>
       )}
       {status?.logs?.length ? (
-        <pre style={S.logTail}>{status.logs.slice(-12).join('\n')}</pre>
+        <pre style={S.logTail}>{status.logs.join('\n')}</pre>
       ) : null}
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <button type="button" className="workspace-action-button" onClick={() => onStart('package')} disabled={disabled} style={S.primaryBtn}>Run build</button>
         <button type="button" className="workspace-action-button" onClick={() => onStart('install')} disabled={disabled} style={S.btn}>Install deps</button>
         <button type="button" className="workspace-action-button" onClick={() => onStart('test')} disabled={disabled} style={S.btn}>Test</button>
         <button type="button" className="workspace-action-button" onClick={() => onStart('build')} disabled={disabled} style={S.btn}>Build</button>
-        <button type="button" className="workspace-action-button" onClick={() => onStart('package')} disabled={disabled} style={S.btn}>Package</button>
         <button type="button" className="workspace-action-button" onClick={onRefresh} disabled={unavailable || loading} style={S.btn}>Refresh</button>
         <button type="button" className="workspace-action-button" onClick={onClear} disabled={unavailable || loading || running} style={S.btn}>Clear</button>
       </div>
@@ -605,6 +789,22 @@ function shortHash(hash?: string): string {
   return hash.replace(/^sha256:/, '').slice(0, 12);
 }
 
+function changeSizeLabel(file: SourceChangedFile): string {
+  if (file.change === 'added') return `${formatSize(file.currentSize ?? 0)} added`;
+  if (file.change === 'deleted') return `${formatSize(file.originalSize ?? 0)} deleted`;
+  return `${formatSize(file.originalSize ?? 0)} -> ${formatSize(file.currentSize ?? 0)}`;
+}
+
+function formatDuration(status: SourceBuildStatus): string {
+  if (!status.startedAtUnix) return 'idle';
+  const end = status.finishedAtUnix ?? Math.floor(Date.now() / 1000);
+  const seconds = Math.max(0, end - status.startedAtUnix);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `${minutes}m ${rest}s`;
+}
+
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
 const S = {
@@ -620,6 +820,88 @@ const S = {
     background: 'transparent', color: 'var(--text-dim)',
     cursor: 'pointer',
   } as CSSProperties,
+  primaryBtn: {
+    padding: '4px 10px', fontSize: 11,
+    border: '1px solid rgba(126,200,160,0.35)', borderRadius: 4,
+    background: 'rgba(126,200,160,0.12)', color: 'var(--text)',
+    cursor: 'pointer',
+  } as CSSProperties,
+  dangerBtn: {
+    padding: '4px 10px', fontSize: 11,
+    border: '1px solid rgba(201,106,106,0.45)', borderRadius: 4,
+    background: 'rgba(201,106,106,0.12)', color: '#e6a0a0',
+    cursor: 'pointer',
+  } as CSSProperties,
+  reviewGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(180px, 0.8fr) minmax(0, 1.2fr)',
+    gap: 10,
+  } as CSSProperties,
+  changedList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    minWidth: 0,
+    maxHeight: 320,
+    overflow: 'auto',
+  } as CSSProperties,
+  changedFileButton: (active: boolean): CSSProperties => ({
+    display: 'flex',
+    alignItems: 'center',
+    gap: 7,
+    minWidth: 0,
+    width: '100%',
+    padding: '6px 7px',
+    border: `1px solid ${active ? 'rgba(255,255,255,0.16)' : 'var(--border)'}`,
+    borderRadius: 5,
+    background: active ? 'rgba(255,255,255,0.06)' : 'transparent',
+    color: 'var(--text-dim)',
+    cursor: 'pointer',
+    fontSize: 11,
+    fontFamily: '"Geist Mono", monospace',
+    textAlign: 'left',
+  }),
+  changeKind: (kind: SourceChangedFile['change']): CSSProperties => ({
+    width: 58,
+    flex: 'none',
+    color: kind === 'added' ? '#7ec8a0' : kind === 'deleted' ? '#e08b8b' : '#c8b87e',
+    fontSize: 10,
+    textTransform: 'uppercase',
+  }),
+  diffPanel: {
+    minWidth: 0,
+    border: '1px solid var(--border)',
+    borderRadius: 5,
+    padding: 10,
+    background: 'rgba(0,0,0,0.12)',
+  } as CSSProperties,
+  diffCode: {
+    margin: 0,
+    maxHeight: 360,
+    overflow: 'auto',
+    border: '1px solid var(--border)',
+    borderRadius: 4,
+    background: 'rgba(0,0,0,0.2)',
+    color: 'var(--text-dim)',
+    fontFamily: '"Geist Mono", monospace',
+    fontSize: 11,
+    lineHeight: 1.45,
+  } as CSSProperties,
+  diffLine: (type: 'context' | 'added' | 'removed'): CSSProperties => ({
+    display: 'grid',
+    gridTemplateColumns: '42px 18px minmax(0, 1fr)',
+    gap: 6,
+    padding: '1px 8px',
+    background: type === 'added'
+      ? 'rgba(95,191,122,0.12)'
+      : type === 'removed'
+        ? 'rgba(201,106,106,0.13)'
+        : 'transparent',
+    color: type === 'added' ? '#a8ddb8' : type === 'removed' ? '#e3a0a0' : 'var(--text-dim)',
+    whiteSpace: 'pre',
+  }),
+  diffGutter: { color: 'var(--text-faint)', userSelect: 'none', textAlign: 'right' } as CSSProperties,
+  diffSign: { color: 'var(--text-faint)', userSelect: 'none' } as CSSProperties,
   cmdChip: {
     padding: '3px 8px', fontSize: 11,
     fontFamily: '"Geist Mono", monospace',

@@ -22,6 +22,7 @@ export const sourceBuildTool: Tool = {
       '  package -> npm run tauri:build',
       '',
       'Only one job can run at a time. This does not install the generated installer or modify the live app.',
+      'The user can watch build logs in the Workspace menu. On success, hand off by opening the output folder; the user must choose and approve any install/update.',
     ].join('\n'),
     parameters: {
       type: 'object',
@@ -42,7 +43,7 @@ export const sourceBuildTool: Tool = {
     validate: validateSourceBuildArgs,
   },
 
-  async execute(args) {
+  async execute(args, ctx) {
     const {
       clearSourceBuild,
       getSourceBuildStatus,
@@ -51,11 +52,11 @@ export const sourceBuildTool: Tool = {
     const action = typeof args.action === 'string' ? args.action : '';
     switch (action) {
       case 'status':
-        return formatStatus(await getSourceBuildStatus());
+        return refreshAfter(ctx, formatStatus(await getSourceBuildStatus()));
       case 'start':
-        return formatStatus(await startSourceBuild(args.command as SourceBuildCommand));
+        return refreshAfter(ctx, formatStatus(await startSourceBuild(args.command as SourceBuildCommand)));
       case 'clear':
-        return formatStatus(await clearSourceBuild());
+        return refreshAfter(ctx, formatStatus(await clearSourceBuild()));
       default:
         return 'Error: `action` is required for source_build. Valid: status, start, clear.';
     }
@@ -72,6 +73,11 @@ function validateSourceBuildArgs(args: Record<string, unknown>) {
     };
   }
   return null;
+}
+
+function refreshAfter(ctx: Parameters<Tool['execute']>[1], result: string): string {
+  void ctx.sourceWorkspace?.refreshRuntimeContext?.();
+  return result;
 }
 
 export function formatStatus(status: SourceBuildStatus): string {
