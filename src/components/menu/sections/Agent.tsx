@@ -15,7 +15,9 @@ import {
 } from '../../ui';
 import {
   useChatStore,
+  useLocalRuntimeStore,
   useModelRegistry,
+  useOllamaStore,
   useRagStore,
   useRouterStore,
   useSchedulesStore,
@@ -433,8 +435,12 @@ const WorkspaceSkillsSection = observer(function WorkspaceSkillsSection() {
 
 const SemanticMemorySection = observer(function SemanticMemorySection() {
   const rag = useRagStore();
+  const ollama = useOllamaStore();
+  const localRuntime = useLocalRuntimeStore();
   const model = rag.embeddingModel;
   const pullCommand = `ollama pull ${model}`;
+  const pullState = ollama.pulls.get(model);
+  const ollamaOnline = localRuntime.runtimes.ollama.status === 'online';
   const statusText = rag.status === 'active'
     ? 'active'
     : rag.status === 'ollama_offline'
@@ -478,8 +484,32 @@ const SemanticMemorySection = observer(function SemanticMemorySection() {
           borderBottom: '1px solid var(--border)',
         }}>
           <div style={settingLabel}>Install</div>
-          <Input value={pullCommand} readOnly style={{ fontFamily: '"Geist Mono", monospace' }} />
-          <Button onClick={() => void navigator.clipboard?.writeText(pullCommand)}>Copy</Button>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {ollamaOnline ? (
+              <>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>Pull the embedding model in app.</span>
+                  {pullState && (
+                    <span role={pullState.error ? 'alert' : 'status'} style={{ color: pullState.error ? '#ff7597' : 'var(--text-faint)', fontSize: 11.5 }}>
+                      {pullState.error ? pullState.error : `${pullState.phase} · ${Math.round(pullState.percent)}%`}
+                    </span>
+                  )}
+                </div>
+                <code style={{ ...inlineCodeStyle, color: 'var(--text-faint)' }}>{pullCommand}</code>
+              </>
+            ) : (
+              <Input value={pullCommand} readOnly style={{ fontFamily: '"Geist Mono", monospace' }} />
+            )}
+          </div>
+          {ollamaOnline ? (
+            ollama.isPulling(model) ? (
+              <Button variant="danger" onClick={() => ollama.cancelPull(model)}>Cancel</Button>
+            ) : (
+              <Button onClick={() => void ollama.startPull(model)}>Pull now</Button>
+            )
+          ) : (
+            <Button onClick={() => void navigator.clipboard?.writeText(pullCommand)}>Copy</Button>
+          )}
         </div>
       )}
 

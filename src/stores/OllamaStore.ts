@@ -13,10 +13,17 @@ import type { ModelRegistry } from './ModelRegistry';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
 import { logger } from '../services/diagnostics/logger';
 import { deleteSecret, SECRET_NAMES, setSecret, usesTauriSecretBackend } from '../services/secretStorage';
+import { deleteModel, pullModel } from '../services/llm/ollamaPull';
 
 interface OllamaStoreOptions {
   autoPersist?: boolean;
   useKeychainSecrets?: boolean;
+}
+
+export interface OllamaPullState {
+  percent: number;
+  phase: string;
+  error?: string;
 }
 
 /**
@@ -30,11 +37,13 @@ export class OllamaStore {
   lastRefreshAt: number | null = null;
   fetching = false;
   lastError: string | undefined;
+  pulls = new Map<string, OllamaPullState>();
 
   private readonly registry: ModelRegistry;
   private readonly localRuntime: LocalRuntimeStore;
   private readonly useKeychainSecrets: boolean;
   private inflight: AbortController | null = null;
+  private activePull: { model: string; controller: AbortController } | null = null;
   private configPersistenceDisposer: (() => void) | null = null;
   private secretPersistenceDisposer: (() => void) | null = null;
 
@@ -56,6 +65,7 @@ export class OllamaStore {
       | 'localRuntime'
       | 'useKeychainSecrets'
       | 'inflight'
+      | 'activePull'
       | 'configPersistenceDisposer'
       | 'secretPersistenceDisposer'
     >(this, {
@@ -63,6 +73,7 @@ export class OllamaStore {
       localRuntime: false,
       useKeychainSecrets: false,
       inflight: false,
+      activePull: false,
       configPersistenceDisposer: false,
       secretPersistenceDisposer: false,
     });
@@ -102,6 +113,7 @@ export class OllamaStore {
 
   get count(): number { return this.catalog.length; }
   get online(): boolean { return this.localRuntime.runtimes.ollama.status === 'online'; }
+  get activePullModel(): string | null { return this.activePull?.model ?? null; }
   get catalog(): Model[] {
     return this.registry.dynamicForProvider('ollama');
   }
@@ -123,6 +135,102 @@ export class OllamaStore {
     const p = prefix.trim();
     if (!p) return false;
     return this.tagNames.some(name => name.startsWith(p));
+  }
+
+  hasModelTag(model: string): boolean {
+    const name = model.trim();
+    if (!name) return false;
+    return this.tagNames.some(tag => tag === name || (!name.includes(':') && tag.startsWith(`${name}:`)));
+  }
+
+  isPulling(model: string): boolean {
+    return this.activePull?.model === model.trim();
+  }
+
+  async startPull(model: string): Promise<boolean> {
+    const name = model.trim();
+    if (!name) return false;
+    const guard = this.pullGuardMessage(name);
+    if (guard) {
+      this.pulls.set(name, { percent: this.pulls.get(name)?.percent ?? 0, phase: 'Not started', error: guard });
+      return false;
+    }
+
+    const controller = new AbortController();
+    this.activePull = { model: name, controller };
+    this.pulls.set(name, { percent: 0, phase: 'Starting pull' });
+
+    try {
+      await pullModel(name, {
+        baseUrl: this.localRuntime.ollamaBaseUrl,
+        apiKey: this.config.apiKey,
+        onProgress: progress => {
+          runInAction(() => {
+            const existing = this.pulls.get(name);
+            this.pulls.set(name, {
+              percent: Math.max(existing?.percent ?? 0, progress.percent),
+              phase: progress.phase,
+            });
+          });
+        },
+      }, controller.signal);
+      if (controller.signal.aborted) {
+        runInAction(() => {
+          const existing = this.pulls.get(name);
+          this.pulls.set(name, { percent: existing?.percent ?? 0, phase: 'Cancelled', error: 'Pull cancelled.' });
+        });
+        return false;
+      }
+      runInAction(() => {
+        this.pulls.set(name, { percent: 100, phase: 'Installed' });
+      });
+      await this.refresh();
+      return true;
+    } catch (err) {
+      const aborted = controller.signal.aborted || (err instanceof Error && err.name === 'AbortError');
+      const message = aborted ? 'Pull cancelled.' : err instanceof Error ? err.message : String(err);
+      logger.warn('models', 'Ollama pull failed', { model: name, err });
+      runInAction(() => {
+        const existing = this.pulls.get(name);
+        this.pulls.set(name, {
+          percent: existing?.percent ?? 0,
+          phase: aborted ? 'Cancelled' : 'Failed',
+          error: message,
+        });
+      });
+      return false;
+    } finally {
+      if (this.activePull?.controller === controller) this.activePull = null;
+    }
+  }
+
+  cancelPull(model?: string): void {
+    const target = model?.trim();
+    if (!this.activePull) return;
+    if (target && this.activePull.model !== target) return;
+    this.activePull.controller.abort();
+  }
+
+  async deleteModel(model: string): Promise<boolean> {
+    const name = model.trim();
+    if (!name) return false;
+    try {
+      await deleteModel(name, {
+        baseUrl: this.localRuntime.ollamaBaseUrl,
+        apiKey: this.config.apiKey,
+      });
+      this.pulls.delete(name);
+      await this.refresh();
+      return true;
+    } catch (err) {
+      logger.warn('models', 'Ollama delete failed', { model: name, err });
+      this.pulls.set(name, {
+        percent: this.pulls.get(name)?.percent ?? 0,
+        phase: 'Delete failed',
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return false;
+    }
   }
 
   async refresh(): Promise<void> {
@@ -156,12 +264,21 @@ export class OllamaStore {
 
   clearCatalog(): void {
     if (this.inflight) { this.inflight.abort(); this.inflight = null; }
+    if (this.activePull) { this.activePull.controller.abort(); this.activePull = null; }
     this.catalog = [];
     this.tagNames = [];
     this.lastRefreshAt = null;
     this.lastError = undefined;
     this.fetching = false;
     this.catalog = [];
+  }
+
+  private pullGuardMessage(model: string): string | null {
+    if (!this.online) return 'Start Ollama first.';
+    if (this.hasModelTag(model)) return `${model} is already installed.`;
+    if (this.activePull?.model === model) return `${model} is already pulling.`;
+    if (this.activePull) return `Finish or cancel ${this.activePull.model} before pulling another model.`;
+    return null;
   }
 }
 

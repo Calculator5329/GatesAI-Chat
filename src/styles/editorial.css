@@ -976,8 +976,21 @@
   cursor: pointer;
 }
 
+.editorial-empty-state__secondary {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font: 12px "Geist", ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+
 .editorial-empty-state__primary:hover,
 .editorial-empty-state__primary:focus-visible,
+.editorial-empty-state__secondary:hover,
+.editorial-empty-state__secondary:focus-visible,
 .web-lite-download-cue__link:hover,
 .web-lite-download-cue__link:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
