@@ -12,6 +12,8 @@ export interface OpenAiCompatOptions {
   name: string;
   baseUrl: string;
   apiKey?: string;
+  requiresApiKey?: boolean;
+  available?: boolean;
   /** Extra headers (e.g. OpenRouter wants HTTP-Referer / X-Title). */
   extraHeaders?: Record<string, string>;
 }
@@ -47,6 +49,8 @@ export class OpenAiCompatProvider implements LlmProvider {
   readonly name: string;
   private readonly baseUrl: string;
   private readonly apiKey?: string;
+  private readonly requiresApiKey: boolean;
+  private readonly available: boolean;
   private readonly extraHeaders: Record<string, string>;
 
   constructor(opts: OpenAiCompatOptions) {
@@ -54,11 +58,13 @@ export class OpenAiCompatProvider implements LlmProvider {
     this.name = opts.name;
     this.baseUrl = opts.baseUrl.replace(/\/+$/, '');
     this.apiKey = opts.apiKey;
+    this.requiresApiKey = opts.requiresApiKey ?? true;
+    this.available = opts.available !== false;
     this.extraHeaders = opts.extraHeaders ?? {};
   }
 
   ready(): boolean {
-    return Boolean(this.apiKey);
+    return Boolean(this.baseUrl) && this.available && (!this.requiresApiKey || Boolean(this.apiKey));
   }
 
   async *stream(req: LlmRequest, signal: AbortSignal): AsyncIterable<LlmChunk> {

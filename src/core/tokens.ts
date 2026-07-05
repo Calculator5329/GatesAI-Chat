@@ -26,6 +26,7 @@ const toolTokenCache = new Map<string, number>();
 /** Default context windows by provider, used when `model.contextLength` is unset. */
 const DEFAULT_WINDOW_BY_PROVIDER: Record<ProviderId, number> = {
   openrouter: 128_000,
+  'openai-compat': 32_000,
   ollama: 8_000,
   // Synthetic provider — never sent to a tokenizer. Pick a small window so
   // any debug accounting that lands here doesn't allocate megabytes.

@@ -41,6 +41,23 @@ describe('ProviderStore', () => {
     expect(b.getConfig('openrouter').apiKey).toBe('sk-or-test');
   });
 
+  it('persists custom endpoint config and normalizes its base URL', async () => {
+    const a = make();
+    a.setBaseUrl('openai-compat', 'http://localhost:1234/');
+    a.setLabel('openai-compat', 'LM Studio');
+    a.setAvailable('openai-compat', true);
+    a.setKey('openai-compat', 'sk-local');
+    await flush(2);
+
+    const b = make();
+    expect(b.getConfig('openai-compat')).toEqual({
+      baseUrl: 'http://localhost:1234/v1',
+      label: 'LM Studio',
+      available: true,
+      apiKey: 'sk-local',
+    });
+  });
+
   it('strips retired direct-provider configs from legacy storage', () => {
     localStorage.setItem('gatesai.providers.v1', JSON.stringify({
       openrouter: { apiKey: 'sk-or' },
@@ -70,6 +87,28 @@ describe('ProviderStore', () => {
     await flush(2);
     expect(store.hasUsableProvider).toBe(true);
     store.setKey('openrouter', '');
+    await flush(2);
+    expect(store.hasUsableProvider).toBe(false);
+  });
+
+  it('hasUsableProvider reacts to custom endpoint probe availability', async () => {
+    const registry = new ModelRegistry();
+    registry.setDynamicForProvider('openai-compat', [{
+      id: 'oc-local-model',
+      name: 'local-model',
+      vendor: 'Custom',
+      providerId: 'openai-compat',
+      providerModelId: 'local-model',
+      dynamic: true,
+    }]);
+    const store = new ProviderStore(registry);
+    store.setBaseUrl('openai-compat', 'http://localhost:1234');
+    await flush(2);
+    expect(store.hasUsableProvider).toBe(false);
+    store.setAvailable('openai-compat', true);
+    await flush(2);
+    expect(store.hasUsableProvider).toBe(true);
+    store.setAvailable('openai-compat', false);
     await flush(2);
     expect(store.hasUsableProvider).toBe(false);
   });

@@ -11,6 +11,7 @@
 
 export type ProviderId =
   | 'openrouter'
+  | 'openai-compat' // User-configured OpenAI-compatible endpoint.
   | 'ollama'        // Native Ollama server (/api/chat, /api/tags)
   | 'local-image';  // Synthetic provider that bypasses the LLM and sends the
                     // user's prompt directly to the configured local image
@@ -139,6 +140,7 @@ export interface LlmProvider {
 export interface ProviderConfig {
   apiKey?: string;
   baseUrl?: string;          // for OpenAI-compatible local endpoints
+  label?: string;            // user-facing label for custom endpoints
   /** Runtime availability for providers backed by local daemons. */
   available?: boolean;
   /** Ollama-specific: drop tools from every request when false. */

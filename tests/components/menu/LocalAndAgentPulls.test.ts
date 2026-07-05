@@ -10,6 +10,8 @@ import { ModelRegistry } from '../../../src/stores/ModelRegistry';
 import { LocalRuntimeStore, type LocalRuntimeService } from '../../../src/stores/LocalRuntimeStore';
 import { OllamaStore } from '../../../src/stores/OllamaStore';
 import { ImageGenStore } from '../../../src/stores/ImageGenStore';
+import { ProviderStore } from '../../../src/stores/ProviderStore';
+import { OpenAiCompatEndpointStore } from '../../../src/stores/OpenAiCompatEndpointStore';
 import type { RootStore as RootStoreType } from '../../../src/stores/RootStore';
 import { clearAppStorage } from '../../helpers/storage';
 
@@ -32,6 +34,7 @@ afterEach(() => {
   currentStore = null;
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   clearAppStorage();
 });
 
@@ -65,11 +68,14 @@ function makeLocalStore(ollamaOnline: boolean): RootStoreType {
   };
   const local = new LocalRuntimeStore({ service, autoDetect: async () => ({}) });
   const ollama = new OllamaStore(registry, local);
+  const providers = new ProviderStore(registry, undefined, { autoPersist: false });
   runInAction(() => {
     local.runtimes.ollama.status = ollamaOnline ? 'online' : 'stopped';
   });
   return {
     registry,
+    providers,
+    openAiCompatEndpoint: new OpenAiCompatEndpointStore(registry, providers),
     localRuntime: local,
     ollama,
     imageGen: new ImageGenStore(),
@@ -81,6 +87,24 @@ function makeLocalStore(ollamaOnline: boolean): RootStoreType {
 }
 
 describe('LocalSection recommended Ollama pulls', () => {
+  it('shows the custom OpenAI-compatible endpoint card on desktop', () => {
+    const store = makeLocalStore(false);
+    const rendered = renderWithStore(store, createElement(LocalSection));
+
+    expect(rendered.textContent).toContain('Custom endpoint (OpenAI-compatible)');
+    expect(rendered.textContent).toContain('LM Studio 1234');
+  });
+
+  it('shows the custom OpenAI-compatible endpoint card in Web Lite', () => {
+    vi.stubEnv('VITE_GATESAI_WEB', '1');
+    const store = makeLocalStore(false);
+    const rendered = renderWithStore(store, createElement(LocalSection));
+
+    expect(rendered.textContent).toContain('Web Lite');
+    expect(rendered.textContent).toContain('Custom endpoint (OpenAI-compatible)');
+    expect(rendered.textContent).not.toContain('Recommended models');
+  });
+
   it('shows recommended models and gates pulls while Ollama is offline', () => {
     const store = makeLocalStore(false);
     const rendered = renderWithStore(store, createElement(LocalSection));

@@ -5,6 +5,7 @@ import { autorun, makeAutoObservable, reaction, toJS } from 'mobx';
 import type { ProviderConfig, ProviderConfigs, ProviderId } from '../core/llm';
 import { LlmRouter } from '../services/llm/router';
 import { loadProviderConfigs, saveProviderConfigs } from '../services/providerStorage';
+import { normalizeOpenAiCompatBaseUrl } from '../services/llm/openaiCompatCatalog';
 import { deleteSecret, SECRET_NAMES, setSecret, usesTauriSecretBackend } from '../services/secretStorage';
 import { logger } from '../services/diagnostics/logger';
 import type { ModelRegistry } from './ModelRegistry';
@@ -70,8 +71,14 @@ export class ProviderStore {
       saveProviderConfigs(providerConfigsForLocalPersistence(snap, this.useKeychainSecrets));
     });
     this.secretPersistenceDisposer = reaction(
-      () => this.configs.openrouter?.apiKey ?? '',
-      apiKey => persistSecretValue(SECRET_NAMES.openrouterApiKey, apiKey, 'OpenRouter API key'),
+      () => ({
+        openrouter: this.configs.openrouter?.apiKey ?? '',
+        openAiCompat: this.configs['openai-compat']?.apiKey ?? '',
+      }),
+      keys => {
+        persistSecretValue(SECRET_NAMES.openrouterApiKey, keys.openrouter, 'OpenRouter API key');
+        persistSecretValue(SECRET_NAMES.openAiCompatApiKey, keys.openAiCompat, 'custom endpoint API key');
+      },
       { fireImmediately: false },
     );
   }
@@ -87,6 +94,10 @@ export class ProviderStore {
 
   hydrateOpenRouterKey(apiKey: string | null | undefined): void {
     this.setKey('openrouter', apiKey ?? '');
+  }
+
+  hydrateOpenAiCompatKey(apiKey: string | null | undefined): void {
+    this.setKey('openai-compat', apiKey ?? '');
   }
 
   get effectiveConfigs(): ProviderConfigs {
@@ -113,7 +124,9 @@ export class ProviderStore {
   }
 
   setBaseUrl(id: ProviderId, baseUrl: string): void {
-    const trimmed = baseUrl.trim();
+    const trimmed = id === 'openai-compat'
+      ? normalizeOpenAiCompatBaseUrl(baseUrl)
+      : baseUrl.trim();
     const current = this.configs[id] ?? {};
     if (!trimmed) {
       const { baseUrl: _, ...rest } = current;
@@ -122,6 +135,23 @@ export class ProviderStore {
     } else {
       this.configs[id] = { ...current, baseUrl: trimmed };
     }
+  }
+
+  setLabel(id: ProviderId, label: string): void {
+    const trimmed = label.trim();
+    const current = this.configs[id] ?? {};
+    if (!trimmed) {
+      const { label: _, ...rest } = current;
+      if (Object.keys(rest).length === 0) delete this.configs[id];
+      else this.configs[id] = rest;
+    } else {
+      this.configs[id] = { ...current, label: trimmed };
+    }
+  }
+
+  setAvailable(id: ProviderId, available: boolean): void {
+    const current = this.configs[id] ?? {};
+    this.configs[id] = { ...current, available };
   }
 
   remove(id: ProviderId): void {
@@ -133,6 +163,7 @@ export class ProviderStore {
     void Object.keys(this.configs).length;
     void this.configs[id]?.apiKey;
     void this.configs[id]?.baseUrl;
+    void this.configs[id]?.available;
     return this.router.get(id).ready();
   }
 
@@ -154,6 +185,11 @@ export class ProviderStore {
     // a key.
     void this.configs;
     void Object.keys(this.configs).length;
+    for (const config of Object.values(this.configs)) {
+      void config?.apiKey;
+      void config?.baseUrl;
+      void config?.available;
+    }
     return this.router.canRoute();
   }
 }
@@ -166,6 +202,12 @@ function providerConfigsForLocalPersistence(configs: ProviderConfigs, stripSecre
     const { apiKey: _, ...rest } = openrouter;
     if (Object.keys(rest).length > 0) next.openrouter = rest;
     else delete next.openrouter;
+  }
+  const openAiCompat = next['openai-compat'];
+  if (openAiCompat?.apiKey) {
+    const { apiKey: _, ...rest } = openAiCompat;
+    if (Object.keys(rest).length > 0) next['openai-compat'] = rest;
+    else delete next['openai-compat'];
   }
   return next;
 }

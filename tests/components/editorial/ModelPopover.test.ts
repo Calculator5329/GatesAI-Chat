@@ -27,6 +27,7 @@ function buildHarness(): Harness {
   const store = {
     registry,
     localRuntime,
+    providers: { getConfig: () => ({}) },
     chat: { defaultModelId: DEFAULT_MODEL_ID },
     skills: { skills: [] },
   } as unknown as RootStore;

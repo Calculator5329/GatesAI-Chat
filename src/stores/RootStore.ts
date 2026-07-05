@@ -21,6 +21,7 @@ import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { SearchStore } from './SearchStore';
 import { McpStore } from './McpStore';
 import { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
+import { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
 import { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import { SkillsStore } from './SkillsStore';
 import { RagStore } from '../services/rag/RagStore';
@@ -60,6 +61,7 @@ export class RootStore {
   readonly search: SearchStore;
   readonly mcp: McpStore;
   readonly openrouterCompatibility: OpenRouterCompatibilityStore;
+  readonly openAiCompatEndpoint: OpenAiCompatEndpointStore;
   readonly sourceWorkspace: SourceWorkspaceStore;
   readonly skills: SkillsStore;
   readonly rag: RagStore;
@@ -89,6 +91,7 @@ export class RootStore {
       },
     }), { autoPersist: false });
     this.openrouter = new OpenRouterStore(this.registry, () => this.providers.getConfig('openrouter').apiKey);
+    this.openAiCompatEndpoint = new OpenAiCompatEndpointStore(this.registry, this.providers);
     this.chat = new ChatStore(this.providers, this.registry, this.profile);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
@@ -350,14 +353,16 @@ export class RootStore {
     if (!migration.ok) return;
 
     try {
-      const [openrouterKey, braveKey, ollamaKey] = await Promise.all([
+      const [openrouterKey, openAiCompatKey, braveKey, ollamaKey] = await Promise.all([
         getSecret(SECRET_NAMES.openrouterApiKey),
+        getSecret(SECRET_NAMES.openAiCompatApiKey),
         getSecret(SECRET_NAMES.braveApiKey),
         getSecret(SECRET_NAMES.ollamaApiKey),
       ]);
       await this.mcp.hydrateHeaderSecrets();
       if (!this.booted) return;
       this.providers.hydrateOpenRouterKey(openrouterKey);
+      this.providers.hydrateOpenAiCompatKey(openAiCompatKey);
       this.search.hydrateBraveKey(braveKey);
       this.ollama.hydrateApiKey(ollamaKey);
     } catch (err) {
