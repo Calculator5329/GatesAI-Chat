@@ -180,6 +180,16 @@
 - [x] Scheduled tasks v1 (app-open scheduler + schedule_task tool)
 - [x] MCP stdio transport (user-configured local server processes, Rust-managed)
 
+## Wave I — daily-feel + loop depth (shipped 2026-07-06)
+- [x] Light theme ("paper") with dark/light/system modes, contrast unit tests,
+      and a committed light-theme screenshot set
+- [x] Global summon shortcut (configurable, default Ctrl+Shift+Space), tray
+      icon with toggle/new-conversation/quit, optional hide-to-tray
+- [x] Self-improvement loop: test job (npm ci/test/typecheck/lint) in the
+      source copy with streamed per-step status, edit→test→build agent
+      guidance, soft stale-tests warning on Run build, test state in the
+      model's runtime context
+
 ## Open-models-first audit (DONE 2026-07-05 — see docs/audits/2026-07-05-open-models-audit.md; Wave H shipped fixes)
 - [ ] Walk EVERY screen with the lens "what do I do if I'm running open/local
       models only?" — the app currently reads API-first in many surfaces
