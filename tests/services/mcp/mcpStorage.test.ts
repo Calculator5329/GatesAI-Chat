@@ -4,9 +4,11 @@ import {
   collectMcpHeaderSecretNames,
   createMcpServerConfigsPersistence,
   hydrateMcpServerHeaderSecrets,
+  mcpEnvSecretName,
   mcpHeaderSecretName,
   persistMcpServerHeaderSecrets,
   redactMcpServerHeaderValues,
+  validateMcpStdioConfig,
   type McpServerConfig,
 } from '../../../src/services/mcp/mcpStorage';
 import type { SecretStorage } from '../../../src/services/secretStorage';
@@ -37,6 +39,7 @@ describe('mcpStorage', () => {
     const servers: McpServerConfig[] = [{
       id: 'srv-alpha',
       label: 'Alpha',
+      transport: 'http',
       url: 'https://alpha.example.test/mcp',
       enabled: true,
       headers: {
@@ -56,6 +59,8 @@ describe('mcpStorage', () => {
     expect(secrets.data.get(mcpHeaderSecretName('srv-alpha', 'X-Api-Key'))).toBe('api-secret');
 
     const loaded = persistence.load();
+    expect(loaded[0].transport).toBe('http');
+    if (loaded[0].transport !== 'http') throw new Error('expected http config');
     expect(loaded[0].headers).toEqual({ Authorization: '', 'X-Api-Key': '' });
     await expect(hydrateMcpServerHeaderSecrets(loaded, secrets)).resolves.toEqual(servers);
   });
@@ -64,6 +69,7 @@ describe('mcpStorage', () => {
     const oldServers: McpServerConfig[] = [{
       id: 'old',
       label: 'Old',
+      transport: 'http',
       url: 'https://old.example.test/mcp',
       enabled: true,
       headers: { Authorization: 'old-secret' },
@@ -71,6 +77,7 @@ describe('mcpStorage', () => {
     const nextServers: McpServerConfig[] = [{
       id: 'next',
       label: 'Next',
+      transport: 'http',
       url: 'https://next.example.test/mcp',
       enabled: true,
       headers: { Authorization: 'next-secret' },
@@ -108,9 +115,42 @@ describe('mcpStorage', () => {
     expect(loaded).toEqual([{
       id: 'srv-one',
       label: 'Local Tools',
+      transport: 'http',
       url: 'http://127.0.0.1:7332/mcp',
       enabled: true,
       headers: { Authorization: 'Bearer legacy' },
     }]);
+  });
+
+  it('persists stdio env values through SecretStorage while redacting local metadata', async () => {
+    const storage = new MemoryStorage();
+    const secrets = memorySecrets();
+    const persistence = createMcpServerConfigsPersistence(storage);
+    const servers: McpServerConfig[] = [{
+      id: 'stdio-alpha',
+      label: 'Filesystem',
+      transport: 'stdio',
+      command: 'npx',
+      args: ['@modelcontextprotocol/server-filesystem', 'C:\\workspace'],
+      env: { API_KEY: 'env-secret' },
+      enabled: true,
+    }];
+
+    persistence.save(redactMcpServerHeaderValues(servers));
+    await persistMcpServerHeaderSecrets(servers, [], secrets);
+
+    const raw = storage.getItem(MCP_SERVERS_STORAGE_KEY) ?? '';
+    expect(raw).toContain('"transport":"stdio"');
+    expect(raw).toContain('API_KEY');
+    expect(raw).not.toContain('env-secret');
+    expect(secrets.data.get(mcpEnvSecretName('stdio-alpha', 'API_KEY'))).toBe('env-secret');
+    await expect(hydrateMcpServerHeaderSecrets(persistence.load(), secrets)).resolves.toEqual(servers);
+  });
+
+  it('validates stdio config without treating shell metacharacters as commands', () => {
+    expect(validateMcpStdioConfig({ command: 'npx', args: ['@modelcontextprotocol/server-memory'] }).ok).toBe(true);
+    expect(validateMcpStdioConfig({ command: 'cmd.exe', args: ['/c', 'echo hi'] }).ok).toBe(false);
+    expect(validateMcpStdioConfig({ command: 'node', env: { 'BAD=NAME': 'x' } }).ok).toBe(false);
+    expect(validateMcpStdioConfig({ command: 'node; rm -rf /', args: [] }).ok).toBe(true);
   });
 });

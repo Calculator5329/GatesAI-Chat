@@ -8,6 +8,7 @@ mod http_health;
 mod brave_search;
 mod fetch_page;
 mod local_runtime;
+mod mcp_stdio;
 mod secrets;
 mod source_build;
 mod source_workspace;
@@ -59,6 +60,10 @@ pub fn run() {
       local_runtime::pick_directory,
       local_runtime::pick_file,
       local_runtime::runtime_candidate_paths,
+      mcp_stdio::mcp_stdio_start,
+      mcp_stdio::mcp_stdio_send,
+      mcp_stdio::mcp_stdio_stop,
+      mcp_stdio::mcp_stdio_status,
       source_workspace::source_workspace_status,
       source_workspace::source_workspace_prepare,
       source_workspace::source_workspace_open,
@@ -75,6 +80,7 @@ pub fn run() {
     ])
     .manage(BridgeChild(Mutex::new(None)))
     .manage(local_runtime::LocalRuntimeState::default())
+    .manage(mcp_stdio::McpStdioState::default())
     .manage(source_build::SourceBuildState::default())
     .setup(|app| {
       if cfg!(debug_assertions) {
@@ -139,6 +145,8 @@ pub fn run() {
         }
         let runtime_state = app.state::<local_runtime::LocalRuntimeState>();
         local_runtime::kill_all(&runtime_state);
+        let mcp_stdio_state = app.state::<mcp_stdio::McpStdioState>();
+        mcp_stdio::kill_all(&mcp_stdio_state);
       }
     })
     .run(tauri::generate_context!())
