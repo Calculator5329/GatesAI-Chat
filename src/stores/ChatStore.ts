@@ -60,6 +60,13 @@ import {
   type TurnHost,
 } from '../services/chat/turnRunner';
 import {
+  AGENT_TASK_SLOT_RETRY_MS,
+  MAX_CONCURRENT_AGENT_TASKS,
+  clampAgentTaskMaxRounds,
+  clampAgentTaskStartDelayMinutes,
+  normalizeAgentTaskSystemPromptBody,
+} from '../services/chat/agentTasks';
+import {
   AutoNamer,
   type AutoNameHost,
 } from '../services/chat/autoNamer';
@@ -79,6 +86,7 @@ export {
   normalizeOpenRouterThinkingEffort,
 } from '../services/chat/turnRunner';
 export type { ChatThinkingEffort } from '../services/chat/turnRunner';
+export { MAX_CONCURRENT_AGENT_TASKS } from '../services/chat/agentTasks';
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -110,6 +118,7 @@ export class ChatStore {
   private readonly textBuffer = new StreamingTextBuffer();
   private readonly persistence: ChatPersistenceCoordinator;
   private readonly hydrationByThread = new Map<string, Promise<Thread | null>>();
+  private readonly agentTaskStartTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private workspacePersistenceHydrating = false;
   private recentSummariesProvider: (() => string[]) | null = null;
   private semanticContextProvider: ((userText: string) => string | Promise<string>) | null = null;
@@ -162,7 +171,7 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'hydrationByThread' | 'agentTaskStartTimers' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -172,6 +181,7 @@ export class ChatStore {
       textBuffer: false,
       persistence: false,
       hydrationByThread: false,
+      agentTaskStartTimers: false,
       workspacePersistenceHydrating: false,
       recentSummariesProvider: false,
       semanticContextProvider: false,
@@ -254,6 +264,7 @@ export class ChatStore {
 
   dispose(): void {
     this.abortAllStreams();
+    this.clearAgentTaskStartTimers();
     this.persistence.dispose();
   }
 
@@ -387,7 +398,9 @@ export class ChatStore {
       imageGenAvailable: isImageGenerationAvailable(extras),
       webSearchAvailable: extras?.search?.braveReady ?? false,
       semanticRecallAvailable: extras?.rag?.active ?? false,
-      spawnTaskAvailable: !thread.agentTask && !this.hasRunningAgentTask(),
+      spawnTaskAvailable: !thread.agentTask && this.runningAgentTaskCount() < MAX_CONCURRENT_AGENT_TASKS,
+      spawnTaskRunningCount: this.runningAgentTaskCount(),
+      spawnTaskMaxConcurrent: MAX_CONCURRENT_AGENT_TASKS,
       toolAllowlist: this.activeSkillProvider?.(thread.id)?.tools,
     });
     const activeSkill = this.activeSkillProvider?.(thread.id);
@@ -441,11 +454,15 @@ export class ChatStore {
   }
 
   hasRunningAgentTask(): boolean {
-    return this.threads.some(thread =>
+    return this.runningAgentTaskCount() > 0;
+  }
+
+  runningAgentTaskCount(): number {
+    return this.threads.filter(thread =>
       thread.agentTask === true
       && thread.deletedAt == null
       && (thread.agentTaskStatus === 'running' || this.isThreadStreaming(thread.id))
-    );
+    ).length;
   }
 
   get visibleAgentTaskThreads(): Thread[] {
@@ -457,7 +474,14 @@ export class ChatStore {
   }
 
   spawnTask(
-    input: { title: string; instructions: string; model?: string },
+    input: {
+      title: string;
+      instructions: string;
+      model?: string;
+      system_prompt?: string;
+      max_rounds?: number;
+      start_delay_minutes?: number;
+    },
     originThreadId: string,
   ): { ok: boolean; message: string; threadId?: string } {
     const origin = this.ensureThreadModel(originThreadId);
@@ -467,14 +491,21 @@ export class ChatStore {
     if (origin.agentTask) {
       return { ok: false, message: 'Unable to start background task: agent tasks cannot spawn nested tasks.' };
     }
-    if (this.hasRunningAgentTask()) {
-      return { ok: false, message: 'Unable to start background task: another background task is already running.' };
-    }
 
     const now = Date.now();
     const title = normalizeAgentTaskTitle(input.title);
     const instructions = input.instructions.trim();
     const modelId = input.model && this.registry.findById(input.model) ? input.model : origin.modelId;
+    const maxRounds = clampAgentTaskMaxRounds(input.max_rounds);
+    const systemPrompt = normalizeAgentTaskSystemPromptBody(input.system_prompt);
+    const delayMinutes = clampAgentTaskStartDelayMinutes(input.start_delay_minutes);
+    const scheduledStartAt = delayMinutes > 0 ? now + Math.round(delayMinutes * 60_000) : undefined;
+    if (!scheduledStartAt && this.runningAgentTaskCount() >= MAX_CONCURRENT_AGENT_TASKS) {
+      return {
+        ok: false,
+        message: `Unable to start background task: all ${MAX_CONCURRENT_AGENT_TASKS} background task slots are in use.`,
+      };
+    }
     const thread: Thread = {
       id: newId('t'),
       title: `Agent: ${title}`,
@@ -491,12 +522,23 @@ export class ChatStore {
       }],
       agentTask: true,
       agentTaskOriginThreadId: origin.id,
-      agentTaskStatus: 'running',
+      agentTaskStatus: scheduledStartAt ? 'scheduled' : 'running',
+      ...(scheduledStartAt ? { agentTaskScheduledStartAt: scheduledStartAt } : {}),
+      ...(systemPrompt ? { agentTaskSystemPrompt: systemPrompt } : {}),
+      agentTaskMaxRounds: maxRounds,
       autoNamed: true,
     };
     this.threads.unshift(thread);
     this.schedulePersistSnapshot(this.snapshot);
-    this.startAgentTaskTurn(thread.id, origin.id, title);
+    if (scheduledStartAt) {
+      this.armScheduledAgentTask(thread.id, scheduledStartAt - now);
+      return {
+        ok: true,
+        message: `Task '${title}' scheduled to start at ${new Date(scheduledStartAt).toISOString()}.`,
+        threadId: thread.id,
+      };
+    }
+    this.startAgentTaskTurn(thread.id);
     return {
       ok: true,
       message: `Task '${title}' started in background.`,
@@ -604,6 +646,7 @@ export class ChatStore {
 
   clearAllThreads(): void {
     this.abortAllStreams();
+    this.clearAgentTaskStartTimers();
     const thread = createEmptyThread(newId('t'), Date.now());
     this.threads = [thread];
     this.activeThreadId = thread.id;
@@ -612,6 +655,7 @@ export class ChatStore {
 
   applyImportedSnapshot(snapshot: ChatSnapshot): void {
     this.abortAllStreams();
+    this.clearAgentTaskStartTimers();
     this.applySnapshot(snapshot);
     this.streamActivityByThread = {};
     this.lastErrorByThread = {};
@@ -643,6 +687,7 @@ export class ChatStore {
   softDeleteThread(threadId: string): void {
     const thread = this.findThread(threadId);
     if (!thread || thread.deletedAt != null) return;
+    if (thread.agentTaskStatus === 'scheduled') this.cancelScheduledAgentTask(threadId);
     if (this.isThreadStreaming(threadId)) {
       this.interruptThread(threadId);
     } else {
@@ -977,12 +1022,21 @@ export class ChatStore {
     return thread;
   }
 
-  private startAgentTaskTurn(threadId: string, originThreadId: string, title: string): void {
+  private startAgentTaskTurn(threadId: string): void {
     const thread = this.ensureThreadModel(threadId);
     if (!thread || !thread.agentTask || thread.messages.length === 0) return;
+    const originThreadId = thread.agentTaskOriginThreadId;
+    if (!originThreadId) return;
+    const title = displayAgentTaskTitle(thread.title);
+    this.cancelScheduledAgentTask(thread.id);
+    thread.agentTaskStatus = 'running';
+    delete thread.agentTaskScheduledStartAt;
+    thread.updatedAt = Date.now();
     const controller = new AbortController();
     this.controllersByThread.set(thread.id, controller);
-    this.runTurn(thread.id, controller.signal, false, { maxToolRounds: AGENT_TASK_MAX_TOOL_ROUNDS })
+    this.runTurn(thread.id, controller.signal, false, {
+      maxToolRounds: clampAgentTaskMaxRounds(thread.agentTaskMaxRounds ?? AGENT_TASK_MAX_TOOL_ROUNDS),
+    })
       .then(() => {
         this.finalizeAgentTask(thread.id, originThreadId, title, controller.signal.aborted ? 'interrupted' : 'done');
       })
@@ -994,6 +1048,56 @@ export class ChatStore {
         }
         this.finalizeAgentTask(thread.id, originThreadId, title, 'error', (err as Error).message);
       }));
+  }
+
+  private armScheduledAgentTask(threadId: string, delayMs: number): void {
+    this.cancelScheduledAgentTask(threadId);
+    const timer = setTimeout(() => {
+      this.agentTaskStartTimers.delete(threadId);
+      runInAction(() => this.tryStartScheduledAgentTask(threadId));
+    }, Math.max(0, delayMs));
+    this.agentTaskStartTimers.set(threadId, timer);
+  }
+
+  private cancelScheduledAgentTask(threadId: string): void {
+    const timer = this.agentTaskStartTimers.get(threadId);
+    if (timer) clearTimeout(timer);
+    this.agentTaskStartTimers.delete(threadId);
+  }
+
+  private clearAgentTaskStartTimers(): void {
+    for (const timer of this.agentTaskStartTimers.values()) clearTimeout(timer);
+    this.agentTaskStartTimers.clear();
+  }
+
+  private tryStartScheduledAgentTask(threadId: string): void {
+    const thread = this.findThread(threadId);
+    if (!thread || thread.deletedAt != null || thread.agentTask !== true || thread.agentTaskStatus !== 'scheduled') return;
+    const dueAt = thread.agentTaskScheduledStartAt ?? Date.now();
+    const remainingMs = dueAt - Date.now();
+    if (remainingMs > 0) {
+      this.armScheduledAgentTask(thread.id, remainingMs);
+      return;
+    }
+    if (this.runningAgentTaskCount() >= MAX_CONCURRENT_AGENT_TASKS) {
+      this.armScheduledAgentTask(thread.id, AGENT_TASK_SLOT_RETRY_MS);
+      return;
+    }
+    this.startAgentTaskTurn(thread.id);
+    this.schedulePersistSnapshot(this.snapshot);
+  }
+
+  private startDueScheduledAgentTasks(): void {
+    let started = false;
+    for (const thread of this.threads) {
+      if (thread.agentTask !== true || thread.agentTaskStatus !== 'scheduled' || thread.deletedAt != null) continue;
+      const dueAt = thread.agentTaskScheduledStartAt ?? Date.now();
+      if (dueAt <= Date.now() && this.runningAgentTaskCount() < MAX_CONCURRENT_AGENT_TASKS) {
+        this.startAgentTaskTurn(thread.id);
+        started = true;
+      }
+    }
+    if (started) this.schedulePersistSnapshot(this.snapshot);
   }
 
   private finalizeAgentTask(
@@ -1022,6 +1126,7 @@ export class ChatStore {
         linkThreadId: threadId,
       });
       this.schedulePersistSnapshot(this.snapshot);
+      this.startDueScheduledAgentTasks();
     });
   }
 
@@ -1039,6 +1144,7 @@ export class ChatStore {
   }
 
   private applySnapshot(snapshot: ChatSnapshot): void {
+    this.clearAgentTaskStartTimers();
     this.threads = snapshot.threads.map(thread =>
       this.registry.findById(thread.modelId)
         ? thread
@@ -1050,7 +1156,7 @@ export class ChatStore {
       this.threads = [thread];
       this.activeThreadId = thread.id;
     }
-    this.finalizeInterruptedAgentTasksOnBoot();
+    this.reconcileAgentTasksOnBoot();
   }
 
   private schedulePersistSnapshot(snapshot: ChatSnapshot): void {
@@ -1097,9 +1203,15 @@ export class ChatStore {
     }
   }
 
-  private finalizeInterruptedAgentTasksOnBoot(): void {
+  private reconcileAgentTasksOnBoot(): void {
     for (const thread of this.threads) {
-      if (thread.agentTask !== true || thread.agentTaskStatus !== 'running') continue;
+      if (thread.agentTask !== true) continue;
+      if (thread.agentTaskStatus === 'scheduled') {
+        const dueAt = thread.agentTaskScheduledStartAt ?? Date.now();
+        this.armScheduledAgentTask(thread.id, Math.max(0, dueAt - Date.now()));
+        continue;
+      }
+      if (thread.agentTaskStatus !== 'running') continue;
       thread.agentTaskStatus = 'interrupted';
       thread.updatedAt = Date.now();
       const lastAssistant = findLastAssistant(thread);
@@ -1153,6 +1265,7 @@ export class ChatStore {
       // wholesale, and an abandoned turn would otherwise keep mutating (and
       // re-saving) state that no longer matches what's on disk.
       this.abortAllStreams();
+      this.clearAgentTaskStartTimers();
       if (snapshot) {
         logger.info('persistence', 'Reloaded chat from localStorage after multi-tab conflict');
         this.applySnapshot(snapshot);

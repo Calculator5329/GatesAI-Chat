@@ -40,6 +40,7 @@ export const Icons = {
   Branch:    () => <Ico d={<><circle cx="4" cy="4" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="4" cy="12" r="1.5" /><path d="M4 5.5V12M5.4 4.6c3.2.7 5.2 2.7 6 5.9" /></>} />,
   Pin:       () => <Ico size={15} d={<><path d="M5.5 2.5h5" /><path d="M6.8 2.5 6 7.2 4.7 8.9h6.6L10 7.2 9.2 2.5" /><path d="M8 8.9V13.5" /></>} />,
   Trash:     () => <Ico size={15} d={<><path d="M3.5 4.3h9" /><path d="M6.5 4.3V3.3a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1" /><path d="M5 4.3l.5 8a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1l.5-8" /><path d="M7 6.6v4.4M9 6.6v4.4" /></>} />,
+  Clock:     () => <Ico size={15} d={<><circle cx="8" cy="8" r="5.5" /><path d="M8 4.8V8l2.3 1.6" /></>} />,
   Eye:       () => <Ico d={<><path d="M1.8 8s2.2-4 6.2-4 6.2 4 6.2 4-2.2 4-6.2 4-6.2-4-6.2-4z" /><circle cx="8" cy="8" r="1.7" /></>} />,
   Tool:      () => <Ico d={<><path d="M9.8 2.8a3 3 0 0 0 3.4 3.4l-6.8 6.8a1.6 1.6 0 0 1-2.3-2.3z" /><path d="M4.4 11.6l-1.7 1.7" /></>} />,
   Share:     () => <Ico d={<><circle cx="5" cy="8" r="1.7" /><circle cx="12" cy="4" r="1.7" /><circle cx="12" cy="12" r="1.7" /><path d="M6.5 7.1l4-2.2M6.5 8.9l4 2.2" /></>} />,

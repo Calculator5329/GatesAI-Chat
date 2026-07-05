@@ -23,6 +23,18 @@ const MENU_LABELS: Record<MenuSectionKey, string> = {
   usage: 'Usage',
 };
 
+function scheduledAgentTaskLabel(thread: Thread): string {
+  const dueAt = thread.agentTaskScheduledStartAt ?? Date.now();
+  const minutes = Math.max(1, Math.ceil((dueAt - Date.now()) / 60_000));
+  return `starts in ~${minutes}m`;
+}
+
+function agentTaskStatusTitle(thread: Thread): string {
+  if (thread.agentTaskStatus === 'done') return 'Background task done';
+  if (thread.agentTaskStatus === 'scheduled') return scheduledAgentTaskLabel(thread);
+  return 'Background task not running';
+}
+
 const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
   root: {
     width: 270, flexShrink: 0,
@@ -448,6 +460,22 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{ ...(S.title as (a: boolean) => CSSProperties)(active), flex: 1, minWidth: 0 }}>
           <ThreadTitle title={thread.title} naming={thread.naming === true} />
+          {thread.agentTaskStatus === 'scheduled' && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                marginTop: 3,
+                color: 'var(--text-faint)',
+                fontSize: 11,
+                lineHeight: 1.2,
+              }}
+            >
+              <Icons.Clock />
+              <span>{scheduledAgentTaskLabel(thread)}</span>
+            </div>
+          )}
         </div>
         {streaming && (
           <span
@@ -463,10 +491,10 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
         )}
         {!streaming && thread.agentTask && (
           <span
-            title={thread.agentTaskStatus === 'done' ? 'Background task done' : 'Background task not running'}
+            title={agentTaskStatusTitle(thread)}
             style={{
               width: 6, height: 6, borderRadius: '50%',
-              background: thread.agentTaskStatus === 'done' ? 'var(--text-faint)' : 'var(--border)',
+              background: thread.agentTaskStatus === 'done' ? 'var(--text-faint)' : thread.agentTaskStatus === 'scheduled' ? 'var(--accent)' : 'var(--border)',
               flex: 'none',
             }}
           />
