@@ -20,6 +20,7 @@ export function iconForActivity(item: ActivityItem): () => JSX.Element {
     case 'exec-tail': return Icons.Terminal;
     case 'image-job': return Icons.Image;
     case 'bridge':    return Icons.Plug;
+    case 'agent-task': return Icons.Brain;
     case 'tool': {
       for (const [pattern, icon] of VERB_ICONS) {
         if (pattern.test(item.verb)) return icon;

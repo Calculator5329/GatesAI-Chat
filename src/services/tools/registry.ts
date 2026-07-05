@@ -27,6 +27,7 @@ import { fetchPageTool } from './fetchPage';
 import { artifactTool } from './artifact';
 import { sourceWorkspaceTool } from './sourceWorkspace';
 import { sourceBuildTool } from './sourceBuild';
+import { spawnTaskTool } from './spawnTask';
 
 export interface ToolSelectionContext {
   userText: string;
@@ -39,6 +40,7 @@ export interface ToolSelectionContext {
   imageGenAvailable?: boolean;
   webSearchAvailable?: boolean;
   semanticRecallAvailable?: boolean;
+  spawnTaskAvailable?: boolean;
   toolAllowlist?: string[];
 }
 
@@ -105,6 +107,7 @@ export class ToolRegistry {
       'chat_history',
       'logs',
     ]);
+    if (ctx.spawnTaskAvailable) selected.add('spawn_task');
     if (ctx.desktopRuntime !== false) {
       selected.add('source_workspace');
       selected.add('source_build');
@@ -475,3 +478,4 @@ toolRegistry.register(imageGenerateTool);
 toolRegistry.register(describeImageTool);
 toolRegistry.register(webSearchTool);
 toolRegistry.register(fetchPageTool);
+toolRegistry.register(spawnTaskTool);

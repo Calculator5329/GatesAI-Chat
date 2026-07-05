@@ -23,7 +23,7 @@ function ImageJobArtifacts({ artifacts }: { artifacts: NonNullable<ActivityItem[
   );
 }
 
-export function ActivityRow({ item }: { item: ActivityItem }) {
+export function ActivityRow({ item, onOpenThread }: { item: ActivityItem; onOpenThread?: (threadId: string) => void }) {
   const imageJobArtifacts = item.artifacts?.filter(
     a => a.kind === 'image-job' || a.kind === 'image',
   ) ?? [];
@@ -31,6 +31,7 @@ export function ActivityRow({ item }: { item: ActivityItem }) {
   const [open, setOpen] = useState(false);
   const elapsed = useElapsedLabel(item.state === 'running', item.startedAt);
   const expandable = Boolean(item.detail || (item.artifacts?.length && !hasImageJobArtifacts));
+  const navigable = Boolean(item.linkThreadId && onOpenThread);
   const label = [item.verb, item.target].filter(Boolean).join(' ');
   const summary = item.state === 'failed' || item.state === 'cancelled' || item.state === 'done'
     ? item.summary
@@ -47,9 +48,15 @@ export function ActivityRow({ item }: { item: ActivityItem }) {
         type="button"
         aria-label={label}
         aria-expanded={open}
-        disabled={!expandable}
+        disabled={!expandable && !navigable}
         className="activity-row__button"
-        onClick={() => expandable && setOpen(value => !value)}
+        onClick={() => {
+          if (item.linkThreadId && onOpenThread) {
+            onOpenThread(item.linkThreadId);
+            return;
+          }
+          if (expandable) setOpen(value => !value);
+        }}
       >
         <span className="activity-row__icon" aria-hidden="true">{icon}</span>
         <span className="activity-row__label">

@@ -53,6 +53,7 @@ import {
   type StreamingRoundActivityUpdate,
 } from '../services/chat/streamingRoundExecutor';
 import {
+  AGENT_TASK_MAX_TOOL_ROUNDS,
   TurnRunner,
   isImageGenerationAvailable,
   type ChatThinkingEffort,
@@ -82,6 +83,8 @@ export type { ChatThinkingEffort } from '../services/chat/turnRunner';
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
+
+const AGENT_TASK_SUMMARY_LIMIT = 2000;
 
 /** Observable chat state facade; turn, thread, and naming control flow live in services/core helpers. */
 export class ChatStore {
@@ -384,6 +387,7 @@ export class ChatStore {
       imageGenAvailable: isImageGenerationAvailable(extras),
       webSearchAvailable: extras?.search?.braveReady ?? false,
       semanticRecallAvailable: extras?.rag?.active ?? false,
+      spawnTaskAvailable: !thread.agentTask && !this.hasRunningAgentTask(),
       toolAllowlist: this.activeSkillProvider?.(thread.id)?.tools,
     });
     const activeSkill = this.activeSkillProvider?.(thread.id);
@@ -434,6 +438,70 @@ export class ChatStore {
     this.threads.unshift(thread);
     this.activeThreadId = thread.id;
     return thread.id;
+  }
+
+  hasRunningAgentTask(): boolean {
+    return this.threads.some(thread =>
+      thread.agentTask === true
+      && thread.deletedAt == null
+      && (thread.agentTaskStatus === 'running' || this.isThreadStreaming(thread.id))
+    );
+  }
+
+  get visibleAgentTaskThreads(): Thread[] {
+    return this.visibleThreads.filter(thread => thread.agentTask === true);
+  }
+
+  get visibleConversationThreads(): Thread[] {
+    return this.visibleThreads.filter(thread => thread.agentTask !== true);
+  }
+
+  spawnTask(
+    input: { title: string; instructions: string; model?: string },
+    originThreadId: string,
+  ): { ok: boolean; message: string; threadId?: string } {
+    const origin = this.ensureThreadModel(originThreadId);
+    if (!origin || origin.deletedAt != null) {
+      return { ok: false, message: 'Unable to start background task: origin thread is unavailable.' };
+    }
+    if (origin.agentTask) {
+      return { ok: false, message: 'Unable to start background task: agent tasks cannot spawn nested tasks.' };
+    }
+    if (this.hasRunningAgentTask()) {
+      return { ok: false, message: 'Unable to start background task: another background task is already running.' };
+    }
+
+    const now = Date.now();
+    const title = normalizeAgentTaskTitle(input.title);
+    const instructions = input.instructions.trim();
+    const modelId = input.model && this.registry.findById(input.model) ? input.model : origin.modelId;
+    const thread: Thread = {
+      id: newId('t'),
+      title: `Agent: ${title}`,
+      subtitle: '',
+      createdAt: now,
+      updatedAt: now,
+      pinned: false,
+      modelId,
+      messages: [{
+        id: newId('m'),
+        role: 'user',
+        content: instructions,
+        createdAt: now,
+      }],
+      agentTask: true,
+      agentTaskOriginThreadId: origin.id,
+      agentTaskStatus: 'running',
+      autoNamed: true,
+    };
+    this.threads.unshift(thread);
+    this.schedulePersistSnapshot(this.snapshot);
+    this.startAgentTaskTurn(thread.id, origin.id, title);
+    return {
+      ok: true,
+      message: `Task '${title}' started in background.`,
+      threadId: thread.id,
+    };
   }
 
   setThreadModel(threadId: string, modelId: string): void {
@@ -909,8 +977,61 @@ export class ChatStore {
     return thread;
   }
 
-  private async runTurn(threadId: string, signal: AbortSignal, isReplacingInterruptedReply = false): Promise<void> {
-    await this.turnRunner.run(threadId, signal, { isReplacingInterruptedReply });
+  private startAgentTaskTurn(threadId: string, originThreadId: string, title: string): void {
+    const thread = this.ensureThreadModel(threadId);
+    if (!thread || !thread.agentTask || thread.messages.length === 0) return;
+    const controller = new AbortController();
+    this.controllersByThread.set(thread.id, controller);
+    this.runTurn(thread.id, controller.signal, false, { maxToolRounds: AGENT_TASK_MAX_TOOL_ROUNDS })
+      .then(() => {
+        this.finalizeAgentTask(thread.id, originThreadId, title, controller.signal.aborted ? 'interrupted' : 'done');
+      })
+      .catch(err => runInAction(() => {
+        logger.error('chat', 'agent task run failed', { threadId: thread.id, err });
+        this.setThreadLastError(thread.id, (err as Error).message);
+        if (this.controllersByThread.get(thread.id) === controller) {
+          this.clearStreamingState(thread.id);
+        }
+        this.finalizeAgentTask(thread.id, originThreadId, title, 'error', (err as Error).message);
+      }));
+  }
+
+  private finalizeAgentTask(
+    threadId: string,
+    originThreadId: string,
+    title: string,
+    status: NonNullable<Thread['agentTaskStatus']>,
+    errorMessage?: string,
+  ): void {
+    runInAction(() => {
+      const thread = this.findThread(threadId);
+      if (!thread || thread.agentTask !== true || thread.agentTaskStatus !== 'running') return;
+      thread.agentTaskStatus = status;
+      thread.updatedAt = Date.now();
+      const summary = summarizeAgentTaskThread(thread, status, errorMessage);
+      this.appendActivityEventToThread(originThreadId, {
+        id: `agent-task-${threadId}-${Date.now()}`,
+        kind: 'agent-task',
+        state: status === 'error' ? 'failed' : status === 'interrupted' ? 'cancelled' : 'done',
+        verb: `Background task '${title}' finished`,
+        target: 'see thread',
+        summary,
+        detail: summary ? { type: 'markdown', content: summary } : undefined,
+        startedAt: thread.createdAt,
+        finishedAt: Date.now(),
+        linkThreadId: threadId,
+      });
+      this.schedulePersistSnapshot(this.snapshot);
+    });
+  }
+
+  private async runTurn(
+    threadId: string,
+    signal: AbortSignal,
+    isReplacingInterruptedReply = false,
+    options: { maxToolRounds?: number } = {},
+  ): Promise<void> {
+    await this.turnRunner.run(threadId, signal, { isReplacingInterruptedReply, maxToolRounds: options.maxToolRounds });
   }
 
   private findThread(id: string): Thread | undefined {
@@ -929,6 +1050,7 @@ export class ChatStore {
       this.threads = [thread];
       this.activeThreadId = thread.id;
     }
+    this.finalizeInterruptedAgentTasksOnBoot();
   }
 
   private schedulePersistSnapshot(snapshot: ChatSnapshot): void {
@@ -958,6 +1080,47 @@ export class ChatStore {
       const body = splitAttachmentFooter(message.content).body;
       const title = body.replace(/\s+/g, ' ').trim().slice(0, 40);
       thread.title = title || 'New conversation';
+    }
+  }
+
+  private appendActivityEventToThread(threadId: string, event: ActivityItem): void {
+    const thread = this.findThread(threadId);
+    if (!thread) return;
+    for (let index = thread.messages.length - 1; index >= 0; index -= 1) {
+      const message = thread.messages[index];
+      if (message.role !== 'assistant') continue;
+      const existing = message.activityEvents ?? [];
+      if (existing.some(item => item.id === event.id || (item.kind === 'agent-task' && item.linkThreadId === event.linkThreadId))) return;
+      message.activityEvents = [...existing, event].slice(-12);
+      thread.updatedAt = Date.now();
+      return;
+    }
+  }
+
+  private finalizeInterruptedAgentTasksOnBoot(): void {
+    for (const thread of this.threads) {
+      if (thread.agentTask !== true || thread.agentTaskStatus !== 'running') continue;
+      thread.agentTaskStatus = 'interrupted';
+      thread.updatedAt = Date.now();
+      const lastAssistant = findLastAssistant(thread);
+      if (lastAssistant) {
+        const partial = lastAssistant.content.trim();
+        lastAssistant.content = partial ? `${lastAssistant.content}\n\n*[interrupted]*` : '*[no response - background task interrupted]*';
+      }
+      if (thread.agentTaskOriginThreadId) {
+        this.appendActivityEventToThread(thread.agentTaskOriginThreadId, {
+          id: `agent-task-${thread.id}-boot-interrupted`,
+          kind: 'agent-task',
+          state: 'cancelled',
+          verb: `Background task '${displayAgentTaskTitle(thread.title)}' finished`,
+          target: 'see thread',
+          summary: 'Interrupted because the app closed or reloaded while the task was running.',
+          detail: { type: 'markdown', content: 'Interrupted because the app closed or reloaded while the task was running.' },
+          startedAt: thread.createdAt,
+          finishedAt: Date.now(),
+          linkThreadId: thread.id,
+        });
+      }
     }
   }
 
@@ -1061,4 +1224,37 @@ export class ChatStore {
 
 function normalizeProviderErrorForBanner(message: string): string {
   return normalizeProviderErrorMessage(message);
+}
+
+function normalizeAgentTaskTitle(title: string): string {
+  return title.replace(/\s+/g, ' ').trim().slice(0, 80) || 'Background task';
+}
+
+function displayAgentTaskTitle(title: string): string {
+  return title.startsWith('Agent: ') ? title.slice('Agent: '.length) : title;
+}
+
+function findLastAssistant(thread: Thread): AssistantMessage | undefined {
+  for (let index = thread.messages.length - 1; index >= 0; index -= 1) {
+    const message = thread.messages[index];
+    if (message.role === 'assistant') return message;
+  }
+  return undefined;
+}
+
+function summarizeAgentTaskThread(
+  thread: Thread,
+  status: NonNullable<Thread['agentTaskStatus']>,
+  errorMessage?: string,
+): string {
+  const assistant = findLastAssistant(thread);
+  let summary = assistant?.content.trim() || errorMessage || 'Background task finished without a final summary.';
+  if (status === 'interrupted') summary = summary.includes('interrupted') ? summary : `${summary}\n\n[interrupted]`;
+  if (status === 'error' && errorMessage && !summary.includes(errorMessage)) summary = `${summary}\n\n${errorMessage}`;
+  if (summary.includes(`Stopped after ${AGENT_TASK_MAX_TOOL_ROUNDS} tool rounds`)) {
+    summary = `[capped]\n${summary}`;
+  }
+  return summary.length > AGENT_TASK_SUMMARY_LIMIT
+    ? `${summary.slice(0, AGENT_TASK_SUMMARY_LIMIT).trimEnd()}\n\n[summary truncated]`
+    : summary;
 }

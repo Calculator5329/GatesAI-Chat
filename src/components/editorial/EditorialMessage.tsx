@@ -73,7 +73,7 @@ export const EditorialMessage = observer(function EditorialMessage({
   actionsDisabled = false,
   laterMessageCount = 0,
 }: MessageProps) {
-  const { chat } = useEditorial();
+  const { chat, router } = useEditorial();
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(message.content);
@@ -281,7 +281,13 @@ export const EditorialMessage = observer(function EditorialMessage({
           </div>
         )}
       </div>
-      <ActivityStream items={activities} />
+      <ActivityStream
+        items={activities}
+        onOpenThread={threadId => {
+          if (!chat.selectThread(threadId)) return;
+          router.goThread(threadId);
+        }}
+      />
       <div style={{
         fontFamily: '"Source Serif 4", Iowan Old Style, Georgia, serif',
         fontSize: 16,

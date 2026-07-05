@@ -92,6 +92,7 @@ export function toolsForContextMode(args: {
   imageGenAvailable?: boolean;
   webSearchAvailable?: boolean;
   semanticRecallAvailable?: boolean;
+  spawnTaskAvailable?: boolean;
   toolAllowlist?: string[];
 }): ToolDef[] | undefined {
   if (!args.toolsAllowed || args.mode === 'bare') return undefined;
@@ -125,6 +126,7 @@ export function toolsForContextMode(args: {
     imageGenAvailable: args.imageGenAvailable,
     webSearchAvailable: args.webSearchAvailable,
     semanticRecallAvailable: args.semanticRecallAvailable,
+    spawnTaskAvailable: args.spawnTaskAvailable,
     toolAllowlist: args.toolAllowlist,
   });
 }
