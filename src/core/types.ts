@@ -146,7 +146,7 @@ export interface ToolResult {
   artifacts?: ToolResultArtifact[];
 }
 
-export type ActivityKind = 'thinking' | 'tool' | 'image-job' | 'exec-tail' | 'bridge';
+export type ActivityKind = 'thinking' | 'tool' | 'image-job' | 'exec-tail' | 'bridge' | 'agent-task';
 export type ActivityState = 'running' | 'done' | 'failed' | 'cancelled';
 
 export interface ActivityDetail {
@@ -179,6 +179,8 @@ export interface ActivityItem {
   stats?: ActivityStats;
   /** Stable grouping key. Consecutive rows with the same key collapse into one parent. */
   groupKey?: string;
+  /** Optional destination thread for clickable timeline items. */
+  linkThreadId?: string;
 }
 
 export interface StreamActivity {
@@ -229,6 +231,12 @@ export interface Thread {
   thinkingEffort?: ThinkingEffort;
   /** Active workspace skill id applied to this thread's turns. */
   skillId?: string;
+  /** True when this thread is a scoped background task launched from another thread. */
+  agentTask?: boolean;
+  /** Origin conversation that launched this background task. */
+  agentTaskOriginThreadId?: string;
+  /** Persisted lifecycle marker for background task recovery and sidebar grouping. */
+  agentTaskStatus?: 'running' | 'done' | 'error' | 'interrupted';
   /**
    * Set when the user dismisses the thread from the sidebar. Soft-deleted
    * threads stay in storage (so an Undo can restore them) but are filtered

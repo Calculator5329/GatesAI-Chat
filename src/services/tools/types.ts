@@ -25,6 +25,8 @@ export interface ChatFacade {
   renameThread(id: string, title: string): void;
   setThreadContext(id: string, context: string): void;
   llmComplete(messages: Pick<LlmMessage, 'role' | 'content'>[], systemPrompt?: string): Promise<string>;
+  hasRunningAgentTask?(): boolean;
+  spawnTask?(input: { title: string; instructions: string; model?: string }, originThreadId: string): { ok: boolean; message: string; threadId?: string };
 }
 
 export interface NotesFacade {

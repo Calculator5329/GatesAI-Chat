@@ -62,6 +62,9 @@ export const OPENROUTER_THINKING_PRESETS: Array<{ value: ChatThinkingEffort; lab
 
 /** Hard cap on the number of tool-call rounds per user turn, to prevent infinite loops if a model keeps re-calling the same tool. */
 export const MAX_TOOL_ROUNDS = 16;
+export const AGENT_TASK_MAX_TOOL_ROUNDS = 6;
+
+const AGENT_TASK_SYSTEM_PROMPT = 'You are a background task agent. Complete the task, then produce a concise final summary. Do not ask the user questions.';
 
 const MAX_WORK_NOTES = 8;
 const MAX_WORK_NOTE_CHARS = 4000;
@@ -123,6 +126,7 @@ export interface TurnRunnerDeps {
 
 export interface RunTurnOptions {
   isReplacingInterruptedReply?: boolean;
+  maxToolRounds?: number;
 }
 
 export class TurnRunner {
@@ -190,7 +194,8 @@ export class TurnRunner {
     const semanticContext = typeof semanticContextValue === 'string'
       ? semanticContextValue
       : await resolveSemanticContext(semanticContextValue, threadId);
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    const maxToolRounds = Math.max(1, Math.floor(options.maxToolRounds ?? MAX_TOOL_ROUNDS));
+    for (let round = 0; round < maxToolRounds; round++) {
       if (signal.aborted) return;
 
       let provider: LlmProvider;
@@ -414,7 +419,7 @@ export class TurnRunner {
 
     this.host.cancelText(assistantMessage.id);
     const current = this.getAssistantMessage(threadId, assistantMessage.id);
-    const message = formatToolRoundCapMessage(MAX_TOOL_ROUNDS, current ?? assistantMessage);
+    const message = formatToolRoundCapMessage(maxToolRounds, current ?? assistantMessage);
     this.host.setThreadLastError(threadId, message);
     this.host.updateAssistantMessage(threadId, assistantMessage.id, assistant => {
       assistant.content = message;
@@ -476,14 +481,16 @@ export class TurnRunner {
     const model = this.registry.findById(thread.modelId);
     const mode = effectiveContextMode(thread, model);
     const activeSkill = this.getActiveSkill(thread.id);
-    const systemPrompt = systemPromptForContextMode(mode, () =>
-      this.profile.composeSystemPrompt({
-        runtimeContext: buildRuntimeContext({ bridge }),
-        threadContext: mode === 'full' ? thread.threadContext : undefined,
-        recentSummaries: mode === 'full' ? recentSummaries : [],
-        semanticContext: mode === 'full' ? semanticContext : undefined,
-      })
-    );
+    const systemPrompt = thread.agentTask
+      ? AGENT_TASK_SYSTEM_PROMPT
+      : systemPromptForContextMode(mode, () =>
+          this.profile.composeSystemPrompt({
+            runtimeContext: buildRuntimeContext({ bridge }),
+            threadContext: mode === 'full' ? thread.threadContext : undefined,
+            recentSummaries: mode === 'full' ? recentSummaries : [],
+            semanticContext: mode === 'full' ? semanticContext : undefined,
+          })
+        );
     const tools = toolsForContextMode({
       mode,
       toolsAllowed: model?.supportsTools !== false,
@@ -492,6 +499,7 @@ export class TurnRunner {
       imageGenAvailable: isImageGenerationAvailable(extras),
       webSearchAvailable: extras?.search?.braveReady ?? false,
       semanticRecallAvailable: extras?.rag?.active ?? false,
+      spawnTaskAvailable: !thread.agentTask && !(this.chat.hasRunningAgentTask?.() ?? false),
       toolAllowlist: activeSkill?.tools,
     });
     const finalSystemPrompt = appendImageGenAddendum(

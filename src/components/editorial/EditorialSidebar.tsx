@@ -113,8 +113,9 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
 export const EditorialSidebar = observer(function EditorialSidebar() {
   const { chat, router, ui } = useEditorial();
   const onMenu = router.isMenu;
-  const pinned = chat.visibleThreads.filter(t => t.pinned);
-  const rest = chat.visibleThreads.filter(t => !t.pinned).slice(0, HISTORY_ROW_LIMIT);
+  const agentTasks = chat.visibleAgentTaskThreads;
+  const pinned = chat.visibleConversationThreads.filter(t => t.pinned);
+  const rest = chat.visibleConversationThreads.filter(t => !t.pinned).slice(0, HISTORY_ROW_LIMIT);
 
   const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -377,9 +378,11 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       <div className="editorial-sidebar__list" style={S.list as CSSProperties}>
         {pinned.length > 0 && <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Pinned</div>}
         {pinned.map(renderItem)}
+        {agentTasks.length > 0 && <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Agent tasks</div>}
+        {agentTasks.map(renderItem)}
         <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Earlier</div>
         {rest.map(renderItem)}
-        {pinned.length === 0 && rest.length === 0 && (
+        {pinned.length === 0 && agentTasks.length === 0 && rest.length === 0 && (
           <div className="editorial-sidebar__empty" style={{ padding: '12px 20px', color: 'var(--text-faint)', fontSize: 12, fontStyle: 'italic' }}>
             No conversations yet.
           </div>
@@ -454,6 +457,16 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
               background: 'var(--accent)',
               boxShadow: '0 0 6px var(--accent-glow)',
               animation: 'thinkingDot 1.1s ease-in-out infinite',
+              flex: 'none',
+            }}
+          />
+        )}
+        {!streaming && thread.agentTask && (
+          <span
+            title={thread.agentTaskStatus === 'done' ? 'Background task done' : 'Background task not running'}
+            style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: thread.agentTaskStatus === 'done' ? 'var(--text-faint)' : 'var(--border)',
               flex: 'none',
             }}
           />

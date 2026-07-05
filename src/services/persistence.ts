@@ -1,7 +1,7 @@
 // Persists or coordinates service-level state for persistence.
 // Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
 // Invariant: services normalize legacy data before handing snapshots back to stores.
-import type { ChatSnapshot, Message, MessageAttachmentRef, ToolResult, Thread, UserMessage } from '../core/types';
+import type { ActivityItem, ChatSnapshot, Message, MessageAttachmentRef, ToolResult, Thread, UserMessage } from '../core/types';
 import type { LlmUsage, ToolCall } from '../core/llm';
 import { DEFAULT_MODEL_ID, MODELS } from '../core/models';
 import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';
@@ -297,6 +297,9 @@ function createArchivedThreadStub(thread: Thread): Thread {
   if (thread.contextMode) stub.contextMode = thread.contextMode;
   if (thread.thinkingEffort) stub.thinkingEffort = thread.thinkingEffort;
   if (thread.skillId !== undefined) stub.skillId = thread.skillId;
+  if (thread.agentTask !== undefined) stub.agentTask = thread.agentTask;
+  if (thread.agentTaskOriginThreadId !== undefined) stub.agentTaskOriginThreadId = thread.agentTaskOriginThreadId;
+  if (thread.agentTaskStatus !== undefined) stub.agentTaskStatus = thread.agentTaskStatus;
   if (thread.deletedAt !== undefined) stub.deletedAt = thread.deletedAt;
   if (thread.threadContext !== undefined) stub.threadContext = thread.threadContext;
   if (thread.summary !== undefined) stub.summary = thread.summary;
@@ -557,6 +560,9 @@ function parseThread(value: unknown): Thread | null {
     contextMode: parseContextMode(value.contextMode),
     thinkingEffort: parseThinkingEffort(value.thinkingEffort),
     skillId: parseSkillId(value.skillId),
+    agentTask: booleanField(value.agentTask),
+    agentTaskOriginThreadId: stringField(value.agentTaskOriginThreadId),
+    agentTaskStatus: parseAgentTaskStatus(value.agentTaskStatus),
     deletedAt: numberField(value.deletedAt),
     threadContext: stringField(value.threadContext),
     summary: stringField(value.summary),
@@ -596,6 +602,7 @@ function parseLegacyMessage(value: unknown): LegacyMessage | null {
       toolResults: parseToolResults(value.toolResults),
       usage: parseLlmUsageArray(value.usage),
       finishReason: parseFinishReason(value.finishReason),
+      activityEvents: parseActivityItems(value.activityEvents),
     };
   }
   if (value.role === 'tool') {
@@ -730,6 +737,82 @@ function parsePreTokenLabel(value: unknown) {
 
 function parseFinishReason(value: unknown) {
   return value === 'stop' || value === 'length' || value === 'tool_use' || value === 'cancelled' || value === 'content_filter' || value === 'error' ? value : undefined;
+}
+
+function parseAgentTaskStatus(value: unknown): Thread['agentTaskStatus'] {
+  return value === 'running' || value === 'done' || value === 'error' || value === 'interrupted' ? value : undefined;
+}
+
+function parseActivityItems(value: unknown): ActivityItem[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const events = value
+    .map((item): ActivityItem | null => {
+      if (!isRecord(item)) return null;
+      const id = stringField(item.id);
+      const kind = parseActivityKind(item.kind);
+      const state = parseActivityState(item.state);
+      const verb = stringField(item.verb);
+      const startedAt = numberField(item.startedAt);
+      if (!id || !kind || !state || !verb || startedAt === undefined) return null;
+      const event: ActivityItem = {
+        id,
+        kind,
+        state,
+        verb,
+        startedAt,
+      };
+      const target = stringField(item.target);
+      const summary = stringField(item.summary);
+      const detail = parseActivityDetail(item.detail);
+      const finishedAt = numberField(item.finishedAt);
+      const toolCallId = stringField(item.toolCallId);
+      const groupKey = stringField(item.groupKey);
+      const linkThreadId = stringField(item.linkThreadId);
+      if (target !== undefined) event.target = target;
+      if (summary !== undefined) event.summary = summary;
+      if (detail !== undefined) event.detail = detail;
+      if (finishedAt !== undefined) event.finishedAt = finishedAt;
+      if (toolCallId !== undefined) event.toolCallId = toolCallId;
+      if (groupKey !== undefined) event.groupKey = groupKey;
+      if (linkThreadId !== undefined) event.linkThreadId = linkThreadId;
+      return event;
+    })
+    .filter((item): item is ActivityItem => item !== null);
+  return events.length ? events : undefined;
+}
+
+function parseActivityKind(value: unknown) {
+  return value === 'thinking' || value === 'tool' || value === 'image-job' || value === 'exec-tail' || value === 'bridge' || value === 'agent-task'
+    ? value
+    : undefined;
+}
+
+function parseActivityState(value: unknown) {
+  return value === 'running' || value === 'done' || value === 'failed' || value === 'cancelled' ? value : undefined;
+}
+
+function parseActivityDetail(value: unknown) {
+  if (!isRecord(value)) return undefined;
+  if (value.type === 'markdown') {
+    const content = stringField(value.content);
+    const placeholder = stringField(value.placeholder);
+    return content !== undefined || placeholder !== undefined
+      ? { type: 'markdown' as const, content, placeholder }
+      : undefined;
+  }
+  if (value.type === 'terminal') {
+    const lines = Array.isArray(value.lines)
+      ? value.lines.map(line => {
+          if (!isRecord(line)) return null;
+          const stream = line.stream === 'stderr' ? 'stderr' : line.stream === 'stdout' ? 'stdout' : null;
+          const text = stringField(line.text);
+          return stream && text !== undefined ? { stream, text } : null;
+        }).filter((line): line is { stream: 'stdout' | 'stderr'; text: string } => line !== null)
+      : undefined;
+    const placeholder = stringField(value.placeholder);
+    return lines || placeholder !== undefined ? { type: 'terminal' as const, lines, placeholder } : undefined;
+  }
+  return undefined;
 }
 
 function parseProviderId(value: unknown): LlmUsage['providerId'] {

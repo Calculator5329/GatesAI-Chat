@@ -148,6 +148,45 @@ describe('EditorialSidebar history list', () => {
     expect(rendered.querySelectorAll('.editorial-sidebar__item').length).toBe(20);
   });
 
+  it('renders agent task threads in their own group above earlier history', () => {
+    store = buildStore();
+    const threads = [
+      {
+        id: 'agent-1',
+        title: 'Agent: Audit',
+        subtitle: '',
+        createdAt: 1,
+        updatedAt: 4,
+        pinned: false,
+        modelId: 'or-gpt-5.4-mini',
+        messages: [],
+        agentTask: true,
+        agentTaskOriginThreadId: 'thread-1',
+        agentTaskStatus: 'done',
+      },
+      {
+        id: 'thread-1',
+        title: 'Conversation',
+        subtitle: '',
+        createdAt: 2,
+        updatedAt: 3,
+        pinned: false,
+        modelId: 'or-gpt-5.4-mini',
+        messages: [],
+      },
+    ] as Thread[];
+    runInAction(() => {
+      store!.chat.threads = threads;
+      store!.chat.activeThreadId = 'thread-1';
+    });
+
+    const rendered = renderSidebar(store);
+    const text = rendered.textContent ?? '';
+    expect(text.indexOf('Agent tasks')).toBeGreaterThanOrEqual(0);
+    expect(text.indexOf('Agent tasks')).toBeLessThan(text.indexOf('Earlier'));
+    expect(rendered.querySelectorAll('.editorial-sidebar__item')).toHaveLength(2);
+  });
+
   it('keeps Begin a new conversation as a new-thread button', () => {
     store = buildStore();
     seedThreads(store.chat, 1);
