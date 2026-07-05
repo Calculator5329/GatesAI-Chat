@@ -105,6 +105,7 @@ function setup(options: { clear?: boolean } = {}) {
   if (options.clear ?? true) clearAppStorage();
   const registry = new ModelRegistry();
   const providers = new ProviderStore(registry);
+  providers.setKey('openrouter', 'test-key');
   const profile = new UserProfileStore();
   const provider = new AgentTaskProvider();
   installMockProvider(providers, provider);
@@ -116,7 +117,30 @@ function setupWithProvider<T extends LlmProvider>(provider: T, options: { clear?
   if (options.clear ?? true) clearAppStorage();
   const registry = new ModelRegistry();
   const providers = new ProviderStore(registry);
+  providers.setKey('openrouter', 'test-key');
   const profile = new UserProfileStore();
+  installMockProvider(providers, provider);
+  const chat = new ChatStore(providers, registry, profile);
+  return { chat, provider };
+}
+
+function setupLocalAgentTask() {
+  clearAppStorage();
+  const registry = new ModelRegistry();
+  registry.setDynamicForProvider('ollama', [{
+    id: 'ollama-llama3.2:3b',
+    name: 'llama3.2:3b',
+    vendor: 'Ollama',
+    providerId: 'ollama',
+    providerModelId: 'llama3.2:3b',
+    dynamic: true,
+    contextLength: 32_000,
+  }]);
+  const providers = new ProviderStore(registry, () => ({
+    ollama: { baseUrl: 'http://127.0.0.1:11434', available: true, toolsEnabled: true },
+  }));
+  const profile = new UserProfileStore();
+  const provider = new AgentTaskProvider();
   installMockProvider(providers, provider);
   const chat = new ChatStore(providers, registry, profile);
   return { chat, provider };
@@ -572,5 +596,34 @@ describe('agent task background turns', () => {
     });
     expect(chat.visibleAgentTaskThreads.map(thread => thread.id)).toEqual(['agent']);
     expect(chat.visibleConversationThreads.map(thread => thread.id)).toEqual(['origin']);
+  });
+
+  it('falls back to a local model for sub-agent tasks when keyless Ollama is online', async () => {
+    const { chat, provider } = setupLocalAgentTask();
+    const originId = chat.createThread();
+    seedOriginAssistant(chat, originId);
+
+    const result = chat.spawnTask({ title: 'Local', instructions: 'Run locally.' }, originId);
+    await flush(80);
+
+    const agent = chat.threads.find(thread => thread.id === result.threadId)!;
+    expect(result.ok).toBe(true);
+    expect(agent.modelId).toBe('ollama-llama3.2:3b');
+    expect(provider.calls.find(call => call.threadId === agent.id)?.modelId).toBe('ollama-llama3.2:3b');
+  });
+
+  it('does not create a sub-agent task when no cloud key or local model is available', () => {
+    clearAppStorage();
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const chat = new ChatStore(providers, registry, new UserProfileStore());
+    const originId = chat.createThread();
+    const before = chat.threads.length;
+
+    const result = chat.spawnTask({ title: 'No provider', instructions: 'Cannot run.' }, originId);
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain('no local or cloud chat model');
+    expect(chat.threads).toHaveLength(before);
   });
 });

@@ -24,7 +24,12 @@ interface Harness {
 function buildHarness(): Harness {
   const registry = new ModelRegistry();
   const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
-  const store = { registry, localRuntime, skills: { skills: [] } } as unknown as RootStore;
+  const store = {
+    registry,
+    localRuntime,
+    chat: { defaultModelId: DEFAULT_MODEL_ID },
+    skills: { skills: [] },
+  } as unknown as RootStore;
   return { store, registry, localRuntime };
 }
 

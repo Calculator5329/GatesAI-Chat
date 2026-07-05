@@ -14,6 +14,7 @@ export interface AutoNameRouter extends ThreadTitleRouter {
 
 export interface AutoNameHost {
   getThread(threadId: string): Thread | undefined;
+  getModelCandidates(fallbackModelId: string): string[];
   setThreadNaming(threadId: string, naming: boolean): void;
   applyThreadTitle(threadId: string, title: string): void;
 }
@@ -52,6 +53,7 @@ export class AutoNamer {
         userText: opener.content,
         assistantText,
         fallbackModelId: thread.modelId,
+        candidateModelIds: this.host.getModelCandidates(thread.modelId),
       },
       this.router,
     ).then(title => {

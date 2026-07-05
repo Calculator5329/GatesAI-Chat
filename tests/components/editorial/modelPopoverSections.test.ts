@@ -10,17 +10,21 @@ function compute(opts: {
   caps?: ReadonlySet<CapabilityFilter>;
   recentIds?: readonly string[];
   favoriteIds?: readonly string[];
+  registry?: ModelRegistry;
+  ollamaOnline?: boolean;
+  defaultModelId?: string;
 } = {}) {
-  const registry = new ModelRegistry();
+  const registry = opts.registry ?? new ModelRegistry();
   return computeModelSections(
     registry,
     opts.query ?? '',
     {
       currentModelId: DEFAULT_MODEL_ID,
+      defaultModelId: opts.defaultModelId,
       source: opts.source ?? 'auto',
       caps: opts.caps ?? new Set(),
       recentIds: opts.recentIds ?? [],
-      runtime: { webLite: false, ollamaOnline: false, comfyReady: false },
+      runtime: { webLite: false, ollamaOnline: opts.ollamaOnline ?? false, comfyReady: false },
     },
     opts.favoriteIds ?? [],
   );
@@ -60,5 +64,46 @@ describe('computeModelSections', () => {
 
     expect(result.sourceTabs).toEqual(['auto', 'cloud']);
     expect(result.effectiveSource).toBe('auto');
+  });
+
+  it('includes first-class local recommendations when Ollama is online', () => {
+    const registry = new ModelRegistry();
+    registry.setDynamicForProvider('ollama', [
+      {
+        id: 'ollama-gemma2:9b',
+        name: 'gemma2:9b',
+        vendor: 'Ollama',
+        providerId: 'ollama',
+        providerModelId: 'gemma2:9b',
+        dynamic: true,
+        supportsTools: false,
+        contextLength: 128_000,
+      },
+      {
+        id: 'ollama-qwen2.5-coder:14b',
+        name: 'qwen2.5-coder:14b',
+        vendor: 'Ollama',
+        providerId: 'ollama',
+        providerModelId: 'qwen2.5-coder:14b',
+        dynamic: true,
+        contextLength: 128_000,
+      },
+    ]);
+
+    const result = compute({
+      registry,
+      ollamaOnline: true,
+      source: 'local',
+      defaultModelId: 'ollama-qwen2.5-coder:14b',
+    });
+
+    expect(result.sourceTabs).toEqual(['auto', 'cloud', 'local']);
+    expect(result.effectiveSource).toBe('local');
+    expect(result.defaultModelId).toBe('ollama-qwen2.5-coder:14b');
+    expect(result.displaySections[0]).toMatchObject({
+      title: 'Recommended',
+      models: [expect.objectContaining({ id: 'ollama-qwen2.5-coder:14b' })],
+    });
+    expect(result.displaySections.map(section => section.title)).toContain('Local');
   });
 });

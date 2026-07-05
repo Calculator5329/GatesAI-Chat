@@ -44,6 +44,7 @@ export interface NameThreadInput {
   userText: string;
   assistantText: string;
   fallbackModelId: string;
+  candidateModelIds?: readonly string[];
 }
 
 export interface ThreadTitleRouter {
@@ -54,7 +55,9 @@ export async function generateThreadTitle(
   input: NameThreadInput,
   router: ThreadTitleRouter,
 ): Promise<string | null> {
-  const candidates = [...NAMER_CASCADE, input.fallbackModelId];
+  const candidates = dedupeModelIds(input.candidateModelIds?.length
+    ? [...input.candidateModelIds, input.fallbackModelId]
+    : [...NAMER_CASCADE, input.fallbackModelId]);
   const userMsg = trimForPrompt(input.userText, 600);
   const aMsg = trimForPrompt(input.assistantText, 800);
   const prompt = aMsg
@@ -136,6 +139,17 @@ function sanitizeTitle(raw: string): string {
   if (words.length > 5) s = words.slice(0, 5).join(' ');
   if (s.length > 60) s = s.slice(0, 60).trim();
   return s;
+}
+
+function dedupeModelIds(ids: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of ids) {
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
 }
 
 function trimForPrompt(text: string, max: number): string {

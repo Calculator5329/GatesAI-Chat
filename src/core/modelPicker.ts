@@ -5,6 +5,8 @@
 import type { Model } from './types';
 import { modelSupportsVision } from './modelCapabilities';
 import type { ModelPickerSource } from './modelPickerAvailability';
+import { bestLocalModel } from './defaultModel';
+import { localModelContextLength, localModelMetaFor } from './localModelMeta';
 
 export type SourceFilter = ModelPickerSource;
 export type CapabilityFilter = 'vision' | 'tools' | 'reasoning' | 'fast' | 'free';
@@ -43,16 +45,16 @@ const SEARCH_RESULT_LIMIT = 80;
 
 export const AUTO_MODEL: Model = {
   id: 'auto-gemini-3-flash',
-  name: 'Auto: Gemini 3 Flash API',
+  name: 'Auto',
   vendor: 'Recommended',
   providerId: 'openrouter',
   providerModelId: 'google/gemini-3-flash',
-  description: 'default API chat, vision, reliable tools',
+  description: 'best available chat model',
   supportsVision: true,
 };
 
 const META: Record<string, ModelMeta> = {
-  'auto-gemini-3-flash': { tag: 'default API chat, vision, reliable tools', capabilities: ['vision', 'tools', 'fast'], costLabel: '$' },
+  'auto-gemini-3-flash': { tag: 'best available chat model', capabilities: ['vision', 'tools', 'fast'] },
   'or-gemini-3-flash': { tag: 'default API chat, vision, reliable tools', capabilities: ['vision', 'tools', 'fast'], costLabel: '$' },
   'or-deepseek-v4-flash': { tag: 'fast low-cost reasoning', capabilities: ['fast', 'reasoning'], costLabel: '$' },
   'or-gpt-5.5': { tag: 'strong API tools and reasoning', capabilities: ['vision', 'tools', 'reasoning'], costLabel: '$$' },
@@ -90,6 +92,14 @@ const META_BY_PROVIDER_MODEL_ID: Record<string, ModelMeta> = {
 };
 
 export function metaFor(model: Model): ModelMeta | null {
+  const localMeta = localModelMetaFor(model);
+  if (localMeta) {
+    return {
+      tag: localMeta.tag,
+      capabilities: localMeta.capabilities,
+      costLabel: localMeta.costLabel,
+    };
+  }
   return META[model.id] ?? META_BY_PROVIDER_MODEL_ID[model.providerModelId] ?? null;
 }
 
@@ -132,7 +142,7 @@ export function buildPickerSections(args: {
   const rawRecommended = dedupeModels([
     AUTO_MODEL,
     ...(args.currentModel ? [args.currentModel] : []),
-    firstLocalModel(args.all),
+    bestLocalModel(args.all.filter(model => model.providerId === 'ollama')),
   ]).filter(matches);
   const recommended = args.source === 'auto'
     ? rawRecommended
@@ -202,10 +212,6 @@ function matchesQuery(model: Model, normalizedQuery: string): boolean {
     model.id.toLowerCase().includes(normalizedQuery) ||
     model.providerModelId.toLowerCase().includes(normalizedQuery)
   );
-}
-
-function firstLocalModel(models: readonly Model[]): Model | undefined {
-  return models.find(model => model.providerId === 'ollama');
 }
 
 function dedupeModels(models: Array<Model | undefined>): Model[] {
@@ -299,11 +305,11 @@ export function emptyStateMessage(query: string, hasCapFilters: boolean, source:
 
 export function bestForLine(model: Model, meta: ModelMeta | null): string {
   if (model.description) return model.description;
-  if (meta?.tag) return meta.tag;
   if (model.providerId === 'ollama') {
-    const tools = model.supportsTools === false ? 'tools off' : 'micro tools recommended';
-    return `private local chat; ${tools}`;
+    const tools = model.supportsTools === false ? 'tools off' : 'tools ready';
+    return `${meta?.tag ?? 'private local chat'}; ${tools}`;
   }
+  if (meta?.tag) return meta.tag;
   if (model.providerId === 'local-image') return 'local ComfyUI image generation';
   return describeDynamic(model);
 }
@@ -316,12 +322,17 @@ export function badgesForModel(model: Model): ModelBadge[] {
   const meta = metaFor(model);
   const badges: ModelBadge[] = [];
   if (model.id === AUTO_MODEL.id) badges.push({ label: 'AUTO', tone: 'accent' });
-  else if (model.providerId === 'ollama') badges.push({ label: 'LOCAL' });
+  else if (model.providerId === 'ollama') badges.push({ label: 'LOCAL', title: 'Local runtime; no cloud token cost' });
   else if (model.providerId === 'local-image') badges.push({ label: 'IMAGE' });
 
   if (model.providerId === 'ollama') {
     badges.push({ label: 'online', tone: 'accent' });
-    if (model.supportsTools !== false) badges.push({ label: 'tools', icon: 'tools', title: 'Tools' });
+    if (meta?.capabilities.includes('tools')) badges.push({ label: 'tools', icon: 'tools', title: 'Tools' });
+    if (meta?.capabilities.includes('vision')) badges.push({ label: 'vision', icon: 'vision', title: 'Vision' });
+    if (meta?.capabilities.includes('reasoning')) badges.push({ label: 'reasoning', title: 'Reasoning' });
+    if (meta?.capabilities.includes('fast')) badges.push({ label: 'fast', title: 'Fast' });
+    const ctx = formatContext(localModelContextLength(model));
+    if (ctx) badges.push({ label: ctx, title: 'Context window' });
   } else if (model.providerId === 'local-image') {
     badges.push({ label: 'online', tone: 'accent' });
   } else {
@@ -331,8 +342,10 @@ export function badgesForModel(model: Model): ModelBadge[] {
     if (ctx) badges.push({ label: ctx, title: 'Context window' });
   }
 
-  if (meta?.costLabel) badges.push({ label: meta.costLabel, tone: meta.costLabel === '$$$' ? 'warn' : 'muted', title: 'Relative cost' });
-  return badges.slice(0, 5);
+  if (meta?.costLabel && !badges.some(badge => badge.label === meta.costLabel)) {
+    badges.push({ label: meta.costLabel, tone: meta.costLabel === '$$$' ? 'warn' : 'muted', title: 'Relative cost' });
+  }
+  return badges.slice(0, 6);
 }
 
 function formatContext(tokens: number | undefined): string | undefined {

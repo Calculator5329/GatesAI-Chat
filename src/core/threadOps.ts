@@ -4,7 +4,7 @@
 import type { AssistantMessage, Message, Thread } from './types';
 import { DEFAULT_MODEL_ID } from './models';
 
-export function createEmptyThread(id: string, now: number): Thread {
+export function createEmptyThread(id: string, now: number, modelId = DEFAULT_MODEL_ID): Thread {
   return {
     id,
     title: 'New conversation',
@@ -12,7 +12,7 @@ export function createEmptyThread(id: string, now: number): Thread {
     createdAt: now,
     updatedAt: now,
     pinned: false,
-    modelId: DEFAULT_MODEL_ID,
+    modelId,
     messages: [],
   };
 }

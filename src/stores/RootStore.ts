@@ -252,6 +252,12 @@ export class RootStore {
       }
     }));
 
+    this.disposers.push(autorun(() => {
+      void this.chat.defaultModelId;
+      void this.registry.all.length;
+      this.chat.reconcileDefaultModelForEmptyThreads();
+    }));
+
     let boundDraftThreadId: string | null = null;
     this.disposers.push(autorun(() => {
       const id = this.chat.activeThreadId;

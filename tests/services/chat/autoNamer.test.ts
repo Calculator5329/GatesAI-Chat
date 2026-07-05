@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { LlmChunk, LlmProvider, LlmRequest, ProviderId } from '../../../src/core/llm';
 import type { Thread } from '../../../src/core/types';
+import { ChatStore } from '../../../src/stores/ChatStore';
+import { ModelRegistry } from '../../../src/stores/ModelRegistry';
+import { ProviderStore } from '../../../src/stores/ProviderStore';
+import { UserProfileStore } from '../../../src/stores/UserProfileStore';
 import {
   AutoNamer,
   type AutoNameHost,
   type AutoNameRouter,
 } from '../../../src/services/chat/autoNamer';
+import { installMockProvider } from '../../helpers/mockProvider';
+import { clearAppStorage } from '../../helpers/storage';
 
 class OneShotProvider implements LlmProvider {
   readonly id: ProviderId = 'openrouter';
@@ -43,6 +49,10 @@ class FakeHost implements AutoNameHost {
 
   getThread(threadId: string): Thread | undefined {
     return threadId === this.thread.id ? this.thread : undefined;
+  }
+
+  getModelCandidates(fallbackModelId: string): string[] {
+    return [fallbackModelId];
   }
 
   setThreadNaming(threadId: string, naming: boolean): void {
@@ -139,5 +149,37 @@ describe('AutoNamer', () => {
     expect(thread.naming).toBe(false);
     expect(thread.title).toBe('New conversation');
     expect(thread.autoNamed).toBeUndefined();
+  });
+
+  it('uses a local model for naming when keyless Ollama is online', async () => {
+    clearAppStorage();
+    const registry = new ModelRegistry();
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3.2:3b',
+      name: 'llama3.2:3b',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3.2:3b',
+      dynamic: true,
+      contextLength: 32_000,
+    }]);
+    const providers = new ProviderStore(registry, () => ({
+      ollama: { baseUrl: 'http://127.0.0.1:11434', available: true, toolsEnabled: true },
+    }));
+    const provider = new OneShotProvider([
+      { type: 'text', delta: 'Local Naming' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    installMockProvider(providers, provider);
+    const chat = new ChatStore(providers, registry, new UserProfileStore());
+
+    chat.sendMessage('name this locally');
+    await flush(60);
+
+    expect(chat.activeThread?.modelId).toBe('ollama-llama3.2:3b');
+    expect(provider.calls.at(-1)?.modelId).toBe('ollama-llama3.2:3b');
+    chat.dispose();
+    providers.dispose();
+    clearAppStorage();
   });
 });

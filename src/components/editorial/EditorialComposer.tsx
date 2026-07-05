@@ -12,7 +12,6 @@ import { tokens } from '../../core/styleTokens';
 import { formatUsd } from '../../core/usage';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
-import { DEFAULT_MODEL_ID } from '../../core/models';
 import { isWebLite } from '../../core/runtime';
 import type { WorkspaceSkill } from '../../stores/SkillsStore';
 // Lazy: the picker is a large surface (sections/badges/filter logic) that most
@@ -170,7 +169,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
 
   const activeThread = chat.activeThread;
   const activeThreadId = activeThread?.id ?? null;
-  const currentModel = registry.findById(activeThread?.modelId) ?? registry.findById(DEFAULT_MODEL_ID);
+  const currentModel = registry.findById(activeThread?.modelId) ?? registry.findById(chat.defaultModelId);
   const activeSkill = skills.findById(activeThread?.skillId);
   const activeSkillLabel = activeSkill?.name ?? activeThread?.skillId ?? '';
   const webLite = isWebLite();
@@ -523,7 +522,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             {modelOpen && activeThread && (
               <Suspense fallback={null}>
                 <ModelPopover
-                  currentModelId={currentModel?.id ?? DEFAULT_MODEL_ID}
+                  currentModelId={currentModel?.id ?? chat.defaultModelId}
                   onPick={pickModel}
                   onClose={closeModelPopover}
                 />

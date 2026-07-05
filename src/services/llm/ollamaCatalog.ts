@@ -3,6 +3,10 @@
 // Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { Model } from '../../core/types';
 import { modelSupportsVision } from '../../core/modelCapabilities';
+import {
+  isOllamaEmbeddingModelTag,
+  ollamaModelSupportsTools,
+} from '../../core/localModelRules';
 
 /**
  * Subset of the `/api/tags` entry shape that the mapper reads. Ollama
@@ -24,20 +28,6 @@ interface OllamaTagsResponse {
  * just mean a working tool model is briefly mis-flagged, which the user
  * can override globally via the Local menu's "tool calls" toggle.
  */
-const TOOL_BLOCKLIST = [
-  /^gemma\d*(:|$)/i,
-  /^phi\d*(:|$)/i,
-  /^codellama(:|$)/i,
-];
-
-const EMBEDDING_BLOCKLIST = [
-  /^nomic-embed/i,
-  /^mxbai-embed/i,
-  /^all-minilm/i,
-  /^bge-/i,
-  /-embed(:|$)/i,
-];
-
 function isOllamaTagsResponse(v: unknown): v is OllamaTagsResponse {
   if (!v || typeof v !== 'object') return false;
   const arr = (v as { models?: unknown }).models;
@@ -63,7 +53,7 @@ export function mapOllamaTagsToModels(raw: unknown): Model[] {
   for (const tag of raw.models) {
     if (!tag || typeof tag.name !== 'string' || !tag.name) continue;
     const providerModelId = tag.name;
-    if (EMBEDDING_BLOCKLIST.some(re => re.test(providerModelId))) continue;
+    if (isOllamaEmbeddingModelTag(providerModelId)) continue;
     out.push({
       id: `ollama-${providerModelId}`,
       providerId: 'ollama',
@@ -73,7 +63,7 @@ export function mapOllamaTagsToModels(raw: unknown): Model[] {
       vendor: 'Ollama',
       dynamic: true,
       supportsVision: modelSupportsVision({ providerId: 'ollama', providerModelId }),
-      supportsTools: !TOOL_BLOCKLIST.some(re => re.test(providerModelId)),
+      supportsTools: ollamaModelSupportsTools(providerModelId),
     });
   }
   return out;
