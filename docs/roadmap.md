@@ -160,6 +160,93 @@
       - [x] Batch C–E: Models copy, context-aware banners, setup checklist, image UX polish, notes limits/quarantine, Web Lite clear reload
       - [x] Audit documentation: test coverage matrix + implementation guide (`docs/audits/2026-06-07-*.md`)
 
+## Wave F — agentic capabilities (in progress, 2026-07-03)
+- [ ] Local semantic memory (RAG): Ollama embeddings + IndexedDB vectors over
+      chats/notes/memories, `recall` tool, optional auto-context injection
+- [ ] `fetch_page` tool: Rust-side reqwest fetch + readable-text extraction
+      (https-only, private-IP blocked, size-capped) so the model can read pages
+- [ ] Skills packs: `workspace/skills/*.md` prompt packs with optional tool
+      allowlists, composer picker, per-thread activation
+- [ ] Sub-agents v1: `spawn_task` tool running a scoped background TurnRunner
+      loop (one concurrent, round-capped), status surface, results linked back
+
+## Next agentic wave (queued)
+- [ ] Self-improvement loop UI: in-app diff review for source-workspace edits,
+      build-output panel, install handoff with explicit user approval
+- [ ] Scheduled tasks (needs bridge cron or app-open scheduler v1)
+- [ ] MCP stdio transport (needs bridge/Rust process spawning + scoping)
+
+## Future ideas backlog (2026-07-03 analysis)
+
+### UI/UX
+- [ ] Light theme + follow-system (`prefers-color-scheme`); "paper" palette
+- [ ] Sidebar date grouping (Today / Yesterday / Previous 7 days)
+- [ ] Inline thread rename (F2 / right-click) and drag-to-reorder pins
+- [ ] Global summon shortcut + tray icon (Tauri global shortcut)
+- [ ] Jump-to-bottom pill with new-tokens indicator; sticky date separators
+- [ ] Composer: up-arrow recall, paste-image, window-wide drag-drop
+- [ ] Auto-collapse tool outputs over ~40 lines
+- [ ] What's-new panel on version change
+- [ ] Onboarding v2: bundled "tour" thread showing tools/artifacts/images
+
+### Architecture
+- [ ] Unify message model into content-parts (text/tool/image/artifact parts)
+      — do before deep RAG indexing settles the schema
+- [ ] Split EditorialComposer (~840 lines) into Input/AttachmentTray/
+      ModelControls/SendPipeline
+- [ ] Bridge protocol doc + version handshake (fail loud on mismatch)
+- [ ] Headless core entry (boot RootStore without React) → CLI mode, scripted
+      smokes, scheduler runner
+- [ ] Decide deliberately: Go bridge vs folding into a Rust sidecar
+
+### Performance
+- [ ] Cold-start budget (<1.5s to interactive): lazy menu sections, idle-time
+      catalog hydration, audit source-snapshot resource cost in installer
+- [ ] IDB background compaction; storage stats in Usage panel
+- [ ] Rust release profile tuning (thin LTO, strip) for installer size
+- [ ] Adaptive streaming reveal pacing (faster catch-up when far behind)
+
+### State & data
+- [ ] Web Locks API leader election for multi-tab (replace pause-on-conflict)
+- [ ] Generalized undo (command pattern) for destructive ops
+- [ ] Per-thread system-prompt presets (Coding / Writing / Research)
+
+### Platforms & compatibility
+- [ ] macOS build (keyring apple-native already enabled; needs signing)
+- [ ] Opt-in Tauri auto-updater (signed, OFF by default)
+- [ ] Portable mode (zip, data beside exe)
+- [ ] LAN companion: bridge serves Web Lite on LAN with pairing code (phone
+      access, data never leaves the network)
+
+### Cloud (strictly opt-in; local-only remains the default)
+- [ ] E2E-encrypted sync to user-owned storage (S3/Drive/WebDAV, user key)
+- [ ] Share thread as single-file HTML
+
+### Docs & stories
+- [ ] Refresh handbook user stories for palette/onboarding/MCP/usage; retire
+      delivered ones
+- [ ] ADRs for standing decisions (bridge language, Firestore parked, updater)
+- [ ] Refresh bundled in-app user guide
+- [ ] Bridge protocol spec in docs/
+
+### Tooling & release
+- [ ] Changelog automation from commits; nightly channel from master
+- [ ] Windows e2e job in CI; upload Playwright traces on failure; coverage
+- [ ] Settings-only config profile export
+
+### Moonshots / new directions
+- [ ] Cowork mode: opt-in workspace folder watching with proactive suggestions
+- [ ] Duel mode: two models side-by-side or cross-reviewing
+- [ ] Canvas/whiteboard artifact type for planning sessions
+- [ ] In-app `ollama pull` with progress for missing local models
+- [ ] Record the self-improvement demo (app edits itself, rebuilds, asks to
+      update) once the loop closes
+
+### Suggested release sequencing
+- 4.2: semantic memory + fetch_page + sidebar QoL
+- 4.3: sub-agents + scheduled tasks + light theme + global summon
+- 5.0: self-improvement loop closed + macOS + opt-in updater + content-parts
+
 ## Later
 - [ ] Multi-window / split-thread layouts
 - [ ] Extend `inspect_file` to source-code structure (`py`, `js`, `ts`, `go`)
