@@ -12,6 +12,8 @@ const DESKTOP_PORT = 5273;
 const WEB_LITE_PORT = 5274;
 const isCI = !!process.env.CI;
 const workerCount = isCI ? 1 : process.platform === 'win32' ? 4 : undefined;
+const screensTourEnabled = process.env.SCREENS_TOUR === '1';
+const screensTourSpec = '**/screensTour.spec.ts';
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -28,12 +30,15 @@ export default defineConfig({
   projects: [
     {
       name: 'desktop-mocked',
-      testIgnore: '**/web-lite.spec.ts',
+      testIgnore: [
+        '**/web-lite.spec.ts',
+        ...(screensTourEnabled ? [] : [screensTourSpec]),
+      ],
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${DESKTOP_PORT}` },
     },
     {
       name: 'web-lite',
-      testMatch: '**/web-lite.spec.ts',
+      testMatch: screensTourEnabled ? ['**/web-lite.spec.ts', screensTourSpec] : '**/web-lite.spec.ts',
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${WEB_LITE_PORT}` },
     },
   ],
