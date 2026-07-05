@@ -17,10 +17,7 @@ const GatesMenu = lazy(() => import('../components/menu/GatesMenu').then(m => ({
 const stageStyle: CSSProperties = {
   height: '100dvh', width: '100vw',
   display: 'flex',
-  background:
-    'radial-gradient(ellipse at 20% 0%, rgba(91,140,255,0.06), transparent 60%), ' +
-    'radial-gradient(ellipse at 80% 100%, rgba(120,110,150,0.04), transparent 60%), ' +
-    '#050608',
+  background: 'var(--stage-bg)',
 };
 
 const rootStyle: CSSProperties = {

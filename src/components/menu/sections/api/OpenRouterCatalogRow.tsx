@@ -43,7 +43,7 @@ export const OpenRouterCatalogRow = observer(function OpenRouterCatalogRow() {
         )}
       </div>
       {fetchError && (
-        <div style={{ fontSize: 11.5, color: '#e57373' }}>{fetchError}</div>
+        <div style={{ fontSize: 11.5, color: 'var(--danger-alt)' }}>{fetchError}</div>
       )}
     </div>
   );

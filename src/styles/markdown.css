@@ -8,9 +8,9 @@
 .markdown-compact {
   --md-body-font: "Source Serif 4", "Iowan Old Style", Georgia, serif;
   --md-heading-font: "Source Serif 4", "Iowan Old Style", Georgia, serif;
-  --md-code-bg-inline: rgba(255,255,255,0.06);
-  --md-code-bg-block: rgba(8, 10, 14, 0.9);
-  --md-code-head: rgba(14, 16, 22, 0.95);
+  --md-code-bg-inline: var(--code-obsidian-bg-inline);
+  --md-code-bg-block: var(--code-default-bg-block);
+  --md-code-head: var(--code-obsidian-head);
   --md-code-border: var(--border);
   --md-code-text: var(--text);
   --md-code-radius: 8px;
@@ -48,22 +48,22 @@
   --md-block-gap: 22px;
 }
 .code-obsidian {
-  --md-code-bg-inline: rgba(255,255,255,0.06);
-  --md-code-bg-block: rgba(8, 10, 14, 0.92);
-  --md-code-head: rgba(14, 16, 22, 0.95);
+  --md-code-bg-inline: var(--code-obsidian-bg-inline);
+  --md-code-bg-block: var(--code-obsidian-bg-block);
+  --md-code-head: var(--code-obsidian-head);
   --md-code-border: var(--border);
   --md-code-text: var(--text);
   --md-code-radius: 8px;
   --md-code-shadow: none;
 }
 .code-terminal {
-  --md-code-bg-inline: color-mix(in srgb, var(--accent) 10%, rgba(0,0,0,0.36));
-  --md-code-bg-block: #030504;
-  --md-code-head: color-mix(in srgb, var(--accent) 11%, #030504);
+  --md-code-bg-inline: color-mix(in srgb, var(--accent) 10%, var(--code-terminal-inline-base));
+  --md-code-bg-block: var(--code-terminal-bg);
+  --md-code-head: color-mix(in srgb, var(--accent) 11%, var(--code-terminal-bg));
   --md-code-border: color-mix(in srgb, var(--accent) 32%, transparent);
   --md-code-text: color-mix(in srgb, var(--accent) 24%, var(--text));
   --md-code-radius: 2px;
-  --md-code-shadow: inset 0 0 0 1px rgba(0,0,0,0.65), 0 0 18px color-mix(in srgb, var(--accent) 9%, transparent);
+  --md-code-shadow: inset 0 0 0 1px var(--code-terminal-shadow), 0 0 18px color-mix(in srgb, var(--accent) 9%, transparent);
 }
 .code-paper {
   --md-code-bg-inline: color-mix(in srgb, var(--panel-3) 80%, var(--text) 8%);
@@ -247,7 +247,7 @@
   text-align: left;
 }
 .md-body th {
-  background: rgba(255,255,255,0.04);
+  background: var(--table-head-bg);
   font-weight: 600;
 }
 .md-body strong { color: var(--text); font-weight: 600; }

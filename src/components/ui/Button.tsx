@@ -16,13 +16,13 @@ const VARIANT: Record<ButtonVariant, CSSProperties> = {
   accent: {
     background: 'var(--accent)',
     border: '1px solid var(--accent)',
-    color: '#06120a',
+    color: 'var(--accent-contrast)',
     fontWeight: 500,
   },
   danger: {
     background: 'transparent',
-    border: '1px solid rgba(255,117,151,0.3)',
-    color: '#ff7597',
+    border: '1px solid var(--danger-border-subtle)',
+    color: 'var(--danger)',
   },
 };
 

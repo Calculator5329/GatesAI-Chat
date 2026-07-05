@@ -25,7 +25,7 @@ export const ApiSection = observer(function ApiSection() {
       <h1 style={tokens.h1}>Models</h1>
       <div style={tokens.kicker}>Cloud model access - OpenRouter key - live catalog - web search</div>
 
-      <Card style={{ padding: '14px 18px', marginBottom: 28, background: 'rgba(62,207,142,0.04)', borderColor: 'rgba(62,207,142,0.2)' }}>
+      <Card style={{ padding: '14px 18px', marginBottom: 28, background: 'var(--success-card-bg)', borderColor: 'var(--success-card-border)' }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
           This section configures optional cloud access: OpenRouter models, the live OpenRouter catalog, and Brave Search web grounding. Keys are stored in{' '}
           the OS credential store on desktop and <code style={tokens.mono}>localStorage</code> in the
@@ -225,7 +225,7 @@ const compatPathStyle: CSSProperties = {
   fontSize: 11.5,
   color: 'var(--text-faint)',
 };
-const compatErrorStyle: CSSProperties = { fontSize: 12, color: '#ff7597' };
+const compatErrorStyle: CSSProperties = { fontSize: 12, color: 'var(--danger)' };
 const compatLogStyle: CSSProperties = {
   margin: 0,
   padding: 10,
@@ -233,7 +233,7 @@ const compatLogStyle: CSSProperties = {
   overflow: 'auto',
   border: '1px solid var(--border)',
   borderRadius: 6,
-  background: 'rgba(255,255,255,0.02)',
+  background: 'var(--surface-wash-2)',
   color: 'var(--text-dim)',
   fontSize: 11,
   lineHeight: 1.45,

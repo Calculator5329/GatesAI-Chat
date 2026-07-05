@@ -58,7 +58,7 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
     padding: '8px 20px',
     cursor: 'pointer',
     borderLeft: active ? '2px solid var(--accent)' : '2px solid transparent',
-    background: active ? 'rgba(232,169,72,0.04)' : 'transparent',
+    background: active ? 'var(--warning-active-bg)' : 'transparent',
   }),
   title: (active: boolean) => ({
     fontSize: 13, color: active ? 'var(--text)' : 'var(--text-dim)',

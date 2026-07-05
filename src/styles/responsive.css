@@ -1151,7 +1151,7 @@
   }
 
   .runtime-web-lite .settings-danger-zone .settings-row {
-    background: color-mix(in srgb, rgba(255, 117, 151, 0.08) 45%, var(--panel));
+    background: color-mix(in srgb, var(--danger-bg) 45%, var(--panel));
   }
   :is(.runtime-web-lite, .runtime-desktop) {
     --mobile-topbar-height: 48px;

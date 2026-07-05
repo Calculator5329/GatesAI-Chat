@@ -414,7 +414,7 @@ const S = {
   } as CSSProperties,
   error: {
     marginTop: 10,
-    color: '#e57373',
+    color: 'var(--danger-alt)',
     fontSize: 12,
   } as CSSProperties,
   empty: {

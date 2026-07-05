@@ -210,7 +210,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
       {/* Bridge status */}
       <Card>
         <div style={S.row}>
-          <span style={S.dot(bridge.state === 'online' ? '#5fbf7a' : bridge.state === 'offline' ? '#c96a6a' : 'var(--text-faint)')} />
+          <span style={S.dot(bridge.state === 'online' ? 'var(--success)' : bridge.state === 'offline' ? 'var(--danger-muted)' : 'var(--text-faint)')} />
           <div style={{ flex: 1 }}>
             <div style={S.label}>{bridge.state === 'online' ? 'Bridge online' : bridge.state === 'offline' ? 'Bridge offline' : 'Checking…'}</div>
             <div style={S.sub}>
@@ -308,7 +308,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
             </button>
           </div>
         </div>
-        {error && <div style={{ ...S.empty, color: '#c96a6a' }}>{error}</div>}
+        {error && <div style={{ ...S.empty, color: 'var(--danger-muted)' }}>{error}</div>}
         {loading && !tree && <div style={S.empty}>Loading…</div>}
         {!error && tree && (
           tree.entries.length === 0
@@ -369,7 +369,7 @@ function SourceWorkspaceCard({
           <div style={S.label}>Source workspace</div>
           <div style={S.sub}>Managed duplicate codebase for future self-update work.</div>
         </div>
-        <span style={S.statusChip(ready ? '#5fbf7a' : needsPrepare ? '#c8b87e' : 'var(--text-faint)')}>
+        <span style={S.statusChip(ready ? 'var(--success)' : needsPrepare ? 'var(--warning-muted)' : 'var(--text-faint)')}>
           {statusText}
         </span>
       </div>
@@ -384,7 +384,7 @@ function SourceWorkspaceCard({
         </div>
       )}
       {(error || status?.lastError) && (
-        <div style={{ ...S.empty, color: '#c96a6a', marginTop: 8 }}>{error ?? status?.lastError}</div>
+        <div style={{ ...S.empty, color: 'var(--danger-muted)', marginTop: 8 }}>{error ?? status?.lastError}</div>
       )}
       {unavailable && (
         <div style={{ ...S.empty, marginTop: 8 }}>Source workspace controls are available in the installed desktop app.</div>
@@ -541,11 +541,11 @@ export function SourceBuildCard({
   const running = status?.status === 'running';
   const disabled = unavailable || loading || running || !sourcePrepared;
   const chipColor = status?.status === 'succeeded'
-    ? '#5fbf7a'
+    ? 'var(--success)'
     : status?.status === 'failed'
-      ? '#c96a6a'
+      ? 'var(--danger-muted)'
       : running
-        ? '#c8b87e'
+        ? 'var(--warning-muted)'
         : 'var(--text-faint)';
 
   return (
@@ -572,7 +572,7 @@ export function SourceBuildCard({
         </div>
       )}
       {(error || status?.lastError) && (
-        <div style={{ ...S.empty, color: '#c96a6a', marginTop: 8 }}>{error ?? status?.lastError}</div>
+        <div style={{ ...S.empty, color: 'var(--danger-muted)', marginTop: 8 }}>{error ?? status?.lastError}</div>
       )}
       {!sourcePrepared && !unavailable && (
         <div style={{ ...S.empty, marginTop: 8 }}>Prepare the source workspace before running builds.</div>
@@ -693,7 +693,7 @@ function TreeRow({ node, depth }: { node: TreeNode; depth: number }) {
           paddingLeft: `${6 + depth * 16}px`,
           borderRadius: 5,
           cursor: 'pointer',
-          background: hovered ? 'rgba(255,255,255,0.05)' : 'transparent',
+          background: hovered ? 'var(--surface-wash-5)' : 'transparent',
           userSelect: 'none',
           transition: `background-color ${tokens.motion.fast}`,
         }}
@@ -701,7 +701,7 @@ function TreeRow({ node, depth }: { node: TreeNode; depth: number }) {
         {/* Chevron for dirs */}
         <span style={{
           width: 12,
-          color: 'rgba(255,255,255,0.25)',
+          color: 'var(--surface-faint)',
           fontSize: 9,
           flexShrink: 0,
           transform: isDir && open ? 'rotate(90deg)' : 'none',
@@ -717,7 +717,7 @@ function TreeRow({ node, depth }: { node: TreeNode; depth: number }) {
         {/* Name */}
         <span style={{
           flex: 1,
-          color: isDir ? folderColor : 'rgba(255,255,255,0.8)',
+          color: isDir ? folderColor : 'var(--surface-file-text)',
           fontWeight: isDir ? 500 : 400,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -728,14 +728,14 @@ function TreeRow({ node, depth }: { node: TreeNode; depth: number }) {
 
         {/* Size */}
         {!isDir && node.size != null && (
-          <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 10, flexShrink: 0 }}>
+          <span style={{ color: 'var(--surface-faint)', fontSize: 10, flexShrink: 0 }}>
             {formatSize(node.size)}
           </span>
         )}
 
         {/* File count for dirs */}
         {isDir && node.children.length > 0 && (
-          <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 10, flexShrink: 0 }}>
+          <span style={{ color: 'var(--surface-fainter)', fontSize: 10, flexShrink: 0 }}>
             {node.children.filter(c => c.kind === 'file').length} files
           </span>
         )}
@@ -751,10 +751,10 @@ function TreeRow({ node, depth }: { node: TreeNode; depth: number }) {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function folderAccent(name: string): string {
-  if (name === 'artifacts') return '#7ec8a0';
-  if (name === 'attachments') return '#7db4e0';
-  if (name === 'notes') return '#c8b87e';
-  return 'rgba(255,255,255,0.7)';
+  if (name === 'artifacts') return 'var(--diff-added)';
+  if (name === 'attachments') return 'var(--folder-attachments)';
+  if (name === 'notes') return 'var(--warning-muted)';
+  return 'var(--surface-folder-text)';
 }
 
 function folderIcon(name: string, open: boolean): string {
@@ -822,14 +822,14 @@ const S = {
   } as CSSProperties,
   primaryBtn: {
     padding: '4px 10px', fontSize: 11,
-    border: '1px solid rgba(126,200,160,0.35)', borderRadius: 4,
-    background: 'rgba(126,200,160,0.12)', color: 'var(--text)',
+    border: '1px solid var(--diff-added-border)', borderRadius: 4,
+    background: 'var(--diff-added-bg-strong)', color: 'var(--text)',
     cursor: 'pointer',
   } as CSSProperties,
   dangerBtn: {
     padding: '4px 10px', fontSize: 11,
-    border: '1px solid rgba(201,106,106,0.45)', borderRadius: 4,
-    background: 'rgba(201,106,106,0.12)', color: '#e6a0a0',
+    border: '1px solid var(--diff-removed-border)', borderRadius: 4,
+    background: 'var(--diff-removed-bg-soft)', color: 'var(--diff-removed-strong)',
     cursor: 'pointer',
   } as CSSProperties,
   reviewGrid: {
@@ -852,9 +852,9 @@ const S = {
     minWidth: 0,
     width: '100%',
     padding: '6px 7px',
-    border: `1px solid ${active ? 'rgba(255,255,255,0.16)' : 'var(--border)'}`,
+    border: `1px solid ${active ? 'var(--surface-active-border)' : 'var(--border)'}`,
     borderRadius: 5,
-    background: active ? 'rgba(255,255,255,0.06)' : 'transparent',
+    background: active ? 'var(--code-obsidian-bg-inline)' : 'transparent',
     color: 'var(--text-dim)',
     cursor: 'pointer',
     fontSize: 11,
@@ -864,7 +864,7 @@ const S = {
   changeKind: (kind: SourceChangedFile['change']): CSSProperties => ({
     width: 58,
     flex: 'none',
-    color: kind === 'added' ? '#7ec8a0' : kind === 'deleted' ? '#e08b8b' : '#c8b87e',
+    color: kind === 'added' ? 'var(--diff-added)' : kind === 'deleted' ? 'var(--diff-removed)' : 'var(--warning-muted)',
     fontSize: 10,
     textTransform: 'uppercase',
   }),
@@ -873,7 +873,7 @@ const S = {
     border: '1px solid var(--border)',
     borderRadius: 5,
     padding: 10,
-    background: 'rgba(0,0,0,0.12)',
+    background: 'var(--inset-bg)',
   } as CSSProperties,
   diffCode: {
     margin: 0,
@@ -881,7 +881,7 @@ const S = {
     overflow: 'auto',
     border: '1px solid var(--border)',
     borderRadius: 4,
-    background: 'rgba(0,0,0,0.2)',
+    background: 'var(--inset-bg-strong)',
     color: 'var(--text-dim)',
     fontFamily: '"Geist Mono", monospace',
     fontSize: 11,
@@ -893,11 +893,11 @@ const S = {
     gap: 6,
     padding: '1px 8px',
     background: type === 'added'
-      ? 'rgba(95,191,122,0.12)'
+      ? 'var(--diff-added-bg)'
       : type === 'removed'
-        ? 'rgba(201,106,106,0.13)'
+        ? 'var(--diff-removed-bg)'
         : 'transparent',
-    color: type === 'added' ? '#a8ddb8' : type === 'removed' ? '#e3a0a0' : 'var(--text-dim)',
+    color: type === 'added' ? 'var(--diff-added-text)' : type === 'removed' ? 'var(--diff-removed-text)' : 'var(--text-dim)',
     whiteSpace: 'pre',
   }),
   diffGutter: { color: 'var(--text-faint)', userSelect: 'none', textAlign: 'right' } as CSSProperties,
@@ -924,7 +924,7 @@ const S = {
     padding: 10,
     border: '1px solid var(--border)',
     borderRadius: 4,
-    background: 'rgba(0,0,0,0.18)',
+    background: 'var(--inset-bg-soft)',
     color: 'var(--text-dim)',
     fontSize: 11,
     lineHeight: 1.45,

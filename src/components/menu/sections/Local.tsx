@@ -310,7 +310,7 @@ const CustomOpenAiCompatCard = observer(function CustomOpenAiCompatCard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span
             role={endpoint.lastError ? 'alert' : 'status'}
-            style={{ flex: 1, color: endpoint.lastError ? '#ff7597' : 'var(--text-faint)', fontSize: 12 }}
+            style={{ flex: 1, color: endpoint.lastError ? 'var(--danger)' : 'var(--text-faint)', fontSize: 12 }}
           >
             {statusText}
           </span>
@@ -381,7 +381,7 @@ const LocalLlmCard = observer(function LocalLlmCard() {
           </Button>
         </div>
         {ollama.lastError && (
-          <div style={{ marginTop: 6, fontSize: 11.5, color: '#ff7597' }}>
+          <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--danger)' }}>
             Catalog refresh failed: {ollama.lastError}
           </div>
         )}
@@ -462,9 +462,9 @@ const OllamaPullRow = observer(function OllamaPullRow({
       gap: 10,
       alignItems: 'center',
       padding: '9px 10px',
-      border: semantic ? '1px solid rgba(113, 185, 138, 0.35)' : '1px solid var(--border)',
+      border: semantic ? '1px solid var(--semantic-border)' : '1px solid var(--border)',
       borderRadius: 6,
-      background: semantic ? 'rgba(113, 185, 138, 0.06)' : 'rgba(255,255,255,0.018)',
+      background: semantic ? 'var(--semantic-bg)' : 'var(--surface-wash-1)',
     }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -530,15 +530,15 @@ const OllamaPullProgress = observer(function OllamaPullProgress({ model }: { mod
   if (!state) return null;
   return (
     <div style={{ marginTop: 7, display: 'grid', gap: 4 }}>
-      <div style={{ height: 5, borderRadius: 999, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+      <div style={{ height: 5, borderRadius: 999, background: 'var(--surface-wash-8)', overflow: 'hidden' }}>
         <div style={{
           height: '100%',
           width: `${Math.max(0, Math.min(100, state.percent))}%`,
-          background: state.error ? '#ff7597' : 'var(--accent)',
+          background: state.error ? 'var(--danger)' : 'var(--accent)',
           transition: 'width 160ms ease',
         }} />
       </div>
-      <div role={state.error ? 'alert' : 'status'} style={{ fontSize: 11, color: state.error ? '#ff7597' : 'var(--text-faint)' }}>
+      <div role={state.error ? 'alert' : 'status'} style={{ fontSize: 11, color: state.error ? 'var(--danger)' : 'var(--text-faint)' }}>
         {state.error ? state.error : `${state.phase} · ${Math.round(state.percent)}%`}
       </div>
     </div>
@@ -692,7 +692,7 @@ const BaseUrlField = observer(function BaseUrlField({ id }: { id: LocalRuntimeId
         </Button>
       </div>
       {result && (
-        <span style={{ fontSize: 11.5, color: result.ok ? 'var(--accent)' : '#e57373' }}>
+        <span style={{ fontSize: 11.5, color: result.ok ? 'var(--accent)' : 'var(--danger-alt)' }}>
           {result.ok ? '✓ ' : '✗ '}{result.msg}
         </span>
       )}
@@ -873,7 +873,7 @@ const inlineLinkStyle: CSSProperties = {
 const guidanceRowStyle: CSSProperties = {
   display: 'flex', alignItems: 'flex-start', gap: 10,
   padding: '6px 8px', borderRadius: 4,
-  background: 'rgba(255,255,255,0.025)',
+  background: 'var(--surface-wash-3)',
   border: '1px solid var(--border)',
   color: 'var(--text-faint)',
   fontSize: 11.5, lineHeight: 1.4,
@@ -881,8 +881,8 @@ const guidanceRowStyle: CSSProperties = {
 const errorRowStyle: CSSProperties = {
   display: 'flex', alignItems: 'flex-start', gap: 10,
   padding: '6px 8px', borderRadius: 4,
-  background: 'rgba(229,115,115,0.08)',
-  border: '1px solid rgba(229,115,115,0.25)',
-  color: '#e57373',
+  background: 'var(--danger-alt-bg)',
+  border: '1px solid var(--danger-alt-border)',
+  color: 'var(--danger-alt)',
   fontSize: 11.5, lineHeight: 1.4,
 };

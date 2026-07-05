@@ -93,7 +93,7 @@ const ExportImportBlock = observer(function ExportImportBlock() {
     <div className="settings-section settings-export-import" style={{ ...tokens.section, marginBottom: 28 }}>
       <div className="settings-section-title" style={tokens.sectionTitle}>Export & import</div>
       {status && (
-        <div style={{ fontSize: 12, color: statusKind === 'error' ? '#ff7597' : 'var(--accent)', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: statusKind === 'error' ? 'var(--danger)' : 'var(--accent)', marginBottom: 8 }}>
           {status}
         </div>
       )}
@@ -155,7 +155,7 @@ const ExportImportBlock = observer(function ExportImportBlock() {
           {mode === 'merge' ? (
             <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Existing threads win on duplicate IDs.</span>
           ) : (
-            <span style={{ fontSize: 12, color: replaceReady ? 'var(--text-faint)' : '#ff7597' }}>
+            <span style={{ fontSize: 12, color: replaceReady ? 'var(--text-faint)' : 'var(--danger)' }}>
               Existing app state will be replaced.
             </span>
           )}
@@ -329,7 +329,7 @@ const DangerZone = observer(function DangerZone() {
         folder.
       </div>
       {status && (
-        <div style={{ fontSize: 12, color: status.includes('offline') || status.includes('Error') ? '#ff7597' : 'var(--accent)', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: status.includes('offline') || status.includes('Error') ? 'var(--danger)' : 'var(--accent)', marginBottom: 8 }}>
           {status}
         </div>
       )}

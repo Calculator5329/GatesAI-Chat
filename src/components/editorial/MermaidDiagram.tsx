@@ -7,6 +7,11 @@ type DiagramState =
   | { status: 'ready'; svg: string }
   | { status: 'error'; reason: string };
 
+function themeValue(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  return window.getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+
 export function MermaidDiagram({ source }: { source: string }) {
   const id = useId().replace(/:/g, '');
   const [state, setState] = useState<DiagramState>({ status: 'loading' });
@@ -22,16 +27,16 @@ export function MermaidDiagram({ source }: { source: string }) {
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: 'strict',
-        theme: 'dark',
+        theme: themeValue('--mermaid-theme', 'dark') as 'dark' | 'default',
         themeVariables: {
-          background: '#080a0f',
-          mainBkg: '#151922',
-          primaryColor: '#151922',
-          primaryTextColor: '#e7e9ee',
-          primaryBorderColor: '#2a3040',
-          lineColor: '#7aa2ff',
-          secondaryColor: '#10141c',
-          tertiaryColor: '#0d1118',
+          background: themeValue('--mermaid-bg', '#080a0f'),
+          mainBkg: themeValue('--mermaid-main-bg', '#151922'),
+          primaryColor: themeValue('--mermaid-main-bg', '#151922'),
+          primaryTextColor: themeValue('--mermaid-text', '#e7e9ee'),
+          primaryBorderColor: themeValue('--mermaid-border', '#2a3040'),
+          lineColor: themeValue('--mermaid-line', '#7aa2ff'),
+          secondaryColor: themeValue('--mermaid-secondary', '#10141c'),
+          tertiaryColor: themeValue('--mermaid-tertiary', '#0d1118'),
         },
       });
       const rendered = await mermaid.render(`mermaid-${id}`, source);
