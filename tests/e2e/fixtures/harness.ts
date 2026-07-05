@@ -138,7 +138,20 @@ export async function mockOpenRouter(page: Page, options: OpenRouterMockOptions 
  * `BridgeClient`. Generic enough that workspace seeding, attachment writes, and
  * image-artifact reads all succeed.
  */
-export async function mockBridgeOnline(page: Page): Promise<void> {
+interface BridgeMockFile {
+  path: string;
+  name: string;
+  kind: 'file' | 'dir';
+  content?: string;
+  mime?: string;
+  size?: number;
+}
+
+interface BridgeMockOptions {
+  files?: BridgeMockFile[];
+}
+
+export async function mockBridgeOnline(page: Page, options: BridgeMockOptions = {}): Promise<void> {
   await page.route(BRIDGE_HEALTH_URL, route =>
     route.fulfill({
       status: 200,
@@ -164,18 +177,28 @@ export async function mockBridgeOnline(page: Page): Promise<void> {
         return;
       }
       if (!env || env.type !== 'request' || !env.id) return;
-      const data = handleBridgeOp(env.op, env.data ?? {});
+      const data = handleBridgeOp(env.op, env.data ?? {}, options);
       ws.send(JSON.stringify({ id: env.id, type: 'result', op: env.op, data }));
     });
   });
 }
 
-function handleBridgeOp(op: string | undefined, data: Record<string, unknown>): unknown {
+function handleBridgeOp(op: string | undefined, data: Record<string, unknown>, options: BridgeMockOptions): unknown {
   const path = typeof data.path === 'string' ? data.path : '';
   switch (op) {
     case 'fs.write':
       return { path, bytes: typeof data.content === 'string' ? data.content.length : 0 };
     case 'fs.read': {
+      const file = options.files?.find(entry => entry.path === path && entry.kind === 'file');
+      if (file?.content !== undefined) {
+        return {
+          path,
+          content: file.content,
+          encoding: 'utf8',
+          size: file.content.length,
+          mime: file.mime ?? 'text/plain',
+        };
+      }
       const base64 = data.encoding === 'base64';
       return {
         path,
@@ -188,7 +211,21 @@ function handleBridgeOp(op: string | undefined, data: Record<string, unknown>): 
     case 'fs.stat':
       return { path, kind: 'file', size: 1, mtime: Date.now(), mime: 'text/plain' };
     case 'fs.list':
-      return { path, entries: [] };
+      return {
+        path,
+        entries: (options.files ?? [])
+          .filter(entry => path === '/workspace'
+            ? entry.path.startsWith('/workspace/')
+            : entry.path.startsWith(`${path}/`))
+          .map(entry => ({
+            path: entry.path,
+            name: entry.name,
+            kind: entry.kind,
+            size: entry.size ?? entry.content?.length ?? 1,
+            mtime: Date.now(),
+            mime: entry.mime ?? (entry.kind === 'file' ? 'text/plain' : undefined),
+          })),
+      };
     case 'exec.run':
       return { exit_code: 0, duration_ms: 1, stdout: '', stderr: '' };
     default:
