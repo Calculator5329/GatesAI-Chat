@@ -74,7 +74,8 @@ pub fn set_close_to_tray(app: AppHandle, enabled: bool) {
 pub fn close_to_tray_enabled<R: Runtime>(window: &Window<R>) -> bool {
   let app = window.app_handle();
   let state = app.state::<DesktopState>();
-  *lock_or_recover(&state.close_to_tray)
+  let enabled = *lock_or_recover(&state.close_to_tray);
+  enabled
 }
 
 pub fn install<F>(app: &mut App, on_quit: F) -> tauri::Result<()>
@@ -233,7 +234,7 @@ fn install_tray(app: &mut App, on_quit: Arc<dyn Fn(&AppHandle) + Send + Sync>) -
     .menu(&menu)
     .tooltip("GatesAI Chat")
     .show_menu_on_left_click(false)
-    .on_menu_event(|app, event| match event.id().as_ref() {
+    .on_menu_event(move |app, event| match event.id().as_ref() {
       TRAY_OPEN_ID => toggle_summon(app),
       TRAY_NEW_CONVERSATION_ID => {
         toggle_summon(app);
