@@ -27,7 +27,7 @@ import { fetchPageTool } from './fetchPage';
 import { artifactTool } from './artifact';
 import { sourceWorkspaceTool } from './sourceWorkspace';
 import { sourceBuildTool } from './sourceBuild';
-import { spawnTaskTool } from './spawnTask';
+import { spawnTaskDescription, spawnTaskTool } from './spawnTask';
 
 export interface ToolSelectionContext {
   userText: string;
@@ -41,6 +41,8 @@ export interface ToolSelectionContext {
   webSearchAvailable?: boolean;
   semanticRecallAvailable?: boolean;
   spawnTaskAvailable?: boolean;
+  spawnTaskRunningCount?: number;
+  spawnTaskMaxConcurrent?: number;
   toolAllowlist?: string[];
 }
 
@@ -145,7 +147,13 @@ export class ToolRegistry {
     const out = this.filterToolDefsForAllowlist(
       this.list().filter(t => selected.has(t.def.name)).map(t => t.def),
       ctx.toolAllowlist,
-    );
+    ).map(def => {
+      if (def.name !== 'spawn_task') return def;
+      return {
+        ...def,
+        description: spawnTaskDescription(ctx.spawnTaskRunningCount),
+      };
+    });
     return out.length > 0 ? out : this.toolDefs();
   }
 

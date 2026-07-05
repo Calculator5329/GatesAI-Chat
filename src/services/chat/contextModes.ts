@@ -93,6 +93,8 @@ export function toolsForContextMode(args: {
   webSearchAvailable?: boolean;
   semanticRecallAvailable?: boolean;
   spawnTaskAvailable?: boolean;
+  spawnTaskRunningCount?: number;
+  spawnTaskMaxConcurrent?: number;
   toolAllowlist?: string[];
 }): ToolDef[] | undefined {
   if (!args.toolsAllowed || args.mode === 'bare') return undefined;
@@ -127,6 +129,8 @@ export function toolsForContextMode(args: {
     webSearchAvailable: args.webSearchAvailable,
     semanticRecallAvailable: args.semanticRecallAvailable,
     spawnTaskAvailable: args.spawnTaskAvailable,
+    spawnTaskRunningCount: args.spawnTaskRunningCount,
+    spawnTaskMaxConcurrent: args.spawnTaskMaxConcurrent,
     toolAllowlist: args.toolAllowlist,
   });
 }

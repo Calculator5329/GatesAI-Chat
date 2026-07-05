@@ -1,9 +1,12 @@
 import type { Tool } from './types';
+import { spawnTaskDescription } from '../chat/agentTasks';
+
+export { spawnTaskDescription } from '../chat/agentTasks';
 
 export const spawnTaskTool: Tool = {
   def: {
     name: 'spawn_task',
-    description: 'Start one scoped background task in a separate agent thread. Only one background task can run at a time; this tool is unavailable while one is running.',
+    description: spawnTaskDescription(),
     parameters: {
       type: 'object',
       properties: {
@@ -18,6 +21,18 @@ export const spawnTaskTool: Tool = {
         model: {
           type: 'string',
           description: 'Optional GatesAI model id to use. If unavailable, the origin thread model is used.',
+        },
+        system_prompt: {
+          type: 'string',
+          description: 'Optional replacement for the default task system prompt body. The app keeps a non-interactive background-task prefix and caps this at 4000 characters.',
+        },
+        max_rounds: {
+          type: 'number',
+          description: 'Optional tool-round budget for the agent task, clamped to 1 through 10. Defaults to 6.',
+        },
+        start_delay_minutes: {
+          type: 'number',
+          description: 'Optional delay before starting the task, from 0 through 720 minutes. Delayed tasks appear immediately as scheduled and report results back to the origin thread when complete.',
         },
       },
       required: ['title', 'instructions'],
@@ -70,6 +85,9 @@ export const spawnTaskTool: Tool = {
       title: String(args.title ?? ''),
       instructions: String(args.instructions ?? ''),
       model: typeof args.model === 'string' ? args.model : undefined,
+      system_prompt: typeof args.system_prompt === 'string' ? args.system_prompt : undefined,
+      max_rounds: typeof args.max_rounds === 'number' ? args.max_rounds : undefined,
+      start_delay_minutes: typeof args.start_delay_minutes === 'number' ? args.start_delay_minutes : undefined,
     }, ctx.threadId);
     return {
       content: result.message,

@@ -300,6 +300,9 @@ function createArchivedThreadStub(thread: Thread): Thread {
   if (thread.agentTask !== undefined) stub.agentTask = thread.agentTask;
   if (thread.agentTaskOriginThreadId !== undefined) stub.agentTaskOriginThreadId = thread.agentTaskOriginThreadId;
   if (thread.agentTaskStatus !== undefined) stub.agentTaskStatus = thread.agentTaskStatus;
+  if (thread.agentTaskScheduledStartAt !== undefined) stub.agentTaskScheduledStartAt = thread.agentTaskScheduledStartAt;
+  if (thread.agentTaskSystemPrompt !== undefined) stub.agentTaskSystemPrompt = thread.agentTaskSystemPrompt;
+  if (thread.agentTaskMaxRounds !== undefined) stub.agentTaskMaxRounds = thread.agentTaskMaxRounds;
   if (thread.deletedAt !== undefined) stub.deletedAt = thread.deletedAt;
   if (thread.threadContext !== undefined) stub.threadContext = thread.threadContext;
   if (thread.summary !== undefined) stub.summary = thread.summary;
@@ -563,6 +566,9 @@ function parseThread(value: unknown): Thread | null {
     agentTask: booleanField(value.agentTask),
     agentTaskOriginThreadId: stringField(value.agentTaskOriginThreadId),
     agentTaskStatus: parseAgentTaskStatus(value.agentTaskStatus),
+    agentTaskScheduledStartAt: numberField(value.agentTaskScheduledStartAt),
+    agentTaskSystemPrompt: stringField(value.agentTaskSystemPrompt),
+    agentTaskMaxRounds: numberField(value.agentTaskMaxRounds),
     deletedAt: numberField(value.deletedAt),
     threadContext: stringField(value.threadContext),
     summary: stringField(value.summary),
@@ -740,7 +746,7 @@ function parseFinishReason(value: unknown) {
 }
 
 function parseAgentTaskStatus(value: unknown): Thread['agentTaskStatus'] {
-  return value === 'running' || value === 'done' || value === 'error' || value === 'interrupted' ? value : undefined;
+  return value === 'scheduled' || value === 'running' || value === 'done' || value === 'error' || value === 'interrupted' ? value : undefined;
 }
 
 function parseActivityItems(value: unknown): ActivityItem[] | undefined {

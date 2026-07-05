@@ -236,7 +236,13 @@ export interface Thread {
   /** Origin conversation that launched this background task. */
   agentTaskOriginThreadId?: string;
   /** Persisted lifecycle marker for background task recovery and sidebar grouping. */
-  agentTaskStatus?: 'running' | 'done' | 'error' | 'interrupted';
+  agentTaskStatus?: 'scheduled' | 'running' | 'done' | 'error' | 'interrupted';
+  /** Scheduled epoch time for delayed background tasks. */
+  agentTaskScheduledStartAt?: number;
+  /** Optional replacement body for the background task system prompt. */
+  agentTaskSystemPrompt?: string;
+  /** Per-task tool-round budget, clamped by the runtime. */
+  agentTaskMaxRounds?: number;
   /**
    * Set when the user dismisses the thread from the sidebar. Soft-deleted
    * threads stay in storage (so an Undo can restore them) but are filtered

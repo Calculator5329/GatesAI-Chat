@@ -51,6 +51,12 @@ import {
   type StreamingRoundActivityUpdate,
 } from './streamingRoundExecutor';
 import { appendSkillInstructionsToSystemPrompt, type WorkspaceSkill } from '../skills/skillsService';
+import {
+  DEFAULT_AGENT_TASK_MAX_ROUNDS,
+  MAX_CONCURRENT_AGENT_TASKS,
+  buildAgentTaskSystemPrompt,
+  clampAgentTaskMaxRounds,
+} from './agentTasks';
 
 export type ChatThinkingEffort = Extract<ThinkingEffort, 'low' | 'medium' | 'high'>;
 export const DEFAULT_OPENROUTER_THINKING_EFFORT: ChatThinkingEffort = 'low';
@@ -62,9 +68,7 @@ export const OPENROUTER_THINKING_PRESETS: Array<{ value: ChatThinkingEffort; lab
 
 /** Hard cap on the number of tool-call rounds per user turn, to prevent infinite loops if a model keeps re-calling the same tool. */
 export const MAX_TOOL_ROUNDS = 16;
-export const AGENT_TASK_MAX_TOOL_ROUNDS = 6;
-
-const AGENT_TASK_SYSTEM_PROMPT = 'You are a background task agent. Complete the task, then produce a concise final summary. Do not ask the user questions.';
+export const AGENT_TASK_MAX_TOOL_ROUNDS = DEFAULT_AGENT_TASK_MAX_ROUNDS;
 
 const MAX_WORK_NOTES = 8;
 const MAX_WORK_NOTE_CHARS = 4000;
@@ -194,7 +198,9 @@ export class TurnRunner {
     const semanticContext = typeof semanticContextValue === 'string'
       ? semanticContextValue
       : await resolveSemanticContext(semanticContextValue, threadId);
-    const maxToolRounds = Math.max(1, Math.floor(options.maxToolRounds ?? MAX_TOOL_ROUNDS));
+    const maxToolRounds = options.maxToolRounds == null
+      ? MAX_TOOL_ROUNDS
+      : clampAgentTaskMaxRounds(options.maxToolRounds);
     for (let round = 0; round < maxToolRounds; round++) {
       if (signal.aborted) return;
 
@@ -482,7 +488,7 @@ export class TurnRunner {
     const mode = effectiveContextMode(thread, model);
     const activeSkill = this.getActiveSkill(thread.id);
     const systemPrompt = thread.agentTask
-      ? AGENT_TASK_SYSTEM_PROMPT
+      ? buildAgentTaskSystemPrompt(thread.agentTaskSystemPrompt)
       : systemPromptForContextMode(mode, () =>
           this.profile.composeSystemPrompt({
             runtimeContext: buildRuntimeContext({ bridge }),
@@ -491,6 +497,7 @@ export class TurnRunner {
             semanticContext: mode === 'full' ? semanticContext : undefined,
           })
         );
+    const runningAgentTasks = countRunningAgentTasks(this.chat.threads);
     const tools = toolsForContextMode({
       mode,
       toolsAllowed: model?.supportsTools !== false,
@@ -499,7 +506,9 @@ export class TurnRunner {
       imageGenAvailable: isImageGenerationAvailable(extras),
       webSearchAvailable: extras?.search?.braveReady ?? false,
       semanticRecallAvailable: extras?.rag?.active ?? false,
-      spawnTaskAvailable: !thread.agentTask && !(this.chat.hasRunningAgentTask?.() ?? false),
+      spawnTaskAvailable: !thread.agentTask && runningAgentTasks < MAX_CONCURRENT_AGENT_TASKS,
+      spawnTaskRunningCount: runningAgentTasks,
+      spawnTaskMaxConcurrent: MAX_CONCURRENT_AGENT_TASKS,
       toolAllowlist: activeSkill?.tools,
     });
     const finalSystemPrompt = appendImageGenAddendum(
@@ -760,6 +769,14 @@ async function resolveSemanticContext(value: Promise<string>, threadId: string):
     logger.warn('rag', 'semantic context lookup failed', { threadId, err });
     return '';
   });
+}
+
+function countRunningAgentTasks(threads: Thread[]): number {
+  return threads.filter(thread =>
+    thread.agentTask === true
+    && thread.deletedAt == null
+    && thread.agentTaskStatus === 'running'
+  ).length;
 }
 
 export function normalizeOpenRouterThinkingEffort(effort: ThinkingEffort | undefined): ChatThinkingEffort {
