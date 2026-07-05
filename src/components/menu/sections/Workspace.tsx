@@ -11,6 +11,7 @@ import { isTauri, isWebLite } from '../../../core/runtime';
 import { tokens } from '../../../core/styleTokens';
 import type { LineDiffRow, SourceChangedFile, SourceChangedFiles, SourceWorkspaceStatus } from '../../../stores/SourceWorkspaceStore';
 import type { SourceBuildCommand, SourceBuildStatus } from '../../../stores/SourceWorkspaceStore';
+import { sourceTestFreshness } from '../../../stores/sourceWorkspaceSelectors';
 
 export const WorkspaceSection = observer(function WorkspaceSection() {
   const bridge = useBridgeStore();
@@ -262,6 +263,7 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
       <SourceBuildCard
         status={buildStatus}
         sourcePrepared={Boolean(sourceStatus?.prepared && !sourceStatus.stale)}
+        changes={changedFiles}
         loading={buildLoading}
         error={buildError}
         unavailable={webLite || !isTauri()}
@@ -520,6 +522,7 @@ function DiffPreview({
 export function SourceBuildCard({
   status,
   sourcePrepared,
+  changes,
   loading,
   error,
   unavailable,
@@ -530,6 +533,7 @@ export function SourceBuildCard({
 }: {
   status: SourceBuildStatus | null;
   sourcePrepared: boolean;
+  changes: SourceChangedFiles | null;
   loading: boolean;
   error: string | null;
   unavailable: boolean;
@@ -540,6 +544,7 @@ export function SourceBuildCard({
 }) {
   const running = status?.status === 'running';
   const disabled = unavailable || loading || running || !sourcePrepared;
+  const testFreshness = sourceTestFreshness(changes, status?.lastTest);
   const chipColor = status?.status === 'succeeded'
     ? 'var(--success)'
     : status?.status === 'failed'
@@ -563,6 +568,11 @@ export function SourceBuildCard({
         {status?.exitCode != null ? ` · exit ${status.exitCode}` : ''}
         {status?.startedAtUnix ? ` · ${formatDuration(status)}` : ''}
       </div>
+      <div style={S.summaryGrid}>
+        <JobSummary label="Last test" summary={status?.lastTest} />
+        <JobSummary label="Last build" summary={status?.lastBuild} />
+      </div>
+      {status?.steps?.length ? <StepStatusRow steps={status.steps} /> : null}
       {status?.installerPath && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
           <div style={{ ...S.code, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -577,13 +587,25 @@ export function SourceBuildCard({
       {!sourcePrepared && !unavailable && (
         <div style={{ ...S.empty, marginTop: 8 }}>Prepare the source workspace before running builds.</div>
       )}
+      {testFreshness.needsAttention && sourcePrepared && !unavailable && (
+        <div style={{ ...S.empty, marginTop: 8, color: 'var(--warning-muted)' }}>{testFreshness.label}</div>
+      )}
       {status?.logs?.length ? (
         <pre style={S.logTail}>{status.logs.join('\n')}</pre>
       ) : null}
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-        <button type="button" className="workspace-action-button" onClick={() => onStart('package')} disabled={disabled} style={S.primaryBtn}>Run build</button>
+        <button
+          type="button"
+          className="workspace-action-button"
+          onClick={() => onStart('package')}
+          disabled={disabled}
+          title={testFreshness.needsAttention ? "Tests haven't passed since the last edit." : 'Run the installer build.'}
+          style={testFreshness.needsAttention ? S.warningPrimaryBtn : S.primaryBtn}
+        >
+          Run build
+        </button>
+        <button type="button" className="workspace-action-button" onClick={() => onStart('test')} disabled={disabled} style={S.primaryBtn}>Run tests</button>
         <button type="button" className="workspace-action-button" onClick={() => onStart('install')} disabled={disabled} style={S.btn}>Install deps</button>
-        <button type="button" className="workspace-action-button" onClick={() => onStart('test')} disabled={disabled} style={S.btn}>Test</button>
         <button type="button" className="workspace-action-button" onClick={() => onStart('build')} disabled={disabled} style={S.btn}>Build</button>
         <button type="button" className="workspace-action-button" onClick={onRefresh} disabled={unavailable || loading} style={S.btn}>Refresh</button>
         <button type="button" className="workspace-action-button" onClick={onClear} disabled={unavailable || loading || running} style={S.btn}>Clear</button>
@@ -593,6 +615,48 @@ export function SourceBuildCard({
 }
 
 // ── File explorer ──────────────────────────────────────────────────────────────
+
+function JobSummary({
+  label,
+  summary,
+}: {
+  label: string;
+  summary?: SourceBuildStatus['lastTest'];
+}) {
+  const color = summary?.status === 'succeeded'
+    ? 'var(--success)'
+    : summary?.status === 'failed'
+      ? 'var(--danger-muted)'
+      : summary?.status === 'running'
+        ? 'var(--warning-muted)'
+        : 'var(--text-faint)';
+  return (
+    <div style={S.summaryBox}>
+      <div style={{ ...S.sub, color: 'var(--text-faint)' }}>{label}</div>
+      <div style={{ ...S.label, color }}>{summary?.status ?? 'idle'}</div>
+      <div style={S.sub}>
+        {summary?.finishedAtUnix
+          ? new Date(summary.finishedAtUnix * 1000).toLocaleString()
+          : summary?.startedAtUnix
+            ? `started ${new Date(summary.startedAtUnix * 1000).toLocaleString()}`
+            : 'No run yet.'}
+      </div>
+    </div>
+  );
+}
+
+function StepStatusRow({ steps }: { steps: SourceBuildStatus['steps'] }) {
+  const visible = steps.filter(step => ['ci', 'test', 'typecheck', 'lint'].includes(step.id));
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+      {visible.map(step => (
+        <span key={step.id} style={S.stepChip(step.status)}>
+          {step.label}: {step.status}{step.startedAtUnix ? ` · ${formatStepDuration(step)}` : ''}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 interface TreeNode {
   name: string;
@@ -805,6 +869,14 @@ function formatDuration(status: SourceBuildStatus): string {
   return `${minutes}m ${rest}s`;
 }
 
+function formatStepDuration(step: SourceBuildStatus['steps'][number]): string {
+  if (!step.startedAtUnix) return 'pending';
+  const end = step.finishedAtUnix ?? Math.floor(Date.now() / 1000);
+  const seconds = Math.max(0, end - step.startedAtUnix);
+  if (seconds < 60) return `${seconds}s`;
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+}
+
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
 const S = {
@@ -824,6 +896,12 @@ const S = {
     padding: '4px 10px', fontSize: 11,
     border: '1px solid var(--diff-added-border)', borderRadius: 4,
     background: 'var(--diff-added-bg-strong)', color: 'var(--text)',
+    cursor: 'pointer',
+  } as CSSProperties,
+  warningPrimaryBtn: {
+    padding: '4px 10px', fontSize: 11,
+    border: '1px solid var(--warning-muted)', borderRadius: 4,
+    background: 'var(--inset-bg-soft)', color: 'var(--text)',
     cursor: 'pointer',
   } as CSSProperties,
   dangerBtn: {
@@ -908,6 +986,33 @@ const S = {
     border: '1px solid var(--border)', borderRadius: 3,
     color: 'var(--text-dim)',
   } as CSSProperties,
+  summaryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: 8,
+    marginTop: 10,
+  } as CSSProperties,
+  summaryBox: {
+    border: '1px solid var(--border)',
+    borderRadius: 4,
+    padding: 8,
+    background: 'var(--inset-bg-soft)',
+    minWidth: 0,
+  } as CSSProperties,
+  stepChip: (status: SourceBuildStatus['steps'][number]['status']): CSSProperties => ({
+    padding: '3px 8px',
+    fontSize: 11,
+    border: '1px solid var(--border)',
+    borderRadius: 3,
+    color: status === 'succeeded' || status === 'skipped'
+      ? 'var(--success)'
+      : status === 'failed'
+        ? 'var(--danger-muted)'
+        : status === 'running'
+          ? 'var(--warning-muted)'
+          : 'var(--text-faint)',
+    fontFamily: '"Geist Mono", monospace',
+  }),
   empty: { fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic' } as CSSProperties,
   statusChip: (color: string): CSSProperties => ({
     padding: '3px 8px',

@@ -8,21 +8,22 @@ export const sourceBuildTool: Tool = {
   def: {
     name: 'source_build',
     description: [
-      'Run approved validation/package commands in the prepared duplicate GatesAI Chat source workspace.',
+      'Run approved validation/package jobs in the prepared duplicate GatesAI Chat source workspace.',
+      'Recommended self-improvement workflow: edit the source copy, run source_build start/test, fix failures, run tests again, then tell the user it is ready to build. Build only after tests pass unless the user explicitly chooses otherwise.',
       '',
       'Actions:',
-      '• `status` — read the current/last build job status and tail logs.',
-      '• `start` — start one approved command: install, test, build, package.',
-      '• `clear` — clear the last completed/failed job status.',
+      '- `status` - read the current/last build or test job status, step summary, and tail logs.',
+      '- `start` - start one approved job: test, install, build, package.',
+      '- `clear` - clear the last completed/failed active job status while preserving last build/test summaries.',
       '',
       'Command mapping:',
       '  install -> npm install',
-      '  test -> npm test',
+      '  test -> npm ci when node_modules is absent, then npm test, npm run typecheck, npm run lint',
       '  build -> npm run build',
       '  package -> npm run tauri:build',
       '',
-      'Only one job can run at a time. This does not install the generated installer or modify the live app.',
-      'The user can watch build logs in the Workspace menu. On success, hand off by opening the output folder; the user must choose and approve any install/update.',
+      'Only one job can run at a time across build and test. This does not install the generated installer or modify the live app.',
+      'The user can watch live logs in the Workspace menu. On build success, hand off by opening the output folder; the user must choose and approve any install/update.',
     ].join('\n'),
     parameters: {
       type: 'object',
@@ -83,6 +84,7 @@ function refreshAfter(ctx: Parameters<Tool['execute']>[1], result: string): stri
 export function formatStatus(status: SourceBuildStatus): string {
   const lines = [
     `status: ${status.status}`,
+    status.jobKind ? `job_kind: ${status.jobKind}` : '',
     status.command ? `command: ${status.command}` : '',
     status.cmdline ? `cmdline: ${status.cmdline}` : '',
     status.sourceRoot ? `source_root: ${status.sourceRoot}` : '',
@@ -93,9 +95,47 @@ export function formatStatus(status: SourceBuildStatus): string {
     status.installerBytes != null ? `installer_bytes: ${status.installerBytes}` : '',
     status.lastError ? `last_error: ${status.lastError}` : '',
   ].filter(Boolean);
+  const steps = status.steps ?? [];
+  if (steps.length > 0) {
+    lines.push('', '--- steps ---', ...steps.map(step => {
+      const exit = step.exitCode != null ? ` exit=${step.exitCode}` : '';
+      const duration = step.startedAtUnix ? ` ${formatDuration(step.startedAtUnix, step.finishedAtUnix)}` : '';
+      return `${step.id}: ${step.status}${exit}${duration} (${step.cmdline})`;
+    }));
+  }
+  if (status.lastTest) {
+    lines.push('', '--- last test ---', ...formatJobSummary(status.lastTest));
+  }
+  if (status.lastBuild) {
+    lines.push('', '--- last build ---', ...formatJobSummary(status.lastBuild));
+  }
   const tail = status.logs.slice(-80);
   if (tail.length > 0) {
     lines.push('', '--- log tail ---', ...tail);
   }
   return lines.join('\n');
+}
+
+function formatJobSummary(summary: NonNullable<SourceBuildStatus['lastTest']>): string[] {
+  const lines = [
+    `status: ${summary.status}`,
+    `command: ${summary.command}`,
+    summary.startedAtUnix ? `started_at: ${new Date(summary.startedAtUnix * 1000).toISOString()}` : '',
+    summary.finishedAtUnix ? `finished_at: ${new Date(summary.finishedAtUnix * 1000).toISOString()}` : '',
+    summary.exitCode != null ? `exit_code: ${summary.exitCode}` : '',
+    ...summary.steps.map(step => `${step.id}: ${step.status}${step.exitCode != null ? ` exit=${step.exitCode}` : ''}`),
+  ].filter(Boolean);
+  if (summary.failureTail) lines.push('failure_tail:', capTail(summary.failureTail, 8_000));
+  return lines;
+}
+
+function capTail(value: string, maxChars: number): string {
+  return value.length <= maxChars ? value : value.slice(value.length - maxChars);
+}
+
+function formatDuration(startedAtUnix: number, finishedAtUnix?: number): string {
+  const end = finishedAtUnix ?? Math.floor(Date.now() / 1000);
+  const seconds = Math.max(0, end - startedAtUnix);
+  if (seconds < 60) return `${seconds}s`;
+  return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
 }

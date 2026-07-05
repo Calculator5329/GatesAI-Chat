@@ -21,6 +21,7 @@ import {
 } from '../services/sourceBuild';
 import { openExternal } from '../services/system/openExternal';
 import { diffLines, type LineDiffRow } from '../services/diff/lineDiff';
+import { lastBuildForRuntime, lastTestForRuntime } from './sourceWorkspaceSelectors';
 
 export type {
   SourceChangedFile,
@@ -35,9 +36,13 @@ export type { LineDiffRow } from '../services/diff/lineDiff';
 export interface SourceWorkspaceRuntimeSnapshot {
   prepared: boolean;
   changedFileCount?: number;
+  latestChangeAtUnix?: number;
   lastBuildStatus?: SourceBuildStatus['status'];
   lastBuildFinishedAtUnix?: number;
   lastBuildStartedAtUnix?: number;
+  lastTestStatus?: SourceBuildStatus['status'];
+  lastTestFinishedAtUnix?: number;
+  lastTestStartedAtUnix?: number;
 }
 
 export class SourceWorkspaceStore {
@@ -107,12 +112,18 @@ export class SourceWorkspaceStore {
 
   get runtimeSnapshot(): SourceWorkspaceRuntimeSnapshot | null {
     if (!this.statusSnapshot?.prepared || this.statusSnapshot.stale) return null;
+    const lastBuild = lastBuildForRuntime(this.buildSnapshot);
+    const lastTest = lastTestForRuntime(this.buildSnapshot);
     return {
       prepared: true,
       changedFileCount: this.changedFilesSnapshot?.files.length,
-      lastBuildStatus: this.buildSnapshot?.status,
-      lastBuildFinishedAtUnix: this.buildSnapshot?.finishedAtUnix,
-      lastBuildStartedAtUnix: this.buildSnapshot?.startedAtUnix,
+      latestChangeAtUnix: this.changedFilesSnapshot?.latestChangeAtUnix,
+      lastBuildStatus: lastBuild?.status,
+      lastBuildFinishedAtUnix: lastBuild?.finishedAtUnix,
+      lastBuildStartedAtUnix: lastBuild?.startedAtUnix,
+      lastTestStatus: lastTest?.status,
+      lastTestFinishedAtUnix: lastTest?.finishedAtUnix,
+      lastTestStartedAtUnix: lastTest?.startedAtUnix,
     };
   }
 

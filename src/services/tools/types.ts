@@ -158,9 +158,13 @@ export interface SourceWorkspaceFacade {
   readonly runtimeSnapshot?: {
     prepared: boolean;
     changedFileCount?: number;
-    lastBuildStatus?: 'idle' | 'running' | 'succeeded' | 'failed';
+    latestChangeAtUnix?: number;
+    lastBuildStatus?: 'idle' | 'running' | 'succeeded' | 'failed' | 'interrupted';
     lastBuildFinishedAtUnix?: number;
     lastBuildStartedAtUnix?: number;
+    lastTestStatus?: 'idle' | 'running' | 'succeeded' | 'failed' | 'interrupted';
+    lastTestFinishedAtUnix?: number;
+    lastTestStartedAtUnix?: number;
   } | null;
   refreshRuntimeContext?(): Promise<void>;
 }

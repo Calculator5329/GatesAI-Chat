@@ -78,6 +78,7 @@ export interface SourceChangedFile {
 
 export interface SourceChangedFiles {
   files: SourceChangedFile[];
+  latestChangeAtUnix?: number;
 }
 
 export interface SourceRevertResult {
