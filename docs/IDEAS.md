@@ -1,0 +1,164 @@
+# Expansion ideas — ranked
+
+Ranked by leverage (impact relative to effort) for the project's actual goals:
+a portfolio-flagship, local-first AI workspace that is credible as an
+open-source product. Ratings: impact and effort are Low / Med / High. "First
+step" is sized so a context-free agent session can start immediately. Existing
+groundwork is cited so nobody rebuilds what exists.
+
+Complements `docs/roadmap.md` (execution plan) — this file is the option pool.
+The "Future ideas backlog" section of the roadmap holds smaller UX items;
+these are the strategic bets.
+
+---
+
+### 1. Agent eval harness (regression-tracked tool benchmarks)
+- **Impact: High · Effort: Med**
+- **Rationale:** The differentiator. Almost no local-first chat app can *prove*
+  its agent tooling works; this repo already has repeatable infrastructure —
+  a mocked-bridge Playwright project, a live model-compat runner
+  (`src/services/compat/openRouterCompatibility.ts` writes reports to
+  workspace artifacts), and deterministic tools. A harness that runs fixed
+  tasks ("summarize this CSV via `inspect_file`", "find X via `fetch_page`",
+  "multi-step fs edit") against a model matrix and diffs scores per release
+  turns "trust me" into a chart — great for the README and genuinely useful
+  for choosing local models.
+- **First step:** Design doc in `docs/plans/`: task format (YAML/JSON of
+  prompt + expected checks), scoring (exact/regex/LLM-judge-optional), and
+  where results live (`/workspace/artifacts/evals/`). Reuse the
+  compatibility-store pattern; prototype 3 tasks against Ollama.
+
+### 2. Tool/plugin packs (formalize the one-file tool SDK)
+- **Impact: High · Effort: Med**
+- **Rationale:** Adding a tool is already "one file plus one registry line"
+  (`src/services/tools/registry.ts`), and Skills packs already load prompt
+  packs with tool allowlists from `/workspace/.gatesai/skills`. Extending that
+  to *tool* packs (declarative manifest + sandboxed execution via the existing
+  bridge/MCP paths) creates an ecosystem story without inventing a runtime.
+- **First step:** Write `docs/plans/` design: what a pack manifest declares,
+  how it maps onto existing MCP-stdio (safest: packs ARE local MCP servers
+  with a curated gallery + one-click install) vs native registry tools.
+
+### 3. MCP *server* mode (expose GatesAI tools to other agents)
+- **Impact: High · Effort: Med**
+- **Rationale:** The app is already an MCP client (HTTP + stdio). Inverting it
+  — a loopback MCP server exposing `fs`/`terminal`/`recall`/`image_generate`
+  under the same jail and allowlists — makes GatesAI the *workspace hub* that
+  Claude Code, Cursor, or any MCP client can drive. Composes with the bridge's
+  existing security model instead of adding a new one.
+- **First step:** Prototype a stdio MCP server entry in the Go bridge repo is
+  out of scope here; in-repo, spec which registry tools are safe to expose and
+  the consent UX (per-tool toggles in the MCP menu section).
+
+### 4. Cowork mode (already designed — see roadmap Moonshots)
+- **Impact: High · Effort: High**
+- **Rationale:** The first *push* capability: opt-in folder watching surfaces
+  a suggestion chip ("new CSV — want a summary?") that spawns an agent task.
+  Design and hard constraints (suggest-never-execute, instruction-source
+  boundary, rate limits) are already written in `docs/roadmap.md`. Turns the
+  app from "one you open" into "a coworker who's around."
+- **First step:** Rust `notify`-based watcher command in `src-tauri/` behind a
+  feature flag + a `SuggestionsStore` with the rate-limit rules; UI chip last.
+
+### 5. Native Anthropic + OpenAI providers (first-class multi-model)
+- **Impact: Med-High · Effort: Low-Med**
+- **Rationale:** Today cloud = OpenRouter (plus generic OpenAI-compatible
+  endpoints). Direct Anthropic/OpenAI keys remove the middleman for users who
+  already have them, and the provider contract (`core/llm.ts`, adapters in
+  `services/llm/`, shared `streamCore.ts`) was built exactly for this.
+  Anthropic needs a small adapter (different wire format); OpenAI mostly
+  reuses `openaiCompat.ts`.
+- **First step:** Add an `AnthropicProvider` implementing `LlmProvider.stream`
+  with tool-call normalization into `LlmChunk`, plus catalog + secretStorage
+  slot, mirroring how `OpenAiCompatEndpointStore` registers models.
+
+### 6. Headless core / CLI mode
+- **Impact: Med-High · Effort: Med**
+- **Rationale:** Backlog item with outsized payoff: boot `RootStore` without
+  React → scripted smokes, a real scheduler runner, and the eval harness (#1)
+  gets an execution vehicle for free. Also the cleanest proof that the
+  UI→store→service layering is real.
+- **First step:** A `scripts/headless-smoke.mjs` (or vitest "integration"
+  entry) that constructs RootStore with node-friendly persistence fakes and
+  runs one mocked turn end-to-end; document what breaks.
+
+### 7. Duel mode (two models side-by-side / cross-review)
+- **Impact: Med · Effort: Med**
+- **Rationale:** Great demo material and genuinely useful for model choice —
+  and it feeds #1's scoring UX. The turn pipeline already supports parallel
+  agent tasks (3 slots), so the mechanics exist; the work is UI (split thread
+  view) and a comparison affordance.
+- **First step:** Spec a minimal version: one prompt fans out to two
+  `spawn_task` threads pinned side-by-side; defer inline diffing.
+
+### 8. Share thread as single-file HTML
+- **Impact: Med · Effort: Low**
+- **Rationale:** The readable HTML/Markdown chat-history mirror
+  (`services/chat/libraryExport.ts`, `workspaceChatPersistence.ts`) already
+  renders threads to HTML. Packaging one thread as a self-contained file is a
+  small step and gives users the first way to show their work — a viral loop
+  for an otherwise fully-local app.
+- **First step:** Add an "Export thread as HTML" action reusing libraryExport,
+  inlining CSS/images (data URIs), with a footer crediting the app.
+
+### 9. Whisper-based local voice input
+- **Impact: Med · Effort: Med-High**
+- **Rationale:** "Talk to your local model, fully offline" matches the product
+  promise and demos brilliantly with global summon + tray (already shipped).
+  whisper.cpp via a Tauri sidecar or the bridge keeps it local. Scope creep
+  risk: input only, no TTS at first.
+- **First step:** Feasibility spike doc: sidecar vs bridge process, model
+  download UX (reuse the in-app Ollama-pull pattern), push-to-talk in the
+  composer.
+
+### 10. E2E-encrypted sync to user-owned storage
+- **Impact: Med-High · Effort: High**
+- **Rationale:** The most-requested feature category for local-first apps
+  (second device, phone later). User-key-encrypted blobs to S3/Drive/WebDAV
+  preserves the "your data" promise. High effort: conflict resolution needs
+  the multi-tab merge problem solved first (Web Locks backlog item), and the
+  message model ideally becomes content-parts before the schema calcifies.
+- **First step:** ADR: sync unit (thread vs slot), encryption scheme, and the
+  dependency ordering vs content-parts; no code.
+
+### 11. Content-parts message model
+- **Impact: Med (enabler) · Effort: High**
+- **Rationale:** Backlog item; unlocks #10, cleaner multimodal, richer
+  artifacts. Pure refactor with migration risk — schedule deliberately, with
+  the persistence migration registry (`services/persistence/migrations.ts`)
+  doing the heavy lifting.
+- **First step:** Write the target schema + migration plan doc; inventory
+  every reader of `message.text`/tool fields.
+
+### 12. Public benchmark page fed by the eval harness
+- **Impact: Med · Effort: Low (after #1)**
+- **Rationale:** Publish harness results ("local model X completes 7/10 agent
+  tasks") as a static page next to the Web Lite demo. Recruiter-visible,
+  community-attracting, zero runtime cost.
+- **First step:** Blocked on #1; then a script converting eval artifacts to a
+  static HTML table deployed with the Pages workflow.
+
+### 13. In-app "What's new" + guided tour thread
+- **Impact: Low-Med · Effort: Low**
+- **Rationale:** Backlog items (what's-new panel, onboarding tour thread) that
+  matter disproportionately once strangers install the app from a public
+  README. Cheap polish for the open-source push.
+- **First step:** Ship a bundled read-only tour thread demonstrating tools,
+  artifacts, and images; version-gate a what's-new dialog off
+  `tauri.conf.json` version.
+
+### 14. Mobile access via LAN companion
+- **Impact: Med · Effort: High**
+- **Rationale:** Backlog moonshot: bridge serves Web Lite on the LAN with a
+  pairing code — phone access with data never leaving the network. Cheaper
+  than native mobile and consistent with local-first. Depends on bridge work
+  (sibling repo) and a security review of moving off loopback.
+- **First step:** Threat-model doc only: auth, pairing, TLS on LAN.
+
+### 15. Canvas / whiteboard artifact type
+- **Impact: Low-Med · Effort: Med**
+- **Rationale:** Backlog idea; differentiates the artifact system for planning
+  sessions. Lower priority than agent/eval work — visual wow, less strategic.
+- **First step:** Evaluate embedding tldraw/excalidraw in the sandboxed
+  artifact webview against the existing artifact CSP rules
+  (`tests/services/tauriConfig.test.ts` documents what previews may load).

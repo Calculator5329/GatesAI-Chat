@@ -1,5 +1,102 @@
 # Roadmap
 
+## Handoff plan — Now / Next / Later (2026-07-05)
+
+Current focus: **open-source / product readiness**. The app itself is deep
+(995 unit + 20 e2e tests, CI, releases at v4.5.0); what's missing is the
+public-facing shell around it. Each task below is sized for one working
+session by an agent with no prior context (read `docs/architecture.md` and
+root `CLAUDE.md` first) and has explicit acceptance criteria. Do not modify
+sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
+
+### Now
+
+- [ ] **Decide and execute repo visibility.** The source repo
+      (`Calculator5329/GatesAI-Chat`) is private; releases publish to the
+      separate public `GatesAI-Chat-releases` repo (see comment in
+      `.github/workflows/release.yml`). Either flip the source repo public or
+      write an ADR in `docs/` saying why the split stays.
+      *Acceptance:* before flipping, scan full git history for secrets
+      (e.g. `gitleaks detect` or `git log -p` grep for `sk-`, `key=`, tokens)
+      and record the result; after flipping, README release/download links and
+      the Pages demo still resolve; if keeping split, ADR committed instead.
+- [ ] **Demo GIF at the top of the README.** Record a 20–40s loop: ask a
+      question → model streams → a tool runs (e.g. `fs` or `web_search`) →
+      activity timeline shows it. `npm run screens:tour` and
+      `scripts/screens-tour.mjs` show how to drive the app scripted; a screen
+      recorder + gif conversion is fine too.
+      *Acceptance:* `docs/user-guide-assets/demo.gif` (< 10 MB) embedded above
+      the fold in `README.md`; renders on GitHub.
+- [ ] **README truth pass.** Fix the Memory bullet that still claims "no
+      embeddings/RAG" (RAG shipped in Wave F: `src/services/rag/`, `recall`
+      tool); re-verify every command, link, badge, and the tool list against
+      the tree; confirm test counts with `npx vitest list ... | wc -l` and
+      `npx playwright test --list`.
+      *Acceptance:* no statement in README contradicts the code; counts match
+      reality on the day of the pass.
+- [ ] **CONTRIBUTING.md.** Setup (Node, Rust, Go/bridge), the quality gates
+      (`npm run ci`, `npm run test:e2e`, `cargo test`), the layer rules in one
+      table (link `docs/architecture.md`), how to add a tool/store/component,
+      PR expectations, and the AGPL-3.0 contribution terms.
+      *Acceptance:* file exists at repo root, linked from README; a newcomer
+      can go from clone to green `npm run ci` using only it.
+- [ ] **Dependency audit.** Run `npm audit` and `cargo audit`
+      (install `cargo-audit` if absent) — fix or explicitly waive findings.
+      *Acceptance:* zero high/critical advisories, or each remaining one
+      documented with justification in the PR/commit message; `npm run ci`
+      still green.
+- [ ] **Repo hygiene sweep.** Remove or ignore root scratch files
+      (`debug.log`, `vite-5182.*.log`, `.codex-vite-*.log`, `.codex-tasks/`
+      leftovers), retire `.env.firebase` (only sets `VITE_GATESAI_WEB=1`; fold
+      into the build script or rename to something honest), prune dead
+      `.firebase/` and `.cursor/` if untracked/unused.
+      *Acceptance:* fresh clone root contains only purposeful files;
+      `.gitignore` covers the scratch patterns; nothing tracked was deleted
+      without checking `git ls-files` first.
+
+### Next
+
+- [ ] **Flaky-test sweep.** Run the unit suite 5× and the e2e suite 3× in a
+      row (`npm test`, `npm run test:e2e`); record any test that fails
+      non-deterministically, fix or quarantine it with a linked issue/note in
+      this file. *Acceptance:* 3 consecutive fully-green runs of both suites;
+      a short report of what was flaky and what changed.
+- [ ] **Windows e2e job in CI + Playwright traces.** Add a windows-latest e2e
+      job to `.github/workflows/ci.yml` and upload traces on failure (backlog
+      item). *Acceptance:* CI green with the new job; a forced failure shows a
+      downloadable trace artifact.
+- [ ] **Signed / trusted release builds.** Investigate Windows code signing
+      (paid cert vs Azure Trusted Signing vs documented-unsigned) and at
+      minimum add a README note about the SmartScreen warning and checksums
+      (`SHA256SUMS` published per release). *Acceptance:* release workflow
+      emits checksums; decision on signing recorded in an ADR under `docs/`.
+- [ ] **Release checklist doc.** One page in `docs/`: version bumps
+      (`package.json` + `src-tauri/tauri.conf.json`), changelog entry, tag
+      push, asset verification, Web Lite check. *Acceptance:* the next release
+      is cut following only the checklist.
+- [ ] **Bridge protocol version handshake.** App sends/expects a protocol
+      version on WebSocket connect; mismatch surfaces a clear BridgeStore
+      error state instead of quiet failures. Coordinate the bridge half as a
+      separate task in `../gatesai-bridge` (do not edit it from here).
+      *Acceptance:* unit tests for the app-side handshake; graceful degraded
+      message on mismatch.
+- [ ] **macOS build.** Keyring is already apple-native-capable; needs a
+      macos-latest job, sidecar naming for the darwin triple, and (later)
+      signing/notarization. *Acceptance:* an unsigned .dmg/.app artifact
+      builds in CI even if not yet published.
+
+### Later
+
+- [ ] Opt-in auto-updater (signed, OFF by default) — after signing lands.
+- [ ] Portable mode (zip, data beside exe).
+- [ ] Agent eval harness — see `docs/IDEAS.md` #1; promotes to Next once the
+      open-source track is done.
+- [ ] Cowork mode (designed, see Moonshots below) — its own wave when picked.
+- [ ] Content-parts message model unification (pre-req for several ideas).
+- [ ] LAN companion / phone access (bridge serves Web Lite with pairing code).
+
+---
+
 ## Done
 - [x] Clean up dead code, root HTML mockups, and unused assets
 - [x] Convert codebase to TypeScript

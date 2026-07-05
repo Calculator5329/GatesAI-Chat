@@ -1,10 +1,33 @@
 # Architecture
 
-GatesAI Chat is a React 19 + TypeScript single-page app organized into a
-strict layered architecture with one-way dependencies. The same React app runs
-as a Tauri 2 desktop app and as a Web Lite browser build; desktop-only
+## What this is
+
+GatesAI Chat is a local-first desktop AI workspace: a chat app where you bring
+your own models (OpenRouter in the cloud, Ollama or any OpenAI-compatible
+endpoint locally) and the assistant can actually *do* things on your machine —
+read/write files in a jailed workspace, run allowlisted shell/Python/SQLite/git
+commands, search and fetch the web, generate images through ComfyUI, recall
+past conversations through a local RAG index, and even edit and rebuild its own
+source through a controlled self-improvement loop. Everything stays on the
+user's device: API keys in the OS credential store, history in localStorage
+with an IndexedDB archive, files in a workspace folder the user owns.
+
+Technically it is a React 19 + TypeScript single-page app organized into a
+strict layered architecture with one-way dependencies, enforced by ESLint
+import rules. The same React app runs as a Tauri 2 desktop app (Rust host) and
+as a browser-only **Web Lite** build (deployed to GitHub Pages); desktop-only
 features are gated through runtime checks, the Tauri command layer, or the
-local bridge.
+local bridge. Local OS capability comes from two places: Rust commands inside
+`src-tauri/` (secrets, web fetch, MCP stdio, local runtime management, source
+workspace) and a **companion Go bridge** that lives in the sibling repository
+`../gatesai-bridge` and is bundled as a Tauri sidecar. The bridge owns the
+`~/GatesAI/workspace/` folder behind a path jail and command allowlist and is
+reached over a single loopback WebSocket.
+
+Stack: React 19 · TypeScript (strict) · Vite 8 · MobX 6 · Tauri 2 (Rust) ·
+Go bridge (separate repo) · Vitest (995 unit/component tests) + Playwright
+(20 e2e tests) · ESLint 9 with architecture-boundary rules. Verified against
+the tree at v4.5.0, 2026-07-05.
 
 ```
 UI (components/, app/)
@@ -18,6 +41,51 @@ Services (persistence, llm/, chat/, tools/, image/, bridge, mcp/, rag/, sourceWo
         v
 Core (types, theme, models, tokens, schedules, providers, runtime)
 ```
+
+## Commands quick reference
+
+All commands run from the repo root in PowerShell unless noted.
+
+Develop:
+
+```powershell
+npm install                 # once, or after dependency changes
+npm run dev                 # Vite dev server — Web Lite mode in the browser
+npm run tauri:dev           # desktop app against the dev server
+# bridge from source (desktop features), in the sibling repo:
+#   cd ..\gatesai-bridge ; go run ./cmd/gatesai-bridge
+# or place a prebuilt binary at ..\gatesai-bridge\bin\gatesai-bridge.exe
+```
+
+Verify (the gates CI enforces — run before committing):
+
+```powershell
+npm run ci                  # npm test + npm run typecheck + npm run lint
+npm run test:e2e            # Playwright: desktop-mocked + web-lite projects (20 tests)
+cargo test --manifest-path src-tauri/Cargo.toml   # Rust command layer
+npm run test:models         # OPTIONAL live OpenRouter compatibility (needs API key)
+```
+
+Build:
+
+```powershell
+npm run build               # web bundle (tsc -b + vite build)
+npm run tauri:build         # source snapshot + NSIS desktop installer (bundles the bridge)
+# Linux AppImage: bash scripts/prepare-linux-sidecar.sh && npx tauri build --bundles appimage
+```
+
+Release:
+
+- Push a tag `v*` (e.g. `v4.5.0`) to trigger `.github/workflows/release.yml`.
+  It builds Windows + Linux installers with a real bridge (repo variable
+  `GATESAI_BRIDGE_REPOSITORY`, optional `GATESAI_BRIDGE_TOKEN` secret) and
+  publishes assets under **stable names** to the separate public releases repo
+  `Calculator5329/GatesAI-Chat-releases` (needs `RELEASES_TOKEN`). Asset names
+  are deep-linked from the README and the in-app download hints — do not rename.
+- Web Lite auto-deploys to GitHub Pages on every push to `master` via
+  `.github/workflows/deploy-web-lite.yml`.
+- Bump `version` in both `package.json` and `src-tauri/tauri.conf.json` before
+  tagging; update `docs/changelog.md`.
 
 ## Folder layout
 
@@ -591,6 +659,51 @@ Common scopes include `chat`, `persistence`, `security`, `bridge`,
 `image-jobs`, `summary`, `models`, `llm`, `local-runtime`, `attachments`,
 `search`, `tools`, `mcp`, `rag`, and `skills`.
 
+## Security model (consolidated)
+
+The detailed mechanics live in the sections above and in
+`docs/bridge-protocol.md`; this is the one-page summary of every boundary.
+
+**Workspace sandboxing (Go bridge).** All model-driven file/shell/git/SQLite/
+Python access goes through the bridge sidecar, which jails paths under
+`~/GatesAI/workspace/` and enforces a command allowlist. The bridge listens
+only on loopback (`ws://127.0.0.1:7331/ws`); the app never exposes it to the
+network. App-managed paths (`.gatesai/chat/`, `chat-history/`) are blocked for
+generic tools by `src/services/tools/protectedWorkspacePaths.ts`; chat-history
+writes use a privileged bridge flag that model-originated tool calls can never
+set.
+
+**SSRF protection (`src-tauri/src/fetch_page.rs`).** The `fetch_page` tool is
+https-only (plain http allowed only for explicit localhost), rejects userinfo
+credentials in URLs, resolves DNS itself and validates every resolved IP
+against private/reserved ranges (blocking DNS-rebinding by connecting to the
+validated IPs, not re-resolving), follows at most 5 redirects with the same
+validation per hop, and caps bodies at 2 MB. `brave_search.rs` talks only to
+the Brave API with the user's key.
+
+**Secrets.** On desktop, API keys live in the OS credential store via the
+`keyring` crate (Tauri commands `secret_set`/`secret_get`/`secret_delete`);
+Web Lite falls back to localStorage. Known secrets: OpenRouter key,
+OpenAI-compatible key, Brave key, Ollama key, MCP header/env values. Secrets
+are redacted from the persisted MCP config slot and excluded from JSON
+export/import. Never write keys into docs, tests, or fixtures.
+
+**MCP containment.** Servers are user-configured only — the app never
+discovers local commands. Stdio config validation rejects empty commands, NUL
+bytes, invalid env names, and `cmd /c` / `cmd /k`. Remote tool results are
+truncated at 32,000 chars before entering the transcript. Remote tools are
+namespaced `mcp_<server>_<tool>`.
+
+**Turn/tool discipline.** Tool batches validate before executing, serialize
+side-effecting calls, cap tool rounds (16 normal / 6 default for agent tasks),
+and stop repeated writes to the same path after three prior side-effect calls.
+Agent tasks cannot spawn nested tasks. OpenAI-compatible custom endpoints must
+be HTTPS unless local.
+
+**Web Lite degradation.** The browser build disables every bridge/Tauri-backed
+capability rather than proxying it through a server; there is no server
+component at all.
+
 ## Testing
 
 Purpose: keep the architecture verifiable at unit, component, integration,
@@ -650,3 +763,37 @@ dispatch:
 
 Additional workflows build Linux artifacts, deploy Web Lite, and package
 releases, but the CI workflow above is the main correctness gate.
+
+## Known limitations and tech debt (2026-07-05)
+
+Honest list for anyone picking the project up cold:
+
+- **Source repo is private; binaries ship from a separate public repo**
+  (`Calculator5329/GatesAI-Chat-releases`, see the comment in
+  `.github/workflows/release.yml`). Going public (or deliberately keeping the
+  split) is the top open-source-readiness decision — see `docs/roadmap.md`.
+- **Unsigned installers.** No code signing anywhere in the release workflow;
+  Windows SmartScreen will warn on the NSIS installer.
+- **No macOS build** (keyring support is ready; needs a runner + signing).
+- **README drift.** The Memory highlight in `README.md` still says
+  "no embeddings/RAG" although the RAG subsystem (`src/services/rag/`, the
+  `recall` tool, semantic context injection) shipped in Wave F.
+- **E2E is browser-hosted, not real-Tauri.** The Playwright "desktop" project
+  runs the app with a faked bridge in Chromium; no automated test drives the
+  actual Tauri shell or the real Go bridge.
+- **Bridge version handshake missing.** `docs/bridge-protocol.md` documents the
+  observed contract, but app and bridge do not verify protocol versions at
+  connect time (fails quietly on mismatch).
+- **Multi-tab is pause-not-merge.** A second tab pauses autosave and offers
+  reload; there is no leader election or merge (Web Locks idea in the backlog).
+- **Message model is not content-parts.** Text/tool/image data hang off the
+  message in parallel fields; unifying into content parts is a known
+  pre-requisite for deeper features (see roadmap backlog).
+- **Large components.** `EditorialComposer` (~840 lines) still awaits its
+  planned split; roadmap "Wave D" contains partially-superseded entries
+  (TurnRunner and streamCore extraction are in fact done).
+- **Vestigial files.** `.env.firebase` (contains only `VITE_GATESAI_WEB=1`, no
+  secret) survives from the removed Firebase era; scratch logs
+  (`debug.log`, `vite-*.log`, `.codex-*`) accumulate untracked in the root.
+- **Test-count badges rot.** The README badge (995 unit + 20 e2e) is updated
+  by hand; counts drift every wave.
