@@ -5,9 +5,11 @@ import { useRef, useState, type ChangeEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import type { ThemeMode } from '../../../core/types';
-import { Button, Card, Input, SegmentedControl, SettingsRow } from '../../ui';
+import { Button, Card, Input, SegmentedControl, SettingsRow, Toggle } from '../../ui';
 import { useRootStore, useRouterStore, useUiStore } from '../../../stores/context';
 import { isWebLite } from '../../../core/runtime';
+import { DEFAULT_GLOBAL_SUMMON_CHORD } from '../../../core/shortcutChord';
+import { ChordRecorder } from './ChordRecorder';
 
 type DataImportMode = 'merge' | 'replace';
 
@@ -42,6 +44,7 @@ export const SettingsSection = observer(function SettingsSection() {
       </p>
 
       <ThemeBlock />
+      <DesktopBlock />
       <WebLiteBrowserData />
       <ExportImportBlock />
       <DangerZone />
@@ -63,6 +66,47 @@ const ThemeBlock = observer(function ThemeBlock() {
           onChange={ui.setTheme}
           labels={{ dark: 'Dark', light: 'Light', system: 'System' }}
         />
+      </SettingsRow>
+    </div>
+  );
+});
+
+const DesktopBlock = observer(function DesktopBlock() {
+  const ui = useUiStore();
+  if (isWebLite()) return null;
+  const unavailable = ui.globalSummonEnabled && !!ui.globalShortcutUnavailableReason;
+
+  return (
+    <div className="settings-section settings-desktop" style={{ ...tokens.section, marginBottom: 28 }}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Desktop</div>
+      <SettingsRow label="Global summon">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+          <Toggle on={ui.globalSummonEnabled} onChange={ui.setGlobalSummonEnabled} />
+          <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
+            Show, focus, or hide GatesAI from anywhere.
+          </div>
+          {unavailable && (
+            <div style={{ fontSize: 12, color: 'var(--danger)', lineHeight: 1.45, maxWidth: 520 }}>
+              Shortcut unavailable - in use by another app.
+            </div>
+          )}
+        </div>
+      </SettingsRow>
+      <SettingsRow label="Summon shortcut">
+        <ChordRecorder
+          value={ui.globalSummonChord}
+          disabled={!ui.globalSummonEnabled}
+          onChange={ui.setGlobalSummonChord}
+          onReset={() => ui.setGlobalSummonChord(DEFAULT_GLOBAL_SUMMON_CHORD)}
+        />
+      </SettingsRow>
+      <SettingsRow label="Close button hides to tray" last>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+          <Toggle on={ui.closeButtonHidesToTray} onChange={ui.setCloseButtonHidesToTray} />
+          <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
+            Quit from the tray menu still exits GatesAI completely.
+          </div>
+        </div>
       </SettingsRow>
     </div>
   );
