@@ -66,6 +66,7 @@ import { threadLlmSpendUsd as threadSpendSelector } from '../core/threadSelector
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
+import { appendSkillInstructionsToSystemPrompt, type WorkspaceSkill } from '../services/skills/skillsService';
 import type { BridgeClientFacade } from '../services/tools/types';
 import type { CompletedJob } from '../services/image/jobs/types';
 
@@ -110,6 +111,7 @@ export class ChatStore {
   private recentSummariesProvider: (() => string[]) | null = null;
   private semanticContextProvider: ((userText: string) => string | Promise<string>) | null = null;
   private toolStoresProvider: (() => ToolStoreContext) | null = null;
+  private activeSkillProvider: ((threadId: string) => WorkspaceSkill | undefined) | null = null;
 
   constructor(providers: ProviderStore, registry: ModelRegistry, profile: UserProfileStore) {
     this.providers = providers;
@@ -129,6 +131,7 @@ export class ChatStore {
       getToolStores: () => this.toolStoresProvider?.(),
       getRecentSummaries: () => this.recentSummariesProvider?.() ?? [],
       getSemanticContext: userText => this.semanticContextProvider?.(userText) ?? '',
+      getActiveSkill: threadId => this.activeSkillProvider?.(threadId),
     });
     const snapshot = loadSnapshot();
     if (snapshot) {
@@ -156,7 +159,7 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -170,6 +173,7 @@ export class ChatStore {
       recentSummariesProvider: false,
       semanticContextProvider: false,
       toolStoresProvider: false,
+      activeSkillProvider: false,
     });
 
     // The coordinator owns the throttled autosave, unload flush, and the
@@ -380,14 +384,16 @@ export class ChatStore {
       imageGenAvailable: isImageGenerationAvailable(extras),
       webSearchAvailable: extras?.search?.braveReady ?? false,
       semanticRecallAvailable: extras?.rag?.active ?? false,
+      toolAllowlist: this.activeSkillProvider?.(thread.id)?.tools,
     });
-    const systemPrompt = systemPromptForContextMode(mode, () =>
+    const activeSkill = this.activeSkillProvider?.(thread.id);
+    const systemPrompt = appendSkillInstructionsToSystemPrompt(systemPromptForContextMode(mode, () =>
       this.profile.composeSystemPrompt({
           runtimeContext: buildRuntimeContext({ bridge }),
           threadContext: mode === 'full' ? thread.threadContext : undefined,
           recentSummaries: mode === 'full' ? this.recentSummariesProvider?.() ?? [] : [],
         })
-    );
+    ), activeSkill);
     const baseUsed = estimateLlmPayloadTokens({
       systemPrompt,
       messages: wireMessagesForContextMode(thread, mode),
@@ -442,12 +448,20 @@ export class ChatStore {
     this.updateThread(threadId, () => ({ thinkingEffort: effort }));
   }
 
+  setThreadSkill(threadId: string, skillId: string | undefined): void {
+    this.updateThread(threadId, () => ({ skillId }));
+  }
+
   setRecentSummariesProvider(fn: () => string[]): void {
     this.recentSummariesProvider = fn;
   }
 
   setSemanticContextProvider(fn: (userText: string) => string | Promise<string>): void {
     this.semanticContextProvider = fn;
+  }
+
+  setActiveSkillProvider(fn: (threadId: string) => WorkspaceSkill | undefined): void {
+    this.activeSkillProvider = fn;
   }
 
   setToolStoresProvider(fn: () => ToolStoreContext): void {

@@ -92,6 +92,7 @@ export function toolsForContextMode(args: {
   imageGenAvailable?: boolean;
   webSearchAvailable?: boolean;
   semanticRecallAvailable?: boolean;
+  toolAllowlist?: string[];
 }): ToolDef[] | undefined {
   if (!args.toolsAllowed || args.mode === 'bare') return undefined;
   if (args.mode === 'micro') {
@@ -104,13 +105,18 @@ export function toolsForContextMode(args: {
       if (sourceBuild) tools.push(sourceBuild);
       if (fetchPage && (args.webSearchAvailable || isFetchPageRelevant(args.userText))) tools.push(fetchPage);
     }
+    if (args.toolAllowlist) {
+      const thread = toolRegistry.get('thread')?.def;
+      if (thread) tools.push(thread);
+    }
     if (args.bridgeOnline && isMicroFsRelevant(args.userText)) tools.push(MICRO_FS_TOOL_DEF);
     const webSearch = args.webSearchAvailable ? toolRegistry.get('web_search')?.def : undefined;
     if (webSearch) tools.push(webSearch);
     const recall = args.semanticRecallAvailable ? toolRegistry.get('recall')?.def : undefined;
     if (recall) tools.push(recall);
     tools.push(...toolRegistry.toolDefsByCategory('mcp'));
-    return tools.length > 0 ? tools : undefined;
+    const filtered = toolRegistry.filterToolDefsForAllowlist(tools, args.toolAllowlist);
+    return filtered.length > 0 ? filtered : undefined;
   }
   return toolRegistry.toolDefsForTurn({
     userText: args.userText,
@@ -119,6 +125,7 @@ export function toolsForContextMode(args: {
     imageGenAvailable: args.imageGenAvailable,
     webSearchAvailable: args.webSearchAvailable,
     semanticRecallAvailable: args.semanticRecallAvailable,
+    toolAllowlist: args.toolAllowlist,
   });
 }
 

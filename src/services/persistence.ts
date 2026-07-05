@@ -296,6 +296,7 @@ function createArchivedThreadStub(thread: Thread): Thread {
   };
   if (thread.contextMode) stub.contextMode = thread.contextMode;
   if (thread.thinkingEffort) stub.thinkingEffort = thread.thinkingEffort;
+  if (thread.skillId !== undefined) stub.skillId = thread.skillId;
   if (thread.deletedAt !== undefined) stub.deletedAt = thread.deletedAt;
   if (thread.threadContext !== undefined) stub.threadContext = thread.threadContext;
   if (thread.summary !== undefined) stub.summary = thread.summary;
@@ -555,6 +556,7 @@ function parseThread(value: unknown): Thread | null {
     messages: messages as Message[],
     contextMode: parseContextMode(value.contextMode),
     thinkingEffort: parseThinkingEffort(value.thinkingEffort),
+    skillId: parseSkillId(value.skillId),
     deletedAt: numberField(value.deletedAt),
     threadContext: stringField(value.threadContext),
     summary: stringField(value.summary),
@@ -716,6 +718,10 @@ function parseContextMode(value: unknown): Thread['contextMode'] {
 function parseThinkingEffort(value: unknown): Thread['thinkingEffort'] {
   if (value === 'low' || value === 'medium' || value === 'high') return value;
   return undefined;
+}
+
+function parseSkillId(value: unknown): Thread['skillId'] {
+  return typeof value === 'string' && /^[a-z0-9-]{1,40}$/.test(value) ? value : undefined;
 }
 
 function parsePreTokenLabel(value: unknown) {

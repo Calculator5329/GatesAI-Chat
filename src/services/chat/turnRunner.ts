@@ -50,6 +50,7 @@ import {
   transientProviderRetryPolicy,
   type StreamingRoundActivityUpdate,
 } from './streamingRoundExecutor';
+import { appendSkillInstructionsToSystemPrompt, type WorkspaceSkill } from '../skills/skillsService';
 
 export type ChatThinkingEffort = Extract<ThinkingEffort, 'low' | 'medium' | 'high'>;
 export const DEFAULT_OPENROUTER_THINKING_EFFORT: ChatThinkingEffort = 'low';
@@ -116,6 +117,7 @@ export interface TurnRunnerDeps {
   getToolStores(): ToolStoreContext | undefined;
   getRecentSummaries(): string[];
   getSemanticContext?(userText: string): string | Promise<string>;
+  getActiveSkill?(threadId: string): WorkspaceSkill | undefined;
   roundExecutor?: StreamingRoundExecutor;
 }
 
@@ -133,6 +135,7 @@ export class TurnRunner {
   private readonly getToolStores: () => ToolStoreContext | undefined;
   private readonly getRecentSummaries: () => string[];
   private readonly getSemanticContext: (userText: string) => string | Promise<string>;
+  private readonly getActiveSkill: (threadId: string) => WorkspaceSkill | undefined;
   private readonly roundExecutor: StreamingRoundExecutor;
 
   constructor(deps: TurnRunnerDeps) {
@@ -145,6 +148,7 @@ export class TurnRunner {
     this.getToolStores = deps.getToolStores;
     this.getRecentSummaries = deps.getRecentSummaries;
     this.getSemanticContext = deps.getSemanticContext ?? (() => '');
+    this.getActiveSkill = deps.getActiveSkill ?? (() => undefined);
     this.roundExecutor = deps.roundExecutor ?? new StreamingRoundExecutor({ retryPolicy: transientProviderRetryPolicy });
   }
 
@@ -471,6 +475,7 @@ export class TurnRunner {
     const bridge = extras?.bridge;
     const model = this.registry.findById(thread.modelId);
     const mode = effectiveContextMode(thread, model);
+    const activeSkill = this.getActiveSkill(thread.id);
     const systemPrompt = systemPromptForContextMode(mode, () =>
       this.profile.composeSystemPrompt({
         runtimeContext: buildRuntimeContext({ bridge }),
@@ -487,8 +492,12 @@ export class TurnRunner {
       imageGenAvailable: isImageGenerationAvailable(extras),
       webSearchAvailable: extras?.search?.braveReady ?? false,
       semanticRecallAvailable: extras?.rag?.active ?? false,
+      toolAllowlist: activeSkill?.tools,
     });
-    const finalSystemPrompt = appendImageGenAddendum(systemPrompt, tools);
+    const finalSystemPrompt = appendImageGenAddendum(
+      appendSkillInstructionsToSystemPrompt(systemPrompt, activeSkill),
+      tools,
+    );
     const maxTokens = reservedOutputTokensForContextMode(mode);
     return {
       modelId: providerModelId,

@@ -26,6 +26,14 @@ describe('ensureDefaultWorkspaceGuide', () => {
       { op: 'fs.mkdir', data: { path: '/workspace/notes' } },
       { op: 'fs.mkdir', data: { path: '/workspace/artifacts' } },
       { op: 'fs.mkdir', data: { path: '/workspace/attachments' } },
+      { op: 'fs.mkdir', data: { path: '/workspace/skills' } },
+      expect.objectContaining({
+        op: 'fs.write',
+        data: expect.objectContaining({
+          path: '/workspace/skills/README.md',
+          content: expect.stringContaining('Workspace skills'),
+        }),
+      }),
       expect.objectContaining({
         op: 'fs.write',
         data: expect.objectContaining({
@@ -68,5 +76,23 @@ describe('ensureDefaultWorkspaceGuide', () => {
 
     expect(writes).not.toContainEqual(expect.objectContaining({ path: '/workspace/README.md' }));
     expect(writes).toContainEqual(expect.objectContaining({ path: '/workspace/notes/GatesAI-AI-Operating-Context.md' }));
+  });
+
+  it('does not seed the skills README when the skills folder already exists', async () => {
+    const writes: unknown[] = [];
+    const client = {
+      async request<T = unknown>(op: string, data: unknown): Promise<T> {
+        if (op === 'fs.stat' && (data as { path: string }).path === '/workspace/skills') {
+          return { path: '/workspace/skills', kind: 'dir' } as T;
+        }
+        if (op === 'fs.stat') throw new Error('not found');
+        if (op === 'fs.write') writes.push(data);
+        return {} as T;
+      },
+    };
+
+    await ensureDefaultWorkspaceGuide(client);
+
+    expect(writes).not.toContainEqual(expect.objectContaining({ path: '/workspace/skills/README.md' }));
   });
 });

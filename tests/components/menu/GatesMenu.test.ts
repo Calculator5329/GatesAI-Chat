@@ -77,6 +77,7 @@ function buildStore(section: MenuSectionKey = 'settings'): { store: RootStore; r
     ollama: { config: { apiKey: '' }, count: 0, setKey: () => {}, clearCatalog: () => {} },
     localRuntime: { resetConfig: () => {} },
     bridge: { isOnline: false, client: { request: async () => ({}) } },
+    skills: { skills: [], count: 0, loading: false, refresh: async () => {} },
   } as unknown as RootStore;
   builtStores.push(store);
   return { store, router };

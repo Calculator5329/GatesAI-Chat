@@ -21,6 +21,7 @@ import { SearchStore } from './SearchStore';
 import { McpStore } from './McpStore';
 import { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import { SourceWorkspaceStore } from './SourceWorkspaceStore';
+import { SkillsStore } from './SkillsStore';
 import { RagStore } from '../services/rag/RagStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 import { configureLogSink, logger } from '../services/diagnostics/logger';
@@ -58,6 +59,7 @@ export class RootStore {
   readonly mcp: McpStore;
   readonly openrouterCompatibility: OpenRouterCompatibilityStore;
   readonly sourceWorkspace: SourceWorkspaceStore;
+  readonly skills: SkillsStore;
   readonly rag: RagStore;
   private booted = false;
   private readonly disposers: Array<() => void> = [];
@@ -101,6 +103,7 @@ export class RootStore {
       isStreaming: () => this.chat.threads.some(thread => this.chat.isThreadStreaming(thread.id)),
     });
     this.bridge = new BridgeStore();
+    this.skills = new SkillsStore(this.bridge, () => toolRegistry.list().map(tool => tool.def.name));
     this.openrouterCompatibility = new OpenRouterCompatibilityStore(this.providers, this.registry, this.bridge);
     this.sourceWorkspace = new SourceWorkspaceStore();
     this.execStream = new ExecStreamStore();
@@ -118,6 +121,7 @@ export class RootStore {
       this.summary.recentSummariesExcluding(this.chat.activeThreadId)
     );
     this.chat.setSemanticContextProvider(userText => this.rag.semanticContextForUserText(userText));
+    this.chat.setActiveSkillProvider(threadId => this.skills.findById(this.chat.threads.find(t => t.id === threadId)?.skillId));
 
     // Auxiliary stores tools need at execution time. Lazy getter so the
     // wiring stays one-way (tools reach back through ChatStore's context).
@@ -192,6 +196,21 @@ export class RootStore {
         })
         .catch(err => { logger.warn('persistence', 'workspace chat persistence boot failed', err); })
         .finally(() => { workspacePersistenceAttemptInFlight = false; });
+    }));
+
+    let attemptedSkillsRoot: string | undefined;
+    let skillsRefreshInFlight = false;
+    this.disposers.push(autorun(() => {
+      if (isWebLite()) return;
+      if (!this.bridge.isOnline || !this.bridge.workspaceRoot) return;
+      if (attemptedSkillsRoot === this.bridge.workspaceRoot) return;
+      if (skillsRefreshInFlight) return;
+      const workspaceRoot = this.bridge.workspaceRoot;
+      skillsRefreshInFlight = true;
+      void this.skills.refresh()
+        .then(() => { attemptedSkillsRoot = workspaceRoot; })
+        .catch(err => { logger.warn('skills', 'workspace skills refresh failed', err); })
+        .finally(() => { skillsRefreshInFlight = false; });
     }));
 
     const deliveredBridgeActivityIds = new Set<string>();

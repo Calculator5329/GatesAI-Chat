@@ -170,6 +170,36 @@ describe('Tool loop — scripted', () => {
     expect(sys).toContain('migrating a Postgres schema');
   });
 
+  it('applies active workspace skill instructions and filters advertised tools', async () => {
+    const { chat, mock } = setupScripted([
+      [{ type: 'text', delta: 'ok' }, { type: 'done', finishReason: 'stop' }],
+    ]);
+    chat.setToolStoresProvider(() => ({
+      bridge: {
+        isOnline: true,
+        client: { request: vi.fn(async () => ({})) },
+      },
+    }) as unknown as Pick<ToolContext, 'bridge'>);
+    chat.setActiveSkillProvider(() => ({
+      id: 'code-reviewer',
+      name: 'code-reviewer',
+      description: 'Reviews code rigorously',
+      instructions: 'Review one finding at a time.',
+      tools: ['fs', 'made-up'],
+      path: '/workspace/skills/code-reviewer.md',
+      warnings: ['Unknown tool: made-up.'],
+    }));
+    const tid = chat.createThread();
+    chat.setThreadSkill(tid, 'code-reviewer');
+
+    chat.sendMessage('write a file');
+    await flush(40);
+
+    expect(mock.calls[0].systemPrompt).toContain('--- Workspace skill: code-reviewer ---');
+    expect(mock.calls[0].systemPrompt).toContain('Review one finding at a time.');
+    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['thread', 'fs']);
+  });
+
   it('allows extended tool work and surfaces a visible message at the round cap', async () => {
     const round = (): import('../../src/core/llm').LlmChunk[] => [
       { type: 'tool_call', call: { id: `c-${Math.random()}`, name: 'memory', arguments: { action: 'add', fact: 'loop' } } },

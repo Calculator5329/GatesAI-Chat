@@ -13,6 +13,8 @@ import { formatUsd } from '../../core/usage';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import { isImageMime } from '../../core/attachments';
 import { DEFAULT_MODEL_ID } from '../../core/models';
+import { isWebLite } from '../../core/runtime';
+import type { WorkspaceSkill } from '../../stores/SkillsStore';
 // Lazy: the picker is a large surface (sections/badges/filter logic) that most
 // sessions never open before first paint; splitting it trims the main chunk.
 const ModelPopover = lazy(() => import('./ModelPopover'));
@@ -160,14 +162,18 @@ function StopButton(): ReactNode {
 }
 
 export const EditorialComposer = observer(function EditorialComposer({ textareaRef }: ComposerProps) {
-  const { chat, ui, bridge, registry, providers, localRuntime } = useEditorial();
+  const { chat, ui, bridge, registry, providers, localRuntime, skills } = useEditorial();
   const [modelOpen, setModelOpen] = useState(false);
+  const [skillOpen, setSkillOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeThread = chat.activeThread;
   const activeThreadId = activeThread?.id ?? null;
   const currentModel = registry.findById(activeThread?.modelId) ?? registry.findById(DEFAULT_MODEL_ID);
+  const activeSkill = skills.findById(activeThread?.skillId);
+  const activeSkillLabel = activeSkill?.name ?? activeThread?.skillId ?? '';
+  const webLite = isWebLite();
   const localContextMode = activeThread?.contextMode ?? (currentModel?.providerId === 'ollama' ? 'micro' : 'full');
   const thinkingEffort = normalizeOpenRouterThinkingEffort(activeThread?.thinkingEffort);
 
@@ -285,9 +291,19 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     setModelOpen(false);
   }, []);
 
+  const closeSkillPopover = useCallback(() => {
+    setSkillOpen(false);
+  }, []);
+
   const pickModel = useCallback((modelId: string) => {
     if (!activeThreadId) return;
     chat.setThreadModel(activeThreadId, modelId);
+  }, [activeThreadId, chat]);
+
+  const pickSkill = useCallback((skillId: string | undefined) => {
+    if (!activeThreadId) return;
+    chat.setThreadSkill(activeThreadId, skillId);
+    setSkillOpen(false);
   }, [activeThreadId, chat]);
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -514,6 +530,43 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
               </Suspense>
             )}
           </div>
+          {!webLite && activeThread && (
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className="composer-skill-label"
+                aria-haspopup="listbox"
+                aria-expanded={skillOpen}
+                aria-label={activeSkillLabel ? `Skill: ${activeSkillLabel}` : 'Skill: No skill'}
+                onClick={() => {
+                  setSkillOpen(o => !o);
+                  if (!skillOpen) void skills.refresh();
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') setSkillOpen(false);
+                }}
+                title="Workspace skill"
+                style={{ ...MODEL_LABEL_STYLE, maxWidth: 180, border: 'none', background: 'transparent', font: 'inherit' }}
+              >
+                <span style={{ color: 'var(--text-faint)', display: 'flex' }}><Icons.Brain /></span>
+                {activeSkillLabel && (
+                  <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {activeSkillLabel}
+                  </span>
+                )}
+                <Icons.Chevron />
+              </button>
+              {skillOpen && (
+                <SkillPopover
+                  skills={skills.skills}
+                  loading={skills.loading}
+                  activeSkillId={activeThread.skillId}
+                  onPick={pickSkill}
+                  onClose={closeSkillPopover}
+                />
+              )}
+            </div>
+          )}
           {/* Local context / thinking controls stay tucked away until the
               composer is hovered or focused, then slide out (see .composer-reveal
               in index.css). On touch devices the reveal media query never
@@ -578,6 +631,146 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     </div>
   );
 });
+
+function SkillPopover({
+  skills,
+  loading,
+  activeSkillId,
+  onPick,
+  onClose,
+}: {
+  skills: WorkspaceSkill[];
+  loading: boolean;
+  activeSkillId?: string;
+  onPick: (skillId: string | undefined) => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleDocClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handleDocClick);
+    return () => document.removeEventListener('mousedown', handleDocClick);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className="skill-popover"
+      role="listbox"
+      aria-label="Workspace skills"
+      style={{
+        position: 'absolute', bottom: 'calc(100% + 8px)', left: 0,
+        width: 320, maxHeight: 360,
+        display: 'flex', flexDirection: 'column',
+        background: 'var(--panel)',
+        border: '1px solid var(--border)',
+        borderRadius: 6,
+        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        overflow: 'hidden',
+        zIndex: 30,
+        fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+      }}
+    >
+      <SkillRow
+        name="No skill"
+        description="Use only the global Agent instructions."
+        selected={!activeSkillId}
+        onClick={() => onPick(undefined)}
+      />
+      <div style={{ overflowY: 'auto', borderTop: '1px solid var(--border)' }}>
+        {skills.map(skill => (
+          <SkillRow
+            key={skill.id}
+            name={skill.name}
+            description={skill.description || skill.path}
+            selected={activeSkillId === skill.id}
+            warnings={skill.warnings}
+            onClick={() => onPick(skill.id)}
+          />
+        ))}
+        {!loading && skills.length === 0 && (
+          <div style={{
+            padding: '18px 16px',
+            color: 'var(--text-faint)',
+            fontSize: 12,
+            fontStyle: 'italic',
+            fontFamily: '"Source Serif 4", Georgia, serif',
+          }}>
+            No workspace skills found.
+          </div>
+        )}
+        {loading && (
+          <div style={{ padding: '12px 16px', color: 'var(--text-faint)', fontSize: 11 }}>
+            Loading skills...
+          </div>
+        )}
+      </div>
+      <div style={{
+        padding: '8px 12px',
+        borderTop: '1px solid var(--border)',
+        fontFamily: '"Geist Mono", monospace',
+        fontSize: 10,
+        color: 'var(--text-faint)',
+      }}>
+        Add markdown packs in /workspace/skills/
+      </div>
+    </div>
+  );
+}
+
+function SkillRow({
+  name,
+  description,
+  selected,
+  warnings,
+  onClick,
+}: {
+  name: string;
+  description: string;
+  selected: boolean;
+  warnings?: string[];
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="skill-popover__row"
+      role="option"
+      aria-selected={selected}
+      onClick={onClick}
+      style={{
+        width: '100%',
+        display: 'grid',
+        gap: 3,
+        padding: '10px 14px',
+        textAlign: 'left',
+        border: 'none',
+        borderLeft: selected ? '2px solid var(--accent)' : '2px solid transparent',
+        background: selected ? 'var(--panel-2)' : 'transparent',
+        color: 'var(--text-dim)',
+        cursor: 'pointer',
+      }}
+    >
+      <span style={{ fontSize: 13, color: selected ? 'var(--text)' : 'var(--text-dim)' }}>{name}</span>
+      <span style={{
+        fontFamily: '"Source Serif 4", Georgia, serif',
+        fontSize: 11.5,
+        lineHeight: 1.35,
+        fontStyle: 'italic',
+        color: 'var(--text-faint)',
+      }}>
+        {description}
+      </span>
+      {warnings && warnings.length > 0 && (
+        <span style={{ fontFamily: '"Geist Mono", monospace', fontSize: 10, color: '#d19a66' }}>
+          {warnings.length} warning{warnings.length === 1 ? '' : 's'}
+        </span>
+      )}
+    </button>
+  );
+}
 
 function streamFooterLabel(activity: StreamActivity | undefined): string {
   switch (activity?.phase) {

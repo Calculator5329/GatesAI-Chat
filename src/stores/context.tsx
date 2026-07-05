@@ -20,6 +20,7 @@ import type { McpStore } from './McpStore';
 import type { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import type { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import type { RagStore } from '../services/rag/RagStore';
+import type { SkillsStore } from './SkillsStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -97,6 +98,10 @@ export function useSourceWorkspaceStore(): SourceWorkspaceStore {
   return useRootStore().sourceWorkspace;
 }
 
+export function useSkillsStore(): SkillsStore {
+  return useRootStore().skills;
+}
+
 export function useRagStore(): RagStore {
   return useRootStore().rag;
 }
@@ -110,6 +115,7 @@ export interface EditorialStores {
   providers: ProviderStore;
   imageJobs: ImageJobStore;
   localRuntime: LocalRuntimeStore;
+  skills: SkillsStore;
 }
 
 export function useEditorial(): EditorialStores {
@@ -121,6 +127,7 @@ export function useEditorial(): EditorialStores {
   const providers = useProviderStore();
   const imageJobs = useImageJobStore();
   const localRuntime = useLocalRuntimeStore();
+  const skills = useSkillsStore();
 
   return useMemo(() => ({
     chat,
@@ -131,5 +138,6 @@ export function useEditorial(): EditorialStores {
     providers,
     imageJobs,
     localRuntime,
-  }), [chat, ui, router, bridge, registry, providers, imageJobs, localRuntime]);
+    skills,
+  }), [chat, ui, router, bridge, registry, providers, imageJobs, localRuntime, skills]);
 }

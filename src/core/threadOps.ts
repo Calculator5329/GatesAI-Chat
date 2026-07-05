@@ -116,6 +116,7 @@ export function branchThreadFrom(
     messages,
     ...(source.contextMode ? { contextMode: source.contextMode } : {}),
     ...(source.thinkingEffort ? { thinkingEffort: source.thinkingEffort } : {}),
+    ...(source.skillId ? { skillId: source.skillId } : {}),
   };
 }
 

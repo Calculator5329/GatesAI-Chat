@@ -8,11 +8,18 @@ interface BridgeRequestFacade {
 const ROOT_README_PATH = '/workspace/README.md';
 const AI_GUIDE_PATH = '/workspace/notes/GatesAI-AI-Operating-Context.md';
 const ROOT_GITIGNORE_PATH = '/workspace/.gitignore';
+const SKILLS_DIR = '/workspace/skills';
+const SKILLS_README_PATH = `${SKILLS_DIR}/README.md`;
 
 export async function ensureDefaultWorkspaceGuide(client: BridgeRequestFacade): Promise<void> {
+  const skillsFolderExists = await pathExists(client, SKILLS_DIR);
   await safeRequest(client, 'fs.mkdir', { path: '/workspace/notes' });
   await safeRequest(client, 'fs.mkdir', { path: '/workspace/artifacts' });
   await safeRequest(client, 'fs.mkdir', { path: '/workspace/attachments' });
+  if (!skillsFolderExists) {
+    await safeRequest(client, 'fs.mkdir', { path: SKILLS_DIR });
+    await writeManagedFile(client, SKILLS_README_PATH, SKILLS_README);
+  }
   await ensureFile(client, ROOT_README_PATH, ROOT_README);
   await ensureFile(client, ROOT_GITIGNORE_PATH, ROOT_GITIGNORE);
   await writeManagedFile(client, AI_GUIDE_PATH, AI_OPERATING_CONTEXT);
@@ -30,6 +37,10 @@ async function writeManagedFile(client: BridgeRequestFacade, path: string, conte
 }
 
 async function fileExists(client: BridgeRequestFacade, path: string): Promise<boolean> {
+  return pathExists(client, path);
+}
+
+async function pathExists(client: BridgeRequestFacade, path: string): Promise<boolean> {
   try {
     await client.request('fs.stat', { path });
     return true;
@@ -74,6 +85,30 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+`;
+
+const SKILLS_README = `# Workspace Skills
+
+Workspace skills are user-authored markdown prompt packs. GatesAI Chat discovers files in this folder and lets you activate one per conversation.
+
+Create a file named with a lowercase slug, for example:
+
+\`\`\`md
+---
+name: code-reviewer
+description: Reviews code rigorously, one finding at a time
+tools: fs, terminal, git
+---
+Your markdown instructions go here.
+\`\`\`
+
+Fields:
+
+- \`name\` must match \`[a-z0-9-]{1,40}\`.
+- \`description\` is shown in the picker and settings list.
+- \`tools\` is optional. Omit it to allow all tools selected for the turn. Include a comma-separated allowlist to advertise only those tools plus \`thread\`.
+
+If a file has no frontmatter, the whole file is used as instructions and the filename stem is used as the skill name.
 `;
 
 const AI_OPERATING_CONTEXT = `# GatesAI AI Operating Context
@@ -176,4 +211,5 @@ export const DEFAULT_WORKSPACE_GUIDE_PATHS = {
   rootReadme: ROOT_README_PATH,
   aiGuide: AI_GUIDE_PATH,
   rootGitignore: ROOT_GITIGNORE_PATH,
+  skillsReadme: SKILLS_README_PATH,
 } as const;

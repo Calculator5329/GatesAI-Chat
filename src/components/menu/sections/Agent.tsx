@@ -4,13 +4,14 @@
 import { useState, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
+import { isWebLite } from '../../../core/runtime';
 import {
   Button,
   Input,
   Textarea,
   Pill,
 } from '../../ui';
-import { useChatStore, useRagStore, useUserProfileStore } from '../../../stores/context';
+import { useChatStore, useRagStore, useSkillsStore, useUserProfileStore } from '../../../stores/context';
 import { McpSettingsBlock } from './McpSettings';
 
 interface AgentAbility {
@@ -64,6 +65,7 @@ export const AgentSection = observer(function AgentSection() {
       <SemanticMemorySection />
       <RecentConversations summaries={recentSummaries} />
       <McpSettingsBlock />
+      {!isWebLite() && <WorkspaceSkillsSection />}
 
       <div style={tokens.section}>
         <div style={tokens.sectionTitle}>
@@ -98,6 +100,72 @@ export const AgentSection = observer(function AgentSection() {
         })}
       </div>
     </>
+  );
+});
+
+const WorkspaceSkillsSection = observer(function WorkspaceSkillsSection() {
+  const skills = useSkillsStore();
+
+  return (
+    <div style={tokens.section}>
+      <div style={tokens.sectionTitle}>
+        Workspace skills · {skills.count}
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 14, lineHeight: 1.55 }}>
+        Markdown prompt packs discovered from <code style={inlineCodeStyle}>/workspace/skills/</code>.
+      </div>
+
+      {skills.skills.length === 0 ? (
+        <div style={emptyBoxStyle}>
+          No workspace skills found.
+        </div>
+      ) : (
+        <div>
+          {skills.skills.map((skill, i) => (
+            <div
+              key={skill.id}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '180px 1fr auto',
+                gap: 18,
+                alignItems: 'start',
+                padding: '12px 0',
+                borderBottom: i === skills.skills.length - 1 ? 'none' : '1px solid var(--border)',
+              }}
+            >
+              <div>
+                <div style={{ ...tokens.mono, color: 'var(--text)' }}>{skill.name}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 2 }}>{skill.path}</div>
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+                {skill.description || 'No description.'}
+                {skill.tools && (
+                  <div style={{ ...tokens.mono, color: 'var(--text-faint)', fontSize: 11, marginTop: 5 }}>
+                    tools: {skill.tools.join(', ')}
+                  </div>
+                )}
+                {skill.warnings.length > 0 && (
+                  <div style={{ marginTop: 8, display: 'grid', gap: 4 }}>
+                    {skill.warnings.map(warning => (
+                      <div key={warning} style={{ ...tokens.mono, color: '#d19a66', fontSize: 11 }}>
+                        {warning}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Pill>{skill.warnings.length > 0 ? 'warning' : 'ready'}</Pill>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 12 }}>
+        <Button onClick={() => void skills.refresh()} disabled={skills.loading}>
+          {skills.loading ? 'Refreshing...' : 'Refresh'}
+        </Button>
+      </div>
+    </div>
   );
 });
 
@@ -396,6 +464,12 @@ const settingLabel: CSSProperties = {
   ...tokens.mono,
   color: 'var(--text-faint)',
   fontSize: 11.5,
+};
+
+const inlineCodeStyle: CSSProperties = {
+  fontFamily: '"Geist Mono", monospace',
+  fontSize: 11,
+  color: 'var(--text-dim)',
 };
 
 const iconBtn: CSSProperties = {
