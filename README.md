@@ -1,5 +1,6 @@
 # GatesAI Chat
 
+[![CI](https://github.com/Calculator5329/GatesAI-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/Calculator5329/GatesAI-Chat/actions/workflows/ci.yml)
 [![Live demo](https://img.shields.io/badge/Live%20demo-Web%20Lite-e8a948?style=flat-square)](https://calculator5329.github.io/GatesAI-Chat/)
 [![React 19](https://img.shields.io/badge/React-19-20232a?style=flat-square&logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
