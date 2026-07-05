@@ -256,7 +256,15 @@
 - [ ] Settings-only config profile export
 
 ### Moonshots / new directions
-- [ ] Cowork mode: opt-in workspace folder watching with proactive suggestions
+- [ ] **Cowork mode** (designed, not scheduled): the first *push* capability —
+      opt-in per-folder file watching (Rust `notify`) that surfaces a
+      dismissible SUGGESTION chip when a watched file changes ("new CSV — want a
+      summary?"); one click spawns a background agent task with the file as
+      context. Turns the app from "one you open" into "a coworker who's around,"
+      composing with global summon + tray. Hard constraints: suggests, never
+      auto-executes; watched-file CONTENTS are never treated as instructions
+      (instruction-source boundary); rare + rate-limited + easy to mute; opt-in,
+      off by default; fully local. Its own wave when picked.
 - [ ] Duel mode: two models side-by-side or cross-reviewing
 - [ ] Canvas/whiteboard artifact type for planning sessions
 - [ ] In-app `ollama pull` with progress for missing local models
