@@ -55,6 +55,7 @@ describe('chat data export/import', () => {
     expect(target.profile.facts).toEqual(['Likes TypeScript', 'Uses GatesAI']);
     expect(target.profile.defaultSystemPrompt).toBe('Be concise.');
     expect(target.notes.notes.map(note => note.title)).toEqual(['Planning note', 'Research note']);
+    expect(target.ui.theme).toBe('light');
 
     const persisted = JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}') as ChatSnapshot;
     expect(persisted.threads.map(thread => thread.title)).toEqual(['Alpha project', 'Beta notes']);
@@ -190,7 +191,7 @@ function seedRoot(
       },
     ],
   });
-  root.ui.applyImportedPrefs({ ...DEFAULT_UI_PREFS, animationsEnabled: false });
+  root.ui.applyImportedPrefs({ ...DEFAULT_UI_PREFS, animationsEnabled: false, theme: 'light' });
 }
 
 function sampleSnapshot(): ChatSnapshot {

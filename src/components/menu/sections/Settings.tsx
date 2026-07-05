@@ -4,7 +4,8 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
-import { Button, Card, Input, SettingsRow } from '../../ui';
+import type { ThemeMode } from '../../../core/types';
+import { Button, Card, Input, SegmentedControl, SettingsRow } from '../../ui';
 import { useRootStore, useRouterStore, useUiStore } from '../../../stores/context';
 import { isWebLite } from '../../../core/runtime';
 
@@ -40,9 +41,29 @@ export const SettingsSection = observer(function SettingsSection() {
         your app data and reset actions in one place.
       </p>
 
+      <ThemeBlock />
       <WebLiteBrowserData />
       <ExportImportBlock />
       <DangerZone />
+    </div>
+  );
+});
+
+const THEME_OPTIONS = ['dark', 'light', 'system'] as const satisfies readonly ThemeMode[];
+
+const ThemeBlock = observer(function ThemeBlock() {
+  const ui = useUiStore();
+  return (
+    <div className="settings-section settings-theme" style={{ ...tokens.section, marginBottom: 28 }}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Theme</div>
+      <SettingsRow label="Color mode" last>
+        <SegmentedControl
+          options={THEME_OPTIONS}
+          value={ui.theme}
+          onChange={ui.setTheme}
+          labels={{ dark: 'Dark', light: 'Light', system: 'System' }}
+        />
+      </SettingsRow>
     </div>
   );
 });

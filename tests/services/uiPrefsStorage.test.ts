@@ -11,6 +11,7 @@ const DEFAULTS = {
   readingWidthPx: 720,
   animationsEnabled: true,
   onboardingDismissed: false,
+  theme: 'dark',
 } as const;
 
 describe('uiPrefsStorage', () => {
@@ -30,9 +31,10 @@ describe('uiPrefsStorage', () => {
       readingWidthPx: 860,
       animationsEnabled: false,
       onboardingDismissed: true,
+      theme: 'light',
     });
 
-    expect(loadUiPrefs()).toEqual({ ...DEFAULTS, onboardingDismissed: true });
+    expect(loadUiPrefs()).toEqual({ ...DEFAULTS, onboardingDismissed: true, theme: 'light' });
   });
 
   it('falls back per field when persisted values are invalid', () => {
@@ -46,9 +48,15 @@ describe('uiPrefsStorage', () => {
       readingWidthPx: 999,
       animationsEnabled: 'sure',
       onboardingDismissed: 'nope',
+      theme: 'sepia',
     }));
 
     expect(loadUiPrefs()).toEqual(DEFAULTS);
+  });
+
+  it('round-trips system theme mode', () => {
+    saveUiPrefs({ ...DEFAULTS, theme: 'system' });
+    expect(loadUiPrefs().theme).toBe('system');
   });
 
   it('clamps font size to the supported range', () => {

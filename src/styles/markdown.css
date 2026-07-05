@@ -207,6 +207,57 @@
   overflow-x: auto;
   overflow-y: hidden;
 }
+
+:root[data-theme="light"] .md-body .hljs {
+  color: #24292f;
+}
+
+:root[data-theme="light"] .md-body .hljs-comment,
+:root[data-theme="light"] .md-body .hljs-quote {
+  color: #6e7781;
+}
+
+:root[data-theme="light"] .md-body .hljs-keyword,
+:root[data-theme="light"] .md-body .hljs-selector-tag,
+:root[data-theme="light"] .md-body .hljs-subst {
+  color: #953800;
+}
+
+:root[data-theme="light"] .md-body .hljs-literal,
+:root[data-theme="light"] .md-body .hljs-number,
+:root[data-theme="light"] .md-body .hljs-template-variable,
+:root[data-theme="light"] .md-body .hljs-variable {
+  color: #0550ae;
+}
+
+:root[data-theme="light"] .md-body .hljs-doctag,
+:root[data-theme="light"] .md-body .hljs-string {
+  color: #0a3069;
+}
+
+:root[data-theme="light"] .md-body .hljs-section,
+:root[data-theme="light"] .md-body .hljs-selector-id,
+:root[data-theme="light"] .md-body .hljs-title {
+  color: #8250df;
+}
+
+:root[data-theme="light"] .md-body .hljs-attribute,
+:root[data-theme="light"] .md-body .hljs-name,
+:root[data-theme="light"] .md-body .hljs-selector-class,
+:root[data-theme="light"] .md-body .hljs-selector-attr,
+:root[data-theme="light"] .md-body .hljs-selector-pseudo {
+  color: #116329;
+}
+
+:root[data-theme="light"] .md-body .hljs-addition {
+  color: var(--diff-added-text);
+  background-color: var(--diff-added-bg);
+}
+
+:root[data-theme="light"] .md-body .hljs-deletion {
+  color: var(--diff-removed-text);
+  background-color: var(--diff-removed-bg);
+}
 .mermaid-diagram {
   margin: var(--md-block-gap) 0;
   padding: 14px;

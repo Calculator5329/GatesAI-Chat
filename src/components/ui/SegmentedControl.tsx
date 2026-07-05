@@ -4,9 +4,10 @@ interface SegmentedControlProps<T extends string> {
   options: readonly T[];
   value: T;
   onChange: (next: T) => void;
+  labels?: Partial<Record<T, string>>;
 }
 
-export function SegmentedControl<T extends string>({ options, value, onChange }: SegmentedControlProps<T>) {
+export function SegmentedControl<T extends string>({ options, value, onChange, labels }: SegmentedControlProps<T>) {
   return (
     <div className="ui-segmented" style={{ display: 'flex', gap: 6 }}>
       {options.map(opt => {
@@ -32,7 +33,7 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
               transition: tokens.motion.interactive,
             }}
           >
-            {opt}
+            {labels?.[opt] ?? opt}
           </button>
         );
       })}
