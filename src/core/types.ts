@@ -227,6 +227,8 @@ export interface Thread {
   contextMode?: 'full' | 'system-tools' | 'bare' | 'micro';
   /** Reasoning depth for providers that expose controllable thinking. */
   thinkingEffort?: ThinkingEffort;
+  /** Active workspace skill id applied to this thread's turns. */
+  skillId?: string;
   /**
    * Set when the user dismisses the thread from the sidebar. Soft-deleted
    * threads stay in storage (so an Undo can restore them) but are filtered

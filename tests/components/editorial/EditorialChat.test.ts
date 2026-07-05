@@ -15,6 +15,7 @@ import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
 import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { OpenRouterStore } from '../../../src/stores/OpenRouterStore';
 import { OllamaStore } from '../../../src/stores/OllamaStore';
+import { SkillsStore } from '../../../src/stores/SkillsStore';
 import { EditorialChat } from '../../../src/components/editorial/EditorialChat';
 import { flushPendingSnapshot } from '../../../src/services/persistence';
 import type { RootStore } from '../../../src/stores/RootStore';
@@ -68,6 +69,7 @@ function buildStore(): RootStore {
   const openrouter = new OpenRouterStore(registry, () => providers.getConfig('openrouter').apiKey);
   const chat = new ChatStore(providers, registry, profile);
   const imageJobs = new ImageJobStore();
+  const skills = new SkillsStore(bridge, () => ['thread']);
   return {
     registry,
     providers,
@@ -81,6 +83,7 @@ function buildStore(): RootStore {
     openrouter,
     ollama,
     imageJobs,
+    skills,
   } as RootStore;
 }
 

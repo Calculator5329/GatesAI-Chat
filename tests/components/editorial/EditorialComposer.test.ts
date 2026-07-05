@@ -13,6 +13,7 @@ import { BridgeStore } from '../../../src/stores/BridgeStore';
 import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
 import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
 import { ImageJobStore } from '../../../src/stores/ImageJobStore';
+import { SkillsStore } from '../../../src/stores/SkillsStore';
 import { EditorialComposer } from '../../../src/components/editorial/EditorialComposer';
 import type { RootStore } from '../../../src/stores/RootStore';
 import { clearAppStorage } from '../../helpers/storage';
@@ -35,6 +36,7 @@ function buildStore(): RootStore {
   const execStream = new ExecStreamStore();
   const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
   const imageJobs = new ImageJobStore();
+  const skills = new SkillsStore(bridge, () => ['thread']);
   return {
     registry,
     providers,
@@ -46,6 +48,7 @@ function buildStore(): RootStore {
     execStream,
     localRuntime,
     imageJobs,
+    skills,
   } as RootStore;
 }
 
@@ -102,6 +105,7 @@ afterEach(() => {
   store?.chat.dispose();
   store?.ui.dispose();
   store = null;
+  vi.unstubAllEnvs();
   clearAppStorage();
 });
 
@@ -478,6 +482,15 @@ describe('EditorialComposer audit banners and a11y (Batch B/C/E)', () => {
     expect(picker?.getAttribute('type')).toBe('button');
     expect(picker?.getAttribute('aria-haspopup')).toBe('listbox');
     expect(picker?.getAttribute('aria-label')).toMatch(/^Model:/);
+  });
+
+  it('hides the workspace skill picker in Web Lite', () => {
+    vi.stubEnv('VITE_GATESAI_WEB', '1');
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    const rendered = render(store);
+
+    expect(rendered.querySelector('button.composer-skill-label')).toBeNull();
   });
 
   it('no longer renders a composer menu button (menu lives behind the brand wordmark)', () => {

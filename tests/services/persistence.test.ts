@@ -65,6 +65,7 @@ describe('persistence', () => {
       threads: [{
         id: 't1', title: 'hi', subtitle: '', pinned: false,
         modelId: 'or-gpt-5.4-mini',
+        skillId: 'code-reviewer',
         createdAt: 1, updatedAt: 2,
         messages: [{ id: 'm1', role: 'user' as const, content: 'yo', createdAt: 3 }],
       }],
@@ -399,6 +400,7 @@ describe('persistence', () => {
       ['t4', true, 0],
       ['t5', true, 0],
     ]);
+    expect(stored.threads.find(thread => thread.id === 't1')?.skillId).toBe('code-reviewer');
     expect(archive.threads.get('t1')?.messages).toHaveLength(1);
 
     const touched = {
@@ -541,6 +543,7 @@ function snapshotWithThreads(count: number, options: { contentChars?: number } =
         subtitle: '',
         pinned: false,
         modelId: 'or-gpt-5.4-mini',
+        skillId: n === 1 ? 'code-reviewer' : undefined,
         createdAt: n,
         updatedAt: n,
         messages: [{

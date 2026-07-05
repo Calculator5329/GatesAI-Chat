@@ -39,6 +39,7 @@ export interface ToolSelectionContext {
   imageGenAvailable?: boolean;
   webSearchAvailable?: boolean;
   semanticRecallAvailable?: boolean;
+  toolAllowlist?: string[];
 }
 
 export interface ToolValidationResult {
@@ -138,8 +139,17 @@ export class ToolRegistry {
       if (tool.meta?.category === 'mcp') selected.add(tool.def.name);
     }
 
-    const out = this.list().filter(t => selected.has(t.def.name)).map(t => t.def);
+    const out = this.filterToolDefsForAllowlist(
+      this.list().filter(t => selected.has(t.def.name)).map(t => t.def),
+      ctx.toolAllowlist,
+    );
     return out.length > 0 ? out : this.toolDefs();
+  }
+
+  filterToolDefsForAllowlist(toolDefs: ToolDef[], allowlist: string[] | undefined): ToolDef[] {
+    if (!allowlist) return toolDefs;
+    const allowed = new Set([...allowlist, 'thread']);
+    return toolDefs.filter(tool => allowed.has(tool.name));
   }
 
   isReadOnlyCall(name: string, args: Record<string, unknown>): boolean {

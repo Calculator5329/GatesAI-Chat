@@ -24,7 +24,7 @@ interface Harness {
 function buildHarness(): Harness {
   const registry = new ModelRegistry();
   const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
-  const store = { registry, localRuntime } as unknown as RootStore;
+  const store = { registry, localRuntime, skills: { skills: [] } } as unknown as RootStore;
   return { store, registry, localRuntime };
 }
 
