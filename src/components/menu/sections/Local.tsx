@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
-import { useBridgeStore, useImageGenStore, useLocalRuntimeStore, useOllamaStore } from '../../../stores/context';
+import { useBridgeStore, useImageGenStore, useLocalRuntimeStore, useOllamaStore, useOpenAiCompatEndpointStore } from '../../../stores/context';
 import type { LocalRuntimeId, RuntimeState } from '../../../stores/LocalRuntimeStore';
 import { Button, Card, Input, Pill, Select, SettingsRow, Toggle, SecretKeyField } from '../../ui';
 import { ProviderAvatar } from './api/ProviderAvatar';
@@ -46,8 +46,9 @@ export const LocalSection = observer(function LocalSection() {
         <WebLiteNotice show={webLite}>
           <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
           Ollama, ComfyUI, local vision, and managed runtime controls are desktop-only.
-          Use Models for OpenRouter/API chat in the hosted web app.
+          Custom OpenAI-compatible endpoints can still work from this browser when they allow CORS.
         </WebLiteNotice>
+        <CustomOpenAiCompatCard />
         <Card style={{ marginTop: 18, padding: '16px 18px' }}>
           <div style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.55 }}>
             The Firebase-hosted app runs entirely in the browser for now. A future cloud backend can add server-side tools,
@@ -68,6 +69,7 @@ export const LocalSection = observer(function LocalSection() {
       </WebLiteNotice>
 
       <RuntimeCard onOpenLogs={setLogRuntime} />
+      <CustomOpenAiCompatCard />
       <LocalLlmCard />
       <LocalImageCard />
       <LocalVisionCard />
@@ -237,6 +239,100 @@ function RuntimeMessage({
     </div>
   );
 }
+
+const CustomOpenAiCompatCard = observer(function CustomOpenAiCompatCard() {
+  const endpoint = useOpenAiCompatEndpointStore();
+  const [baseUrlDraft, setBaseUrlDraft] = useState(endpoint.baseUrl);
+  const [labelDraft, setLabelDraft] = useState(endpoint.label);
+
+  useEffect(() => {
+    setBaseUrlDraft(endpoint.baseUrl);
+  }, [endpoint.baseUrl]);
+
+  useEffect(() => {
+    setLabelDraft(endpoint.label);
+  }, [endpoint.label]);
+
+  const commitBaseUrl = () => endpoint.setBaseUrl(baseUrlDraft);
+  const commitLabel = () => endpoint.setLabel(labelDraft);
+  const tested = endpoint.lastProbeAt != null;
+  const statusText = endpoint.fetching
+    ? 'Testing...'
+    : endpoint.lastError
+      ? endpoint.lastError
+      : endpoint.available
+        ? `${endpoint.count} model${endpoint.count === 1 ? '' : 's'} found`
+        : tested
+          ? 'No models found.'
+          : 'Not tested yet.';
+
+  return (
+    <Card style={{ marginBottom: 18 }}>
+      <div style={cardHeaderStyle}>
+        <ProviderAvatar name="Custom" />
+        <div style={{ flex: 1 }}>
+          <div style={cardTitleStyle}>Custom endpoint (OpenAI-compatible)</div>
+          <div style={cardDescStyle}>LM Studio, llama.cpp server, vLLM, Jan, and LocalAI via /v1.</div>
+        </div>
+        {endpoint.available
+          ? <Pill>Connected</Pill>
+          : <Pill tone="muted">Not connected</Pill>}
+      </div>
+      <SettingsRow label="Base URL">
+        <Input
+          value={baseUrlDraft}
+          onChange={e => setBaseUrlDraft(e.currentTarget.value)}
+          onBlur={commitBaseUrl}
+          onKeyDown={e => { if (e.key === 'Enter') commitBaseUrl(); }}
+          placeholder="http://127.0.0.1:1234"
+          style={{ ...tokens.mono, fontSize: 12 }}
+        />
+      </SettingsRow>
+      <SettingsRow label="API key (optional)">
+        <SecretKeyField
+          value={endpoint.apiKey}
+          onSet={k => endpoint.setKey(k)}
+          onClear={() => endpoint.setKey('')}
+          placeholder="Only if this endpoint requires auth"
+          connectLabel="Set"
+        />
+      </SettingsRow>
+      <SettingsRow label="Label">
+        <Input
+          value={labelDraft}
+          onChange={e => setLabelDraft(e.currentTarget.value)}
+          onBlur={commitLabel}
+          onKeyDown={e => { if (e.key === 'Enter') commitLabel(); }}
+          placeholder="Custom"
+        />
+      </SettingsRow>
+      <SettingsRow label="Models" last>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span
+            role={endpoint.lastError ? 'alert' : 'status'}
+            style={{ flex: 1, color: endpoint.lastError ? '#ff7597' : 'var(--text-faint)', fontSize: 12 }}
+          >
+            {statusText}
+          </span>
+          <Button
+            onClick={() => {
+              endpoint.setBaseUrl(baseUrlDraft);
+              endpoint.setLabel(labelDraft);
+              void endpoint.test();
+            }}
+            disabled={endpoint.fetching || !baseUrlDraft.trim()}
+            title="Probe /v1/models on the URL above."
+          >
+            {endpoint.fetching ? 'Testing...' : 'Test'}
+          </Button>
+        </div>
+      </SettingsRow>
+      <div style={footerHintStyle}>
+        Examples: LM Studio 1234, llama.cpp 8080, vLLM 8000. HTTP remote LAN endpoints are blocked by the webview CSP; use localhost or HTTPS.
+      </div>
+    </Card>
+  );
+});
 
 const LocalLlmCard = observer(function LocalLlmCard() {
   const local = useLocalRuntimeStore();

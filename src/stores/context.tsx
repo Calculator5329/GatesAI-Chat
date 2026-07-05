@@ -18,6 +18,7 @@ import type { LocalRuntimeStore } from './LocalRuntimeStore';
 import type { SearchStore } from './SearchStore';
 import type { McpStore } from './McpStore';
 import type { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
+import type { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
 import type { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import type { RagStore } from '../services/rag/RagStore';
 import type { SkillsStore } from './SkillsStore';
@@ -93,6 +94,10 @@ export function useMcpStore(): McpStore {
 
 export function useOpenRouterCompatibilityStore(): OpenRouterCompatibilityStore {
   return useRootStore().openrouterCompatibility;
+}
+
+export function useOpenAiCompatEndpointStore(): OpenAiCompatEndpointStore {
+  return useRootStore().openAiCompatEndpoint;
 }
 
 export function useSourceWorkspaceStore(): SourceWorkspaceStore {

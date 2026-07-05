@@ -20,11 +20,14 @@ export type ModelPickerSource = 'auto' | 'cloud' | 'local' | 'image';
  * - `ollamaOnline`: the local Ollama runtime is reachable right now.
  * - `comfyReady`: ComfyUI is managed and online (matches
  *   `LocalRuntimeStore.comfyReady`).
+ * - `openAiCompatAvailable`: the custom OpenAI-compatible endpoint's last
+ *   `/models` probe succeeded.
  */
 export interface RuntimeAvailability {
   webLite: boolean;
   ollamaOnline: boolean;
   comfyReady: boolean;
+  openAiCompatAvailable?: boolean;
 }
 
 /** The live-tested OpenRouter matrix doubles as the "verified" set. */
@@ -42,7 +45,7 @@ export function isVerifiedModelId(id: string): boolean {
  */
 export function availableSources(flags: RuntimeAvailability): ModelPickerSource[] {
   const sources: ModelPickerSource[] = ['auto', 'cloud'];
-  if (!flags.webLite && flags.ollamaOnline) sources.push('local');
+  if ((!flags.webLite && flags.ollamaOnline) || flags.openAiCompatAvailable) sources.push('local');
   if (!flags.webLite && flags.comfyReady) sources.push('image');
   return sources;
 }
@@ -52,6 +55,8 @@ export function isProviderAvailable(providerId: ProviderId, flags: RuntimeAvaila
   switch (providerId) {
     case 'openrouter':
       return true;
+    case 'openai-compat':
+      return flags.openAiCompatAvailable === true;
     case 'ollama':
       return !flags.webLite && flags.ollamaOnline;
     case 'local-image':

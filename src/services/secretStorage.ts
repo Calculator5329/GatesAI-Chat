@@ -7,6 +7,7 @@ type TauriInvoke = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T
 
 export const SECRET_NAMES = {
   openrouterApiKey: 'openrouter.api-key',
+  openAiCompatApiKey: 'openai-compat.api-key',
   braveApiKey: 'brave.api-key',
   ollamaApiKey: 'ollama.api-key',
 } as const;
@@ -15,6 +16,7 @@ export type KnownSecretName = typeof SECRET_NAMES[keyof typeof SECRET_NAMES];
 
 export const KNOWN_SECRET_NAMES: KnownSecretName[] = [
   SECRET_NAMES.openrouterApiKey,
+  SECRET_NAMES.openAiCompatApiKey,
   SECRET_NAMES.braveApiKey,
   SECRET_NAMES.ollamaApiKey,
 ];
@@ -57,6 +59,12 @@ const localSecretMappings: Record<KnownSecretName, LocalSecretMapping> = {
     read: readLocalOpenRouterKey,
     set: setLocalOpenRouterKey,
     delete: deleteLocalOpenRouterKey,
+  },
+  [SECRET_NAMES.openAiCompatApiKey]: {
+    storageKey: 'gatesai.providers.v1',
+    read: readLocalOpenAiCompatKey,
+    set: setLocalOpenAiCompatKey,
+    delete: deleteLocalOpenAiCompatKey,
   },
   [SECRET_NAMES.braveApiKey]: {
     storageKey: 'gatesai.search.v1',
@@ -238,6 +246,33 @@ function deleteLocalOpenRouterKey(storage: KeyValuePersistence): void {
   else delete obj.openrouter;
   delete obj.openRouter;
   deleteOpenRouterLegacyKeys(obj);
+  writeJsonObject(storage, 'gatesai.providers.v1', obj);
+}
+
+function readLocalOpenAiCompatKey(storage: KeyValuePersistence): string | null {
+  const obj = readJsonObject(storage, 'gatesai.providers.v1');
+  const compat = objectValue(obj['openai-compat'] ?? obj.openaiCompat ?? obj.openAiCompat);
+  return stringValue(compat.apiKey) ?? null;
+}
+
+function setLocalOpenAiCompatKey(storage: KeyValuePersistence, value: string): void {
+  const obj = readJsonObject(storage, 'gatesai.providers.v1');
+  const current = objectValue(obj['openai-compat'] ?? obj.openaiCompat ?? obj.openAiCompat);
+  obj['openai-compat'] = { ...current, apiKey: value };
+  delete obj.openaiCompat;
+  delete obj.openAiCompat;
+  writeJsonObject(storage, 'gatesai.providers.v1', obj);
+}
+
+function deleteLocalOpenAiCompatKey(storage: KeyValuePersistence): void {
+  const obj = readJsonObject(storage, 'gatesai.providers.v1');
+  const current = objectValue(obj['openai-compat'] ?? obj.openaiCompat ?? obj.openAiCompat);
+  delete current.apiKey;
+  delete current.key;
+  if (Object.keys(current).length > 0) obj['openai-compat'] = current;
+  else delete obj['openai-compat'];
+  delete obj.openaiCompat;
+  delete obj.openAiCompat;
   writeJsonObject(storage, 'gatesai.providers.v1', obj);
 }
 

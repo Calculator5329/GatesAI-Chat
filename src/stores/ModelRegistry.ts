@@ -75,6 +75,7 @@ export class ModelRegistry {
   byProvider(): Record<ProviderId, Model[]> {
     const out: Record<ProviderId, Model[]> = {
       openrouter: [],
+      'openai-compat': [],
       ollama: [],
       'local-image': [],
     };

@@ -275,7 +275,7 @@ const ModelRow = memo(function ModelRow({
 });
 
 export const ModelPopover = observer(function ModelPopover({ currentModelId, onPick, onClose }: ModelPopoverProps) {
-  const { chat, registry, localRuntime } = useEditorial();
+  const { chat, registry, localRuntime, providers } = useEditorial();
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
@@ -300,6 +300,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   const registryAll = registry.all;
   const ollamaOnline = localRuntime.runtimes.ollama.status === 'online';
   const comfyReady = localRuntime.comfyReady;
+  const openAiCompatAvailable = providers.getConfig('openai-compat').available === true;
 
   const webLite = isWebLite();
   const computedSections = useMemo(() => computeModelSections(
@@ -314,10 +315,10 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       source,
       caps,
       recentIds,
-      runtime: { webLite, ollamaOnline, comfyReady },
+      runtime: { webLite, ollamaOnline, comfyReady, openAiCompatAvailable },
     },
     favoriteIds,
-  ), [chat.defaultModelId, registry, registryAll, query, currentModelId, source, caps, recentIds, favoriteIds, webLite, ollamaOnline, comfyReady]);
+  ), [chat.defaultModelId, registry, registryAll, query, currentModelId, source, caps, recentIds, favoriteIds, webLite, ollamaOnline, comfyReady, openAiCompatAvailable]);
 
   const {
     sourceTabs,

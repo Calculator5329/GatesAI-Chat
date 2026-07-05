@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { OpenRouterProvider } from '../../src/services/llm/openrouter';
+import { OpenAiCompatProvider } from '../../src/services/llm/openaiCompat';
 import type { LlmChunk, LlmRequest } from '../../src/core/llm';
 
 async function drain(stream: AsyncIterable<LlmChunk>): Promise<LlmChunk[]> {
@@ -229,5 +230,51 @@ describe('OpenRouterProvider', () => {
     }, new AbortController().signal));
 
     expect((body as { reasoning?: unknown }).reasoning).toEqual({ effort: 'high', exclude: true });
+  });
+});
+
+describe('OpenAiCompatProvider custom endpoint', () => {
+  it('streams through the normalized custom URL with optional authorization', async () => {
+    let body: unknown;
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return okSseResponse();
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new OpenAiCompatProvider({
+      id: 'openai-compat',
+      name: 'Custom',
+      baseUrl: 'http://localhost:1234/v1',
+      apiKey: 'sk-local',
+      requiresApiKey: false,
+      available: true,
+    });
+
+    await drain(provider.stream({
+      modelId: 'qwen/qwen3',
+      messages: [{ role: 'user', content: 'hi' }],
+      tools: [{
+        name: 'fs',
+        description: 'filesystem',
+        parameters: { type: 'object', properties: {}, additionalProperties: false },
+      }],
+    }, new AbortController().signal));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:1234/v1/chat/completions',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer sk-local',
+          'Content-Type': 'application/json',
+        }),
+      }),
+    );
+    expect(body).toEqual(expect.objectContaining({
+      model: 'qwen/qwen3',
+      stream: true,
+      tool_choice: 'auto',
+    }));
   });
 });
