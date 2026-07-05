@@ -3,6 +3,7 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import type { ActivityItem, AssistantMessage, ChatSnapshot, Message, StreamActivity, Thread } from '../core/types';
 import type { LlmRequest } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
+import { resolveBackgroundModelId, resolveDefaultModelId } from '../core/defaultModel';
 import { formatAttachmentFooter, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
 import {
   branchThreadFrom,
@@ -149,7 +150,7 @@ export class ChatStore {
     if (snapshot) {
       this.applySnapshot(snapshot);
     } else {
-      const thread = createEmptyThread(newId('t'), Date.now());
+      const thread = createEmptyThread(newId('t'), Date.now(), this.defaultModelId);
       this.threads = [thread];
       this.activeThreadId = thread.id;
     }
@@ -245,6 +246,7 @@ export class ChatStore {
   private createAutoNameHost(): AutoNameHost {
     return {
       getThread: threadId => this.findThread(threadId),
+      getModelCandidates: fallbackModelId => this.backgroundModelCandidates(fallbackModelId),
       setThreadNaming: (threadId, naming) => {
         runInAction(() => {
           const thread = this.findThread(threadId);
@@ -278,6 +280,43 @@ export class ChatStore {
 
   get activeThread(): Thread | null {
     return this.threads.find(t => t.id === this.activeThreadId) ?? null;
+  }
+
+  get defaultModelId(): string {
+    return resolveDefaultModelId({
+      hasOpenRouterKey: !!this.providers.getConfig('openrouter').apiKey,
+      ollamaOnline: this.providers.getConfig('ollama').available === true,
+      localModels: this.registry.all.filter(model => model.providerId === 'ollama'),
+      registry: this.registry,
+    });
+  }
+
+  get backgroundModelId(): string | null {
+    return resolveBackgroundModelId({
+      hasOpenRouterKey: !!this.providers.getConfig('openrouter').apiKey,
+      ollamaOnline: this.providers.getConfig('ollama').available === true,
+      localModels: this.registry.all.filter(model => model.providerId === 'ollama'),
+      registry: this.registry,
+    });
+  }
+
+  private backgroundModelCandidates(fallbackModelId: string): string[] {
+    const ids = [this.backgroundModelId, fallbackModelId, this.defaultModelId]
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+    return [...new Set(ids)];
+  }
+
+  reconcileDefaultModelForEmptyThreads(): void {
+    const nextDefault = this.defaultModelId;
+    if (nextDefault === DEFAULT_MODEL_ID) return;
+    let changed = false;
+    for (const thread of this.threads) {
+      if (thread.deletedAt != null || thread.messages.length > 0 || thread.modelId !== DEFAULT_MODEL_ID) continue;
+      thread.modelId = nextDefault;
+      thread.contextMode = 'micro';
+      changed = true;
+    }
+    if (changed) this.schedulePersistSnapshot(this.snapshot);
   }
 
   get activeThreadHydrating(): boolean {
@@ -380,7 +419,7 @@ export class ChatStore {
     baseUsed: number;
   } {
     const thread = this.activeThread;
-    const model = this.registry.findById(thread?.modelId ?? '') ?? this.registry.findById(DEFAULT_MODEL_ID);
+    const model = this.registry.findById(thread?.modelId ?? '') ?? this.registry.findById(this.defaultModelId);
     const window = contextWindowFor(model);
     if (!thread) return { window, isLocalImage: false, baseUsed: 0 };
     if (model?.providerId === 'local-image') {
@@ -447,7 +486,7 @@ export class ChatStore {
   }
 
   createThread(): string {
-    const thread = createEmptyThread(newId('t'), Date.now());
+    const thread = createEmptyThread(newId('t'), Date.now(), this.defaultModelId);
     this.threads.unshift(thread);
     this.activeThreadId = thread.id;
     return thread.id;
@@ -495,7 +534,10 @@ export class ChatStore {
     const now = Date.now();
     const title = normalizeAgentTaskTitle(input.title);
     const instructions = input.instructions.trim();
-    const modelId = input.model && this.registry.findById(input.model) ? input.model : origin.modelId;
+    const modelId = this.resolveAgentTaskModelId(input.model, origin);
+    if (!modelId) {
+      return { ok: false, message: 'Unable to start background task: no local or cloud chat model is available.' };
+    }
     const maxRounds = clampAgentTaskMaxRounds(input.max_rounds);
     const systemPrompt = normalizeAgentTaskSystemPromptBody(input.system_prompt);
     const delayMinutes = clampAgentTaskStartDelayMinutes(input.start_delay_minutes);
@@ -548,6 +590,18 @@ export class ChatStore {
 
   setThreadModel(threadId: string, modelId: string): void {
     this.updateThread(threadId, () => ({ modelId }));
+  }
+
+  private resolveAgentTaskModelId(inputModelId: string | undefined, origin: Thread): string | null {
+    const explicit = inputModelId ? this.registry.findById(inputModelId) : undefined;
+    if (explicit && this.providers.isConnected(explicit.providerId)) return explicit.id;
+
+    const originModel = this.registry.findById(origin.modelId);
+    if (originModel && this.providers.isConnected(originModel.providerId)) return origin.modelId;
+
+    const fallbackId = this.backgroundModelId ?? this.defaultModelId;
+    const fallback = this.registry.findById(fallbackId);
+    return fallback && this.providers.isConnected(fallback.providerId) ? fallback.id : null;
   }
 
   setThreadContextMode(threadId: string, mode: ChatContextMode): void {
@@ -605,7 +659,10 @@ export class ChatStore {
   }
 
   async llmComplete(messages: Pick<LlmRequest['messages'][number], 'role' | 'content'>[], systemPrompt?: string): Promise<string> {
-    const modelId = this.activeThread?.modelId ?? DEFAULT_MODEL_ID;
+    const activeModel = this.registry.findById(this.activeThread?.modelId);
+    const modelId = activeModel && this.providers.isConnected(activeModel.providerId)
+      ? activeModel.id
+      : this.backgroundModelId ?? this.defaultModelId;
     const { provider, providerModelId } = this.providers.router.resolve(modelId);
     const controller = new AbortController();
     let text = '';
@@ -647,7 +704,7 @@ export class ChatStore {
   clearAllThreads(): void {
     this.abortAllStreams();
     this.clearAgentTaskStartTimers();
-    const thread = createEmptyThread(newId('t'), Date.now());
+    const thread = createEmptyThread(newId('t'), Date.now(), this.defaultModelId);
     this.threads = [thread];
     this.activeThreadId = thread.id;
     this.lastErrorByThread = {};
@@ -702,7 +759,7 @@ export class ChatStore {
     runInAction(() => {
       const now = Date.now();
       const fallbackThread = this.activeThreadId === threadId && this.visibleThreads.length <= 1
-        ? createEmptyThread(newId('t'), now)
+        ? createEmptyThread(newId('t'), now, this.defaultModelId)
         : undefined;
       const result = softDeleteThreadOp(this.threads, {
         threadId,
@@ -987,7 +1044,7 @@ export class ChatStore {
           if (!current.archived) return current;
           const hydrated = this.registry.findById(thread.modelId)
             ? thread
-            : { ...thread, modelId: DEFAULT_MODEL_ID };
+            : { ...thread, modelId: this.defaultModelId };
           const next = { ...hydrated };
           delete next.archived;
           this.threads[idx] = next;
@@ -1018,7 +1075,7 @@ export class ChatStore {
     const thread = this.findThread(threadId);
     if (!thread) return null;
     if (this.registry.findById(thread.modelId)) return thread;
-    thread.modelId = DEFAULT_MODEL_ID;
+    thread.modelId = this.defaultModelId;
     return thread;
   }
 
@@ -1148,11 +1205,11 @@ export class ChatStore {
     this.threads = snapshot.threads.map(thread =>
       this.registry.findById(thread.modelId)
         ? thread
-        : { ...thread, modelId: DEFAULT_MODEL_ID }
+        : { ...thread, modelId: this.defaultModelId }
     );
     this.activeThreadId = normalizeActiveThreadId(this.threads, snapshot.activeThreadId);
     if (!this.activeThreadId) {
-      const thread = createEmptyThread(newId('t'), Date.now());
+      const thread = createEmptyThread(newId('t'), Date.now(), this.defaultModelId);
       this.threads = [thread];
       this.activeThreadId = thread.id;
     }
@@ -1274,7 +1331,7 @@ export class ChatStore {
         // keeping stale in-memory threads that would just re-save (and
         // resurrect data the user deleted in the other tab).
         logger.info('persistence', 'Storage cleared by another tab; resetting to an empty conversation');
-        const thread = createEmptyThread(newId('t'), Date.now());
+        const thread = createEmptyThread(newId('t'), Date.now(), this.defaultModelId);
         this.threads = [thread];
         this.activeThreadId = thread.id;
       }

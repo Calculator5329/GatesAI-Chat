@@ -1,9 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SchedulesStore } from '../../src/stores/SchedulesStore';
+import { ChatStore } from '../../src/stores/ChatStore';
+import { ModelRegistry } from '../../src/stores/ModelRegistry';
+import { ProviderStore } from '../../src/stores/ProviderStore';
+import { UserProfileStore } from '../../src/stores/UserProfileStore';
 import { createSchedulesPersistenceProvider } from '../../src/services/schedulesStorage';
 import { MAX_CONCURRENT_AGENT_TASKS } from '../../src/services/chat/agentTasks';
 import type { Thread } from '../../src/core/types';
+import type { LlmChunk, LlmProvider, LlmRequest } from '../../src/core/llm';
 import type { KeyValuePersistence } from '../../src/services/storage/persistenceProvider';
+import { installMockProvider, flush } from '../helpers/mockProvider';
+import { clearAppStorage } from '../helpers/storage';
 
 class FakeClock {
   value: number;
@@ -28,6 +35,19 @@ class MemoryStorage implements KeyValuePersistence {
   }
   removeItem(key: string): void {
     this.values.delete(key);
+  }
+}
+
+class ScheduleProvider implements LlmProvider {
+  readonly id = 'ollama' as const;
+  readonly calls: LlmRequest[] = [];
+
+  ready(): boolean { return true; }
+
+  async *stream(req: LlmRequest): AsyncIterable<LlmChunk> {
+    this.calls.push(req);
+    yield { type: 'text', delta: 'Scheduled local summary.' };
+    yield { type: 'done', finishReason: 'stop' };
   }
 }
 
@@ -109,6 +129,7 @@ describe('SchedulesStore', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    clearAppStorage();
   });
 
   it('defers while disabled and recomputes next run when re-enabled', () => {
@@ -264,5 +285,46 @@ describe('SchedulesStore', () => {
       instructions: 'Run manually.',
       originThreadId: 'origin',
     });
+  });
+
+  it('runs scheduled tasks on a local model when keyless Ollama is online', async () => {
+    clearAppStorage();
+    const registry = new ModelRegistry();
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3.2:3b',
+      name: 'llama3.2:3b',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3.2:3b',
+      dynamic: true,
+      contextLength: 32_000,
+    }]);
+    const providers = new ProviderStore(registry, () => ({
+      ollama: { baseUrl: 'http://127.0.0.1:11434', available: true, toolsEnabled: true },
+    }));
+    const provider = new ScheduleProvider();
+    installMockProvider(providers, provider);
+    const chat = new ChatStore(providers, registry, new UserProfileStore());
+    const store = new SchedulesStore(chat, {
+      clock: new FakeClock(Date.parse('2026-01-01T00:00:00Z')),
+      persistence: createSchedulesPersistenceProvider(new MemoryStorage()),
+      autoPersist: false,
+    });
+    const schedule = store.create({
+      title: 'Local',
+      instructions: 'Run locally.',
+      cadence: { kind: 'interval', hours: 24 },
+    });
+
+    const result = store.runNow(schedule.id);
+    await flush(80);
+
+    const agent = chat.threads.find(thread => thread.id === result.threadId)!;
+    expect(result.ok).toBe(true);
+    expect(agent.modelId).toBe('ollama-llama3.2:3b');
+    expect(provider.calls.find(call => call.threadId === agent.id)?.modelId).toBe('ollama-llama3.2:3b');
+    store.dispose();
+    chat.dispose();
+    providers.dispose();
   });
 });

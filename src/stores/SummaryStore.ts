@@ -8,6 +8,7 @@ import type { ChatStore } from './ChatStore';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import { logger } from '../services/diagnostics/logger';
+import { resolveBackgroundModelId } from '../core/defaultModel';
 
 /**
  * Cross-thread memory by way of lazy summarization.
@@ -40,15 +41,6 @@ const MIN_NEW_MESSAGES = 4;
 const IDLE_DEBOUNCE_MS = 60_000;
 const SCAN_INTERVAL_MS = 15_000;
 const MAX_SUMMARY_TOKENS = 120;
-
-/**
- * Order matters: cheapest / fastest first. The first provider that's
- * `ready()` wins. Falls through to the thread's own model if none.
- */
-const FAST_SUMMARY_MODELS: string[] = [
-  'or-gemini-3.1-flash-lite',
-  'or-gemini-3-flash',
-];
 
 const SUMMARY_INSTRUCTION =
   'Summarize the conversation below in ONE concise sentence (≤ 25 words), past-tense, third-person. Capture the main topic and any concrete decisions, preferences, or facts that would help a future conversation pick up context. No preamble, no quotes, no markdown — just the sentence.';
@@ -184,7 +176,7 @@ export class SummaryStore {
   }
 
   private async summarizeOne(thread: Thread): Promise<void> {
-    const { provider, providerModelId } = this.pickSummarizer(thread.modelId);
+    const { provider, providerModelId } = this.pickSummarizer();
     if (!provider) {
       // Nothing connected at all — quietly skip.
       return;
@@ -227,25 +219,20 @@ export class SummaryStore {
     });
   }
 
-  /**
-   * Pick the cheap/fast provider, or fall back to the thread's own model.
-   * Returns `provider: null` only when nothing is configured (no key for
-   * any candidate AND the thread's own model is also unconfigured), in
-   * which case the caller should silently skip.
-   */
-  private pickSummarizer(threadModelId: string): { provider: ReturnType<ProviderStore['router']['get']> | null; providerModelId: string } {
-    for (const id of FAST_SUMMARY_MODELS) {
-      const model = this.registry.findById(id);
-      if (!model) continue;
-      const provider = this.providers.router.get(model.providerId as ProviderId);
-      if (provider.ready()) return { provider, providerModelId: model.providerModelId };
-    }
-    // Fallback: thread's own model.
-    const fallback = this.registry.findById(threadModelId);
-    if (!fallback) return { provider: null, providerModelId: '' };
-    const provider = this.providers.router.get(fallback.providerId as ProviderId);
+  /** Pick a cheap cloud model or small local model; return null to silently skip. */
+  private pickSummarizer(): { provider: ReturnType<ProviderStore['router']['get']> | null; providerModelId: string } {
+    const resolvedId = resolveBackgroundModelId({
+      hasOpenRouterKey: !!this.providers.getConfig('openrouter').apiKey,
+      ollamaOnline: this.providers.getConfig('ollama').available === true,
+      localModels: this.registry.all.filter(model => model.providerId === 'ollama'),
+      registry: this.registry,
+    });
+    if (!resolvedId) return { provider: null, providerModelId: '' };
+    const model = this.registry.findById(resolvedId);
+    if (!model) return { provider: null, providerModelId: '' };
+    const provider = this.providers.router.get(model.providerId as ProviderId);
     return provider.ready()
-      ? { provider, providerModelId: fallback.providerModelId }
+      ? { provider, providerModelId: model.providerModelId }
       : { provider: null, providerModelId: '' };
   }
 }

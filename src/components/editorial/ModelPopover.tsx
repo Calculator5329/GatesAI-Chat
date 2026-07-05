@@ -5,7 +5,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
-import { DEFAULT_MODEL_ID } from '../../core/models';
 import { isWebLite } from '../../core/runtime';
 import { tokens } from '../../core/styleTokens';
 import { isVerifiedModelId } from '../../core/modelPickerAvailability';
@@ -191,6 +190,7 @@ interface RowProps {
   active: boolean;
   isFavorite: boolean;
   verified: boolean;
+  recommendedLocal: boolean;
   flatIndex: number;
   onPick: (model: Model) => void;
   onToggleFavorite: (model: Model) => void;
@@ -198,7 +198,7 @@ interface RowProps {
 }
 
 const ModelRow = memo(function ModelRow({
-  model, meta, selected, active, isFavorite, verified, flatIndex, onPick, onToggleFavorite, onHover,
+  model, meta, selected, active, isFavorite, verified, recommendedLocal, flatIndex, onPick, onToggleFavorite, onHover,
 }: RowProps) {
   // Unusable models (offline Ollama / ComfyUI) are filtered out of the picker
   // entirely by `isModelAvailable`, so every row rendered here is selectable.
@@ -248,13 +248,13 @@ const ModelRow = memo(function ModelRow({
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             padding: 0, border: 'none', background: 'transparent', cursor: 'pointer',
             flexShrink: 0, lineHeight: 0,
-            opacity: isFavorite ? 1 : 0.35,
+            opacity: (isFavorite || recommendedLocal) ? 1 : 0.35,
           }}
         >
           <svg
             width="10" height="10" viewBox="0 0 16 16"
-            fill={isFavorite ? 'var(--accent)' : 'none'}
-            stroke={isFavorite ? 'var(--accent)' : 'var(--text-faint)'}
+            fill={(isFavorite || recommendedLocal) ? 'var(--accent)' : 'none'}
+            stroke={(isFavorite || recommendedLocal) ? 'var(--accent)' : 'var(--text-faint)'}
             strokeWidth="1.4"
             style={STAR_ICON_STYLE}
           >
@@ -275,7 +275,7 @@ const ModelRow = memo(function ModelRow({
 });
 
 export const ModelPopover = observer(function ModelPopover({ currentModelId, onPick, onClose }: ModelPopoverProps) {
-  const { registry, localRuntime } = useEditorial();
+  const { chat, registry, localRuntime } = useEditorial();
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
@@ -310,13 +310,14 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     query,
     {
       currentModelId,
+      defaultModelId: chat.defaultModelId,
       source,
       caps,
       recentIds,
       runtime: { webLite, ollamaOnline, comfyReady },
     },
     favoriteIds,
-  ), [registry, registryAll, query, currentModelId, source, caps, recentIds, favoriteIds, webLite, ollamaOnline, comfyReady]);
+  ), [chat.defaultModelId, registry, registryAll, query, currentModelId, source, caps, recentIds, favoriteIds, webLite, ollamaOnline, comfyReady]);
 
   const {
     sourceTabs,
@@ -325,6 +326,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
     flat,
     flatIndexById,
     favoriteSet,
+    defaultModelId,
     totalMatching,
     hiddenCount,
   } = computedSections;
@@ -349,15 +351,15 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   }, []);
 
   const pickModel = useCallback((model: Model) => {
-    const resolvedId = model.id === AUTO_MODEL.id ? DEFAULT_MODEL_ID : model.id;
+    const resolvedId = model.id === AUTO_MODEL.id ? defaultModelId : model.id;
     setRecentIds(registry.rememberRecentModel(resolvedId));
     onPick(resolvedId);
     onClose();
-  }, [registry, onClose, onPick]);
+  }, [defaultModelId, registry, onClose, onPick]);
   const toggleFavorite = useCallback((model: Model) => {
-    const resolvedId = model.id === AUTO_MODEL.id ? DEFAULT_MODEL_ID : model.id;
+    const resolvedId = model.id === AUTO_MODEL.id ? defaultModelId : model.id;
     setFavoriteIds(registry.toggleFavoriteModel(resolvedId));
-  }, [registry]);
+  }, [defaultModelId, registry]);
   const hoverModelAt = useCallback((index: number) => {
     setActiveIdx(index);
   }, []);
@@ -522,9 +524,9 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
             {models.map(model => {
               const meta = metaFor(model);
               const flatIndex = flatIndexById.get(model.id) ?? -1;
-              const favoriteKey = model.id === AUTO_MODEL.id ? DEFAULT_MODEL_ID : model.id;
+              const favoriteKey = model.id === AUTO_MODEL.id ? defaultModelId : model.id;
               const selected = model.id === AUTO_MODEL.id
-                ? currentModelId === DEFAULT_MODEL_ID
+                ? currentModelId === defaultModelId
                 : model.id === currentModelId;
               return (
                 <ModelRow
@@ -535,6 +537,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
                   active={flatIndex === activeIdx}
                   isFavorite={favoriteSet.has(favoriteKey)}
                   verified={isVerifiedModelId(model.id)}
+                  recommendedLocal={title === 'Recommended' && model.providerId === 'ollama'}
                   flatIndex={flatIndex}
                   onPick={pickModel}
                   onToggleFavorite={toggleFavorite}

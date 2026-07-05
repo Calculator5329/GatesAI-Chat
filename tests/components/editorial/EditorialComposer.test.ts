@@ -322,7 +322,7 @@ describe('EditorialComposer API-key banner', () => {
     expect(rendered.textContent).not.toContain('local Ã‚· micro tools');
   });
 
-  it('model picker auto row selects Gemini 3 Flash API', async () => {
+  it('model picker auto row selects the resolved cloud default when local is offline', async () => {
     store = buildStore();
     store.registry.setDynamicForProvider('ollama', [{
       id: 'ollama-llama3',
@@ -335,7 +335,7 @@ describe('EditorialComposer API-key banner', () => {
     const rendered = render(store);
 
     await openModelPicker(rendered);
-    expect(rendered.textContent).toContain('Auto: Gemini 3 Flash API');
+    expect(rendered.querySelector('[data-model-row="auto-gemini-3-flash"]')).toBeTruthy();
     act(() => {
       rendered.querySelector('[data-model-row="auto-gemini-3-flash"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -384,7 +384,7 @@ describe('EditorialComposer API-key banner', () => {
     expect(rendered.textContent).toContain('LOCAL');
     expect(rendered.textContent).toContain('online');
     expect(rendered.textContent).toContain('tools off');
-    expect(rendered.textContent).not.toContain('Auto: Gemini 3 Flash API');
+    expect(rendered.querySelector('[data-model-row="auto-gemini-3-flash"]')).toBeNull();
   });
 
   it('model picker keeps recent selections without changing the active model until picked', async () => {

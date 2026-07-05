@@ -16,6 +16,7 @@ import type { LlmProvider, ProviderId } from '../../src/core/llm';
  * regardless of which fast model it tries first.
  */
 function installEverywhere(providers: ProviderStore, mock: MockProvider): void {
+  providers.setKey('openrouter', 'test-key');
   installMockProvider(providers, mock);
   // Override get() to always return the mock and report ready.
   (providers.router as unknown as { get: (id: ProviderId) => LlmProvider }).get = () => mock;
@@ -25,6 +26,26 @@ function setup() {
   clearAppStorage();
   const registry = new ModelRegistry();
   const providers = new ProviderStore(registry);
+  const profile = new UserProfileStore();
+  const chat = new ChatStore(providers, registry, profile);
+  return { registry, providers, profile, chat };
+}
+
+function setupLocal() {
+  clearAppStorage();
+  const registry = new ModelRegistry();
+  registry.setDynamicForProvider('ollama', [{
+    id: 'ollama-llama3.2:3b',
+    name: 'llama3.2:3b',
+    vendor: 'Ollama',
+    providerId: 'ollama',
+    providerModelId: 'llama3.2:3b',
+    dynamic: true,
+    contextLength: 32_000,
+  }]);
+  const providers = new ProviderStore(registry, () => ({
+    ollama: { baseUrl: 'http://127.0.0.1:11434', available: true, toolsEnabled: true },
+  }));
   const profile = new UserProfileStore();
   const chat = new ChatStore(providers, registry, profile);
   return { registry, providers, profile, chat };
@@ -215,5 +236,65 @@ describe('SummaryStore', () => {
     expect(deleted.summary).toBe('Old summary on deleted thread');
     expect(mock.calls.filter(c => c.modelId === 'google/gemini-3.1-flash-lite')).toHaveLength(0);
     expect(summary.recentSummariesExcluding(activeId)).not.toContain('Untitled conversation: Old summary on deleted thread');
+  });
+
+  it('uses a local summarizer when keyless Ollama is online', async () => {
+    const { chat, providers, registry } = setupLocal();
+    const mock = new MockProvider([
+      { type: 'text', delta: 'Local summary.' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    installMockProvider(providers, mock);
+    (providers.router as unknown as { get: (id: ProviderId) => LlmProvider }).get = () => mock;
+
+    const tid = chat.createThread();
+    const t = chat.threads.find(x => x.id === tid)!;
+    runInAction(() => {
+      t.messages.push(
+        { id: 'm1', role: 'user', content: 'one', createdAt: 1 },
+        { id: 'm2', role: 'assistant', content: 'two', createdAt: 2 },
+        { id: 'm3', role: 'user', content: 'three', createdAt: 3 },
+        { id: 'm4', role: 'assistant', content: 'four', createdAt: 4 },
+      );
+    });
+    chat.createThread();
+
+    const summary = new SummaryStore(chat, providers, registry);
+    (summary as unknown as { lastActivityAt: number }).lastActivityAt = 0;
+    await summary.tick();
+
+    expect(mock.calls[0].modelId).toBe('llama3.2:3b');
+    expect(t.summary).toBe('Local summary.');
+  });
+
+  it('quietly skips summaries when neither cloud nor local is available', async () => {
+    const { chat, providers, registry } = setup();
+    providers.setKey('openrouter', '');
+    const mock = new MockProvider([
+      { type: 'text', delta: 'should not run' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    installMockProvider(providers, mock);
+    (providers.router as unknown as { get: (id: ProviderId) => LlmProvider }).get = () => mock;
+
+    const tid = chat.createThread();
+    const t = chat.threads.find(x => x.id === tid)!;
+    runInAction(() => {
+      t.messages.push(
+        { id: 'm1', role: 'user', content: 'one', createdAt: 1 },
+        { id: 'm2', role: 'assistant', content: 'two', createdAt: 2 },
+        { id: 'm3', role: 'user', content: 'three', createdAt: 3 },
+        { id: 'm4', role: 'assistant', content: 'four', createdAt: 4 },
+      );
+    });
+    chat.createThread();
+
+    const summary = new SummaryStore(chat, providers, registry);
+    (summary as unknown as { lastActivityAt: number }).lastActivityAt = 0;
+    await summary.tick();
+
+    expect(mock.calls).toHaveLength(0);
+    expect(summary.lastError).toBeNull();
+    expect(t.summary).toBeUndefined();
   });
 });

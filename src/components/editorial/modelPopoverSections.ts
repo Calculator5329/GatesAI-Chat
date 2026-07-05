@@ -1,5 +1,5 @@
 import type { Model } from '../../core/types';
-import { DEFAULT_OPENROUTER_CATALOG_MODEL_IDS } from '../../core/models';
+import { DEFAULT_MODEL_ID, DEFAULT_OPENROUTER_CATALOG_MODEL_IDS } from '../../core/models';
 import {
   availableSources,
   isModelAvailable,
@@ -20,6 +20,7 @@ export interface ModelSectionRegistry {
 
 export interface ModelSectionFilters {
   currentModelId: string | undefined;
+  defaultModelId?: string;
   source: SourceFilter;
   caps: ReadonlySet<CapabilityFilter>;
   recentIds: readonly string[];
@@ -34,6 +35,7 @@ export interface ComputedModelSections {
   flat: Model[];
   flatIndexById: Map<string, number>;
   favoriteSet: Set<string>;
+  defaultModelId: string;
   totalMatching: number;
   hiddenCount: number;
 }
@@ -47,6 +49,7 @@ export function computeModelSections(
   const sourceTabs = availableSources(filters.runtime);
   const effectiveSource: SourceFilter = sourceTabs.includes(filters.source) ? filters.source : 'auto';
   const registryAll = registry.all;
+  const defaultModelId = filters.defaultModelId ?? DEFAULT_MODEL_ID;
   const all = registryAll.filter(model => isModelAvailable(model, filters.runtime));
   const currentModel = registry.findById(filters.currentModelId);
   const recommendableCurrent = currentModel && isModelAvailable(currentModel, filters.runtime)
@@ -87,6 +90,7 @@ export function computeModelSections(
     flat,
     flatIndexById,
     favoriteSet: new Set(favorites),
+    defaultModelId,
     totalMatching,
     hiddenCount: totalMatching - flat.length,
   };
