@@ -44,6 +44,13 @@ release-assets/
 # Codex delegation prompts + launchers (session tooling, not product code)
 .codex-tasks/
 
+# Internal engineering scratch notes (kept local, not part of the public repo)
+docs/notes/
+
+# Firebase hosting config (deploy is via GitHub Pages; keep local if used)
+.firebaserc
+firebase.json
+
 # Stray local dev-server logs
 vite-*.log
 .codex-vite-*.log

@@ -3,6 +3,7 @@
   "private": true,
   "version": "4.5.0",
   "description": "Local-first desktop AI chat workspace (React 19 + Tauri 2) with a sandboxed local bridge for files, shell, SQLite, git, web search, and image generation.",
+  "license": "AGPL-3.0-only",
   "homepage": "https://calculator5329.github.io/GatesAI-Chat/",
   "repository": {
     "type": "git",
@@ -14,7 +15,6 @@
     "source:snapshot": "node scripts/create-source-snapshot.mjs",
     "build": "tsc -b && vite build",
     "build:web": "tsc -b && vite build --mode firebase",
-    "deploy:firebase": "npm run build:web && firebase deploy --only hosting",
     "analyze": "vite build --mode analyze --sourcemap",
     "lint": "eslint .",
     "typecheck": "tsc -b && tsc -p tsconfig.test.json --noEmit",

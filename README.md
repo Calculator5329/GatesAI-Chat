@@ -195,5 +195,11 @@ src/
   services/     llm/, tools/, image/, bridge, storage, diagnostics/, local/, compat/, search/, router
   core/         types, models, providers, theme, runtime
 tests/          Vitest suite (kept out of the app build)
-docs/           handbook, architecture, tech spec, roadmap, changelog, audits, plans, notes
+docs/           handbook, architecture, tech spec, roadmap, changelog, audits, plans
 ```
+
+## License
+
+Licensed under the [GNU Affero General Public License v3.0](LICENSE). You are free to use,
+study, modify, and share this software; if you run a modified version as a network service, the
+AGPL requires you to make your source available to its users.

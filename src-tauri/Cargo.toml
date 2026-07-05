@@ -3,8 +3,8 @@ name = "gatesai-chat"
 version = "4.0.0"
 description = "GatesAI Chat — local-first AI chat with workspace tools"
 authors = ["Ethan Gates"]
-license = ""
-repository = ""
+license = "AGPL-3.0-only"
+repository = "https://github.com/Calculator5329/GatesAI-Chat"
 edition = "2021"
 rust-version = "1.77.2"
 
