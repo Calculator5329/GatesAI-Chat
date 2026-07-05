@@ -18,6 +18,7 @@ export const sourceWorkspaceTool: Tool = {
       '',
       'This is NOT the bridge /workspace. Use source:// paths such as source://src/app/App.tsx.',
       'The source workspace must be prepared before file actions. Use action `prepare` when status says it is missing or stale.',
+      'After edits, the user can review changed files, diffs, and per-file reverts in the Workspace menu. Do not claim changes are hidden.',
       '',
       'Actions:',
       '• `status` — report bundled snapshot version/hash and prepared duplicate-source location.',
@@ -31,7 +32,7 @@ export const sourceWorkspaceTool: Tool = {
       'Safety contract:',
       '  Paths are always relative to the prepared duplicate source root.',
       '  Do not use this for user artifacts; use /workspace tools for those.',
-      '  This tool does not run builds, regenerate installers, delete files, or modify the live installed app.',
+      '  This tool does not run builds, regenerate installers, delete files, install updates, or modify the live installed app.',
     ].join('\n'),
     parameters: {
       type: 'object',
@@ -60,7 +61,7 @@ export const sourceWorkspaceTool: Tool = {
     validate: validateSourceWorkspaceArgs,
   },
 
-  async execute(args) {
+  async execute(args, ctx) {
     const {
       getSourceWorkspaceStatus,
       listSourceWorkspace,
@@ -73,16 +74,16 @@ export const sourceWorkspaceTool: Tool = {
     const action = typeof args.action === 'string' ? args.action : '';
     switch (action) {
       case 'status':
-        return formatStatus(await getSourceWorkspaceStatus());
+        return refreshAfter(ctx, formatStatus(await getSourceWorkspaceStatus()));
       case 'prepare':
-        return formatStatus(await prepareSourceWorkspace());
+        return refreshAfter(ctx, formatStatus(await prepareSourceWorkspace()));
       case 'list':
         return formatList(await listSourceWorkspace(strArg(args, 'path'), args.recursive === true));
       case 'read':
         return formatRead(await readSourceWorkspace(strArg(args, 'path'), numArg(args, 'max_chars')));
       case 'write': {
         const resp = await writeSourceWorkspace(strArg(args, 'path'), strArg(args, 'content'));
-        return `Wrote ${resp.bytes} bytes to ${resp.path}`;
+        return refreshAfter(ctx, `Wrote ${resp.bytes} bytes to ${resp.path}`);
       }
       case 'stat':
         return formatStat(await statSourceWorkspace(strArg(args, 'path')));
@@ -111,6 +112,11 @@ function validateSourceWorkspaceArgs(args: Record<string, unknown>) {
     default:
       return null;
   }
+}
+
+function refreshAfter(ctx: Parameters<Tool['execute']>[1], result: string): string {
+  void ctx.sourceWorkspace?.refreshRuntimeContext?.();
+  return result;
 }
 
 function formatStatus(status: SourceWorkspaceStatus): string {

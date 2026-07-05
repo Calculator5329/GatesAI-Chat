@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -9,6 +10,7 @@ const SNAPSHOT_ROOT_NAME: &str = "current";
 const MANIFEST_NAME: &str = "manifest.json";
 const WORKSPACE_DIR_NAME: &str = "source-workspace";
 const INSTALLED_MARKER_NAME: &str = ".gatesai-source-workspace.json";
+const MAX_DIFF_PREVIEW_BYTES: u64 = 200 * 1024;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -92,6 +94,31 @@ pub struct SourceWorkspaceStat {
     kind: String,
     size: u64,
     mtime: u64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceChangedFile {
+    path: String,
+    change: String,
+    original_size: Option<u64>,
+    current_size: Option<u64>,
+    preview_available: bool,
+    original_content: Option<String>,
+    current_content: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceChangedFiles {
+    files: Vec<SourceChangedFile>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceRevertResult {
+    path: String,
+    change: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -281,6 +308,20 @@ pub fn source_workspace_search(
         hits,
         truncated,
     })
+}
+
+#[tauri::command]
+pub fn source_changed_files(app: AppHandle) -> Result<SourceChangedFiles, String> {
+    let root = prepared_source_root(&app)?;
+    let bundle = bundled_source(&app)?;
+    changed_files_for_roots(&bundle.snapshot_root, &root)
+}
+
+#[tauri::command]
+pub fn source_revert_file(app: AppHandle, path: String) -> Result<SourceRevertResult, String> {
+    let root = prepared_source_root(&app)?;
+    let bundle = bundled_source(&app)?;
+    revert_file_for_roots(&bundle.snapshot_root, &root, &path)
 }
 
 fn status_for_app(app: &AppHandle) -> SourceWorkspaceStatus {
@@ -627,6 +668,171 @@ fn search_file(
     Ok(())
 }
 
+fn changed_files_for_roots(snapshot_root: &Path, source_root: &Path) -> Result<SourceChangedFiles, String> {
+    let mut paths = BTreeSet::new();
+    collect_file_paths(snapshot_root, snapshot_root, &mut paths)?;
+    collect_file_paths(source_root, source_root, &mut paths)?;
+
+    let mut files = Vec::new();
+    for relative in paths {
+        if is_internal_marker(&relative) {
+            continue;
+        }
+        if let Some(file) = changed_file_for_path(snapshot_root, source_root, &relative)? {
+            files.push(file);
+        }
+    }
+    Ok(SourceChangedFiles { files })
+}
+
+fn changed_file_for_path(
+    snapshot_root: &Path,
+    source_root: &Path,
+    relative: &Path,
+) -> Result<Option<SourceChangedFile>, String> {
+    let original = snapshot_root.join(relative);
+    let current = source_root.join(relative);
+    let original_meta = fs::metadata(&original).ok().filter(|meta| meta.is_file());
+    let current_meta = fs::metadata(&current).ok().filter(|meta| meta.is_file());
+    let path = display_source_path(relative);
+
+    match (original_meta, current_meta) {
+        (None, None) => Ok(None),
+        (None, Some(current_meta)) => {
+            let current_content = preview_content(&current, current_meta.len());
+            Ok(Some(SourceChangedFile {
+                path,
+                change: "added".to_string(),
+                original_size: None,
+                current_size: Some(current_meta.len()),
+                preview_available: current_content.is_some(),
+                original_content: None,
+                current_content,
+            }))
+        }
+        (Some(original_meta), None) => {
+            let original_content = preview_content(&original, original_meta.len());
+            Ok(Some(SourceChangedFile {
+                path,
+                change: "deleted".to_string(),
+                original_size: Some(original_meta.len()),
+                current_size: None,
+                preview_available: original_content.is_some(),
+                original_content,
+                current_content: None,
+            }))
+        }
+        (Some(original_meta), Some(current_meta)) => {
+            if original_meta.len() == current_meta.len() && files_equal(&original, &current)? {
+                return Ok(None);
+            }
+            let original_content = preview_content(&original, original_meta.len());
+            let current_content = preview_content(&current, current_meta.len());
+            Ok(Some(SourceChangedFile {
+                path,
+                change: "modified".to_string(),
+                original_size: Some(original_meta.len()),
+                current_size: Some(current_meta.len()),
+                preview_available: original_content.is_some() && current_content.is_some(),
+                original_content,
+                current_content,
+            }))
+        }
+    }
+}
+
+fn revert_file_for_roots(snapshot_root: &Path, source_root: &Path, path: &str) -> Result<SourceRevertResult, String> {
+    let relative = clean_required_file_path(path, "revert")?;
+    if is_internal_marker(&relative) {
+        return Err("cannot revert the source workspace marker.".to_string());
+    }
+    let original = snapshot_root.join(&relative);
+    let current = source_root.join(&relative);
+    let original_file = fs::metadata(&original).ok().filter(|meta| meta.is_file()).is_some();
+    let current_file = fs::metadata(&current).ok().filter(|meta| meta.is_file()).is_some();
+
+    if original_file {
+        if let Some(parent) = current.parent() {
+            fs::create_dir_all(parent).map_err(|err| {
+                format!(
+                    "cannot create parent directory for {}: {err}",
+                    display_source_path(&relative)
+                )
+            })?;
+        }
+        fs::copy(&original, &current).map_err(|err| {
+            format!(
+                "cannot restore {} from bundled snapshot: {err}",
+                display_source_path(&relative)
+            )
+        })?;
+        return Ok(SourceRevertResult {
+            path: display_source_path(&relative),
+            change: if current_file { "modified".to_string() } else { "deleted".to_string() },
+        });
+    }
+
+    if current_file {
+        fs::remove_file(&current).map_err(|err| {
+            format!(
+                "cannot remove added source file {}: {err}",
+                display_source_path(&relative)
+            )
+        })?;
+        return Ok(SourceRevertResult {
+            path: display_source_path(&relative),
+            change: "added".to_string(),
+        });
+    }
+
+    Err(format!(
+        "source file has no bundled or current file to revert: {}",
+        display_source_path(&relative)
+    ))
+}
+
+fn collect_file_paths(root: &Path, directory: &Path, out: &mut BTreeSet<PathBuf>) -> Result<(), String> {
+    if !directory.exists() {
+        return Ok(());
+    }
+    let mut children = fs::read_dir(directory)
+        .map_err(|err| format!("cannot list source directory {}: {err}", directory.display()))?
+        .filter_map(Result::ok)
+        .collect::<Vec<_>>();
+    children.sort_by_key(|entry| entry.path());
+    for entry in children {
+        let path = entry.path();
+        let metadata = entry.metadata().map_err(|err| err.to_string())?;
+        if metadata.is_dir() {
+            collect_file_paths(root, &path, out)?;
+        } else if metadata.is_file() {
+            let relative = path.strip_prefix(root).map_err(|err| err.to_string())?;
+            out.insert(relative.to_path_buf());
+        }
+    }
+    Ok(())
+}
+
+fn files_equal(left: &Path, right: &Path) -> Result<bool, String> {
+    let left_bytes = fs::read(left).map_err(|err| format!("cannot read {}: {err}", left.display()))?;
+    let right_bytes = fs::read(right).map_err(|err| format!("cannot read {}: {err}", right.display()))?;
+    Ok(left_bytes == right_bytes)
+}
+
+fn preview_content(path: &Path, size: u64) -> Option<String> {
+    if size > MAX_DIFF_PREVIEW_BYTES {
+        return None;
+    }
+    fs::read_to_string(path).ok()
+}
+
+fn is_internal_marker(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| name == INSTALLED_MARKER_NAME)
+        .unwrap_or(false)
+}
+
 fn clean_required_file_path(path: &str, action: &str) -> Result<PathBuf, String> {
     let relative = clean_relative_path(path)?;
     if relative.as_os_str().is_empty() {
@@ -753,6 +959,73 @@ mod tests {
         assert!(clean_relative_path("../secret.txt").is_err());
         assert!(clean_relative_path("src/../../secret.txt").is_err());
         assert!(clean_relative_path("C:\\Users\\secret.txt").is_err());
+    }
+
+    #[test]
+    fn changed_files_reports_added_modified_deleted_and_skips_marker() {
+        let root = temp_root("changed-files");
+        let snapshot = root.join("snapshot");
+        let source = root.join("source");
+        fs::create_dir_all(snapshot.join("src")).expect("create snapshot");
+        fs::create_dir_all(source.join("src")).expect("create source");
+        fs::write(snapshot.join("src").join("same.txt"), "same").expect("write same snapshot");
+        fs::write(source.join("src").join("same.txt"), "same").expect("write same source");
+        fs::write(snapshot.join("src").join("mod.txt"), "old").expect("write mod snapshot");
+        fs::write(source.join("src").join("mod.txt"), "new").expect("write mod source");
+        fs::write(snapshot.join("src").join("gone.txt"), "gone").expect("write deleted snapshot");
+        fs::write(source.join("src").join("add.txt"), "add").expect("write added source");
+        fs::write(source.join(INSTALLED_MARKER_NAME), "{}").expect("write marker");
+
+        let files = changed_files_for_roots(&snapshot, &source).expect("changed files").files;
+        let paths = files.iter().map(|file| (file.path.as_str(), file.change.as_str())).collect::<Vec<_>>();
+
+        assert_eq!(
+            paths,
+            vec![
+                ("source://src/add.txt", "added"),
+                ("source://src/gone.txt", "deleted"),
+                ("source://src/mod.txt", "modified"),
+            ]
+        );
+        assert!(files.iter().all(|file| file.preview_available));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn revert_file_rejects_escape_attempts() {
+        let root = temp_root("revert-escape");
+        let snapshot = root.join("snapshot");
+        let source = root.join("source");
+        fs::create_dir_all(&snapshot).expect("create snapshot");
+        fs::create_dir_all(&source).expect("create source");
+
+        assert!(revert_file_for_roots(&snapshot, &source, "../secret.txt").is_err());
+        assert!(revert_file_for_roots(&snapshot, &source, "C:\\Users\\secret.txt").is_err());
+        assert!(revert_file_for_roots(&snapshot, &source, INSTALLED_MARKER_NAME).is_err());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn revert_file_restores_deleted_and_removes_added_files() {
+        let root = temp_root("revert-files");
+        let snapshot = root.join("snapshot");
+        let source = root.join("source");
+        fs::create_dir_all(snapshot.join("src")).expect("create snapshot");
+        fs::create_dir_all(source.join("src")).expect("create source");
+        fs::write(snapshot.join("src").join("restore.txt"), "original").expect("write snapshot");
+        fs::write(source.join("src").join("added.txt"), "new").expect("write added");
+
+        let restored = revert_file_for_roots(&snapshot, &source, "src/restore.txt").expect("restore");
+        let removed = revert_file_for_roots(&snapshot, &source, "src/added.txt").expect("remove");
+
+        assert_eq!(restored.change, "deleted");
+        assert_eq!(removed.change, "added");
+        assert_eq!(
+            fs::read_to_string(source.join("src").join("restore.txt")).expect("read restored"),
+            "original"
+        );
+        assert!(!source.join("src").join("added.txt").exists());
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]

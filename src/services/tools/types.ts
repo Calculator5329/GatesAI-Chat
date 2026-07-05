@@ -144,6 +144,17 @@ export interface RagFacade {
   recall(query: string, k?: number): Promise<string>;
 }
 
+export interface SourceWorkspaceFacade {
+  readonly runtimeSnapshot?: {
+    prepared: boolean;
+    changedFileCount?: number;
+    lastBuildStatus?: 'idle' | 'running' | 'succeeded' | 'failed';
+    lastBuildFinishedAtUnix?: number;
+    lastBuildStartedAtUnix?: number;
+  } | null;
+  refreshRuntimeContext?(): Promise<void>;
+}
+
 export interface ToolContext {
   profile: ProfileFacade;
   chat: ChatFacade;
@@ -156,6 +167,7 @@ export interface ToolContext {
   execStream?: ExecStreamFacade;
   search?: SearchFacade;
   rag?: RagFacade;
+  sourceWorkspace?: SourceWorkspaceFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;
   /** The provider tool-call id that triggered this execution. */
