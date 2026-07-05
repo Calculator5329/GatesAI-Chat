@@ -24,19 +24,19 @@ export const BridgeStatusPill = observer(function BridgeStatusPill() {
   let label = 'checking…';
   let title = 'Polling gatesai-bridge…';
   if (webLite) {
-    dotColor = '#5b8cff';
-    labelColor = '#8fb0ff';
+    dotColor = 'var(--status-blue)';
+    labelColor = 'var(--status-blue-text)';
     label = 'web lite';
     title = 'Firebase/Web Lite mode. Desktop workspace tools and local runtimes are unavailable in the browser.';
   } else if (bridge.state === 'online') {
-    dotColor = '#5fbf7a';
+    dotColor = 'var(--success)';
     labelColor = 'var(--accent)';
     label = 'workspace ready';
     const root = bridge.workspaceRoot ? `\n${bridge.workspaceRoot}` : '';
     title = `Bridge ${bridge.version ?? ''} online.${root}\n${bridge.allowlist.length} allowlisted commands.\nClick to re-poll.`;
   } else if (bridge.state === 'offline') {
-    dotColor = '#c96a6a';
-    labelColor = '#ffaaaa';
+    dotColor = 'var(--danger-muted)';
+    labelColor = 'var(--danger-soft)';
     label = 'bridge offline';
     title = `${bridge.lastError ?? 'No connection'}\n\nStart with: gatesai-bridge\n(see ../gatesai-bridge/README.md)\n\nClick to re-poll.`;
   }

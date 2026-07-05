@@ -9,6 +9,7 @@ import type {
   DraftAttachment,
   MarkdownDensityKey,
   MarkdownStyleKey,
+  ThemeMode,
 } from '../core/types';
 import { loadUiPrefs, saveUiPrefs, type UiPrefsSnapshot } from '../services/uiPrefsStorage';
 import { loadMenuHintSeen, saveMenuHintSeen } from '../services/storage/uiHintStorage';
@@ -51,6 +52,7 @@ export class UiStore {
   readingWidthPx = 720;
   animationsEnabled = true;
   onboardingDismissed = false;
+  theme: ThemeMode = 'dark';
   /** First-run cue: pulse the brand wordmark until the user opens the menu. */
   menuHintSeen = loadMenuHintSeen();
   /**
@@ -70,6 +72,7 @@ export class UiStore {
     this.readingWidthPx = prefs.readingWidthPx;
     this.animationsEnabled = prefs.animationsEnabled;
     this.onboardingDismissed = prefs.onboardingDismissed;
+    this.theme = prefs.theme;
     makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'composerFocus' | 'composerFocusPending' | 'disposers'>(this, {
       boundDraftThreadId: false,
       draftByThread: false,
@@ -116,6 +119,7 @@ export class UiStore {
         readingWidthPx: this.readingWidthPx,
         animationsEnabled: this.animationsEnabled,
         onboardingDismissed: this.onboardingDismissed,
+        theme: this.theme,
       });
       if (pendingTimer) clearTimeout(pendingTimer);
       pendingTimer = setTimeout(flushPrefs, DEBOUNCE_MS);
@@ -155,6 +159,7 @@ export class UiStore {
       readingWidthPx: this.readingWidthPx,
       animationsEnabled: this.animationsEnabled,
       onboardingDismissed: this.onboardingDismissed,
+      theme: this.theme,
     };
   }
 
@@ -167,6 +172,7 @@ export class UiStore {
     this.readingWidthPx = snapshot.readingWidthPx;
     this.animationsEnabled = snapshot.animationsEnabled;
     this.onboardingDismissed = snapshot.onboardingDismissed;
+    this.theme = snapshot.theme;
   }
 
   /**
@@ -301,6 +307,7 @@ export class UiStore {
   setReadingWidthPx(value: number): void { this.readingWidthPx = value; }
   setAnimationsEnabled(value: boolean): void { this.animationsEnabled = value; }
   setOnboardingDismissed(value: boolean): void { this.onboardingDismissed = value; }
+  setTheme(value: ThemeMode): void { this.theme = value; }
 
   /** Record that the user has discovered the menu; suppresses the brand cue. */
   markMenuHintSeen(): void {

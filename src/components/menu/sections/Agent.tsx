@@ -411,7 +411,7 @@ const WorkspaceSkillsSection = observer(function WorkspaceSkillsSection() {
                 {skill.warnings.length > 0 && (
                   <div style={{ marginTop: 8, display: 'grid', gap: 4 }}>
                     {skill.warnings.map(warning => (
-                      <div key={warning} style={{ ...tokens.mono, color: '#d19a66', fontSize: 11 }}>
+                      <div key={warning} style={{ ...tokens.mono, color: 'var(--warning)', fontSize: 11 }}>
                         {warning}
                       </div>
                     ))}
@@ -490,7 +490,7 @@ const SemanticMemorySection = observer(function SemanticMemorySection() {
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                   <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>Pull the embedding model in app.</span>
                   {pullState && (
-                    <span role={pullState.error ? 'alert' : 'status'} style={{ color: pullState.error ? '#ff7597' : 'var(--text-faint)', fontSize: 11.5 }}>
+                    <span role={pullState.error ? 'alert' : 'status'} style={{ color: pullState.error ? 'var(--danger)' : 'var(--text-faint)', fontSize: 11.5 }}>
                       {pullState.error ? pullState.error : `${pullState.phase} · ${Math.round(pullState.percent)}%`}
                     </span>
                   )}

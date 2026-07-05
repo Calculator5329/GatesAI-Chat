@@ -20,7 +20,7 @@ export function Toggle({ on, onChange, disabled }: ToggleProps) {
         width: 32, height: 18, borderRadius: 9,
         border: 0,
         padding: 0,
-        background: on ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
+        background: on ? 'var(--accent)' : 'var(--surface-wash-10)',
         position: 'relative',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
@@ -32,7 +32,7 @@ export function Toggle({ on, onChange, disabled }: ToggleProps) {
         style={{
           display: 'block',
           width: 14, height: 14, borderRadius: '50%',
-          background: on ? '#06120a' : '#e4e7ef',
+          background: on ? 'var(--accent-contrast)' : 'var(--toggle-thumb-off)',
           position: 'absolute', top: 2,
           left: on ? 16 : 2,
           transition: `left ${tokens.motion.fast}, background-color ${tokens.motion.fast}`,

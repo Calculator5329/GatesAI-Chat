@@ -4,7 +4,8 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
-import { Button, Card, Input, SettingsRow } from '../../ui';
+import type { ThemeMode } from '../../../core/types';
+import { Button, Card, Input, SegmentedControl, SettingsRow } from '../../ui';
 import { useRootStore, useRouterStore, useUiStore } from '../../../stores/context';
 import { isWebLite } from '../../../core/runtime';
 
@@ -40,9 +41,29 @@ export const SettingsSection = observer(function SettingsSection() {
         your app data and reset actions in one place.
       </p>
 
+      <ThemeBlock />
       <WebLiteBrowserData />
       <ExportImportBlock />
       <DangerZone />
+    </div>
+  );
+});
+
+const THEME_OPTIONS = ['dark', 'light', 'system'] as const satisfies readonly ThemeMode[];
+
+const ThemeBlock = observer(function ThemeBlock() {
+  const ui = useUiStore();
+  return (
+    <div className="settings-section settings-theme" style={{ ...tokens.section, marginBottom: 28 }}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Theme</div>
+      <SettingsRow label="Color mode" last>
+        <SegmentedControl
+          options={THEME_OPTIONS}
+          value={ui.theme}
+          onChange={ui.setTheme}
+          labels={{ dark: 'Dark', light: 'Light', system: 'System' }}
+        />
+      </SettingsRow>
     </div>
   );
 });
@@ -93,7 +114,7 @@ const ExportImportBlock = observer(function ExportImportBlock() {
     <div className="settings-section settings-export-import" style={{ ...tokens.section, marginBottom: 28 }}>
       <div className="settings-section-title" style={tokens.sectionTitle}>Export & import</div>
       {status && (
-        <div style={{ fontSize: 12, color: statusKind === 'error' ? '#ff7597' : 'var(--accent)', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: statusKind === 'error' ? 'var(--danger)' : 'var(--accent)', marginBottom: 8 }}>
           {status}
         </div>
       )}
@@ -155,7 +176,7 @@ const ExportImportBlock = observer(function ExportImportBlock() {
           {mode === 'merge' ? (
             <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Existing threads win on duplicate IDs.</span>
           ) : (
-            <span style={{ fontSize: 12, color: replaceReady ? 'var(--text-faint)' : '#ff7597' }}>
+            <span style={{ fontSize: 12, color: replaceReady ? 'var(--text-faint)' : 'var(--danger)' }}>
               Existing app state will be replaced.
             </span>
           )}
@@ -329,7 +350,7 @@ const DangerZone = observer(function DangerZone() {
         folder.
       </div>
       {status && (
-        <div style={{ fontSize: 12, color: status.includes('offline') || status.includes('Error') ? '#ff7597' : 'var(--accent)', marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: status.includes('offline') || status.includes('Error') ? 'var(--danger)' : 'var(--accent)', marginBottom: 8 }}>
           {status}
         </div>
       )}

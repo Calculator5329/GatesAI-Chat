@@ -336,8 +336,11 @@ export type MarkdownStyleKey = 'editorial' | 'technical' | 'compact';
 export type CodeStyleKey = 'obsidian' | 'terminal' | 'paper';
 export type MarkdownDensityKey = 'compact' | 'comfortable' | 'spacious';
 export type CodeSizeKey = 'small' | 'medium' | 'large';
+export type ThemeMode = 'dark' | 'light' | 'system';
+export type ThemeColorScheme = 'dark' | 'light';
 
 export interface ThemeConfig {
+  scheme: ThemeColorScheme;
   accent: string;
   accent2: string;
   accentGlow: string;

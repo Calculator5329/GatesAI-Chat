@@ -7,6 +7,8 @@ test.skip(!process.env.SCREENS_TOUR, 'Set SCREENS_TOUR=1 or run npm run screens:
 
 const DESKTOP_VIEWPORT = { width: 1280, height: 800 };
 const MOBILE_VIEWPORT = { width: 375, height: 812 };
+const FORCED_THEME = process.env.SCREENS_TOUR_THEME;
+const LIGHT_THEME_TOUR = FORCED_THEME === 'light';
 const MODEL_ID = 'or-gemini-3-flash';
 const TOUR_REPLY = [
   'Mock reply from the assistant.',
@@ -71,6 +73,7 @@ interface TourThread {
 interface SeedState {
   readyProvider?: boolean;
   onboardingDismissed?: boolean;
+  theme?: 'dark' | 'light' | 'system';
   threads?: TourThread[];
   activeThreadId?: string;
   profile?: { bio: string; defaultSystemPrompt: string };
@@ -83,12 +86,13 @@ test.describe.configure({ mode: 'serial' });
 
 test('captures the screenshot tour', async ({ page }, testInfo) => {
   const project = testInfo.project.name;
+  if (LIGHT_THEME_TOUR && project !== 'desktop-mocked') return;
   if (project === 'desktop-mocked') {
     await mockOpenRouter(page, { reply: TOUR_REPLY });
     await mockOllama(page, { reply: LOCAL_TOUR_REPLY, models: [LOCAL_PROVIDER_MODEL_ID, 'llama3.2:3b'] });
     await mockBridgeOnline(page, { files: workspaceFiles() });
     await captureDesktopTour(page, testInfo);
-    await captureLocalOnlyTour(page);
+    if (!LIGHT_THEME_TOUR) await captureLocalOnlyTour(page);
     return;
   }
 
@@ -99,7 +103,7 @@ test('captures the screenshot tour', async ({ page }, testInfo) => {
 });
 
 async function captureDesktopTour(page: Page, testInfo: TestInfo): Promise<void> {
-  const outDir = await prepareProjectDir(testInfo);
+  const outDir = LIGHT_THEME_TOUR ? await prepareNamedDir('light-theme') : await prepareProjectDir(testInfo);
   let index = 1;
 
   await page.setViewportSize(DESKTOP_VIEWPORT);
@@ -154,6 +158,8 @@ async function captureDesktopTour(page: Page, testInfo: TestInfo): Promise<void>
   await gotoApp(page, '/#/thread/active');
   await expect(page.getByText('Agent tasks')).toBeVisible();
   await shot(page, outDir, index++, 'sidebar-agent-task-group');
+
+  if (LIGHT_THEME_TOUR) return;
 
   await page.setViewportSize(MOBILE_VIEWPORT);
   await resetStorage(page, { onboardingDismissed: false });
@@ -278,7 +284,10 @@ async function prepareNamedDir(name: string): Promise<string> {
 
 async function resetStorage(page: Page, seed: SeedState): Promise<void> {
   await page.goto('/favicon.svg');
-  await writeStorageSeed(page, seed);
+  const theme = FORCED_THEME === 'light' || FORCED_THEME === 'dark' || FORCED_THEME === 'system'
+    ? FORCED_THEME
+    : seed.theme;
+  await writeStorageSeed(page, { ...seed, ...(theme ? { theme } : {}) });
 }
 
 async function writeStorageSeed(page: Page, seed: SeedState): Promise<void> {
@@ -286,7 +295,10 @@ async function writeStorageSeed(page: Page, seed: SeedState): Promise<void> {
     localStorage.clear();
     localStorage.setItem('gatesai.userGuide.opened.v1', '1');
     localStorage.setItem('gatesai.menuHintSeen.v1', '1');
-    localStorage.setItem('gatesai.uiprefs.v1', JSON.stringify({ onboardingDismissed: state.onboardingDismissed ?? true }));
+    localStorage.setItem('gatesai.uiprefs.v1', JSON.stringify({
+      onboardingDismissed: state.onboardingDismissed ?? true,
+      ...(state.theme ? { theme: state.theme } : {}),
+    }));
     if (state.readyProvider) {
       localStorage.setItem('gatesai.providers.v1', JSON.stringify({ openrouter: { apiKey: 'test-key' } }));
     }

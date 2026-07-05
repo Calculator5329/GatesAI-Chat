@@ -130,7 +130,7 @@ const SemanticMemoryNudge = observer(function SemanticMemoryNudge() {
       <button type="button" className="editorial-empty-state__secondary" onClick={() => setDismissed(true)}>
         Dismiss
       </button>
-      {state?.error && <span role="alert" style={{ color: '#ff7597' }}>{state.error}</span>}
+      {state?.error && <span role="alert" style={{ color: 'var(--danger)' }}>{state.error}</span>}
     </div>
   );
 });

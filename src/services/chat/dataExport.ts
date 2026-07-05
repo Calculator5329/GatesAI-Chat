@@ -1,6 +1,6 @@
 import packageJson from '../../../package.json';
 import type { NotesSnapshot } from '../../core/notes';
-import type { ChatSnapshot, CodeSizeKey, CodeStyleKey, MarkdownDensityKey, MarkdownStyleKey, Thread } from '../../core/types';
+import type { ChatSnapshot, CodeSizeKey, CodeStyleKey, MarkdownDensityKey, MarkdownStyleKey, ThemeMode, Thread } from '../../core/types';
 import type { UserProfileSnapshot } from '../profileStorage';
 import { parseChatSnapshotValue, prepareChatSnapshotForSave } from '../persistence';
 import { CURRENT_CHAT_SCHEMA_VERSION } from '../persistence/migrations';
@@ -77,6 +77,7 @@ const MARKDOWN_STYLES = new Set<MarkdownStyleKey>(['editorial', 'technical', 'co
 const CODE_STYLES = new Set<CodeStyleKey>(['obsidian', 'terminal', 'paper']);
 const MARKDOWN_DENSITIES = new Set<MarkdownDensityKey>(['compact', 'comfortable', 'spacious']);
 const CODE_SIZES = new Set<CodeSizeKey>(['small', 'medium', 'large']);
+const THEME_MODES = new Set<ThemeMode>(['dark', 'light', 'system']);
 
 export function createDataExportEnvelope(
   stores: DataExportStores,
@@ -271,6 +272,7 @@ function parseUiPrefsSnapshot(value: unknown): UiPrefsSnapshot {
     onboardingDismissed: typeof r.onboardingDismissed === 'boolean'
       ? r.onboardingDismissed
       : DEFAULT_UI_PREFS.onboardingDismissed,
+    theme: memberOrDefault(r.theme, THEME_MODES, DEFAULT_UI_PREFS.theme),
   };
 }
 

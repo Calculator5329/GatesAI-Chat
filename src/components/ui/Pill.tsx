@@ -10,10 +10,10 @@ interface PillProps {
 }
 
 const TONE: Record<PillTone, CSSProperties> = {
-  accent:  { background: 'rgba(62,207,142,0.1)', color: 'var(--accent)' },
-  muted:   { background: 'rgba(255,255,255,0.05)', color: 'var(--text-faint)' },
-  warning: { background: 'rgba(229,184,77,0.12)', color: '#e5b84d' },
-  danger:  { background: 'rgba(229,115,115,0.14)', color: '#e57373' },
+  accent:  { background: 'var(--success-pill-bg)', color: 'var(--accent)' },
+  muted:   { background: 'var(--surface-wash-5)', color: 'var(--text-faint)' },
+  warning: { background: 'var(--warning-pill-bg)', color: 'var(--warning-2)' },
+  danger:  { background: 'var(--danger-pill-bg)', color: 'var(--danger-alt)' },
 };
 
 export function Pill({ children, tone = 'accent', style, title }: PillProps) {

@@ -431,7 +431,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           </div>
         )}
         {(ui.uploadError || ui.uploading) && (
-          <div style={{ fontSize: 11, color: ui.uploadError ? '#c96a6a' : 'var(--text-faint)', marginBottom: 6 }}>
+          <div style={{ fontSize: 11, color: ui.uploadError ? 'var(--danger-muted)' : 'var(--text-faint)', marginBottom: 6 }}>
             {ui.uploadError ?? 'Uploading...'}
           </div>
         )}
@@ -763,7 +763,7 @@ function SkillRow({
         {description}
       </span>
       {warnings && warnings.length > 0 && (
-        <span style={{ fontFamily: '"Geist Mono", monospace', fontSize: 10, color: '#d19a66' }}>
+        <span style={{ fontFamily: '"Geist Mono", monospace', fontSize: 10, color: 'var(--warning)' }}>
           {warnings.length} warning{warnings.length === 1 ? '' : 's'}
         </span>
       )}
@@ -789,9 +789,9 @@ const ContextMeter = observer(function ContextMeter({ draftText }: { draftText: 
   const totalSpend = llmSpend + imageSpend;
   const percent = Math.round(usage.fraction * 100);
   const tone = usage.fraction >= 0.9
-    ? '#c96a6a'
+    ? 'var(--danger-muted)'
     : usage.fraction >= 0.7
-      ? '#d19a66'
+      ? 'var(--warning)'
       : 'var(--accent)';
 
   const contextLabel = [

@@ -72,7 +72,7 @@ const SEGMENT_WRAP_STYLE: CSSProperties = {
   gap: 3,
   padding: 4,
   borderBottom: '1px solid var(--border)',
-  background: 'rgba(255,255,255,0.02)',
+  background: 'var(--surface-wash-2)',
 };
 
 const CAP_WRAP_STYLE: CSSProperties = {
@@ -135,7 +135,7 @@ const SUBLINE_STYLE_BASE: CSSProperties = {
 
 function badgeColor(tone: 'muted' | 'accent' | 'warn'): string {
   if (tone === 'accent') return 'var(--accent)';
-  if (tone === 'warn') return '#d19a66';
+  if (tone === 'warn') return 'var(--warning)';
   return 'var(--text-faint)';
 }
 
