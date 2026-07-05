@@ -12,6 +12,9 @@ const DEFAULTS = {
   animationsEnabled: true,
   onboardingDismissed: false,
   theme: 'dark',
+  globalSummonEnabled: true,
+  globalSummonChord: 'Ctrl+Shift+Space',
+  closeButtonHidesToTray: false,
 } as const;
 
 describe('uiPrefsStorage', () => {
@@ -32,9 +35,19 @@ describe('uiPrefsStorage', () => {
       animationsEnabled: false,
       onboardingDismissed: true,
       theme: 'light',
+      globalSummonEnabled: false,
+      globalSummonChord: 'Ctrl+Alt+K',
+      closeButtonHidesToTray: true,
     });
 
-    expect(loadUiPrefs()).toEqual({ ...DEFAULTS, onboardingDismissed: true, theme: 'light' });
+    expect(loadUiPrefs()).toEqual({
+      ...DEFAULTS,
+      onboardingDismissed: true,
+      theme: 'light',
+      globalSummonEnabled: false,
+      globalSummonChord: 'Ctrl+Alt+K',
+      closeButtonHidesToTray: true,
+    });
   });
 
   it('falls back per field when persisted values are invalid', () => {
@@ -49,6 +62,9 @@ describe('uiPrefsStorage', () => {
       animationsEnabled: 'sure',
       onboardingDismissed: 'nope',
       theme: 'sepia',
+      globalSummonEnabled: 'yes',
+      globalSummonChord: '',
+      closeButtonHidesToTray: 'no',
     }));
 
     expect(loadUiPrefs()).toEqual(DEFAULTS);
@@ -57,6 +73,20 @@ describe('uiPrefsStorage', () => {
   it('round-trips system theme mode', () => {
     saveUiPrefs({ ...DEFAULTS, theme: 'system' });
     expect(loadUiPrefs().theme).toBe('system');
+  });
+
+  it('round-trips desktop ambient preferences', () => {
+    saveUiPrefs({
+      ...DEFAULTS,
+      globalSummonEnabled: false,
+      globalSummonChord: 'Alt+Shift+G',
+      closeButtonHidesToTray: true,
+    });
+    expect(loadUiPrefs()).toMatchObject({
+      globalSummonEnabled: false,
+      globalSummonChord: 'Alt+Shift+G',
+      closeButtonHidesToTray: true,
+    });
   });
 
   it('clamps font size to the supported range', () => {

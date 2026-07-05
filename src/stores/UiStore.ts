@@ -53,6 +53,10 @@ export class UiStore {
   animationsEnabled = true;
   onboardingDismissed = false;
   theme: ThemeMode = 'dark';
+  globalSummonEnabled = true;
+  globalSummonChord = 'Ctrl+Shift+Space';
+  closeButtonHidesToTray = false;
+  globalShortcutUnavailableReason: string | null = null;
   /** First-run cue: pulse the brand wordmark until the user opens the menu. */
   menuHintSeen = loadMenuHintSeen();
   /**
@@ -73,6 +77,9 @@ export class UiStore {
     this.animationsEnabled = prefs.animationsEnabled;
     this.onboardingDismissed = prefs.onboardingDismissed;
     this.theme = prefs.theme;
+    this.globalSummonEnabled = prefs.globalSummonEnabled;
+    this.globalSummonChord = prefs.globalSummonChord;
+    this.closeButtonHidesToTray = prefs.closeButtonHidesToTray;
     makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'composerFocus' | 'composerFocusPending' | 'disposers'>(this, {
       boundDraftThreadId: false,
       draftByThread: false,
@@ -92,6 +99,10 @@ export class UiStore {
       setComposerFocusHandler: action.bound,
       focusComposer: action.bound,
       setOnboardingDismissed: action.bound,
+      setGlobalSummonEnabled: action.bound,
+      setGlobalSummonChord: action.bound,
+      setCloseButtonHidesToTray: action.bound,
+      setGlobalShortcutStatus: action.bound,
     });
     // Debounce UI-prefs persistence: a slider drag (font size, reading width)
     // can fire dozens of mutations per second; without debouncing each one
@@ -120,6 +131,9 @@ export class UiStore {
         animationsEnabled: this.animationsEnabled,
         onboardingDismissed: this.onboardingDismissed,
         theme: this.theme,
+        globalSummonEnabled: this.globalSummonEnabled,
+        globalSummonChord: this.globalSummonChord,
+        closeButtonHidesToTray: this.closeButtonHidesToTray,
       });
       if (pendingTimer) clearTimeout(pendingTimer);
       pendingTimer = setTimeout(flushPrefs, DEBOUNCE_MS);
@@ -160,6 +174,9 @@ export class UiStore {
       animationsEnabled: this.animationsEnabled,
       onboardingDismissed: this.onboardingDismissed,
       theme: this.theme,
+      globalSummonEnabled: this.globalSummonEnabled,
+      globalSummonChord: this.globalSummonChord,
+      closeButtonHidesToTray: this.closeButtonHidesToTray,
     };
   }
 
@@ -173,6 +190,9 @@ export class UiStore {
     this.animationsEnabled = snapshot.animationsEnabled;
     this.onboardingDismissed = snapshot.onboardingDismissed;
     this.theme = snapshot.theme;
+    this.globalSummonEnabled = snapshot.globalSummonEnabled;
+    this.globalSummonChord = snapshot.globalSummonChord;
+    this.closeButtonHidesToTray = snapshot.closeButtonHidesToTray;
   }
 
   /**
@@ -308,6 +328,16 @@ export class UiStore {
   setAnimationsEnabled(value: boolean): void { this.animationsEnabled = value; }
   setOnboardingDismissed(value: boolean): void { this.onboardingDismissed = value; }
   setTheme(value: ThemeMode): void { this.theme = value; }
+  setGlobalSummonEnabled(value: boolean): void {
+    this.globalSummonEnabled = value;
+    if (!value) this.globalShortcutUnavailableReason = null;
+  }
+  setGlobalSummonChord(value: string): void {
+    this.globalSummonChord = value;
+    this.globalShortcutUnavailableReason = null;
+  }
+  setCloseButtonHidesToTray(value: boolean): void { this.closeButtonHidesToTray = value; }
+  setGlobalShortcutStatus(reason: string | null): void { this.globalShortcutUnavailableReason = reason; }
 
   /** Record that the user has discovered the menu; suppresses the brand cue. */
   markMenuHintSeen(): void {

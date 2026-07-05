@@ -6,6 +6,7 @@ use tauri_plugin_shell::ShellExt;
 
 mod http_health;
 mod brave_search;
+mod desktop;
 mod fetch_page;
 mod local_runtime;
 mod mcp_stdio;
@@ -22,6 +23,22 @@ struct BridgeChild(Mutex<Option<CommandChild>>);
 
 fn bridge_already_running() -> bool {
   probe_health(BRIDGE_HEALTH_URL)
+}
+
+fn cleanup_children(app: &tauri::AppHandle) {
+  let state = app.state::<BridgeChild>();
+  let mut guard = match state.0.lock() {
+    Ok(g) => g,
+    Err(poison) => poison.into_inner(),
+  };
+  if let Some(child) = guard.take() {
+    let _ = child.kill();
+    log::info!("[gatesai] bridge sidecar killed");
+  }
+  let runtime_state = app.state::<local_runtime::LocalRuntimeState>();
+  local_runtime::kill_all(&runtime_state);
+  let mcp_stdio_state = app.state::<mcp_stdio::McpStdioState>();
+  mcp_stdio::kill_all(&mcp_stdio_state);
 }
 
 /// Open a filesystem path with the OS default handler (browser for .html,
@@ -44,7 +61,13 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_dialog::init())
+    .plugin(tauri_plugin_global_shortcut::Builder::new()
+      .with_handler(|app, _shortcut, event| desktop::handle_global_shortcut(app, event.state()))
+      .build())
     .invoke_handler(tauri::generate_handler![
+      desktop::set_global_shortcut,
+      desktop::global_shortcut_state,
+      desktop::set_close_to_tray,
       open_path,
       brave_search::brave_llm_context,
       fetch_page::fetch_page,
@@ -78,6 +101,7 @@ pub fn run() {
       source_build::source_build_start,
       source_build::source_build_clear,
     ])
+    .manage(desktop::DesktopState::default())
     .manage(BridgeChild(Mutex::new(None)))
     .manage(local_runtime::LocalRuntimeState::default())
     .manage(mcp_stdio::McpStdioState::default())
@@ -90,6 +114,7 @@ pub fn run() {
             .build(),
         )?;
       }
+      desktop::install(app, cleanup_children)?;
       if bridge_already_running() {
         eprintln!("[gatesai] bridge already running on 7331; reusing");
         return Ok(());
@@ -132,21 +157,16 @@ pub fn run() {
       Ok(())
     })
     .on_window_event(|window, event| {
-      if let tauri::WindowEvent::Destroyed = event {
-        let app = window.app_handle();
-        let state = app.state::<BridgeChild>();
-        let mut guard = match state.0.lock() {
-          Ok(g) => g,
-          Err(poison) => poison.into_inner(),
-        };
-        if let Some(child) = guard.take() {
-          let _ = child.kill();
-          log::info!("[gatesai] bridge sidecar killed");
+      if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+        if desktop::close_to_tray_enabled(window) {
+          api.prevent_close();
+          if let Err(err) = window.hide() {
+            log::warn!("[gatesai] failed to hide window on close request: {err}");
+          }
         }
-        let runtime_state = app.state::<local_runtime::LocalRuntimeState>();
-        local_runtime::kill_all(&runtime_state);
-        let mcp_stdio_state = app.state::<mcp_stdio::McpStdioState>();
-        mcp_stdio::kill_all(&mcp_stdio_state);
+      } else if let tauri::WindowEvent::Destroyed = event {
+        let app = window.app_handle();
+        cleanup_children(&app);
       }
     })
     .run(tauri::generate_context!())

@@ -12,6 +12,7 @@ import { CommandPalette } from '../components/palette/CommandPalette';
 import { runtimeMode } from '../core/runtime';
 import { primeClientPlatform } from '../core/clientPlatform';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
+import { useDesktopAmbient } from './useDesktopAmbient';
 
 const GatesMenu = lazy(() => import('../components/menu/GatesMenu').then(m => ({ default: m.GatesMenu })));
 const SYSTEM_LIGHT_QUERY = '(prefers-color-scheme: light)';
@@ -62,6 +63,7 @@ export const App = observer(function App() {
   };
 
   useKeyboardShortcuts(root);
+  useDesktopAmbient(root);
 
   useEffect(() => {
     return () => chat.stopStreaming();

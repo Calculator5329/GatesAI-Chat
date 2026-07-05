@@ -273,6 +273,15 @@ function parseUiPrefsSnapshot(value: unknown): UiPrefsSnapshot {
       ? r.onboardingDismissed
       : DEFAULT_UI_PREFS.onboardingDismissed,
     theme: memberOrDefault(r.theme, THEME_MODES, DEFAULT_UI_PREFS.theme),
+    globalSummonEnabled: typeof r.globalSummonEnabled === 'boolean'
+      ? r.globalSummonEnabled
+      : DEFAULT_UI_PREFS.globalSummonEnabled,
+    globalSummonChord: typeof r.globalSummonChord === 'string' && r.globalSummonChord.trim().length > 0
+      ? r.globalSummonChord
+      : DEFAULT_UI_PREFS.globalSummonChord,
+    closeButtonHidesToTray: typeof r.closeButtonHidesToTray === 'boolean'
+      ? r.closeButtonHidesToTray
+      : DEFAULT_UI_PREFS.closeButtonHidesToTray,
   };
 }
 
