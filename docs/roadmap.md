@@ -180,7 +180,7 @@
 - [x] Scheduled tasks v1 (app-open scheduler + schedule_task tool)
 - [x] MCP stdio transport (user-configured local server processes, Rust-managed)
 
-## Open-models-first audit (queued — after Wave G)
+## Open-models-first audit (DONE 2026-07-05 — see docs/audits/2026-07-05-open-models-audit.md; Wave H shipped fixes)
 - [ ] Walk EVERY screen with the lens "what do I do if I'm running open/local
       models only?" — the app currently reads API-first in many surfaces
       (model picker defaults, usage panel framing, onboarding order, error
