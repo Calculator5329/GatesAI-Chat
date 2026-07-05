@@ -9,31 +9,43 @@ front door.
 
 ## Reading order
 
-1. [Product Brief](./product-brief.md)
-   - What GatesAI is, who it serves, what makes it different, and how Web Lite
-     and Desktop relate to each other.
-2. [Codebase Tour](./codebase-tour.md)
+1. [Direction](./direction.md)
+   - Why the project exists, the non-negotiables, the long game, and how we
+     decide. Read this first before proposing big changes.
+2. [Product Brief](./product-brief.md)
+   - What GatesAI is, who it serves, the core goals, and how Web Lite and
+     Desktop relate to each other.
+3. [Capabilities](./capabilities.md)
+   - Plain-language list of everything the assistant can do today, and what
+     each capability requires (desktop, Ollama, ComfyUI, keys).
+4. [Codebase Tour](./codebase-tour.md)
    - The code explained as simple LEGO blocks: UI, stores, services, core,
      bridge, providers, tools, artifacts, and workspace.
-3. [User Journeys](./user-journeys.md)
+5. [Patterns](./patterns.md)
+   - The engineering conventions that keep the codebase coherent: layering,
+     host interfaces, availability gating, guard-rail testing, the delegation
+     pipeline.
+6. [User Journeys](./user-journeys.md)
    - How real users should move through the product from first run to local
-     models, images, files, and future self-improvement.
-4. [User Stories](./user-stories.md)
+     models, images, files, and self-improvement.
+7. [User Stories](./user-stories.md)
    - Buildable product stories with acceptance criteria.
-5. [UX Principles](./ux-principles.md)
+8. [UX Principles](./ux-principles.md)
    - The design rules that keep the app calm, powerful, and understandable.
-6. [Glossary](./glossary.md)
+9. [Glossary](./glossary.md)
    - Short definitions for the project words that show up everywhere.
 
 ## Deeper technical references
 
 - [Architecture](../architecture.md)
+- [Bridge Protocol (app-side observed contract)](../bridge-protocol.md)
 - [Tech Spec](../tech_spec.md)
 - [Roadmap](../roadmap.md)
 - [Changelog](../changelog.md)
 - [Quick Setup](../quick-setup.md)
 - [ComfyUI Setup](../comfyui-setup.md)
-- [Audit Notes](../audits/2026-06-07-comprehensive-audit.md)
+- [Screens corpus](../screens/README.md) — regenerate with `npm run screens:tour`
+- [Audit Notes](../audits/2026-07-05-open-models-audit.md) (latest; older under `docs/audits/`)
 
 ## The one-sentence product direction
 
