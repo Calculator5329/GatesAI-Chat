@@ -126,6 +126,34 @@ describe('LocalSection recommended Ollama pulls', () => {
 
     expect(cancelSpy).toHaveBeenCalledWith('qwen2.5:7b');
   });
+
+  it('renders auto-detect not-found guidance as neutral instead of alert red', () => {
+    const store = makeLocalStore(false);
+    runInAction(() => {
+      store.localRuntime.runtimes.ollama.lastError = 'Auto-detect could not find ollama.exe - use Browse to point at it.';
+      store.localRuntime.runtimes.ollama.lastErrorKind = 'not-found';
+    });
+    const rendered = renderWithStore(store, createElement(LocalSection));
+
+    const neutral = rendered.querySelector('.local-runtime-message--not-found') as HTMLElement | null;
+    expect(neutral?.textContent).toContain('Auto-detect could not find ollama.exe');
+    expect(neutral?.getAttribute('role')).toBe('status');
+    expect(rendered.querySelector('.local-runtime-message--error')).toBeNull();
+    expect(rendered.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it('renders start failures as error alerts', () => {
+    const store = makeLocalStore(false);
+    runInAction(() => {
+      store.localRuntime.runtimes.ollama.lastError = 'spawn failed';
+      store.localRuntime.runtimes.ollama.lastErrorKind = 'error';
+    });
+    const rendered = renderWithStore(store, createElement(LocalSection));
+
+    const alert = rendered.querySelector('.local-runtime-message--error') as HTMLElement | null;
+    expect(alert?.textContent).toContain('spawn failed');
+    expect(alert?.getAttribute('role')).toBe('alert');
+  });
 });
 
 describe('AgentSection semantic memory pull', () => {

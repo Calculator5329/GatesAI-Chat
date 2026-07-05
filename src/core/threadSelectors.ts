@@ -23,9 +23,14 @@ export interface UsageDayTotal extends UsageTotals {
 export interface UsageSummary {
   allTime: UsageTotals;
   last30Days: UsageTotals;
+  cloud: UsageTotals;
+  local: UsageTotals;
+  presentationMode: UsagePresentationMode;
   byModel: UsageModelTotal[];
   byDay: UsageDayTotal[];
 }
+
+export type UsagePresentationMode = 'spend-led' | 'local-led';
 
 /** Total LLM spend (USD) recorded on a thread's assistant messages. */
 export function threadLlmSpendUsd(thread: Thread | null): number {
@@ -46,6 +51,21 @@ export function usageAllTimeTotal(threads: readonly Thread[]): UsageTotals {
   const total = emptyUsageTotals();
   for (const entry of iterUsageEntries(threads)) addUsageToTotals(total, entry.usage);
   return total;
+}
+
+export function usageCloudLocalTotals(threads: readonly Thread[]): { cloud: UsageTotals; local: UsageTotals } {
+  const cloud = emptyUsageTotals();
+  const local = emptyUsageTotals();
+  for (const entry of iterUsageEntries(threads)) {
+    addUsageToTotals(isLocalUsage(entry.usage) ? local : cloud, entry.usage);
+  }
+  return { cloud, local };
+}
+
+export function usagePresentationMode(summary: Pick<UsageSummary, 'allTime' | 'cloud' | 'local'>): UsagePresentationMode {
+  return summary.allTime.costUsd === 0 && summary.local.requests > 0 && summary.cloud.requests === 0
+    ? 'local-led'
+    : 'spend-led';
 }
 
 export function usageByModel(
@@ -104,6 +124,8 @@ export function usageSummary(
   now: number = Date.now(),
 ): UsageSummary {
   const byDay = usageByDayLast30(threads, now);
+  const split = usageCloudLocalTotals(threads);
+  const allTime = usageAllTimeTotal(threads);
   const last30Days = emptyUsageTotals();
   for (const day of byDay) {
     last30Days.requests += day.requests;
@@ -112,12 +134,17 @@ export function usageSummary(
     last30Days.totalTokens += day.totalTokens;
     last30Days.costUsd += day.costUsd;
   }
-  return {
-    allTime: usageAllTimeTotal(threads),
+  const summary = {
+    allTime,
     last30Days,
+    cloud: split.cloud,
+    local: split.local,
+    presentationMode: 'spend-led' as UsagePresentationMode,
     byModel: usageByModel(threads, models),
     byDay,
   };
+  summary.presentationMode = usagePresentationMode(summary);
+  return summary;
 }
 
 /**
@@ -155,6 +182,12 @@ function findUsageModel(models: readonly Model[], modelId: string | undefined, u
   return models.find(model => model.id === modelId)
     ?? models.find(model => usage.modelId && model.providerModelId === usage.modelId)
     ?? models.find(model => model.providerModelId === modelId);
+}
+
+function isLocalUsage(usage: LlmUsage): boolean {
+  return usage.providerId === 'ollama'
+    || usage.providerId === 'local-image'
+    || usage.costSource === 'local';
 }
 
 function startOfUtcDay(timestamp: number): number {

@@ -137,7 +137,8 @@ const RuntimeRow = observer(function RuntimeRow({ id, runtime, onOpenLogs, last 
   const local = useLocalRuntimeStore();
   const bridge = useBridgeStore();
   const running = runtime.status === 'online' || runtime.status === 'starting';
-  const showInstallHint = local.autoDetectComplete && !runtime.installPath;
+  const messageKind = runtimeMessageKind(runtime);
+  const showInstallHint = local.autoDetectComplete && !runtime.installPath && !runtime.lastError;
   const startDisabledReason = !runtime.managed
     ? 'Enable "Manage this process from GatesAI" first.'
     : !runtime.installPath
@@ -178,14 +179,12 @@ const RuntimeRow = observer(function RuntimeRow({ id, runtime, onOpenLogs, last 
           Manage this process from GatesAI
         </div>
         {runtime.lastError && (
-          <div role="alert" style={errorRowStyle}>
-            <span style={{ flex: 1 }}>{runtime.lastError}</span>
-            {runtime.logs.length > 0 && (
-              <button type="button" className="menu-inline-link" onClick={() => onOpenLogs(id)} style={inlineLinkStyle}>
-                View logs
-              </button>
-            )}
-          </div>
+          <RuntimeMessage
+            runtime={runtime}
+            kind={messageKind}
+            onOpenSetup={() => { void bridge.openWorkspacePath(id === 'ollama' ? '/workspace/docs/gatesai-local-image-prereqs.md' : '/workspace/docs/comfyui-setup.md'); }}
+            onOpenLogs={() => onOpenLogs(id)}
+          />
         )}
       </div>
       <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
@@ -203,6 +202,41 @@ const RuntimeRow = observer(function RuntimeRow({ id, runtime, onOpenLogs, last 
     </div>
   );
 });
+
+function RuntimeMessage({
+  runtime,
+  kind,
+  onOpenSetup,
+  onOpenLogs,
+}: {
+  runtime: RuntimeState;
+  kind: 'not-found' | 'error';
+  onOpenSetup: () => void;
+  onOpenLogs: () => void;
+}) {
+  if (kind === 'not-found') {
+    return (
+      <div className="local-runtime-message local-runtime-message--not-found" role="status" style={guidanceRowStyle}>
+        <span style={{ flex: 1 }}>{runtime.lastError}</span>
+        <button type="button" className="menu-inline-link" onClick={onOpenSetup} style={inlineLinkStyle}>
+          Open setup guide
+        </button>
+        <span style={{ color: 'var(--text-faint)' }}>or use Browse... below.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="local-runtime-message local-runtime-message--error" role="alert" style={errorRowStyle}>
+      <span style={{ flex: 1 }}>{runtime.lastError}</span>
+      {runtime.logs.length > 0 && (
+        <button type="button" className="menu-inline-link" onClick={onOpenLogs} style={inlineLinkStyle}>
+          View logs
+        </button>
+      )}
+    </div>
+  );
+}
 
 const LocalLlmCard = observer(function LocalLlmCard() {
   const local = useLocalRuntimeStore();
@@ -707,6 +741,11 @@ function runtimeLabel(id: LocalRuntimeId): string {
   return id === 'ollama' ? 'Ollama' : 'ComfyUI';
 }
 
+function runtimeMessageKind(runtime: RuntimeState): 'not-found' | 'error' {
+  if (runtime.lastErrorKind) return runtime.lastErrorKind;
+  return runtime.lastError?.startsWith('Auto-detect could not find') ? 'not-found' : 'error';
+}
+
 function catalogSummaryText(online: boolean, count: number): string {
   if (!online) return 'Start Ollama to load the catalog.';
   if (count > 0) return `${count} model${count === 1 ? '' : 's'} loaded`;
@@ -734,6 +773,14 @@ const inlineLinkStyle: CSSProperties = {
   fontSize: 'inherit',
   padding: 0,
   textDecoration: 'underline',
+};
+const guidanceRowStyle: CSSProperties = {
+  display: 'flex', alignItems: 'flex-start', gap: 10,
+  padding: '6px 8px', borderRadius: 4,
+  background: 'rgba(255,255,255,0.025)',
+  border: '1px solid var(--border)',
+  color: 'var(--text-faint)',
+  fontSize: 11.5, lineHeight: 1.4,
 };
 const errorRowStyle: CSSProperties = {
   display: 'flex', alignItems: 'flex-start', gap: 10,
