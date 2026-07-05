@@ -2,20 +2,47 @@ import { invoke } from '@tauri-apps/api/core';
 import { isTauri } from '../core/runtime';
 
 export type SourceBuildCommand = 'install' | 'test' | 'build' | 'package';
-export type SourceBuildStatusKind = 'idle' | 'running' | 'succeeded' | 'failed';
+export type SourceBuildStatusKind = 'idle' | 'running' | 'succeeded' | 'failed' | 'interrupted';
+export type SourceBuildJobKind = 'build' | 'test';
+export type SourceBuildStepStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
+
+export interface SourceBuildStepStatusSnapshot {
+  id: string;
+  label: string;
+  cmdline: string;
+  status: SourceBuildStepStatus;
+  startedAtUnix?: number;
+  finishedAtUnix?: number;
+  exitCode?: number;
+}
+
+export interface SourceBuildJobSummary {
+  jobKind: SourceBuildJobKind;
+  command: SourceBuildCommand;
+  status: SourceBuildStatusKind;
+  startedAtUnix?: number;
+  finishedAtUnix?: number;
+  exitCode?: number;
+  steps: SourceBuildStepStatusSnapshot[];
+  failureTail?: string;
+}
 
 export interface SourceBuildStatus {
   status: SourceBuildStatusKind;
+  jobKind?: SourceBuildJobKind;
   command?: SourceBuildCommand;
   cmdline?: string;
   sourceRoot?: string;
   startedAtUnix?: number;
   finishedAtUnix?: number;
   exitCode?: number;
+  steps: SourceBuildStepStatusSnapshot[];
   logs: string[];
   lastError?: string;
   installerPath?: string;
   installerBytes?: number;
+  lastBuild?: SourceBuildJobSummary;
+  lastTest?: SourceBuildJobSummary;
 }
 
 export async function getSourceBuildStatus(): Promise<SourceBuildStatus> {

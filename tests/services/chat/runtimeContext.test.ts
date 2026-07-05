@@ -37,6 +37,8 @@ describe('runtime context composition', () => {
         changedFileCount: 3,
         lastBuildStatus: 'succeeded',
         lastBuildFinishedAtUnix: 1_777_136_400,
+        lastTestStatus: 'succeeded',
+        lastTestFinishedAtUnix: 1_777_147_200,
       },
       now: new Date('2026-04-25T20:00:00.000Z'),
       timeZone: 'UTC',
@@ -44,6 +46,7 @@ describe('runtime context composition', () => {
 
     expect(off).not.toContain('source_workspace:');
     expect(on).toContain('source_workspace: prepared; changed_files: 3');
+    expect(on).toContain('tests: passed 0s ago');
     expect(on).toContain('source_build: succeeded at 2026-04-25T17:00:00.000Z');
     expect(on).toContain('user must approve any installer/update');
   });

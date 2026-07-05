@@ -17,32 +17,65 @@ pub struct SourceBuildState(pub Arc<Mutex<SourceBuildSnapshot>>);
 #[serde(rename_all = "camelCase")]
 pub struct SourceBuildSnapshot {
     status: String,
+    job_kind: Option<String>,
     command: Option<String>,
     cmdline: Option<String>,
     source_root: Option<String>,
     started_at_unix: Option<u64>,
     finished_at_unix: Option<u64>,
     exit_code: Option<i32>,
+    steps: Vec<SourceBuildStepSnapshot>,
     logs: Vec<String>,
     last_error: Option<String>,
     installer_path: Option<String>,
     installer_bytes: Option<u64>,
+    last_build: Option<SourceBuildJobSummary>,
+    last_test: Option<SourceBuildJobSummary>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceBuildStepSnapshot {
+    id: String,
+    label: String,
+    cmdline: String,
+    status: String,
+    started_at_unix: Option<u64>,
+    finished_at_unix: Option<u64>,
+    exit_code: Option<i32>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceBuildJobSummary {
+    job_kind: String,
+    command: String,
+    status: String,
+    started_at_unix: Option<u64>,
+    finished_at_unix: Option<u64>,
+    exit_code: Option<i32>,
+    steps: Vec<SourceBuildStepSnapshot>,
+    failure_tail: Option<String>,
 }
 
 impl Default for SourceBuildSnapshot {
     fn default() -> Self {
         Self {
             status: "idle".to_string(),
+            job_kind: None,
             command: None,
             cmdline: None,
             source_root: None,
             started_at_unix: None,
             finished_at_unix: None,
             exit_code: None,
+            steps: Vec::new(),
             logs: Vec::new(),
             last_error: None,
             installer_path: None,
             installer_bytes: None,
+            last_build: None,
+            last_test: None,
         }
     }
 }
@@ -63,7 +96,13 @@ pub fn source_build_clear(
     if guard.status == "running" {
         return Err("Cannot clear a running source build job.".to_string());
     }
-    *guard = SourceBuildSnapshot::default();
+    let last_build = guard.last_build.clone();
+    let last_test = guard.last_test.clone();
+    *guard = SourceBuildSnapshot {
+        last_build,
+        last_test,
+        ..SourceBuildSnapshot::default()
+    };
     Ok(guard.clone())
 }
 
@@ -73,7 +112,7 @@ pub fn source_build_start(
     command: String,
     state: tauri::State<'_, SourceBuildState>,
 ) -> Result<SourceBuildSnapshot, String> {
-    let spec = command_spec(&command)?;
+    let job = job_spec(&command)?;
     let source_root = prepared_source_root(&app)?;
     let state_arc = Arc::clone(&state.0);
 
@@ -84,70 +123,62 @@ pub fn source_build_start(
         if guard.status == "running" {
             return Err("A source build job is already running.".to_string());
         }
+        let last_build = guard.last_build.clone();
+        let last_test = guard.last_test.clone();
         *guard = SourceBuildSnapshot {
             status: "running".to_string(),
-            command: Some(spec.id.to_string()),
-            cmdline: Some(spec.cmdline()),
+            job_kind: Some(job.kind.to_string()),
+            command: Some(job.command.to_string()),
+            cmdline: Some(job.cmdline()),
             source_root: Some(path_string(&source_root)),
             started_at_unix: Some(unix_now()),
             finished_at_unix: None,
             exit_code: None,
-            logs: vec![format!("$ {}", spec.cmdline())],
+            steps: job.step_snapshots(),
+            logs: vec![format!(
+                "[job] starting {} job: {}",
+                job.kind,
+                job.cmdline()
+            )],
             last_error: None,
             installer_path: None,
             installer_bytes: None,
+            last_build,
+            last_test,
         };
     }
 
-    std::thread::spawn(move || run_command(state_arc, source_root, spec));
+    std::thread::spawn(move || run_job(state_arc, source_root, job));
     Ok(snapshot(&state.0))
 }
 
-fn run_command(
-    state: Arc<Mutex<SourceBuildSnapshot>>,
-    source_root: PathBuf,
-    spec: SourceBuildCommand,
-) {
-    let mut command = Command::new(npm_program());
-    command
-        .args(&spec.args)
-        .current_dir(&source_root)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-
-    let mut child = match command.spawn() {
-        Ok(child) => child,
-        Err(err) => {
-            finish_with_error(&state, format!("failed to start {}: {err}", spec.cmdline()));
-            return;
+fn run_job(state: Arc<Mutex<SourceBuildSnapshot>>, source_root: PathBuf, job: SourceBuildJob) {
+    let mut exit_code = 0;
+    let mut failed_step: Option<String> = None;
+    for (index, step) in job.steps.iter().enumerate() {
+        if step.skip_if_node_modules && source_root.join("node_modules").is_dir() {
+            update_step_skipped(&state, index);
+            continue;
         }
-    };
-
-    let mut readers = Vec::new();
-    if let Some(stdout) = child.stdout.take() {
-        readers.push(pipe_lines(Arc::clone(&state), "stdout", stdout));
-    }
-    if let Some(stderr) = child.stderr.take() {
-        readers.push(pipe_lines(Arc::clone(&state), "stderr", stderr));
-    }
-
-    let status = match child.wait() {
-        Ok(status) => status,
-        Err(err) => {
-            finish_with_error(
-                &state,
-                format!("failed while waiting for {}: {err}", spec.cmdline()),
-            );
-            return;
+        match run_step(Arc::clone(&state), &source_root, step, index) {
+            Ok(code) if code == 0 => {
+                update_step_finished(&state, index, "succeeded", Some(code));
+            }
+            Ok(code) => {
+                exit_code = code;
+                failed_step = Some(step.cmdline());
+                update_step_finished(&state, index, "failed", Some(code));
+                break;
+            }
+            Err(message) => {
+                update_step_finished(&state, index, "failed", None);
+                finish_with_error(&state, message);
+                return;
+            }
         }
-    };
-    for reader in readers {
-        let _ = reader.join();
     }
 
-    let exit_code = status.code().unwrap_or(-1);
-    let (installer_path, installer_bytes) = if spec.id == "package" && exit_code == 0 {
+    let (installer_path, installer_bytes) = if job.command == "package" && exit_code == 0 {
         latest_installer(&source_root)
             .map(|(path, bytes)| (Some(path_string(&path)), Some(bytes)))
             .unwrap_or((None, None))
@@ -166,10 +197,133 @@ fn run_command(
         guard.exit_code = Some(exit_code);
         guard.installer_path = installer_path;
         guard.installer_bytes = installer_bytes;
-        if exit_code != 0 {
-            guard.last_error = Some(format!("{} exited with code {exit_code}", spec.cmdline()));
+        if let Some(cmdline) = failed_step {
+            guard.last_error = Some(format!("{cmdline} exited with code {exit_code}"));
+        }
+        let summary = summary_from_snapshot(&guard);
+        if job.kind == "test" {
+            guard.last_test = Some(summary);
+        } else {
+            guard.last_build = Some(summary);
         }
     }
+}
+
+fn run_step(
+    state: Arc<Mutex<SourceBuildSnapshot>>,
+    source_root: &Path,
+    step: &SourceBuildCommand,
+    step_index: usize,
+) -> Result<i32, String> {
+    update_step_running(&state, step_index);
+    push_log(&state, format!("$ {}", step.cmdline()));
+    let mut command = Command::new(npm_program());
+    command
+        .args(&step.args)
+        .current_dir(&source_root)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(err) => return Err(format!("failed to start {}: {err}", step.cmdline())),
+    };
+
+    let mut readers = Vec::new();
+    if let Some(stdout) = child.stdout.take() {
+        readers.push(pipe_lines(Arc::clone(&state), "stdout", stdout));
+    }
+    if let Some(stderr) = child.stderr.take() {
+        readers.push(pipe_lines(Arc::clone(&state), "stderr", stderr));
+    }
+
+    let status = match child.wait() {
+        Ok(status) => status,
+        Err(err) => {
+            return Err(format!(
+                "failed while waiting for {}: {err}",
+                step.cmdline()
+            ))
+        }
+    };
+    for reader in readers {
+        let _ = reader.join();
+    }
+
+    Ok(status.code().unwrap_or(-1))
+}
+
+fn update_step_running(state: &Arc<Mutex<SourceBuildSnapshot>>, step_index: usize) {
+    if let Ok(mut guard) = state.lock() {
+        if let Some(step) = guard.steps.get_mut(step_index) {
+            step.status = "running".to_string();
+            step.started_at_unix = Some(unix_now());
+        }
+    }
+}
+
+fn update_step_finished(
+    state: &Arc<Mutex<SourceBuildSnapshot>>,
+    step_index: usize,
+    status: &str,
+    exit_code: Option<i32>,
+) {
+    if let Ok(mut guard) = state.lock() {
+        if let Some(step) = guard.steps.get_mut(step_index) {
+            step.status = status.to_string();
+            step.finished_at_unix = Some(unix_now());
+            step.exit_code = exit_code;
+        }
+    }
+}
+
+fn update_step_skipped(state: &Arc<Mutex<SourceBuildSnapshot>>, step_index: usize) {
+    if let Ok(mut guard) = state.lock() {
+        let mut skipped_cmdline: Option<String> = None;
+        if let Some(step) = guard.steps.get_mut(step_index) {
+            step.status = "skipped".to_string();
+            step.started_at_unix = Some(unix_now());
+            step.finished_at_unix = step.started_at_unix;
+            step.exit_code = Some(0);
+            skipped_cmdline = Some(step.cmdline.clone());
+        }
+        if let Some(cmdline) = skipped_cmdline {
+            push_log_locked(
+                &mut guard,
+                format!("[job] skipped {cmdline}; node_modules already exists"),
+            );
+        }
+    }
+}
+
+fn summary_from_snapshot(snapshot: &SourceBuildSnapshot) -> SourceBuildJobSummary {
+    SourceBuildJobSummary {
+        job_kind: snapshot
+            .job_kind
+            .clone()
+            .unwrap_or_else(|| "build".to_string()),
+        command: snapshot.command.clone().unwrap_or_default(),
+        status: snapshot.status.clone(),
+        started_at_unix: snapshot.started_at_unix,
+        finished_at_unix: snapshot.finished_at_unix,
+        exit_code: snapshot.exit_code,
+        steps: snapshot.steps.clone(),
+        failure_tail: if snapshot.status == "failed" {
+            Some(log_tail_chars(&snapshot.logs, 8_000))
+        } else {
+            None
+        },
+    }
+}
+
+fn log_tail_chars(logs: &[String], max_chars: usize) -> String {
+    let joined = logs.join("\n");
+    let count = joined.chars().count();
+    if count <= max_chars {
+        return joined;
+    }
+    joined.chars().skip(count - max_chars).collect()
 }
 
 fn pipe_lines<R: std::io::Read + Send + 'static>(
@@ -222,7 +376,9 @@ fn snapshot(state: &Arc<Mutex<SourceBuildSnapshot>>) -> SourceBuildSnapshot {
 #[derive(Debug)]
 struct SourceBuildCommand {
     id: &'static str,
+    label: &'static str,
     args: Vec<&'static str>,
+    skip_if_node_modules: bool,
 }
 
 impl SourceBuildCommand {
@@ -235,23 +391,112 @@ impl SourceBuildCommand {
     }
 }
 
+#[derive(Debug)]
+struct SourceBuildJob {
+    kind: &'static str,
+    command: &'static str,
+    steps: Vec<SourceBuildCommand>,
+}
+
+impl SourceBuildJob {
+    fn cmdline(&self) -> String {
+        self.steps
+            .iter()
+            .map(SourceBuildCommand::cmdline)
+            .collect::<Vec<_>>()
+            .join(" && ")
+    }
+
+    fn step_snapshots(&self) -> Vec<SourceBuildStepSnapshot> {
+        self.steps
+            .iter()
+            .map(|step| SourceBuildStepSnapshot {
+                id: step.id.to_string(),
+                label: step.label.to_string(),
+                cmdline: step.cmdline(),
+                status: "pending".to_string(),
+                started_at_unix: None,
+                finished_at_unix: None,
+                exit_code: None,
+            })
+            .collect()
+    }
+}
+
 fn command_spec(command: &str) -> Result<SourceBuildCommand, String> {
     match command.trim() {
         "install" => Ok(SourceBuildCommand {
             id: "install",
+            label: "install",
             args: vec!["install"],
+            skip_if_node_modules: false,
+        }),
+        "ci" => Ok(SourceBuildCommand {
+            id: "ci",
+            label: "npm ci",
+            args: vec!["ci"],
+            skip_if_node_modules: true,
         }),
         "test" => Ok(SourceBuildCommand {
             id: "test",
+            label: "test",
             args: vec!["test"],
+            skip_if_node_modules: false,
+        }),
+        "typecheck" => Ok(SourceBuildCommand {
+            id: "typecheck",
+            label: "typecheck",
+            args: vec!["run", "typecheck"],
+            skip_if_node_modules: false,
+        }),
+        "lint" => Ok(SourceBuildCommand {
+            id: "lint",
+            label: "lint",
+            args: vec!["run", "lint"],
+            skip_if_node_modules: false,
         }),
         "build" => Ok(SourceBuildCommand {
             id: "build",
+            label: "build",
             args: vec!["run", "build"],
+            skip_if_node_modules: false,
         }),
         "package" => Ok(SourceBuildCommand {
             id: "package",
+            label: "package",
             args: vec!["run", "tauri:build"],
+            skip_if_node_modules: false,
+        }),
+        other => Err(format!(
+            "Unknown source build command `{other}`. Valid: install, ci, test, typecheck, lint, build, package."
+        )),
+    }
+}
+
+fn job_spec(command: &str) -> Result<SourceBuildJob, String> {
+    match command.trim() {
+        "test" => {
+            // These scripts run in the managed source copy with the same trust
+            // boundary as the existing package build, which already executes npm.
+            Ok(SourceBuildJob {
+                kind: "test",
+                command: "test",
+                steps: vec![
+                    command_spec("ci")?,
+                    command_spec("test")?,
+                    command_spec("typecheck")?,
+                    command_spec("lint")?,
+                ],
+            })
+        }
+        "install" | "build" | "package" => Ok(SourceBuildJob {
+            kind: "build",
+            command: match command.trim() {
+                "install" => "install",
+                "build" => "build",
+                _ => "package",
+            },
+            steps: vec![command_spec(command)?],
         }),
         other => Err(format!(
             "Unknown source build command `{other}`. Valid: install, test, build, package."
@@ -325,7 +570,13 @@ mod tests {
     #[test]
     fn command_spec_allows_only_known_commands() {
         assert_eq!(command_spec("install").unwrap().args, vec!["install"]);
+        assert_eq!(command_spec("ci").unwrap().args, vec!["ci"]);
         assert_eq!(command_spec("test").unwrap().args, vec!["test"]);
+        assert_eq!(
+            command_spec("typecheck").unwrap().args,
+            vec!["run", "typecheck"]
+        );
+        assert_eq!(command_spec("lint").unwrap().args, vec!["run", "lint"]);
         assert_eq!(command_spec("build").unwrap().args, vec!["run", "build"]);
         assert_eq!(
             command_spec("package").unwrap().args,
@@ -333,6 +584,52 @@ mod tests {
         );
         assert!(command_spec("start").is_err());
         assert!(command_spec("npm run anything").is_err());
+    }
+
+    #[test]
+    fn test_job_runs_ci_test_typecheck_lint_in_order() {
+        let job = job_spec("test").unwrap();
+        assert_eq!(job.kind, "test");
+        assert_eq!(
+            job.steps.iter().map(|step| step.id).collect::<Vec<_>>(),
+            vec!["ci", "test", "typecheck", "lint"]
+        );
+        assert_eq!(
+            job.steps
+                .iter()
+                .map(SourceBuildCommand::cmdline)
+                .collect::<Vec<_>>(),
+            vec![
+                format!("{} ci", npm_program()),
+                format!("{} test", npm_program()),
+                format!("{} run typecheck", npm_program()),
+                format!("{} run lint", npm_program()),
+            ]
+        );
+        assert!(job.steps[0].skip_if_node_modules);
+    }
+
+    #[test]
+    fn job_spec_keeps_one_job_kind_for_build_commands() {
+        for command in ["install", "build", "package"] {
+            let job = job_spec(command).unwrap();
+            assert_eq!(job.kind, "build");
+            assert_eq!(job.steps.len(), 1);
+        }
+        assert!(job_spec("lint").is_err());
+    }
+
+    #[test]
+    fn running_snapshot_blocks_new_jobs_and_clear() {
+        let state = Arc::new(Mutex::new(SourceBuildSnapshot {
+            status: "running".to_string(),
+            ..SourceBuildSnapshot::default()
+        }));
+        let guard = state.lock().unwrap();
+        assert_eq!(guard.status, "running");
+        drop(guard);
+        let snapshot = snapshot(&state);
+        assert_eq!(snapshot.status, "running");
     }
 
     #[test]

@@ -112,6 +112,7 @@ pub struct SourceChangedFile {
 #[serde(rename_all = "camelCase")]
 pub struct SourceChangedFiles {
     files: Vec<SourceChangedFile>,
+    latest_change_at_unix: Option<u64>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -668,21 +669,30 @@ fn search_file(
     Ok(())
 }
 
-fn changed_files_for_roots(snapshot_root: &Path, source_root: &Path) -> Result<SourceChangedFiles, String> {
+fn changed_files_for_roots(
+    snapshot_root: &Path,
+    source_root: &Path,
+) -> Result<SourceChangedFiles, String> {
     let mut paths = BTreeSet::new();
     collect_file_paths(snapshot_root, snapshot_root, &mut paths)?;
     collect_file_paths(source_root, source_root, &mut paths)?;
 
     let mut files = Vec::new();
+    let mut latest_change_at_unix = None;
     for relative in paths {
         if is_internal_marker(&relative) {
             continue;
         }
         if let Some(file) = changed_file_for_path(snapshot_root, source_root, &relative)? {
+            latest_change_at_unix =
+                latest_change_at_unix.max(changed_file_mtime_unix(source_root, &relative));
             files.push(file);
         }
     }
-    Ok(SourceChangedFiles { files })
+    Ok(SourceChangedFiles {
+        files,
+        latest_change_at_unix,
+    })
 }
 
 fn changed_file_for_path(
@@ -741,15 +751,25 @@ fn changed_file_for_path(
     }
 }
 
-fn revert_file_for_roots(snapshot_root: &Path, source_root: &Path, path: &str) -> Result<SourceRevertResult, String> {
+fn revert_file_for_roots(
+    snapshot_root: &Path,
+    source_root: &Path,
+    path: &str,
+) -> Result<SourceRevertResult, String> {
     let relative = clean_required_file_path(path, "revert")?;
     if is_internal_marker(&relative) {
         return Err("cannot revert the source workspace marker.".to_string());
     }
     let original = snapshot_root.join(&relative);
     let current = source_root.join(&relative);
-    let original_file = fs::metadata(&original).ok().filter(|meta| meta.is_file()).is_some();
-    let current_file = fs::metadata(&current).ok().filter(|meta| meta.is_file()).is_some();
+    let original_file = fs::metadata(&original)
+        .ok()
+        .filter(|meta| meta.is_file())
+        .is_some();
+    let current_file = fs::metadata(&current)
+        .ok()
+        .filter(|meta| meta.is_file())
+        .is_some();
 
     if original_file {
         if let Some(parent) = current.parent() {
@@ -768,7 +788,11 @@ fn revert_file_for_roots(snapshot_root: &Path, source_root: &Path, path: &str) -
         })?;
         return Ok(SourceRevertResult {
             path: display_source_path(&relative),
-            change: if current_file { "modified".to_string() } else { "deleted".to_string() },
+            change: if current_file {
+                "modified".to_string()
+            } else {
+                "deleted".to_string()
+            },
         });
     }
 
@@ -791,12 +815,21 @@ fn revert_file_for_roots(snapshot_root: &Path, source_root: &Path, path: &str) -
     ))
 }
 
-fn collect_file_paths(root: &Path, directory: &Path, out: &mut BTreeSet<PathBuf>) -> Result<(), String> {
+fn collect_file_paths(
+    root: &Path,
+    directory: &Path,
+    out: &mut BTreeSet<PathBuf>,
+) -> Result<(), String> {
     if !directory.exists() {
         return Ok(());
     }
     let mut children = fs::read_dir(directory)
-        .map_err(|err| format!("cannot list source directory {}: {err}", directory.display()))?
+        .map_err(|err| {
+            format!(
+                "cannot list source directory {}: {err}",
+                directory.display()
+            )
+        })?
         .filter_map(Result::ok)
         .collect::<Vec<_>>();
     children.sort_by_key(|entry| entry.path());
@@ -814,9 +847,19 @@ fn collect_file_paths(root: &Path, directory: &Path, out: &mut BTreeSet<PathBuf>
 }
 
 fn files_equal(left: &Path, right: &Path) -> Result<bool, String> {
-    let left_bytes = fs::read(left).map_err(|err| format!("cannot read {}: {err}", left.display()))?;
-    let right_bytes = fs::read(right).map_err(|err| format!("cannot read {}: {err}", right.display()))?;
+    let left_bytes =
+        fs::read(left).map_err(|err| format!("cannot read {}: {err}", left.display()))?;
+    let right_bytes =
+        fs::read(right).map_err(|err| format!("cannot read {}: {err}", right.display()))?;
     Ok(left_bytes == right_bytes)
+}
+
+fn changed_file_mtime_unix(source_root: &Path, relative: &Path) -> Option<u64> {
+    let current = source_root.join(relative);
+    fs::metadata(&current)
+        .or_else(|_| fs::metadata(current.parent().unwrap_or(source_root)))
+        .ok()
+        .map(|metadata| modified_unix_ms(&metadata) / 1000)
 }
 
 fn preview_content(path: &Path, size: u64) -> Option<String> {
@@ -976,8 +1019,13 @@ mod tests {
         fs::write(source.join("src").join("add.txt"), "add").expect("write added source");
         fs::write(source.join(INSTALLED_MARKER_NAME), "{}").expect("write marker");
 
-        let files = changed_files_for_roots(&snapshot, &source).expect("changed files").files;
-        let paths = files.iter().map(|file| (file.path.as_str(), file.change.as_str())).collect::<Vec<_>>();
+        let files = changed_files_for_roots(&snapshot, &source)
+            .expect("changed files")
+            .files;
+        let paths = files
+            .iter()
+            .map(|file| (file.path.as_str(), file.change.as_str()))
+            .collect::<Vec<_>>();
 
         assert_eq!(
             paths,
@@ -988,6 +1036,23 @@ mod tests {
             ]
         );
         assert!(files.iter().all(|file| file.preview_available));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn changed_files_reports_latest_source_change_time() {
+        let root = temp_root("changed-files-mtime");
+        let snapshot = root.join("snapshot");
+        let source = root.join("source");
+        fs::create_dir_all(&snapshot).expect("create snapshot");
+        fs::create_dir_all(&source).expect("create source");
+        fs::write(snapshot.join("app.txt"), "old").expect("write snapshot");
+        fs::write(source.join("app.txt"), "new").expect("write source");
+
+        let files = changed_files_for_roots(&snapshot, &source).expect("changed files");
+
+        assert_eq!(files.files.len(), 1);
+        assert!(files.latest_change_at_unix.is_some());
         let _ = fs::remove_dir_all(root);
     }
 
@@ -1015,7 +1080,8 @@ mod tests {
         fs::write(snapshot.join("src").join("restore.txt"), "original").expect("write snapshot");
         fs::write(source.join("src").join("added.txt"), "new").expect("write added");
 
-        let restored = revert_file_for_roots(&snapshot, &source, "src/restore.txt").expect("restore");
+        let restored =
+            revert_file_for_roots(&snapshot, &source, "src/restore.txt").expect("restore");
         let removed = revert_file_for_roots(&snapshot, &source, "src/added.txt").expect("remove");
 
         assert_eq!(restored.change, "deleted");

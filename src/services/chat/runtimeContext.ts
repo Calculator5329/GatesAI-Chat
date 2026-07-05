@@ -14,9 +14,13 @@ interface RuntimeBridgeInfo {
 interface RuntimeSourceWorkspaceInfo {
   prepared: boolean;
   changedFileCount?: number;
-  lastBuildStatus?: 'idle' | 'running' | 'succeeded' | 'failed';
+  latestChangeAtUnix?: number;
+  lastBuildStatus?: 'idle' | 'running' | 'succeeded' | 'failed' | 'interrupted';
   lastBuildFinishedAtUnix?: number;
   lastBuildStartedAtUnix?: number;
+  lastTestStatus?: 'idle' | 'running' | 'succeeded' | 'failed' | 'interrupted';
+  lastTestFinishedAtUnix?: number;
+  lastTestStartedAtUnix?: number;
 }
 
 interface RuntimeContextCacheEntry {
@@ -102,7 +106,8 @@ export function buildRuntimeContext(opts: {
     const changed = opts.sourceWorkspace.changedFileCount == null ? 'unknown' : String(opts.sourceWorkspace.changedFileCount);
     const buildStatus = opts.sourceWorkspace.lastBuildStatus ?? 'idle';
     const buildTime = formatSourceBuildTime(opts.sourceWorkspace);
-    lines.push(`source_workspace: prepared; changed_files: ${changed}; user_review: Workspace menu shows changed files, diffs, and per-file revert.`);
+    const testState = formatSourceTestState(opts.sourceWorkspace, now);
+    lines.push(`source_workspace: prepared; changed_files: ${changed}; tests: ${testState}; user_review: Workspace menu shows changed files, diffs, and per-file revert.`);
     lines.push(`source_build: ${buildStatus}${buildTime}; install_handoff: open output folder only, user must approve any installer/update.`);
   }
   lines.push('When you need details about this app, its tools, user-visible behavior, or environment limits, read the AI operating context file.');
@@ -113,4 +118,24 @@ function formatSourceBuildTime(info: RuntimeSourceWorkspaceInfo): string {
   const unix = info.lastBuildFinishedAtUnix ?? info.lastBuildStartedAtUnix;
   if (!unix) return '';
   return ` at ${new Date(unix * 1000).toISOString()}`;
+}
+
+function formatSourceTestState(info: RuntimeSourceWorkspaceInfo, now: Date): string {
+  const status = info.lastTestStatus ?? 'idle';
+  const unix = info.lastTestFinishedAtUnix ?? info.lastTestStartedAtUnix;
+  if (status === 'succeeded' && unix) return `passed ${relativeAge(unix, now)} ago`;
+  if (status === 'failed' && unix) return `failing since ${new Date(unix * 1000).toISOString()}`;
+  if (status === 'running' && unix) return `running since ${new Date(unix * 1000).toISOString()}`;
+  if (status === 'interrupted' && unix) return `interrupted at ${new Date(unix * 1000).toISOString()}`;
+  return status;
+}
+
+function relativeAge(unix: number, now: Date): string {
+  const seconds = Math.max(0, Math.floor(now.getTime() / 1000) - unix);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 48) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
 }
