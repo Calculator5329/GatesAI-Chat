@@ -6,7 +6,7 @@
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app/)
 [![Vite](https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/)
 [![MobX](https://img.shields.io/badge/MobX-6-ff9955?style=flat-square&logo=mobx&logoColor=white)](https://mobx.js.org/)
-[![Tests](https://img.shields.io/badge/tests-683%20unit%20%2B%2019%20e2e-3fb950?style=flat-square)](#quality-gates)
+[![Tests](https://img.shields.io/badge/tests-995%20unit%20%2B%2020%20e2e-3fb950?style=flat-square)](#quality-gates)
 
 > **Live demo:** [calculator5329.github.io/GatesAI-Chat](https://calculator5329.github.io/GatesAI-Chat/)
 > — the browser **Web Lite** build. The full UI is interactive; chatting uses your own OpenRouter
@@ -152,11 +152,11 @@ go run ./cmd/gatesai-bridge
 ```powershell
 npm run typecheck  # tsc project build + test project typecheck
 npm run lint       # ESLint (includes the architecture-boundary import rules)
-npm run test       # Vitest unit/component suite (683 tests)
+npm run test       # Vitest unit/component suite (995 tests)
 npm run test:watch # Vitest in watch mode
 npm run test:models # Live OpenRouter compatibility (needs API key)
 npm run ci         # all three, in order
-npm run test:e2e   # Playwright UI suite (19 e2e tests; desktop-mocked + web-lite)
+npm run test:e2e   # Playwright UI suite (20 e2e tests; desktop-mocked + web-lite)
 ```
 
 The Playwright suite runs the real app in a browser two ways — a faked-bridge
