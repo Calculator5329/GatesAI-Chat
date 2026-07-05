@@ -914,6 +914,15 @@ describe('tool registry harness selection', () => {
     expect(available).toContain('recall');
   });
 
+  it('exposes schedules for recurring automation requests', () => {
+    const names = toolRegistry.toolDefsForTurn({
+      userText: 'schedule a daily automation to review my inbox',
+      bridgeOnline: false,
+    }).map(t => t.name);
+
+    expect(names).toContain('schedules');
+  });
+
   it('only exposes image generation when an image backend is available', () => {
     const unavailable = toolRegistry.toolDefsForTurn({
       userText: 'generate an image of a glass greenhouse',
