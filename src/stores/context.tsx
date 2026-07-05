@@ -19,6 +19,7 @@ import type { SearchStore } from './SearchStore';
 import type { McpStore } from './McpStore';
 import type { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import type { SourceWorkspaceStore } from './SourceWorkspaceStore';
+import type { RagStore } from '../services/rag/RagStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -94,6 +95,10 @@ export function useOpenRouterCompatibilityStore(): OpenRouterCompatibilityStore 
 
 export function useSourceWorkspaceStore(): SourceWorkspaceStore {
   return useRootStore().sourceWorkspace;
+}
+
+export function useRagStore(): RagStore {
+  return useRootStore().rag;
 }
 
 export interface EditorialStores {

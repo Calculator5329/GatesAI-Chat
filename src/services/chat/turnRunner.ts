@@ -82,7 +82,7 @@ export interface TurnRouter {
 }
 
 export interface TurnProfile extends ProfileFacade {
-  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[] }): string | undefined;
+  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; semanticContext?: string }): string | undefined;
 }
 
 export interface TurnHost {
@@ -115,6 +115,7 @@ export interface TurnRunnerDeps {
   createId(prefix: string): string;
   getToolStores(): ToolStoreContext | undefined;
   getRecentSummaries(): string[];
+  getSemanticContext?(userText: string): string | Promise<string>;
   roundExecutor?: StreamingRoundExecutor;
 }
 
@@ -131,6 +132,7 @@ export class TurnRunner {
   private readonly createId: (prefix: string) => string;
   private readonly getToolStores: () => ToolStoreContext | undefined;
   private readonly getRecentSummaries: () => string[];
+  private readonly getSemanticContext: (userText: string) => string | Promise<string>;
   private readonly roundExecutor: StreamingRoundExecutor;
 
   constructor(deps: TurnRunnerDeps) {
@@ -142,6 +144,7 @@ export class TurnRunner {
     this.createId = deps.createId;
     this.getToolStores = deps.getToolStores;
     this.getRecentSummaries = deps.getRecentSummaries;
+    this.getSemanticContext = deps.getSemanticContext ?? (() => '');
     this.roundExecutor = deps.roundExecutor ?? new StreamingRoundExecutor({ retryPolicy: transientProviderRetryPolicy });
   }
 
@@ -179,6 +182,10 @@ export class TurnRunner {
     }
 
     let outputLimitRetries = 0;
+    const semanticContextValue = this.getSemanticContext(latestUserMessageContent(thread));
+    const semanticContext = typeof semanticContextValue === 'string'
+      ? semanticContextValue
+      : await resolveSemanticContext(semanticContextValue, threadId);
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       if (signal.aborted) return;
 
@@ -201,7 +208,7 @@ export class TurnRunner {
 
       logEvent(thread.id, 'round.start', { round, providerId: provider.id, providerModelId });
       const recentSummaries = this.getRecentSummaries();
-      let request = this.buildTurnRequest(thread, providerModelId, recentSummaries);
+      let request = this.buildTurnRequest(thread, providerModelId, recentSummaries, semanticContext);
       if (hasAnyImageAttachment(thread.messages)) {
         await this.inlineImageAttachments(thread, request);
       }
@@ -227,7 +234,7 @@ export class TurnRunner {
             message.preTokenLabel = options.isReplacingInterruptedReply ? 'responding' : 'thinking';
           }
         });
-        request = this.buildTurnRequest(thread, providerModelId, recentSummaries);
+        request = this.buildTurnRequest(thread, providerModelId, recentSummaries, semanticContext);
         if (hasAnyImageAttachment(thread.messages)) {
           await this.inlineImageAttachments(thread, request);
         }
@@ -459,7 +466,7 @@ export class TurnRunner {
     return 'continued';
   }
 
-  private buildTurnRequest(thread: Thread, providerModelId: string, recentSummaries: string[]): LlmRequest {
+  private buildTurnRequest(thread: Thread, providerModelId: string, recentSummaries: string[], semanticContext: string): LlmRequest {
     const extras = this.getToolStores();
     const bridge = extras?.bridge;
     const model = this.registry.findById(thread.modelId);
@@ -469,6 +476,7 @@ export class TurnRunner {
         runtimeContext: buildRuntimeContext({ bridge }),
         threadContext: mode === 'full' ? thread.threadContext : undefined,
         recentSummaries: mode === 'full' ? recentSummaries : [],
+        semanticContext: mode === 'full' ? semanticContext : undefined,
       })
     );
     const tools = toolsForContextMode({
@@ -478,6 +486,7 @@ export class TurnRunner {
       bridgeOnline: bridge?.isOnline ?? false,
       imageGenAvailable: isImageGenerationAvailable(extras),
       webSearchAvailable: extras?.search?.braveReady ?? false,
+      semanticRecallAvailable: extras?.rag?.active ?? false,
     });
     const finalSystemPrompt = appendImageGenAddendum(systemPrompt, tools);
     const maxTokens = reservedOutputTokensForContextMode(mode);
@@ -727,6 +736,13 @@ function hasAnyImageAttachment(messages: Message[]): boolean {
     }
   }
   return false;
+}
+
+async function resolveSemanticContext(value: Promise<string>, threadId: string): Promise<string> {
+  return value.catch(err => {
+    logger.warn('rag', 'semantic context lookup failed', { threadId, err });
+    return '';
+  });
 }
 
 export function normalizeOpenRouterThinkingEffort(effort: ThinkingEffort | undefined): ChatThinkingEffort {

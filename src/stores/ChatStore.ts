@@ -108,6 +108,7 @@ export class ChatStore {
   private readonly hydrationByThread = new Map<string, Promise<Thread | null>>();
   private workspacePersistenceHydrating = false;
   private recentSummariesProvider: (() => string[]) | null = null;
+  private semanticContextProvider: ((userText: string) => string | Promise<string>) | null = null;
   private toolStoresProvider: (() => ToolStoreContext) | null = null;
 
   constructor(providers: ProviderStore, registry: ModelRegistry, profile: UserProfileStore) {
@@ -127,6 +128,7 @@ export class ChatStore {
       createId: newId,
       getToolStores: () => this.toolStoresProvider?.(),
       getRecentSummaries: () => this.recentSummariesProvider?.() ?? [],
+      getSemanticContext: userText => this.semanticContextProvider?.(userText) ?? '',
     });
     const snapshot = loadSnapshot();
     if (snapshot) {
@@ -154,7 +156,7 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'toolStoresProvider'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -166,6 +168,7 @@ export class ChatStore {
       hydrationByThread: false,
       workspacePersistenceHydrating: false,
       recentSummariesProvider: false,
+      semanticContextProvider: false,
       toolStoresProvider: false,
     });
 
@@ -376,6 +379,7 @@ export class ChatStore {
       bridgeOnline: bridge?.isOnline ?? false,
       imageGenAvailable: isImageGenerationAvailable(extras),
       webSearchAvailable: extras?.search?.braveReady ?? false,
+      semanticRecallAvailable: extras?.rag?.active ?? false,
     });
     const systemPrompt = systemPromptForContextMode(mode, () =>
       this.profile.composeSystemPrompt({
@@ -440,6 +444,10 @@ export class ChatStore {
 
   setRecentSummariesProvider(fn: () => string[]): void {
     this.recentSummariesProvider = fn;
+  }
+
+  setSemanticContextProvider(fn: (userText: string) => string | Promise<string>): void {
+    this.semanticContextProvider = fn;
   }
 
   setToolStoresProvider(fn: () => ToolStoreContext): void {

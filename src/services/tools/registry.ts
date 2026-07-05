@@ -6,6 +6,7 @@ import type { Tool, ToolCategory, ToolContext, ToolExecuteResult, ToolOutcome, T
 import { defaultToolUi, summarizeToolResult } from './activityDisplay';
 import { logger } from '../diagnostics/logger';
 import { memoryTool } from './memory';
+import { recallTool } from './recall';
 import { timeTool } from './time';
 import { logsTool } from './logs';
 import { notesTool } from './notes';
@@ -36,6 +37,7 @@ export interface ToolSelectionContext {
    */
   imageGenAvailable?: boolean;
   webSearchAvailable?: boolean;
+  semanticRecallAvailable?: boolean;
 }
 
 export interface ToolValidationResult {
@@ -123,6 +125,7 @@ export class ToolRegistry {
     }
     if (notesRelevant) selected.add('notes');
     if (ctx.webSearchAvailable) selected.add('web_search');
+    if (ctx.semanticRecallAvailable) selected.add('recall');
     if (ctx.bridgeOnline && ctx.imageGenAvailable && imageGenRelevant) selected.add('image_generate');
     if (ctx.bridgeOnline && imageVisionRelevant) {
       selected.add('workspace');
@@ -435,6 +438,7 @@ function safeInlineJson(value: unknown): string {
 
 export const toolRegistry = new ToolRegistry();
 toolRegistry.register(memoryTool);
+toolRegistry.register(recallTool);
 toolRegistry.register(timeTool);
 toolRegistry.register(logsTool);
 toolRegistry.register(notesTool);

@@ -10,7 +10,7 @@ import {
   Textarea,
   Pill,
 } from '../../ui';
-import { useChatStore, useUserProfileStore } from '../../../stores/context';
+import { useChatStore, useRagStore, useUserProfileStore } from '../../../stores/context';
 import { McpSettingsBlock } from './McpSettings';
 
 interface AgentAbility {
@@ -61,6 +61,7 @@ export const AgentSection = observer(function AgentSection() {
       </div>
 
       <MemorySection />
+      <SemanticMemorySection />
       <RecentConversations summaries={recentSummaries} />
       <McpSettingsBlock />
 
@@ -97,6 +98,103 @@ export const AgentSection = observer(function AgentSection() {
         })}
       </div>
     </>
+  );
+});
+
+const SemanticMemorySection = observer(function SemanticMemorySection() {
+  const rag = useRagStore();
+  const model = rag.embeddingModel;
+  const pullCommand = `ollama pull ${model}`;
+  const statusText = rag.status === 'active'
+    ? 'active'
+    : rag.status === 'ollama_offline'
+      ? 'Ollama offline'
+      : 'embedding model missing';
+
+  return (
+    <div style={tokens.section}>
+      <div style={tokens.sectionTitle}>
+        Semantic memory
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 14, lineHeight: 1.55 }}>
+        Local recall over chats, notes, and memory facts. Embeddings come from
+        Ollama and vectors stay in this browser profile.
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '160px 1fr',
+        gap: 14,
+        alignItems: 'center',
+        padding: '10px 0',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <div style={settingLabel}>Status</div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Pill>{statusText}</Pill>
+          <span style={{ ...tokens.mono, color: 'var(--text-faint)' }}>
+            {rag.indexedChunkCount} chunk{rag.indexedChunkCount === 1 ? '' : 's'}
+          </span>
+        </div>
+      </div>
+
+      {rag.status === 'model_missing' && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '160px 1fr auto',
+          gap: 14,
+          alignItems: 'center',
+          padding: '10px 0',
+          borderBottom: '1px solid var(--border)',
+        }}>
+          <div style={settingLabel}>Install</div>
+          <Input value={pullCommand} readOnly style={{ fontFamily: '"Geist Mono", monospace' }} />
+          <Button onClick={() => void navigator.clipboard?.writeText(pullCommand)}>Copy</Button>
+        </div>
+      )}
+
+      <label style={{
+        display: 'grid',
+        gridTemplateColumns: '160px 1fr',
+        gap: 14,
+        alignItems: 'center',
+        padding: '10px 0',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <div style={settingLabel}>Auto-inject</div>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-dim)', fontSize: 13 }}>
+          <input
+            type="checkbox"
+            checked={rag.settings.autoInject}
+            onChange={e => rag.setAutoInject(e.target.checked)}
+          />
+          Add highly relevant past context before each user turn
+        </span>
+      </label>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '160px 1fr',
+        gap: 14,
+        alignItems: 'center',
+        padding: '10px 0',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <div style={settingLabel}>Embedding model</div>
+        <Input
+          value={rag.settings.embeddingModel}
+          onChange={e => rag.setEmbeddingModel(e.target.value)}
+          placeholder="nomic-embed-text"
+          style={{ fontFamily: '"Geist Mono", monospace' }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 12 }}>
+        <Button onClick={() => void rag.rebuildIndex()} disabled={!rag.active || rag.indexing}>
+          {rag.indexing ? 'Rebuilding...' : 'Rebuild index'}
+        </Button>
+      </div>
+    </div>
   );
 });
 
@@ -292,6 +390,12 @@ const emptyBoxStyle: CSSProperties = {
 
 const rowActions: CSSProperties = {
   display: 'flex', gap: 8, alignItems: 'center',
+};
+
+const settingLabel: CSSProperties = {
+  ...tokens.mono,
+  color: 'var(--text-faint)',
+  fontSize: 11.5,
 };
 
 const iconBtn: CSSProperties = {

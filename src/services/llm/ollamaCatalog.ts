@@ -44,6 +44,13 @@ function isOllamaTagsResponse(v: unknown): v is OllamaTagsResponse {
   return Array.isArray(arr);
 }
 
+export function extractOllamaTagNames(raw: unknown): string[] {
+  if (!isOllamaTagsResponse(raw)) return [];
+  return raw.models
+    .map(tag => tag?.name)
+    .filter((name): name is string => typeof name === 'string' && name.length > 0);
+}
+
 /**
  * Convert the body of `GET /api/tags` from a running Ollama server into
  * our `Model[]` shape. Stable ids prefixed with `ollama-` so the registry

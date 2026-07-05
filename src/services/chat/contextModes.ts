@@ -91,6 +91,7 @@ export function toolsForContextMode(args: {
   bridgeOnline: boolean;
   imageGenAvailable?: boolean;
   webSearchAvailable?: boolean;
+  semanticRecallAvailable?: boolean;
 }): ToolDef[] | undefined {
   if (!args.toolsAllowed || args.mode === 'bare') return undefined;
   if (args.mode === 'micro') {
@@ -104,6 +105,8 @@ export function toolsForContextMode(args: {
     if (args.bridgeOnline && isMicroFsRelevant(args.userText)) tools.push(MICRO_FS_TOOL_DEF);
     const webSearch = args.webSearchAvailable ? toolRegistry.get('web_search')?.def : undefined;
     if (webSearch) tools.push(webSearch);
+    const recall = args.semanticRecallAvailable ? toolRegistry.get('recall')?.def : undefined;
+    if (recall) tools.push(recall);
     tools.push(...toolRegistry.toolDefsByCategory('mcp'));
     return tools.length > 0 ? tools : undefined;
   }
@@ -113,6 +116,7 @@ export function toolsForContextMode(args: {
     desktopRuntime: !isWebLite(),
     imageGenAvailable: args.imageGenAvailable,
     webSearchAvailable: args.webSearchAvailable,
+    semanticRecallAvailable: args.semanticRecallAvailable,
   });
 }
 

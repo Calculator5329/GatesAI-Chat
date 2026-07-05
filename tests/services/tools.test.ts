@@ -4,6 +4,7 @@ import { notesTool } from '../../src/services/tools/notes';
 import { timeTool } from '../../src/services/tools/time';
 import { threadTool } from '../../src/services/tools/thread';
 import { chatHistoryTool } from '../../src/services/tools/chatHistory';
+import { recallTool } from '../../src/services/tools/recall';
 import { fsTool } from '../../src/services/tools/fs';
 import { inspectFileTool } from '../../src/services/tools/inspectFile';
 import { terminalTool } from '../../src/services/tools/terminal';
@@ -287,6 +288,32 @@ describe('chat_history tool', () => {
     expect(out).toContain('showing: 1 from offset 1');
     expect(out).toContain('#1 assistant m2');
     expect(out).not.toContain('#0 user m1');
+  });
+});
+
+describe('recall tool', () => {
+  it('returns unavailable when semantic memory is inactive', async () => {
+    const out = await recallTool.execute({ query: 'alpha' }, makeCtx({ rag: { active: false, recall: async () => '' } }));
+    expect(out).toBe('Semantic memory is unavailable.');
+  });
+
+  it('delegates to the RAG facade with a bounded k', async () => {
+    const calls: Array<{ query: string; k?: number }> = [];
+    const out = await recallTool.execute(
+      { query: 'alpha', k: 99 },
+      makeCtx({
+        rag: {
+          active: true,
+          recall: async (query, k) => {
+            calls.push({ query, k });
+            return 'result';
+          },
+        },
+      }),
+    );
+
+    expect(out).toBe('result');
+    expect(calls).toEqual([{ query: 'alpha', k: 20 }]);
   });
 });
 
@@ -869,6 +896,22 @@ describe('tool registry harness selection', () => {
     }).map(t => t.name);
 
     expect(names).not.toEqual(expect.arrayContaining(['workspace', 'fs', 'artifact']));
+  });
+
+  it('only exposes recall when semantic memory is active', () => {
+    const unavailable = toolRegistry.toolDefsForTurn({
+      userText: 'what did we decide before?',
+      bridgeOnline: false,
+      semanticRecallAvailable: false,
+    }).map(t => t.name);
+    const available = toolRegistry.toolDefsForTurn({
+      userText: 'what did we decide before?',
+      bridgeOnline: false,
+      semanticRecallAvailable: true,
+    }).map(t => t.name);
+
+    expect(unavailable).not.toContain('recall');
+    expect(available).toContain('recall');
   });
 
   it('only exposes image generation when an image backend is available', () => {

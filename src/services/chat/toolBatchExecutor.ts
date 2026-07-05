@@ -10,7 +10,7 @@ import { logEvent } from '../diagnostics/chatLog';
 import { isToolFailureContent, logToolCallFailure, safeJsonPreview } from './toolFailureLog';
 import { formatInterruptedToolBatchSummary, safeStableJson } from './turnFormatting';
 
-export type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search'>;
+export type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search' | 'rag'>;
 
 export interface ToolBatchDeps {
   profile: ToolContext['profile'];
@@ -299,6 +299,7 @@ async function executeOneToolCall(
     imageJobs: extras.imageJobs,
     localRuntime: extras.localRuntime,
     search: extras.search,
+    rag: extras.rag,
     threadId,
     toolCallId: call.id,
     signal,
