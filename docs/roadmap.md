@@ -170,15 +170,15 @@
 - [x] Sub-agents v1: `spawn_task` tool running a scoped background TurnRunner
       loop (one concurrent, round-capped), status surface, results linked back
 
-## Wave G — agentic depth (in progress, 2026-07-05)
-- [ ] Sub-agents v2: multiple parallel tasks, model-customizable model/system
+## Wave G — agentic depth (shipped 2026-07-05)
+- [x] Sub-agents v2: multiple parallel tasks, model-customizable model/system
       prompt/delayed start per task
-- [ ] Screenshot tour harness: Playwright script capturing every screen/menu
+- [x] Screenshot tour harness: Playwright script capturing every screen/menu
       section (desktop-mocked + web-lite) into docs/screens/ for future audits
-- [ ] Self-improvement loop UI: diff review for source-workspace edits,
+- [x] Self-improvement loop UI: diff review for source-workspace edits,
       build-output panel, install handoff, source-change context for the model
-- [ ] Scheduled tasks v1 (app-open scheduler + schedule_task tool)
-- [ ] MCP stdio transport (user-configured local server processes, Rust-managed)
+- [x] Scheduled tasks v1 (app-open scheduler + schedule_task tool)
+- [x] MCP stdio transport (user-configured local server processes, Rust-managed)
 
 ## Open-models-first audit (queued — after Wave G)
 - [ ] Walk EVERY screen with the lens "what do I do if I'm running open/local
