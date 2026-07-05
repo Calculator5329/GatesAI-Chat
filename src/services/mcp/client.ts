@@ -26,6 +26,7 @@ export interface McpClientOptions {
   fetch?: typeof fetch;
   clientVersion?: string;
   requestTimeoutMs?: number;
+  transport?: McpClientTransport;
 }
 
 export interface McpTool {
@@ -46,20 +47,20 @@ export interface McpToolResult {
   isError?: boolean;
 }
 
-interface JsonRpcRequest {
+export interface JsonRpcRequest {
   jsonrpc: '2.0';
   id: number;
   method: string;
   params?: unknown;
 }
 
-interface JsonRpcNotification {
+export interface JsonRpcNotification {
   jsonrpc: '2.0';
   method: string;
   params?: unknown;
 }
 
-interface JsonRpcResponse {
+export interface JsonRpcResponse {
   jsonrpc?: string;
   id?: number | string | null;
   result?: unknown;
@@ -70,31 +71,51 @@ interface JsonRpcResponse {
   };
 }
 
+export interface McpTransportSendOptions {
+  expectResponse: boolean;
+  includeSession?: boolean;
+  signal?: AbortSignal;
+  timeoutMs?: number;
+}
+
+export interface McpClientTransport {
+  readonly mcpSessionId?: string | null;
+  start?(): Promise<void>;
+  send(payload: JsonRpcRequest | JsonRpcNotification, options: McpTransportSendOptions): Promise<JsonRpcResponse[]>;
+  close?(): Promise<void>;
+}
+
 export class McpClient {
   private readonly fetchImpl: typeof fetch;
   private readonly clientVersion: string;
   private readonly requestTimeoutMs: number;
-  private endpoint = '';
-  private headers: Record<string, string> = {};
+  private transport: McpClientTransport | null;
   private nextId = 1;
-  private sessionId: string | null = null;
   private initialized = false;
 
   constructor(options: McpClientOptions = {}) {
     this.fetchImpl = options.fetch ?? fetch;
     this.clientVersion = options.clientVersion ?? CLIENT_VERSION;
     this.requestTimeoutMs = options.requestTimeoutMs ?? MCP_DEFAULT_TIMEOUT_MS;
+    this.transport = options.transport ?? null;
   }
 
   get mcpSessionId(): string | null {
-    return this.sessionId;
+    return this.transport?.mcpSessionId ?? null;
   }
 
-  async connect(url: string, headers: Record<string, string> = {}): Promise<this> {
-    this.endpoint = normalizeEndpoint(url);
-    this.headers = normalizeHeaders(headers);
-    this.sessionId = null;
+  async connect(url?: string, headers: Record<string, string> = {}): Promise<this> {
+    if (!this.transport) {
+      if (!url) throw new McpError('connect', 'MCP URL is required for HTTP transport.');
+      this.transport = new HttpMcpTransport({
+        url,
+        headers,
+        fetchImpl: this.fetchImpl,
+        requestTimeoutMs: this.requestTimeoutMs,
+      });
+    }
     this.initialized = false;
+    await this.transport.start?.();
 
     const result = await this.request('initialize', {
       protocolVersion: MCP_PROTOCOL_VERSION,
@@ -118,6 +139,11 @@ export class McpClient {
     await this.notify('notifications/initialized');
     this.initialized = true;
     return this;
+  }
+
+  async disconnect(): Promise<void> {
+    this.initialized = false;
+    await this.transport?.close?.();
   }
 
   async listTools(): Promise<McpTool[]> {
@@ -207,6 +233,46 @@ export class McpClient {
     payload: JsonRpcRequest | JsonRpcNotification,
     options: { expectResponse: boolean; includeSession?: boolean; signal?: AbortSignal; timeoutMs?: number },
   ): Promise<JsonRpcResponse[]> {
+    if (!this.transport) throw new McpError('connect', 'MCP transport is not connected.');
+    return await this.transport.send(payload, options);
+  }
+
+  private assertConnected(): void {
+    if (!this.transport || !this.initialized) {
+      throw new McpError('connect', 'MCP client is not connected.');
+    }
+  }
+}
+
+interface HttpMcpTransportOptions {
+  url: string;
+  headers: Record<string, string>;
+  fetchImpl: typeof fetch;
+  requestTimeoutMs: number;
+}
+
+class HttpMcpTransport implements McpClientTransport {
+  private readonly endpoint: string;
+  private readonly headers: Record<string, string>;
+  private readonly fetchImpl: typeof fetch;
+  private readonly requestTimeoutMs: number;
+  private sessionId: string | null = null;
+
+  constructor(options: HttpMcpTransportOptions) {
+    this.endpoint = normalizeEndpoint(options.url);
+    this.headers = normalizeHeaders(options.headers);
+    this.fetchImpl = options.fetchImpl;
+    this.requestTimeoutMs = options.requestTimeoutMs;
+  }
+
+  get mcpSessionId(): string | null {
+    return this.sessionId;
+  }
+
+  async send(
+    payload: JsonRpcRequest | JsonRpcNotification,
+    options: McpTransportSendOptions,
+  ): Promise<JsonRpcResponse[]> {
     const timeoutMs = options.timeoutMs ?? this.requestTimeoutMs;
     const controller = new AbortController();
     let timedOut = false;
@@ -229,8 +295,7 @@ export class McpClient {
         throw await errorFromHttpResponse(response);
       }
       if (!options.expectResponse && response.status === 202) return [];
-      const responses = await readJsonRpcResponses(response, options.expectResponse);
-      return responses;
+      return await readJsonRpcResponses(response, options.expectResponse);
     } catch (err) {
       if (err instanceof McpError) throw err;
       if (timedOut) throw new McpError('timeout', `MCP request timed out after ${timeoutMs}ms.`);
@@ -254,12 +319,6 @@ export class McpClient {
   private captureSessionId(response: Response): void {
     const header = response.headers.get('Mcp-Session-Id');
     if (header && /^[\x21-\x7e]+$/.test(header)) this.sessionId = header;
-  }
-
-  private assertConnected(): void {
-    if (!this.endpoint || !this.initialized) {
-      throw new McpError('connect', 'MCP client is not connected.');
-    }
   }
 }
 
@@ -299,7 +358,7 @@ export function parseSseJsonRpcResponses(raw: string): JsonRpcResponse[] {
   return responses;
 }
 
-function parseJsonRpcPayload(raw: string): JsonRpcResponse[] {
+export function parseJsonRpcPayload(raw: string): JsonRpcResponse[] {
   try {
     return parseJsonRpcValue(JSON.parse(raw));
   } catch (err) {
@@ -308,7 +367,7 @@ function parseJsonRpcPayload(raw: string): JsonRpcResponse[] {
   }
 }
 
-function parseJsonRpcValue(value: unknown): JsonRpcResponse[] {
+export function parseJsonRpcValue(value: unknown): JsonRpcResponse[] {
   const values = Array.isArray(value) ? value : [value];
   return values.map(item => {
     if (!item || typeof item !== 'object' || Array.isArray(item)) {

@@ -32,6 +32,7 @@ describe('McpStore', () => {
     storage.setItem(MCP_SERVERS_STORAGE_KEY, JSON.stringify([{
       id: 'srv',
       label: 'Server',
+      transport: 'http',
       url: 'https://mcp.example.test/mcp',
       enabled: true,
       headers: { Authorization: '' },
@@ -42,6 +43,8 @@ describe('McpStore', () => {
     const store = new McpStore({ storage, secrets });
 
     await store.hydrateHeaderSecrets();
+    expect(store.servers[0].transport).toBe('http');
+    if (store.servers[0].transport !== 'http') throw new Error('expected http config');
     expect(store.servers[0].headers.Authorization).toBe('Bearer old');
 
     store.startPersistence();
@@ -82,7 +85,7 @@ describe('McpStore', () => {
 
     await expect(store.testConnection(id)).resolves.toMatchObject({
       ok: true,
-      status: { state: 'connected', toolCount: 1 },
+      status: { state: 'running', toolCount: 1 },
     });
     expect(client.connect).toHaveBeenCalledWith('http://127.0.0.1:7332/mcp', { Authorization: 'Bearer test' });
     expect(store.connectedServers).toHaveLength(1);
@@ -118,5 +121,35 @@ describe('McpStore', () => {
       },
     });
     expect(store.connectedServers).toHaveLength(0);
+  });
+
+  it('adds stdio servers and connects them without exposing command config to tools', async () => {
+    const client = {
+      connect: vi.fn(async () => undefined),
+      disconnect: vi.fn(async () => undefined),
+      listTools: vi.fn(async () => [{ name: 'local', inputSchema: { type: 'object' } }]),
+      callTool: vi.fn(async (): Promise<McpToolResult> => ({ content: [{ type: 'text', text: 'ok' }] })),
+    };
+    const store = new McpStore({ clientFactory: () => client });
+    const id = store.addStdioServer({
+      label: 'Local',
+      command: 'npx',
+      args: ['@modelcontextprotocol/server-memory'],
+      env: { API_KEY: 'secret' },
+    });
+
+    await expect(store.testConnection(id)).resolves.toMatchObject({
+      ok: true,
+      status: { state: 'running', toolCount: 1 },
+    });
+
+    expect(client.connect).toHaveBeenCalledWith();
+    expect(store.connectedServers[0].server).toMatchObject({
+      id,
+      label: 'Local',
+      transport: 'stdio',
+    });
+    await store.callTool(id, 'local', {});
+    expect(client.callTool).toHaveBeenCalledWith('local', {}, { signal: undefined });
   });
 });
