@@ -160,14 +160,14 @@
       - [x] Batch C–E: Models copy, context-aware banners, setup checklist, image UX polish, notes limits/quarantine, Web Lite clear reload
       - [x] Audit documentation: test coverage matrix + implementation guide (`docs/audits/2026-06-07-*.md`)
 
-## Wave F — agentic capabilities (in progress, 2026-07-03)
-- [ ] Local semantic memory (RAG): Ollama embeddings + IndexedDB vectors over
+## Wave F — agentic capabilities (shipped 2026-07-03)
+- [x] Local semantic memory (RAG): Ollama embeddings + IndexedDB vectors over
       chats/notes/memories, `recall` tool, optional auto-context injection
-- [ ] `fetch_page` tool: Rust-side reqwest fetch + readable-text extraction
+- [x] `fetch_page` tool: Rust-side reqwest fetch + readable-text extraction
       (https-only, private-IP blocked, size-capped) so the model can read pages
-- [ ] Skills packs: `workspace/skills/*.md` prompt packs with optional tool
+- [x] Skills packs: `workspace/skills/*.md` prompt packs with optional tool
       allowlists, composer picker, per-thread activation
-- [ ] Sub-agents v1: `spawn_task` tool running a scoped background TurnRunner
+- [x] Sub-agents v1: `spawn_task` tool running a scoped background TurnRunner
       loop (one concurrent, round-capped), status surface, results linked back
 
 ## Next agentic wave (queued)
