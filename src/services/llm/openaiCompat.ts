@@ -90,6 +90,7 @@ export class OpenAiCompatProvider implements LlmProvider {
           // Centralized model profiles cap output and add provider quirks.
           ...openAiCompatBodyExtras(req),
           ...(this.id === 'openrouter' ? { usage: { include: true } } : {}),
+          ...(req.responseFormat ? { response_format: toOpenAiResponseFormat(req.responseFormat) } : {}),
           // `reasoning.max_tokens` — we use max_tokens because it's precise
           ...(req.tools && req.tools.length > 0
             ? { tools: req.tools.map(toOpenAiTool), tool_choice: 'auto' }
@@ -157,6 +158,18 @@ export class OpenAiCompatProvider implements LlmProvider {
   protected normalizeMessages(req: LlmRequest): LlmMessage[] {
     return req.messages;
   }
+}
+
+function toOpenAiResponseFormat(format: NonNullable<LlmRequest['responseFormat']>): unknown {
+  if (format.type === 'json_object') return { type: 'json_object' };
+  return {
+    type: 'json_schema',
+    json_schema: {
+      name: format.name,
+      schema: format.schema,
+      ...(format.strict !== undefined ? { strict: format.strict } : {}),
+    },
+  };
 }
 
 function parseChatChunk(value: unknown): ChatChunk {

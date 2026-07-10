@@ -42,7 +42,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [ ] Audio input (Whisper-style transcription)
 - [ ] Audio output (TTS)
 - [x] Embeddings (for memory / RAG) *(verified already-done, 2026-07-10 truth pass — Wave F RAG; `src/services/rag/embeddings.ts` + `recall` tool)*
-- [ ] Structured output (JSON mode)
+- [x] Structured output (JSON mode) *(done 2026-07-10, burndown w5)*
 - [x] Per-model context-window awareness (shown for OpenRouter live entries; need to wire counting + display per provider for the curated set too)
 - [x] Token counting / context-window estimation per request
 - [ ] Live catalog refresh for the direct providers (Anthropic / OpenAI / Gemini / Groq) — today only OpenRouter has a fetcher
