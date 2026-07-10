@@ -71,7 +71,11 @@ import {
   AutoNamer,
   type AutoNameHost,
 } from '../services/chat/autoNamer';
-import { threadLlmSpendUsd as threadSpendSelector } from '../core/threadSelectors';
+import {
+  groupThreadsByDate,
+  threadLlmSpendUsd as threadSpendSelector,
+  type ThreadDateGroup,
+} from '../core/threadSelectors';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
@@ -519,6 +523,12 @@ export class ChatStore {
 
   get visibleConversationThreads(): Thread[] {
     return this.visibleThreads.filter(thread => thread.agentTask !== true);
+  }
+
+  sidebarConversationDateGroups(limit: number): ThreadDateGroup[] {
+    const threads = this.visibleConversationThreads
+      .filter(thread => !thread.pinned);
+    return groupThreadsByDate(threads, Date.now(), limit);
   }
 
   spawnTask(

@@ -8,11 +8,6 @@ import { addUsageToTotals, emptyUsageTotals, type UsageTotals } from './usage';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-] as const;
-
 export interface UsageModelTotal extends UsageTotals {
   modelId: string;
   modelName: string;
@@ -168,62 +163,57 @@ export function threadMatchesSearch(thread: Thread, normalizedQuery: string): bo
 export interface ThreadDateGroup {
   /** Stable key for React lists (never localized). */
   key: string;
-  /** Human-readable header, e.g. `Today` or `June 2026`. */
+  /** Human-readable header, e.g. `Today` or `This Month`. */
   label: string;
   threads: Thread[];
 }
 
 /**
  * Group threads into sidebar date buckets by `updatedAt`, newest first:
- * Today, Yesterday, Previous 7 days, Previous 30 days, then one bucket per
- * older calendar month (`June 2026`). Boundaries use the local day so buckets
- * line up with what the user sees on their clock (matching the library export
- * grouping). Input order is preserved within each bucket, so callers control
- * intra-group ordering; empty buckets are omitted.
+ * Today, Yesterday, This Week, This Month, and Older. Week and month buckets
+ * use local calendar boundaries so they line up with the dates the user sees.
+ * Threads are sorted newest-first (stably for equal timestamps), and empty
+ * buckets are omitted.
  */
 export function groupThreadsByDate(
   threads: readonly Thread[],
-  now: number = Date.now(),
+  now: number,
+  limit: number = Number.POSITIVE_INFINITY,
 ): ThreadDateGroup[] {
   const today = startOfLocalDay(now);
   const yesterday = today - DAY_MS;
-  const last7 = today - 7 * DAY_MS;
-  const last30 = today - 30 * DAY_MS;
+  const todayDate = new Date(today);
+  const dayFromMonday = (todayDate.getDay() + 6) % 7;
+  const thisWeek = today - dayFromMonday * DAY_MS;
+  const thisMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1).getTime();
 
   const todayThreads: Thread[] = [];
   const yesterdayThreads: Thread[] = [];
   const weekThreads: Thread[] = [];
   const monthThreads: Thread[] = [];
-  const olderByMonth = new Map<string, { label: string; sort: number; threads: Thread[] }>();
+  const olderThreads: Thread[] = [];
 
-  for (const thread of threads) {
+  const sorted = threads
+    .map((thread, index) => ({ thread, index }))
+    .sort((a, b) => b.thread.updatedAt - a.thread.updatedAt || a.index - b.index)
+    .map(({ thread }) => thread)
+    .slice(0, Math.max(0, limit));
+
+  for (const thread of sorted) {
     const t = thread.updatedAt;
     if (t >= today) todayThreads.push(thread);
     else if (t >= yesterday) yesterdayThreads.push(thread);
-    else if (t >= last7) weekThreads.push(thread);
-    else if (t >= last30) monthThreads.push(thread);
-    else {
-      const date = new Date(t);
-      const year = date.getFullYear();
-      const month = date.getMonth();
-      const key = `${year}-${String(month).padStart(2, '0')}`;
-      let bucket = olderByMonth.get(key);
-      if (!bucket) {
-        bucket = { label: `${MONTH_NAMES[month]} ${year}`, sort: year * 12 + month, threads: [] };
-        olderByMonth.set(key, bucket);
-      }
-      bucket.threads.push(thread);
-    }
+    else if (t >= thisWeek) weekThreads.push(thread);
+    else if (t >= thisMonth) monthThreads.push(thread);
+    else olderThreads.push(thread);
   }
 
   const groups: ThreadDateGroup[] = [];
   if (todayThreads.length) groups.push({ key: 'today', label: 'Today', threads: todayThreads });
   if (yesterdayThreads.length) groups.push({ key: 'yesterday', label: 'Yesterday', threads: yesterdayThreads });
-  if (weekThreads.length) groups.push({ key: 'week', label: 'Previous 7 days', threads: weekThreads });
-  if (monthThreads.length) groups.push({ key: 'month', label: 'Previous 30 days', threads: monthThreads });
-  for (const [key, bucket] of Array.from(olderByMonth.entries()).sort((a, b) => b[1].sort - a[1].sort)) {
-    groups.push({ key: `m-${key}`, label: bucket.label, threads: bucket.threads });
-  }
+  if (weekThreads.length) groups.push({ key: 'week', label: 'This Week', threads: weekThreads });
+  if (monthThreads.length) groups.push({ key: 'month', label: 'This Month', threads: monthThreads });
+  if (olderThreads.length) groups.push({ key: 'older', label: 'Older', threads: olderThreads });
   return groups;
 }
 
