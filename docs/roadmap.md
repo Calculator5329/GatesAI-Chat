@@ -302,7 +302,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### UI/UX
 - [x] Light theme + follow-system (`prefers-color-scheme`); "paper" palette *(verified already-done, 2026-07-10 truth pass — Wave I; dark/light/system `ThemeMode` in `src/components/menu/sections/Settings.tsx`)*
-- [ ] Sidebar date grouping (Today / Yesterday / Previous 7 days)
+- [x] Sidebar date grouping (Today / Yesterday / Previous 7 days) *(done 2026-07-10, burndown w1 — `groupThreadsByDate` in `src/core/threadSelectors.ts`; sidebar history now splits under Today / Yesterday / Previous 7 days / Previous 30 days / by-month headers)*
 - [ ] Inline thread rename (F2 / right-click) and drag-to-reorder pins
 - [x] Global summon shortcut + tray icon (Tauri global shortcut) *(verified already-done, 2026-07-10 truth pass — Wave I; tray in `src-tauri/src/desktop.rs`)*
 - [ ] Jump-to-bottom pill with new-tokens indicator; sticky date separators

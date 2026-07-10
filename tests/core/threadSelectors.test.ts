@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MODELS } from '../../src/core/models';
 import {
+  groupThreadsByDate,
   threadLlmSpendUsd,
   threadLlmUsageTotal,
   usageAllTimeTotal,
@@ -10,6 +11,8 @@ import {
   usageSummary,
 } from '../../src/core/threadSelectors';
 import type { Thread } from '../../src/core/types';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 describe('thread usage selectors', () => {
   it('aggregates usage across multiple threads and models', () => {
@@ -116,6 +119,74 @@ describe('thread usage selectors', () => {
     expect(summary.presentationMode).toBe('spend-led');
   });
 });
+
+describe('groupThreadsByDate', () => {
+  // Noon UTC keeps every relative offset safely inside its bucket regardless of
+  // the local timezone the test runs in (local-day boundaries never split a
+  // whole-day offset from a mid-day reference point).
+  const now = Date.UTC(2026, 5, 15, 12);
+
+  it('buckets recent threads into Today / Yesterday / Previous 7 / Previous 30 in order', () => {
+    const groups = groupThreadsByDate([
+      datedThread('today', now),
+      datedThread('yesterday', now - DAY_MS),
+      datedThread('week', now - 4 * DAY_MS),
+      datedThread('month', now - 20 * DAY_MS),
+    ], now);
+
+    expect(groups.map(g => [g.label, g.threads.map(t => t.id)])).toEqual([
+      ['Today', ['today']],
+      ['Yesterday', ['yesterday']],
+      ['Previous 7 days', ['week']],
+      ['Previous 30 days', ['month']],
+    ]);
+  });
+
+  it('groups anything older than 30 days by calendar month, newest month first', () => {
+    const groups = groupThreadsByDate([
+      datedThread('mar-a', Date.UTC(2026, 2, 20, 12)),
+      datedThread('mar-b', Date.UTC(2026, 2, 5, 12)),
+      datedThread('jan', Date.UTC(2026, 0, 10, 12)),
+      datedThread('dec', Date.UTC(2025, 11, 25, 12)),
+    ], now);
+
+    expect(groups.map(g => [g.label, g.key, g.threads.map(t => t.id)])).toEqual([
+      ['March 2026', 'm-2026-02', ['mar-a', 'mar-b']],
+      ['January 2026', 'm-2026-00', ['jan']],
+      ['December 2025', 'm-2025-11', ['dec']],
+    ]);
+  });
+
+  it('preserves the caller-supplied order within a bucket', () => {
+    const groups = groupThreadsByDate([
+      datedThread('newer', now - 1000),
+      datedThread('older', now - 2000),
+    ], now);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].label).toBe('Today');
+    expect(groups[0].threads.map(t => t.id)).toEqual(['newer', 'older']);
+  });
+
+  it('omits empty buckets and returns [] for no threads', () => {
+    expect(groupThreadsByDate([], now)).toEqual([]);
+    const groups = groupThreadsByDate([datedThread('only', now)], now);
+    expect(groups.map(g => g.label)).toEqual(['Today']);
+  });
+});
+
+function datedThread(id: string, updatedAt: number): Thread {
+  return {
+    id,
+    title: id,
+    subtitle: '',
+    createdAt: updatedAt,
+    updatedAt,
+    pinned: false,
+    modelId: 'or-gpt-5.4-mini',
+    messages: [],
+  };
+}
 
 function thread(id: string, modelId: string, messages: Thread['messages']): Thread {
   return {
