@@ -6,6 +6,7 @@ interface CapturedOllamaBody {
   stream?: boolean;
   messages?: Array<{ role: string; content: string; images?: string[] }>;
   tools?: unknown;
+  format?: unknown;
 }
 
 function captureRequest(): { fetchMock: ReturnType<typeof vi.fn>; getBody: () => CapturedOllamaBody } {
@@ -119,6 +120,21 @@ describe('OllamaProvider — request shape', () => {
 
     const body = getBody();
     expect(body).not.toHaveProperty('tools');
+    vi.unstubAllGlobals();
+  });
+
+  it('attaches the schema through Ollama native format', async () => {
+    const { fetchMock, getBody } = captureRequest();
+    vi.stubGlobal('fetch', fetchMock);
+    const schema = { type: 'object' as const, properties: { count: { type: 'number' } }, required: ['count'] };
+
+    for await (const _ of new OllamaProvider({ baseUrl: 'http://h:1' }).stream({
+      modelId: 'm',
+      messages: [],
+      responseFormat: { type: 'json_schema', name: 'count', schema },
+    }, new AbortController().signal)) { /* drain */ }
+
+    expect(getBody().format).toEqual(schema);
     vi.unstubAllGlobals();
   });
 });

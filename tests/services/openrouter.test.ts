@@ -159,6 +159,31 @@ describe('OpenRouterProvider', () => {
     expect((body as { usage?: unknown }).usage).toEqual({ include: true });
   });
 
+  it('attaches a named JSON schema response format', async () => {
+    let body: unknown;
+    vi.stubGlobal('fetch', vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return okSseResponse();
+    }));
+
+    const schema = {
+      type: 'object' as const,
+      properties: { answer: { type: 'string' } },
+      required: ['answer'],
+      additionalProperties: false,
+    };
+    await drain(new OpenRouterProvider('sk-or-test').stream({
+      modelId: 'openai/gpt-5.5',
+      messages: [{ role: 'user', content: 'answer as JSON' }],
+      responseFormat: { type: 'json_schema', name: 'answer', schema, strict: true },
+    }, new AbortController().signal));
+
+    expect((body as { response_format?: unknown }).response_format).toEqual({
+      type: 'json_schema',
+      json_schema: { name: 'answer', schema, strict: true },
+    });
+  });
+
   it('maps provider token-limit finish reasons to length', async () => {
     const fetchMock = vi.fn(async () => new Response([
       'data: {"choices":[{"delta":{"content":"partial"},"finish_reason":"max_tokens"}]}',

@@ -87,6 +87,70 @@ describe('StreamingRoundExecutor', () => {
     expect(chunks).toEqual(['first']);
   });
 
+  it('parses and validates a JSON schema response', async () => {
+    const values: unknown[] = [];
+    const executor = new StreamingRoundExecutor();
+    const outcome = await executor.execute({
+      request: {
+        ...request,
+        responseFormat: {
+          type: 'json_schema',
+          name: 'result',
+          schema: {
+            type: 'object',
+            properties: { count: { type: 'number' } },
+            required: ['count'],
+            additionalProperties: false,
+          },
+        },
+      },
+      stream: async function*(): AsyncIterable<LlmChunk> {
+        yield { type: 'text', delta: '{"count":' };
+        yield { type: 'text', delta: '3}' };
+        yield { type: 'done', finishReason: 'stop' };
+      },
+      signal: new AbortController().signal,
+      round: 0,
+      providerId: 'openrouter',
+      providerModelId: 'test-model',
+      callbacks: { onStructuredOutput: value => values.push(value) },
+    });
+
+    expect(outcome).toMatchObject({ status: 'completed', text: '{"count":3}', structuredOutput: { count: 3 } });
+    expect(values).toEqual([{ count: 3 }]);
+  });
+
+  it('surfaces structured-output parse and schema validation errors', async () => {
+    const executor = new StreamingRoundExecutor();
+    const execute = (text: string) => executor.execute({
+      request: {
+        ...request,
+        responseFormat: {
+          type: 'json_schema' as const,
+          name: 'result',
+          schema: { type: 'object', properties: { count: { type: 'number' } }, required: ['count'] },
+        },
+      },
+      stream: async function*(): AsyncIterable<LlmChunk> {
+        yield { type: 'text', delta: text };
+        yield { type: 'done', finishReason: 'stop' };
+      },
+      signal: new AbortController().signal,
+      round: 0,
+      providerId: 'openrouter',
+      providerModelId: 'test-model',
+    });
+
+    await expect(execute('{')).resolves.toMatchObject({
+      status: 'errored',
+      error: expect.stringContaining('not valid JSON'),
+    });
+    await expect(execute('{"count":"three"}')).resolves.toMatchObject({
+      status: 'errored',
+      error: expect.stringContaining('$.count must be number'),
+    });
+  });
+
   it('returns a stalled outcome when no provider data arrives before the stall timer', async () => {
     vi.useFakeTimers();
     const phases: string[] = [];

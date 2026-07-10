@@ -16,6 +16,7 @@ Extraction plan:
 */
 import type { LlmChunk, LlmRequest, LlmUsage, ToolCall } from '../../core/llm';
 import type { AssistantFinishReason, StreamActivity } from '../../core/types';
+import { parseStructuredOutput } from '../llm/structuredOutput';
 
 export const OUTPUT_LIMIT_RETRY_ROUNDS = 2;
 export const PROVIDER_STREAM_STALL_MS = 120_000;
@@ -46,6 +47,7 @@ export interface StreamingRoundCallbacks {
   onChunk?: (delta: string) => void;
   onActivityPhase?: (update: StreamingRoundActivityUpdate) => void;
   onUsage?: (usage: LlmUsage) => void;
+  onStructuredOutput?: (value: unknown) => void;
 }
 
 export type ProviderStreamFn = (request: LlmRequest, signal: AbortSignal) => AsyncIterable<LlmChunk>;
@@ -69,6 +71,8 @@ export interface ExecuteStreamingRoundOptions {
 
 interface RoundPayload {
   text: string;
+  /** Parsed, schema-validated value when responseFormat was requested. */
+  structuredOutput?: unknown;
   toolCalls: ToolCall[];
   usage: LlmUsage[];
   receivedContent: boolean;
@@ -100,6 +104,7 @@ type AttemptOutcome = WithoutRetry<StreamingRoundOutcome>;
 
 interface AttemptState {
   text: string;
+  structuredOutput?: unknown;
   toolCalls: ToolCall[];
   usage: LlmUsage[];
   receivedContent: boolean;
@@ -255,6 +260,20 @@ export class StreamingRoundExecutor {
               finishReason: 'error',
               error: stalledReason,
             };
+          }
+          if (options.request.responseFormat && chunk.finishReason !== 'cancelled') {
+            const structured = parseStructuredOutput(state.text, options.request.responseFormat);
+            if (!structured.ok) {
+              return {
+                ...state,
+                status: 'errored',
+                finishReason: 'error',
+                error: structured.error,
+                cause: new Error(structured.error),
+              };
+            }
+            state.structuredOutput = structured.value;
+            options.callbacks?.onStructuredOutput?.(structured.value);
           }
           return {
             ...state,

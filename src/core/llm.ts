@@ -76,6 +76,11 @@ export type JsonSchema = {
   [key: string]: unknown;
 };
 
+/** Request JSON output, optionally constrained by a named JSON Schema. */
+export type LlmResponseFormat =
+  | { type: 'json_object' }
+  | { type: 'json_schema'; name: string; schema: JsonSchema; strict?: boolean };
+
 /** A single tool invocation requested by the model. Arguments are already-parsed JSON. */
 export interface ToolCall {
   id: string;                    // provider-supplied id; we echo it back on the result
@@ -97,6 +102,8 @@ export interface LlmRequest {
   tools?: ToolDef[];
   /** Optional provider-normalized reasoning depth for models that support it. */
   thinkingEffort?: ThinkingEffort;
+  /** Ask the provider for JSON and validate the completed response locally. */
+  responseFormat?: LlmResponseFormat;
   /** Optional: threadId for diagnostic log routing. Not sent to providers. */
   threadId?: string;
 }

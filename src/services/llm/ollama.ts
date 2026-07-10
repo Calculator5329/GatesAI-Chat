@@ -89,6 +89,7 @@ export class OllamaProvider implements LlmProvider {
       messages: this.buildMessages(req.messages, req.systemPrompt),
       stream: true,
       keep_alive: '5m',
+      ...(req.responseFormat ? { format: req.responseFormat.type === 'json_object' ? 'json' : req.responseFormat.schema } : {}),
       ...(useTools ? { tools: req.tools!.map(toOllamaTool) } : {}),
       ...(typeof req.temperature === 'number' ? { options: { temperature: req.temperature } } : {}),
     };
