@@ -1,7 +1,7 @@
 // Owns observable UiStore state and actions for the app runtime.
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { action, autorun, makeAutoObservable, runInAction, toJS } from 'mobx';
+import { action, autorun, makeAutoObservable, observable, runInAction, toJS } from 'mobx';
 import { MOBILE_SHELL_QUERY } from '../core/breakpoints';
 import type {
   CodeSizeKey,
@@ -34,6 +34,8 @@ export class UiStore {
   /** Thread id currently bound to {@link draft} / {@link attachments}. */
   private boundDraftThreadId: string | null = null;
   private readonly draftByThread = new Map<string, { draft: string; attachments: DraftAttachment[] }>();
+  /** Ephemeral disclosure choices for tool outputs; deliberately excluded from thread persistence. */
+  private readonly toolOutputOpenByKey = new Map<string, boolean>();
   /** True while at least one file from the most recent drop / picker is in flight. */
   uploading = false;
   /** Last upload error message. Cleared on each new upload attempt. */
@@ -80,9 +82,10 @@ export class UiStore {
     this.globalSummonEnabled = prefs.globalSummonEnabled;
     this.globalSummonChord = prefs.globalSummonChord;
     this.closeButtonHidesToTray = prefs.closeButtonHidesToTray;
-    makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'composerFocus' | 'composerFocusPending' | 'disposers'>(this, {
+    makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'toolOutputOpenByKey' | 'composerFocus' | 'composerFocusPending' | 'disposers'>(this, {
       boundDraftThreadId: false,
       draftByThread: false,
+      toolOutputOpenByKey: observable,
       composerFocus: false,
       composerFocusPending: false,
       disposers: false,
@@ -92,6 +95,7 @@ export class UiStore {
       addAttachment: action.bound,
       removeAttachment: action.bound,
       clearAttachments: action.bound,
+      setToolOutputOpen: action.bound,
       setPaletteOpen: action.bound,
       openPalette: action.bound,
       closePalette: action.bound,
@@ -270,6 +274,14 @@ export class UiStore {
     }
   }
 
+  toolOutputOpenState(messageId: string, activityId: string): boolean | undefined {
+    return this.toolOutputOpenByKey.get(toolOutputDisclosureKey(messageId, activityId));
+  }
+
+  setToolOutputOpen(messageId: string, activityId: string, open: boolean): void {
+    this.toolOutputOpenByKey.set(toolOutputDisclosureKey(messageId, activityId), open);
+  }
+
   setPaletteOpen(value: boolean): void { this.paletteOpen = value; }
   openPalette(): void { this.paletteOpen = true; }
   closePalette(): void { this.paletteOpen = false; }
@@ -352,4 +364,8 @@ export class UiStore {
   localDataUsage(): LocalDataSlotUsage[] { return readLocalDataUsage(); }
   clearLocalDataExceptCredentials(): void { clearLocalDataExceptCredentials(); }
   formatBytes(bytes: number): string { return formatBytes(bytes); }
+}
+
+function toolOutputDisclosureKey(messageId: string, activityId: string): string {
+  return JSON.stringify([messageId, activityId]);
 }

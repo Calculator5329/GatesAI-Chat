@@ -283,6 +283,7 @@ export const EditorialMessage = observer(function EditorialMessage({
       </div>
       <ActivityStream
         items={activities}
+        messageId={message.id}
         onOpenThread={threadId => {
           if (!chat.selectThread(threadId)) return;
           router.goThread(threadId);

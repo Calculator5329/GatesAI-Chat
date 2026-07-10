@@ -6,10 +6,12 @@ import { groupConsecutive } from './groupConsecutive';
 export function ActivityStream({
   items,
   header,
+  messageId,
   onOpenThread,
 }: {
   items: ActivityItem[];
   header?: string;
+  messageId?: string;
   onOpenThread?: (threadId: string) => void;
 }) {
   if (items.length === 0 && !header) return null;
@@ -19,8 +21,8 @@ export function ActivityStream({
       {header && <div className="activity-stream__header">{header}</div>}
       {runs.map((run, index) =>
         run.length === 1
-          ? <ActivityRow key={`${run[0].id}-${index}`} item={run[0]} onOpenThread={onOpenThread} />
-          : <TimelineGroup key={`group-${run[0].id}-${index}`} items={run} onOpenThread={onOpenThread} />,
+          ? <ActivityRow key={`${run[0].id}-${index}`} item={run[0]} messageId={messageId} onOpenThread={onOpenThread} />
+          : <TimelineGroup key={`group-${run[0].id}-${index}`} items={run} messageId={messageId} onOpenThread={onOpenThread} />,
       )}
     </div>
   );

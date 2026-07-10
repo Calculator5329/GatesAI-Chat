@@ -3,12 +3,14 @@
 // Invariant: activity state is display-only and never mutates ChatStore progress.
 import { Suspense, lazy, useEffect, useState } from 'react';
 import type { ActivityItem, ActivityStats } from '../../../core/types';
+import { useEditorial } from '../../../stores/context';
 import { WorkspaceImage } from '../WorkspaceImage';
 import { ImageJobCard } from '../ImageJobCard';
 import { MarkdownFallback } from '../MarkdownFallback';
 import { iconForActivity } from './iconForActivity';
 
 const ActivityMarkdown = lazy(() => import('./ActivityMarkdown').then(m => ({ default: m.ActivityMarkdown })));
+const AUTO_COLLAPSE_LINE_THRESHOLD = 40;
 
 function ImageJobArtifacts({ artifacts }: { artifacts: NonNullable<ActivityItem['artifacts']> }) {
   return (
@@ -23,20 +25,73 @@ function ImageJobArtifacts({ artifacts }: { artifacts: NonNullable<ActivityItem[
   );
 }
 
-export function ActivityRow({ item, onOpenThread }: { item: ActivityItem; onOpenThread?: (threadId: string) => void }) {
+export function ActivityRow({
+  item,
+  messageId,
+  onOpenThread,
+}: {
+  item: ActivityItem;
+  messageId?: string;
+  onOpenThread?: (threadId: string) => void;
+}) {
+  if (messageId) {
+    return <MessageActivityRow item={item} messageId={messageId} onOpenThread={onOpenThread} />;
+  }
+  return <ActivityRowContent item={item} onOpenThread={onOpenThread} />;
+}
+
+function MessageActivityRow({
+  item,
+  messageId,
+  onOpenThread,
+}: {
+  item: ActivityItem;
+  messageId: string;
+  onOpenThread?: (threadId: string) => void;
+}) {
+  const { ui } = useEditorial();
+  return (
+    <ActivityRowContent
+      item={item}
+      initialOpen={ui.toolOutputOpenState(messageId, item.id)}
+      onOpenChange={open => ui.setToolOutputOpen(messageId, item.id, open)}
+      onOpenThread={onOpenThread}
+    />
+  );
+}
+
+function ActivityRowContent({
+  item,
+  initialOpen = false,
+  onOpenChange,
+  onOpenThread,
+}: {
+  item: ActivityItem;
+  initialOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onOpenThread?: (threadId: string) => void;
+}) {
   const imageJobArtifacts = item.artifacts?.filter(
     a => a.kind === 'image-job' || a.kind === 'image',
   ) ?? [];
   const hasImageJobArtifacts = imageJobArtifacts.length > 0;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   const elapsed = useElapsedLabel(item.state === 'running', item.startedAt);
   const expandable = Boolean(item.detail || (item.artifacts?.length && !hasImageJobArtifacts));
+  const lineCount = toolOutputLineCount(item);
+  const autoCollapsed = lineCount > AUTO_COLLAPSE_LINE_THRESHOLD;
   const navigable = Boolean(item.linkThreadId && onOpenThread);
   const label = [item.verb, item.target].filter(Boolean).join(' ');
   const summary = item.state === 'failed' || item.state === 'cancelled' || item.state === 'done'
     ? item.summary
     : undefined;
   const icon = iconForActivity(item)();
+
+  function toggleOpen(): void {
+    const next = !open;
+    onOpenChange?.(next);
+    setOpen(next);
+  }
 
   return (
     <div className="activity-row" data-state={item.state} data-kind={item.kind}>
@@ -46,7 +101,7 @@ export function ActivityRow({ item, onOpenThread }: { item: ActivityItem; onOpen
       {(expandable || !hasImageJobArtifacts) && (
       <button
         type="button"
-        aria-label={label}
+        aria-label={autoCollapsed ? `${label} · ${lineCount} lines · ${open ? 'Collapse' : 'Expand'} output` : label}
         aria-expanded={open}
         disabled={!expandable && !navigable}
         className="activity-row__button"
@@ -55,7 +110,7 @@ export function ActivityRow({ item, onOpenThread }: { item: ActivityItem; onOpen
             onOpenThread(item.linkThreadId);
             return;
           }
-          if (expandable) setOpen(value => !value);
+          if (expandable) toggleOpen();
         }}
       >
         <span className="activity-row__icon" aria-hidden="true">{icon}</span>
@@ -66,6 +121,9 @@ export function ActivityRow({ item, onOpenThread }: { item: ActivityItem; onOpen
         </span>
         {item.stats && <StatsChips stats={item.stats} />}
         {elapsed && <span className="activity-row__elapsed">· {elapsed}</span>}
+        {autoCollapsed && (
+          <span className="activity-row__output-toggle">{lineCount} lines · {open ? 'Collapse' : 'Expand'}</span>
+        )}
         {item.state === 'running' && (
           <span className="thinking-dots" aria-hidden="true">
             <span /><span /><span />
@@ -84,7 +142,7 @@ export function ActivityRow({ item, onOpenThread }: { item: ActivityItem; onOpen
             </div>
           )}
           {item.detail?.type === 'terminal' && (
-            <pre className="activity-row__terminal">
+            <pre className={`activity-row__terminal${autoCollapsed ? ' activity-row__terminal--expanded-output' : ''}`}>
               {item.detail.lines?.length
                 ? item.detail.lines.map((line, index) => (
                     <span key={`${index}-${line.text}`} data-stream={line.stream}>{line.text}</span>
@@ -104,6 +162,13 @@ export function ActivityRow({ item, onOpenThread }: { item: ActivityItem; onOpen
       )}
     </div>
   );
+}
+
+function toolOutputLineCount(item: ActivityItem): number {
+  if (item.kind !== 'tool' || !item.detail) return 0;
+  if (item.detail.type === 'terminal') return item.detail.lines?.length ?? 0;
+  const content = item.detail.content;
+  return content ? content.split(/\r?\n/).length : 0;
 }
 
 function StatsChips({ stats }: { stats: ActivityStats }) {
