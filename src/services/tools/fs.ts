@@ -60,7 +60,7 @@ export const fsTool: Tool = {
       '• `copy` — copy `from` to `to`.',
       '• `mkdir` — create a directory (recursive, no error if it exists).',
       '• `stat` — file info: kind, size, mtime, mime.',
-      '• `search` — substring search across files in a path. Returns matching lines with line numbers.',
+      '• `search` — search across files in a path. By default `query` is a literal substring; set `regex: true` to use a bounded RE2-compatible regular expression. Returns matching lines with line numbers.',
       '',
       'Bulk/performance guidance:',
       '  For large transforms, write scripts or generated data to files instead of pasting large content into chat.',
@@ -83,6 +83,7 @@ export const fsTool: Tool = {
         encoding: { type: 'string', enum: ['utf8', 'utf-8', 'base64'], description: 'Content encoding for write/append/read. Default utf8; `utf-8` is accepted as an alias.' },
         recursive: { type: 'boolean', description: 'Recursive list (for list).' },
         query: { type: 'string', description: 'Search query (for search).' },
+        regex: { type: 'boolean', description: 'For search, treat query as a RE2-compatible regular expression. Default false (literal substring).' },
         max_hits: { type: 'number', description: 'Max matches to return (for search). Default 100.' },
         max_chars: { type: 'number', description: 'For read, max characters returned to the model before truncating.' },
       },
@@ -146,7 +147,8 @@ function validateFsArgs(args: Record<string, unknown>) {
       return requireStringArg(args, 'from', action)
         ?? requireStringArg(args, 'to', action);
     case 'search':
-      return requireStringArg(args, 'query', action);
+      return requireStringArg(args, 'query', action)
+        ?? validateSearchRegex(args);
     case 'list':
       return null;
     default:
@@ -299,14 +301,49 @@ async function doStat(args: Record<string, unknown>, ctx: Parameters<Tool['execu
 async function doSearch(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): Promise<string> {
   const query = strArg(args, 'query');
   if (!query) return 'Error: `query` is required for search.';
+  const regex = args.regex === true;
+  const regexError = validateRegexPattern(query, regex);
+  if (regexError) return `Error: invalid regex: ${regexError}`;
   const path = strArg(args, 'path') || '/workspace';
   const max_hits = typeof args.max_hits === 'number' ? args.max_hits : undefined;
-  const resp = await ctx.bridge!.client.request<FsSearchResp>('fs.search', { query, path, max_hits });
+  const resp = await ctx.bridge!.client.request<FsSearchResp>('fs.search', { query, path, max_hits, regex });
   const hits = filterProtectedChatHistoryHits(Array.isArray(resp.hits) ? resp.hits : []);
   if (hits.length === 0) return `No matches for "${query}" under ${path}.`;
   const lines = hits.map(h => `${h.path}:${h.line}: ${h.snippet}`);
   if (resp.truncated) lines.push(`(truncated)`);
   return lines.join('\n');
+}
+
+const MAX_REGEX_PATTERN_CHARS = 1_000;
+
+function validateSearchRegex(args: Record<string, unknown>) {
+  const message = validateRegexPattern(strArg(args, 'query'), args.regex === true);
+  if (!message) return null;
+  return {
+    errorCode: 'invalid_regex',
+    summary: `Invalid fs.search regex: ${message}`,
+    fix: 'Use a valid RE2-compatible pattern of at most 1000 characters, or omit `regex` for literal substring search.',
+    retryable: true,
+  };
+}
+
+/**
+ * Keep regex search in the bridge's linear-time RE2 subset. JavaScript is
+ * used only to catch malformed syntax; matching remains jailed and bounded
+ * in the bridge. Constructs RE2 deliberately excludes are rejected here so
+ * a pattern cannot fall back to a backtracking engine in another runtime.
+ */
+function validateRegexPattern(pattern: string, enabled: boolean): string | null {
+  if (!enabled) return null;
+  if (pattern.length > MAX_REGEX_PATTERN_CHARS) return `pattern exceeds ${MAX_REGEX_PATTERN_CHARS} characters`;
+  if (/\\[1-9]/.test(pattern)) return 'backreferences are not supported';
+  if (/\(\?/.test(pattern)) return 'lookaround and special group syntax are not supported';
+  try {
+    new RegExp(pattern);
+  } catch (err) {
+    return err instanceof SyntaxError ? err.message : 'pattern could not be compiled';
+  }
+  return null;
 }
 
 function strArg(args: Record<string, unknown>, key: string): string {

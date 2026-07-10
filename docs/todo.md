@@ -129,7 +129,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [ ] Per-job timeouts surfaced in `terminal` UI (today: silent until the bridge kills it)
 - [ ] `exec.run` stdin streaming (today: stdin is one-shot)
 - [ ] Auth header for non-loopback deployments (when we eventually want bridge on a remote host)
-- [ ] `fs.search` regex mode (today: substring only)
+- [x] `fs.search` regex mode *(done 2026-07-10, burndown w3)*
 - [ ] Diff-aware `fs.write` (e.g. `apply_patch`) so big files don't round-trip
 
 ## Auto-naming

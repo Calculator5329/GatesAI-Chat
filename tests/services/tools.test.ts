@@ -536,6 +536,50 @@ describe('fs tool', () => {
 
     expect(out).toBe('No matches for "gamma" under /workspace/notes.');
   });
+
+  it('keeps substring search as the default', async () => {
+    const requests: FakeRequest[] = [];
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        requests,
+        respond: () => ({ query: 'a.b', hits: [{ path: '/workspace/x.txt', line: 1, snippet: 'literal a.b' }] }),
+      }),
+    });
+
+    const out = await fsTool.execute({ action: 'search', query: 'a.b' }, ctx);
+
+    expect(out).toContain('literal a.b');
+    expect(requests).toEqual([{ op: 'fs.search', data: { query: 'a.b', path: '/workspace', max_hits: undefined, regex: false } }]);
+  });
+
+  it('forwards a safe regex pattern and returns its hits', async () => {
+    const requests: FakeRequest[] = [];
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        requests,
+        respond: () => ({ query: '^error\\s+\\d+$', hits: [{ path: '/workspace/log.txt', line: 7, snippet: 'error 42' }] }),
+      }),
+    });
+
+    const out = await fsTool.execute({ action: 'search', path: '/workspace', query: '^error\\s+\\d+$', regex: true }, ctx);
+
+    expect(out).toBe('/workspace/log.txt:7: error 42');
+    expect(requests[0]?.data).toEqual({ query: '^error\\s+\\d+$', path: '/workspace', max_hits: undefined, regex: true });
+  });
+
+  it('surfaces an invalid regex as a tool error without calling the bridge', async () => {
+    const requests: FakeRequest[] = [];
+    const ctx = makeCtx({ bridge: fakeBridge({ online: true, requests }) });
+
+    const out = await toolRegistry.execute('fs', { action: 'search', query: '[unterminated', regex: true }, ctx);
+
+    expect(out.ok).toBe(false);
+    expect(out.errorCode).toBe('invalid_regex');
+    expect(out.content).toContain('Invalid fs.search regex');
+    expect(requests).toEqual([]);
+  });
 });
 
 describe('inspect_file tool', () => {
