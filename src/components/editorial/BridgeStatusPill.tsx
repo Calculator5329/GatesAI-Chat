@@ -34,11 +34,13 @@ export const BridgeStatusPill = observer(function BridgeStatusPill() {
     label = 'workspace ready';
     const root = bridge.workspaceRoot ? `\n${bridge.workspaceRoot}` : '';
     title = `Bridge ${bridge.version ?? ''} online.${root}\n${bridge.allowlist.length} allowlisted commands.\nClick to re-poll.`;
-  } else if (bridge.state === 'offline') {
+  } else if (bridge.state === 'offline' || bridge.state === 'incompatible') {
     dotColor = 'var(--danger-muted)';
     labelColor = 'var(--danger-soft)';
-    label = 'bridge offline';
-    title = `${bridge.lastError ?? 'No connection'}\n\nStart with: gatesai-bridge\n(see ../gatesai-bridge/README.md)\n\nClick to re-poll.`;
+    label = bridge.state === 'incompatible' ? 'bridge update required' : 'bridge offline';
+    title = bridge.state === 'incompatible'
+      ? `${bridge.lastError ?? 'Bridge protocol mismatch'}\n\nClick to re-poll after updating.`
+      : `${bridge.lastError ?? 'No connection'}\n\nStart with: gatesai-bridge\n(see ../gatesai-bridge/README.md)\n\nClick to re-poll.`;
   }
 
   return (

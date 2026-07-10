@@ -27,7 +27,6 @@ export function useComposerDraft(
 ): ComposerDraft {
   const [localDraft, setLocalDraft] = useState(ui.draft);
   const localDraftRef = useRef(localDraft);
-  localDraftRef.current = localDraft;
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flushDraft = useCallback(() => {
@@ -43,6 +42,7 @@ export function useComposerDraft(
   // Resync when the store changes externally (thread switch, send-clear, etc.)
   useEffect(() => {
     if (ui.draft !== localDraftRef.current) {
+      localDraftRef.current = ui.draft;
       setLocalDraft(ui.draft);
     }
   }, [ui.draft]);
@@ -53,6 +53,7 @@ export function useComposerDraft(
   }, [flushDraft]);
 
   const onDraftChange = useCallback((next: string) => {
+    localDraftRef.current = next;
     setLocalDraft(next);
     if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
     flushTimerRef.current = setTimeout(() => {
@@ -70,6 +71,7 @@ export function useComposerDraft(
 
   const resetDraftAfterSend = useCallback(() => {
     ui.clearDraft();
+    localDraftRef.current = '';
     setLocalDraft('');
     if (!SUPPORTS_FIELD_SIZING && textareaRef.current) {
       textareaRef.current.style.height = 'auto';

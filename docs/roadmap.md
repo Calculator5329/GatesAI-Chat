@@ -76,7 +76,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       (`package.json` + `src-tauri/tauri.conf.json`), changelog entry, tag
       push, asset verification, Web Lite check. *Acceptance:* the next release
       is cut following only the checklist.
-- [ ] **Bridge protocol version handshake.** App sends/expects a protocol
+- [x] **Bridge protocol version handshake.** *(done 2026-07-10)* App sends/expects a protocol
       version on WebSocket connect; mismatch surfaces a clear BridgeStore
       error state instead of quiet failures. Coordinate the bridge half as a
       separate task in `../gatesai-bridge` (do not edit it from here).

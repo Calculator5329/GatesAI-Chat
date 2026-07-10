@@ -16,7 +16,10 @@
  *    /health), not here. This class stays single-purpose.
  */
 
-const PROTOCOL_VERSION = '1';
+const REQUEST_ID_VERSION = '1';
+export const BRIDGE_PROTOCOL_VERSION = 2;
+export const LEGACY_BRIDGE_PROTOCOL_VERSION = 0;
+const DEFAULT_HANDSHAKE_GRACE_MS = 500;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 
 interface Envelope {
@@ -85,6 +88,7 @@ export class BridgeClient {
   private readonly pending = new Map<string, Pending>();
   private nextId = 1;
   private connectingPromise: Promise<void> | null = null;
+  private handshakeWaiter: ((protocolVersion: number) => void) | null = null;
 
   constructor(url: string) {
     this.url = url;
@@ -134,6 +138,8 @@ export class BridgeClient {
           p.reject(new BridgeOfflineError('Bridge connection closed mid-request.'));
         }
         this.pending.clear();
+        this.handshakeWaiter?.(LEGACY_BRIDGE_PROTOCOL_VERSION);
+        this.handshakeWaiter = null;
         this.socket = null;
       };
 
@@ -159,6 +165,36 @@ export class BridgeClient {
   }
 
   /**
+   * Negotiate the app/bridge wire protocol after the socket opens. Bridges
+   * predating the hello frame simply stay silent; after a short grace period
+   * they are reported as protocol v0 so the store can show upgrade guidance.
+   */
+  negotiateProtocol(graceMs = DEFAULT_HANDSHAKE_GRACE_MS): Promise<number> {
+    if (!this.isOpen()) return Promise.reject(new BridgeOfflineError());
+
+    return new Promise<number>((resolve, reject) => {
+      let settled = false;
+      const finish = (protocolVersion: number) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (this.handshakeWaiter === finish) this.handshakeWaiter = null;
+        resolve(protocolVersion);
+      };
+      const timer = setTimeout(() => finish(LEGACY_BRIDGE_PROTOCOL_VERSION), graceMs);
+      this.handshakeWaiter = finish;
+      try {
+        this.socket!.send(JSON.stringify({ type: 'hello', protocolVersion: BRIDGE_PROTOCOL_VERSION }));
+      } catch (err) {
+        settled = true;
+        clearTimeout(timer);
+        this.handshakeWaiter = null;
+        reject(new BridgeOfflineError(`Handshake send failed: ${(err as Error).message}`));
+      }
+    });
+  }
+
+  /**
    * Send a request and wait for `result`. Optional `onEvent` is called
    * for every `event` envelope tagged with this request's id (used by
    * exec.run for streamed stdout/stderr lines).
@@ -172,7 +208,7 @@ export class BridgeClient {
     if (!this.isOpen()) {
       throw new BridgeOfflineError();
     }
-    const id = `j-${PROTOCOL_VERSION}-${this.nextId++}`;
+    const id = `j-${REQUEST_ID_VERSION}-${this.nextId++}`;
     const envelope: Envelope = {
       id,
       type: 'request',
@@ -223,9 +259,19 @@ export class BridgeClient {
 
   private handleMessage(raw: unknown): void {
     if (typeof raw !== 'string') return;
+    let decoded: unknown;
+    try {
+      decoded = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (isRecord(decoded) && decoded.type === 'hello' && Number.isInteger(decoded.protocolVersion)) {
+      this.handshakeWaiter?.(decoded.protocolVersion as number);
+      return;
+    }
     let env: Envelope;
     try {
-      const parsed = parseEnvelope(JSON.parse(raw));
+      const parsed = parseEnvelope(decoded);
       if (!parsed.ok) return;
       env = parsed.value;
     } catch {

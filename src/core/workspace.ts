@@ -14,7 +14,7 @@
  *      break older clients.
  */
 
-export type BridgeConnectionState = 'unknown' | 'online' | 'offline';
+export type BridgeConnectionState = 'unknown' | 'online' | 'offline' | 'incompatible';
 
 export interface BridgeStatus {
   state: BridgeConnectionState;

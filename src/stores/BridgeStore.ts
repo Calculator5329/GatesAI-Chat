@@ -12,7 +12,7 @@ import {
   type HtmlArtifactPreviewContent,
   type HtmlArtifactPreviewResult,
 } from '../services/bridge/artifactPreview';
-import { BridgeClient, BridgeOfflineError } from '../services/bridge/client';
+import { BRIDGE_PROTOCOL_VERSION, BridgeClient, BridgeOfflineError } from '../services/bridge/client';
 import { probeBridgeHealth } from '../services/bridge/health';
 import { ensureDefaultWorkspaceGuide } from '../services/bridge/defaultWorkspaceGuide';
 import { readAttachmentBase64 } from '../services/bridge/readAttachmentBytes';
@@ -22,6 +22,18 @@ import { logger } from '../services/diagnostics/logger';
 
 const WS_URL = 'ws://127.0.0.1:7331/ws';
 const POLL_INTERVAL_MS = 5000;
+
+export class BridgeProtocolMismatchError extends Error {
+  readonly bridgeProtocolVersion: number;
+  readonly appProtocolVersion: number;
+
+  constructor(bridgeProtocolVersion: number, appProtocolVersion = BRIDGE_PROTOCOL_VERSION) {
+    super(`Bridge speaks v${bridgeProtocolVersion}, app needs v${appProtocolVersion} — update the bridge.`);
+    this.name = 'BridgeProtocolMismatchError';
+    this.bridgeProtocolVersion = bridgeProtocolVersion;
+    this.appProtocolVersion = appProtocolVersion;
+  }
+}
 
 // Re-exported so UI components can type preview state through the store
 // facade without importing bridge service internals.
@@ -193,36 +205,45 @@ export class BridgeStore {
         // bridge state — a frequent waste on a steady connection. Only
         // `lastSeenAt` (timestamp) is updated unconditionally; downstream
         // consumers don't read it.
-        if (this.state !== 'online') this.state = 'online';
         if (this.version !== data.version) this.version = data.version;
         if (this.workspaceRoot !== data.workspace_root) this.workspaceRoot = data.workspace_root;
         if (this.platform !== data.platform) this.platform = data.platform;
         if (!sameStringArray(this.allowlist, nextAllowlist)) this.allowlist = nextAllowlist;
         this.lastSeenAt = Date.now();
-        if (this.lastError !== undefined) this.lastError = undefined;
+        if (!wasOffline && this.lastError !== undefined) this.lastError = undefined;
       });
       if (wasOffline) {
-        this.emitBridgeActivity({
-          state: 'done',
-          verb: 'Workspace ready',
-          summary: data.workspace_root,
-        });
         try {
           await this.client.connect();
+          const bridgeProtocolVersion = await this.client.negotiateProtocol();
+          if (bridgeProtocolVersion !== BRIDGE_PROTOCOL_VERSION) {
+            throw new BridgeProtocolMismatchError(bridgeProtocolVersion);
+          }
           if (this.seededWorkspaceRoot !== data.workspace_root) {
             await ensureDefaultWorkspaceGuide(this.client);
             await openUserGuideOnFirstInstall(this.client, path => this.openWorkspacePath(path));
             this.seededWorkspaceRoot = data.workspace_root;
           }
+          runInAction(() => {
+            this.state = 'online';
+            this.lastError = undefined;
+          });
+          this.emitBridgeActivity({
+            state: 'done',
+            verb: 'Workspace ready',
+            summary: data.workspace_root,
+          });
         } catch (err) {
           logger.warn('bridge', 'Health OK but WebSocket connect failed', { err });
+          const incompatible = err instanceof BridgeProtocolMismatchError;
+          if (incompatible) this.client.disconnect();
           runInAction(() => {
-            this.state = 'offline';
+            this.state = incompatible ? 'incompatible' : 'offline';
             this.lastError = (err as Error).message;
           });
           this.emitBridgeActivity({
             state: 'failed',
-            verb: 'Workspace offline',
+            verb: incompatible ? 'Bridge update required' : 'Workspace offline',
             summary: (err as Error).message,
           });
         }

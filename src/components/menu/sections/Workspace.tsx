@@ -211,9 +211,9 @@ export const WorkspaceSection = observer(function WorkspaceSection() {
       {/* Bridge status */}
       <Card>
         <div style={S.row}>
-          <span style={S.dot(bridge.state === 'online' ? 'var(--success)' : bridge.state === 'offline' ? 'var(--danger-muted)' : 'var(--text-faint)')} />
+          <span style={S.dot(bridge.state === 'online' ? 'var(--success)' : bridge.state === 'offline' || bridge.state === 'incompatible' ? 'var(--danger-muted)' : 'var(--text-faint)')} />
           <div style={{ flex: 1 }}>
-            <div style={S.label}>{bridge.state === 'online' ? 'Bridge online' : bridge.state === 'offline' ? 'Bridge offline' : 'Checking…'}</div>
+            <div style={S.label}>{bridge.state === 'online' ? 'Bridge online' : bridge.state === 'incompatible' ? 'Bridge update required' : bridge.state === 'offline' ? 'Bridge offline' : 'Checking…'}</div>
             <div style={S.sub}>
               {bridge.state === 'online'
                 ? `${bridge.version ?? 'unknown'} · ${bridge.platform ?? '—'}`
