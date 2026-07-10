@@ -6,7 +6,7 @@
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app/)
 [![Vite](https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/)
 [![MobX](https://img.shields.io/badge/MobX-6-ff9955?style=flat-square&logo=mobx&logoColor=white)](https://mobx.js.org/)
-[![Tests](https://img.shields.io/badge/tests-995%20unit%20%2B%2020%20e2e-3fb950?style=flat-square)](#quality-gates)
+[![Tests](https://img.shields.io/badge/tests-997%20unit%20%2B%2020%20e2e-3fb950?style=flat-square)](#quality-gates)
 
 > **Live demo:** [calculator5329.github.io/GatesAI-Chat](https://calculator5329.github.io/GatesAI-Chat/)
 > — the browser **Web Lite** build. The full UI is interactive; chatting uses your own OpenRouter
@@ -22,32 +22,34 @@
 > ESLint enforces automatically, so the patterns stay consistent and both humans and AI agents
 > can keep extending it safely.
 
-A local-first AI chat workspace for Windows (with a browser "Web Lite" mode), built as a
+A local-first AI chat workspace for Windows and Linux (with a browser "Web Lite" mode), built as a
 React 19 + TypeScript single-page app wrapped in a Tauri 2 desktop shell. It pairs a
 provider-agnostic LLM client with a sandboxed local **bridge** process so the assistant can
 read and write real files, run allowlisted shell commands, query data, connect to MCP tool
-servers, and generate images — all on your own machine.
+servers, and generate images, while app state and workspace data stay on your machine.
 
-The core promises: **fast** (instant-feeling streaming, no jank), **simple** (download the
-exe and chat — no account, no setup), **your models** (any OpenRouter model or any local
-Ollama model, switchable mid-conversation, fully offline-capable with local models), and
-**your data** (everything stays on your device — API keys in the OS credential store,
-history in local storage with an IndexedDB archive, files in a workspace folder you own).
+The core promises: **fast** (instant-feeling streaming, no jank), **simple** (one desktop
+installer and no GatesAI account), **your models** (OpenRouter, local Ollama, or a custom
+OpenAI-compatible endpoint, switchable mid-conversation and offline-capable with local
+models), and **your data** (app state stays on your device; requests go only to the model
+provider you select; desktop API keys use the OS credential store; files live in a workspace
+folder you own).
 
 It is designed to feel like a quiet, editorial writing room and developer console rather than a
-SaaS dashboard: dark theme, serif chat prose, compact operational controls, and an ambient
-activity timeline for everything the model does.
+SaaS dashboard: paper-like dark and light themes, serif chat prose, compact operational controls,
+and an ambient activity timeline for everything the model does.
 
 ## Download
 
 Prebuilt desktop installers are published on the
-[**latest release**](https://github.com/Calculator5329/GatesAI-Chat/releases/latest). The desktop
-app bundles the local bridge, so files, shell tools, and image generation work out of the box.
+[**latest release**](https://github.com/Calculator5329/GatesAI-Chat-releases/releases/latest). The desktop
+app bundles the local bridge, so file and shell tools work out of the box. Image generation uses
+OpenRouter or a configured local ComfyUI installation.
 
 | Platform | Download | Runs on |
 | --- | --- | --- |
-| **Windows** | [`GatesAI-Chat-Setup-x64.exe`](https://github.com/Calculator5329/GatesAI-Chat/releases/latest/download/GatesAI-Chat-Setup-x64.exe) | Windows 10/11, 64-bit (runs on ARM via emulation) |
-| **Linux** | [`GatesAI-Chat-x86_64.AppImage`](https://github.com/Calculator5329/GatesAI-Chat/releases/latest/download/GatesAI-Chat-x86_64.AppImage) | Linux x86_64 |
+| **Windows** | [`GatesAI-Chat-Setup-x64.exe`](https://github.com/Calculator5329/GatesAI-Chat-releases/releases/latest/download/GatesAI-Chat-Setup-x64.exe) | Windows 10/11, 64-bit (runs on ARM via emulation) |
+| **Linux** | [`GatesAI-Chat-x86_64.AppImage`](https://github.com/Calculator5329/GatesAI-Chat-releases/releases/latest/download/GatesAI-Chat-x86_64.AppImage) | Linux x86_64 |
 | **macOS / others** | [Build from source](#getting-started-development) | — (no prebuilt binary yet) |
 
 Prefer to try before installing? The browser **[Web Lite demo](https://calculator5329.github.io/GatesAI-Chat/)**
@@ -65,19 +67,20 @@ it points you to the matching download above).
 - **Durable autosave** — every conversation is throttled-saved to `localStorage`, survives quota
   limits via emergency compaction, and (on desktop) mirrors to a readable
   `/workspace/chat-history` HTML/Markdown library.
-- **Agent tooling** — a registry of browser-side tools: `memory`, `notes`, `thread`,
-  `chat_history`, `web_search` (Brave), `fs`, `terminal`, `inspect_file`, `python_inline`,
-  `sqlite_query`, `git`, `image_generate`, `describe_image`, `artifact`, `workspace`,
-  `source_workspace`, `source_build`, `query_script`, `time`, `logs`, and more. Adding a tool is one file
-  plus one registry line.
+- **Agent tooling** — a built-in registry with `memory`, `recall`, `notes`, `schedules`,
+  `thread`, `chat_history`, `spawn_task`, `web_search` (Brave), `fetch_page`, `fs`,
+  `terminal`, `inspect_file`, `python_inline`, `sqlite_query`, `query_script`, `git`,
+  `image_generate`, `describe_image`, `artifact`, `workspace`, `source_workspace`,
+  `source_build`, `time`, and `logs`, plus tools from connected MCP servers.
 - **Self-diagnosis** — central `services/diagnostics/logger` (ring buffer + console +
   bridge JSONL) and a `logs` tool so the assistant can read recent app logs.
 - **Companion bridge** (`../gatesai-bridge`, Go) — owns a `~/GatesAI/workspace/` folder behind a
   path jail and command allowlist, exposed over a single loopback WebSocket.
 - **Local image generation** — background image-job queue driving ComfyUI (FLUX.2 Klein / SDXL
   Lightning) with live progress, a Gallery, and a lightbox.
-- **Memory** — durable user facts plus lazy cross-thread summaries composed into the system
-  prompt (no embeddings/RAG — the prompt is the delivery mechanism).
+- **Memory and semantic recall** — durable user facts and lazy cross-thread summaries, plus
+  a local RAG index over chats, notes, and facts using Ollama embeddings and IndexedDB vectors.
+  Relevant snippets can be injected automatically or retrieved with the `recall` tool.
 - **Multimodal input** — drop images into the composer; vision-capable models receive the pixels.
 
 ## Screenshots
@@ -103,7 +106,7 @@ UI (components/, app/)
       ▼
 Stores (MobX object models)
       ▼
-Services (persistence, llm/, tools/, image/, bridge, router)
+Services (persistence, llm/, chat/, tools/, image/, bridge, mcp/, rag/, router)
       ▼
 Core (types, theme, models, providers, runtime, llm contract)
 ```
@@ -119,7 +122,8 @@ Core (types, theme, models, providers, runtime, llm contract)
 
 Deeper design notes live in [`docs/architecture.md`](docs/architecture.md) and
 [`docs/tech_spec.md`](docs/tech_spec.md). Per-session history is in
-[`docs/changelog.md`](docs/changelog.md).
+[`docs/changelog.md`](docs/changelog.md). See [`CONTRIBUTING.md`](CONTRIBUTING.md) to set up
+a development environment and prepare a pull request.
 
 ## Tech stack
 
@@ -130,12 +134,12 @@ react-markdown / KaTeX / Mermaid / highlight.js · Vitest + Playwright · ESLint
 
 Requirements:
 
-- Node.js / npm for the chat app
+- Node.js 22 / npm for the chat app (the version used by CI)
 - Rust + Tauri prerequisites for desktop builds
 - Either Go 1.24+ or a prebuilt bridge binary at `..\gatesai-bridge\bin\gatesai-bridge.exe`
 
 ```powershell
-npm install        # install dependencies
+npm ci             # install the locked dependencies
 npm run dev        # Vite dev server (Web Lite mode in the browser)
 npm run tauri:dev  # desktop app against the dev server
 ```
@@ -150,9 +154,9 @@ go run ./cmd/gatesai-bridge
 ## Quality gates
 
 ```powershell
+npm run test       # Vitest unit/component suite (997 tests)
 npm run typecheck  # tsc project build + test project typecheck
 npm run lint       # ESLint (includes the architecture-boundary import rules)
-npm run test       # Vitest unit/component suite (995 tests)
 npm run test:watch # Vitest in watch mode
 npm run test:models # Live OpenRouter compatibility (needs API key)
 npm run ci         # all three, in order
@@ -167,7 +171,7 @@ build (degraded-state assertions) — with the OpenRouter stream mocked. See
 ## Building the desktop app
 
 ```powershell
-npm run tauri build   # produces the NSIS installer; bundles the Go bridge automatically
+npm run tauri:build   # produces the NSIS installer from the prepared Go bridge sidecar
 ```
 
 ### Linux AppImage builds
@@ -192,7 +196,7 @@ src/
   app/          composition root
   components/   ui/ (primitives) · editorial/ (chat) · menu/ (settings) · media/ (shared image UI)
   stores/       MobX stores (Chat, Provider, Bridge, ImageJob, ... )
-  services/     llm/, tools/, image/, bridge, storage, diagnostics/, local/, compat/, search/, router
+  services/     llm/, chat/, tools/, image/, bridge/, mcp/, rag/, persistence/, storage/, and integrations
   core/         types, models, providers, theme, runtime
 tests/          Vitest suite (kept out of the app build)
 docs/           handbook, architecture, tech spec, roadmap, changelog, audits, plans

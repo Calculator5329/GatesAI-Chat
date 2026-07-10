@@ -3,7 +3,7 @@
 ## Handoff plan — Now / Next / Later (2026-07-05)
 
 Current focus: **open-source / product readiness**. The app itself is deep
-(995 unit + 20 e2e tests, CI, releases at v4.5.0); what's missing is the
+(997 unit + 20 e2e tests, CI, releases at v4.5.0); what's missing is the
 public-facing shell around it. Each task below is sized for one working
 session by an agent with no prior context (read `docs/architecture.md` and
 root `CLAUDE.md` first) and has explicit acceptance criteria. Do not modify
@@ -27,14 +27,14 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       recorder + gif conversion is fine too.
       *Acceptance:* `docs/user-guide-assets/demo.gif` (< 10 MB) embedded above
       the fold in `README.md`; renders on GitHub.
-- [ ] **README truth pass.** Fix the Memory bullet that still claims "no
+- [x] **README truth pass.** *(done 2026-07-10)* Fix the Memory bullet that still claims "no
       embeddings/RAG" (RAG shipped in Wave F: `src/services/rag/`, `recall`
       tool); re-verify every command, link, badge, and the tool list against
       the tree; confirm test counts with `npx vitest list ... | wc -l` and
       `npx playwright test --list`.
       *Acceptance:* no statement in README contradicts the code; counts match
       reality on the day of the pass.
-- [ ] **CONTRIBUTING.md.** Setup (Node, Rust, Go/bridge), the quality gates
+- [x] **CONTRIBUTING.md.** *(done 2026-07-10)* Setup (Node, Rust, Go/bridge), the quality gates
       (`npm run ci`, `npm run test:e2e`, `cargo test`), the layer rules in one
       table (link `docs/architecture.md`), how to add a tool/store/component,
       PR expectations, and the AGPL-3.0 contribution terms.

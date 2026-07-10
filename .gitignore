@@ -68,3 +68,5 @@ blob-report/
 
 # Firebase deploy cache
 .firebase/
+# agent-orchestrator local state
+.orc/
