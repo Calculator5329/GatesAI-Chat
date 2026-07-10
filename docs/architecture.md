@@ -76,6 +76,8 @@ npm run tauri:build         # source snapshot + NSIS desktop installer (bundles 
 
 Release:
 
+- Follow `docs/release-checklist.md` for the complete release gate, tag, and
+  asset-verification sequence.
 - Push a tag `v*` (e.g. `v4.5.0`) to trigger `.github/workflows/release.yml`.
   It builds Windows + Linux installers with a real bridge (repo variable
   `GATESAI_BRIDGE_REPOSITORY`, optional `GATESAI_BRIDGE_TOKEN` secret) and
@@ -792,8 +794,7 @@ Honest list for anyone picking the project up cold:
 - **Large components.** `EditorialComposer` (~840 lines) still awaits its
   planned split; roadmap "Wave D" contains partially-superseded entries
   (TurnRunner and streamCore extraction are in fact done).
-- **Vestigial files.** `.env.firebase` (contains only `VITE_GATESAI_WEB=1`, no
-  secret) survives from the removed Firebase era; scratch logs
-  (`debug.log`, `vite-*.log`, `.codex-*`) accumulate untracked in the root.
+- **Local scratch output.** Root debug/Vite logs and agent task leftovers are
+  ignored explicitly; keep generated diagnostics out of commits.
 - **Test-count badges rot.** The README badge (995 unit + 20 e2e) is updated
   by hand; counts drift every wave.

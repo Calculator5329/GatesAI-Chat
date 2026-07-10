@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-10 — Repository hygiene and release checklist
+
+- Retired the tracked Firebase-mode environment file after verifying its full
+  history contained only the public Web Lite flag. Web Lite now uses an
+  explicit Vite build mode; the legacy filename is ignored and documented by
+  a safe example file.
+- Made root scratch-log and agent-task ignore patterns explicit and confirmed
+  no tracked or orphaned root scratch files needed removal.
+- Added `docs/release-checklist.md` with the version, changelog, tag, workflow,
+  Web Lite, and stable release-asset verification steps.
+
 ## 2026-07-10 — Roadmap/TODO truth pass
 
 - Checked off **Wave D refactor** in `docs/roadmap.md` (TurnRunner, streamCore,

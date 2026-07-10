@@ -6,6 +6,7 @@ import { visualizer } from 'rollup-plugin-visualizer'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const analyze = mode === 'analyze'
+  const webLite = mode === 'web-lite'
   // Base public path override for static hosts that serve from a subpath, e.g.
   // a GitHub Pages project site at /<repo>/. Defaults to root, so desktop
   // (Tauri) and root-domain hosting builds are unaffected.
@@ -13,6 +14,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     base,
+    // Web Lite is a build mode, not a deploy-time secret. Keep the runtime
+    // switch in the build config so it does not depend on a tracked .env file.
+    define: webLite
+      ? { 'import.meta.env.VITE_GATESAI_WEB': JSON.stringify('1') }
+      : undefined,
     plugins: [
       react(),
       babel({ presets: [reactCompilerPreset()] }),

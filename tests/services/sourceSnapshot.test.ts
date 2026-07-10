@@ -9,6 +9,7 @@ describe('source snapshot generator', () => {
 
     expect(mod.shouldSkip('.env')).toBe(true);
     expect(mod.shouldSkip('.env.firebase')).toBe(true);
+    expect(mod.shouldSkip('.env.firebase.example')).toBe(true);
     expect(mod.shouldSkip('node_modules/react/index.js')).toBe(true);
     expect(mod.shouldSkip('dist/assets/app.js')).toBe(true);
     expect(mod.shouldSkip('release/GatesAI.exe')).toBe(true);

@@ -1,3 +1,9 @@
+# Root scratch output
+/debug.log
+/vite-*.log
+/.codex-vite-*.log
+/.codex-tasks/
+
 # Logs
 logs
 *.log
@@ -14,10 +20,11 @@ dist-ssr
 .tsbuild/
 *.local
 
-# Local environment / secrets (keep tracked, public .env.firebase)
+# Local environment / secrets
 .env
 .env.local
 .env.*.local
+.env.firebase
 
 # Editor directories and files
 .vscode/*
@@ -41,19 +48,12 @@ src-tauri/resources/source/
 release/
 release-assets/
 
-# Codex delegation prompts + launchers (session tooling, not product code)
-.codex-tasks/
-
 # Internal engineering scratch notes (kept local, not part of the public repo)
 docs/notes/
 
 # Firebase hosting config (deploy is via GitHub Pages; keep local if used)
 .firebaserc
 firebase.json
-
-# Stray local dev-server logs
-vite-*.log
-.codex-vite-*.log
 
 # Local generated previews and agent scratch worktrees
 preview-output/

@@ -14,7 +14,7 @@
     "dev": "vite",
     "source:snapshot": "node scripts/create-source-snapshot.mjs",
     "build": "tsc -b && vite build",
-    "build:web": "tsc -b && vite build --mode firebase",
+    "build:web": "tsc -b && vite build --mode web-lite",
     "analyze": "vite build --mode analyze --sourcemap",
     "lint": "eslint .",
     "typecheck": "tsc -b && tsc -p tsconfig.test.json --noEmit",

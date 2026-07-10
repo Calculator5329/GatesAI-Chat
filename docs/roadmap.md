@@ -45,7 +45,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       *Acceptance:* zero high/critical advisories, or each remaining one
       documented with justification in the PR/commit message; `npm run ci`
       still green.
-- [ ] **Repo hygiene sweep.** Remove or ignore root scratch files
+- [x] **Repo hygiene sweep.** *(done 2026-07-10)* Remove or ignore root scratch files
       (`debug.log`, `vite-5182.*.log`, `.codex-vite-*.log`, `.codex-tasks/`
       leftovers), retire `.env.firebase` (only sets `VITE_GATESAI_WEB=1`; fold
       into the build script or rename to something honest), prune dead
@@ -70,7 +70,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       minimum add a README note about the SmartScreen warning and checksums
       (`SHA256SUMS` published per release). *Acceptance:* release workflow
       emits checksums; decision on signing recorded in an ADR under `docs/`.
-- [ ] **Release checklist doc.** One page in `docs/`: version bumps
+- [x] **Release checklist doc.** *(done 2026-07-10)* One page in `docs/`: version bumps
       (`package.json` + `src-tauri/tauri.conf.json`), changelog entry, tag
       push, asset verification, Web Lite check. *Acceptance:* the next release
       is cut following only the checklist.

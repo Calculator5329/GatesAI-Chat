@@ -28,7 +28,7 @@ export default async function globalSetup(_config: FullConfig) {
   await ensureServer({
     label: 'web-lite',
     port: WEB_LITE_PORT,
-    args: [VITE_BIN, '--host', '127.0.0.1', '--mode', 'firebase', '--port', String(WEB_LITE_PORT), '--strictPort'],
+    args: [VITE_BIN, '--host', '127.0.0.1', '--mode', 'web-lite', '--port', String(WEB_LITE_PORT), '--strictPort'],
     reuseExisting: !isCI,
     started,
   });

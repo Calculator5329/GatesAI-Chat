@@ -41,7 +41,7 @@ Two layers, both runnable offline:
     `routeWebSocket` server that answers the `BridgeClient` request/response
     envelope protocol (`fs.*`, `exec.run`), so attachment upload, image-job
     artifacts, and workspace seeding all succeed without a real sidecar.
-  - `web-lite` — the `firebase`-mode build (`VITE_GATESAI_WEB=1`), used to assert
+  - `web-lite` — the `web-lite`-mode build (`VITE_GATESAI_WEB=1`), used to assert
     the degraded states (web-lite pill, disabled attachments, section notices).
   - The OpenRouter chat stream is mocked as SSE and provider keys / threads /
     image-jobs are seeded into `localStorage` via `addInitScript`. Shared helpers
