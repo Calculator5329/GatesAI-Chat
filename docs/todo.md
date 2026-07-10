@@ -136,7 +136,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 - [x] Cascade across cheap models with thread-model fallback
 - [x] Sidebar typewriter animation
-- [ ] Allow the user to disable auto-naming (Settings toggle)
+- [x] Allow the user to disable auto-naming (Settings toggle) *(done 2026-07-10, burndown w6)*
 - [ ] Re-name a thread on demand (right-click → "Re-name with AI")
 
 ## Quality

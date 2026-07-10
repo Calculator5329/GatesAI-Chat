@@ -125,11 +125,18 @@ export class ChatStore {
   private semanticContextProvider: ((userText: string) => string | Promise<string>) | null = null;
   private toolStoresProvider: (() => ToolStoreContext) | null = null;
   private activeSkillProvider: ((threadId: string) => WorkspaceSkill | undefined) | null = null;
+  private readonly isAutoNamingEnabled: () => boolean;
 
-  constructor(providers: ProviderStore, registry: ModelRegistry, profile: UserProfileStore) {
+  constructor(
+    providers: ProviderStore,
+    registry: ModelRegistry,
+    profile: UserProfileStore,
+    isAutoNamingEnabled: () => boolean = () => true,
+  ) {
     this.providers = providers;
     this.registry = registry;
     this.profile = profile;
+    this.isAutoNamingEnabled = isAutoNamingEnabled;
     this.autoNamer = new AutoNamer({
       host: this.createAutoNameHost(),
       router: this.providers.router,
@@ -172,7 +179,7 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'hydrationByThread' | 'agentTaskStartTimers' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'hydrationByThread' | 'agentTaskStartTimers' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -188,6 +195,7 @@ export class ChatStore {
       semanticContextProvider: false,
       toolStoresProvider: false,
       activeSkillProvider: false,
+      isAutoNamingEnabled: false,
     });
 
     // The coordinator owns the throttled autosave, unload flush, and the
@@ -245,6 +253,7 @@ export class ChatStore {
 
   private createAutoNameHost(): AutoNameHost {
     return {
+      isAutoNamingEnabled: this.isAutoNamingEnabled,
       getThread: threadId => this.findThread(threadId),
       getModelCandidates: fallbackModelId => this.backgroundModelCandidates(fallbackModelId),
       setThreadNaming: (threadId, naming) => {

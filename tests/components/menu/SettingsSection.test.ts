@@ -78,6 +78,7 @@ describe('SettingsSection desktop ambient controls', () => {
     expect(rendered.textContent).toContain('Global summon');
     expect(rendered.textContent).toContain('Summon shortcut');
     expect(rendered.textContent).toContain('Close button hides to tray');
+    expect(rendered.textContent).toContain('Automatic thread titles');
     expect((rendered.querySelector('input[aria-label="Global summon shortcut"]') as HTMLInputElement).value)
       .toBe('Ctrl+Shift+Space');
   });
@@ -97,7 +98,9 @@ describe('SettingsSection desktop ambient controls', () => {
 
     act(() => switches[0]?.click());
     act(() => switches[1]?.click());
+    act(() => switches[2]?.click());
 
+    expect(store.ui.autoNamingEnabled).toBe(false);
     expect(store.ui.globalSummonEnabled).toBe(false);
     expect(store.ui.closeButtonHidesToTray).toBe(true);
   });

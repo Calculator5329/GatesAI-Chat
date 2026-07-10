@@ -60,6 +60,8 @@ export class UiStore {
   closeButtonHidesToTray = false;
   /** Whether rendered fenced code blocks show a gutter of line numbers. */
   codeLineNumbers = false;
+  /** Whether completed first turns may be titled automatically by an LLM. */
+  autoNamingEnabled = true;
   globalShortcutUnavailableReason: string | null = null;
   /** First-run cue: pulse the brand wordmark until the user opens the menu. */
   menuHintSeen = loadMenuHintSeen();
@@ -85,6 +87,7 @@ export class UiStore {
     this.globalSummonChord = prefs.globalSummonChord;
     this.closeButtonHidesToTray = prefs.closeButtonHidesToTray;
     this.codeLineNumbers = prefs.codeLineNumbers;
+    this.autoNamingEnabled = prefs.autoNamingEnabled;
     makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'toolOutputOpenByKey' | 'composerFocus' | 'composerFocusPending' | 'disposers'>(this, {
       boundDraftThreadId: false,
       draftByThread: false,
@@ -109,6 +112,7 @@ export class UiStore {
       setGlobalSummonEnabled: action.bound,
       setGlobalSummonChord: action.bound,
       setCloseButtonHidesToTray: action.bound,
+      setAutoNamingEnabled: action.bound,
       setGlobalShortcutStatus: action.bound,
     });
     // Debounce UI-prefs persistence: a slider drag (font size, reading width)
@@ -142,6 +146,7 @@ export class UiStore {
         globalSummonChord: this.globalSummonChord,
         closeButtonHidesToTray: this.closeButtonHidesToTray,
         codeLineNumbers: this.codeLineNumbers,
+        autoNamingEnabled: this.autoNamingEnabled,
       });
       if (pendingTimer) clearTimeout(pendingTimer);
       pendingTimer = setTimeout(flushPrefs, DEBOUNCE_MS);
@@ -186,6 +191,7 @@ export class UiStore {
       globalSummonChord: this.globalSummonChord,
       closeButtonHidesToTray: this.closeButtonHidesToTray,
       codeLineNumbers: this.codeLineNumbers,
+      autoNamingEnabled: this.autoNamingEnabled,
     };
   }
 
@@ -203,6 +209,7 @@ export class UiStore {
     this.globalSummonChord = snapshot.globalSummonChord;
     this.closeButtonHidesToTray = snapshot.closeButtonHidesToTray;
     this.codeLineNumbers = snapshot.codeLineNumbers;
+    this.autoNamingEnabled = snapshot.autoNamingEnabled;
   }
 
   /**
@@ -356,6 +363,7 @@ export class UiStore {
   }
   setCloseButtonHidesToTray(value: boolean): void { this.closeButtonHidesToTray = value; }
   setCodeLineNumbers(value: boolean): void { this.codeLineNumbers = value; }
+  setAutoNamingEnabled(value: boolean): void { this.autoNamingEnabled = value; }
   setGlobalShortcutStatus(reason: string | null): void { this.globalShortcutUnavailableReason = reason; }
 
   /** Record that the user has discovered the menu; suppresses the brand cue. */

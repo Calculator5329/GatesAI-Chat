@@ -285,6 +285,9 @@ function parseUiPrefsSnapshot(value: unknown): UiPrefsSnapshot {
     codeLineNumbers: typeof r.codeLineNumbers === 'boolean'
       ? r.codeLineNumbers
       : DEFAULT_UI_PREFS.codeLineNumbers,
+    autoNamingEnabled: typeof r.autoNamingEnabled === 'boolean'
+      ? r.autoNamingEnabled
+      : DEFAULT_UI_PREFS.autoNamingEnabled,
   };
 }
 

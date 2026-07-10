@@ -13,6 +13,7 @@ export interface AutoNameRouter extends ThreadTitleRouter {
 }
 
 export interface AutoNameHost {
+  isAutoNamingEnabled(): boolean;
   getThread(threadId: string): Thread | undefined;
   getModelCandidates(fallbackModelId: string): string[];
   setThreadNaming(threadId: string, naming: boolean): void;
@@ -39,6 +40,7 @@ export class AutoNamer {
    * time this runs, streaming bookkeeping may already be cleared.
    */
   maybeAutoName(threadId: string, assistantMessage: AssistantMessage): void {
+    if (!this.host.isAutoNamingEnabled()) return;
     const thread = this.host.getThread(threadId);
     if (!thread || thread.autoNamed || thread.naming || thread.deletedAt != null) return;
     if (!this.router.canRoute()) return;
