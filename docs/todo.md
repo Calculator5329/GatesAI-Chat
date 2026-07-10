@@ -102,7 +102,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [x] Pin / unpin threads (data is there, UI isn't) *(verified already-done, 2026-07-10 truth pass — sidebar pin/trash icons shipped in the Web Lite UX pass; `pinned` wired in `EditorialSidebar.tsx`/`ChatStore.ts`)*
 - [ ] Drag-to-reorder pinned threads
 - [x] Message actions: copy, regenerate, edit-and-resend, branch *(verified already-done, 2026-07-10 truth pass — shipped 2026-07-02 wave; regenerate/edit/branch in `EditorialMessage.tsx` + `ChatStore.ts`, Ctrl/Cmd-click copy gesture)*
-- [ ] Code block: copy button, language label, line numbers toggle
+- [x] Code block: copy button, language label, line numbers toggle *(done 2026-07-10, burndown w4)*
 - [x] File attachments in the composer (paperclip + drag-drop into `/workspace/attachments/`)
 - [ ] Inline attachment previews (image thumbnails, PDF first-page peek)
 - [ ] Per-thread rename UX in the sidebar (right-click → rename; today only the auto-namer + `thread` tool can rename)

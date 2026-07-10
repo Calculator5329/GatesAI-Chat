@@ -425,7 +425,7 @@ function useSmoothedStreamingText(content: string, active: boolean): string {
 }
 
 function MarkdownBody({ content, incremental = false }: { content: string; incremental?: boolean }) {
-  const { bridge } = useEditorial();
+  const { bridge, ui } = useEditorial();
   const chunkSnapshotRef = useRef<MarkdownChunkSnapshot | undefined>(undefined);
   // Split on paragraph boundaries (respecting fenced code blocks) so closed
   // chunks can be memoized. While streaming, only the trailing chunk's
@@ -450,7 +450,13 @@ function MarkdownBody({ content, incremental = false }: { content: string; incre
           // Skip whitespace-only chunks; ReactMarkdown produces nothing for
           // them and they'd just burn a render.
           chunk.content.trim() === '' ? null : (
-            <MarkdownChunk key={chunk.key} content={chunk.content} bridge={bridge} />
+            <MarkdownChunk
+              key={chunk.key}
+              content={chunk.content}
+              bridge={bridge}
+              lineNumbers={ui.codeLineNumbers}
+              onLineNumbersChange={ui.setCodeLineNumbers.bind(ui)}
+            />
           )
         ))}
       </Suspense>

@@ -15,6 +15,7 @@ const DEFAULTS = {
   globalSummonEnabled: true,
   globalSummonChord: 'Ctrl+Shift+Space',
   closeButtonHidesToTray: false,
+  codeLineNumbers: false,
 } as const;
 
 describe('uiPrefsStorage', () => {
@@ -38,6 +39,7 @@ describe('uiPrefsStorage', () => {
       globalSummonEnabled: false,
       globalSummonChord: 'Ctrl+Alt+K',
       closeButtonHidesToTray: true,
+      codeLineNumbers: true,
     });
 
     expect(loadUiPrefs()).toEqual({
@@ -47,6 +49,7 @@ describe('uiPrefsStorage', () => {
       globalSummonEnabled: false,
       globalSummonChord: 'Ctrl+Alt+K',
       closeButtonHidesToTray: true,
+      codeLineNumbers: true,
     });
   });
 
@@ -65,6 +68,7 @@ describe('uiPrefsStorage', () => {
       globalSummonEnabled: 'yes',
       globalSummonChord: '',
       closeButtonHidesToTray: 'no',
+      codeLineNumbers: 'yes',
     }));
 
     expect(loadUiPrefs()).toEqual(DEFAULTS);
@@ -81,6 +85,7 @@ describe('uiPrefsStorage', () => {
       globalSummonEnabled: false,
       globalSummonChord: 'Alt+Shift+G',
       closeButtonHidesToTray: true,
+      codeLineNumbers: false,
     });
     expect(loadUiPrefs()).toMatchObject({
       globalSummonEnabled: false,

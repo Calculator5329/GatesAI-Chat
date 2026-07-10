@@ -1,7 +1,7 @@
 // The full markdown block renderer (react-markdown + GFM/math) with
 // workspace-aware links, code blocks, and embedded diagram/artifact previews.
 // Lazy-loaded by EditorialMessage. Presentation only.
-import { memo, useCallback, useEffect, useSyncExternalStore, type ComponentPropsWithoutRef, type ReactNode } from 'react';
+import { Children, isValidElement, memo, useCallback, useEffect, useState, useSyncExternalStore, type ComponentPropsWithoutRef, type ReactElement, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -24,13 +24,15 @@ const HAS_MATH = (s: string) => MATH_RE.test(s);
 export interface MarkdownChunkProps {
   content: string;
   bridge: BridgeStore;
+  lineNumbers: boolean;
+  onLineNumbersChange: (enabled: boolean) => void;
 }
 
 /**
  * Memoized by content string. While streaming, closed chunks pass identical
  * strings on every token flush and skip re-rendering the heavy markdown tree.
  */
-export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge }: MarkdownChunkProps) {
+export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge, lineNumbers, onLineNumbersChange }: MarkdownChunkProps) {
   const needsHighlight = HAS_CODE_FENCE(content);
   const needsKatex = HAS_MATH(content);
   const highlightPlugin = useLazyRehypePlugin(highlightPluginLoader, needsHighlight);
@@ -46,6 +48,7 @@ export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge }: Ma
       rehypePlugins={rehypePlugins}
       components={{
         code: (props) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
+        pre: (props) => <CodeBlock {...props} lineNumbers={lineNumbers} onLineNumbersChange={onLineNumbersChange} />,
         a: (props) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,
       }}
     >
@@ -53,6 +56,66 @@ export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge }: Ma
     </ReactMarkdown>
   );
 });
+
+interface CodeBlockProps extends ComponentPropsWithoutRef<'pre'> {
+  lineNumbers: boolean;
+  onLineNumbersChange: (enabled: boolean) => void;
+}
+
+function CodeBlock({ children, lineNumbers, onLineNumbersChange, ...rest }: CodeBlockProps) {
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const child = Children.only(children);
+  if (!isValidElement(child) || child.type !== 'code') return <pre {...rest}>{children}</pre>;
+
+  const code = child as ReactElement<ComponentPropsWithoutRef<'code'>>;
+  const language = languageLabelFromClassName(code.props.className);
+  const text = childrenToString(code.props.children).replace(/\n$/, '');
+  const lineCount = text.split('\n').length;
+
+  return (
+    <div className="code-block">
+      <div className="code-block__toolbar">
+        <span className="code-block__language">{language ?? 'Code'}</span>
+        <button type="button" aria-pressed={lineNumbers} onClick={() => onLineNumbersChange(!lineNumbers)}>
+          {lineNumbers ? 'Hide lines' : 'Show lines'}
+        </button>
+        <button
+          type="button"
+          onClick={async () => {
+            const copied = await copyCodeToClipboard(text);
+            setCopyState(copied ? 'copied' : 'failed');
+          }}
+        >
+          {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy'}
+        </button>
+      </div>
+      <div className={`code-block__body${lineNumbers ? ' code-block__body--numbered' : ''}`}>
+        {lineNumbers && (
+          <span className="code-block__line-numbers" aria-hidden="true">
+            {Array.from({ length: lineCount }, (_, index) => <span key={index}>{index + 1}</span>)}
+          </span>
+        )}
+        <pre {...rest}>{code}</pre>
+      </div>
+    </div>
+  );
+}
+
+export function languageLabelFromClassName(className?: string): string | null {
+  const token = className?.split(/\s+/).find(value => value.startsWith('language-'));
+  const language = token?.slice('language-'.length).trim();
+  return language || null;
+}
+
+export async function copyCodeToClipboard(text: string): Promise<boolean> {
+  try {
+    if (!navigator.clipboard?.writeText) return false;
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function useLazyRehypePlugin(loader: MarkdownPluginLoader, enabled: boolean): RehypePlugin | null {
   const subscribe = useCallback((listener: () => void) => {
@@ -125,5 +188,6 @@ function childrenToString(children: ReactNode): string {
   if (typeof children === 'string') return children;
   if (typeof children === 'number') return String(children);
   if (Array.isArray(children)) return children.map(childrenToString).join('');
+  if (isValidElement<{ children?: ReactNode }>(children)) return childrenToString(children.props.children);
   return '';
 }

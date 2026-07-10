@@ -282,6 +282,9 @@ function parseUiPrefsSnapshot(value: unknown): UiPrefsSnapshot {
     closeButtonHidesToTray: typeof r.closeButtonHidesToTray === 'boolean'
       ? r.closeButtonHidesToTray
       : DEFAULT_UI_PREFS.closeButtonHidesToTray,
+    codeLineNumbers: typeof r.codeLineNumbers === 'boolean'
+      ? r.codeLineNumbers
+      : DEFAULT_UI_PREFS.codeLineNumbers,
   };
 }
 

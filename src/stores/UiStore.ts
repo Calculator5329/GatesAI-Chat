@@ -58,6 +58,8 @@ export class UiStore {
   globalSummonEnabled = true;
   globalSummonChord = 'Ctrl+Shift+Space';
   closeButtonHidesToTray = false;
+  /** Whether rendered fenced code blocks show a gutter of line numbers. */
+  codeLineNumbers = false;
   globalShortcutUnavailableReason: string | null = null;
   /** First-run cue: pulse the brand wordmark until the user opens the menu. */
   menuHintSeen = loadMenuHintSeen();
@@ -82,6 +84,7 @@ export class UiStore {
     this.globalSummonEnabled = prefs.globalSummonEnabled;
     this.globalSummonChord = prefs.globalSummonChord;
     this.closeButtonHidesToTray = prefs.closeButtonHidesToTray;
+    this.codeLineNumbers = prefs.codeLineNumbers;
     makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'toolOutputOpenByKey' | 'composerFocus' | 'composerFocusPending' | 'disposers'>(this, {
       boundDraftThreadId: false,
       draftByThread: false,
@@ -138,6 +141,7 @@ export class UiStore {
         globalSummonEnabled: this.globalSummonEnabled,
         globalSummonChord: this.globalSummonChord,
         closeButtonHidesToTray: this.closeButtonHidesToTray,
+        codeLineNumbers: this.codeLineNumbers,
       });
       if (pendingTimer) clearTimeout(pendingTimer);
       pendingTimer = setTimeout(flushPrefs, DEBOUNCE_MS);
@@ -181,6 +185,7 @@ export class UiStore {
       globalSummonEnabled: this.globalSummonEnabled,
       globalSummonChord: this.globalSummonChord,
       closeButtonHidesToTray: this.closeButtonHidesToTray,
+      codeLineNumbers: this.codeLineNumbers,
     };
   }
 
@@ -197,6 +202,7 @@ export class UiStore {
     this.globalSummonEnabled = snapshot.globalSummonEnabled;
     this.globalSummonChord = snapshot.globalSummonChord;
     this.closeButtonHidesToTray = snapshot.closeButtonHidesToTray;
+    this.codeLineNumbers = snapshot.codeLineNumbers;
   }
 
   /**
@@ -349,6 +355,7 @@ export class UiStore {
     this.globalShortcutUnavailableReason = null;
   }
   setCloseButtonHidesToTray(value: boolean): void { this.closeButtonHidesToTray = value; }
+  setCodeLineNumbers(value: boolean): void { this.codeLineNumbers = value; }
   setGlobalShortcutStatus(reason: string | null): void { this.globalShortcutUnavailableReason = reason; }
 
   /** Record that the user has discovered the menu; suppresses the brand cue. */
