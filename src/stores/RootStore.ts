@@ -92,7 +92,7 @@ export class RootStore {
     }), { autoPersist: false });
     this.openrouter = new OpenRouterStore(this.registry, () => this.providers.getConfig('openrouter').apiKey);
     this.openAiCompatEndpoint = new OpenAiCompatEndpointStore(this.registry, this.providers);
-    this.chat = new ChatStore(this.providers, this.registry, this.profile);
+    this.chat = new ChatStore(this.providers, this.registry, this.profile, () => this.ui.autoNamingEnabled);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
     this.schedules = new SchedulesStore(this.chat);

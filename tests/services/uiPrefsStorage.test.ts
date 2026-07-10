@@ -16,6 +16,7 @@ const DEFAULTS = {
   globalSummonChord: 'Ctrl+Shift+Space',
   closeButtonHidesToTray: false,
   codeLineNumbers: false,
+  autoNamingEnabled: true,
 } as const;
 
 describe('uiPrefsStorage', () => {
@@ -40,6 +41,7 @@ describe('uiPrefsStorage', () => {
       globalSummonChord: 'Ctrl+Alt+K',
       closeButtonHidesToTray: true,
       codeLineNumbers: true,
+      autoNamingEnabled: false,
     });
 
     expect(loadUiPrefs()).toEqual({
@@ -50,6 +52,7 @@ describe('uiPrefsStorage', () => {
       globalSummonChord: 'Ctrl+Alt+K',
       closeButtonHidesToTray: true,
       codeLineNumbers: true,
+      autoNamingEnabled: false,
     });
   });
 
@@ -69,6 +72,7 @@ describe('uiPrefsStorage', () => {
       globalSummonChord: '',
       closeButtonHidesToTray: 'no',
       codeLineNumbers: 'yes',
+      autoNamingEnabled: 'yes',
     }));
 
     expect(loadUiPrefs()).toEqual(DEFAULTS);
@@ -92,6 +96,11 @@ describe('uiPrefsStorage', () => {
       globalSummonChord: 'Alt+Shift+G',
       closeButtonHidesToTray: true,
     });
+  });
+
+  it('round-trips the automatic naming preference', () => {
+    saveUiPrefs({ ...DEFAULTS, autoNamingEnabled: false });
+    expect(loadUiPrefs().autoNamingEnabled).toBe(false);
   });
 
   it('clamps font size to the supported range', () => {

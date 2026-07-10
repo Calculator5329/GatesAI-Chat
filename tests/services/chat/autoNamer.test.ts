@@ -45,7 +45,9 @@ class GatedProvider implements LlmProvider {
 }
 
 class FakeHost implements AutoNameHost {
-  constructor(private readonly thread: Thread) {}
+  constructor(private readonly thread: Thread, private readonly enabled = true) {}
+
+  isAutoNamingEnabled(): boolean { return this.enabled; }
 
   getThread(threadId: string): Thread | undefined {
     return threadId === this.thread.id ? this.thread : undefined;
@@ -96,6 +98,38 @@ async function flush(times = 20): Promise<void> {
 }
 
 describe('AutoNamer', () => {
+  it('runs iff automatic naming is enabled', async () => {
+    const disabledThread = makeThread();
+    const disabledProvider = new OneShotProvider([
+      { type: 'text', delta: 'Should Not Run' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    const assistant = disabledThread.messages[1];
+    if (assistant.role !== 'assistant') throw new Error('expected assistant');
+
+    new AutoNamer({ host: new FakeHost(disabledThread, false), router: router(disabledProvider) })
+      .maybeAutoName(disabledThread.id, assistant);
+    await flush();
+
+    expect(disabledProvider.calls).toHaveLength(0);
+    expect(disabledThread.title).toBe('New conversation');
+    expect(disabledThread.naming).toBeUndefined();
+
+    const enabledThread = makeThread();
+    const enabledProvider = new OneShotProvider([
+      { type: 'text', delta: 'Enabled Title' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    const enabledAssistant = enabledThread.messages[1];
+    if (enabledAssistant.role !== 'assistant') throw new Error('expected assistant');
+    new AutoNamer({ host: new FakeHost(enabledThread, true), router: router(enabledProvider) })
+      .maybeAutoName(enabledThread.id, enabledAssistant);
+    await flush();
+
+    expect(enabledProvider.calls).toHaveLength(1);
+    expect(enabledThread.title).toBe('Enabled Title');
+  });
+
   it('sets the transient naming flag and applies a generated title', async () => {
     const thread = makeThread();
     const provider = new OneShotProvider([

@@ -44,10 +44,28 @@ export const SettingsSection = observer(function SettingsSection() {
       </p>
 
       <ThemeBlock />
+      <ConversationBlock />
       <DesktopBlock />
       <WebLiteBrowserData />
       <ExportImportBlock />
       <DangerZone />
+    </div>
+  );
+});
+
+const ConversationBlock = observer(function ConversationBlock() {
+  const ui = useUiStore();
+  return (
+    <div className="settings-section settings-conversation" style={{ ...tokens.section, marginBottom: 28 }}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Conversations</div>
+      <SettingsRow label="Automatic thread titles" last>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+          <Toggle on={ui.autoNamingEnabled} onChange={ui.setAutoNamingEnabled} />
+          <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
+            Generate a short title after the first response. Turn this off to keep the current or default title.
+          </div>
+        </div>
+      </SettingsRow>
     </div>
   );
 });
