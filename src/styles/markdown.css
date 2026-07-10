@@ -187,7 +187,7 @@
   font-size: 0.85em;
   opacity: 0.75;
 }
-.md-body pre {
+.md-body .code-block {
   margin: var(--md-block-gap) 0;
   max-width: 100%;
   border-radius: var(--md-code-radius);
@@ -196,6 +196,51 @@
   box-shadow: var(--md-code-shadow);
   overflow: hidden;
 }
+.md-body .code-block pre {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  overflow: hidden;
+}
+.code-block__body { display: grid; grid-template-columns: minmax(0, 1fr); }
+.code-block__body--numbered { grid-template-columns: auto minmax(0, 1fr); }
+.code-block__line-numbers {
+  display: flex;
+  flex-direction: column;
+  padding: var(--md-code-padding);
+  padding-right: 0;
+  color: var(--text-faint);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: var(--md-code-font-size);
+  line-height: 1.6;
+  text-align: right;
+  user-select: none;
+}
+.code-block__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--md-code-border);
+  background: var(--md-code-head);
+  font: 11px/1 "Geist", ui-sans-serif, system-ui, sans-serif;
+  color: var(--text-faint);
+}
+.code-block__language { margin-right: auto; text-transform: uppercase; letter-spacing: 0.06em; }
+.code-block__toolbar button {
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.code-block__toolbar button:hover { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text); }
+.code-block__toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .md-body pre code.hljs {
   display: block;
   max-width: 100%;
@@ -206,6 +251,14 @@
   line-height: 1.6;
   overflow-x: auto;
   overflow-y: hidden;
+}
+.md-body pre code:not(.hljs) {
+  display: block;
+  padding: var(--md-code-padding);
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-size: var(--md-code-font-size);
+  line-height: 1.6;
+  overflow-x: auto;
 }
 
 :root[data-theme="light"] .md-body .hljs {

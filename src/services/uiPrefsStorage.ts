@@ -20,6 +20,7 @@ export interface UiPrefsSnapshot {
   globalSummonEnabled: boolean;
   globalSummonChord: string;
   closeButtonHidesToTray: boolean;
+  codeLineNumbers: boolean;
 }
 
 const KEY = 'gatesai.uiprefs.v1';
@@ -38,6 +39,7 @@ export const DEFAULT_UI_PREFS: UiPrefsSnapshot = {
   globalSummonEnabled: true,
   globalSummonChord: DEFAULT_GLOBAL_SUMMON_CHORD,
   closeButtonHidesToTray: false,
+  codeLineNumbers: false,
 };
 
 export const uiPrefsPersistence = createJsonPersistenceProvider<UiPrefsSnapshot>({
@@ -59,6 +61,9 @@ export const uiPrefsPersistence = createJsonPersistenceProvider<UiPrefsSnapshot>
       closeButtonHidesToTray: typeof parsed.closeButtonHidesToTray === 'boolean'
         ? parsed.closeButtonHidesToTray
         : DEFAULT_UI_PREFS.closeButtonHidesToTray,
+      codeLineNumbers: typeof parsed.codeLineNumbers === 'boolean'
+        ? parsed.codeLineNumbers
+        : DEFAULT_UI_PREFS.codeLineNumbers,
     };
   },
 });
@@ -79,5 +84,6 @@ export function saveUiPrefs(snap: UiPrefsSnapshot): void {
     globalSummonEnabled: snap.globalSummonEnabled,
     globalSummonChord: snap.globalSummonChord,
     closeButtonHidesToTray: snap.closeButtonHidesToTray,
+    codeLineNumbers: snap.codeLineNumbers,
   });
 }
