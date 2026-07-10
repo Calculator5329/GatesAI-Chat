@@ -148,15 +148,16 @@ describe('EditorialSidebar history list', () => {
     expect(rendered.querySelectorAll('.editorial-sidebar__item').length).toBe(20);
   });
 
-  it('renders agent task threads in their own group above earlier history', () => {
+  it('renders agent task threads in their own group above the dated history', () => {
     store = buildStore();
+    const now = Date.now();
     const threads = [
       {
         id: 'agent-1',
         title: 'Agent: Audit',
         subtitle: '',
-        createdAt: 1,
-        updatedAt: 4,
+        createdAt: now - 1000,
+        updatedAt: now,
         pinned: false,
         modelId: 'or-gpt-5.4-mini',
         messages: [],
@@ -168,8 +169,8 @@ describe('EditorialSidebar history list', () => {
         id: 'thread-1',
         title: 'Conversation',
         subtitle: '',
-        createdAt: 2,
-        updatedAt: 3,
+        createdAt: now - 1000,
+        updatedAt: now,
         pinned: false,
         modelId: 'or-gpt-5.4-mini',
         messages: [],
@@ -183,8 +184,47 @@ describe('EditorialSidebar history list', () => {
     const rendered = renderSidebar(store);
     const text = rendered.textContent ?? '';
     expect(text.indexOf('Agent tasks')).toBeGreaterThanOrEqual(0);
-    expect(text.indexOf('Agent tasks')).toBeLessThan(text.indexOf('Earlier'));
+    // The lone conversation was touched just now, so it lands under "Today",
+    // which renders below the agent-task group.
+    expect(text.indexOf('Agent tasks')).toBeLessThan(text.indexOf('Today'));
     expect(rendered.querySelectorAll('.editorial-sidebar__item')).toHaveLength(2);
+  });
+
+  it('splits unpinned history under date headers by updatedAt', () => {
+    store = buildStore();
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    const threads = [
+      { id: 'today-1', updatedAt: now },
+      { id: 'yesterday-1', updatedAt: now - dayMs },
+      { id: 'week-1', updatedAt: now - 4 * dayMs },
+      { id: 'month-1', updatedAt: now - 20 * dayMs },
+    ].map(seed => ({
+      id: seed.id,
+      title: seed.id,
+      subtitle: '',
+      createdAt: seed.updatedAt,
+      updatedAt: seed.updatedAt,
+      pinned: false,
+      modelId: 'or-gpt-5.4-mini',
+      messages: [],
+    })) as Thread[];
+    runInAction(() => {
+      store!.chat.threads = threads;
+      store!.chat.activeThreadId = 'today-1';
+    });
+
+    const rendered = renderSidebar(store);
+    const text = rendered.textContent ?? '';
+    const today = text.indexOf('Today');
+    const yesterday = text.indexOf('Yesterday');
+    const week = text.indexOf('Previous 7 days');
+    const month = text.indexOf('Previous 30 days');
+    expect(today).toBeGreaterThanOrEqual(0);
+    expect(yesterday).toBeGreaterThan(today);
+    expect(week).toBeGreaterThan(yesterday);
+    expect(month).toBeGreaterThan(week);
+    expect(rendered.querySelectorAll('.editorial-sidebar__item')).toHaveLength(4);
   });
 
   it('keeps Begin a new conversation as a new-thread button', () => {

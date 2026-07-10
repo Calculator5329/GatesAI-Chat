@@ -8,6 +8,11 @@ import { addUsageToTotals, emptyUsageTotals, type UsageTotals } from './usage';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+] as const;
+
 export interface UsageModelTotal extends UsageTotals {
   modelId: string;
   modelName: string;
@@ -159,6 +164,69 @@ export function threadMatchesSearch(thread: Thread, normalizedQuery: string): bo
   return thread.messages.some(message => message.content.toLowerCase().includes(normalizedQuery));
 }
 
+/** A sidebar date bucket: a display label plus the threads that fall in it. */
+export interface ThreadDateGroup {
+  /** Stable key for React lists (never localized). */
+  key: string;
+  /** Human-readable header, e.g. `Today` or `June 2026`. */
+  label: string;
+  threads: Thread[];
+}
+
+/**
+ * Group threads into sidebar date buckets by `updatedAt`, newest first:
+ * Today, Yesterday, Previous 7 days, Previous 30 days, then one bucket per
+ * older calendar month (`June 2026`). Boundaries use the local day so buckets
+ * line up with what the user sees on their clock (matching the library export
+ * grouping). Input order is preserved within each bucket, so callers control
+ * intra-group ordering; empty buckets are omitted.
+ */
+export function groupThreadsByDate(
+  threads: readonly Thread[],
+  now: number = Date.now(),
+): ThreadDateGroup[] {
+  const today = startOfLocalDay(now);
+  const yesterday = today - DAY_MS;
+  const last7 = today - 7 * DAY_MS;
+  const last30 = today - 30 * DAY_MS;
+
+  const todayThreads: Thread[] = [];
+  const yesterdayThreads: Thread[] = [];
+  const weekThreads: Thread[] = [];
+  const monthThreads: Thread[] = [];
+  const olderByMonth = new Map<string, { label: string; sort: number; threads: Thread[] }>();
+
+  for (const thread of threads) {
+    const t = thread.updatedAt;
+    if (t >= today) todayThreads.push(thread);
+    else if (t >= yesterday) yesterdayThreads.push(thread);
+    else if (t >= last7) weekThreads.push(thread);
+    else if (t >= last30) monthThreads.push(thread);
+    else {
+      const date = new Date(t);
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const key = `${year}-${String(month).padStart(2, '0')}`;
+      let bucket = olderByMonth.get(key);
+      if (!bucket) {
+        bucket = { label: `${MONTH_NAMES[month]} ${year}`, sort: year * 12 + month, threads: [] };
+        olderByMonth.set(key, bucket);
+      }
+      bucket.threads.push(thread);
+    }
+  }
+
+  const groups: ThreadDateGroup[] = [];
+  if (todayThreads.length) groups.push({ key: 'today', label: 'Today', threads: todayThreads });
+  if (yesterdayThreads.length) groups.push({ key: 'yesterday', label: 'Yesterday', threads: yesterdayThreads });
+  if (weekThreads.length) groups.push({ key: 'week', label: 'Previous 7 days', threads: weekThreads });
+  if (monthThreads.length) groups.push({ key: 'month', label: 'Previous 30 days', threads: monthThreads });
+  for (const [key, bucket] of Array.from(olderByMonth.entries()).sort((a, b) => b[1].sort - a[1].sort)) {
+    groups.push({ key: `m-${key}`, label: bucket.label, threads: bucket.threads });
+  }
+  return groups;
+}
+
 function* iterUsageEntries(threads: readonly Thread[]): Generator<{
   usage: LlmUsage;
   createdAt: number;
@@ -188,6 +256,12 @@ function isLocalUsage(usage: LlmUsage): boolean {
   return usage.providerId === 'ollama'
     || usage.providerId === 'local-image'
     || usage.costSource === 'local';
+}
+
+function startOfLocalDay(timestamp: number): number {
+  const date = new Date(timestamp);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
 }
 
 function startOfUtcDay(timestamp: number): number {

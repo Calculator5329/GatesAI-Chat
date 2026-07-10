@@ -1,10 +1,11 @@
 // The thread-list navigation sidebar: pin, soft-delete + undo, and menu
 // section navigation. Rendered by the app shell; reads RootStore via hooks.
 // Invariant: persisted chat state stays in stores; this surface is presentation only.
-import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { MenuSectionKey, Thread } from '../../core/types';
+import { groupThreadsByDate } from '../../core/threadSelectors';
 import { useEditorial } from '../../stores/context';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
@@ -392,8 +393,12 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         {pinned.map(renderItem)}
         {agentTasks.length > 0 && <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Agent tasks</div>}
         {agentTasks.map(renderItem)}
-        <div className="editorial-sidebar__group" style={S.group as CSSProperties}>Earlier</div>
-        {rest.map(renderItem)}
+        {groupThreadsByDate(rest).map(group => (
+          <Fragment key={group.key}>
+            <div className="editorial-sidebar__group" style={S.group as CSSProperties}>{group.label}</div>
+            {group.threads.map(renderItem)}
+          </Fragment>
+        ))}
         {pinned.length === 0 && agentTasks.length === 0 && rest.length === 0 && (
           <div className="editorial-sidebar__empty" style={{ padding: '12px 20px', color: 'var(--text-faint)', fontSize: 12, fontStyle: 'italic' }}>
             No conversations yet.
