@@ -98,14 +98,14 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [x] Thread search / filter in the sidebar *(verified already-done, 2026-07-10 truth pass — `src/stores/SearchStore.ts`, sidebar body search + Ctrl/Cmd+K palette)*
 - [x] Soft-delete threads (sidebar trash + undo) *(verified 2026-07-10 —
       `EditorialSidebar.tsx`)*
-- [ ] Inline thread rename (right-click or hover affordance)
+- [x] Inline thread rename (right-click or hover affordance) *(done 2026-07-10, burndown w7)*
 - [x] Pin / unpin threads (data is there, UI isn't) *(verified already-done, 2026-07-10 truth pass — sidebar pin/trash icons shipped in the Web Lite UX pass; `pinned` wired in `EditorialSidebar.tsx`/`ChatStore.ts`)*
 - [ ] Drag-to-reorder pinned threads
 - [x] Message actions: copy, regenerate, edit-and-resend, branch *(verified already-done, 2026-07-10 truth pass — shipped 2026-07-02 wave; regenerate/edit/branch in `EditorialMessage.tsx` + `ChatStore.ts`, Ctrl/Cmd-click copy gesture)*
 - [x] Code block: copy button, language label, line numbers toggle *(done 2026-07-10, burndown w4)*
 - [x] File attachments in the composer (paperclip + drag-drop into `/workspace/attachments/`)
 - [ ] Inline attachment previews (image thumbnails, PDF first-page peek)
-- [ ] Per-thread rename UX in the sidebar (right-click → rename; today only the auto-namer + `thread` tool can rename)
+- [x] Per-thread rename UX in the sidebar (right-click → rename) *(done 2026-07-10, burndown w7)*
 - [ ] Persistent `Thread.naming` flag (so closing the tab mid-name doesn't strand a thread on the fallback "first 40 chars" title forever)
 - [ ] Voice input (Web Speech API)
 - [ ] Multi-window / split-thread layouts

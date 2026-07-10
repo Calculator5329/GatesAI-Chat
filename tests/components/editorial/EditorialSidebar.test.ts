@@ -16,7 +16,7 @@ import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { SkillsStore } from '../../../src/stores/SkillsStore';
 import { EditorialSidebar } from '../../../src/components/editorial/EditorialSidebar';
 import { EditorialChat } from '../../../src/components/editorial/EditorialChat';
-import { flushPendingSnapshot } from '../../../src/services/persistence';
+import { flushPendingSnapshot, loadSnapshot } from '../../../src/services/persistence';
 import type { RootStore } from '../../../src/stores/RootStore';
 import type { Thread } from '../../../src/core/types';
 import { clearAppStorage } from '../../helpers/storage';
@@ -254,6 +254,57 @@ describe('EditorialSidebar history list', () => {
     expect(store.chat.activeThreadId).not.toBe(originalThreadId);
     expect(store.chat.activeThread?.title).toBe('New conversation');
     expect(rendered.querySelector('input[type="search"]')).toBeNull();
+  });
+
+  it('renames a thread from the hover action and persists the edited title', () => {
+    store = buildStore();
+    seedThreads(store.chat, 1);
+    const threadId = store.chat.activeThreadId!;
+    const rendered = renderSidebar(store);
+    const renameButton = rendered.querySelector<HTMLButtonElement>(
+      'button.editorial-sidebar__rename-button',
+    );
+
+    expect(renameButton?.getAttribute('aria-label')).toBe('Rename "Alpha 0"');
+    act(() => renameButton!.click());
+
+    const input = rendered.querySelector<HTMLInputElement>(
+      'input.editorial-sidebar__rename-input',
+    );
+    expect(input).toBe(document.activeElement);
+    act(() => {
+      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+      valueSetter?.call(input, 'Quarterly planning');
+      input!.dispatchEvent(new Event('input', { bubbles: true }));
+      input!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      vi.advanceTimersByTime(300);
+    });
+    flushPendingSnapshot();
+
+    expect(store.chat.threads.find(thread => thread.id === threadId)?.title).toBe('Quarterly planning');
+    expect(rendered.querySelector('input.editorial-sidebar__rename-input')).toBeNull();
+    expect(loadSnapshot()?.threads.find(thread => thread.id === threadId)?.title).toBe('Quarterly planning');
+  });
+
+  it('opens rename on right-click and cancels it with Escape', () => {
+    store = buildStore();
+    seedThreads(store.chat, 1);
+    const rendered = renderSidebar(store);
+    const row = rendered.querySelector<HTMLElement>('.editorial-sidebar__item')!;
+
+    act(() => {
+      row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+    });
+    const input = rendered.querySelector<HTMLInputElement>('input.editorial-sidebar__rename-input')!;
+    act(() => {
+      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+      valueSetter?.call(input, 'Discarded title');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+
+    expect(store.chat.activeThread?.title).toBe('Alpha 0');
+    expect(rendered.querySelector('input.editorial-sidebar__rename-input')).toBeNull();
   });
 
   it('keeps the new-conversation button clickable with a message action bar in the chat pane', () => {
