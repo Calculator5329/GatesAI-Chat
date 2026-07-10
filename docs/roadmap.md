@@ -11,7 +11,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### Now
 
-- [ ] **Decide and execute repo visibility.** The source repo
+- [ ] [ETHAN] **Decide and execute repo visibility.** The source repo
       (`Calculator5329/GatesAI-Chat`) is private; releases publish to the
       separate public `GatesAI-Chat-releases` repo (see comment in
       `.github/workflows/release.yml`). Either flip the source repo public or
@@ -65,7 +65,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       job to `.github/workflows/ci.yml` and upload traces on failure (backlog
       item). *Acceptance:* CI green with the new job; a forced failure shows a
       downloadable trace artifact.
-- [ ] **Signed / trusted release builds.** Investigate Windows code signing
+- [ ] [ETHAN] **Signed / trusted release builds.** Investigate Windows code signing
       (paid cert vs Azure Trusted Signing vs documented-unsigned) and at
       minimum add a README note about the SmartScreen warning and checksums
       (`SHA256SUMS` published per release). *Acceptance:* release workflow
@@ -288,7 +288,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       model's runtime context
 
 ## Open-models-first audit (DONE 2026-07-05 — see docs/audits/2026-07-05-open-models-audit.md; Wave H shipped fixes)
-- [ ] Walk EVERY screen with the lens "what do I do if I'm running open/local
+- [x] *(verified already-done, 2026-07-10 truth pass — audit doc `docs/audits/2026-07-05-open-models-audit.md` exists; section header records Wave H shipped the fixes)* Walk EVERY screen with the lens "what do I do if I'm running open/local
       models only?" — the app currently reads API-first in many surfaces
       (model picker defaults, usage panel framing, onboarding order, error
       copy, thinking-effort controls that are OpenRouter-only, catalog
@@ -296,11 +296,13 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ## Future ideas backlog (2026-07-03 analysis)
 
+> Backlog / aspirational — not scheduled (truth pass 2026-07-10)
+
 ### UI/UX
-- [ ] Light theme + follow-system (`prefers-color-scheme`); "paper" palette
+- [x] Light theme + follow-system (`prefers-color-scheme`); "paper" palette *(verified already-done, 2026-07-10 truth pass — Wave I; dark/light/system `ThemeMode` in `src/components/menu/sections/Settings.tsx`)*
 - [ ] Sidebar date grouping (Today / Yesterday / Previous 7 days)
 - [ ] Inline thread rename (F2 / right-click) and drag-to-reorder pins
-- [ ] Global summon shortcut + tray icon (Tauri global shortcut)
+- [x] Global summon shortcut + tray icon (Tauri global shortcut) *(verified already-done, 2026-07-10 truth pass — Wave I; tray in `src-tauri/src/desktop.rs`)*
 - [ ] Jump-to-bottom pill with new-tokens indicator; sticky date separators
 - [ ] Composer: up-arrow recall, paste-image, window-wide drag-drop
 - [ ] Auto-collapse tool outputs over ~40 lines

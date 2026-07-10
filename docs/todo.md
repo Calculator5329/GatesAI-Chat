@@ -16,6 +16,9 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [x] Local OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, llama.cpp server)
 
 ### Future providers
+
+> Backlog / aspirational — not scheduled (truth pass 2026-07-10)
+
 - [ ] Mistral (direct API)
 - [ ] Cohere (Command R+)
 - [ ] xAI (Grok)
@@ -35,10 +38,10 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 ### Provider features
 - [x] Per-provider streaming via Server-Sent Events
 - [x] Tool / function calling (unified shape across providers)
-- [ ] Vision input (image attachments)
+- [x] Vision input (image attachments) *(verified already-done, 2026-07-10 truth pass — multimodal Phase 1; `src/services/llm/resolveImages.ts`, per-model `supportsVision`)*
 - [ ] Audio input (Whisper-style transcription)
 - [ ] Audio output (TTS)
-- [ ] Embeddings (for memory / RAG)
+- [x] Embeddings (for memory / RAG) *(verified already-done, 2026-07-10 truth pass — Wave F RAG; `src/services/rag/embeddings.ts` + `recall` tool)*
 - [ ] Structured output (JSON mode)
 - [x] Per-model context-window awareness (shown for OpenRouter live entries; need to wire counting + display per provider for the curated set too)
 - [x] Token counting / context-window estimation per request
@@ -50,6 +53,8 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 ---
 
 ## Backend / persistence
+
+> Backlog / aspirational — not scheduled (truth pass 2026-07-10)
 
 > **Heads-up (apr 2026):** considering moving from localStorage to a real
 > backend. Capturing the shape here so future decisions stay consistent.
@@ -88,11 +93,11 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [ ] Move appearance controls (accent, bg, header) out of the floating
       Tweaks panel and into the Appearance menu section
 - [x] Real keyboard shortcuts (Ctrl/⌘K palette with thread search + actions, Ctrl/⌘N, Ctrl/⌘,, Ctrl/⌘L, 2026-07-02)
-- [ ] Thread search / filter in the sidebar
+- [x] Thread search / filter in the sidebar *(verified already-done, 2026-07-10 truth pass — `src/stores/SearchStore.ts`, sidebar body search + Ctrl/Cmd+K palette)*
 - [ ] Rename + delete threads (right-click or hover affordance)
-- [ ] Pin / unpin threads (data is there, UI isn't)
+- [x] Pin / unpin threads (data is there, UI isn't) *(verified already-done, 2026-07-10 truth pass — sidebar pin/trash icons shipped in the Web Lite UX pass; `pinned` wired in `EditorialSidebar.tsx`/`ChatStore.ts`)*
 - [ ] Drag-to-reorder pinned threads
-- [ ] Message actions: copy, regenerate, edit-and-resend, branch
+- [x] Message actions: copy, regenerate, edit-and-resend, branch *(verified already-done, 2026-07-10 truth pass — shipped 2026-07-02 wave; regenerate/edit/branch in `EditorialMessage.tsx` + `ChatStore.ts`, Ctrl/Cmd-click copy gesture)*
 - [ ] Code block: copy button, language label, line numbers toggle
 - [x] File attachments in the composer (paperclip + drag-drop into `/workspace/attachments/`)
 - [ ] Inline attachment previews (image thumbnails, PDF first-page peek)
@@ -133,8 +138,8 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 - [x] Vitest suite under `tests/` (Phase 4 of current refactor)
 - [x] ESLint + TypeScript CI scripts
-- [ ] Playwright smoke test (send a message, switch threads, open menu)
-- [ ] GitHub Actions CI: typecheck + lint + test on PR
+- [x] Playwright smoke test (send a message, switch threads, open menu) *(verified already-done, 2026-07-10 truth pass — 20-test Playwright suite, `playwright.config.ts`, e2e job in CI)*
+- [x] GitHub Actions CI: typecheck + lint + test on PR *(verified already-done, 2026-07-10 truth pass — `.github/workflows/ci.yml`: unit tests + typecheck + lint + Playwright e2e + Rust tests)*
 - [ ] Bundle-size budget + report in CI
 
 ---
@@ -145,6 +150,6 @@ The menu currently shows good-looking placeholder UI. Make these real:
 - [ ] **Profile** — actual user identity (post-auth)
 - [ ] **Agent** — system prompt, default model, temperature persisted
 - [ ] **Settings** — language, timezone, retention all wired
-- [ ] **Usage** — real cost numbers from provider responses
+- [x] **Usage** — real cost numbers from provider responses *(verified already-done, 2026-07-10 truth pass — normalized per-message usage + live Usage section, `src/components/menu/sections/Usage.tsx`)*
 - [x] **API** — connect / rotate / remove keys; OpenRouter card shows live catalog refresh + count + last-refreshed timestamp
 - [ ] **Appearance** — see UI/UX section above
