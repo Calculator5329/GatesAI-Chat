@@ -107,7 +107,7 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 2,
-    minWidth: 50,
+    minWidth: 74,
     overflow: 'visible',
   },
   inlineInput: {
@@ -432,9 +432,34 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
 }) {
   const { chat, router } = useEditorial();
   const [hovered, setHovered] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(thread.title);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const cancelEditRef = useRef(false);
   const active = !onMenu && thread.id === chat.activeThreadId;
   const streaming = chat.isThreadStreaming(thread.id);
-  const showActions = (hovered || active) && !streaming;
+  const showActions = (hovered || active || editing) && !streaming;
+
+  useEffect(() => {
+    if (!editing) return;
+    titleInputRef.current?.focus();
+    titleInputRef.current?.select();
+  }, [editing]);
+
+  const beginRename = (): void => {
+    cancelEditRef.current = false;
+    setDraftTitle(thread.title);
+    setEditing(true);
+  };
+
+  const commitRename = (): void => {
+    if (cancelEditRef.current) {
+      cancelEditRef.current = false;
+      return;
+    }
+    chat.renameThread(thread.id, draftTitle);
+    setEditing(false);
+  };
 
   const selectThread = (): void => {
     chat.selectThread(thread.id);
@@ -449,6 +474,11 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
       role="button"
       tabIndex={0}
       onClick={selectThread}
+      onContextMenu={event => {
+        event.preventDefault();
+        event.stopPropagation();
+        beginRename();
+      }}
       onKeyDown={event => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
@@ -464,7 +494,33 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{ ...(S.title as (a: boolean) => CSSProperties)(active), flex: 1, minWidth: 0 }}>
-          <ThreadTitle title={thread.title} naming={thread.naming === true} />
+          {editing ? (
+            <input
+              ref={titleInputRef}
+              className="editorial-sidebar__rename-input"
+              aria-label={`Rename "${thread.title}"`}
+              value={draftTitle}
+              maxLength={120}
+              style={S.inlineInput as CSSProperties}
+              onChange={event => setDraftTitle(event.target.value)}
+              onClick={event => event.stopPropagation()}
+              onBlur={commitRename}
+              onKeyDown={event => {
+                event.stopPropagation();
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  commitRename();
+                } else if (event.key === 'Escape') {
+                  event.preventDefault();
+                  cancelEditRef.current = true;
+                  setDraftTitle(thread.title);
+                  setEditing(false);
+                }
+              }}
+            />
+          ) : (
+            <ThreadTitle title={thread.title} naming={thread.naming === true} />
+          )}
           {thread.agentTaskStatus === 'scheduled' && (
             <div
               style={{
@@ -515,6 +571,17 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
             }}
             onClick={event => event.stopPropagation()}
           >
+            <button
+              type="button"
+              className="editorial-sidebar__rename-button"
+              onClick={beginRename}
+              aria-label={`Rename "${thread.title}"`}
+              title="Rename"
+              tabIndex={showActions ? 0 : -1}
+              style={S.xBtn as CSSProperties}
+            >
+              <Icons.Edit />
+            </button>
             <button
               type="button"
               className="editorial-sidebar__pin-button"
