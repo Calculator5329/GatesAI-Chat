@@ -56,11 +56,13 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### Next
 
-- [ ] **Flaky-test sweep.** Run the unit suite 5× and the e2e suite 3× in a
+- [x] **Flaky-test sweep.** *(done 2026-07-10)* Run the unit suite 5× and the e2e suite 3× in a
       row (`npm test`, `npm run test:e2e`); record any test that fails
       non-deterministically, fix or quarantine it with a linked issue/note in
       this file. *Acceptance:* 3 consecutive fully-green runs of both suites;
       a short report of what was flaky and what changed.
+      *Report: 5×995-unit + 3×20-e2e consecutive runs on Linux, all exit 0 —
+      zero non-deterministic failures observed; nothing to fix or quarantine.*
 - [x] **Windows e2e job in CI + Playwright traces.** *(done 2026-07-10)* Add a windows-latest e2e
       job to `.github/workflows/ci.yml` and upload traces on failure (backlog
       item). *Acceptance:* CI green with the new job; a forced failure shows a

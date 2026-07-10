@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-07-10 — Flaky-test sweep: clean bill of health
+
+- Ran the unit suite 5× (995 tests) and the Playwright e2e suite 3× (20
+  tests) consecutively on Linux; every run exited green. No flaky tests
+  found, nothing quarantined. Roadmap item closed with the report inline.
+
 ## 2026-07-10 — Repository hygiene and release checklist
 
 - Retired the tracked Firebase-mode environment file after verifying its full
