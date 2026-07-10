@@ -314,8 +314,14 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 ### Architecture
 - [ ] Unify message model into content-parts (text/tool/image/artifact parts)
       — do before deep RAG indexing settles the schema
-- [ ] Split EditorialComposer (~840 lines) into Input/AttachmentTray/
-      ModelControls/SendPipeline
+- [x] Split EditorialComposer (~840 lines) into Input/AttachmentTray/
+      ModelControls/SendPipeline *(done 2026-07-10, burndown w11 — pure refactor;
+      `EditorialComposer.tsx` is now a ~270-line orchestrator delegating to
+      `components/editorial/composer/`: `ComposerInput`, `AttachmentTray`,
+      `ComposerMeta` (model/skill pickers + context/thinking selects), `ContextMeter`,
+      `ComposerBanners`, `SkillPopover`, the `useComposerDraft` send/draft pipeline,
+      and shared `composerStyles`/`composerAttachments`. Public props unchanged;
+      DOM/classes byte-identical so the existing unit+e2e suites stay green)*
 - [ ] Bridge protocol doc + version handshake (fail loud on mismatch)
 - [ ] Headless core entry (boot RootStore without React) → CLI mode, scripted
       smokes, scheduler runner
