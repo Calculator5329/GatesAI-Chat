@@ -69,4 +69,16 @@ describe('UiStore', () => {
     expect(mobxMutationWarnings).toEqual([]);
     expect(ui.draft).toBe('draft for A');
   });
+
+  it('keeps tool-output disclosure choices isolated per message in ephemeral UI state', () => {
+    const ui = buildUi();
+
+    expect(ui.toolOutputOpenState('message-a', 'activity-1')).toBeUndefined();
+    ui.setToolOutputOpen('message-a', 'activity-1', true);
+    ui.setToolOutputOpen('message-b', 'activity-1', false);
+
+    expect(ui.toolOutputOpenState('message-a', 'activity-1')).toBe(true);
+    expect(ui.toolOutputOpenState('message-b', 'activity-1')).toBe(false);
+    expect(ui.prefsSnapshot).not.toHaveProperty('toolOutputOpenByKey');
+  });
 });

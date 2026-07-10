@@ -6,7 +6,15 @@ import type { ActivityItem } from '../../../core/types';
 import { ActivityRow } from './ActivityRow';
 import { iconForActivity } from './iconForActivity';
 
-export function TimelineGroup({ items, onOpenThread }: { items: ActivityItem[]; onOpenThread?: (threadId: string) => void }) {
+export function TimelineGroup({
+  items,
+  messageId,
+  onOpenThread,
+}: {
+  items: ActivityItem[];
+  messageId?: string;
+  onOpenThread?: (threadId: string) => void;
+}) {
   const aggregateState = aggregateActivityState(items);
   const [open, setOpen] = useState(aggregateState === 'failed');
   const icon = iconForActivity(items[0])();
@@ -39,7 +47,7 @@ export function TimelineGroup({ items, onOpenThread }: { items: ActivityItem[]; 
         <div className="activity-group__children">
           {items.map(child => (
             <div key={child.id} className="activity-group__child">
-              <ActivityRow item={child} onOpenThread={onOpenThread} />
+              <ActivityRow item={child} messageId={messageId} onOpenThread={onOpenThread} />
             </div>
           ))}
         </div>

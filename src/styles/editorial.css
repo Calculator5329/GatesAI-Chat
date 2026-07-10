@@ -714,13 +714,20 @@
 }
 
 .activity-row__summary,
-.activity-row__elapsed {
+.activity-row__elapsed,
+.activity-row__output-toggle {
   opacity: 0.78;
 }
 
 .activity-row__elapsed,
+.activity-row__output-toggle,
 .activity-row__chevron {
   flex: none;
+}
+
+.activity-row__output-toggle {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .activity-row__chevron {
@@ -752,6 +759,10 @@
   word-break: break-word;
   color: var(--accent);
   font: 11px/1.45 "Geist Mono", ui-monospace, monospace;
+}
+
+.activity-row__terminal--expanded-output {
+  max-height: none;
 }
 
 .activity-row__terminal span {
