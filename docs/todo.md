@@ -82,7 +82,8 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [x] Promote `services/persistence.ts` to a `PersistenceProvider` interface
       so we can swap localStorage ↔ Firestore without touching `ChatStore`
 - [ ] Per-thread `MessageStore` once histories get big (>500 messages)
-- [ ] IndexedDB fallback for very large local-only setups
+- [x] IndexedDB fallback for very large local-only setups *(verified 2026-07-10
+      — archive tier shipped 2026-07-02; `services/persistence/idb.ts`)*
 - [ ] Web Worker for token counting / markdown rendering of huge messages
 - [ ] Code-splitting: lazy-load `GatesMenu` and `react-markdown` plugins
 
@@ -90,11 +91,14 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 ## UI / UX
 
-- [ ] Move appearance controls (accent, bg, header) out of the floating
-      Tweaks panel and into the Appearance menu section
+- [x] Move appearance controls (accent, bg, header) out of the floating
+      Tweaks panel and into the Appearance menu section *(superseded 2026-07-10
+      — Appearance tab retired; foundation presentation fixed)*
 - [x] Real keyboard shortcuts (Ctrl/⌘K palette with thread search + actions, Ctrl/⌘N, Ctrl/⌘,, Ctrl/⌘L, 2026-07-02)
 - [x] Thread search / filter in the sidebar *(verified already-done, 2026-07-10 truth pass — `src/stores/SearchStore.ts`, sidebar body search + Ctrl/Cmd+K palette)*
-- [ ] Rename + delete threads (right-click or hover affordance)
+- [x] Soft-delete threads (sidebar trash + undo) *(verified 2026-07-10 —
+      `EditorialSidebar.tsx`)*
+- [ ] Inline thread rename (right-click or hover affordance)
 - [x] Pin / unpin threads (data is there, UI isn't) *(verified already-done, 2026-07-10 truth pass — sidebar pin/trash icons shipped in the Web Lite UX pass; `pinned` wired in `EditorialSidebar.tsx`/`ChatStore.ts`)*
 - [ ] Drag-to-reorder pinned threads
 - [x] Message actions: copy, regenerate, edit-and-resend, branch *(verified already-done, 2026-07-10 truth pass — shipped 2026-07-02 wave; regenerate/edit/branch in `EditorialMessage.tsx` + `ChatStore.ts`, Ctrl/Cmd-click copy gesture)*
@@ -117,7 +121,8 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [x] Workspace settings panel under `#/menu/workspace`
 - [x] Bridge status pill in the sidebar
 - [x] Live exec tail beneath running `terminal` calls
-- [ ] Auto-launch bridge from chat (today: must be started manually)
+- [x] Auto-launch bridge from chat *(verified 2026-07-10 — Tauri sidecar spawns
+      `gatesai-bridge` on desktop start; `src-tauri/src/lib.rs`)*
 - [ ] Bridge installer / one-click "Install GatesAI bridge" download
 - [ ] Bridge GUI tray-icon companion (start/stop, edit allowlist, open workspace)
 - [ ] Workspace settings: open-in-OS-file-explorer button, drag-drop into the panel
@@ -152,4 +157,4 @@ The menu currently shows good-looking placeholder UI. Make these real:
 - [ ] **Settings** — language, timezone, retention all wired
 - [x] **Usage** — real cost numbers from provider responses *(verified already-done, 2026-07-10 truth pass — normalized per-message usage + live Usage section, `src/components/menu/sections/Usage.tsx`)*
 - [x] **API** — connect / rotate / remove keys; OpenRouter card shows live catalog refresh + count + last-refreshed timestamp
-- [ ] **Appearance** — see UI/UX section above
+- [x] **Appearance** — see UI/UX section above *(superseded — tab retired)*

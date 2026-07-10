@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-10 — Roadmap/TODO truth pass
+
+- Checked off **Wave D refactor** in `docs/roadmap.md` (TurnRunner, streamCore,
+  `useEditorial`, message windowing, ModelPopover memo).
+- Checked off verified `docs/todo.md` items: IndexedDB archive tier, Tauri
+  bridge auto-launch, superseded Appearance controls, sidebar soft-delete.
+- Left open: open-source readiness (Now), README RAG bullet + test-count drift
+  (badge 995+20 vs `vitest list` 641 / Playwright 19), CONTRIBUTING, bridge
+  version-mismatch UX, inline thread rename.
+
 ## 2026-06-10 — Pin default chat to Gemini 3 Flash (not latest alias)
 
 - `or-gemini-3-flash` (and the Auto picker row) now route to the pinned
