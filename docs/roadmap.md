@@ -61,7 +61,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       non-deterministically, fix or quarantine it with a linked issue/note in
       this file. *Acceptance:* 3 consecutive fully-green runs of both suites;
       a short report of what was flaky and what changed.
-- [ ] **Windows e2e job in CI + Playwright traces.** Add a windows-latest e2e
+- [x] **Windows e2e job in CI + Playwright traces.** *(done 2026-07-10)* Add a windows-latest e2e
       job to `.github/workflows/ci.yml` and upload traces on failure (backlog
       item). *Acceptance:* CI green with the new job; a forced failure shows a
       downloadable trace artifact.
