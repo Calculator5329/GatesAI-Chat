@@ -27,9 +27,9 @@ export interface ImageGenConfig {
   comfyWorkflowPath?: string;
 
   /**
-   * ComfyUI workflow preset. `full` runs the bundled FLUX.2 Klein FP8 4-step
-   * workflow (with optional hires-fix); `quick` runs the SDXL Lightning
-   * 4-step workflow at native resolution.
+   * ComfyUI workflow preset. `full` runs the bundled FLUX.2 Klein FP8
+   * quality workflow (with optional hires-fix); `quick` runs the SDXL
+   * Lightning draft workflow at native resolution. Sampling is configurable.
    */
   comfyQualityPreset?: ComfyQualityPreset;
 
@@ -41,12 +41,21 @@ export interface ImageGenConfig {
    */
   comfyUpscaleFactor?: UpscaleFactor;
 
+  /** Sampling controls for built-in local workflows. Study-backed defaults:
+   * quality 12 steps, draft 8 steps, CFG 1.0. */
+  comfyQualitySteps?: number;
+  comfyDraftSteps?: number;
+  comfyCfg?: number;
+
 }
 
 export const DEFAULT_IMAGE_GEN_CONFIG: ImageGenConfig = {
   backend: 'openrouter-image',
   comfyQualityPreset: 'full',
   comfyUpscaleFactor: 1,
+  comfyQualitySteps: 12,
+  comfyDraftSteps: 8,
+  comfyCfg: 1,
 };
 
 const KEY = 'gatesai.imagegen.v1';
@@ -106,5 +115,18 @@ function normalizeImageGenConfig(config: ImageGenConfig): ImageGenConfig {
   ) {
     next.comfyUpscaleFactor = 1;
   }
+  next.comfyQualitySteps = normalizeSteps(next.comfyQualitySteps, 12);
+  next.comfyDraftSteps = normalizeSteps(next.comfyDraftSteps, 8);
+  next.comfyCfg = normalizeCfg(next.comfyCfg);
   return next;
+}
+
+function normalizeSteps(value: unknown, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.min(50, Math.max(6, Math.round(value)));
+}
+
+function normalizeCfg(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 1;
+  return Math.min(20, Math.max(0.1, Math.round(value * 10) / 10));
 }

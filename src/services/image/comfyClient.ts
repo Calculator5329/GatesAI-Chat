@@ -11,7 +11,7 @@ import {
 } from './types';
 import { buildFinalFlux2KleinWorkflow } from './workflows/finalFlux2Klein';
 import { logger } from '../diagnostics/logger';
-import { SDXL_LIGHTNING_QUICK_WORKFLOW } from './workflows/sdxlLightning';
+import { buildSdxlLightningQuickWorkflow } from './workflows/sdxlLightning';
 
 /**
  * Client for ComfyUI's `/prompt` API. ComfyUI runs arbitrary node
@@ -42,6 +42,9 @@ export interface ComfyClientDeps {
   qualityPreset?: 'full' | 'quick';
   /** Hires-fix multiplier for `full` mode. `1` (default) = no hires pass. */
   upscaleFactor?: number;
+  qualitySteps?: number;
+  draftSteps?: number;
+  cfg?: number;
   /**
    * Checkpoint filename for the quick (Lightning) workflow.
    * Substituted into {{CHECKPOINT}} in the built-in template.
@@ -87,8 +90,8 @@ export class ComfyClient implements ImageBackend {
     const isQuick = deps.qualityPreset === 'quick';
     this.workflowTemplate = deps.workflowTemplate ?? (
       isQuick
-        ? SDXL_LIGHTNING_QUICK_WORKFLOW
-        : buildFinalFlux2KleinWorkflow({ upscaleFactor: deps.upscaleFactor })
+        ? buildSdxlLightningQuickWorkflow(deps.draftSteps, deps.cfg)
+        : buildFinalFlux2KleinWorkflow({ upscaleFactor: deps.upscaleFactor, steps: deps.qualitySteps, cfg: deps.cfg })
     );
     this.fetchImpl = wrapGlobalFetch(deps.fetch);
     this.sleep = deps.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));

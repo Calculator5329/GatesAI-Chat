@@ -227,7 +227,7 @@ describe('ComfyClient', () => {
     // taking the same wall-clock as full.
     expect(submittedFirst.prompt['7'].class_type).toBe('VAEDecode');
     expect(submittedFirst.prompt['8'].class_type).toBe('SaveImage');
-    expect(submittedFirst.prompt['6'].inputs?.steps).toBe(4);
+    expect(submittedFirst.prompt['6'].inputs?.steps).toBe(8);
     expect(submittedFirst.prompt['6'].inputs?.cfg).toBe(1);
     expect(submittedFirst.prompt['6'].inputs?.sampler_name).toBe('euler');
     expect(submittedFirst.prompt['6'].inputs?.scheduler).toBe('sgm_uniform');
@@ -274,6 +274,33 @@ describe('ComfyClient', () => {
     expect(submittedFirst.prompt['13'].class_type).toBe('SaveImage');
     expect(submittedFirst.prompt['9'].inputs?.width).toBe(1344);
     expect(submittedFirst.prompt['9'].inputs?.height).toBe(768);
+    expect(submittedFirst.prompt['9'].inputs?.steps).toBe(12);
+    expect(submittedFirst.prompt['6'].inputs?.cfg).toBe(1);
+  });
+
+  it('applies configured steps and CFG to built-in quality and draft workflows', async () => {
+    const submitted: Array<{ prompt: Record<string, { inputs?: Record<string, unknown> }> }> = [];
+    const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/prompt')) {
+        submitted.push(JSON.parse(init!.body as string));
+        return new Response(JSON.stringify({ prompt_id: 'p' }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      if (url.includes('/history/')) {
+        return new Response(JSON.stringify({ p: { outputs: { '13': { images: [{ filename: 'a.png', subfolder: '', type: 'output' }] } } } }), { status: 200, headers: { 'content-type': 'application/json' } });
+      }
+      return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200 });
+    };
+    const quality = new ComfyClient({ baseUrl: 'http://h', fetch: fetchImpl as typeof fetch, sleep: async () => undefined, qualitySteps: 18, cfg: 1.4 });
+    const draft = new ComfyClient({ baseUrl: 'http://h', fetch: fetchImpl as typeof fetch, sleep: async () => undefined, qualityPreset: 'quick', draftSteps: 7, cfg: 1.2 });
+
+    await quality.generate({ prompt: 'quality', seed: 1 });
+    await draft.generate({ prompt: 'draft', seed: 2 });
+
+    expect(submitted[0].prompt['9'].inputs?.steps).toBe(18);
+    expect(submitted[0].prompt['6'].inputs?.cfg).toBe(1.4);
+    expect(submitted[1].prompt['6'].inputs?.steps).toBe(7);
+    expect(submitted[1].prompt['6'].inputs?.cfg).toBe(1.2);
   });
 
   it('times out with a clear error if history never reports outputs', async () => {

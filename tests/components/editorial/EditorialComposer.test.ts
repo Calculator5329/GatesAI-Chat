@@ -343,7 +343,7 @@ describe('EditorialComposer API-key banner', () => {
     expect(store.chat.activeThread?.modelId).toBe('or-gemini-3-flash');
   });
 
-  it('hides the local tab and Ollama rows while the runtime is offline', async () => {
+  it('shows an empty local tab while the runtime is offline', async () => {
     store = buildStore();
     store.registry.setDynamicForProvider('ollama', [{
       id: 'ollama-llama3',
@@ -356,10 +356,14 @@ describe('EditorialComposer API-key banner', () => {
     const rendered = render(store);
 
     await openModelPicker(rendered);
-    // The popover itself rendered (auto tab exists) but local is hidden.
+    // Cached Ollama rows remain unavailable, while LOCAL provides recovery copy.
     expect(rendered.querySelector('[data-source-filter="auto"]')).toBeTruthy();
-    expect(rendered.querySelector('[data-source-filter="local"]')).toBeNull();
+    expect(rendered.querySelector('[data-source-filter="local"]')).toBeTruthy();
+    act(() => {
+      rendered.querySelector('[data-source-filter="local"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     expect(rendered.querySelector('[data-model-row="ollama-llama3"]')).toBeNull();
+    expect(rendered.textContent).toContain('Start Ollama in Local settings');
   });
 
   it('shows local rows with readiness badges once Ollama is online', async () => {

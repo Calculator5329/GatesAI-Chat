@@ -70,6 +70,19 @@ export class ImageGenStore {
     this.config = { ...this.config, comfyUpscaleFactor: factor };
   }
 
+  setComfyQualitySteps(steps: number): void {
+    this.config = { ...this.config, comfyQualitySteps: clampSteps(steps, 12) };
+  }
+
+  setComfyDraftSteps(steps: number): void {
+    this.config = { ...this.config, comfyDraftSteps: clampSteps(steps, 8) };
+  }
+
+  setComfyCfg(cfg: number): void {
+    const value = Number.isFinite(cfg) ? Math.min(20, Math.max(0.1, Math.round(cfg * 10) / 10)) : 1;
+    this.config = { ...this.config, comfyCfg: value };
+  }
+
   reset(): void {
     this.config = { ...DEFAULT_IMAGE_GEN_CONFIG };
   }
@@ -98,6 +111,9 @@ export class ImageGenStore {
       comfyBaseUrl: this.localRuntime?.comfyBaseUrl,
       comfyQualityPreset: this.config.comfyQualityPreset ?? 'full',
       comfyUpscaleFactor: this.config.comfyUpscaleFactor ?? 1,
+      comfyQualitySteps: this.config.comfyQualitySteps ?? 12,
+      comfyDraftSteps: this.config.comfyDraftSteps ?? 8,
+      comfyCfg: this.config.comfyCfg ?? 1,
       openRouterApiKey: this.getOpenRouterKey(),
     };
   }
@@ -115,4 +131,8 @@ export class ImageGenStore {
     }
     return configured;
   }
+}
+
+function clampSteps(steps: number, fallback: number): number {
+  return Number.isFinite(steps) ? Math.min(50, Math.max(6, Math.round(steps))) : fallback;
 }

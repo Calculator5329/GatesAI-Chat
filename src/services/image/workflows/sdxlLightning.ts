@@ -1,5 +1,5 @@
 /**
- * Quick-prototype workflow: SDXL Lightning at base resolution, 4 sampling
+ * Quick-prototype workflow: SDXL Lightning at base resolution with configurable sampling
  * steps, no hi-res fix. Trades polished-image detail
  * polish for speed — typically <10s per image on a mid-range GPU.
  *
@@ -10,7 +10,8 @@
  *
  * Includes the fp16-fix VAE so SDXL renders don't come out washed-out.
  */
-export const SDXL_LIGHTNING_QUICK_WORKFLOW: Record<string, unknown> = {
+export function buildSdxlLightningQuickWorkflow(steps = 8, cfg = 1): Record<string, unknown> {
+  return {
   '1': {
     class_type: 'CheckpointLoaderSimple',
     inputs: { ckpt_name: '{{CHECKPOINT}}' },
@@ -38,8 +39,8 @@ export const SDXL_LIGHTNING_QUICK_WORKFLOW: Record<string, unknown> = {
     class_type: 'KSampler',
     inputs: {
       seed: '{{SEED}}',
-      steps: 4,
-      cfg: 1,
+      steps,
+      cfg,
       sampler_name: 'euler',
       scheduler: 'sgm_uniform',
       denoise: 1,
@@ -57,4 +58,7 @@ export const SDXL_LIGHTNING_QUICK_WORKFLOW: Record<string, unknown> = {
     class_type: 'SaveImage',
     inputs: { filename_prefix: 'gatesai_quick', images: ['7', 0] },
   },
-};
+  };
+}
+
+export const SDXL_LIGHTNING_QUICK_WORKFLOW: Record<string, unknown> = buildSdxlLightningQuickWorkflow();

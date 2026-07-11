@@ -42,6 +42,9 @@ export async function resolveBackend(
           workflowTemplate: config.comfyWorkflowTemplate,
           qualityPreset: config.comfyQualityPreset,
           upscaleFactor: config.comfyUpscaleFactor,
+          qualitySteps: config.comfyQualitySteps,
+          draftSteps: config.comfyDraftSteps,
+          cfg: config.comfyCfg,
           fetch: fetchImpl,
         }),
       };

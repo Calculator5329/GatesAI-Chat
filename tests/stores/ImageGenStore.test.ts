@@ -34,6 +34,24 @@ describe('ImageGenStore', () => {
     expect(store.toBackendConfig().comfyUpscaleFactor).toBe(2);
   });
 
+  it('passes configurable study-backed sampling defaults through the backend snapshot', () => {
+    const store = new ImageGenStore();
+    expect(store.toBackendConfig()).toMatchObject({
+      comfyQualitySteps: 12,
+      comfyDraftSteps: 8,
+      comfyCfg: 1,
+    });
+
+    store.setComfyQualitySteps(16);
+    store.setComfyDraftSteps(7);
+    store.setComfyCfg(1.5);
+    expect(store.toBackendConfig()).toMatchObject({
+      comfyQualitySteps: 16,
+      comfyDraftSteps: 7,
+      comfyCfg: 1.5,
+    });
+  });
+
   it('falls back to OpenRouter when ComfyUI is selected but not online', () => {
     const store = new ImageGenStore(fakeLocalRuntime('stopped'), () => 'sk-or-test');
     store.setBackend('local-comfy');

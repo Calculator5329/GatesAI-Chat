@@ -64,10 +64,9 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       thumbnails. Likely from overnight lanes (welcome tour w18 / Web Locks
       w25 / gallery seeds) integrating on `npm run ci` without the e2e gate.
       Fix all five; then e2e returns as a hard integration gate.
-- [ ] **LF-3: model picker needs a LOCAL tab.** The picker offers only
-      AUTO|CLOUD; all listed models are cloud — Ollama-only users cannot
-      select a local model at point of use. Add a LOCAL tab fed by the
-      Ollama registry with offline-graceful empty state. (Evidence:
+- [x] **LF-3: model picker needs a LOCAL tab.** *(done 2026-07-11)* Added a
+      LOCAL tab fed by the Ollama registry, with an offline-graceful empty
+      state that links the user back to Local settings. (Evidence:
       screen-picker-model.png; audit 2026-07-11.)
 - [ ] **LF-4: first-boot hero leads cloud despite local-first banner.**
       Primary CTA is the cloud card; tagline "chat with frontier models";
@@ -78,7 +77,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       timestamp leak in date bucketing. (screen-chat-empty.png)
 - [ ] **LF-6: Settings leads with the OpenRouter key card** — reorder so
       local/appearance settings precede cloud credentials. (screen-menu-settings.png)
-- [ ] **LF-7: Local runtimes panel hardcodes Windows placeholders**
+- [x] **LF-7: Local runtimes panel hardcodes Windows placeholders** *(done 2026-07-11)*
       (C:\Users paths, ollama.exe copy) + cramped error column — platform-
       aware copy + layout fix. (screen-menu-local.png)
 - [ ] **LF-8: gallery thumbnails/lightbox render black** while captions
@@ -384,11 +383,11 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       catalog hydration, audit source-snapshot resource cost in installer
 - [ ] IDB background compaction; storage stats in Usage panel
 - [ ] Rust release profile tuning (thin LTO, strip) for installer size
-- [ ] Adaptive streaming reveal pacing (faster catch-up when far behind)
+- [x] Adaptive streaming reveal pacing (faster catch-up when far behind) *(done 2026-07-11)*
 
 ### State & data
 - [x] Web Locks API leader election for multi-tab (replace pause-on-conflict) *(done 2026-07-11)*
-- [x] Generalized undo (command pattern) for destructive ops *(done 2026-07-11)*
+- [ ] Generalized undo (command pattern) for destructive ops
 - [ ] Per-thread system-prompt presets (Coding / Writing / Research)
 
 ### Platforms & compatibility

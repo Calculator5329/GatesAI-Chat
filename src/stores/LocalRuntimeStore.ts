@@ -12,6 +12,7 @@ import {
   saveLocalRuntimeConfig,
   type LocalRuntimePersistedConfig,
 } from '../services/local/localRuntimeStorage';
+import { ollamaExecutableName, runtimeInstallPlaceholder } from '../services/local/platformCopy';
 import { logger } from '../services/diagnostics/logger';
 import {
   localRuntimeService,
@@ -125,6 +126,10 @@ export class LocalRuntimeStore {
     this.runtimes[id].installPath = path.trim();
   }
 
+  installPathPlaceholder(id: LocalRuntimeId): string {
+    return runtimeInstallPlaceholder(id);
+  }
+
   setBaseUrl(id: LocalRuntimeId, url: string): void {
     const fallback = id === 'ollama' ? DEFAULT_OLLAMA_BASE_URL : DEFAULT_COMFY_BASE_URL;
     this.runtimes[id].baseUrl = url.trim().replace(/\/+$/, '') || fallback;
@@ -148,7 +153,7 @@ export class LocalRuntimeStore {
           this.runtimes.ollama.installPath = detected.ollama.installPath;
           this.runtimes.ollama.lastError = undefined;
         } else if (!this.runtimes.ollama.installPath) {
-          this.runtimes.ollama.lastError = 'Auto-detect could not find ollama.exe — use Browse… to point at it.';
+          this.runtimes.ollama.lastError = `Auto-detect could not find ${ollamaExecutableName()} — use Browse… to point at it.`;
         }
         if (detected.comfyui?.installPath) {
           this.runtimes.comfyui.installPath = detected.comfyui.installPath;

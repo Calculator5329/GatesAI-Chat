@@ -13,16 +13,16 @@ const desktopAllOn: RuntimeAvailability = { webLite: false, ollamaOnline: true, 
 const webLiteAllOn: RuntimeAvailability = { webLite: true, ollamaOnline: true, comfyReady: true };
 
 describe('availableSources', () => {
-  it('always offers auto and cloud', () => {
-    expect(availableSources(desktopAllOff)).toEqual(['auto', 'cloud']);
+  it('always offers auto, cloud, and a setup-capable local tab on desktop', () => {
+    expect(availableSources(desktopAllOff)).toEqual(['auto', 'cloud', 'local']);
   });
 
-  it('adds local only when ollama is online on desktop', () => {
+  it('keeps local when ollama is online on desktop', () => {
     expect(availableSources({ ...desktopAllOff, ollamaOnline: true })).toEqual(['auto', 'cloud', 'local']);
   });
 
   it('adds image only when comfy is ready on desktop', () => {
-    expect(availableSources({ ...desktopAllOff, comfyReady: true })).toEqual(['auto', 'cloud', 'image']);
+    expect(availableSources({ ...desktopAllOff, comfyReady: true })).toEqual(['auto', 'cloud', 'local', 'image']);
   });
 
   it('exposes all sources when everything is ready on desktop', () => {

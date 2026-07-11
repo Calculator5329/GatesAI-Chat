@@ -40,7 +40,7 @@ describe('computeModelSections', () => {
   it('builds the default recommended and verified sections', () => {
     const result = compute();
 
-    expect(result.sourceTabs).toEqual(['auto', 'cloud']);
+    expect(result.sourceTabs).toEqual(['auto', 'cloud', 'local']);
     expect(result.effectiveSource).toBe('auto');
     expect(result.displaySections.map(section => section.title)).toContain('Recommended');
     expect(result.displaySections.map(section => section.title)).toContain('Verified');
@@ -65,11 +65,12 @@ describe('computeModelSections', () => {
     expect(result.hiddenCount).toBe(result.totalMatching - result.flat.length);
   });
 
-  it('uses the persisted source only when that source is available', () => {
+  it('keeps a persisted local source available for offline setup guidance', () => {
     const result = compute({ source: 'local' });
 
-    expect(result.sourceTabs).toEqual(['auto', 'cloud']);
-    expect(result.effectiveSource).toBe('auto');
+    expect(result.sourceTabs).toEqual(['auto', 'cloud', 'local']);
+    expect(result.effectiveSource).toBe('local');
+    expect(result.displaySections).toEqual([]);
   });
 
   it('includes first-class local recommendations when Ollama is online', () => {

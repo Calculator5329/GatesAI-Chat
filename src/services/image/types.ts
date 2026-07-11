@@ -56,10 +56,10 @@ export type ImageBackendId =
 
 /**
  * ComfyUI workflow preset.
- * - `full` runs the bundled FLUX.2 Klein 4B FP8 4-step workflow. With
+ * - `full` runs the bundled FLUX.2 Klein 4B FP8 quality workflow. With
  *   `upscaleFactor > 1` it appends a hires-fix pass.
- * - `quick` runs the bundled SDXL Lightning 4-step workflow. Always native
- *   resolution, no hires.
+ * - `quick` runs the bundled SDXL Lightning draft workflow. Always native
+ *   resolution, no hires. Both presets use configurable sampling controls.
  */
 export type ComfyQualityPreset = 'full' | 'quick';
 
@@ -103,6 +103,9 @@ export interface ImageBackendSnapshot {
   comfyBaseUrl?: string;
   comfyQualityPreset?: ComfyQualityPreset;
   comfyUpscaleFactor?: UpscaleFactor;
+  comfyQualitySteps?: number;
+  comfyDraftSteps?: number;
+  comfyCfg?: number;
   openRouterApiKey?: string;
 }
 

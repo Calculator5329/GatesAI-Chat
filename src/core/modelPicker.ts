@@ -298,7 +298,7 @@ export function emptyStateMessage(query: string, hasCapFilters: boolean, source:
   if (trimmed && hasCapFilters) return `No models match "${trimmed}" with the selected capability filters.`;
   if (trimmed) return `No models match "${trimmed}".`;
   if (hasCapFilters) return 'No models match the selected capability filters.';
-  if (source === 'local') return 'No local models available. Start Ollama in Local settings.';
+  if (source === 'local') return 'No local models available. Start Ollama in Local settings, then refresh its model catalog.';
   if (source === 'image') return 'No image models available. Start and connect ComfyUI in Local settings.';
   return 'No models available.';
 }

@@ -1,13 +1,13 @@
 /**
- * Stable built-in "full" workflow: FLUX.2 Klein 4B FP8, 4-step distilled base,
+ * Stable built-in "full" workflow: FLUX.2 Klein 4B FP8 with configurable sampling,
  * with optional hires-fix pass.
  *
- * The base path is single-pass (Klein samples in 4 steps) and saves directly
+ * The base path is single-pass and saves directly
  * after VAE decode — fast, reliable, no custom-node dependencies.
  *
  * When `upscaleFactor > 1`, an extra hires-fix chain is appended:
  *   VAEDecode  →  ImageScaleBy (lanczos)  →  VAEEncode  →
- *   KSampler (denoise=0.45, 4 steps)  →  VAEDecode  →  SaveImage
+ *   KSampler (denoise=0.45)  →  VAEDecode  →  SaveImage
  *
  * Lanczos pixel-space upscale + low-denoise refinement is the standard
  * ComfyUI hires-fix technique: composition is preserved, fine detail comes
@@ -17,12 +17,16 @@
  */
 
 export interface BuildOptions {
+  /** Sampling steps for the base pass. Default 12 from the local quality study. */
+  steps?: number;
+  /** Classifier-free guidance. Default 1.0 from the local quality study. */
+  cfg?: number;
   /** Hires-fix multiplier. `1` (default) skips the second pass entirely. */
   upscaleFactor?: number;
   /** Refinement denoise strength for the hires pass. Default 0.45 — strong
    *  enough to add detail, gentle enough to keep composition. */
   hiresDenoise?: number;
-  /** Sampling steps for the hires pass. Default 4 to match base. */
+  /** Sampling steps for the hires pass. Defaults to the base pass. */
   hiresSteps?: number;
 }
 
@@ -39,7 +43,9 @@ const DEFAULT_GUIDANCE = 1.0;
 export function buildFinalFlux2KleinWorkflow(opts: BuildOptions = {}): Record<string, unknown> {
   const factor = opts.upscaleFactor ?? 1;
   const denoise = opts.hiresDenoise ?? 0.45;
-  const steps = opts.hiresSteps ?? 4;
+  const baseSteps = opts.steps ?? 12;
+  const cfg = opts.cfg ?? DEFAULT_GUIDANCE;
+  const hiresSteps = opts.hiresSteps ?? baseSteps;
 
   const base: Record<string, unknown> = {
     '1': {
@@ -64,7 +70,7 @@ export function buildFinalFlux2KleinWorkflow(opts: BuildOptions = {}): Record<st
     },
     '6': {
       class_type: 'CFGGuider',
-      inputs: { model: ['1', 0], positive: ['4', 0], negative: ['5', 0], cfg: DEFAULT_GUIDANCE },
+      inputs: { model: ['1', 0], positive: ['4', 0], negative: ['5', 0], cfg },
     },
     '7': {
       class_type: 'RandomNoise',
@@ -76,7 +82,7 @@ export function buildFinalFlux2KleinWorkflow(opts: BuildOptions = {}): Record<st
     },
     '9': {
       class_type: 'Flux2Scheduler',
-      inputs: { steps: 4, width: '{{WIDTH}}', height: '{{HEIGHT}}' },
+      inputs: { steps: baseSteps, width: '{{WIDTH}}', height: '{{HEIGHT}}' },
     },
     '10': {
       class_type: 'EmptyFlux2LatentImage',
@@ -117,8 +123,8 @@ export function buildFinalFlux2KleinWorkflow(opts: BuildOptions = {}): Record<st
         // Offset the seed so the refinement noise is independent of the
         // base pass — otherwise the same noise pattern compounds.
         seed: '{{SEED_PLUS_1}}',
-        steps,
-        cfg: DEFAULT_GUIDANCE,
+        steps: hiresSteps,
+        cfg,
         sampler_name: 'euler',
         scheduler: 'simple',
         denoise,

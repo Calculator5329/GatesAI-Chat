@@ -12,6 +12,22 @@ describe('imageGenStorage', () => {
     expect(config.backend).toBe('openrouter-image');
     expect(config.comfyQualityPreset).toBe('full');
     expect(config.comfyUpscaleFactor).toBe(1);
+    expect(config.comfyQualitySteps).toBe(12);
+    expect(config.comfyDraftSteps).toBe(8);
+    expect(config.comfyCfg).toBe(1);
+  });
+
+  it('clamps persisted sampling controls to supported safe ranges', () => {
+    localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({
+      comfyQualitySteps: 2,
+      comfyDraftSteps: 100,
+      comfyCfg: 0,
+    }));
+
+    const config = loadImageGenConfig();
+    expect(config.comfyQualitySteps).toBe(6);
+    expect(config.comfyDraftSteps).toBe(50);
+    expect(config.comfyCfg).toBe(0.1);
   });
 
   it('drops the stale FLUX 2-dev workspace workflow path and migrates old full preset name on load', () => {

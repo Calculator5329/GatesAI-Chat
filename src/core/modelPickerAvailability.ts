@@ -40,12 +40,13 @@ export function isVerifiedModelId(id: string): boolean {
 
 /**
  * Tabs that should be rendered for the current runtime. Cloud (OpenRouter) is
- * always the floor; local/image only appear on desktop once their backend is
- * actually usable.
+ * always the floor. LOCAL is a first-class desktop destination even while
+ * Ollama is offline so it can render setup guidance instead of disappearing.
+ * The image tab still appears only once ComfyUI is usable.
  */
 export function availableSources(flags: RuntimeAvailability): ModelPickerSource[] {
   const sources: ModelPickerSource[] = ['auto', 'cloud'];
-  if ((!flags.webLite && flags.ollamaOnline) || flags.openAiCompatAvailable) sources.push('local');
+  if (!flags.webLite || flags.openAiCompatAvailable) sources.push('local');
   if (!flags.webLite && flags.comfyReady) sources.push('image');
   return sources;
 }

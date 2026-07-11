@@ -110,12 +110,14 @@ describe('ModelPopover runtime gating', () => {
     expect(rendered.querySelector('[data-model-row="image-direct-comfy"]')).toBeNull();
   });
 
-  it('hides the local tab and ollama rows while Ollama is offline on desktop', () => {
+  it('keeps an empty local tab while Ollama is offline on desktop', () => {
     const h = buildHarness();
     addOllama(h.registry);
     const rendered = render(h);
-    expect(rendered.querySelector('[data-source-filter="local"]')).toBeNull();
+    expect(rendered.querySelector('[data-source-filter="local"]')).toBeTruthy();
+    click(rendered, '[data-source-filter="local"]');
     expect(rendered.querySelector('[data-model-row="ollama-llama3"]')).toBeNull();
+    expect(rendered.textContent).toContain('Start Ollama in Local settings');
   });
 
   it('shows the local tab and ollama rows once Ollama is online', () => {

@@ -148,20 +148,34 @@ const RuntimeRow = observer(function RuntimeRow({ id, runtime, onOpenLogs, last 
       : undefined;
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 14, alignItems: 'start',
+      display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: 14, alignItems: 'start',
       padding: '14px 0', borderTop: '1px solid var(--border)', borderBottom: last ? 'none' : undefined,
     }}>
       <div style={{ paddingTop: 4 }}>
         <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{runtimeLabel(id)}</div>
         <div style={{ marginTop: 5 }}>{statusPill(runtime.status, runtime.pid)}</div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <Input
-          value={runtime.installPath}
-          onChange={e => local.setInstallPath(id, e.currentTarget.value)}
-          placeholder={id === 'ollama' ? 'C:\\Users\\you\\AppData\\Local\\Programs\\Ollama\\ollama.exe' : 'C:\\Users\\you\\ComfyUI\\ComfyUI_windows_portable'}
-          style={{ ...tokens.mono, fontSize: 12 }}
-        />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 8 }}>
+          <Input
+            value={runtime.installPath}
+            onChange={e => local.setInstallPath(id, e.currentTarget.value)}
+            placeholder={local.installPathPlaceholder(id)}
+            style={{ ...tokens.mono, fontSize: 12, minWidth: 0 }}
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button onClick={() => { void local.browseFor(id); }}>Browse…</Button>
+            <Button
+              variant={running ? 'danger' : 'accent'}
+              disabled={!running && !!startDisabledReason}
+              title={running ? 'Stop this managed process' : startDisabledReason}
+              onClick={() => { void (running ? local.stop(id) : local.start(id)); }}
+            >
+              {running ? 'Stop' : 'Start'}
+            </Button>
+            <Button onClick={() => onOpenLogs(id)}>Logs</Button>
+          </div>
+        </div>
         {showInstallHint && (
           <div style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
             Auto-detect couldn't find {runtimeLabel(id)} on this machine. {' '}
@@ -188,18 +202,6 @@ const RuntimeRow = observer(function RuntimeRow({ id, runtime, onOpenLogs, last 
             onOpenLogs={() => onOpenLogs(id)}
           />
         )}
-      </div>
-      <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
-        <Button onClick={() => { void local.browseFor(id); }}>Browse…</Button>
-        <Button
-          variant={running ? 'danger' : 'accent'}
-          disabled={!running && !!startDisabledReason}
-          title={running ? 'Stop this managed process' : startDisabledReason}
-          onClick={() => { void (running ? local.stop(id) : local.start(id)); }}
-        >
-          {running ? 'Stop' : 'Start'}
-        </Button>
-        <Button onClick={() => onOpenLogs(id)}>Logs</Button>
       </div>
     </div>
   );
@@ -575,6 +577,13 @@ const LocalImageCard = observer(function LocalImageCard() {
           <option value="full">Normal — FLUX.2 Klein, optional upscale</option>
         </Select>
       </SettingsRow>
+      <SettingsRow label="Sampling">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(86px, 1fr))', gap: 10 }}>
+          <SamplingField label="Quality steps" value={image.config.comfyQualitySteps ?? 12} min={6} max={50} step={1} onChange={value => image.setComfyQualitySteps(value)} />
+          <SamplingField label="Draft steps" value={image.config.comfyDraftSteps ?? 8} min={6} max={50} step={1} onChange={value => image.setComfyDraftSteps(value)} />
+          <SamplingField label="CFG" value={image.config.comfyCfg ?? 1} min={0.1} max={20} step={0.1} onChange={value => image.setComfyCfg(value)} />
+        </div>
+      </SettingsRow>
       {preset === 'full' && (
         <>
           <SettingsRow label="Flux upscale">
@@ -620,6 +629,31 @@ const LocalImageCard = observer(function LocalImageCard() {
     </Card>
   );
 });
+
+function SamplingField({ label, value, min, max, step, onChange }: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label style={{ display: 'grid', gap: 4, color: 'var(--text-faint)', fontSize: 10.5 }}>
+      {label}
+      <Input
+        type="number"
+        aria-label={label}
+        value={String(value)}
+        min={min}
+        max={max}
+        step={step}
+        onChange={event => onChange(Number(event.currentTarget.value))}
+        style={{ ...tokens.mono, fontSize: 12 }}
+      />
+    </label>
+  );
+}
 
 const LocalVisionCard = observer(function LocalVisionCard() {
   const local = useLocalRuntimeStore();
