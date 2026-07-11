@@ -32,6 +32,90 @@ permissions:
   contents: write
 
 jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout chat app
+        uses: actions/checkout@v4
+        with:
+          path: chat
+
+      - name: Checkout bridge source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.bridge_repo || vars.GATESAI_BRIDGE_REPOSITORY }}
+          ref: ${{ inputs.bridge_ref || vars.GATESAI_BRIDGE_REF || 'main' }}
+          path: gatesai-bridge
+          token: ${{ secrets.GATESAI_BRIDGE_TOKEN || github.token }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: chat/package-lock.json
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            chat/src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('chat/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install npm dependencies
+        working-directory: chat
+        run: npm ci
+
+      - name: Build macOS bridge sidecar
+        shell: bash
+        run: |
+          set -euo pipefail
+          target=$(rustc -vV | sed -n 's/^host: //p')
+          case "$target" in
+            aarch64-apple-darwin) goarch=arm64 ;;
+            x86_64-apple-darwin) goarch=amd64 ;;
+            *) echo "Unsupported macOS target: $target" >&2; exit 1 ;;
+          esac
+          mkdir -p chat/src-tauri/binaries
+          (
+            cd gatesai-bridge
+            GOOS=darwin GOARCH="$goarch" CGO_ENABLED=0 \
+              go build -trimpath -ldflags "-s -w" \
+              -o "../chat/src-tauri/binaries/gatesai-bridge-$target" \
+              ./cmd/gatesai-bridge
+          )
+
+      - name: Snapshot source bundle
+        working-directory: chat
+        run: npm run source:snapshot
+
+      - name: Build unsigned Tauri app and DMG
+        working-directory: chat
+        env:
+          APPLE_SIGNING_IDENTITY: '-'
+        run: npx tauri build --bundles app,dmg
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GatesAI-Chat-macos
+          path: |
+            chat/src-tauri/target/release/bundle/macos/*.app
+            chat/src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
   windows:
     runs-on: windows-latest
     steps:

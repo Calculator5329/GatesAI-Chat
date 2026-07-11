@@ -93,7 +93,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       separate task in `../gatesai-bridge` (do not edit it from here).
       *Acceptance:* unit tests for the app-side handshake; graceful degraded
       message on mismatch.
-- [ ] **macOS build.** Keyring is already apple-native-capable; needs a
+- [x] **macOS build.** *(done 2026-07-11 — unsigned artifact job in release.yml; signing/notarization still Later)* Keyring is already apple-native-capable; needs a
       macos-latest job, sidecar naming for the darwin triple, and (later)
       signing/notarization. *Acceptance:* an unsigned .dmg/.app artifact
       builds in CI even if not yet published.
