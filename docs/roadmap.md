@@ -57,6 +57,16 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### Next
 
+- [ ] **Local-first screen audit.** Extend `scripts/screens-tour.mjs` to
+      screenshot EVERY screen/panel/modal in the app, then audit each from a
+      local-first user's perspective (Ollama-only, offline, no cloud keys —
+      a major user segment): what breaks, what nags for keys, what degrades
+      silently. File each gap as a concrete roadmap item with its screenshot.
+      *Acceptance:* full screenshot set under docs/audits/screens-2026-07/,
+      audit doc with per-screen verdicts, gaps filed as checkboxes. (Added
+      2026-07-11, Ethan directive.)
+
+
 - [x] **Flaky-test sweep.** *(done 2026-07-10)* Run the unit suite 5× and the e2e suite 3× in a
       row (`npm test`, `npm run test:e2e`); record any test that fails
       non-deterministically, fix or quarantine it with a linked issue/note in
