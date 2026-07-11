@@ -64,6 +64,29 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       thumbnails. Likely from overnight lanes (welcome tour w18 / Web Locks
       w25 / gallery seeds) integrating on `npm run ci` without the e2e gate.
       Fix all five; then e2e returns as a hard integration gate.
+- [ ] **LF-3: model picker needs a LOCAL tab.** The picker offers only
+      AUTO|CLOUD; all listed models are cloud — Ollama-only users cannot
+      select a local model at point of use. Add a LOCAL tab fed by the
+      Ollama registry with offline-graceful empty state. (Evidence:
+      screen-picker-model.png; audit 2026-07-11.)
+- [ ] **LF-4: first-boot hero leads cloud despite local-first banner.**
+      Primary CTA is the cloud card; tagline "chat with frontier models";
+      composer defaults to keyless cloud Gemini. Give the local path equal
+      or leading prominence; default composer to a detected Ollama model
+      when present. (screen-chat-onboarding.png)
+- [ ] **LF-5: sidebar renders "DECEMBER 1969" date group** — epoch-0
+      timestamp leak in date bucketing. (screen-chat-empty.png)
+- [ ] **LF-6: Settings leads with the OpenRouter key card** — reorder so
+      local/appearance settings precede cloud credentials. (screen-menu-settings.png)
+- [ ] **LF-7: Local runtimes panel hardcodes Windows placeholders**
+      (C:\Users paths, ollama.exe copy) + cramped error column — platform-
+      aware copy + layout fix. (screen-menu-local.png)
+- [ ] **LF-8: gallery thumbnails/lightbox render black** while captions
+      render — image blobs not displayed. May share a root with the
+      bridge.spec gallery fix (2026-07-11) — re-capture first. (screen-menu-gallery.png)
+- [ ] **LF-9: tool-activity screen never actually captured** (byte-identical
+      to chat-active) — fix the tour step to expand the activity panel and
+      re-audit that surface.
 - [ ] **LF-1: Local menu section breaks in Web Lite.** Found by the screen
       audit 2026-07-11: `/#/menu/local` throws unhandled
       "Cannot read local runtime status outside the GatesAI desktop app"
@@ -72,7 +95,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       `core/runtime.ts`, show a friendly desktop-only explainer, no thrown
       rejections. *Accept:* /#/menu/local renders an explainer in Web Lite
       with zero console errors; screens-tour asserts it again.
-- [ ] **Local-first screen audit.** Extend `scripts/screens-tour.mjs` to
+- [x] **Local-first screen audit.** *(done 2026-07-11 — 22/22 screens captured + assessed: 13 GOOD / 8 GAP / 1 BLOCKED; findings LF-1..LF-9 filed as items; corpus in docs/audits/screens-2026-07/)* Extend `scripts/screens-tour.mjs` to
       screenshot EVERY screen/panel/modal in the app, then audit each from a
       local-first user's perspective (Ollama-only, offline, no cloud keys —
       a major user segment): what breaks, what nags for keys, what degrades
