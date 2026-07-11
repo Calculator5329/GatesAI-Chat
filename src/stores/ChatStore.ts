@@ -11,6 +11,8 @@ import {
   createEmptyThread,
   editUserMessageAndTruncate,
   normalizeActiveThreadId,
+  movePinnedThread as movePinnedThreadOp,
+  orderedPinnedThreads,
   regenerateThreadFromAssistant,
   renameThread as renameThreadOp,
   restoreThread as restoreThreadOp,
@@ -556,7 +558,9 @@ export class ChatStore {
   }
 
   get visibleConversationThreads(): Thread[] {
-    return this.visibleThreads.filter(thread => thread.agentTask !== true);
+    const conversations = this.visibleThreads.filter(thread => thread.agentTask !== true);
+    const pinned = orderedPinnedThreads(conversations);
+    return [...pinned, ...conversations.filter(thread => !thread.pinned)];
   }
 
   spawnTask(
@@ -871,8 +875,30 @@ export class ChatStore {
   toggleThreadPinned(threadId: string): void {
     runInAction(() => {
       const thread = this.findThread(threadId);
-      const next = thread ? toggleThreadPinnedOp(thread, Date.now()) : null;
-      if (next) this.replaceThread(next);
+      if (!thread) return;
+      const pinned = orderedPinnedThreads(this.threads);
+      const next = toggleThreadPinnedOp(thread, Date.now(), thread.pinned ? undefined : pinned.length);
+      if (!next) return;
+      if (thread.pinned) {
+        this.replaceThread(next);
+        return;
+      }
+      const orderById = new Map(pinned.map((item, index) => [item.id, index]));
+      this.threads = this.threads.map(item => {
+        if (item.id === threadId) return next;
+        const pinOrder = orderById.get(item.id);
+        return pinOrder === undefined || item.pinOrder === pinOrder ? item : { ...item, pinOrder };
+      });
+      this.schedulePersistSnapshot(this.snapshot);
+    });
+  }
+
+  movePinnedThread(sourceId: string, targetId: string): void {
+    runInAction(() => {
+      const next = movePinnedThreadOp(this.threads, sourceId, targetId);
+      if (!next) return;
+      this.threads = next;
+      this.schedulePersistSnapshot(this.snapshot);
     });
   }
 

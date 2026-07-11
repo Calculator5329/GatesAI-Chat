@@ -111,6 +111,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   const rest = chat.visibleConversationThreads.filter(t => !t.pinned).slice(0, HISTORY_ROW_LIMIT);
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [draggedPinnedId, setDraggedPinnedId] = useState<string | null>(null);
   // Single source of truth for the breakpoint lives in UiStore (matchMedia
   // on MOBILE_SHELL_QUERY), shared with src/styles/responsive.css.
   const mobileShell = ui.mobileShell;
@@ -179,6 +180,9 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       onMenu={onMenu}
       onDelete={onDelete}
       onCloseMobile={() => setMobileOpen(false)}
+      draggedPinnedId={draggedPinnedId}
+      onDragPinned={setDraggedPinnedId}
+      onMovePinned={(sourceId, targetId) => chat.movePinnedThread(sourceId, targetId)}
     />
   );
 
@@ -381,16 +385,23 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
   onMenu,
   onDelete,
   onCloseMobile,
+  draggedPinnedId,
+  onDragPinned,
+  onMovePinned,
 }: {
   thread: Thread;
   onMenu: boolean;
   onDelete: (thread: Thread) => void;
   onCloseMobile: () => void;
+  draggedPinnedId: string | null;
+  onDragPinned: (threadId: string | null) => void;
+  onMovePinned: (sourceId: string, targetId: string) => void;
 }) {
   const { chat, router } = useEditorial();
   const [hovered, setHovered] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draftTitle, setDraftTitle] = useState(thread.title);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const cancelEditRef = useRef(false);
   const active = !onMenu && thread.id === chat.activeThreadId;
@@ -402,6 +413,22 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
     titleInputRef.current?.focus();
     titleInputRef.current?.select();
   }, [editing]);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = (): void => setContextMenu(null);
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') close();
+    };
+    window.addEventListener('click', close);
+    window.addEventListener('blur', close);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('blur', close);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [contextMenu]);
 
   const beginRename = (): void => {
     if (thread.readOnly) return;
@@ -431,19 +458,50 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
       style={(S.item as (a: boolean) => CSSProperties)(active)}
       role="button"
       tabIndex={0}
+      draggable={thread.pinned && !editing}
+      data-dragging={draggedPinnedId === thread.id ? 'true' : undefined}
       onClick={selectThread}
       onContextMenu={event => {
         if (!thread.readOnly) {
           event.preventDefault();
           event.stopPropagation();
+          setContextMenu({ x: event.clientX, y: event.clientY });
           beginRename();
         }
       }}
       onKeyDown={event => {
+        if (event.key === 'F2' && !editing) {
+          event.preventDefault();
+          event.stopPropagation();
+          beginRename();
+          return;
+        }
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
         selectThread();
       }}
+      onDragStart={event => {
+        if (!thread.pinned || editing) {
+          event.preventDefault();
+          return;
+        }
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', thread.id);
+        onDragPinned(thread.id);
+      }}
+      onDragOver={event => {
+        if (!thread.pinned || !draggedPinnedId || draggedPinnedId === thread.id) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }}
+      onDrop={event => {
+        if (!thread.pinned || !draggedPinnedId || draggedPinnedId === thread.id) return;
+        event.preventDefault();
+        event.stopPropagation();
+        onMovePinned(draggedPinnedId, thread.id);
+        onDragPinned(null);
+      }}
+      onDragEnd={() => onDragPinned(null)}
       onFocus={() => setHovered(true)}
       onBlur={event => {
         if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
@@ -565,6 +623,49 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
           </div>
         )}
       </div>
+      {contextMenu && (
+        <div
+          className="editorial-sidebar__context-menu"
+          role="menu"
+          aria-label={`Actions for "${thread.title}"`}
+          style={{
+            position: 'fixed',
+            left: contextMenu.x,
+            top: contextMenu.y,
+            zIndex: 1000,
+            minWidth: 140,
+            padding: 4,
+            border: '1px solid var(--border)',
+            borderRadius: 6,
+            background: 'var(--panel)',
+            boxShadow: '0 10px 28px rgba(0, 0, 0, 0.28)',
+          }}
+          onClick={event => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className="editorial-sidebar__context-menu-item"
+            style={{
+              width: '100%',
+              padding: '7px 10px',
+              border: 0,
+              borderRadius: 4,
+              background: 'transparent',
+              color: 'var(--text)',
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
+            onClick={event => {
+              event.stopPropagation();
+              setContextMenu(null);
+              beginRename();
+            }}
+          >
+            Rename <span style={{ float: 'right', color: 'var(--text-faint)' }}>F2</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 });

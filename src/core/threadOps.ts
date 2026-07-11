@@ -39,13 +39,56 @@ export function renameThread(thread: Thread, title: string, now: number): Thread
   };
 }
 
-export function toggleThreadPinned(thread: Thread, now: number): Thread | null {
+export function toggleThreadPinned(thread: Thread, now: number, pinOrder?: number): Thread | null {
   if (thread.deletedAt != null) return null;
+  if (thread.pinned) {
+    const { pinOrder: _pinOrder, ...unpinned } = thread;
+    return {
+      ...unpinned,
+      pinned: false,
+      updatedAt: now,
+    };
+  }
   return {
     ...thread,
-    pinned: !thread.pinned,
+    pinned: true,
+    ...(pinOrder === undefined ? {} : { pinOrder }),
     updatedAt: now,
   };
+}
+
+/** Stable pinned-group ordering; legacy threads without metadata retain list order. */
+export function orderedPinnedThreads(threads: Thread[]): Thread[] {
+  return threads
+    .map((thread, index) => ({ thread, index }))
+    .filter(({ thread }) => thread.pinned && thread.deletedAt == null && thread.agentTask !== true)
+    .sort((a, b) => {
+      const aOrder = a.thread.pinOrder;
+      const bOrder = b.thread.pinOrder;
+      if (aOrder !== undefined && bOrder !== undefined && aOrder !== bOrder) return aOrder - bOrder;
+      if (aOrder !== undefined && bOrder === undefined) return -1;
+      if (aOrder === undefined && bOrder !== undefined) return 1;
+      return a.index - b.index;
+    })
+    .map(({ thread }) => thread);
+}
+
+/** Reassigns pin positions without changing the master thread/date order. */
+export function movePinnedThread(threads: Thread[], sourceId: string, targetId: string): Thread[] | null {
+  if (sourceId === targetId) return null;
+  const pinned = orderedPinnedThreads(threads);
+  const sourceIndex = pinned.findIndex(thread => thread.id === sourceId);
+  const targetIndex = pinned.findIndex(thread => thread.id === targetId);
+  if (sourceIndex < 0 || targetIndex < 0) return null;
+
+  const reordered = [...pinned];
+  const [source] = reordered.splice(sourceIndex, 1);
+  reordered.splice(targetIndex, 0, source);
+  const orderById = new Map(reordered.map((thread, index) => [thread.id, index]));
+  return threads.map(thread => {
+    const pinOrder = orderById.get(thread.id);
+    return pinOrder === undefined || thread.pinOrder === pinOrder ? thread : { ...thread, pinOrder };
+  });
 }
 
 export function restoreThread(thread: Thread, now: number): Thread | null {

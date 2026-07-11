@@ -248,6 +248,8 @@ export interface Thread {
   createdAt: number;
   updatedAt: number;
   pinned: boolean;
+  /** User-defined position within the pinned sidebar group (lower comes first). */
+  pinOrder?: number;
   /** Bundled reference conversation: visible and deletable, but not editable or runnable. */
   readOnly?: boolean;
   modelId: string;
