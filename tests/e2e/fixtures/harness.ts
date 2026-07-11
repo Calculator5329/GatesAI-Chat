@@ -212,6 +212,12 @@ export async function mockBridgeOnline(page: Page, options: BridgeMockOptions = 
       } catch {
         return;
       }
+      if (env && env.type === 'hello') {
+        // Answer the protocol handshake (the app sends hello v2 on connect;
+        // silence downgrades the mock to legacy v0 and disables bridge UI).
+        ws.send(JSON.stringify({ type: 'hello', protocolVersion: 2 }));
+        return;
+      }
       if (!env || env.type !== 'request' || !env.id) return;
       const data = handleBridgeOp(env.op, env.data ?? {}, options);
       ws.send(JSON.stringify({ id: env.id, type: 'result', op: env.op, data }));

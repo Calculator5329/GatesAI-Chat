@@ -57,6 +57,21 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### Next
 
+- [ ] **BUG: 5 e2e tests failing on master (found 2026-07-11).** Pre-existing
+      before the harness handshake fix (proven by stash-baseline):
+      desktop.spec:171 first-run onboarding, web-lite.spec:43 onboarding,
+      multiTab.spec:23 + :63 conflict handling, bridge.spec:35 gallery
+      thumbnails. Likely from overnight lanes (welcome tour w18 / Web Locks
+      w25 / gallery seeds) integrating on `npm run ci` without the e2e gate.
+      Fix all five; then e2e returns as a hard integration gate.
+- [ ] **LF-1: Local menu section breaks in Web Lite.** Found by the screen
+      audit 2026-07-11: `/#/menu/local` throws unhandled
+      "Cannot read local runtime status outside the GatesAI desktop app"
+      (localRuntimeService.ensureTauri) instead of degrading gracefully —
+      violates the Web-Lite rule in CLAUDE.md. Gate the panel on
+      `core/runtime.ts`, show a friendly desktop-only explainer, no thrown
+      rejections. *Accept:* /#/menu/local renders an explainer in Web Lite
+      with zero console errors; screens-tour asserts it again.
 - [ ] **Local-first screen audit.** Extend `scripts/screens-tour.mjs` to
       screenshot EVERY screen/panel/modal in the app, then audit each from a
       local-first user's perspective (Ollama-only, offline, no cloud keys —

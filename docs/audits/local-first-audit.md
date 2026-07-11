@@ -64,3 +64,17 @@ name to `scripts/screens-audit-manifest.mjs`, add the capture interaction to
 `scripts/screens-local-first-audit.spec.mjs`, and add a row above. The test
 fails if a manifest entry was not captured, so incomplete additions do not
 silently produce a partial corpus.
+
+## Findings (running)
+
+- **LF-1 (menu/local, Web Lite):** hard-throws "Cannot read local runtime
+  status outside the GatesAI desktop app" — no graceful degradation. Filed as
+  roadmap item. Evidence: screen-menu-local.png (degraded state), tour log
+  2026-07-11.
+- **LF-2 (mobile topbar, a11y):** two buttons share aria-label "Open sidebar"
+  (`editorial-mobile-topbar__button` and `__more`) — ambiguous for screen
+  readers and strict selectors. Candidate fix: distinct labels ("Open
+  sidebar", "More options").
+- **Bridge handshake works as designed:** mocked v0 bridge yields loud
+  BridgeProtocolMismatchError warnings in console during tours — correct
+  behavior, noisy in logs; consider single-warning throttle.
