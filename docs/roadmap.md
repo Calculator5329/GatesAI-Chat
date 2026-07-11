@@ -243,10 +243,10 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       - [x] MCP client support (streamable HTTP): server manager UI, dynamic
             `mcp_<server>_<tool>` registry tools with schema passthrough,
             32k result cap, header secrets via `secretStorage`
-- [ ] Wave D refactor: `TurnRunner` extraction from ChatStore, shared LLM
+- [x] Wave D refactor: `TurnRunner` extraction from ChatStore, shared LLM
       stream-parsing core (openaiCompat/ollama), `useEditorial()` store facade,
       message-list windowing, ModelPopover memo consolidation
-      *(TurnRunner + stream core + facade + windowing done 2026-07-10; ModelPopover memo remains)*
+      *(done 2026-07-10 — TurnRunner, shared stream core, useEditorial facade, list windowing, ModelPopover memo)*
 - [ ] Manually test the foundation surface before rebuilding optional integrations
 - [x] Add basic unit tests around `ChatStore` (send, stream, switch, stop) —
       covered by `tests/stores/ChatStore.test.ts` and the full Vitest suite

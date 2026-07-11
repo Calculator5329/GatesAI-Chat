@@ -2,7 +2,7 @@
 // keyboard selection. Rendered by EditorialComposer (lazy-loaded); reads the
 // model registry + local-runtime store via hooks. All section/filter/badge
 // logic lives in core/modelPicker — this surface is presentation only.
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { Model } from '../../core/types';
 import { isWebLite } from '../../core/runtime';
@@ -22,7 +22,7 @@ import {
 } from '../../core/modelPicker';
 import { Icons } from '../ui/icons';
 import { useEditorial } from '../../stores/context';
-import { computeModelSections } from './modelPopoverSections';
+import { createModelSectionsSelector } from '../../stores/modelPickerSelectors';
 
 interface ModelPopoverProps {
   currentModelId: string | undefined;
@@ -284,6 +284,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   const [caps, setCaps] = useState<ReadonlySet<CapabilityFilter>>(() => new Set());
   const [recentIds, setRecentIds] = useState<string[]>(() => registry.recentModelIds());
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => registry.favoriteModelIds());
+  const modelSectionsSelector = useRef(createModelSectionsSelector()).current;
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -303,13 +304,13 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   const openAiCompatAvailable = providers.getConfig('openai-compat').available === true;
 
   const webLite = isWebLite();
-  const computedSections = useMemo(() => computeModelSections(
-    {
+  const computedSections = modelSectionsSelector({
+    registry: {
       all: registryAll,
       findById: id => registry.findById(id),
     },
     query,
-    {
+    filters: {
       currentModelId,
       defaultModelId: chat.defaultModelId,
       source,
@@ -317,8 +318,8 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
       recentIds,
       runtime: { webLite, ollamaOnline, comfyReady, openAiCompatAvailable },
     },
-    favoriteIds,
-  ), [chat.defaultModelId, registry, registryAll, query, currentModelId, source, caps, recentIds, favoriteIds, webLite, ollamaOnline, comfyReady, openAiCompatAvailable]);
+    favorites: favoriteIds,
+  });
 
   const {
     sourceTabs,
