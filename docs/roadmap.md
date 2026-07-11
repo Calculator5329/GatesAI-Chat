@@ -40,7 +40,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       PR expectations, and the AGPL-3.0 contribution terms.
       *Acceptance:* file exists at repo root, linked from README; a newcomer
       can go from clone to green `npm run ci` using only it.
-- [ ] **Dependency audit.** Run `npm audit` and `cargo audit`
+- [x] **Dependency audit.** *(done 2026-07-11 — npm: 10→0 via audit fix, ci green; cargo: quinn-proto RUSTSEC cleared, quick-xml pair pinned upstream by tauri — details + re-check plan in docs/audits/2026-07-11-dependency-audit.md)* Run `npm audit` and `cargo audit`
       (install `cargo-audit` if absent) — fix or explicitly waive findings.
       *Acceptance:* zero high/critical advisories, or each remaining one
       documented with justification in the PR/commit message; `npm run ci`
