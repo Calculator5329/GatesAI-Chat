@@ -44,7 +44,8 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       (install `cargo-audit` if absent) — fix or explicitly waive findings.
       *Acceptance:* zero high/critical advisories, or each remaining one
       documented with justification in the PR/commit message; `npm run ci`
-      still green.
+      still green. *(progress 2026-07-11: npm side DONE — audit fix cleared all 10 vulns, ci 1040 green; cargo side documented in docs/audits/2026-07-11-dependency-audit.md — 3 transitive RUSTSECs need targeted cargo update, ~20 unmaintained gtk3 warnings inherent to tauri v2 linux)*
+
 - [x] **Repo hygiene sweep.** *(done 2026-07-10)* Remove or ignore root scratch files
       (`debug.log`, `vite-5182.*.log`, `.codex-vite-*.log`, `.codex-tasks/`
       leftovers), retire `.env.firebase` (only sets `VITE_GATESAI_WEB=1`; fold
