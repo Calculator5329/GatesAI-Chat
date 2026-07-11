@@ -25,6 +25,7 @@ import { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
 import { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import { SkillsStore } from './SkillsStore';
 import { WhatsNewStore } from './WhatsNewStore';
+import { seedWelcomeTourOnFirstRun } from '../tourThread';
 import { RagStore } from '../services/rag/RagStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 import { configureLogSink, logger } from '../services/diagnostics/logger';
@@ -96,6 +97,7 @@ export class RootStore {
     this.openrouter = new OpenRouterStore(this.registry, () => this.providers.getConfig('openrouter').apiKey);
     this.openAiCompatEndpoint = new OpenAiCompatEndpointStore(this.registry, this.providers);
     this.chat = new ChatStore(this.providers, this.registry, this.profile, () => this.ui.autoNamingEnabled);
+    seedWelcomeTourOnFirstRun(this.chat, this.whatsNew);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
     this.schedules = new SchedulesStore(this.chat);

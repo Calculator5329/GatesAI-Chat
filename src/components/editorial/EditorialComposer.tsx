@@ -58,6 +58,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   });
 
   const streaming = chat.isStreaming;
+  const readOnly = activeThread?.readOnly === true;
   const streamActivity = activeThreadId ? chat.streamActivityByThread[activeThreadId] : undefined;
   const hasText = value.trim().length > 0;
   const directImageMode = currentModel?.providerId === 'local-image';
@@ -87,13 +88,15 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   // streaming, sending interrupts the in-flight reply and starts a new turn.
   // Direct-image mode is offline and only needs text; attachments are ignored
   // by the image job enqueue path.
-  const canSend = (hasText || (!directImageMode && ui.attachments.length > 0)) && routeReady;
-  const placeholder = routeReady && (activeThread?.messages.length ?? 0) === 0
+  const canSend = !readOnly && (hasText || (!directImageMode && ui.attachments.length > 0)) && routeReady;
+  const placeholder = readOnly
+    ? 'Welcome tour is read-only'
+    : routeReady && (activeThread?.messages.length ?? 0) === 0
     ? 'Ask your first question...'
     : 'Continue the thought...';
 
   const onSend = () => {
-    if (!canSend) return;
+    if (readOnly || !canSend) return;
     // Cancel any pending flush; we're committing the final value now.
     cancelPendingFlush();
     chat.sendMessage(value, ui.attachments);
@@ -102,6 +105,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   };
 
   const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    if (readOnly) return;
     handleClipboardImagePaste(e, files => { void ui.uploadFiles(files, bridge); });
   };
 
@@ -110,6 +114,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   };
 
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (readOnly) return;
     if (e.target.files) void ui.uploadFiles(e.target.files, bridge);
     e.target.value = '';
   };
@@ -205,6 +210,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           value={value}
           placeholder={placeholder}
           bridgeOnline={bridge.isOnline}
+          readOnly={readOnly}
           streaming={streaming}
           hasText={hasText}
           canSend={canSend}

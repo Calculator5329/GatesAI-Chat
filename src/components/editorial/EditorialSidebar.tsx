@@ -447,6 +447,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
   }, [editing]);
 
   const beginRename = (): void => {
+    if (thread.readOnly) return;
     cancelEditRef.current = false;
     setDraftTitle(thread.title);
     setEditing(true);
@@ -475,9 +476,11 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
       tabIndex={0}
       onClick={selectThread}
       onContextMenu={event => {
-        event.preventDefault();
-        event.stopPropagation();
-        beginRename();
+        if (!thread.readOnly) {
+          event.preventDefault();
+          event.stopPropagation();
+          beginRename();
+        }
       }}
       onKeyDown={event => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -571,7 +574,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
             }}
             onClick={event => event.stopPropagation()}
           >
-            <button
+            {!thread.readOnly && <button
               type="button"
               className="editorial-sidebar__rename-button"
               onClick={beginRename}
@@ -581,7 +584,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
               style={S.xBtn as CSSProperties}
             >
               <Icons.Edit />
-            </button>
+            </button>}
             <button
               type="button"
               className="editorial-sidebar__pin-button"

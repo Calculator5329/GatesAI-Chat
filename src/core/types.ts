@@ -215,6 +215,8 @@ export interface Thread {
   createdAt: number;
   updatedAt: number;
   pinned: boolean;
+  /** Bundled reference conversation: visible and deletable, but not editable or runnable. */
+  readOnly?: boolean;
   modelId: string;
   messages: Message[];
   /**

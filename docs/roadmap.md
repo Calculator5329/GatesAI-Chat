@@ -310,7 +310,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 - [x] Composer: up-arrow recall, paste-image, window-wide drag-drop *(done 2026-07-11)*
 - [x] Auto-collapse tool outputs over ~40 lines *(done 2026-07-10, burndown w2)*
 - [x] What's-new panel on version change *(done 2026-07-11)*
-- [ ] Onboarding v2: bundled "tour" thread showing tools/artifacts/images
+- [x] Onboarding v2: bundled "tour" thread showing tools/artifacts/images *(done 2026-07-11)*
 
 ### Architecture
 - [ ] Unify message model into content-parts (text/tool/image/artifact parts)

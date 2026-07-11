@@ -558,6 +558,7 @@ function parseThread(value: unknown): Thread | null {
     createdAt: numberField(value.createdAt) ?? Date.now(),
     updatedAt: numberField(value.updatedAt) ?? Date.now(),
     pinned: booleanField(value.pinned) ?? false,
+    readOnly: booleanField(value.readOnly),
     modelId: stringField(value.modelId) ?? DEFAULT_MODEL_ID,
     messages: messages as Message[],
     contextMode: parseContextMode(value.contextMode),

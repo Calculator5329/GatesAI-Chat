@@ -4,6 +4,8 @@ import { createJsonPersistenceProvider } from './persistenceProvider';
 
 export interface WhatsNewSnapshot {
   lastSeenVersion?: string;
+  /** Set as soon as the first-run welcome thread has been written. */
+  tourThreadSeeded?: boolean;
 }
 
 const KEY = 'gatesai.whatsNew.v1';
@@ -12,8 +14,11 @@ export const whatsNewPersistence = createJsonPersistenceProvider<WhatsNewSnapsho
   key: KEY,
   parse: raw => {
     const parsed = raw && typeof raw === 'object' ? raw as Partial<WhatsNewSnapshot> : {};
-    return typeof parsed.lastSeenVersion === 'string' && parsed.lastSeenVersion.trim().length > 0
-      ? { lastSeenVersion: parsed.lastSeenVersion }
-      : {};
+    return {
+      ...(typeof parsed.lastSeenVersion === 'string' && parsed.lastSeenVersion.trim().length > 0
+        ? { lastSeenVersion: parsed.lastSeenVersion }
+        : {}),
+      ...(parsed.tourThreadSeeded === true ? { tourThreadSeeded: true } : {}),
+    };
   },
 });

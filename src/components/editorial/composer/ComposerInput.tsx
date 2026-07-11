@@ -19,6 +19,7 @@ interface ComposerInputProps {
   value: string;
   placeholder: string;
   bridgeOnline: boolean;
+  readOnly: boolean;
   streaming: boolean;
   hasText: boolean;
   canSend: boolean;
@@ -39,6 +40,7 @@ export function ComposerInput({
   value,
   placeholder,
   bridgeOnline,
+  readOnly,
   streaming,
   hasText,
   canSend,
@@ -71,8 +73,8 @@ export function ComposerInput({
       />
       <AttachButton
         onClick={onAttachClick}
-        disabled={!bridgeOnline}
-        title={bridgeOnline ? 'Attach file' : 'Bridge offline - cannot attach files'}
+        disabled={readOnly || !bridgeOnline}
+        title={readOnly ? 'Welcome tour is read-only' : bridgeOnline ? 'Attach file' : 'Bridge offline - cannot attach files'}
       />
       <textarea
         ref={textareaRef}
@@ -83,6 +85,7 @@ export function ComposerInput({
         onKeyDown={onKeyDown}
         onPaste={onPaste}
         placeholder={placeholder}
+        disabled={readOnly}
         rows={1}
         style={textareaStyle}
         // CSS field-sizing: content handles autoresize natively when
@@ -103,14 +106,14 @@ export function ComposerInput({
         onClick={streaming && !hasText ? onStop : onSend}
         title={sendTitle}
         aria-label={sendTitle}
-        disabled={!streaming && !canSend}
+        disabled={readOnly || (!streaming && !canSend)}
         style={{
           alignSelf: 'center',
           border: 'none',
           background: 'transparent',
           padding: 0,
-          cursor: (streaming || canSend) ? 'pointer' : 'default',
-          opacity: (streaming || canSend) ? 1 : 0.45,
+          cursor: !readOnly && (streaming || canSend) ? 'pointer' : 'default',
+          opacity: !readOnly && (streaming || canSend) ? 1 : 0.45,
         }}
       >
         {streaming && !hasText

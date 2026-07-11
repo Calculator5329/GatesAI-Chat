@@ -18,6 +18,10 @@ export interface WhatsNewStoreOptions {
  */
 export class WhatsNewStore {
   release: WhatsNewRelease | null = null;
+  /** True only while constructing the first-ever local app state. */
+  isFirstRun: boolean;
+  /** Independent from chat history so a deleted tour is never recreated. */
+  tourThreadSeeded: boolean;
   private readonly version: string;
   private readonly persistence: PersistenceProvider<WhatsNewSnapshot>;
 
@@ -25,7 +29,10 @@ export class WhatsNewStore {
     this.version = options.version ?? appPackage.version;
     this.persistence = options.persistence ?? whatsNewPersistence;
 
-    const lastSeenVersion = this.persistence.load().lastSeenVersion;
+    const snapshot = this.persistence.load();
+    const lastSeenVersion = snapshot.lastSeenVersion;
+    this.isFirstRun = !lastSeenVersion;
+    this.tourThreadSeeded = snapshot.tourThreadSeeded === true;
     if (!lastSeenVersion) {
       this.persistence.save({ lastSeenVersion: this.version });
     } else if (lastSeenVersion !== this.version) {
@@ -52,5 +59,11 @@ export class WhatsNewStore {
     if (!this.release) return;
     this.persistence.save({ lastSeenVersion: this.version });
     this.release = null;
+  }
+
+  markTourThreadSeeded(): void {
+    if (this.tourThreadSeeded) return;
+    this.persistence.save({ lastSeenVersion: this.version, tourThreadSeeded: true });
+    this.tourThreadSeeded = true;
   }
 }

@@ -51,4 +51,19 @@ describe('WhatsNewStore', () => {
     expect(store.isOpen).toBe(false);
     expect(persistence.saved).toEqual([{ lastSeenVersion: '4.5.0' }]);
   });
+
+  it('keeps the tour seed marker separate from version acknowledgement', () => {
+    const persistence = memoryPersistence();
+    const store = new WhatsNewStore({ version: '4.5.0', persistence });
+
+    expect(store.isFirstRun).toBe(true);
+    expect(store.tourThreadSeeded).toBe(false);
+    store.markTourThreadSeeded();
+
+    expect(store.tourThreadSeeded).toBe(true);
+    expect(persistence.saved).toEqual([
+      { lastSeenVersion: '4.5.0' },
+      { lastSeenVersion: '4.5.0', tourThreadSeeded: true },
+    ]);
+  });
 });

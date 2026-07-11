@@ -34,6 +34,7 @@ export function trackSnapshotDeep(threads: Thread[]): number {
   for (const thread of threads) {
     signature += thread.title.length + thread.updatedAt + thread.messages.length;
     if (thread.pinned) signature += 1;
+    if (thread.readOnly) signature += 1;
     if (thread.archived) signature += 1;
     if (thread.deletedAt != null) signature += thread.deletedAt;
     if (thread.contextMode) signature += thread.contextMode.length;

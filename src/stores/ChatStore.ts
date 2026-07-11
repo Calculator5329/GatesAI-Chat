@@ -78,6 +78,7 @@ import type { UserProfileStore } from './UserProfileStore';
 import { appendSkillInstructionsToSystemPrompt, type WorkspaceSkill } from '../services/skills/skillsService';
 import type { BridgeClientFacade } from '../services/tools/types';
 import type { CompletedJob } from '../services/image/jobs/types';
+import { createWelcomeTourThread, WELCOME_TOUR_THREAD_ID } from '../tourThread';
 
 export type { ChatContextMode } from '../services/chat/contextModes';
 export { PROVIDER_STREAM_INITIAL_STALL_MS, PROVIDER_STREAM_STALL_MS } from '../services/chat/streamingRoundExecutor';
@@ -501,6 +502,15 @@ export class ChatStore {
     return thread.id;
   }
 
+  /** Adds the bundled reference conversation without changing the active draft thread. */
+  seedWelcomeTour(): boolean {
+    if (this.threads.some(thread => thread.id === WELCOME_TOUR_THREAD_ID)) return false;
+    const tour = createWelcomeTourThread({ modelId: this.defaultModelId, now: Date.now() });
+    this.threads.unshift(tour);
+    this.schedulePersistSnapshot(this.snapshot);
+    return true;
+  }
+
   hasRunningAgentTask(): boolean {
     return this.runningAgentTaskCount() > 0;
   }
@@ -705,6 +715,7 @@ export class ChatStore {
   renameThread(threadId: string, title: string): void {
     runInAction(() => {
       const thread = this.findThread(threadId);
+      if (thread?.readOnly) return;
       const next = thread ? renameThreadOp(thread, title, Date.now()) : null;
       if (next) this.replaceThread(next);
     });
@@ -801,7 +812,7 @@ export class ChatStore {
 
   branchFrom(threadId: string, messageId: string): string | null {
     const source = this.findThread(threadId);
-    if (!source || source.deletedAt != null) return null;
+    if (!source || source.deletedAt != null || source.readOnly) return null;
     if (this.isThreadStreaming(source.id)) return null;
     let branchId: string | null = null;
     runInAction(() => {
@@ -824,7 +835,7 @@ export class ChatStore {
 
   regenerate(threadId: string, messageId: string): string | null {
     const thread = this.findThread(threadId);
-    if (!thread || thread.deletedAt != null) return null;
+    if (!thread || thread.deletedAt != null || thread.readOnly) return null;
     if (this.isThreadStreaming(thread.id)) return null;
     let resultId: string | null = null;
     runInAction(() => {
@@ -843,7 +854,7 @@ export class ChatStore {
 
   editAndResend(threadId: string, messageId: string, text: string): string | null {
     const thread = this.findThread(threadId);
-    if (!thread || thread.deletedAt != null) return null;
+    if (!thread || thread.deletedAt != null || thread.readOnly) return null;
     if (this.isThreadStreaming(thread.id)) return null;
     let resultId: string | null = null;
     runInAction(() => {
@@ -863,7 +874,7 @@ export class ChatStore {
   sendMessage(text: string, attachments: { id?: string; filename: string; path: string; size: number; mime: string }[] = []): void {
     const thread = this.ensureThreadModel(this.activeThreadId);
     const trimmed = text.trim();
-    if (!thread || (!trimmed && attachments.length === 0)) return;
+    if (!thread || thread.readOnly || (!trimmed && attachments.length === 0)) return;
     if (thread.archived) {
       void this.sendMessageAfterHydration(thread.id, text, attachments);
       return;
@@ -877,7 +888,7 @@ export class ChatStore {
     attachments: { id?: string; filename: string; path: string; size: number; mime: string }[] = [],
   ): void {
     const thread = this.ensureThreadModel(threadId);
-    if (!thread || thread.archived || (!trimmed && attachments.length === 0)) return;
+    if (!thread || thread.readOnly || thread.archived || (!trimmed && attachments.length === 0)) return;
     const isReplacingInterruptedReply = this.isThreadStreaming(thread.id);
     if (this.isThreadStreaming(thread.id)) {
       this.interruptThread(thread.id);
@@ -917,7 +928,7 @@ export class ChatStore {
     attachments: { id?: string; filename: string; path: string; size: number; mime: string }[] = [],
   ): Promise<void> {
     const thread = await this.hydrateThread(threadId);
-    if (!thread || thread.deletedAt != null) return;
+    if (!thread || thread.deletedAt != null || thread.readOnly) return;
     const trimmed = text.trim();
     if (!trimmed && attachments.length === 0) return;
     runInAction(() => {
@@ -1375,6 +1386,7 @@ export class ChatStore {
     const idx = this.threads.findIndex(t => t.id === threadId);
     if (idx < 0) return null;
     const current = this.threads[idx];
+    if (current.readOnly) return current;
     const patch = updater(current);
     if (!patch) return current;
     const next = {

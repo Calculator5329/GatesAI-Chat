@@ -158,7 +158,9 @@ describe('chat data export/import', () => {
     expect(raw).not.toContain('brave-secret');
     expect(raw).not.toContain('ollama-secret');
     expect(raw).not.toMatch(/"apiKey"|"apiKeys"|"openRouterApiKey"|"openrouterApiKey"/);
-    expect(createDataExportEnvelope(root).data.threads).toHaveLength(1);
+    // First-run state includes the bundled welcome tour alongside the fresh
+    // writable thread; both are ordinary persisted/exported threads.
+    expect(createDataExportEnvelope(root).data.threads).toHaveLength(2);
   });
 });
 

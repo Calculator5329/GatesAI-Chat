@@ -661,7 +661,7 @@ export const EditorialChat = observer(function EditorialChat() {
                 streaming={m.id === chat.streamingMessageId}
                 renderBody={renderBody}
                 placeholderHeight={placeholderHeightForMessage(measuredMessageHeightsRef.current, m.id)}
-                actionsDisabled={activeThreadStreaming}
+                actionsDisabled={activeThreadStreaming || activeThread?.readOnly === true}
                 laterMessageCount={Math.max(0, messages.length - originalIndex - 1)}
                 onRegenerate={regenerateMessage}
                 onBranch={branchMessage}
