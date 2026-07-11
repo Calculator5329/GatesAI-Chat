@@ -126,6 +126,8 @@ export interface EditorialStores {
   imageJobs: ImageJobStore;
   localRuntime: LocalRuntimeStore;
   skills: SkillsStore;
+  openrouter: OpenRouterStore;
+  ollama: OllamaStore;
 }
 
 export function useEditorial(): EditorialStores {
@@ -138,6 +140,8 @@ export function useEditorial(): EditorialStores {
   const imageJobs = useImageJobStore();
   const localRuntime = useLocalRuntimeStore();
   const skills = useSkillsStore();
+  const openrouter = useOpenRouterStore();
+  const ollama = useOllamaStore();
 
   return useMemo(() => ({
     chat,
@@ -149,5 +153,7 @@ export function useEditorial(): EditorialStores {
     imageJobs,
     localRuntime,
     skills,
-  }), [chat, ui, router, bridge, registry, providers, imageJobs, localRuntime, skills]);
+    openrouter,
+    ollama,
+  }), [chat, ui, router, bridge, registry, providers, imageJobs, localRuntime, skills, openrouter, ollama]);
 }

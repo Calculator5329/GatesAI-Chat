@@ -246,7 +246,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 - [ ] Wave D refactor: `TurnRunner` extraction from ChatStore, shared LLM
       stream-parsing core (openaiCompat/ollama), `useEditorial()` store facade,
       message-list windowing, ModelPopover memo consolidation
-      *(TurnRunner + shared stream core done 2026-07-10; facade/windowing/memo remain)*
+      *(TurnRunner + stream core + facade + windowing done 2026-07-10; ModelPopover memo remains)*
 - [ ] Manually test the foundation surface before rebuilding optional integrations
 - [x] Add basic unit tests around `ChatStore` (send, stream, switch, stop) —
       covered by `tests/stores/ChatStore.test.ts` and the full Vitest suite

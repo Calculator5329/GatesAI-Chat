@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_MESSAGE_PLACEHOLDER_HEIGHT,
+  computeVisibleMessageRange,
   edgeRenderedMessageIds,
   nextMeasuredMessageHeights,
   normalizedMessageHeight,
@@ -34,7 +35,33 @@ describe('messageWindowing height cache', () => {
 });
 
 describe('messageWindowing render decisions', () => {
-  it('renders every message when IntersectionObserver is unavailable', () => {
+  it('computes a half-open visible range with pixel overscan', () => {
+    const ids = ['a', 'b', 'c', 'd', 'e'];
+    const heights = new Map(ids.map(id => [id, 100]));
+
+    expect(computeVisibleMessageRange({
+      messageIds: ids,
+      heights,
+      scrollTop: 150,
+      viewportHeight: 100,
+      overscanPx: 50,
+    })).toEqual({ start: 1, end: 3 });
+  });
+
+  it('uses placeholder heights and clamps invalid viewport inputs', () => {
+    expect(computeVisibleMessageRange({
+      messageIds: ['a', 'b', 'c'],
+      heights: new Map([['a', 50]]),
+      scrollTop: Number.NaN,
+      viewportHeight: -20,
+      overscanPx: 60,
+    })).toEqual({ start: 0, end: 2 });
+    expect(computeVisibleMessageRange({
+      messageIds: [], heights: new Map(), scrollTop: 0, viewportHeight: 100,
+    })).toEqual({ start: 0, end: 0 });
+  });
+
+  it('renders every message when row measurement is unavailable', () => {
     expect(shouldRenderFullMessage({
       windowingSupported: false,
       nearViewport: false,

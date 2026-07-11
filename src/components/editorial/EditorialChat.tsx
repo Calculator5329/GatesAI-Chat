@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
-import { useEditorial, useOllamaStore, useOpenRouterStore } from '../../stores/context';
+import { useEditorial } from '../../stores/context';
 import { isTauri, isWebLite } from '../../core/runtime';
 import { clientPlatform } from '../../core/clientPlatform';
 import { recommendedDownload } from '../../core/downloads';
@@ -13,9 +13,9 @@ import { SecretKeyField } from '../ui';
 import { EditorialMessage } from './EditorialMessage';
 import { EditorialComposer } from './EditorialComposer';
 import {
+  computeVisibleMessageRange,
   edgeRenderedMessageIds,
   hasMessageWindowingSupport,
-  MESSAGE_WINDOW_ROOT_MARGIN,
   nextMeasuredMessageHeights,
   placeholderHeightForMessage,
   shouldRenderFullMessage,
@@ -38,8 +38,7 @@ const MESSAGE_PLACEHOLDER_STYLE: CSSProperties = {
  * Web Lite note that conversations live in this browser.
  */
 const ChatEmptyState = observer(function ChatEmptyState() {
-  const { chat, providers, registry, ui } = useEditorial();
-  const ollama = useOllamaStore();
+  const { chat, providers, registry, ui, ollama } = useEditorial();
   const webLite = isWebLite();
   const hasMessages = (chat.activeThread?.messages.length ?? 0) > 0;
   const hasPriorMessages = chat.threads.some(thread => thread.messages.length > 0);
@@ -98,7 +97,7 @@ const ChatEmptyState = observer(function ChatEmptyState() {
 });
 
 const SemanticMemoryNudge = observer(function SemanticMemoryNudge() {
-  const ollama = useOllamaStore();
+  const { ollama } = useEditorial();
   const [dismissed, setDismissed] = useState(false);
   const model = 'nomic-embed-text';
   const state = ollama.pulls.get(model);
@@ -140,9 +139,7 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
 }: {
   onReady: (message: string) => void;
 }) {
-  const { chat, providers, registry, localRuntime, ui } = useEditorial();
-  const openrouter = useOpenRouterStore();
-  const ollama = useOllamaStore();
+  const { chat, providers, registry, localRuntime, ui, openrouter, ollama } = useEditorial();
   const webLite = isWebLite();
   const [cloudState, setCloudState] = useState<'idle' | 'checking' | 'error'>('idle');
   const [cloudMessage, setCloudMessage] = useState<string | null>(null);
@@ -290,8 +287,7 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
   onSelect: () => void;
   onStarterPull: () => void;
 }) {
-  const { bridge, localRuntime } = useEditorial();
-  const ollama = useOllamaStore();
+  const { bridge, localRuntime, ollama } = useEditorial();
   const runtime = localRuntime.runtimes.ollama;
   const online = runtime.status === 'online';
   const ready = online && models.length > 0;
@@ -455,15 +451,14 @@ export const EditorialChat = observer(function EditorialChat() {
   const lastMessageCountRef = useRef(0);
   const previousStreamingIdRef = useRef<string | null>(null);
   const prependScrollHeightRef = useRef<number | null>(null);
-  const messageObserverRef = useRef<IntersectionObserver | null>(null);
-  const observedMessageElementsRef = useRef(new Map<string, HTMLDivElement>());
   const measuredMessageHeightsRef = useRef<ReadonlyMap<string, number>>(new Map());
   // Sticky-bottom: only auto-scroll when the user is parked near the bottom.
   // If they've scrolled up to read history we leave them there. Updated by a
   // rAF-throttled scroll listener so we're not measuring layout per token.
   const stickyRef = useRef(true);
   const windowingSupported = hasMessageWindowingSupport();
-  const [nearViewportIds, setNearViewportIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [viewport, setViewport] = useState({ scrollTop: 0, height: 0 });
+  const [, setHeightVersion] = useState(0);
 
   const activeThread = chat.activeThread;
   const activeThreadId = activeThread?.id ?? null;
@@ -478,6 +473,12 @@ export const EditorialChat = observer(function EditorialChat() {
   const visibleMessageIds = visibleMessages.map(message => message.id);
   const edgeRenderedIds = edgeRenderedMessageIds(visibleMessageIds);
   const streamingNeighborIds = streamingNeighborMessageIds(visibleMessageIds, streamingId);
+  const visibleRange = computeVisibleMessageRange({
+    messageIds: visibleMessageIds,
+    heights: measuredMessageHeightsRef.current,
+    scrollTop: viewport.scrollTop,
+    viewportHeight: viewport.height,
+  });
 
   const scheduleScrollToBottom = useCallback(() => {
     if (scrollRafRef.current !== null) return;
@@ -510,67 +511,16 @@ export const EditorialChat = observer(function EditorialChat() {
     if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
   }, []);
 
-  const onMessageIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
-    setNearViewportIds(previous => {
-      let changed = false;
-      const next = new Set(previous);
-      for (const entry of entries) {
-        const messageId = (entry.target as HTMLElement).dataset.windowMessageId;
-        if (!messageId) continue;
-        const near = entry.isIntersecting || entry.intersectionRatio > 0;
-        if (near) {
-          if (!next.has(messageId)) {
-            next.add(messageId);
-            changed = true;
-          }
-        } else if (next.delete(messageId)) {
-          changed = true;
-        }
-      }
-      return changed ? next : previous;
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!windowingSupported) return;
-    const root = scrollRef.current;
-    if (!root) return;
-    const observer = new IntersectionObserver(onMessageIntersection, {
-      root,
-      rootMargin: MESSAGE_WINDOW_ROOT_MARGIN,
-    });
-    messageObserverRef.current = observer;
-    observedMessageElementsRef.current.forEach(element => observer.observe(element));
-    return () => {
-      observer.disconnect();
-      if (messageObserverRef.current === observer) messageObserverRef.current = null;
-    };
-  }, [onMessageIntersection, windowingSupported]);
-
-  useEffect(() => {
-    if (!windowingSupported) return;
-    setNearViewportIds(new Set());
-  }, [activeThreadId, windowingSupported]);
-
-  const registerMessageElement = useCallback((messageId: string, node: HTMLDivElement | null) => {
-    if (!windowingSupported) return;
-    const elements = observedMessageElementsRef.current;
-    const previous = elements.get(messageId);
-    if (previous && previous !== node) {
-      messageObserverRef.current?.unobserve(previous);
-      elements.delete(messageId);
-    }
-    if (!node) return;
-    elements.set(messageId, node);
-    messageObserverRef.current?.observe(node);
-  }, [windowingSupported]);
-
   const recordMessageHeight = useCallback((messageId: string, height: number) => {
-    measuredMessageHeightsRef.current = nextMeasuredMessageHeights(
+    const previous = measuredMessageHeightsRef.current;
+    const next = nextMeasuredMessageHeights(
       measuredMessageHeightsRef.current,
       messageId,
       height,
     );
+    if (next === previous) return;
+    measuredMessageHeightsRef.current = next;
+    setHeightVersion(version => version + 1);
   }, []);
 
   useEffect(() => {
@@ -602,7 +552,13 @@ export const EditorialChat = observer(function EditorialChat() {
     const onScroll = () => {
       const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
       stickyRef.current = distance <= STICKY_BOTTOM_PX;
+      setViewport(previous => (
+        previous.scrollTop === el.scrollTop && previous.height === el.clientHeight
+          ? previous
+          : { scrollTop: el.scrollTop, height: el.clientHeight }
+      ));
     };
+    onScroll();
     el.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       el.removeEventListener('scroll', onScroll);
@@ -693,7 +649,7 @@ export const EditorialChat = observer(function EditorialChat() {
             const originalIndex = hiddenMessageCount + index;
             const renderBody = shouldRenderFullMessage({
               windowingSupported,
-              nearViewport: nearViewportIds.has(m.id),
+              nearViewport: index >= visibleRange.start && index < visibleRange.end,
               edgeRendered: edgeRenderedIds.has(m.id),
               streamingNeighbor: streamingNeighborIds.has(m.id),
             });
@@ -710,7 +666,6 @@ export const EditorialChat = observer(function EditorialChat() {
                 onRegenerate={regenerateMessage}
                 onBranch={branchMessage}
                 onEditAndResend={editAndResendMessage}
-                onElement={registerMessageElement}
                 onMeasure={recordMessageHeight}
               />
             );
@@ -734,7 +689,6 @@ function WindowedEditorialMessage({
   onRegenerate,
   onBranch,
   onEditAndResend,
-  onElement,
   onMeasure,
 }: {
   message: Message;
@@ -747,14 +701,12 @@ function WindowedEditorialMessage({
   onRegenerate: (messageId: string) => void;
   onBranch: (messageId: string) => void;
   onEditAndResend: (messageId: string, text: string) => void;
-  onElement: (messageId: string, node: HTMLDivElement | null) => void;
   onMeasure: (messageId: string, height: number) => void;
 }) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const setWrapperRef = useCallback((node: HTMLDivElement | null) => {
     wrapperRef.current = node;
-    onElement(message.id, node);
-  }, [message.id, onElement]);
+  }, []);
 
   useLayoutEffect(() => {
     if (!renderBody) return;
