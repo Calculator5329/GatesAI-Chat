@@ -10,6 +10,7 @@ import { saveSnapshot } from '../../src/services/persistence';
 import { AGENT_TASK_SYSTEM_PROMPT_PREFIX } from '../../src/services/chat/agentTasks';
 import { installMockProvider, flush } from '../helpers/mockProvider';
 import { clearAppStorage } from '../helpers/storage';
+import { messageText } from '../../src/core/messageParts';
 
 class AgentTaskProvider implements LlmProvider {
   readonly id = 'openrouter' as const;
@@ -182,10 +183,11 @@ describe('agent task background turns', () => {
     expect(agent).toBeDefined();
     expect(agent?.agentTaskOriginThreadId).toBe(originId);
     expect(agent?.title).toBe('Agent: Audit');
-    expect(agent?.messages[0]).toMatchObject({ role: 'user', content: 'Inspect the workspace and summarize findings.' });
+    expect(agent?.messages[0]?.role).toBe('user');
+    expect(agent?.messages[0] && messageText(agent.messages[0])).toBe('Inspect the workspace and summarize findings.');
     expect(agent?.modelId).toBe(chat.threads.find(thread => thread.id === originId)?.modelId);
     expect(agent?.agentTaskStatus).toBe('done');
-    expect(agent?.messages.find(message => message.role === 'assistant')?.content).toContain('Agent summary');
+    expect(messageText(agent!.messages.find(message => message.role === 'assistant')!)).toContain('Agent summary');
     expect(agent?.messages.find(message => message.role === 'assistant')?.usage?.[0]?.totalTokens).toBe(14);
 
     const [event] = completionEvents(chat, originId);
@@ -288,7 +290,7 @@ describe('agent task background turns', () => {
 
     const agent = chat.threads.find(thread => thread.agentTask)!;
     expect(provider.calls.filter(call => call.threadId === agent.id)).toHaveLength(6);
-    expect(agent.messages.find(message => message.role === 'assistant')?.content).toContain('Stopped after 6 tool rounds');
+    expect(messageText(agent.messages.find(message => message.role === 'assistant')!)).toContain('Stopped after 6 tool rounds');
 
     const [event] = completionEvents(chat, originId);
     expect(event.summary).toContain('[capped]');
@@ -313,7 +315,7 @@ describe('agent task background turns', () => {
     const agent = chat.threads.find(thread => thread.id === result.threadId)!;
     const agentCalls = provider.calls.filter(call => call.threadId === agent.id);
     expect(agentCalls).toHaveLength(10);
-    expect(agent.messages.find(message => message.role === 'assistant')?.content).toContain('Stopped after 10 tool rounds');
+    expect(messageText(agent.messages.find(message => message.role === 'assistant')!)).toContain('Stopped after 10 tool rounds');
     expect(agentCalls[0].systemPrompt).toContain(AGENT_TASK_SYSTEM_PROMPT_PREFIX);
     expect(agentCalls[0].systemPrompt).toContain('Custom instructions.');
     expect(agentCalls[0].systemPrompt?.length).toBeLessThanOrEqual(AGENT_TASK_SYSTEM_PROMPT_PREFIX.length + 2 + 4000);
@@ -552,7 +554,7 @@ describe('agent task background turns', () => {
     const { chat } = setup({ clear: false });
 
     expect(chat.threads.find(thread => thread.id === 'agent')?.agentTaskStatus).toBe('interrupted');
-    expect(chat.threads.find(thread => thread.id === 'agent')?.messages[0].content).toContain('interrupted');
+    expect(messageText(chat.threads.find(thread => thread.id === 'agent')!.messages[0])).toContain('interrupted');
     expect(completionEvents(chat, 'origin')[0]).toMatchObject({ state: 'cancelled', linkThreadId: 'agent' });
   });
 

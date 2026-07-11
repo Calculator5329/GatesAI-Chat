@@ -5,6 +5,7 @@ import type { ActivityDetail, ActivityItem, AssistantMessage, StreamActivity, To
 import { toolRegistry } from '../tools/registry';
 import { isToolFailureContent } from './toolFailureLog';
 import type { ToolContext } from '../tools/types';
+import { messageText, messageToolCalls, messageToolResults } from '../../core/messageParts';
 
 type ActivityExtras = Pick<ToolContext, 'imageJobs' | 'execStream'>;
 
@@ -16,7 +17,7 @@ export function buildActivitiesForMessage(args: {
   streamActivity?: StreamActivity;
 }): ActivityItem[] {
   const { message, streaming, ownerThreadId, extras, streamActivity } = args;
-  const results = message.toolResults ?? [];
+  const results = messageToolResults(message);
   const items: ActivityItem[] = [];
 
   const usedResultIndexes = new Set<number>();
@@ -33,7 +34,7 @@ export function buildActivitiesForMessage(args: {
       finishedAt: message.createdAt,
     });
   }
-  for (const [callIndex, call] of (message.toolCalls ?? []).entries()) {
+  for (const [callIndex, call] of messageToolCalls(message).entries()) {
     const resultIndex = results.findIndex((candidate, index) => !usedResultIndexes.has(index) && candidate.toolCallId === call.id);
     if (resultIndex >= 0) usedResultIndexes.add(resultIndex);
     const result = resultIndex >= 0 ? results[resultIndex] : undefined;
@@ -91,7 +92,7 @@ export function buildActivitiesForMessage(args: {
       startedAt: streamActivity.lastProviderAt,
       finishedAt: stalled ? Date.now() : undefined,
     });
-  } else if (streaming && message.content.trim().length === 0) {
+  } else if (streaming && messageText(message).trim().length === 0) {
     const label = message.preTokenLabel ?? 'thinking';
     items.push({
       id: `${message.id}:pretoken`,

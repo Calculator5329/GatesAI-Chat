@@ -8,6 +8,16 @@ import type { ChatFacade, ProfileFacade } from '../tools/types';
 import { contextWindowFor, estimateLlmPayloadTokens } from '../../core/tokens';
 import { normalizeLlmUsageForModel } from '../../core/usage';
 import { isImageMime } from '../../core/attachments';
+import {
+  appendToolCalls,
+  appendToolResults,
+  assistantMessageParts,
+  messageAttachments,
+  messageText,
+  messageToolCalls,
+  messageToolResults,
+  setMessageText,
+} from '../../core/messageParts';
 import { modelSupportsVision } from '../../core/modelCapabilities';
 import {
   buildToolResultCompactionInput,
@@ -175,7 +185,7 @@ export class TurnRunner {
     const assistantMessage: AssistantMessage = {
       id: this.createId('m'),
       role: 'assistant',
-      content: '',
+      parts: [],
       createdAt: Date.now(),
       model: thread.modelId,
       preTokenLabel: options.isReplacingInterruptedReply ? 'responding' : 'thinking',
@@ -215,7 +225,7 @@ export class TurnRunner {
         this.host.flushText(assistantMessage.id);
         this.host.setThreadLastError(threadId, msg);
         this.host.updateAssistantMessage(threadId, assistantMessage.id, message => {
-          message.content = `_Error: ${msg}_`;
+          setMessageText(message, `_Error: ${msg}_`);
         }, { touch: true });
         this.host.clearStreamingState(threadId, assistantMessage.id);
         return;
@@ -237,7 +247,7 @@ export class TurnRunner {
       });
       if (requestedTokens > contextWindow * COMPACTION_TRIGGER_FRACTION) {
         this.host.updateAssistantMessage(threadId, assistantMessage.id, message => {
-          if (!message.content.trim()) message.preTokenLabel = 'compacting';
+          if (!messageText(message).trim()) message.preTokenLabel = 'compacting';
         });
         await this.compactThreadContext(thread, signal);
         if (signal.aborted) {
@@ -245,7 +255,7 @@ export class TurnRunner {
           return;
         }
         this.host.updateAssistantMessage(threadId, assistantMessage.id, message => {
-          if (!message.content.trim()) {
+          if (!messageText(message).trim()) {
             message.preTokenLabel = options.isReplacingInterruptedReply ? 'responding' : 'thinking';
           }
         });
@@ -264,7 +274,7 @@ export class TurnRunner {
         const message = formatOversizedContextMessage(requestedTokens, contextWindow);
         this.host.setThreadLastError(threadId, message);
         this.host.updateAssistantMessage(threadId, assistantMessage.id, assistant => {
-          assistant.content = message;
+          setMessageText(assistant, message);
         }, { touch: true });
         this.host.clearStreamingState(threadId, assistantMessage.id);
         return;
@@ -335,9 +345,11 @@ export class TurnRunner {
           this.host.updateAssistantMessage(threadId, assistantMessage.id, message => {
             message.finishReason = 'error';
             const recovery = formatProviderErrorRecovery(message, errorMessage ?? 'unknown error');
-            message.content = message.content.trim()
-              ? `${message.content.trimEnd()}\n\n${recovery}`
-              : recovery;
+            const content = messageText(message);
+            setMessageText(message, content.trim()
+              ? `${content.trimEnd()}\n\n${recovery}`
+              : recovery
+            );
           }, { touch: true });
         }
       }
@@ -353,9 +365,9 @@ export class TurnRunner {
         const current = this.getAssistantMessage(threadId, assistantMessage.id);
         const hasProgress = Boolean(
           current
-          && ((current.toolResults?.length ?? 0) > 0 || (current.workNotes?.length ?? 0) > 0),
+          && (messageToolResults(current).length > 0 || (current.workNotes?.length ?? 0) > 0),
         );
-        const hasVisibleText = Boolean(current?.content.trim());
+        const hasVisibleText = Boolean(current && messageText(current).trim());
         if (hasProgress && !hasVisibleText && outputLimitRetries < OUTPUT_LIMIT_RETRY_ROUNDS) {
           outputLimitRetries += 1;
           logEvent(thread.id, 'round.lengthRetry', { round, outputLimitRetries });
@@ -389,9 +401,9 @@ export class TurnRunner {
         this.host.flushText(assistantMessage.id);
         if (this.host.ownsTurn(threadId, assistantMessage.id)) {
           this.host.updateAssistantMessage(threadId, assistantMessage.id, message => {
-            const note = normalizeWorkNote(message.content);
+            const note = normalizeWorkNote(messageText(message));
             if (note) message.workNotes = appendWorkNote(message.workNotes, note);
-            message.content = formatRepeatedSideEffectLoopMessage(repeat);
+            setMessageText(message, formatRepeatedSideEffectLoopMessage(repeat));
           }, { touch: true });
           this.host.clearStreamingState(threadId, assistantMessage.id);
           this.host.maybeAutoName(threadId, assistantMessage);
@@ -405,17 +417,17 @@ export class TurnRunner {
         return;
       }
       this.host.updateAssistantMessage(threadId, assistantMessage.id, message => {
-        const note = normalizeWorkNote(message.content);
+        const note = normalizeWorkNote(messageText(message));
         if (note) message.workNotes = appendWorkNote(message.workNotes, note);
-        message.content = '';
-        message.toolCalls = [...(message.toolCalls ?? []), ...uniqueCollectedCalls];
+        setMessageText(message, '');
+        appendToolCalls(message, uniqueCollectedCalls);
       });
       this.host.cancelText(assistantMessage.id);
 
       this.host.markStreamActivityPhase(threadId, assistantMessage.id, 'tooling');
       const results = await this.executeToolCalls(uniqueCollectedCalls, threadId, signal);
       this.host.updateAssistantMessage(threadId, assistantMessage.id, message => {
-        if (results.length > 0) message.toolResults = [...(message.toolResults ?? []), ...results];
+        appendToolResults(message, results);
       });
       if (signal.aborted) {
         this.host.clearStreamingState(threadId, assistantMessage.id);
@@ -428,7 +440,7 @@ export class TurnRunner {
     const message = formatToolRoundCapMessage(maxToolRounds, current ?? assistantMessage);
     this.host.setThreadLastError(threadId, message);
     this.host.updateAssistantMessage(threadId, assistantMessage.id, assistant => {
-      assistant.content = message;
+      setMessageText(assistant, message);
     }, { touch: true });
     this.host.clearStreamingState(threadId, assistantMessage.id);
   }
@@ -442,16 +454,16 @@ export class TurnRunner {
     this.host.flushText(assistantMessage.id);
     const message = this.getAssistantMessage(thread.id, assistantMessage.id);
     const rescuedCalls = message
-      ? uniqueToolCallIds(extractLocalPseudoToolCalls(message.content), message, round)
+      ? uniqueToolCallIds(extractLocalPseudoToolCalls(messageText(message)), message, round)
       : [];
     if (rescuedCalls.length === 0) return 'none';
 
     const repeat = message ? repeatedSideEffectLoop(rescuedCalls, message) : null;
     if (repeat) {
       this.host.updateAssistantMessage(thread.id, assistantMessage.id, current => {
-        const note = normalizeWorkNote(current.content);
+        const note = normalizeWorkNote(messageText(current));
         if (note) current.workNotes = appendWorkNote(current.workNotes, note);
-        current.content = formatRepeatedSideEffectLoopMessage(repeat);
+        setMessageText(current, formatRepeatedSideEffectLoopMessage(repeat));
       }, { touch: true });
       this.host.clearStreamingState(thread.id, assistantMessage.id);
       return 'finished';
@@ -463,16 +475,16 @@ export class TurnRunner {
       toolNames: rescuedCalls.map(call => call.name),
     });
     this.host.updateAssistantMessage(thread.id, assistantMessage.id, current => {
-      const note = normalizeWorkNote(current.content);
+      const note = normalizeWorkNote(messageText(current));
       if (note) current.workNotes = appendWorkNote(current.workNotes, note);
-      current.content = '';
-      current.toolCalls = [...(current.toolCalls ?? []), ...rescuedCalls];
+      setMessageText(current, '');
+      appendToolCalls(current, rescuedCalls);
     });
     this.host.cancelText(assistantMessage.id);
     this.host.markStreamActivityPhase(thread.id, assistantMessage.id, 'tooling');
     const results = await this.executeToolCalls(rescuedCalls, thread.id, signal);
     this.host.updateAssistantMessage(thread.id, assistantMessage.id, current => {
-      if (results.length > 0) current.toolResults = [...(current.toolResults ?? []), ...results];
+      appendToolResults(current, results);
     });
     if (signal.aborted) {
       this.host.clearStreamingState(thread.id, assistantMessage.id);
@@ -619,21 +631,21 @@ export class TurnRunner {
     }
     if (!prompt) {
       this.host.updateAssistantMessage(thread.id, assistantMessage.id, message => {
-        message.content = '_Direct image mode: no prompt found in your last message._';
+        setMessageText(message, '_Direct image mode: no prompt found in your last message._');
       }, { touch: true });
       this.host.clearStreamingState(thread.id, assistantMessage.id);
       return;
     }
     if (!imageJobs || !imageGen) {
       this.host.updateAssistantMessage(thread.id, assistantMessage.id, message => {
-        message.content = '_Direct image mode: image-jobs subsystem not wired in this session._';
+        setMessageText(message, '_Direct image mode: image-jobs subsystem not wired in this session._');
       }, { touch: true });
       this.host.clearStreamingState(thread.id, assistantMessage.id);
       return;
     }
     if (!comfyReady) {
       this.host.updateAssistantMessage(thread.id, assistantMessage.id, message => {
-        message.content = '_Direct image mode: ComfyUI is not running. Start and connect it in Local settings, then try again._';
+        setMessageText(message, '_Direct image mode: ComfyUI is not running. Start and connect it in Local settings, then try again._');
       }, { touch: true });
       this.host.clearStreamingState(thread.id, assistantMessage.id);
       return;
@@ -658,21 +670,23 @@ export class TurnRunner {
     const backendLabel = imageBackendDisplayName(backend);
     const estimate = estimatedImageDuration(backend);
     this.host.updateAssistantMessage(thread.id, assistantMessage.id, message => {
-      message.content = `I queued an image through ${backendLabel}. It usually takes ${estimate}; I'll drop the finished image here when it's ready.`;
+      message.parts = assistantMessageParts({
+        text: `I queued an image through ${backendLabel}. It usually takes ${estimate}; I'll drop the finished image here when it's ready.`,
+        toolCalls: [{
+          id: callId,
+          name: 'image_generate',
+          arguments: { prompt },
+        }],
+        toolResults: [{
+          toolCallId: callId,
+          toolName: 'image_generate',
+          content: `Queued an image render through ${backendLabel} (job ${jobId}). Expected time: ${estimate}.`,
+          summary: `Queued image render through ${backendLabel}.`,
+          ranAt: Date.now(),
+          artifacts: [{ kind: 'image-job', jobId, count }],
+        }],
+      });
       message.preTokenLabel = undefined;
-      message.toolCalls = [{
-        id: callId,
-        name: 'image_generate',
-        arguments: { prompt },
-      }];
-      message.toolResults = [{
-        toolCallId: callId,
-        toolName: 'image_generate',
-        content: `Queued an image render through ${backendLabel} (job ${jobId}). Expected time: ${estimate}.`,
-        summary: `Queued image render through ${backendLabel}.`,
-        ranAt: Date.now(),
-        artifacts: [{ kind: 'image-job', jobId, count }],
-      }];
     }, { touch: true });
     this.host.clearStreamingState(thread.id, assistantMessage.id);
   }
@@ -698,8 +712,8 @@ function appendWorkNote(existing: string[] | undefined, note: string): string[] 
 
 function uniqueToolCallIds(calls: ToolCall[], message: AssistantMessage, round: number): ToolCall[] {
   const seen = new Set<string>();
-  for (const call of message.toolCalls ?? []) seen.add(call.id);
-  for (const result of message.toolResults ?? []) seen.add(result.toolCallId);
+  for (const call of messageToolCalls(message)) seen.add(call.id);
+  for (const result of messageToolResults(message)) seen.add(result.toolCallId);
   return calls.map((call, index) => {
     if (call.id && !seen.has(call.id)) {
       seen.add(call.id);
@@ -724,7 +738,7 @@ function sideEffectSignature(call: ToolCall): string | null {
 
 function repeatedSideEffectLoop(calls: ToolCall[], message: AssistantMessage): { path: string; action: string } | null {
   const counts = new Map<string, number>();
-  for (const call of message.toolCalls ?? []) {
+  for (const call of messageToolCalls(message)) {
     const signature = sideEffectSignature(call);
     if (!signature) continue;
     counts.set(signature, (counts.get(signature) ?? 0) + 1);
@@ -756,8 +770,8 @@ export function isImageGenerationAvailable(extras: ToolStoreContext | undefined)
 
 function hasAnyImageAttachment(messages: Message[]): boolean {
   for (const m of messages) {
-    if (m.role !== 'user' || !m.attachments) continue;
-    for (const a of m.attachments) {
+    if (m.role !== 'user') continue;
+    for (const a of messageAttachments(m)) {
       if (isImageMime(a.mime)) return true;
     }
   }

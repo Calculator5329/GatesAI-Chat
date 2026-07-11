@@ -4,6 +4,7 @@
 // policy while this module owns presentation. Best-effort by design: a
 // rendering failure must never block the canonical JSON snapshot save.
 import type { AssistantMessage, ChatSnapshot, Message, MessageAttachmentRef, Thread, ToolResultArtifact } from '../../core/types';
+import { messageAttachments, messageText, messageToolCalls, messageToolResults } from '../../core/messageParts';
 import type { FsListResp } from '../../core/workspace';
 import type { BridgeClientFacade } from '../tools/types';
 import { logger } from '../diagnostics/logger';
@@ -96,7 +97,7 @@ function renderLibraryIndex(entries: Array<{ thread: Thread; baseName: string }>
         thread.id,
         thread.summary ?? '',
         thread.threadContext ?? '',
-        ...thread.messages.map(message => message.content),
+        ...thread.messages.map(messageText),
       ].join(' ');
       const href = `conversations/${escapeAttr(baseName)}.html`;
       const mdHref = `conversations/${escapeAttr(baseName)}.md`;
@@ -334,12 +335,14 @@ function renderConversationHtml(thread: Thread, savedAt: string): string {
 
 function renderMessageHtml(message: Message): string {
   const assistant = message.role === 'assistant' ? message as AssistantMessage : null;
-  const attachments = message.role === 'user' ? renderUserAttachmentsHtml(message.attachments) : '';
-  const artifacts = assistant ? renderToolArtifactsHtml(assistant.toolResults?.flatMap(result => result.artifacts ?? []) ?? []) : '';
+  const attachments = message.role === 'user' ? renderUserAttachmentsHtml(messageAttachments(message)) : '';
+  const calls = assistant ? messageToolCalls(assistant) : [];
+  const results = assistant ? messageToolResults(assistant) : [];
+  const artifacts = renderToolArtifactsHtml(results.flatMap(result => result.artifacts ?? []));
   const extras = assistant ? [
     artifacts,
-    ...(assistant.toolCalls?.length ? [`<details><summary>Tool calls (${assistant.toolCalls.length})</summary><pre>${escapeHtml(JSON.stringify(assistant.toolCalls, null, 2))}</pre></details>`] : []),
-    ...(assistant.toolResults?.length ? [`<details><summary>Tool results (${assistant.toolResults.length})</summary><pre>${escapeHtml(JSON.stringify(assistant.toolResults, null, 2))}</pre></details>`] : []),
+    ...(calls.length ? [`<details><summary>Tool calls (${calls.length})</summary><pre>${escapeHtml(JSON.stringify(calls, null, 2))}</pre></details>`] : []),
+    ...(results.length ? [`<details><summary>Tool results (${results.length})</summary><pre>${escapeHtml(JSON.stringify(results, null, 2))}</pre></details>`] : []),
   ].join('') : '';
   const roleLabel = message.role === 'user' ? 'You' : 'Assistant';
   const when = formatMessageTime(message.createdAt);
@@ -349,7 +352,7 @@ function renderMessageHtml(message: Message): string {
       <span class="sep" aria-hidden="true">·</span>
       <time>${escapeHtml(when)}</time>
     </header>
-    <div class="message-content"><pre>${escapeHtml(message.content)}</pre></div>
+    <div class="message-content"><pre>${escapeHtml(messageText(message))}</pre></div>
     ${attachments}
     ${extras}
   </section>`;
@@ -428,17 +431,19 @@ function formatThreadPlainText(thread: Thread): string {
   return thread.messages.map((message, index) => {
     const lines = [
       `#${index} ${message.role} ${message.id} ${formatDate(message.createdAt)}`,
-      message.content.trim(),
+      messageText(message).trim(),
     ];
-    if (message.role === 'user' && message.attachments?.length) {
+    if (message.role === 'user' && messageAttachments(message).length) {
       lines.push('', 'Attachments:');
-      lines.push(...message.attachments.map(attachment =>
+      lines.push(...messageAttachments(message).map(attachment =>
         `- ${attachment.name} (${attachment.mime || 'file'}, ${formatBytes(attachment.size)}): ${attachment.path}`
       ));
     }
     if (message.role === 'assistant') {
       const assistant = message as AssistantMessage;
-      const artifacts = assistant.toolResults?.flatMap(result => result.artifacts ?? []) ?? [];
+      const calls = messageToolCalls(assistant);
+      const results = messageToolResults(assistant);
+      const artifacts = results.flatMap(result => result.artifacts ?? []);
       if (artifacts.length) {
         lines.push('', 'Generated files:');
         lines.push(...artifacts.map(artifact => {
@@ -446,11 +451,11 @@ function formatThreadPlainText(thread: Thread): string {
           return `- image job ${artifact.jobId} (${artifact.count} expected image${artifact.count === 1 ? '' : 's'})`;
         }));
       }
-      if (assistant.toolCalls?.length) {
-        lines.push('', 'Tool calls:', JSON.stringify(assistant.toolCalls, null, 2));
+      if (calls.length) {
+        lines.push('', 'Tool calls:', JSON.stringify(calls, null, 2));
       }
-      if (assistant.toolResults?.length) {
-        lines.push('', 'Tool results:', JSON.stringify(assistant.toolResults, null, 2));
+      if (results.length) {
+        lines.push('', 'Tool results:', JSON.stringify(results, null, 2));
       }
     }
     return lines.join('\n');
@@ -458,7 +463,7 @@ function formatThreadPlainText(thread: Thread): string {
 }
 
 function firstMessageSnippet(thread: Thread): string {
-  const content = thread.messages.find(message => message.content.trim())?.content.trim() ?? '';
+  const content = thread.messages.map(messageText).find(text => text.trim())?.trim() ?? '';
   return content.length > 220 ? `${content.slice(0, 220).trimEnd()}...` : content;
 }
 

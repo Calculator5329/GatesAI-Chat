@@ -5,6 +5,7 @@ import { parseChatSnapshotValue, flushPendingSnapshot } from '../../src/services
 import { buildActivitiesForMessage } from '../../src/services/chat/activityProjection';
 import { toolRegistry } from '../../src/services/tools/registry';
 import { clearAppStorage } from '../helpers/storage';
+import { messageAttachments, messageText, messageToolCalls } from '../../src/core/messageParts';
 
 const roots: RootStore[] = [];
 
@@ -40,7 +41,7 @@ describe('Welcome tour thread', () => {
 
     first.chat.selectThread(tour.id);
     first.chat.sendMessage('This must not be added.');
-    expect(tour.messages.some(message => message.content === 'This must not be added.')).toBe(false);
+    expect(tour.messages.some(message => messageText(message) === 'This must not be added.')).toBe(false);
 
     first.chat.softDeleteThread(tour.id);
     flushPendingSnapshot();
@@ -74,7 +75,7 @@ describe('Welcome tour thread', () => {
     if (!artifactMessage || artifactMessage.role !== 'assistant') throw new Error('Missing artifact tour message');
     if (!imagePrompt || imagePrompt.role !== 'user') throw new Error('Missing image tour message');
 
-    for (const call of [...(toolMessage.toolCalls ?? []), ...(artifactMessage.toolCalls ?? [])]) {
+    for (const call of [...messageToolCalls(toolMessage), ...messageToolCalls(artifactMessage)]) {
       expect(toolRegistry.validateToolCall(call).ok).toBe(true);
     }
     const activities = buildActivitiesForMessage({
@@ -83,7 +84,7 @@ describe('Welcome tour thread', () => {
       extras: undefined,
     });
     expect(activities[0]?.detail?.content?.split('\n').length).toBeGreaterThan(40);
-    expect(imagePrompt.attachments).toEqual([expect.objectContaining({
+    expect(messageAttachments(imagePrompt)).toEqual([expect.objectContaining({
       mime: 'image/png',
       path: expect.stringContaining('welcome-image-placeholder.png'),
     })]);

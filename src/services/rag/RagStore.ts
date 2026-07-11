@@ -5,6 +5,7 @@ import { formatRecallResults, formatSemanticContextBlock } from './format';
 import { RagIndexer, type RagSourceSnapshot } from './indexer';
 import { RagVectorStore, type RagSearchResult } from './vectorStore';
 import { logger } from '../diagnostics/logger';
+import { messageText } from '../../core/messageParts';
 
 export interface RagSettings {
   autoInject: boolean;
@@ -244,7 +245,7 @@ function sourceDigest(snapshot: RagSourceSnapshot): string {
     thread.updatedAt,
     thread.deletedAt ?? '',
     thread.messages.length,
-    thread.messages.map(message => `${message.id}:${message.createdAt}:${message.content.length}`).join(','),
+    thread.messages.map(message => `${message.id}:${message.createdAt}:${messageText(message).length}`).join(','),
   ].join('|')).join(';');
   const noteBits = snapshot.notes.map(note => `${note.id}:${note.updatedAt}:${note.title.length}:${note.body.length}`).join(';');
   return `${threadBits}\n${noteBits}\n${snapshot.facts.join('\n')}`;

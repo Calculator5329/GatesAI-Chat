@@ -16,6 +16,7 @@ import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { OpenRouterStore } from '../../../src/stores/OpenRouterStore';
 import { OllamaStore } from '../../../src/stores/OllamaStore';
 import { SkillsStore } from '../../../src/stores/SkillsStore';
+import { appendMessageText, messageText } from '../../../src/core/messageParts';
 import { EditorialChat } from '../../../src/components/editorial/EditorialChat';
 import { flushPendingSnapshot } from '../../../src/services/persistence';
 import type { RootStore } from '../../../src/stores/RootStore';
@@ -35,12 +36,11 @@ vi.mock('../../../src/components/editorial/EditorialComposer', async () => {
   };
 });
 
-vi.mock('../../../src/components/editorial/EditorialMessage', async () => {
-  const React = await vi.importActual<typeof import('react')>('react');
+vi.mock('../../../src/components/editorial/EditorialMessage', () => {
   return {
     EditorialMessage: ({ message }: { message: Message }) => {
       renderTracker.counts.set(message.id, (renderTracker.counts.get(message.id) ?? 0) + 1);
-      return React.createElement('article', { 'data-message-id': message.id }, message.content);
+      return createElement('article', { 'data-message-id': message.id }, messageText(message));
     },
   };
 });
@@ -354,7 +354,7 @@ describe('EditorialChat long histories', () => {
 
     act(() => {
       runInAction(() => {
-        streaming.content += ' token';
+        appendMessageText(streaming, ' token');
       });
     });
 

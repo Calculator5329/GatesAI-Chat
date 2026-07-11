@@ -6,6 +6,7 @@ import type { AssistantMessage } from '../../core/types';
 import type { ToolCall } from '../../core/llm';
 import type { ToolValidationResult } from '../tools/registry';
 import { isToolFailureContent } from './toolFailureLog';
+import { messageToolResults } from '../../core/messageParts';
 
 export function formatProviderErrorRecovery(message: AssistantMessage, error: string): string {
   const normalizedError = normalizeProviderErrorMessage(error);
@@ -79,7 +80,7 @@ export function formatInterruptedToolBatchSummary(
 }
 
 export function summarizeToolProgress(message: AssistantMessage): string | null {
-  const results = message.toolResults ?? [];
+  const results = messageToolResults(message);
   if (results.length === 0) return null;
   const failures = results.filter(result => isToolFailureContent(result.toolName, result.content));
   const artifactPaths = new Set<string>();

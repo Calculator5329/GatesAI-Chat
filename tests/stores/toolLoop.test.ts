@@ -6,6 +6,7 @@ import { UserProfileStore } from '../../src/stores/UserProfileStore';
 import type { ToolContext } from '../../src/services/tools/types';
 import { MockProvider, flush, installMockProvider } from '../helpers/mockProvider';
 import { clearAppStorage } from '../helpers/storage';
+import { messageText, messageToolCalls, messageToolResults } from '../../src/core/messageParts';
 
 /**
  * A provider that lets each test script per-call chunks separately. The
@@ -85,15 +86,15 @@ describe('Tool loop — scripted', () => {
     expect(messages.map(m => m.role)).toEqual(['user', 'assistant']);
     const assistant = messages[1];
     if (assistant.role !== 'assistant') throw new Error('expected assistant');
-    expect(assistant.toolCalls?.[0].name).toBe('memory');
-    expect(assistant.toolCalls?.[0].arguments.action).toBe('add');
-    expect(assistant.toolResults?.[0].toolCallId).toBe('call_xyz');
-    expect(assistant.toolResults?.[0].content).toContain('Saved');
+    expect(messageToolCalls(assistant)[0].name).toBe('memory');
+    expect(messageToolCalls(assistant)[0].arguments.action).toBe('add');
+    expect(messageToolResults(assistant)[0].toolCallId).toBe('call_xyz');
+    expect(messageToolResults(assistant)[0].content).toContain('Saved');
     // Content holds the FINAL round's prose, while pre-tool text is preserved
     // as visible work notes so it does not disappear from the UI mid-turn.
     expect(assistant.workNotes?.[0]).toContain("I'll remember that");
-    expect(assistant.content).toContain('Bill Evans');
-    expect(assistant.content).not.toContain("Got it");
+    expect(messageText(assistant)).toContain('Bill Evans');
+    expect(messageText(assistant)).not.toContain("Got it");
     expect(mock.calls[1].messages.find(m => m.role === 'assistant' && m.toolCalls)?.content)
       .toContain("I'll remember that");
     expect(chat.streamingMessageId).toBeNull();
@@ -213,7 +214,7 @@ describe('Tool loop — scripted', () => {
 
     expect(mock.calls.length).toBeGreaterThan(6);
     expect(mock.calls.length).toBeLessThanOrEqual(16);
-    expect(chat.activeThread!.messages.at(-1)?.content).toContain('Stopped after 16 tool rounds');
+    expect(messageText(chat.activeThread!.messages.at(-1)!)).toContain('Stopped after 16 tool rounds');
     expect(chat.streamingMessageId).toBeNull();
   });
 
@@ -240,7 +241,7 @@ describe('Tool loop — scripted', () => {
     const assistant = chat.activeThread!.messages.at(-1);
     expect(assistant?.role).toBe('assistant');
     if (assistant?.role !== 'assistant') return;
-    expect(assistant.content).toBe('Done - the game artifact is ready.');
+    expect(messageText(assistant)).toBe('Done - the game artifact is ready.');
     expect(assistant.finishReason).toBe('stop');
     expect(chat.streamingMessageId).toBeNull();
   });
@@ -280,10 +281,10 @@ describe('Tool loop — scripted', () => {
     if (assistant?.role !== 'assistant') return;
     expect(bridgeRequest).toHaveBeenCalledTimes(3);
     expect(mock.calls.length).toBe(4);
-    expect(assistant.toolCalls).toHaveLength(3);
-    expect(new Set(assistant.toolCalls?.map(call => call.id))).toHaveLength(3);
-    expect(assistant.content).toContain('Stopped the local tool loop');
-    expect(assistant.content).toContain('/workspace/artifacts/cool_game.html');
+    expect(messageToolCalls(assistant)).toHaveLength(3);
+    expect(new Set(messageToolCalls(assistant).map(call => call.id))).toHaveLength(3);
+    expect(messageText(assistant)).toContain('Stopped the local tool loop');
+    expect(messageText(assistant)).toContain('/workspace/artifacts/cool_game.html');
     expect(chat.streamingMessageId).toBeNull();
   });
 
@@ -314,7 +315,7 @@ describe('Tool loop — scripted', () => {
     const toolMsg = mock.calls[1].messages.find(m => m.role === 'tool');
     expect(toolMsg?.content).toMatch(/`action` is required for fs/i);
     expect(toolMsg?.content).not.toContain('unknown action ""');
-    expect(chat.activeThread!.messages.at(-1)?.content).toContain('valid file action');
+    expect(messageText(chat.activeThread!.messages.at(-1)!)).toContain('valid file action');
   });
 
   it('preflights unknown write tools and dedupes repeated invalid fs calls', async () => {
@@ -448,10 +449,10 @@ describe('Tool loop — scripted', () => {
     const assistant = chat.activeThread!.messages.at(-1);
     expect(assistant?.role).toBe('assistant');
     if (assistant?.role !== 'assistant') return;
-    expect(assistant.content).toContain('completed local tool work');
-    expect(assistant.content).toContain('OpenRouter 402: credits or provider token budget hit');
-    expect(assistant.content).toContain('/workspace/artifacts/data/net_worth.json');
-    expect(assistant.content).toContain('without re-running');
+    expect(messageText(assistant)).toContain('completed local tool work');
+    expect(messageText(assistant)).toContain('OpenRouter 402: credits or provider token budget hit');
+    expect(messageText(assistant)).toContain('/workspace/artifacts/data/net_worth.json');
+    expect(messageText(assistant)).toContain('without re-running');
   });
 
   it('passes LocalRuntimeStore context to describe_image tool calls', async () => {

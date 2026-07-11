@@ -94,7 +94,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 - [ ] Agent eval harness — see `docs/IDEAS.md` #1; promotes to Next once the
       open-source track is done.
 - [ ] Cowork mode (designed, see Moonshots below) — its own wave when picked.
-- [ ] Content-parts message model unification (pre-req for several ideas).
+- [x] Content-parts message model unification (pre-req for several ideas). *(done 2026-07-11 — schema v3 stores ordered text/tool/image/artifact parts; legacy snapshots migrate on read; selectors preserve old read semantics across wire formatting, RAG, exports, and tests; streaming writes parts incrementally)*
 - [ ] LAN companion / phone access (bridge serves Web Lite with pairing code).
 
 ---
@@ -313,8 +313,10 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 - [x] Onboarding v2: bundled "tour" thread showing tools/artifacts/images *(done 2026-07-11)*
 
 ### Architecture
-- [ ] Unify message model into content-parts (text/tool/image/artifact parts)
-      — do before deep RAG indexing settles the schema
+- [x] Unify message model into content-parts (text/tool/image/artifact parts)
+      *(done 2026-07-11 — ordered part model, versioned legacy migration,
+      centralized compatibility selectors/render dispatch, incremental streaming,
+      and ordering/migration/round-trip coverage)*
 - [x] Split EditorialComposer (~840 lines) into Input/AttachmentTray/
       ModelControls/SendPipeline *(done 2026-07-10, burndown w11 — pure refactor;
       `EditorialComposer.tsx` is now a ~270-line orchestrator delegating to

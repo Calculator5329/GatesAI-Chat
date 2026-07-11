@@ -2,6 +2,7 @@
 // Called by stores, services, components, and tests; depends on stable TypeScript data shapes.
 // Invariant: core modules stay side-effect free except for explicit cache helpers.
 import type { DraftAttachment, MessageAttachmentRef, UserMessage } from './types';
+import { messageAttachments, messageText } from './messageParts';
 
 /** True when a MIME type names an image (case-insensitive `image/*`). */
 export function isImageMime(mime: string | undefined | null): boolean {
@@ -36,19 +37,21 @@ export function toMessageAttachmentRef(
 }
 
 /**
- * Prefer structured {@link UserMessage.attachments} when present; fall back
- * to parsing the legacy footer in {@link UserMessage.content}. Returns both
+ * Prefer canonical image/artifact parts when present; fall back to structured
+ * legacy attachments or parsing the legacy text footer. Returns both
  * the visible body (footer stripped) and a render-ready attachment list.
  */
-export function resolveUserAttachments(message: Pick<UserMessage, 'content' | 'attachments'>): {
+export function resolveUserAttachments(message: Pick<UserMessage, 'content' | 'attachments' | 'parts'>): {
   body: string;
   attachments: RenderedAttachment[];
 } {
-  const parsed = splitAttachmentFooter(message.content);
-  if (message.attachments && message.attachments.length > 0) {
+  const fullMessage: UserMessage = { id: '', role: 'user', createdAt: 0, ...message };
+  const parsed = splitAttachmentFooter(messageText(fullMessage));
+  const attachments = messageAttachments(fullMessage);
+  if (attachments.length > 0) {
     return {
       body: parsed.body,
-      attachments: message.attachments.map(renderAttachment),
+      attachments: attachments.map(renderAttachment),
     };
   }
   return parsed;

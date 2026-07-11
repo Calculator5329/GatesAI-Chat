@@ -7,6 +7,7 @@ import {
   type ThreadTitleRouter,
 } from '../threadNamer';
 import { logger } from '../diagnostics/logger';
+import { messageText } from '../../core/messageParts';
 
 export interface AutoNameRouter extends ThreadTitleRouter {
   canRoute(): boolean;
@@ -47,12 +48,12 @@ export class AutoNamer {
     const opener = thread.messages.find(message => message.role === 'user');
     if (!opener) return;
 
-    const assistantText = assistantMessage.content.replace(/\n\n_Error:[^]*$/s, '').trim();
+    const assistantText = messageText(assistantMessage).replace(/\n\n_Error:[^]*$/s, '').trim();
     this.host.setThreadNaming(threadId, true);
 
     void generateThreadTitle(
       {
-        userText: opener.content,
+        userText: messageText(opener),
         assistantText,
         fallbackModelId: thread.modelId,
         candidateModelIds: this.host.getModelCandidates(thread.modelId),

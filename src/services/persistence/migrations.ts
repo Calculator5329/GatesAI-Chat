@@ -2,7 +2,7 @@
 // Called before shape parsing so legacy values can be normalized without
 // teaching every parser branch about every historical spelling.
 
-export const CURRENT_CHAT_SCHEMA_VERSION = 2;
+export const CURRENT_CHAT_SCHEMA_VERSION = 3;
 
 export interface RawChatSnapshotMigration {
   from: number;
@@ -19,6 +19,11 @@ export const chatSnapshotMigrations: RawChatSnapshotMigration[] = [
     from: 1,
     to: 2,
     migrate: migrateThinkingEffortAliases,
+  },
+  {
+    from: 2,
+    to: 3,
+    migrate: migrateMessagesToContentParts,
   },
 ];
 
@@ -62,6 +67,64 @@ function migrateThinkingEffortAliases(snapshot: unknown): unknown {
     schemaVersion: 2,
     ...(Array.isArray(snapshot.threads) ? { threads } : {}),
   };
+}
+
+function migrateMessagesToContentParts(snapshot: unknown): unknown {
+  if (!isRecord(snapshot)) return snapshot;
+  const threads = Array.isArray(snapshot.threads)
+    ? snapshot.threads.map(thread => {
+      if (!isRecord(thread) || !Array.isArray(thread.messages)) return thread;
+      return { ...thread, messages: thread.messages.map(migrateMessageToContentParts) };
+    })
+    : snapshot.threads;
+  return {
+    ...snapshot,
+    schemaVersion: 3,
+    ...(Array.isArray(snapshot.threads) ? { threads } : {}),
+  };
+}
+
+function migrateMessageToContentParts(value: unknown): unknown {
+  if (!isRecord(value) || Array.isArray(value.parts) || value.role === 'tool') return value;
+  if (value.role === 'user') {
+    const attachments = Array.isArray(value.attachments) ? value.attachments : [];
+    const parts = [
+      ...(typeof value.content === 'string' && value.content ? [{ type: 'text', text: value.content }] : []),
+      ...attachments
+        .filter(isRecord)
+        .map(attachment => ({
+          type: typeof attachment.mime === 'string' && /^image\//i.test(attachment.mime) ? 'image' : 'artifact',
+          attachment,
+        })),
+    ];
+    const { content: _content, attachments: _attachments, ...message } = value;
+    return { ...message, parts };
+  }
+  if (value.role === 'assistant') {
+    const calls = Array.isArray(value.toolCalls) ? value.toolCalls.filter(isRecord) : [];
+    const results = Array.isArray(value.toolResults) ? value.toolResults.filter(isRecord) : [];
+    const usedResults = new Set<number>();
+    const toolParts: Array<{ type: 'tool'; call?: Record<string, unknown>; result?: Record<string, unknown> }> = calls.map(call => {
+      const resultIndex = results.findIndex((result, index) =>
+        !usedResults.has(index)
+        && typeof call.id === 'string'
+        && result.toolCallId === call.id,
+      );
+      if (resultIndex < 0) return { type: 'tool' as const, call };
+      usedResults.add(resultIndex);
+      return { type: 'tool' as const, call, result: results[resultIndex] };
+    });
+    results.forEach((result, index) => {
+      if (!usedResults.has(index)) toolParts.push({ type: 'tool', result });
+    });
+    const parts = [
+      ...toolParts,
+      ...(typeof value.content === 'string' && value.content ? [{ type: 'text', text: value.content }] : []),
+    ];
+    const { content: _content, toolCalls: _toolCalls, toolResults: _toolResults, ...message } = value;
+    return { ...message, parts };
+  }
+  return value;
 }
 
 function normalizeThinkingEffortAlias(value: unknown): unknown {

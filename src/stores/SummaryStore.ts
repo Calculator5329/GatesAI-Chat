@@ -9,6 +9,7 @@ import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import { logger } from '../services/diagnostics/logger';
 import { resolveBackgroundModelId } from '../core/defaultModel';
+import { messageText, messageToolResults } from '../core/messageParts';
 
 /**
  * Cross-thread memory by way of lazy summarization.
@@ -248,16 +249,16 @@ function renderTranscript(thread: Thread): string {
   const lines: string[] = [];
   for (const m of tail) {
     if (m.role === 'assistant') {
-      const text = oneLine(m.content);
+      const text = oneLine(messageText(m));
       lines.push(`Assistant: ${text}`.trim());
       // Tool activity is appended on its own indented lines so the model
       // can mention "saved a memory about X" without confusing it for
       // assistant prose.
-      for (const r of m.toolResults ?? []) {
+      for (const r of messageToolResults(m)) {
         lines.push(`  [tool ${r.toolName} → ${oneLine(r.content)}]`);
       }
     } else {
-      lines.push(`User: ${oneLine(m.content)}`);
+      lines.push(`User: ${oneLine(messageText(m))}`);
     }
   }
   return `Thread title: ${thread.title}\n\n${lines.join('\n')}`;

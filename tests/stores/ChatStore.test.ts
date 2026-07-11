@@ -21,6 +21,7 @@ import {
 } from '../../src/services/persistence';
 import type { ThreadArchiveStore } from '../../src/services/persistence/idb';
 import { installMultiTabStorageListener } from '../../src/services/storage/persistenceProvider';
+import { messageAttachments, messageText, messageToolCalls, messageToolResults } from '../../src/core/messageParts';
 
 const activeChats: ChatStore[] = [];
 
@@ -277,7 +278,7 @@ describe('ChatStore', () => {
     expect(chat.activeThreadHydrating).toBe(true);
     await flush();
     expect(chat.activeThread?.archived).not.toBe(true);
-    expect(chat.activeThread?.messages.map(message => message.content)).toEqual(['old message']);
+    expect(chat.activeThread?.messages.map(messageText)).toEqual(['old message']);
     expect(chat.activeThreadHydrating).toBe(false);
   });
 
@@ -305,8 +306,8 @@ describe('ChatStore', () => {
     archive.resolveGet(full);
     await flush(10);
 
-    expect(chat.activeThread?.messages.map(message => message.content)).toContain('old message');
-    expect(chat.activeThread?.messages.map(message => message.content)).toContain('new message');
+    expect(chat.activeThread?.messages.map(messageText)).toContain('old message');
+    expect(chat.activeThread?.messages.map(messageText)).toContain('new message');
     expect(mock.calls).toHaveLength(1);
   });
 
@@ -537,7 +538,7 @@ describe('ChatStore', () => {
 
     expect(chat.persistenceConflict).toBeNull();
     expect(chat.threads.find(t => t.id === threadId)?.title).toBe('Fresh from storage');
-    expect(chat.activeThread?.messages[0]).toMatchObject({ content: 'from disk' });
+    expect(messageText(chat.activeThread!.messages[0])).toBe('from disk');
   });
 
   it('reloadFromStorage aborts in-flight streams so abandoned turns stop mutating', async () => {
@@ -729,15 +730,15 @@ describe('ChatStore', () => {
       s => {
         const t = s.threads.find(thread => thread.id === threadId);
         return !!t
-          && t.messages.some(m => m.content === 'remember me across reload')
-          && t.messages.some(m => m.content.includes('streamed reply body'));
+          && t.messages.some(m => messageText(m) === 'remember me across reload')
+          && t.messages.some(m => messageText(m).includes('streamed reply body'));
       },
       'sent message + streamed reply persisted to localStorage',
     );
 
     const thread = snapshot.threads.find(t => t.id === threadId)!;
-    expect(thread.messages.some(m => m.role === 'user' && m.content === 'remember me across reload')).toBe(true);
-    expect(thread.messages.some(m => m.role === 'assistant' && m.content.includes('streamed reply body'))).toBe(true);
+    expect(thread.messages.some(m => m.role === 'user' && messageText(m) === 'remember me across reload')).toBe(true);
+    expect(thread.messages.some(m => m.role === 'assistant' && messageText(m).includes('streamed reply body'))).toBe(true);
   });
 
   it('persists context mode and thinking effort without a later chat mutation', async () => {
@@ -906,7 +907,7 @@ describe('ChatStore', () => {
     expect(chat.isThreadStreaming(threadId)).toBe(false);
 
     const reply = chat.threads.find(t => t.id === threadId)!.messages.find(m => m.role === 'assistant')!;
-    expect(reply.content).toContain('[interrupted]');
+    expect(messageText(reply)).toContain('[interrupted]');
     expect(chat.threads.find(t => t.id === threadId)?.deletedAt).toBeTypeOf('number');
   });
 
@@ -976,11 +977,11 @@ describe('ChatStore', () => {
 
     const thread = chat.threads.find(t => t.id === id)!;
     expect(resultId).toBe(id);
-    expect(thread.messages.map(m => m.content)).toEqual(expected);
+    expect(thread.messages.map(messageText)).toEqual(expected);
     const edited = thread.messages.find(m => m.id === targetId);
-    expect(edited?.content).toBe('edited prompt');
+    expect(edited && messageText(edited)).toBe('edited prompt');
     if (targetId === 'u2') {
-      expect(edited?.role === 'user' ? edited.attachments?.[0].path : undefined).toBe('/workspace/attachments/a.txt');
+      expect(edited?.role === 'user' ? messageAttachments(edited)[0].path : undefined).toBe('/workspace/attachments/a.txt');
     }
     expect(mock.calls).toHaveLength(1);
   });
@@ -1007,7 +1008,7 @@ describe('ChatStore', () => {
 
     const thread = chat.threads.find(t => t.id === id)!;
     expect(resultId).toBe(id);
-    expect(thread.messages.map(m => m.content)).toEqual(['first', 'first answer', 'second', 'replacement answer']);
+    expect(thread.messages.map(messageText)).toEqual(['first', 'first answer', 'second', 'replacement answer']);
     expect(mock.calls).toHaveLength(1);
   });
 
@@ -1052,11 +1053,11 @@ describe('ChatStore', () => {
     expect(branch?.contextMode).toBe('system-tools');
     expect(branch?.thinkingEffort).toBe('high');
     expect(branch?.threadContext).toBeUndefined();
-    expect(branch?.messages.map(m => m.content)).toEqual(['one', 'two']);
+    expect(branch?.messages.map(messageText)).toEqual(['one', 'two']);
     expect(branch?.messages.map(m => m.id)).not.toEqual(sourceIds.slice(0, 2));
-    expect(source.messages.map(m => m.content)).toEqual(['one', 'two', 'three']);
+    expect(source.messages.map(messageText)).toEqual(['one', 'two', 'three']);
     const copiedAssistant = branch?.messages[1];
-    expect(copiedAssistant?.role === 'assistant' ? copiedAssistant.toolResults?.[0].content : undefined).toBe('result');
+    expect(copiedAssistant?.role === 'assistant' ? messageToolResults(copiedAssistant)[0].content : undefined).toBe('result');
     expect(copiedAssistant?.role === 'assistant' ? copiedAssistant.preTokenLabel : undefined).toBeUndefined();
     expect(copiedAssistant?.role === 'assistant' ? copiedAssistant.activityEvents : undefined).toBeUndefined();
     expect(chat.activeThreadId).toBe(id);
@@ -1077,7 +1078,7 @@ describe('ChatStore', () => {
     expect(chat.regenerate(id, 'a1')).toBeNull();
     expect(chat.branchFrom(id, 'u1')).toBeNull();
     expect(chat.threads).toHaveLength(2);
-    expect(chat.activeThread?.messages.map(m => m.content)).toEqual(['one', 'streaming']);
+    expect(chat.activeThread?.messages.map(messageText)).toEqual(['one', 'streaming']);
   });
 
   it('persists edit-and-resend truncation through the autosave path', async () => {
@@ -1099,15 +1100,15 @@ describe('ChatStore', () => {
       s => {
         const thread = s.threads.find(t => t.id === id);
         return !!thread
-          && thread.messages.some(m => m.content === 'persisted prompt')
-          && thread.messages.some(m => m.content === 'persisted replacement')
-          && !thread.messages.some(m => m.content === 'old answer');
+          && thread.messages.some(m => messageText(m) === 'persisted prompt')
+          && thread.messages.some(m => messageText(m) === 'persisted replacement')
+          && !thread.messages.some(m => messageText(m) === 'old answer');
       },
       'edit-and-resend mutation persisted to localStorage',
     );
 
     const thread = snapshot.threads.find(t => t.id === id)!;
-    expect(thread.messages.map(m => m.content)).toEqual(['persisted prompt', 'persisted replacement']);
+    expect(thread.messages.map(messageText)).toEqual(['persisted prompt', 'persisted replacement']);
   });
 
   it('softDeleteThread on the only remaining thread spawns a fresh empty one', () => {
@@ -1132,9 +1133,10 @@ describe('ChatStore', () => {
 
     const thread = chat.activeThread!;
     expect(thread.messages).toHaveLength(2);
-    expect(thread.messages[0]).toMatchObject({ role: 'user', content: 'hi' });
+    expect(thread.messages[0].role).toBe('user');
+    expect(messageText(thread.messages[0])).toBe('hi');
     expect(thread.messages[1].role).toBe('assistant');
-    expect(thread.messages[1].content).toBe('Hello world');
+    expect(messageText(thread.messages[1])).toBe('Hello world');
     expect(chat.streamingMessageId).toBeNull();
     expect(mock.calls).toHaveLength(1);
   });
@@ -1302,7 +1304,7 @@ describe('ChatStore', () => {
     expect(mock.calls).toHaveLength(0);
     const reply = chat.activeThread!.messages.at(-1);
     expect(reply).toMatchObject({ role: 'assistant' });
-    expect(reply?.content).toContain('too large');
+    expect(messageText(reply!)).toContain('too large');
     expect(chat.streamingMessageId).toBeNull();
   });
 
@@ -1351,11 +1353,12 @@ describe('ChatStore', () => {
     await flush(80);
 
     expect(mock.calls).toHaveLength(1);
-    expect(chat.activeThread!.messages.at(-1)).toMatchObject({ role: 'assistant', content: 'continued' });
+    expect(chat.activeThread!.messages.at(-1)?.role).toBe('assistant');
+    expect(messageText(chat.activeThread!.messages.at(-1)!)).toBe('continued');
     const compacted = chat.activeThread!.messages.find(m => m.id === 'a-big-context');
     if (compacted?.role !== 'assistant') throw new Error('expected assistant');
-    expect(compacted.toolResults?.[0].content).toContain('[compacted tool result]');
-    expect(compacted.toolResults?.[0].content).toContain('/workspace/artifacts/huge.json');
+    expect(messageToolResults(compacted)[0].content).toContain('[compacted tool result]');
+    expect(messageToolResults(compacted)[0].content).toContain('/workspace/artifacts/huge.json');
   });
 
   it('prefers a cheap configured model for compaction before the original request', async () => {
@@ -1418,7 +1421,7 @@ describe('ChatStore', () => {
     expect(mock.calls).toHaveLength(1);
     const compacted = chat.activeThread!.messages.find(m => m.id === 'a-cheap-compact');
     if (compacted?.role !== 'assistant') throw new Error('expected assistant');
-    expect(compacted.toolResults?.[0].content).toContain('Model summary preserving /workspace/artifacts/huge.json');
+    expect(messageToolResults(compacted)[0].content).toContain('Model summary preserving /workspace/artifacts/huge.json');
   });
 
   it('selectThread does NOT cancel an in-flight stream on the previous thread', async () => {
@@ -1446,8 +1449,8 @@ describe('ChatStore', () => {
     const reply = first.messages.find(m => m.role === 'assistant')!;
     // Should have grown well past the switch-point (more than the ~2 ticks
     // before the switch) and never been annotated as interrupted.
-    expect(reply.content.length).toBeGreaterThan(50);
-    expect(reply.content).not.toContain('[interrupted]');
+    expect(messageText(reply).length).toBeGreaterThan(50);
+    expect(messageText(reply)).not.toContain('[interrupted]');
     expect(mock.abortedAt).toBeNull();
   });
 
@@ -1465,7 +1468,7 @@ describe('ChatStore', () => {
     chat.stopStreaming();
     expect(chat.streamingMessageId).toBeNull();
     const reply = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
-    expect(reply.content).toContain('[interrupted]');
+    expect(messageText(reply)).toContain('[interrupted]');
   });
 
   it('sending while streaming interrupts and starts a new turn on the same thread', async () => {
@@ -1488,22 +1491,22 @@ describe('ChatStore', () => {
     chat.sendMessage('second');
 
     const replacement = chat.activeThread!.messages.at(-1);
-    expect(replacement).toMatchObject({
-      role: 'assistant',
-      content: '',
-      preTokenLabel: 'responding',
-    });
+    expect(replacement).toMatchObject({ role: 'assistant', preTokenLabel: 'responding' });
+    expect(messageText(replacement!)).toBe('');
 
     await flush(20);
 
     const messages = chat.activeThread!.messages;
     // user1, assistant1 (interrupted), user2, assistant2 (complete)
     expect(messages).toHaveLength(4);
-    expect(messages[0]).toMatchObject({ role: 'user', content: 'first' });
+    expect(messages[0].role).toBe('user');
+    expect(messageText(messages[0])).toBe('first');
     expect(messages[1].role).toBe('assistant');
-    expect(messages[1].content).toContain('[interrupted]');
-    expect(messages[2]).toMatchObject({ role: 'user', content: 'second' });
-    expect(messages[3]).toMatchObject({ role: 'assistant', content: 'second-reply' });
+    expect(messageText(messages[1])).toContain('[interrupted]');
+    expect(messages[2].role).toBe('user');
+    expect(messageText(messages[2])).toBe('second');
+    expect(messages[3].role).toBe('assistant');
+    expect(messageText(messages[3])).toBe('second-reply');
     expect(chat.streamingMessageId).toBeNull();
     expect(mock.abortedAt).not.toBeNull();
   });
@@ -1531,18 +1534,18 @@ describe('ChatStore', () => {
     chat.sendMessage('use slow tool');
     await flush(10);
     const assistant = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
-    expect(assistant.role === 'assistant' ? assistant.toolCalls?.[0]?.name : undefined).toBe('slow_test_tool');
+    expect(assistant.role === 'assistant' ? messageToolCalls(assistant)[0]?.name : undefined).toBe('slow_test_tool');
 
     chat.stopStreaming();
     (releaseTool as (() => void) | null)?.();
     await flush(10);
 
-    expect(assistant.role === 'assistant' ? assistant.toolResults?.[0] : undefined).toMatchObject({
+    expect(assistant.role === 'assistant' ? messageToolResults(assistant)[0] : undefined).toMatchObject({
       toolCallId: 'call-slow',
       ok: false,
       errorCode: 'cancelled',
     });
-    expect(assistant.content).toContain('[no response]');
+    expect(messageText(assistant)).toContain('[no response]');
   });
 
   it('interrupting a thinking (zero-token) reply leaves the no-response placeholder', async () => {
@@ -1558,7 +1561,7 @@ describe('ChatStore', () => {
 
     chat.stopStreaming();
     const reply = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
-    expect(reply.content).toBe('*[no response]*');
+    expect(messageText(reply)).toBe('*[no response]*');
   });
 
   it('aborts and explains a provider stream that stops sending data', async () => {
@@ -1593,7 +1596,7 @@ describe('ChatStore', () => {
     expect(chat.streamingMessageId).toBeNull();
     const reply = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
     expect(reply.finishReason).toBe('error');
-    expect(reply.content).toContain('No provider data arrived');
+    expect(messageText(reply)).toContain('No provider data arrived');
     expect(chat.lastError).toContain('No provider data arrived');
   });
 
@@ -1619,7 +1622,7 @@ describe('ChatStore', () => {
     await flush(10);
     vi.advanceTimersByTime(30);
     await flush(10);
-    expect(chat.activeThread!.messages.find(m => m.role === 'assistant')?.content).toContain('Let');
+    expect(messageText(chat.activeThread!.messages.find(m => m.role === 'assistant')!)).toContain('Let');
     expect(chat.streamActivityByThread[chat.activeThreadId!]).toMatchObject({ phase: 'streaming' });
 
     vi.advanceTimersByTime(PROVIDER_STREAM_STALL_MS + 1);
@@ -1628,8 +1631,8 @@ describe('ChatStore', () => {
     expect(chat.streamingMessageId).toBeNull();
     const reply = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
     expect(reply.finishReason).toBe('error');
-    expect(reply.content).toContain('Let me build that.');
-    expect(reply.content).toContain('No provider data arrived');
+    expect(messageText(reply)).toContain('Let me build that.');
+    expect(messageText(reply)).toContain('No provider data arrived');
   });
 
   it('persists snapshot to localStorage and restores on reload', async () => {
@@ -1641,7 +1644,7 @@ describe('ChatStore', () => {
     chat.sendMessage('save me');
     await waitForLocalStorageSnapshot(
       snapshot => snapshot.threads.some(thread =>
-        thread.id === id && thread.messages.map(message => message.content).join('\n') === 'save me\npersisted',
+        thread.id === id && thread.messages.map(messageText).join('\n') === 'save me\npersisted',
       ),
       'persisted chat turn',
     );
@@ -1656,7 +1659,7 @@ describe('ChatStore', () => {
 
     const restored = chat2.threads.find(t => t.id === id);
     expect(restored).toBeDefined();
-    expect(restored!.messages.map(m => m.content)).toEqual(['save me', 'persisted']);
+    expect(restored!.messages.map(messageText)).toEqual(['save me', 'persisted']);
   });
 
   it('records the provider error in lastError when stream returns done:error', async () => {
@@ -1951,11 +1954,11 @@ describe('ChatStore', () => {
       }),
     }]);
     const assistant = chat.activeThread!.messages.findLast(m => m.role === 'assistant');
-    expect(assistant?.role === 'assistant' ? assistant.toolCalls?.[0] : undefined).toEqual(expect.objectContaining({
+    expect(assistant?.role === 'assistant' ? messageToolCalls(assistant)[0] : undefined).toEqual(expect.objectContaining({
       name: 'fs',
       arguments: expect.objectContaining({ action: 'write', path: '/workspace/game.html' }),
     }));
-    expect(assistant?.content).toBe('Created the game file.');
+    expect(assistant && messageText(assistant)).toBe('Created the game file.');
   });
 
   it('tokenUsage counts serialized tool calls, tool results, and selected tool schemas', () => {
@@ -2021,10 +2024,8 @@ describe('ChatStore', () => {
       height: 1024,
       backend: 'local-comfy',
     })]);
-    expect(chat.activeThread!.messages.at(-1)).toMatchObject({
-      role: 'assistant',
-      content: expect.stringContaining('I queued an image through local ComfyUI'),
-    });
+    expect(chat.activeThread!.messages.at(-1)?.role).toBe('assistant');
+    expect(messageText(chat.activeThread!.messages.at(-1)!)).toContain('I queued an image through local ComfyUI');
   });
 
   it('direct-image turn is blocked with a clear message when ComfyUI is not ready', async () => {
@@ -2058,10 +2059,8 @@ describe('ChatStore', () => {
 
     expect(mock.calls).toHaveLength(0);
     expect(enqueued).toHaveLength(0);
-    expect(chat.activeThread!.messages.at(-1)).toMatchObject({
-      role: 'assistant',
-      content: expect.stringContaining('ComfyUI is not running'),
-    });
+    expect(chat.activeThread!.messages.at(-1)?.role).toBe('assistant');
+    expect(messageText(chat.activeThread!.messages.at(-1)!)).toContain('ComfyUI is not running');
   });
 
   it('does not post an orphan image completion assistant message', () => {
@@ -2114,7 +2113,7 @@ describe('ChatStore', () => {
     const terminalMessages = chat.threads
       .find(t => t.id === threadId)!
       .messages
-      .filter(m => m.role === 'assistant' && m.toolCalls?.some(call => call.name === 'image_generate_complete'));
+      .filter(m => m.role === 'assistant' && messageToolCalls(m).some(call => call.name === 'image_generate_complete'));
     expect(terminalMessages).toHaveLength(0);
   });
 
@@ -2227,21 +2226,22 @@ describe('ChatStore', () => {
     chat.sendMessage('first');
     await vi.waitFor(() => expect(mock.firstPartialDelivered).toBe(true));
     chat.sendMessage('second');
-    await vi.waitFor(() => expect(chat.activeThread!.messages.at(-1)).toMatchObject({ role: 'assistant', content: 'real-reply' }));
+    await vi.waitFor(() => expect(messageText(chat.activeThread!.messages.at(-1)!)).toBe('real-reply'));
     // Release the abandoned first stream so its finalize actually runs.
     mock.release();
     await vi.waitFor(() => expect(mock.firstStreamFinished).toBe(true));
     await flush();
 
     const messages = chat.activeThread!.messages;
-    const interrupted = messages.find(m => m.role === 'assistant' && m.content.includes('[interrupted]'));
+    const interrupted = messages.find(m => m.role === 'assistant' && messageText(m).includes('[interrupted]'));
     expect(interrupted).toBeDefined();
     if (interrupted?.role === 'assistant') {
       expect(interrupted.finishReason).toBeUndefined();
     }
     expect(chat.activeThread!.autoNamed).toBeFalsy();
     const finalReply = messages.at(-1);
-    expect(finalReply).toMatchObject({ role: 'assistant', content: 'real-reply' });
+    expect(finalReply?.role).toBe('assistant');
+    expect(messageText(finalReply!)).toBe('real-reply');
   });
 
   it('abandoned stream error finalize does not stamp finishReason after interrupt-resend', async () => {
@@ -2291,14 +2291,14 @@ describe('ChatStore', () => {
     chat.sendMessage('first');
     await vi.waitFor(() => expect(mock.firstPartialDelivered).toBe(true));
     chat.sendMessage('second');
-    await vi.waitFor(() => expect(chat.activeThread!.messages.at(-1)).toMatchObject({ role: 'assistant', content: 'real-reply' }));
+    await vi.waitFor(() => expect(messageText(chat.activeThread!.messages.at(-1)!)).toBe('real-reply'));
     // Release the abandoned first stream so its error finalize actually runs.
     mock.release();
     await vi.waitFor(() => expect(mock.firstStreamFinished).toBe(true));
     await flush();
 
     const messages = chat.activeThread!.messages;
-    const interrupted = messages.find(m => m.role === 'assistant' && m.content.includes('[interrupted]'));
+    const interrupted = messages.find(m => m.role === 'assistant' && messageText(m).includes('[interrupted]'));
     expect(interrupted).toBeDefined();
     if (interrupted?.role === 'assistant') {
       expect(interrupted.finishReason).toBeUndefined();
@@ -2306,7 +2306,8 @@ describe('ChatStore', () => {
     expect(chat.activeThread!.autoNamed).toBeFalsy();
     expect(chat.lastError).toBeNull();
     const finalReply = messages.at(-1);
-    expect(finalReply).toMatchObject({ role: 'assistant', content: 'real-reply' });
+    expect(finalReply?.role).toBe('assistant');
+    expect(messageText(finalReply!)).toBe('real-reply');
   });
 
   it('manual rename prevents auto-naming from overwriting the user title', async () => {

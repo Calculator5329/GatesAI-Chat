@@ -3,6 +3,7 @@
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { AssistantMessage, Message, Thread } from '../../core/types';
 import type { Tool } from './types';
+import { messageText, messageToolCalls, messageToolResults } from '../../core/messageParts';
 
 const DEFAULT_LIMIT = 10;
 const MAX_RECENT = 30;
@@ -135,23 +136,24 @@ function addThreadHit(hits: string[], thread: Thread, needle: string, limit: num
 }
 
 function addMessageHits(hits: string[], thread: Thread, message: Message, needle: string, limit: number): void {
-  const contentSnippet = matchSnippet(message.content, needle);
+  const content = messageText(message);
+  const contentSnippet = matchSnippet(content, needle);
   if (contentSnippet && hits.length < limit) hits.push(formatHit(thread, `${message.role}.content`, message.id, contentSnippet));
 
-  for (const path of workspacePaths(message.content)) {
+  for (const path of workspacePaths(content)) {
     if (hits.length >= limit) return;
     if (path.toLowerCase().includes(needle)) hits.push(formatHit(thread, `${message.role}.workspace_path`, message.id, path));
   }
 
   if (message.role !== 'assistant') return;
   const assistant = message as AssistantMessage;
-  for (const call of assistant.toolCalls ?? []) {
+  for (const call of messageToolCalls(assistant)) {
     if (hits.length >= limit) return;
     const haystack = `${call.name} ${safeJson(call.arguments)}`;
     const snippet = matchSnippet(haystack, needle);
     if (snippet) hits.push(formatHit(thread, `tool_call.${call.name}`, message.id, snippet));
   }
-  for (const result of assistant.toolResults ?? []) {
+  for (const result of messageToolResults(assistant)) {
     if (hits.length >= limit) return;
     const haystack = `${result.toolName} ${result.content}`;
     const snippet = matchSnippet(haystack, needle);
@@ -173,15 +175,17 @@ function formatHit(thread: Thread, field: string, messageId: string | null, snip
 function formatMessage(message: Message, index: number): string {
   const lines = [
     `#${index} ${message.role} ${message.id} ${new Date(message.createdAt).toISOString()}`,
-    oneLine(message.content, MESSAGE_CHARS),
+    oneLine(messageText(message), MESSAGE_CHARS),
   ];
   if (message.role === 'assistant') {
     const assistant = message as AssistantMessage;
-    if (assistant.toolCalls?.length) {
-      lines.push(`tool_calls: ${assistant.toolCalls.map(call => call.name).join(', ')}`);
+    const calls = messageToolCalls(assistant);
+    const results = messageToolResults(assistant);
+    if (calls.length) {
+      lines.push(`tool_calls: ${calls.map(call => call.name).join(', ')}`);
     }
-    if (assistant.toolResults?.length) {
-      lines.push(`tool_results: ${assistant.toolResults.map(result => `${result.toolName}(${result.content.length} chars)`).join(', ')}`);
+    if (results.length) {
+      lines.push(`tool_results: ${results.map(result => `${result.toolName}(${result.content.length} chars)`).join(', ')}`);
     }
   }
   return lines.join('\n');

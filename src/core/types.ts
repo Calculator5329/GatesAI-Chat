@@ -10,14 +10,11 @@ export type Role = 'user' | 'assistant';
 /**
  * A single message in a thread. Discriminated by `role`:
  *
- * - `user`:      text from the human.
- * - `assistant`: a single round of model output. May carry text content,
- *                a list of tool calls the model made during the round, and
- *                a parallel list of tool results we collected before the next
- *                round. One message per round trip — see {@link AssistantMessage}.
+ * - `user`:      ordered text and image/file attachment parts from the human.
+ * - `assistant`: ordered tool and final-text parts for one complete user turn.
  *
  * Tool results are NOT separate messages. They're metadata on the assistant
- * message that triggered them. This matches the mental model (a tool result
+ * tool part that triggered them. This matches the mental model (a tool result
  * isn't something anyone "said") and keeps the renderer trivial — no
  * pairing or look-ahead needed. The wire-level provider format still uses
  * separate `tool` messages; that translation lives in
@@ -25,21 +22,52 @@ export type Role = 'user' | 'assistant';
  *
  * Legacy snapshots stored tool results as their own `role: 'tool'` messages.
  * `loadSnapshot()` migrates those forward by folding each tool message into
- * the preceding assistant's `toolResults`.
+ * the preceding assistant's tool part.
  */
 export type Message = UserMessage | AssistantMessage;
+
+/** Ordered, persisted payload for a chat message. */
+export type MessageContentPart =
+  | TextContentPart
+  | ToolContentPart
+  | ImageContentPart
+  | ArtifactContentPart;
+
+export interface TextContentPart {
+  type: 'text';
+  text: string;
+}
+
+/** One model tool invocation and, once available, its paired execution result. */
+export type ToolContentPart =
+  | { type: 'tool'; call: ToolCall; result?: ToolResult }
+  | { type: 'tool'; call?: undefined; result: ToolResult };
+
+/** An image attachment supplied by the user. Bytes remain workspace-backed. */
+export interface ImageContentPart {
+  type: 'image';
+  attachment: MessageAttachmentRef;
+}
+
+/** A non-image file attachment supplied by the user. */
+export interface ArtifactContentPart {
+  type: 'artifact';
+  attachment: MessageAttachmentRef;
+}
 
 export interface UserMessage {
   id: string;
   role: 'user';
-  content: string;
+  /** Canonical v3 message payload. */
+  parts?: MessageContentPart[];
+  /** @deprecated Read through messageText(); accepted only for legacy/test inputs. */
+  content?: string;
   createdAt: number;
   /**
    * Files the user attached when sending this message. References workspace
    * paths only — bytes are resolved on-demand by provider adapters at send
-   * time. Kept in parallel with the legacy attachment footer embedded in
-   * {@link content}; newer messages are authoritative from this field,
-   * older persisted messages fall back to {@link splitAttachmentFooter}.
+   * time. Canonical messages store these as typed image/artifact parts.
+   * @deprecated Accepted only for legacy/test inputs; read through messageAttachments().
    */
   attachments?: MessageAttachmentRef[];
 }
@@ -64,7 +92,10 @@ export interface MessageAttachmentRef {
 export interface AssistantMessage {
   id: string;
   role: 'assistant';
-  content: string;
+  /** Canonical v3 message payload. */
+  parts?: MessageContentPart[];
+  /** @deprecated Read through messageText(); accepted only for legacy/test inputs. */
+  content?: string;
   createdAt: number;
   model?: string;
   /** Label for the empty pre-token streaming state. Omitted means "thinking". */
@@ -75,8 +106,10 @@ export interface AssistantMessage {
    */
   workNotes?: string[];
   /** Tool calls the model made during this round. Empty / omitted when none. */
+  /** @deprecated Read through messageToolCalls(); accepted only for legacy/test inputs. */
   toolCalls?: ToolCall[];
   /** Results from executing those tool calls. Length matches toolCalls; pair by id. */
+  /** @deprecated Read through messageToolResults(); accepted only for legacy/test inputs. */
   toolResults?: ToolResult[];
   /** Provider-reported usage/cost for the LLM request(s) that produced this message. */
   usage?: LlmUsage[];

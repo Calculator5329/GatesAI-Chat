@@ -7,6 +7,7 @@ import { observer } from 'mobx-react-lite';
 import type { MouseEvent } from 'react';
 import type { AssistantFinishReason, Message } from '../../core/types';
 import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
+import { contentPartsForMessage, messageText } from '../../core/messageParts';
 import { useEditorial } from '../../stores/context';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
 import { WorkspaceImage } from './WorkspaceImage';
@@ -76,7 +77,8 @@ export const EditorialMessage = observer(function EditorialMessage({
   const { chat, router } = useEditorial();
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const [editing, setEditing] = useState(false);
-  const [editText, setEditText] = useState(message.content);
+  const content = messageText(message);
+  const [editText, setEditText] = useState(content);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const isUser = message.role === 'user';
   const when = useMemo(
@@ -89,9 +91,9 @@ export const EditorialMessage = observer(function EditorialMessage({
     ? `You${when ? ' · ' + when : ''}`
     : `${modelName ?? 'Assistant'}${when ? ' · ' + when : ''}`;
 
-  const hasContent = message.content.trim().length > 0;
+  const hasContent = content.trim().length > 0;
   const visibleAssistantContent = useSmoothedStreamingText(
-    message.content,
+    content,
     !isUser && streaming && hasContent,
   );
   const userContent = isUser && message.role === 'user' ? resolveUserAttachments(message) : null;
@@ -112,9 +114,9 @@ export const EditorialMessage = observer(function EditorialMessage({
   }, [copyState]);
 
   useEffect(() => {
-    if (!editing) setEditText(message.content);
+    if (!editing) setEditText(content);
     setConfirmAction(null);
-  }, [editing, message.content, message.id]);
+  }, [editing, content, message.id]);
 
   function showCopyHint() {
     if (copyHintSeen || copyState !== 'idle') return;
@@ -122,12 +124,12 @@ export const EditorialMessage = observer(function EditorialMessage({
     setCopyState('hint');
   }
 
-  const canCopy = message.content.trim().length > 0;
+  const canCopy = content.trim().length > 0;
 
   async function copyMessage() {
     if (!canCopy) return;
     try {
-      await navigator.clipboard.writeText(message.content);
+      await navigator.clipboard.writeText(content);
       setCopyState('copied');
     } catch {
       setCopyState('failed');
@@ -237,7 +239,7 @@ export const EditorialMessage = observer(function EditorialMessage({
             aria-label="Edit and resend"
             disabled={actionsDisabled || streaming || !onEditAndResend}
             onClick={() => {
-              setEditText(message.content);
+              setEditText(content);
               setConfirmAction(null);
               setEditing(true);
             }}
@@ -329,13 +331,15 @@ export const EditorialMessage = observer(function EditorialMessage({
               <button type="button" onClick={submitEdit}>Save &amp; resend</button>
             </div>
           </div>
-        ) : isUser ? (
-          <UserMessageContent body={userContent?.body ?? message.content} attachments={userContent?.attachments ?? []} />
-        ) : hasContent && streaming ? (
-          <MarkdownBody content={visibleAssistantContent} incremental />
-        ) : hasContent ? (
-          <MarkdownBody content={message.content} />
-        ) : null}
+        ) : (
+          <MessagePartsBody
+            message={message}
+            userBody={userContent?.body ?? content}
+            userAttachments={userContent?.attachments ?? []}
+            assistantContent={visibleAssistantContent}
+            incremental={streaming}
+          />
+        )}
         {finishNotice && (
           <div className="message-finish-notice" data-tone={finishNotice.tone}>
             {finishNotice.label}
@@ -345,6 +349,38 @@ export const EditorialMessage = observer(function EditorialMessage({
     </div>
   );
 });
+
+/** The sole rendering dispatch for persisted message content parts. */
+function MessagePartsBody({
+  message,
+  userBody,
+  userAttachments,
+  assistantContent,
+  incremental,
+}: {
+  message: Message;
+  userBody: string;
+  userAttachments: RenderedAttachment[];
+  assistantContent: string;
+  incremental: boolean;
+}) {
+  let hasText = false;
+  let hasAttachments = false;
+  for (const part of contentPartsForMessage(message)) {
+    switch (part.type) {
+      case 'text': hasText ||= part.text.length > 0; break;
+      case 'image':
+      case 'artifact': hasAttachments = true; break;
+      case 'tool': break; // Tool parts are rendered by the activity timeline above.
+    }
+  }
+  if (message.role === 'user') {
+    return hasText || hasAttachments
+      ? <UserMessageContent body={userBody} attachments={userAttachments} />
+      : null;
+  }
+  return hasText ? <MarkdownBody content={assistantContent} incremental={incremental} /> : null;
+}
 
 function finishNoticeForReason(reason: AssistantFinishReason | undefined): { label: string; tone: 'warn' | 'error' } | null {
   switch (reason) {

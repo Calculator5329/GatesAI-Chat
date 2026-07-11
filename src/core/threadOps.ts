@@ -1,8 +1,9 @@
 // Pure thread CRUD helpers used by ChatStore wrappers and direct unit tests.
 // Called by stores; depends only on core chat types.
 // Invariant: helpers return new thread/thread-list objects and never mutate inputs.
-import type { AssistantMessage, Message, Thread } from './types';
+import type { Message, Thread } from './types';
 import { DEFAULT_MODEL_ID } from './models';
+import { canonicalizeMessage, contentPartsForMessage, messageAttachments, userMessageParts } from './messageParts';
 
 export function createEmptyThread(id: string, now: number, modelId = DEFAULT_MODEL_ID): Thread {
   return {
@@ -143,7 +144,7 @@ export function editUserMessageAndTruncate(thread: Thread, messageId: string, te
     ...thread,
     messages: [
       ...thread.messages.slice(0, index),
-      { ...original, content: trimmed },
+      { ...original, parts: userMessageParts(trimmed, messageAttachments(original)), content: undefined, attachments: undefined },
     ],
     updatedAt: now,
   };
@@ -159,26 +160,23 @@ export function findPrecedingUserIndex(messages: Message[], beforeIndex: number)
 function cloneMessagesForBranch(messages: Message[], idSalt: string): Message[] {
   return messages.map((message, index) => {
     if (message.role === 'user') {
-      return {
+      return canonicalizeMessage({
         id: `${idSalt}-m-${index}`,
         role: 'user',
-        content: message.content,
+        parts: deepClone(contentPartsForMessage(message)),
         createdAt: message.createdAt,
-        ...(message.attachments ? { attachments: message.attachments.map(attachment => ({ ...attachment })) } : {}),
-      };
+      });
     }
-    return {
+    return canonicalizeMessage({
       id: `${idSalt}-m-${index}`,
       role: 'assistant',
-      content: message.content,
+      parts: deepClone(contentPartsForMessage(message)),
       createdAt: message.createdAt,
       ...(message.model ? { model: message.model } : {}),
       ...(message.workNotes ? { workNotes: [...message.workNotes] } : {}),
-      ...(message.toolCalls ? { toolCalls: deepClone(message.toolCalls) as AssistantMessage['toolCalls'] } : {}),
-      ...(message.toolResults ? { toolResults: deepClone(message.toolResults) as AssistantMessage['toolResults'] } : {}),
-      ...(message.usage ? { usage: deepClone(message.usage) as AssistantMessage['usage'] } : {}),
+      ...(message.usage ? { usage: deepClone(message.usage) } : {}),
       ...(message.finishReason ? { finishReason: message.finishReason } : {}),
-    };
+    });
   });
 }
 

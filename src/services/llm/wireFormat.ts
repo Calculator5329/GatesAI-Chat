@@ -3,6 +3,7 @@
 // Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { LlmMessage } from '../../core/llm';
 import type { Message } from '../../core/types';
+import { messageText, messageToolCalls, messageToolResults } from '../../core/messageParts';
 
 /**
  * Translate stored {@link Message}s into the wire-level {@link LlmMessage}
@@ -31,16 +32,17 @@ export function flattenForWire(messages: Message[]): LlmMessage[] {
   const out: LlmMessage[] = [];
   for (const m of messages) {
     if (m.role === 'user') {
-      out.push({ role: 'user', content: m.content });
+      out.push({ role: 'user', content: messageText(m) });
       continue;
     }
-    const hasContent = m.content.trim().length > 0;
-    const calls = m.toolCalls ?? [];
-    const results = m.toolResults ?? [];
+    const content = messageText(m);
+    const hasContent = content.trim().length > 0;
+    const calls = messageToolCalls(m);
+    const results = messageToolResults(m);
     if (!hasContent && calls.length === 0) continue;
 
     if (calls.length === 0) {
-      out.push({ role: 'assistant', content: m.content });
+      out.push({ role: 'assistant', content });
       continue;
     }
 
@@ -60,7 +62,7 @@ export function flattenForWire(messages: Message[]): LlmMessage[] {
     }
 
     if (hasContent) {
-      out.push({ role: 'assistant', content: m.content });
+      out.push({ role: 'assistant', content });
     }
   }
   return out;

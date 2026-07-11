@@ -1,8 +1,15 @@
 // Persists or coordinates service-level state for persistence.
 // Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
 // Invariant: services normalize legacy data before handing snapshots back to stores.
-import type { ActivityItem, ChatSnapshot, Message, MessageAttachmentRef, ToolResult, Thread, UserMessage } from '../core/types';
+import type { ActivityItem, ChatSnapshot, Message, MessageAttachmentRef, MessageContentPart, ToolResult, ToolResultArtifact, Thread, UserMessage } from '../core/types';
 import type { LlmUsage, ToolCall } from '../core/llm';
+import {
+  assistantMessageParts,
+  canonicalizeMessage,
+  messageText,
+  messageToolCalls,
+  messageToolResults,
+} from '../core/messageParts';
 import { DEFAULT_MODEL_ID, MODELS } from '../core/models';
 import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';
 import { logger } from './diagnostics/logger';
@@ -162,7 +169,7 @@ function cleanSnapshot(snapshot: ChatSnapshot): ChatSnapshot {
     ...snapshot,
     schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
     threads: snapshot.threads.map(t => {
-      const copy = { ...t };
+      const copy = { ...t, messages: t.messages.map(canonicalizeMessage) };
       delete (copy as { naming?: boolean }).naming;
       return copy;
     }),
@@ -424,15 +431,18 @@ function compactSnapshotForEmergencySave(snapshot: ChatSnapshot): ChatSnapshot {
 }
 
 function compactMessageForEmergencySave(message: Message): Message {
-  if (message.role !== 'assistant') return message;
-  return {
+  if (message.role !== 'assistant') return canonicalizeMessage(message);
+  return canonicalizeMessage({
     ...message,
-    toolCalls: message.toolCalls?.map(compactToolCallForEmergencySave),
-    toolResults: message.toolResults?.map(result => ({
-      ...result,
-      content: compactToolResult(result),
-    })),
-  };
+    parts: assistantMessageParts({
+      text: messageText(message),
+      toolCalls: messageToolCalls(message).map(compactToolCallForEmergencySave),
+      toolResults: messageToolResults(message).map(result => ({
+        ...result,
+        content: compactToolResult(result),
+      })),
+    }),
+  });
 }
 
 function compactToolCallForEmergencySave(call: ToolCall): ToolCall {
@@ -584,35 +594,41 @@ function parseThread(value: unknown): Thread | null {
 function parseLegacyMessage(value: unknown): LegacyMessage | null {
   if (!isRecord(value)) return null;
   const id = stringField(value.id);
-  const content = stringField(value.content);
   const createdAt = numberField(value.createdAt);
-  if (!id || content === undefined || createdAt === undefined) return null;
+  if (!id || createdAt === undefined) return null;
+  const parts = parseContentParts(value.parts);
+  const content = stringField(value.content);
   if (value.role === 'user') {
+    if (!parts && content === undefined) return null;
     return {
       id,
       role: 'user',
-      content,
+      ...(parts ? { parts } : { content: content ?? '' }),
       createdAt,
-      attachments: parseAttachments(value.attachments),
+      ...(parts ? {} : { attachments: parseAttachments(value.attachments) }),
     };
   }
   if (value.role === 'assistant') {
+    if (!parts && content === undefined) return null;
     return {
       id,
       role: 'assistant',
-      content,
+      ...(parts ? { parts } : { content: content ?? '' }),
       createdAt,
       model: stringField(value.model),
       preTokenLabel: parsePreTokenLabel(value.preTokenLabel),
       workNotes: parseStringArray(value.workNotes),
-      toolCalls: parseToolCalls(value.toolCalls),
-      toolResults: parseToolResults(value.toolResults),
+      ...(parts ? {} : {
+        toolCalls: parseToolCalls(value.toolCalls),
+        toolResults: parseToolResults(value.toolResults),
+      }),
       usage: parseLlmUsageArray(value.usage),
       finishReason: parseFinishReason(value.finishReason),
       activityEvents: parseActivityItems(value.activityEvents),
     };
   }
   if (value.role === 'tool') {
+    if (content === undefined) return null;
     const toolCallId = stringField(value.toolCallId);
     const toolName = stringField(value.toolName);
     if (!toolCallId || !toolName) return null;
@@ -621,19 +637,46 @@ function parseLegacyMessage(value: unknown): LegacyMessage | null {
   return null;
 }
 
+function parseContentParts(value: unknown): MessageContentPart[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const parts = value.map((item): MessageContentPart | null => {
+    if (!isRecord(item)) return null;
+    if (item.type === 'text') {
+      const text = stringField(item.text);
+      return text === undefined ? null : { type: 'text', text };
+    }
+    if (item.type === 'tool') {
+      const call = parseToolCalls([item.call])?.[0];
+      const result = parseToolResults([item.result])?.[0];
+      if (call) return result ? { type: 'tool', call, result } : { type: 'tool', call };
+      return result ? { type: 'tool', result } : null;
+    }
+    if (item.type === 'image' || item.type === 'artifact') {
+      const attachment = parseAttachment(item.attachment);
+      return attachment ? { type: item.type, attachment } : null;
+    }
+    return null;
+  }).filter((part): part is MessageContentPart => part !== null);
+  return parts;
+}
+
 function parseAttachments(value: unknown): UserMessage['attachments'] {
   if (!Array.isArray(value)) return undefined;
   const attachments = value
-    .map(item => {
-      if (!isRecord(item)) return null;
-      const path = stringField(item.path);
-      const name = stringField(item.name);
-      const mime = stringField(item.mime);
-      const size = numberField(item.size);
-      return path && name && mime && size !== undefined ? { path, name, mime, size } : null;
-    })
+    .map(parseAttachment)
     .filter((item): item is MessageAttachmentRef => item !== null);
   return attachments.length ? attachments : undefined;
+}
+
+function parseAttachment(item: unknown): MessageAttachmentRef | null {
+  if (!isRecord(item)) return null;
+  const path = stringField(item.path);
+  const name = stringField(item.name);
+  const mime = stringField(item.mime);
+  const size = numberField(item.size);
+  if (!path || !name || !mime || size === undefined) return null;
+  const id = stringField(item.id);
+  return { ...(id ? { id } : {}), path, name, mime, size };
 }
 
 function parseToolCalls(value: unknown): ToolCall[] | undefined {
@@ -681,16 +724,37 @@ function parseToolResults(value: unknown): ToolResult[] | undefined {
       const retryable = booleanField(item.retryable);
       const durationMs = numberField(item.durationMs);
       const outputChars = numberField(item.outputChars);
+      const artifacts = parseToolResultArtifacts(item.artifacts);
       if (summary !== undefined) result.summary = summary;
       if (ok !== undefined) result.ok = ok;
       if (errorCode !== undefined) result.errorCode = errorCode;
       if (retryable !== undefined) result.retryable = retryable;
       if (durationMs !== undefined) result.durationMs = durationMs;
       if (outputChars !== undefined) result.outputChars = outputChars;
+      if (artifacts !== undefined) result.artifacts = artifacts;
       return result;
     })
     .filter((item): item is ToolResult => item !== null);
   return results.length ? results : undefined;
+}
+
+function parseToolResultArtifacts(value: unknown): ToolResultArtifact[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const artifacts = value.map((item): ToolResultArtifact | null => {
+    if (!isRecord(item)) return null;
+    if (item.kind === 'image') {
+      const path = stringField(item.path);
+      const mime = stringField(item.mime);
+      return path && mime ? { kind: 'image', path, mime } : null;
+    }
+    if (item.kind === 'image-job') {
+      const jobId = stringField(item.jobId);
+      const count = numberField(item.count);
+      return jobId && count !== undefined ? { kind: 'image-job', jobId, count } : null;
+    }
+    return null;
+  }).filter((artifact): artifact is ToolResultArtifact => artifact !== null);
+  return artifacts.length ? artifacts : undefined;
 }
 
 function parseLlmUsageArray(value: unknown): LlmUsage[] | undefined {
@@ -875,11 +939,18 @@ function foldToolMessages(messages: LegacyMessage[]): Message[] {
           content: m.content,
           ranAt: m.createdAt,
         };
-        lastAssistant.toolResults = [...(lastAssistant.toolResults ?? []), result];
+        lastAssistant.parts = assistantMessageParts({
+          text: messageText(lastAssistant),
+          toolCalls: messageToolCalls(lastAssistant),
+          toolResults: [...messageToolResults(lastAssistant), result],
+        });
+        delete lastAssistant.content;
+        delete lastAssistant.toolCalls;
+        delete lastAssistant.toolResults;
       }
       continue;
     }
-    out.push(m);
+    out.push(canonicalizeMessage(m));
   }
   return out;
 }
@@ -897,13 +968,16 @@ function foldAssistantRuns(messages: Message[]): Message[] {
   for (const m of messages) {
     const prev = out[out.length - 1];
     if (m.role === 'assistant' && prev?.role === 'assistant') {
-      prev.toolCalls = [...(prev.toolCalls ?? []), ...(m.toolCalls ?? [])];
-      prev.toolResults = [...(prev.toolResults ?? []), ...(m.toolResults ?? [])];
+      const nextText = messageText(m);
+      prev.parts = assistantMessageParts({
+        text: nextText.trim().length > 0 ? nextText : messageText(prev),
+        toolCalls: [...messageToolCalls(prev), ...messageToolCalls(m)],
+        toolResults: [...messageToolResults(prev), ...messageToolResults(m)],
+      });
       if (prev.usage || m.usage) prev.usage = [...(prev.usage ?? []), ...(m.usage ?? [])];
-      if (m.content.trim().length > 0) prev.content = m.content;
       continue;
     }
-    out.push(m);
+    out.push(canonicalizeMessage(m));
   }
   return out;
 }

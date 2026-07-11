@@ -5,6 +5,7 @@ import type { LlmRequest } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { resolveBackgroundModelId, resolveDefaultModelId } from '../core/defaultModel';
 import { formatAttachmentFooter, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
+import { appendMessageText, messageText, setMessageText, userMessageParts } from '../core/messageParts';
 import {
   branchThreadFrom,
   createEmptyThread,
@@ -902,9 +903,8 @@ export class ChatStore {
     const userMessage: Message = {
       id: newId('m'),
       role: 'user',
-      content: (trimmed + attachmentFooter).trim() || '(see attachments)',
+      parts: userMessageParts((trimmed + attachmentFooter).trim() || '(see attachments)', refs),
       createdAt: Date.now(),
-      ...(refs.length > 0 ? { attachments: refs } : {}),
     };
     this.appendMessage(thread.id, userMessage);
 
@@ -970,8 +970,8 @@ export class ChatStore {
       this.textBuffer.flush(messageId);
       const message = this.findMessage(threadId, messageId);
       if (message && message.role === 'assistant') {
-        const partial = message.content.trim();
-        message.content = partial ? `${message.content}\n\n*[interrupted]*` : '*[no response]*';
+        const partial = messageText(message).trim();
+        setMessageText(message, partial ? `${messageText(message)}\n\n*[interrupted]*` : '*[no response]*');
       }
     }
     this.clearStreamingState(threadId);
@@ -1260,7 +1260,7 @@ export class ChatStore {
       // Provisional placeholder only - derived from what the user typed, with
       // the attachment footer stripped so it never leaks "[Attached: ...]" text.
       // Auto-naming intentionally replaces this once the first turn completes.
-      const body = splitAttachmentFooter(message.content).body;
+      const body = splitAttachmentFooter(messageText(message)).body;
       const title = body.replace(/\s+/g, ' ').trim().slice(0, 40);
       thread.title = title || 'New conversation';
     }
@@ -1293,8 +1293,8 @@ export class ChatStore {
       thread.updatedAt = Date.now();
       const lastAssistant = findLastAssistant(thread);
       if (lastAssistant) {
-        const partial = lastAssistant.content.trim();
-        lastAssistant.content = partial ? `${lastAssistant.content}\n\n*[interrupted]*` : '*[no response - background task interrupted]*';
+        const partial = messageText(lastAssistant).trim();
+        setMessageText(lastAssistant, partial ? `${messageText(lastAssistant)}\n\n*[interrupted]*` : '*[no response - background task interrupted]*');
       }
       if (thread.agentTaskOriginThreadId) {
         this.appendActivityEventToThread(thread.agentTaskOriginThreadId, {
@@ -1315,7 +1315,7 @@ export class ChatStore {
 
   private appendChunk(threadId: string, messageId: string, chunk: string): void {
     const message = this.findMessage(threadId, messageId);
-    if (message) message.content += chunk;
+    if (message) appendMessageText(message, chunk);
   }
 
   private queueTextChunk(threadId: string, messageId: string, chunk: string): void {
@@ -1439,7 +1439,7 @@ function summarizeAgentTaskThread(
   errorMessage?: string,
 ): string {
   const assistant = findLastAssistant(thread);
-  let summary = assistant?.content.trim() || errorMessage || 'Background task finished without a final summary.';
+  let summary = (assistant ? messageText(assistant).trim() : '') || errorMessage || 'Background task finished without a final summary.';
   if (status === 'interrupted') summary = summary.includes('interrupted') ? summary : `${summary}\n\n[interrupted]`;
   if (status === 'error' && errorMessage && !summary.includes(errorMessage)) summary = `${summary}\n\n${errorMessage}`;
   if (summary.includes(`Stopped after ${AGENT_TASK_MAX_TOOL_ROUNDS} tool rounds`)) {

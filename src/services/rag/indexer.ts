@@ -3,6 +3,7 @@ import type { Note } from '../../core/notes';
 import type { RagEmbedder } from './embeddings';
 import type { RagChunk, RagSourceType } from './vectorStore';
 import type { RagVectorStore } from './vectorStore';
+import { messageText } from '../../core/messageParts';
 
 export interface RagSource {
   sourceType: RagSourceType;
@@ -162,7 +163,7 @@ export function collectRagSources(snapshot: RagSourceSnapshot): RagSource[] {
   for (const thread of snapshot.threads) {
     if (thread.deletedAt != null) continue;
     for (const message of thread.messages) {
-      const text = message.content.trim();
+      const text = messageText(message).trim();
       if (!text) continue;
       sources.push({
         sourceType: 'message',

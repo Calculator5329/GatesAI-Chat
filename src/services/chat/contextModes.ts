@@ -7,6 +7,7 @@ import { splitAttachmentFooter } from '../../core/attachments';
 import { flattenForWire } from '../llm/wireFormat';
 import { toolRegistry } from '../tools/registry';
 import { isWebLite } from '../../core/runtime';
+import { messageText } from '../../core/messageParts';
 
 export type ChatContextMode = NonNullable<Thread['contextMode']>;
 
@@ -46,7 +47,7 @@ const IMAGE_GEN_ADDENDUM = 'When you call image_generate, treat the tool result 
 export function latestUserMessageContent(thread: Thread): string {
   for (let i = thread.messages.length - 1; i >= 0; i--) {
     const message = thread.messages[i];
-    if (message.role === 'user') return message.content;
+    if (message.role === 'user') return messageText(message);
   }
   return '';
 }
@@ -62,7 +63,7 @@ export function latestUserMessage(thread: Thread): Message | null {
 export function latestUserPromptBody(thread: Thread): string {
   for (let i = thread.messages.length - 1; i >= 0; i--) {
     const message = thread.messages[i];
-    if (message.role === 'user') return splitAttachmentFooter(message.content).body;
+    if (message.role === 'user') return splitAttachmentFooter(messageText(message)).body;
   }
   return '';
 }

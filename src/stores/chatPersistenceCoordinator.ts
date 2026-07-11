@@ -16,6 +16,7 @@ import {
 } from '../services/persistence';
 import { logger } from '../services/diagnostics/logger';
 import type { WorkspaceChatPersistence } from '../services/workspaceChatPersistence';
+import { contentPartsForMessage } from '../core/messageParts';
 
 /** Throttle interval for the localStorage autosave. */
 const FLUSH_MS = 250;
@@ -46,26 +47,31 @@ export function trackSnapshotDeep(threads: Thread[]): number {
     if (thread.summaryMessageCount) signature += thread.summaryMessageCount;
     if (thread.threadContext) signature += thread.threadContext.length;
     for (const message of thread.messages) {
-      signature += message.content.length + message.createdAt;
-      if (message.role === 'user') {
-        for (const attachment of message.attachments ?? []) {
+      signature += message.createdAt;
+      for (const part of contentPartsForMessage(message)) {
+        if (part.type === 'text') signature += part.text.length;
+        if (part.type === 'image' || part.type === 'artifact') {
+          const attachment = part.attachment;
           signature += (attachment.id?.length ?? 0) + attachment.path.length + attachment.name.length + attachment.mime.length + attachment.size;
         }
-      } else {
+        if (part.type === 'tool') {
+          const call = part.call;
+          const result = part.result;
+          if (call) signature += call.id.length + call.name.length + JSON.stringify(call.arguments ?? {}).length;
+          if (result) {
+            signature += result.toolCallId.length + result.toolName.length + result.content.length + result.ranAt;
+            if (result.summary) signature += result.summary.length;
+            if (result.errorCode) signature += result.errorCode.length;
+            if (result.retryable) signature += 1;
+            for (const artifact of result.artifacts ?? []) signature += JSON.stringify(artifact).length;
+          }
+        }
+      }
+      if (message.role === 'assistant') {
         if (message.model) signature += message.model.length;
         if (message.preTokenLabel) signature += message.preTokenLabel.length;
         if (message.finishReason) signature += message.finishReason.length;
         for (const note of message.workNotes ?? []) signature += note.length;
-        for (const call of message.toolCalls ?? []) {
-          signature += call.id.length + call.name.length + JSON.stringify(call.arguments ?? {}).length;
-        }
-        for (const result of message.toolResults ?? []) {
-          signature += result.toolCallId.length + result.toolName.length + result.content.length + result.ranAt;
-          if (result.summary) signature += result.summary.length;
-          if (result.errorCode) signature += result.errorCode.length;
-          if (result.retryable) signature += 1;
-          for (const artifact of result.artifacts ?? []) signature += JSON.stringify(artifact).length;
-        }
         for (const usage of message.usage ?? []) signature += JSON.stringify(usage).length;
         for (const event of message.activityEvents ?? []) signature += event.id.length + event.verb.length + event.startedAt + (event.finishedAt ?? 0);
       }

@@ -10,6 +10,7 @@ import {
 } from '../../../src/services/chat/turnRunner';
 import type { StreamingRoundActivityUpdate } from '../../../src/services/chat/streamingRoundExecutor';
 import { clearAppStorage } from '../../helpers/storage';
+import { appendMessageText, messageText, messageToolCalls, messageToolResults } from '../../../src/core/messageParts';
 
 class ScriptedProvider implements LlmProvider {
   readonly id: ProviderId = 'openrouter';
@@ -54,7 +55,7 @@ class FakeTurnHost implements TurnHost {
 
   queueTextChunk(threadId: string, messageId: string, chunk: string): void {
     const message = this.getAssistant(threadId, messageId);
-    if (message) message.content += chunk;
+    if (message) appendMessageText(message, chunk);
   }
 
   flushText(): void {}
@@ -169,9 +170,9 @@ describe('TurnRunner', () => {
     expect(assistant.role).toBe('assistant');
     if (assistant.role !== 'assistant') return;
     expect(assistant.workNotes?.[0]).toContain("I'll remember that");
-    expect(assistant.content).toBe('Saved.');
-    expect(assistant.toolCalls?.map(call => call.id)).toEqual(['memory-1']);
-    expect(assistant.toolResults?.[0].content).toContain('Saved');
+    expect(messageText(assistant)).toBe('Saved.');
+    expect(messageToolCalls(assistant).map(call => call.id)).toEqual(['memory-1']);
+    expect(messageToolResults(assistant)[0].content).toContain('Saved');
     expect(profile.facts).toContain('User likes jazz piano');
     expect(provider.calls).toHaveLength(2);
     expect(provider.calls[1].messages.some(message => message.role === 'tool')).toBe(true);
@@ -198,7 +199,7 @@ describe('TurnRunner', () => {
     const assistant = thread.messages[1];
     expect(assistant.role).toBe('assistant');
     if (assistant.role !== 'assistant') return;
-    expect(assistant.content).toBe('Done - artifact ready.');
+    expect(messageText(assistant)).toBe('Done - artifact ready.');
     expect(assistant.finishReason).toBe('stop');
   });
 });

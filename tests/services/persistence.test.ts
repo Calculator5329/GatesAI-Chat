@@ -16,6 +16,7 @@ import { CURRENT_CHAT_SCHEMA_VERSION } from '../../src/services/persistence/migr
 import type { ThreadArchiveStore } from '../../src/services/persistence/idb';
 import type { ChatSnapshot, Thread } from '../../src/core/types';
 import { logger } from '../../src/services/diagnostics/logger';
+import { messageText, messageToolCalls, messageToolResults } from '../../src/core/messageParts';
 import { clearAppStorage } from '../helpers/storage';
 
 describe('persistence', () => {
@@ -67,12 +68,12 @@ describe('persistence', () => {
         modelId: 'or-gpt-5.4-mini',
         skillId: 'code-reviewer',
         createdAt: 1, updatedAt: 2,
-        messages: [{ id: 'm1', role: 'user' as const, content: 'yo', createdAt: 3 }],
+        messages: [{ id: 'm1', role: 'user' as const, parts: [{ type: 'text' as const, text: 'yo' }], createdAt: 3 }],
       }],
       activeThreadId: 't1',
     };
     saveSnapshot(snapshot);
-    expect(loadSnapshot()).toEqual(snapshot);
+    expect(loadSnapshot()).toMatchObject(snapshot);
   });
 
   it('round-trips assistant message usage records', () => {
@@ -85,7 +86,7 @@ describe('persistence', () => {
         messages: [{
           id: 'a1',
           role: 'assistant' as const,
-          content: 'done',
+          parts: [{ type: 'text' as const, text: 'done' }],
           createdAt: 3,
           model: 'or-gemini-3-flash',
           usage: [{
@@ -104,7 +105,7 @@ describe('persistence', () => {
 
     saveSnapshot(snapshot);
 
-    expect(loadSnapshot()).toEqual(snapshot);
+    expect(loadSnapshot()).toMatchObject(snapshot);
   });
 
   it('returns null on malformed JSON', () => {
@@ -184,14 +185,14 @@ describe('persistence', () => {
     if (a.role !== 'assistant') throw new Error('expected assistant');
     // Identity comes from the first round's message (so external refs survive).
     expect(a.id).toBe('a1');
-    expect(a.toolCalls).toHaveLength(1);
-    expect(a.toolCalls?.[0].id).toBe('call_1');
-    expect(a.toolResults).toHaveLength(1);
-    expect(a.toolResults?.[0].content).toBe('Saved.');
+    expect(messageToolCalls(a)).toHaveLength(1);
+    expect(messageToolCalls(a)[0].id).toBe('call_1');
+    expect(messageToolResults(a)).toHaveLength(1);
+    expect(messageToolResults(a)[0].content).toBe('Saved.');
     expect(a.usage).toHaveLength(2);
     expect(a.usage?.map(usage => usage.totalTokens)).toEqual([60, 25]);
     // Final round's prose wins.
-    expect(a.content).toBe('done — saved.');
+    expect(messageText(a)).toBe('done — saved.');
   });
 
   it('preserves dynamic OpenRouter and Ollama model ids across migration', () => {
@@ -229,18 +230,24 @@ describe('persistence', () => {
         id: 't1', title: 'x', subtitle: '', pinned: false,
         modelId: 'or-gpt-5.4-mini', createdAt: 1, updatedAt: 2,
         messages: [
-          { id: 'u', role: 'user' as const, content: 'hi', createdAt: 1 },
+          { id: 'u', role: 'user' as const, parts: [{ type: 'text' as const, text: 'hi' }], createdAt: 1 },
           {
-            id: 'a', role: 'assistant' as const, content: 'hello', createdAt: 2,
-            toolCalls: [{ id: 'c1', name: 'memory', arguments: {} }],
-            toolResults: [{ toolCallId: 'c1', toolName: 'memory', content: 'ok', ranAt: 3 }],
+            id: 'a', role: 'assistant' as const, createdAt: 2,
+            parts: [
+              {
+                type: 'tool' as const,
+                call: { id: 'c1', name: 'memory', arguments: {} },
+                result: { toolCallId: 'c1', toolName: 'memory', content: 'ok', ranAt: 3 },
+              },
+              { type: 'text' as const, text: 'hello' },
+            ],
           },
         ],
       }],
       activeThreadId: 't1',
     };
     saveSnapshot(clean);
-    expect(loadSnapshot()).toEqual(clean);
+    expect(loadSnapshot()).toMatchObject(clean);
   });
 
   it('normalizes legacy thinking effort values into the three visible presets', () => {
@@ -328,13 +335,11 @@ describe('persistence', () => {
     const loaded = loadSnapshot();
     expect(loaded?.threads[0].messages).toHaveLength(2);
     const assistant = loaded?.threads[0].messages[1];
-    expect(assistant).toMatchObject({
-      role: 'assistant',
-      content: 'I wrote the structured JSON artifact.',
-    });
+    expect(assistant?.role).toBe('assistant');
     if (assistant?.role !== 'assistant') throw new Error('expected assistant');
-    expect(assistant.toolResults?.[0].content).toContain('[persisted tool result compacted]');
-    expect(assistant.toolResults?.[0].content).toContain('/workspace/artifacts/huge.json');
+    expect(messageText(assistant)).toBe('I wrote the structured JSON artifact.');
+    expect(messageToolResults(assistant)[0].content).toContain('[persisted tool result compacted]');
+    expect(messageToolResults(assistant)[0].content).toContain('/workspace/artifacts/huge.json');
   });
 
   it('keeps conversation messages saved when oversized tool call arguments exceed localStorage quota', () => {
@@ -376,10 +381,10 @@ describe('persistence', () => {
     expect(loaded?.threads[0].messages).toHaveLength(2);
     const assistant = loaded?.threads[0].messages[1];
     if (assistant?.role !== 'assistant') throw new Error('expected assistant');
-    expect(assistant.content).toBe('I wrote the artifact.');
-    expect(assistant.toolCalls?.[0].arguments.content).toContain('[persisted tool argument compacted]');
-    expect(assistant.toolCalls?.[0].arguments.content).toContain('/workspace/artifacts/migration.json');
-    expect(assistant.toolResults?.[0].content).toContain('Wrote 40010 bytes');
+    expect(messageText(assistant)).toBe('I wrote the artifact.');
+    expect(messageToolCalls(assistant)[0].arguments.content).toContain('[persisted tool argument compacted]');
+    expect(messageToolCalls(assistant)[0].arguments.content).toContain('/workspace/artifacts/migration.json');
+    expect(messageToolResults(assistant)[0].content).toContain('Wrote 40010 bytes');
   });
 
   it('archives older threads as stubs and swaps a touched archived thread back into the hot tier', async () => {

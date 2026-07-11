@@ -2,6 +2,7 @@
 // Called by RouterStore/ChatStore through the LlmProvider interface; depends on core LLM messages, SSE/JSON parsing, and provider configs.
 // Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { Thread, ToolResult } from '../../core/types';
+import { messageToolResults } from '../../core/messageParts';
 
 export const COMPACTED_TOOL_RESULT_PREFIX = '[compacted tool result]';
 
@@ -33,7 +34,7 @@ export async function compactLargeToolResultsInThread(
 
   for (const message of thread.messages) {
     if (message.role !== 'assistant') continue;
-    const results = message.toolResults ?? [];
+    const results = messageToolResults(message);
     for (const result of results) {
       if (result.content.length < minChars) continue;
       if (isCompactedToolResult(result.content)) continue;

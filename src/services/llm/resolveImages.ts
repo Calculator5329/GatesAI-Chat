@@ -4,6 +4,7 @@
 import type { LlmImagePart, LlmMessage } from '../../core/llm';
 import type { Message } from '../../core/types';
 import { isImageMime } from '../../core/attachments';
+import { messageAttachments } from '../../core/messageParts';
 
 /**
  * Minimal surface the resolver needs from the bridge. Narrower than the
@@ -49,7 +50,7 @@ export async function resolveWireImages(
   for (let i = 0; i < count; i++) {
     const stored = userStored[storedStart + i];
     if (stored.role !== 'user') continue;
-    const refs = stored.attachments ?? [];
+    const refs = messageAttachments(stored);
     const imagePaths = refs.filter(a => isImageMime(a.mime)).map(a => a.path);
     if (imagePaths.length === 0) continue;
     pairs.push({ wireIdx: userWire[wireStart + i], paths: imagePaths });

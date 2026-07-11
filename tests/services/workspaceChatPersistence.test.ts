@@ -6,6 +6,7 @@ import {
   WORKSPACE_CHAT_LIBRARY_INDEX_PATH,
   WORKSPACE_CHAT_STATE_PATH,
 } from '../../src/services/workspaceChatPersistence';
+import { assistantMessageParts, userMessageParts } from '../../src/core/messageParts';
 
 describe('workspace chat persistence', () => {
   it('round-trips a workspace snapshot envelope', async () => {
@@ -18,7 +19,7 @@ describe('workspace chat persistence', () => {
 
     expect(loaded.kind).toBe('loaded');
     if (loaded.kind !== 'loaded') throw new Error('expected loaded');
-    expect(loaded.snapshot).toEqual(snapshot);
+    expect(loaded.snapshot).toMatchObject(snapshot);
     expect(loaded.envelope).toMatchObject({
       version: 1,
       source: 'workspace',
@@ -34,25 +35,27 @@ describe('workspace chat persistence', () => {
     if (firstMessage.role !== 'user') throw new Error('expected user message');
     snapshot.threads[0].messages[0] = {
       ...firstMessage,
-      attachments: [{
+      parts: userMessageParts('hello', [{
         path: '/workspace/attachments/sketch.png',
         name: 'sketch.png',
         mime: 'image/png',
         size: 2048,
-      }],
+      }]),
     };
     snapshot.threads[0].messages.push({
       id: 'm2',
       role: 'assistant',
-      content: 'Generated an image.',
+      parts: assistantMessageParts({
+        text: 'Generated an image.',
+        toolResults: [{
+          toolCallId: 'c1',
+          toolName: 'image_generate',
+          content: 'Saved /workspace/artifacts/images/local/render.png',
+          ranAt: 5,
+          artifacts: [{ kind: 'image', path: '/workspace/artifacts/images/local/render.png', mime: 'image/png' }],
+        }],
+      }),
       createdAt: 4,
-      toolResults: [{
-        toolCallId: 'c1',
-        toolName: 'image_generate',
-        content: 'Saved /workspace/artifacts/images/local/render.png',
-        ranAt: 5,
-        artifacts: [{ kind: 'image', path: '/workspace/artifacts/images/local/render.png', mime: 'image/png' }],
-      }],
     });
 
     await persistence.save(snapshot);
@@ -186,7 +189,7 @@ describe('workspace chat persistence', () => {
 
 function sampleSnapshot(id: string, title: string): ChatSnapshot {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     activeThreadId: id,
     threads: [{
       id,
@@ -196,7 +199,7 @@ function sampleSnapshot(id: string, title: string): ChatSnapshot {
       modelId: 'or-gpt-5.4-mini',
       createdAt: 1,
       updatedAt: 2,
-      messages: [{ id: 'm1', role: 'user', content: 'hello', createdAt: 3 }],
+      messages: [{ id: 'm1', role: 'user', parts: [{ type: 'text', text: 'hello' }], createdAt: 3 }],
     }],
   };
 }

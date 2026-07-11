@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Thread } from '../../src/core/types';
+import { messageAttachments, messageText, messageToolResults } from '../../src/core/messageParts';
 import {
   branchThreadFrom,
   createEmptyThread,
@@ -105,15 +106,15 @@ describe('threadOps', () => {
     expect(branch?.contextMode).toBe('system-tools');
     expect(branch?.thinkingEffort).toBe('high');
     expect(branch?.threadContext).toBeUndefined();
-    expect(branch?.messages.map(message => message.content)).toEqual(['one', 'two']);
+    expect(branch?.messages.map(messageText)).toEqual(['one', 'two']);
     expect(branch?.messages.map(message => message.id)).toEqual(['branch-1-m-0', 'branch-1-m-1']);
     const copiedAssistant = branch?.messages[1];
-    expect(copiedAssistant?.role === 'assistant' ? copiedAssistant.toolResults?.[0].content : undefined).toBe('result');
-    if (copiedAssistant?.role === 'assistant' && copiedAssistant.toolResults) {
-      copiedAssistant.toolResults[0].content = 'changed';
+    expect(copiedAssistant?.role === 'assistant' ? messageToolResults(copiedAssistant)[0].content : undefined).toBe('result');
+    if (copiedAssistant?.role === 'assistant') {
+      messageToolResults(copiedAssistant)[0].content = 'changed';
     }
     const sourceAssistant = source.messages[1];
-    expect(sourceAssistant.role === 'assistant' ? sourceAssistant.toolResults?.[0].content : undefined).toBe('result');
+    expect(sourceAssistant.role === 'assistant' ? messageToolResults(sourceAssistant)[0].content : undefined).toBe('result');
     expect(copiedAssistant?.role === 'assistant' ? copiedAssistant.activityEvents : undefined).toBeUndefined();
   });
 
@@ -135,13 +136,13 @@ describe('threadOps', () => {
     });
 
     const edited = editUserMessageAndTruncate(source, 'u2', ' edited prompt ', 50);
-    expect(edited?.messages.map(message => message.content)).toEqual(['first', 'first answer', 'edited prompt']);
+    expect(edited?.messages.map(messageText)).toEqual(['first', 'first answer', 'edited prompt']);
     const editedUser = edited?.messages[2];
-    expect(editedUser?.role === 'user' ? editedUser.attachments?.[0].path : undefined).toBe('/workspace/a.txt');
+    expect(editedUser?.role === 'user' ? messageAttachments(editedUser)[0].path : undefined).toBe('/workspace/a.txt');
     expect(source.messages.map(message => message.content)).toContain('second answer');
 
     const regenerated = regenerateThreadFromAssistant(source, 'a2', 60);
-    expect(regenerated?.messages.map(message => message.content)).toEqual(['first', 'first answer', 'second']);
+    expect(regenerated?.messages.map(messageText)).toEqual(['first', 'first answer', 'second']);
     expect(regenerated?.updatedAt).toBe(60);
     expect(regenerateThreadFromAssistant(source, 'a1', 60)?.messages.map(message => message.content)).toEqual(['first']);
     expect(regenerateThreadFromAssistant(source, 'missing', 60)).toBeNull();

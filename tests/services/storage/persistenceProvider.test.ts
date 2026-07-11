@@ -7,6 +7,7 @@ import {
 import { logger } from '../../../src/services/diagnostics/logger';
 import { createLocalChatSnapshotPersistenceProvider } from '../../../src/services/persistence';
 import { createProviderConfigsPersistence } from '../../../src/services/providerStorage';
+import { messageToolResults } from '../../../src/core/messageParts';
 
 describe('persistence providers', () => {
   afterEach(() => {
@@ -93,7 +94,7 @@ describe('persistence providers', () => {
     const message = loaded?.threads[0].messages[0];
     expect(message?.role).toBe('assistant');
     if (message?.role !== 'assistant') throw new Error('expected assistant');
-    expect(message.toolResults?.[0].content).toContain('[persisted tool result compacted]');
+    expect(messageToolResults(message)[0].content).toContain('[persisted tool result compacted]');
     expect(warnSpy).toHaveBeenCalledTimes(2);
     expect(warnSpy.mock.calls[0]?.[1]).toContain('attempting compaction');
     expect(warnSpy.mock.calls[1]?.[1]).toContain('saved compacted chat snapshot');

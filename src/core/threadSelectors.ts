@@ -6,6 +6,7 @@ import { splitAttachmentFooter } from './attachments';
 import type { Model, Thread } from './types';
 import type { LlmUsage, ProviderId } from './llm';
 import { addUsageToTotals, emptyUsageTotals, type UsageTotals } from './usage';
+import { messageText } from './messageParts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -22,7 +23,7 @@ const MONTH_NAMES = [
 export function userMessageBodies(thread: Thread): string[] {
   return thread.messages.flatMap(message => {
     if (message.role !== 'user') return [];
-    const body = splitAttachmentFooter(message.content).body;
+    const body = splitAttachmentFooter(messageText(message)).body;
     return body.trim() ? [body] : [];
   });
 }
@@ -175,7 +176,7 @@ export function usageSummary(
 export function threadMatchesSearch(thread: Thread, normalizedQuery: string): boolean {
   if (!normalizedQuery) return true;
   if (`${thread.title} ${thread.subtitle}`.toLowerCase().includes(normalizedQuery)) return true;
-  return thread.messages.some(message => message.content.toLowerCase().includes(normalizedQuery));
+  return thread.messages.some(message => messageText(message).toLowerCase().includes(normalizedQuery));
 }
 
 /** A sidebar date bucket: a display label plus the threads that fall in it. */
