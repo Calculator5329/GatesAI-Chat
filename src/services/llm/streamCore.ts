@@ -6,7 +6,8 @@ import { parseJsonObject } from './json';
  * - OpenAI tool deltas/finish drain: openaiCompat.ts 124-185.
  * - Ollama tool calls/done mapping: ollama.ts 149-252.
  * - Usage/errors stay local: openaiCompat.ts 136-140/263-287, ollama.ts 174-176/307-320.
- * - No generic loop: SSE framing and Ollama NDJSON trailing/missing-done handling do not fit cleanly.
+ * - Byte decoding and buffering are shared here; providers retain their
+ *   protocol-specific frame adapters and terminal-event semantics.
  */
 
 export type StreamFinishReason = Exclude<NonNullable<Extract<LlmChunk, { type: 'done' }>['finishReason']>, 'cancelled' | 'error'>;
@@ -82,10 +83,21 @@ export function finiteNumber(value: unknown, min = Number.NEGATIVE_INFINITY): nu
   return typeof value === 'number' && Number.isFinite(value) && value >= min ? value : undefined;
 }
 
-export async function* readUtf8Lines(
+export interface TextFrameAdapter<T> {
+  consumeLine(line: string): T | undefined;
+  consumeTrailing?(text: string): T | undefined;
+}
+
+/**
+ * Decode a byte stream once and delegate protocol framing to a small adapter.
+ * SSE and NDJSON differ in which lines are meaningful, but share all reader,
+ * UTF-8, CRLF, abort, buffering, and trailing-fragment behavior.
+ */
+export async function* readTextFrames<T>(
   body: ReadableStream<Uint8Array>,
+  adapter: TextFrameAdapter<T>,
   signal?: AbortSignal,
-): AsyncIterable<string> {
+): AsyncIterable<T> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
@@ -99,19 +111,44 @@ export async function* readUtf8Lines(
 
       let nl: number;
       while ((nl = buffer.indexOf('\n')) >= 0) {
-        const line = buffer.slice(0, nl).trim();
+        const line = buffer.slice(0, nl).replace(/\r$/, '');
         buffer = buffer.slice(nl + 1);
-        if (line) yield line;
+        const frame = adapter.consumeLine(line);
+        if (frame !== undefined) yield frame;
         if (signal?.aborted) return;
       }
     }
 
     buffer += decoder.decode();
-    const trailing = buffer.trim();
-    if (trailing && !signal?.aborted) yield trailing;
+    if (!signal?.aborted && buffer) {
+      const frame = adapter.consumeTrailing?.(buffer.replace(/\r$/, ''));
+      if (frame !== undefined) yield frame;
+    }
   } finally {
-    reader.releaseLock();
+    try { reader.releaseLock(); } catch { /* ignore */ }
   }
+}
+
+export function sseDataAdapter(): TextFrameAdapter<string> {
+  const consume = (line: string): string | undefined => {
+    if (!line.startsWith('data:')) return undefined;
+    return line.slice(5).trimStart() || undefined;
+  };
+  // Preserve the existing SSE contract: only newline-terminated data lines
+  // are complete frames. NDJSON intentionally accepts a trailing JSON value.
+  return { consumeLine: consume };
+}
+
+export function jsonLinesAdapter(): TextFrameAdapter<string> {
+  const consume = (line: string): string | undefined => line.trim() || undefined;
+  return { consumeLine: consume, consumeTrailing: consume };
+}
+
+export async function* readUtf8Lines(
+  body: ReadableStream<Uint8Array>,
+  signal?: AbortSignal,
+): AsyncIterable<string> {
+  yield* readTextFrames(body, jsonLinesAdapter(), signal);
 }
 
 function parseToolCallDeltaFragment(value: unknown): { index: number; id?: string; name?: string; argumentsDelta?: string } | null {

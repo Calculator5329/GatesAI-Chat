@@ -3,7 +3,7 @@
 // Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ToolCall, ToolDef } from '../../core/llm';
 import { ensureOk } from './sse';
-import { finiteNumber, isRecord, normalizeFinishReason, normalizeToolCallArguments, type StreamFinishReason } from './streamCore';
+import { finiteNumber, isRecord, normalizeFinishReason, normalizeToolCallArguments, readUtf8Lines, type StreamFinishReason } from './streamCore';
 import { logger } from '../diagnostics/logger';
 
 /**
@@ -146,59 +146,26 @@ export class OllamaProvider implements LlmProvider {
   }
 
   private async *parseNdjson(body: ReadableStream<Uint8Array>, signal: AbortSignal, modelId: string): AsyncIterable<LlmChunk> {
-    const reader = body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
     let toolUseSeen = false;
 
-    try {
-      while (!signal.aborted) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        let nl: number;
-        while ((nl = buffer.indexOf('\n')) >= 0) {
-          const line = buffer.slice(0, nl).trim();
-          buffer = buffer.slice(nl + 1);
-          if (!line) continue;
-
-          let frame: OllamaStreamFrame;
-          try {
-            frame = parseOllamaStreamFrame(JSON.parse(line));
-          } catch {
-            continue; // skip malformed line
-          }
-
-          const result = this.consumeFrame(frame, modelId, toolUseSeen);
-          toolUseSeen = result.toolUseSeen;
-          for (const chunk of result.chunks) yield chunk;
-          if (result.terminal) return;
-        }
+    for await (const line of readUtf8Lines(body, signal)) {
+      let frame: OllamaStreamFrame;
+      try {
+        frame = parseOllamaStreamFrame(JSON.parse(line));
+      } catch {
+        continue; // skip malformed line
       }
-      // Flush the decoder and try to parse any trailing complete frame.
-      buffer += decoder.decode();
-      const trailing = buffer.trim();
-      if (trailing) {
-        try {
-          const frame = parseOllamaStreamFrame(JSON.parse(trailing));
-          const result = this.consumeFrame(frame, modelId, toolUseSeen);
-          toolUseSeen = result.toolUseSeen;
-          for (const chunk of result.chunks) yield chunk;
-          if (result.terminal) return;
-        } catch {
-          // Ignore — falls through to the missing-done error path below.
-        }
-      }
-      if (signal.aborted) {
-        yield { type: 'done', finishReason: 'cancelled' };
-      } else {
-        // Server closed the stream without sending a final done frame.
-        // Treat as an error so consumers don't hang in a streaming state.
-        yield { type: 'done', finishReason: 'error', error: 'Ollama stream ended without done frame' };
-      }
-    } finally {
-      reader.releaseLock();
+      const result = this.consumeFrame(frame, modelId, toolUseSeen);
+      toolUseSeen = result.toolUseSeen;
+      for (const chunk of result.chunks) yield chunk;
+      if (result.terminal) return;
+    }
+    if (signal.aborted) {
+      yield { type: 'done', finishReason: 'cancelled' };
+    } else {
+      // Server closed the stream without sending a final done frame.
+      // Treat as an error so consumers don't hang in a streaming state.
+      yield { type: 'done', finishReason: 'error', error: 'Ollama stream ended without done frame' };
     }
   }
 

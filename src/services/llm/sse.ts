@@ -1,3 +1,5 @@
+import { readTextFrames, sseDataAdapter } from './streamCore';
+
 /**
  * Minimal Server-Sent Events parser for `fetch`-based streaming.
  *
@@ -9,30 +11,7 @@ export async function* parseSse(
   signal: AbortSignal,
 ): AsyncGenerator<string> {
   if (!response.body) return;
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  try {
-    while (true) {
-      if (signal.aborted) return;
-      const { value, done } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-
-      let nlIdx: number;
-      while ((nlIdx = buffer.indexOf('\n')) !== -1) {
-        const line = buffer.slice(0, nlIdx).replace(/\r$/, '');
-        buffer = buffer.slice(nlIdx + 1);
-        if (!line.startsWith('data:')) continue;
-        const data = line.slice(5).trimStart();
-        if (data) yield data;
-      }
-    }
-  } finally {
-    try { reader.releaseLock(); } catch { /* ignore */ }
-  }
+  yield* readTextFrames(response.body, sseDataAdapter(), signal);
 }
 
 /** Throws a friendly error for non-2xx fetch responses. */

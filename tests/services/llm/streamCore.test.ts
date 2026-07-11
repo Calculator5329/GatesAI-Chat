@@ -3,10 +3,37 @@ import {
   accumulateToolCallDelta,
   createToolCallDeltaState,
   finalizeToolCallDeltas,
+  jsonLinesAdapter,
   normalizeFinishReason,
+  readTextFrames,
+  sseDataAdapter,
 } from '../../../src/services/llm/streamCore';
 
 describe('streamCore', () => {
+  it('shares chunked UTF-8 framing while adapters preserve SSE and JSON-lines syntax', async () => {
+    const encoded = new TextEncoder().encode('event: ping\r\ndata: {"text":"hé"}\r\n\r\n{"done":false}\n{"done":true}');
+    const chunks = [encoded.slice(0, 22), encoded.slice(22, 29), encoded.slice(29)];
+    const stream = () => new ReadableStream<Uint8Array>({
+      start(controller) {
+        chunks.forEach(chunk => controller.enqueue(chunk));
+        controller.close();
+      },
+    });
+
+    const sse: string[] = [];
+    for await (const frame of readTextFrames(stream(), sseDataAdapter())) sse.push(frame);
+    expect(sse).toEqual(['{"text":"hé"}']);
+
+    const lines: string[] = [];
+    for await (const frame of readTextFrames(stream(), jsonLinesAdapter())) lines.push(frame);
+    expect(lines).toEqual([
+      'event: ping',
+      'data: {"text":"hé"}',
+      '{"done":false}',
+      '{"done":true}',
+    ]);
+  });
+
   it('accumulates interleaved tool-call fragments across chunks', () => {
     const state = createToolCallDeltaState();
 
