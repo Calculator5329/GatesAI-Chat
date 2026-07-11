@@ -19,6 +19,13 @@ export interface JsonPersistenceOptions<T> {
 }
 
 export function browserLocalStorage(): KeyValuePersistence {
+  if (typeof localStorage === 'undefined') {
+    return {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    };
+  }
   return {
     getItem: key => localStorage.getItem(key),
     setItem: (key, value) => localStorage.setItem(key, value),

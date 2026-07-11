@@ -1,7 +1,7 @@
 // Owns observable RootStore state and actions for the app runtime.
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { autorun, reaction } from 'mobx';
+import { autorun, reaction, runInAction } from 'mobx';
 import { ChatStore } from './ChatStore';
 import { UiStore } from './UiStore';
 import { ProviderStore } from './ProviderStore';
@@ -33,7 +33,7 @@ import { installMultiTabStorageListener } from '../services/storage/persistenceP
 import { WebLocksLeaderElection } from '../services/storage/webLocksLeaderElection';
 import { toolRegistry } from '../services/tools/registry';
 import { createMcpRegistryTools } from '../services/mcp/toolIntegration';
-import { isWebLite } from '../core/runtime';
+import { runtimeMode, type GatesRuntimeMode } from '../core/runtime';
 import {
   downloadDataExport,
   formatDataImportResult,
@@ -71,10 +71,12 @@ export class RootStore {
   readonly rag: RagStore;
   readonly whatsNew: WhatsNewStore;
   private booted = false;
+  readonly runtime: GatesRuntimeMode;
   private readonly disposers: Array<() => void> = [];
   readonly replaceImportConfirmation = REPLACE_IMPORT_CONFIRMATION;
 
-  constructor() {
+  constructor(options: { runtime?: GatesRuntimeMode } = {}) {
+    this.runtime = options.runtime ?? runtimeMode();
     let ollamaStore: OllamaStore | null = null;
     this.registry = new ModelRegistry();
     this.profile = new UserProfileStore();
@@ -199,7 +201,7 @@ export class RootStore {
     let attemptedWorkspacePersistenceRoot: string | undefined;
     let workspacePersistenceAttemptInFlight = false;
     this.disposers.push(autorun(() => {
-      if (isWebLite()) return;
+      if (this.runtime !== 'desktop') return;
       if (!this.bridge.isOnline || !this.bridge.workspaceRoot) return;
       if (attemptedWorkspacePersistenceRoot === this.bridge.workspaceRoot) return;
       if (workspacePersistenceAttemptInFlight) return;
@@ -217,7 +219,7 @@ export class RootStore {
     let attemptedSkillsRoot: string | undefined;
     let skillsRefreshInFlight = false;
     this.disposers.push(autorun(() => {
-      if (isWebLite()) return;
+      if (this.runtime !== 'desktop') return;
       if (!this.bridge.isOnline || !this.bridge.workspaceRoot) return;
       if (attemptedSkillsRoot === this.bridge.workspaceRoot) return;
       if (skillsRefreshInFlight) return;
@@ -236,7 +238,7 @@ export class RootStore {
       for (const event of events) deliveredBridgeActivityIds.add(event.id);
     }));
 
-    if (!isWebLite()) {
+    if (this.runtime === 'desktop') {
       this.bridge.start();
       void this.localRuntime.init();
 
@@ -254,8 +256,10 @@ export class RootStore {
     this.summary.start();
     this.schedules.start();
     this.rag.start();
-    this.disposers.push(installMultiTabStorageListener());
-    this.chatLeaderElection.start();
+    if (this.runtime !== 'headless') {
+      this.disposers.push(installMultiTabStorageListener());
+      this.chatLeaderElection.start();
+    }
 
     this.disposers.push(autorun(() => {
       if (this.ui.onboardingDismissed) return;
@@ -267,7 +271,7 @@ export class RootStore {
     this.disposers.push(autorun(() => {
       void this.chat.defaultModelId;
       void this.registry.all.length;
-      this.chat.reconcileDefaultModelForEmptyThreads();
+      runInAction(() => this.chat.reconcileDefaultModelForEmptyThreads());
     }));
 
     let boundDraftThreadId: string | null = null;
@@ -278,7 +282,7 @@ export class RootStore {
       boundDraftThreadId = id;
     }));
 
-    this.bindRouterToChat();
+    if (this.runtime !== 'headless') this.bindRouterToChat();
   }
 
   dispose(): void {
@@ -396,7 +400,7 @@ export const rootStore = new RootStore();
 // Dev-only console hook: open DevTools and run `__gatesai.clearAll()` to wipe
 // every conversation in one shot. Removed in production builds. Replace with
 // a proper menu action when we add UI for this.
-if (import.meta.env.DEV) {
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   const devWindow = window as Window & { __gatesai?: unknown };
   devWindow.__gatesai = {
     clearAll: () => rootStore.chat.clearAllThreads(),

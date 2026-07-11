@@ -7,6 +7,7 @@ const MENU_HINT_KEY = 'gatesai.menuHintSeen.v1';
 
 /** True once the user has opened the menu via the brand wordmark at least once. */
 export function loadMenuHintSeen(): boolean {
+  if (typeof localStorage === 'undefined') return true;
   try {
     return localStorage.getItem(MENU_HINT_KEY) === '1';
   } catch (err) {
@@ -17,6 +18,7 @@ export function loadMenuHintSeen(): boolean {
 }
 
 export function saveMenuHintSeen(): void {
+  if (typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(MENU_HINT_KEY, '1');
   } catch (err) {

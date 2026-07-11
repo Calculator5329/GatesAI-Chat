@@ -6,7 +6,7 @@ import type { ToolDef } from '../../core/llm';
 import { splitAttachmentFooter } from '../../core/attachments';
 import { flattenForWire } from '../llm/wireFormat';
 import { toolRegistry } from '../tools/registry';
-import { isWebLite } from '../../core/runtime';
+import { isHeadless, isWebLite } from '../../core/runtime';
 import { messageText } from '../../core/messageParts';
 
 export type ChatContextMode = NonNullable<Thread['contextMode']>;
@@ -101,7 +101,7 @@ export function toolsForContextMode(args: {
   if (!args.toolsAllowed || args.mode === 'bare') return undefined;
   if (args.mode === 'micro') {
     const tools: ToolDef[] = [];
-    if (!isWebLite()) {
+    if (!isWebLite() && !isHeadless()) {
       const sourceWorkspace = toolRegistry.get('source_workspace')?.def;
       const sourceBuild = toolRegistry.get('source_build')?.def;
       const fetchPage = toolRegistry.get('fetch_page')?.def;
@@ -125,7 +125,7 @@ export function toolsForContextMode(args: {
   return toolRegistry.toolDefsForTurn({
     userText: args.userText,
     bridgeOnline: args.bridgeOnline,
-    desktopRuntime: !isWebLite(),
+    desktopRuntime: !isWebLite() && !isHeadless(),
     imageGenAvailable: args.imageGenAvailable,
     webSearchAvailable: args.webSearchAvailable,
     semanticRecallAvailable: args.semanticRecallAvailable,

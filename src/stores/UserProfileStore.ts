@@ -3,7 +3,7 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, toJS } from 'mobx';
 import { loadProfile, saveProfile, type UserProfileSnapshot } from '../services/profileStorage';
-import { isWebLite } from '../core/runtime';
+import { isHeadless, isWebLite } from '../core/runtime';
 
 /**
  * The user's persistent context — facts about them and a default
@@ -160,7 +160,10 @@ export class UserProfileStore {
     // In Web Lite (browser-only) there is no bridge, so the bridge contract
     // would mislead the model into promising local tools it can't run. Swap in
     // a harness that states the browser constraints and how to recommend the app.
-    const parts: string[] = [isWebLite() ? WEB_LITE_HARNESS_PROMPT : BRIDGE_HARNESS_PROMPT];
+    const harness = isHeadless()
+      ? HEADLESS_HARNESS_PROMPT
+      : isWebLite() ? WEB_LITE_HARNESS_PROMPT : BRIDGE_HARNESS_PROMPT;
+    const parts: string[] = [harness];
     if (runtime) parts.push(`Runtime context:\n${runtime}`);
     if (head) parts.push(head);
     if (bio) parts.push(`About the user:\n${bio}`);
@@ -203,6 +206,13 @@ const BRIDGE_HARNESS_PROMPT = [
   '- Batch only independent tool calls. If a read/run depends on a write or generated file, do the write first, wait for its result, then run/read.',
   '- For large or bulk data work, keep data in files, generate artifacts under /workspace/artifacts, and validate with counts, ranges, schema checks, or spot checks before claiming success.',
   '- Long-running terminal commands stream progress to the UI, but you only see the final captured result. Use reasonable timeouts and wait for completion before summarizing.',
+].join('\n');
+
+const HEADLESS_HARNESS_PROMPT = [
+  'Headless runtime contract:',
+  '- Respond in plain text for a terminal client.',
+  '- No browser UI, DOM, desktop bridge, or workspace filesystem is available.',
+  '- Do not promise downloads, previews, or local workspace changes.',
 ].join('\n');
 
 /**

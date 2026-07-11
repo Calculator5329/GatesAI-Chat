@@ -1,7 +1,7 @@
 // Builds chat-runtime support data for runtimeContext.
 // Called by ChatStore before/after provider or tool work; depends on thread/tool result contracts.
 // Invariant: helpers format diagnostics without mutating message history directly.
-import { isWebLite, runtimeMode } from '../../core/runtime';
+import { isHeadless, isWebLite, runtimeMode } from '../../core/runtime';
 import { clientPlatform } from '../../core/clientPlatform';
 import { downloadLinks, recommendedDownload } from '../../core/downloads';
 
@@ -76,6 +76,12 @@ export function buildRuntimeContext(opts: {
     `iso: ${now.toISOString()}`,
     `runtime_mode: ${runtimeMode()}`,
   ];
+
+  if (isHeadless()) {
+    lines.push('ui: unavailable');
+    lines.push('bridge: unavailable');
+    return lines.join('\n');
+  }
 
   // Web Lite has no bridge/workspace; the bridge-contract lines below would be
   // misleading. Emit the download facts the model needs to recommend the app
