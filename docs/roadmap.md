@@ -57,7 +57,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### Next
 
-- [ ] **BUG: 5 e2e tests failing on master (found 2026-07-11).** Pre-existing
+- [x] **BUG: 5 e2e tests failing on master (found 2026-07-11).** *(done 2026-07-11)* Pre-existing
       before the harness handshake fix (proven by stash-baseline):
       desktop.spec:171 first-run onboarding, web-lite.spec:43 onboarding,
       multiTab.spec:23 + :63 conflict handling, bridge.spec:35 gallery

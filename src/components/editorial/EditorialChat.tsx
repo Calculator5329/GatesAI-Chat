@@ -42,7 +42,9 @@ const ChatEmptyState = observer(function ChatEmptyState() {
   const { chat, providers, registry, ui, ollama } = useEditorial();
   const webLite = isWebLite();
   const hasMessages = (chat.activeThread?.messages.length ?? 0) > 0;
-  const hasPriorMessages = chat.threads.some(thread => thread.messages.length > 0);
+  // Bundled read-only conversations (such as the first-run welcome tour) are
+  // reference material, not evidence that this person has already chatted.
+  const hasPriorMessages = chat.threads.some(thread => !thread.readOnly && thread.messages.length > 0);
   const activeModel = registry.findById(chat.activeThread?.modelId ?? '');
   const activeProviderReady = activeModel
     ? providers.isConnected(activeModel.providerId)

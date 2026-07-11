@@ -70,7 +70,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     !ui.onboardingDismissed
     && !activeProviderReady
     && (activeThread?.messages.length ?? 0) === 0
-    && !chat.threads.some(thread => thread.messages.length > 0);
+    && !chat.threads.some(thread => !thread.readOnly && thread.messages.length > 0);
   // Context-aware send gating: direct-image → Comfy health; Ollama model → Ollama
   // health; everything else → OpenRouter/provider key. Mutually exclusive banners.
   const routeBlock: 'models-key' | 'ollama-offline' | 'comfy-offline' | null = (() => {

@@ -123,6 +123,7 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
   onDelete: () => void;
 }) {
   const bridge = useBridgeStore();
+  const bridgeOnline = bridge.isOnline;
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -137,6 +138,10 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
   useEffect(() => {
     let cancelled = false;
     if (dataUrl) { loadedRef.current = true; return; }
+    // Bridge startup is asynchronous. If Gallery mounts first, wait for the
+    // online transition instead of permanently caching the initial offline
+    // read as a missing artifact.
+    if (!bridgeOnline) return;
     const el = ref.current;
     if (!el) return;
 
@@ -159,7 +164,7 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
       cancelled = true;
       observer.disconnect();
     };
-  }, [bridge, path, dataUrl]);
+  }, [bridge, bridgeOnline, path, dataUrl]);
 
   return (
     <div ref={ref} className="gallery-tile" style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>

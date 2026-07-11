@@ -163,6 +163,16 @@ describe('EditorialChat empty state (Batch C)', () => {
     expect(rendered.textContent).not.toContain('Connect OpenRouter in Models');
   });
 
+  it('does not treat the bundled read-only tour as prior user chat', () => {
+    store = buildStore();
+    store.chat.seedWelcomeTour();
+    const rendered = renderChat(store);
+
+    expect(rendered.textContent).toContain('Use cloud models');
+    expect(rendered.textContent).toContain('Use local models');
+    expect(store.ui.onboardingDismissed).toBe(false);
+  });
+
   it('hides onboarding once a provider key is ready', () => {
     store = buildStore();
     store.providers.setKey('openrouter', 'sk-test');
