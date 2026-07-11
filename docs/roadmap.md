@@ -384,7 +384,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       catalog hydration, audit source-snapshot resource cost in installer
 - [ ] IDB background compaction; storage stats in Usage panel
 - [ ] Rust release profile tuning (thin LTO, strip) for installer size
-- [ ] Adaptive streaming reveal pacing (faster catch-up when far behind)
+- [x] Adaptive streaming reveal pacing (faster catch-up when far behind) *(done 2026-07-11)*
 
 ### State & data
 - [x] Web Locks API leader election for multi-tab (replace pause-on-conflict) *(done 2026-07-11)*

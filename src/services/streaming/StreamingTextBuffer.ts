@@ -7,8 +7,9 @@
 // chars at a time, others a whole sentence in one chunk). Emitting each burst
 // verbatim per frame reads as jerky. Instead we hold a buffer and, each frame,
 // reveal only a slice of it — so bursts spread across frames as smooth "typing".
-// The slice scales with the backlog (`ceil(remaining / revealDivisor)`), so we
-// never lag behind a fast model; small tails still drain a couple chars a frame.
+// The slice scales with the backlog and gets an extra catch-up boost past a
+// threshold. That keeps the tail calm without letting a fast model build up a
+// visibly delayed wall of text.
 type FlushCallback = () => void;
 type ScheduleFlush = (flush: FlushCallback) => void;
 
@@ -19,24 +20,60 @@ interface PendingText {
 }
 
 export interface StreamingTextBufferOptions {
-  /** Per-frame reveal is `clamp(ceil(remaining / revealDivisor), minRevealChars, remaining)`. */
+  /** Base reveal rate before catch-up acceleration is applied. */
   revealDivisor?: number;
   minRevealChars?: number;
+  /** Backlog above this size receives an additional catch-up slice. */
+  catchUpThreshold?: number;
+  /** Divisor for the backlog beyond `catchUpThreshold`; lower is faster. */
+  catchUpDivisor?: number;
+  /** Avoid a single render frame becoming too large, even for extreme bursts. */
+  maxRevealChars?: number;
 }
 
 const DEFAULT_REVEAL_DIVISOR = 6;
 const DEFAULT_MIN_REVEAL_CHARS = 2;
+const DEFAULT_CATCH_UP_THRESHOLD = 120;
+const DEFAULT_CATCH_UP_DIVISOR = 3;
+const DEFAULT_MAX_REVEAL_CHARS = 256;
+
+/**
+ * Choose the next per-frame slice from the number of buffered UTF-16 code
+ * units. Small backlogs use the base proportional rate. Once the buffer is
+ * more than roughly a paragraph behind, the excess contributes a second,
+ * steeper rate so the visible response catches the provider without making
+ * the near-tip animation jumpy.
+ */
+export function revealCharsForBacklog(
+  backlog: number,
+  options: StreamingTextBufferOptions = {},
+): number {
+  if (!Number.isFinite(backlog) || backlog <= 0) return 0;
+
+  const remaining = Math.floor(backlog);
+  const revealDivisor = positiveInteger(options.revealDivisor, DEFAULT_REVEAL_DIVISOR);
+  const minRevealChars = positiveInteger(options.minRevealChars, DEFAULT_MIN_REVEAL_CHARS);
+  const catchUpThreshold = positiveInteger(options.catchUpThreshold, DEFAULT_CATCH_UP_THRESHOLD);
+  const catchUpDivisor = positiveInteger(options.catchUpDivisor, DEFAULT_CATCH_UP_DIVISOR);
+  const maxRevealChars = Math.max(
+    minRevealChars,
+    positiveInteger(options.maxRevealChars, DEFAULT_MAX_REVEAL_CHARS),
+  );
+
+  const baseCount = Math.ceil(remaining / revealDivisor);
+  const excessBacklog = Math.max(0, remaining - catchUpThreshold);
+  const catchUpCount = Math.ceil(excessBacklog / catchUpDivisor);
+  return Math.min(remaining, maxRevealChars, Math.max(minRevealChars, baseCount + catchUpCount));
+}
 
 export class StreamingTextBuffer {
   private readonly pending = new Map<string, PendingText>();
   private readonly scheduleFlush: ScheduleFlush;
-  private readonly revealDivisor: number;
-  private readonly minRevealChars: number;
+  private readonly pacing: StreamingTextBufferOptions;
 
   constructor(scheduleFlush: ScheduleFlush = defaultScheduleFlush, options: StreamingTextBufferOptions = {}) {
     this.scheduleFlush = scheduleFlush;
-    this.revealDivisor = Math.max(1, options.revealDivisor ?? DEFAULT_REVEAL_DIVISOR);
-    this.minRevealChars = Math.max(1, options.minRevealChars ?? DEFAULT_MIN_REVEAL_CHARS);
+    this.pacing = { ...options };
   }
 
   enqueue(key: string, delta: string, reveal: (text: string) => void): void {
@@ -84,7 +121,7 @@ export class StreamingTextBuffer {
       this.pending.delete(key);
       return;
     }
-    let count = Math.min(remaining, Math.max(this.minRevealChars, Math.ceil(remaining / this.revealDivisor)));
+    let count = revealCharsForBacklog(remaining, this.pacing);
     // Never split a surrogate pair: ending a slice on a lone high surrogate would
     // briefly render U+FFFD until the next frame. Pull in its low half too.
     if (count < remaining) {
@@ -99,6 +136,11 @@ export class StreamingTextBuffer {
       this.pending.delete(key);
     }
   }
+}
+
+function positiveInteger(value: number | undefined, fallback: number): number {
+  if (!Number.isFinite(value) || value === undefined) return fallback;
+  return Math.max(1, Math.floor(value));
 }
 
 function defaultScheduleFlush(flush: FlushCallback): void {

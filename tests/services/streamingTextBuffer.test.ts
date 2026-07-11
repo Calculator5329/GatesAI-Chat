@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { StreamingTextBuffer } from '../../src/services/streaming/StreamingTextBuffer';
+import {
+  revealCharsForBacklog,
+  StreamingTextBuffer,
+} from '../../src/services/streaming/StreamingTextBuffer';
 
 // Run every scheduled tick, including ones rescheduled while draining. An index
 // loop re-reads `.length` each iteration (unlike `forEach`, which snapshots it),
@@ -7,6 +10,28 @@ import { StreamingTextBuffer } from '../../src/services/streaming/StreamingTextB
 function drain(scheduled: Array<() => void>): void {
   for (let i = 0; i < scheduled.length; i++) scheduled[i]();
 }
+
+describe('revealCharsForBacklog', () => {
+  it('keeps near-tip reveals small and proportional', () => {
+    expect(revealCharsForBacklog(0)).toBe(0);
+    expect(revealCharsForBacklog(1)).toBe(1);
+    expect(revealCharsForBacklog(12)).toBe(2);
+    expect(revealCharsForBacklog(60)).toBe(10);
+    expect(revealCharsForBacklog(120)).toBe(20);
+  });
+
+  it('accelerates once the backlog passes the catch-up threshold', () => {
+    expect(revealCharsForBacklog(121)).toBe(22);
+    expect(revealCharsForBacklog(240)).toBe(80);
+    expect(revealCharsForBacklog(480)).toBe(200);
+  });
+
+  it('bounds each reveal by the configured cap and available backlog', () => {
+    expect(revealCharsForBacklog(10_000)).toBe(256);
+    expect(revealCharsForBacklog(10_000, { maxRevealChars: 80 })).toBe(80);
+    expect(revealCharsForBacklog(3, { minRevealChars: 10 })).toBe(3);
+  });
+});
 
 describe('StreamingTextBuffer', () => {
   it('coalesces deltas and reveals them progressively, not all at once', () => {
