@@ -34,6 +34,7 @@ import { StreamingTextBuffer } from '../services/streaming/StreamingTextBuffer';
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
 import { logEvent } from '../services/diagnostics/chatLog';
 import { logger } from '../services/diagnostics/logger';
+import type { UndoService } from '../services/undo/UndoService';
 import { createWorkspaceChatPersistence } from '../services/workspaceChatPersistence';
 import {
   ChatPersistenceCoordinator,
@@ -133,6 +134,7 @@ export class ChatStore {
   private toolStoresProvider: (() => ToolStoreContext) | null = null;
   private activeSkillProvider: ((threadId: string) => WorkspaceSkill | undefined) | null = null;
   private readonly isAutoNamingEnabled: () => boolean;
+  private readonly undoService: UndoService | null;
 
   constructor(
     providers: ProviderStore,
@@ -140,12 +142,14 @@ export class ChatStore {
     profile: UserProfileStore,
     isAutoNamingEnabled: () => boolean = () => true,
     leaderElection: WebLocksLeaderElection | null = null,
+    undoService: UndoService | null = null,
   ) {
     this.providers = providers;
     this.registry = registry;
     this.profile = profile;
     this.isAutoNamingEnabled = isAutoNamingEnabled;
     this.leaderElection = leaderElection;
+    this.undoService = undoService;
     this.autoNamer = new AutoNamer({
       host: this.createAutoNameHost(),
       router: this.providers.router,
@@ -191,7 +195,7 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'hydrationByThread' | 'agentTaskStartTimers' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'hydrationByThread' | 'agentTaskStartTimers' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled' | 'undoService'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -210,6 +214,7 @@ export class ChatStore {
       toolStoresProvider: false,
       activeSkillProvider: false,
       isAutoNamingEnabled: false,
+      undoService: false,
     });
 
     // The coordinator owns the throttled autosave, unload flush, and the
@@ -745,12 +750,30 @@ export class ChatStore {
   }
 
   clearAllThreads(): void {
+    const previousThreads = deepClone(this.threads);
+    const previousActiveThreadId = this.activeThreadId;
+    const previousErrors = { ...this.lastErrorByThread };
     this.abortAllStreams();
     this.clearAgentTaskStartTimers();
     const thread = createEmptyThread(newId('t'), Date.now(), this.defaultModelId);
     this.threads = [thread];
     this.activeThreadId = thread.id;
     this.lastErrorByThread = {};
+    this.undoService?.register({
+      label: 'Delete all threads',
+      undo: () => runInAction(() => {
+        this.clearAgentTaskStartTimers();
+        this.threads = deepClone(previousThreads);
+        this.activeThreadId = normalizeActiveThreadId(this.threads, previousActiveThreadId);
+        this.lastErrorByThread = { ...previousErrors };
+        for (const restored of this.threads) {
+          if (restored.agentTaskStatus !== 'scheduled' || restored.deletedAt != null) continue;
+          const dueAt = restored.agentTaskScheduledStartAt ?? Date.now();
+          this.armScheduledAgentTask(restored.id, Math.max(0, dueAt - Date.now()));
+        }
+        this.schedulePersistSnapshot(this.snapshot);
+      }),
+    });
   }
 
   applyImportedSnapshot(snapshot: ChatSnapshot): void {
@@ -787,6 +810,7 @@ export class ChatStore {
   softDeleteThread(threadId: string): void {
     const thread = this.findThread(threadId);
     if (!thread || thread.deletedAt != null) return;
+    const previousActiveThreadId = this.activeThreadId;
     if (thread.agentTaskStatus === 'scheduled') this.cancelScheduledAgentTask(threadId);
     if (this.isThreadStreaming(threadId)) {
       this.interruptThread(threadId);
@@ -801,6 +825,8 @@ export class ChatStore {
     }
     runInAction(() => {
       const now = Date.now();
+      const previousThread = deepClone(this.findThread(threadId)!);
+      const previousIndex = this.threads.findIndex(item => item.id === threadId);
       const fallbackThread = this.activeThreadId === threadId && this.visibleThreads.length <= 1
         ? createEmptyThread(newId('t'), now, this.defaultModelId)
         : undefined;
@@ -814,6 +840,23 @@ export class ChatStore {
       this.threads = result.threads;
       this.activeThreadId = result.activeThreadId;
       this.schedulePersistSnapshot(this.snapshot);
+      this.undoService?.register({
+        label: `Delete “${previousThread.title}”`,
+        undo: () => runInAction(() => {
+          const currentIndex = this.threads.findIndex(item => item.id === threadId);
+          if (currentIndex >= 0) {
+            this.threads[currentIndex] = deepClone(previousThread);
+          } else {
+            this.threads.splice(Math.max(0, previousIndex), 0, deepClone(previousThread));
+          }
+          this.activeThreadId = normalizeActiveThreadId(this.threads, previousActiveThreadId);
+          if (previousThread.agentTaskStatus === 'scheduled') {
+            const dueAt = previousThread.agentTaskScheduledStartAt ?? Date.now();
+            this.armScheduledAgentTask(previousThread.id, Math.max(0, dueAt - Date.now()));
+          }
+          this.schedulePersistSnapshot(this.snapshot);
+        }),
+      });
     });
   }
 
@@ -1461,6 +1504,10 @@ export class ChatStore {
 
 function normalizeProviderErrorForBanner(message: string): string {
   return normalizeProviderErrorMessage(message);
+}
+
+function deepClone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function normalizeAgentTaskTitle(title: string): string {

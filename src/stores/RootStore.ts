@@ -43,11 +43,13 @@ import {
   type DataImportResult,
 } from '../services/chat/dataExport';
 import { getSecret, migrateDesktopSecretsFromLocalStorage, SECRET_NAMES } from '../services/secretStorage';
+import { UndoService } from '../services/undo/UndoService';
 
 export class RootStore {
   readonly registry: ModelRegistry;
   readonly providers: ProviderStore;
   readonly profile: UserProfileStore;
+  readonly undo: UndoService;
   readonly chat: ChatStore;
   readonly chatLeaderElection: WebLocksLeaderElection;
   readonly ui: UiStore;
@@ -80,6 +82,7 @@ export class RootStore {
     let ollamaStore: OllamaStore | null = null;
     this.registry = new ModelRegistry();
     this.profile = new UserProfileStore();
+    this.undo = new UndoService();
     this.ui = new UiStore();
     this.whatsNew = new WhatsNewStore();
     this.router = new RouterStore();
@@ -101,7 +104,14 @@ export class RootStore {
     this.openrouter = new OpenRouterStore(this.registry, () => this.providers.getConfig('openrouter').apiKey);
     this.openAiCompatEndpoint = new OpenAiCompatEndpointStore(this.registry, this.providers);
     this.chatLeaderElection = new WebLocksLeaderElection();
-    this.chat = new ChatStore(this.providers, this.registry, this.profile, () => this.ui.autoNamingEnabled, this.chatLeaderElection);
+    this.chat = new ChatStore(
+      this.providers,
+      this.registry,
+      this.profile,
+      () => this.ui.autoNamingEnabled,
+      this.chatLeaderElection,
+      this.undo,
+    );
     seedWelcomeTourOnFirstRun(this.chat, this.whatsNew);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
@@ -296,6 +306,7 @@ export class RootStore {
     this.mcp.dispose();
     this.ollama.dispose();
     this.chat.dispose();
+    this.undo.clear();
     // Flush the departing leader while it still owns the lock, then release
     // it so a queued follower can refresh and take over safely.
     this.chatLeaderElection.dispose();

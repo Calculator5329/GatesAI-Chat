@@ -11,6 +11,7 @@ export interface KeyboardShortcutActions {
   toggleSettings: () => void;
   menuOpen: () => boolean;
   closeMenu: () => void;
+  undo: () => void;
   localEscapeOverlayOpen?: () => boolean;
 }
 
@@ -56,6 +57,12 @@ export function dispatchKeyboardShortcut(event: KeyboardEvent, actions: Keyboard
   }
 
   if (isEditableShortcutTarget(event.target)) return false;
+
+  if (key === 'z' && !event.shiftKey) {
+    handleEvent(event);
+    actions.undo();
+    return true;
+  }
 
   if (key === 'n') {
     handleEvent(event);

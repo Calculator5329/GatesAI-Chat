@@ -1265,6 +1265,42 @@
   animation-play-state: paused;
 }
 
+.undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 30;
+  transform: translateX(-50%);
+  max-width: min(440px, calc(100vw - 36px));
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--panel) 95%, var(--stage-bg-static) 5%);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.34);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--text-dim);
+  font: 12px/1.4 "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+.undo-toast__message {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.undo-toast__button {
+  flex: none;
+  padding: 2px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: 600 12px/1.4 "Geist", ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+
 .web-lite-download-cue__copy {
   max-width: 100%;
   color: var(--text-dim);

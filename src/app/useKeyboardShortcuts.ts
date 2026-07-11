@@ -32,6 +32,10 @@ export function useKeyboardShortcuts(root: RootStore): void {
       },
       menuOpen: () => root.router.isMenu,
       closeMenu: () => root.router.goThread(root.chat.activeThreadId),
+      undo: () => {
+        if (!root.undo.undo() || root.router.isMenu) return;
+        root.router.goThread(root.chat.activeThreadId);
+      },
       localEscapeOverlayOpen: () => localEscapeOverlayOpen(),
     };
     return installKeyboardShortcuts(actions);

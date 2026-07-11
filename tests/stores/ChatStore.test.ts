@@ -23,6 +23,7 @@ import type { ThreadArchiveStore } from '../../src/services/persistence/idb';
 import { installMultiTabStorageListener } from '../../src/services/storage/persistenceProvider';
 import { WebLocksLeaderElection, type WebLockRequestOptions, type WebLocksApi } from '../../src/services/storage/webLocksLeaderElection';
 import { messageAttachments, messageText, messageToolCalls, messageToolResults } from '../../src/core/messageParts';
+import { UndoService } from '../../src/services/undo/UndoService';
 
 const activeChats: ChatStore[] = [];
 
@@ -46,8 +47,9 @@ function setup(chunks?: Parameters<MockProvider['setChunks']>[0]) {
   const profile = new UserProfileStore();
   const mock = new MockProvider(chunks);
   installMockProvider(providers, mock);
-  const chat = trackChat(new ChatStore(providers, registry, profile));
-  return { registry, providers, profile, mock, chat };
+  const undo = new UndoService();
+  const chat = trackChat(new ChatStore(providers, registry, profile, undefined, null, undo));
+  return { registry, providers, profile, mock, chat, undo };
 }
 
 function onlineBridge(): ToolContext['bridge'] {
@@ -1194,6 +1196,20 @@ describe('ChatStore', () => {
     expect(chat.activeThreadId).toBe(chat.visibleThreads[0].id);
     expect(chat.activeThreadId).not.toBe(old);
     expect(chat.activeThread?.messages).toEqual([]);
+  });
+
+  it('registers clearAllThreads with the undo stack and restores the prior history', () => {
+    const { chat, undo } = setup();
+    const first = chat.activeThreadId!;
+    const second = chat.createThread();
+
+    chat.clearAllThreads();
+    expect(chat.visibleThreads).toHaveLength(1);
+    expect(undo.getSnapshot()).toMatchObject({ canUndo: true, nextLabel: 'Delete all threads' });
+
+    expect(undo.undo()).toBe(true);
+    expect(chat.visibleThreads.map(thread => thread.id)).toEqual([second, first]);
+    expect(chat.activeThreadId).toBe(second);
   });
 
   it('stores provider-reported OpenRouter usage cost on assistant messages', async () => {

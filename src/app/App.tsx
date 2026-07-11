@@ -10,6 +10,7 @@ import { EditorialSidebar } from '../components/editorial/EditorialSidebar';
 import { EditorialChat } from '../components/editorial/EditorialChat';
 import { CommandPalette } from '../components/palette/CommandPalette';
 import { WhatsNewPanel } from '../components/whats-new/WhatsNewPanel';
+import { UndoToast } from '../components/editorial/UndoToast';
 import { runtimeMode } from '../core/runtime';
 import { primeClientPlatform } from '../core/clientPlatform';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
@@ -111,6 +112,7 @@ export const App = observer(function App() {
           </div>
         )}
         <WhatsNewPanel />
+        <UndoToast />
       </div>
     </div>
   );

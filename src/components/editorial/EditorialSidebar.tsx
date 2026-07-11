@@ -1,4 +1,4 @@
-// The thread-list navigation sidebar: pin, soft-delete + undo, and menu
+// The thread-list navigation sidebar: pin, soft-delete, and menu
 // section navigation. Rendered by the app shell; reads RootStore via hooks.
 // Invariant: persisted chat state stays in stores; this surface is presentation only.
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
@@ -10,7 +10,6 @@ import { useEditorial } from '../../stores/context';
 import { BridgeStatusPill } from './BridgeStatusPill';
 import { ThreadTitle } from './ThreadTitle';
 
-const UNDO_TIMEOUT_MS = 8000;
 // First-run menu coach: show it briefly, then bow out on its own so it never nags.
 const MENU_HINT_TIMEOUT_MS = 9000;
 const HISTORY_ROW_LIMIT = 20;
@@ -83,25 +82,6 @@ const S: Record<string, CSSProperties | ((arg: boolean) => CSSProperties)> = {
     opacity: 0.78,
     overflow: 'visible',
   },
-  undo: {
-    margin: '8px 16px 4px',
-    padding: '8px 10px',
-    fontSize: 11.5,
-    color: 'var(--text-dim)',
-    background: 'color-mix(in srgb, var(--bg) 92%, var(--text) 8%)',
-    border: '1px solid var(--border)',
-    borderRadius: 4,
-    display: 'flex', alignItems: 'center', gap: 8,
-  },
-  undoBtn: {
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--accent)',
-    cursor: 'pointer',
-    fontSize: 11.5,
-    fontWeight: 500,
-    padding: '2px 4px',
-  },
   rowActions: {
     flex: 'none',
     display: 'inline-flex',
@@ -130,7 +110,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   const pinned = chat.visibleConversationThreads.filter(t => t.pinned);
   const rest = chat.visibleConversationThreads.filter(t => !t.pinned).slice(0, HISTORY_ROW_LIMIT);
 
-  const [undo, setUndo] = useState<{ id: string; title: string } | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   // Single source of truth for the breakpoint lives in UiStore (matchMedia
   // on MOBILE_SHELL_QUERY), shared with src/styles/responsive.css.
@@ -148,12 +127,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   useEffect(() => {
     if (!mobileShell) setMobileOpen(false);
   }, [mobileShell]);
-
-  useEffect(() => {
-    if (!undo) return;
-    const timer = setTimeout(() => setUndo(null), UNDO_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, [undo]);
 
   // Let the first-run menu coach linger just long enough to be noticed, then
   // dismiss itself. Clicking it (or opening the menu) marks it seen sooner.
@@ -179,14 +152,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
 
   const onDelete = (t: Thread): void => {
     chat.softDeleteThread(t.id);
-    setUndo({ id: t.id, title: t.title });
-  };
-  const onUndo = (): void => {
-    if (!undo) return;
-    chat.restoreThread(undo.id);
-    router.goThread(undo.id);
-    setUndo(null);
-    setMobileOpen(false);
   };
 
   const onMobileTouchStart = (e: TouchEvent<HTMLElement>): void => {
@@ -405,14 +370,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           </div>
         )}
       </div>
-      {undo && (
-        <div style={S.undo as CSSProperties} role="status">
-          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            Deleted "{undo.title}"
-          </span>
-          <button type="button" onClick={onUndo} style={S.undoBtn as CSSProperties}>Undo</button>
-        </div>
-      )}
       <BridgeStatusPill />
     </aside>
     </>

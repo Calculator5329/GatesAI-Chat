@@ -15,6 +15,7 @@ function actions(overrides: Partial<KeyboardShortcutActions> = {}): KeyboardShor
     toggleSettings: vi.fn(),
     menuOpen: () => false,
     closeMenu: vi.fn(),
+    undo: vi.fn(),
     ...overrides,
   };
 }
@@ -54,6 +55,35 @@ describe('keyboard shortcut dispatcher', () => {
     expect(event.defaultPrevented).toBe(false);
 
     textarea.remove();
+  });
+
+  it('fires Ctrl+Z outside editable controls', () => {
+    const shortcutActions = actions();
+    const event = new KeyboardEvent('keydown', {
+      key: 'z',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    expect(dispatchKeyboardShortcut(event, shortcutActions)).toBe(true);
+    expect(shortcutActions.undo).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('preserves native Ctrl+Z inside editable controls', () => {
+    const shortcutActions = actions();
+    const textarea = document.createElement('textarea');
+    const event = new KeyboardEvent('keydown', {
+      key: 'z',
+      ctrlKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    Object.defineProperty(event, 'target', { value: textarea });
+
+    expect(dispatchKeyboardShortcut(event, shortcutActions)).toBe(false);
+    expect(shortcutActions.undo).not.toHaveBeenCalled();
   });
 
   it('gives Escape to the palette before closing the menu', () => {
