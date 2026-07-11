@@ -453,6 +453,39 @@ describe('EditorialComposer API-key banner', () => {
       mime: 'image/png',
     });
   });
+
+  it('recalls only active-thread user prompts when Up starts in an empty textarea', () => {
+    store = buildStore();
+    const active = store.chat.activeThread!;
+    const otherId = store.chat.createThread();
+    runInAction(() => {
+      const other = store!.chat.activeThread!;
+      other.messages.push({ id: 'other-user', role: 'user', content: 'other thread prompt', createdAt: 1 });
+      store!.chat.selectThread(active.id);
+      active.messages.push(
+        { id: 'old-user', role: 'user', content: 'older active prompt', createdAt: 2 },
+        { id: 'assistant', role: 'assistant', content: 'answer', createdAt: 3 },
+        { id: 'latest-user', role: 'user', content: 'latest active prompt', createdAt: 4 },
+      );
+    });
+    expect(otherId).not.toBe(active.id);
+    const rendered = render(store);
+    const textarea = rendered.querySelector('textarea')!;
+
+    const firstUp = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true });
+    act(() => textarea.dispatchEvent(firstUp));
+    expect(firstUp.defaultPrevented).toBe(true);
+    expect(textarea.value).toBe('latest active prompt');
+
+    const secondUp = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true });
+    act(() => textarea.dispatchEvent(secondUp));
+    expect(textarea.value).toBe('older active prompt');
+
+    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    act(() => textarea.dispatchEvent(escape));
+    expect(escape.defaultPrevented).toBe(true);
+    expect(textarea.value).toBe('');
+  });
 });
 
 describe('EditorialComposer audit banners and a11y (Batch B/C/E)', () => {

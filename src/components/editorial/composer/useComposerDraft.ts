@@ -17,6 +17,8 @@ export interface ComposerDraft {
   flushDraft: () => void;
   /** Drop any pending debounce without flushing (used right before send). */
   cancelPendingFlush: () => void;
+  /** Replace the draft immediately (history recall / Escape restoration). */
+  replaceDraft: (next: string) => void;
   /** Clear draft + local state after a successful send, resetting height. */
   resetDraftAfterSend: () => void;
 }
@@ -69,6 +71,16 @@ export function useComposerDraft(
     }
   }, []);
 
+  const replaceDraft = useCallback((next: string) => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+    localDraftRef.current = next;
+    setLocalDraft(next);
+    if (ui.draft !== next) ui.setDraft(next);
+  }, [ui]);
+
   const resetDraftAfterSend = useCallback(() => {
     ui.clearDraft();
     localDraftRef.current = '';
@@ -78,5 +90,5 @@ export function useComposerDraft(
     }
   }, [ui, textareaRef]);
 
-  return { value: localDraft, onDraftChange, flushDraft, cancelPendingFlush, resetDraftAfterSend };
+  return { value: localDraft, onDraftChange, flushDraft, cancelPendingFlush, replaceDraft, resetDraftAfterSend };
 }

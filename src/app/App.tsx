@@ -14,6 +14,7 @@ import { runtimeMode } from '../core/runtime';
 import { primeClientPlatform } from '../core/clientPlatform';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import { useDesktopAmbient } from './useDesktopAmbient';
+import { useWindowFileDrop } from '../components/editorial/composer/useWindowFileDrop';
 
 const GatesMenu = lazy(() => import('../components/menu/GatesMenu').then(m => ({ default: m.GatesMenu })));
 const SYSTEM_LIGHT_QUERY = '(prefers-color-scheme: light)';
@@ -62,6 +63,7 @@ export const App = observer(function App() {
     ['--md-body-font-size' as string]: `${ui.bodyFontSizePx}px`,
     ['--reading-width' as string]: `${ui.readingWidthPx}px`,
   };
+  const windowDropActive = useWindowFileDrop(ui, root.bridge);
 
   useKeyboardShortcuts(root);
   useDesktopAmbient(root);
@@ -103,6 +105,11 @@ export const App = observer(function App() {
           : <EditorialChat />
         }
         {ui.paletteOpen && <CommandPalette />}
+        {windowDropActive && (
+          <div className="window-file-drop-overlay" role="status" aria-live="polite">
+            <div className="window-file-drop-overlay__hint">Drop files to attach to this chat</div>
+          </div>
+        )}
         <WhatsNewPanel />
       </div>
     </div>

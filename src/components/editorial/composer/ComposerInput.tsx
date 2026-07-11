@@ -18,7 +18,6 @@ interface ComposerInputProps {
   fileInputRef: RefObject<HTMLInputElement | null>;
   value: string;
   placeholder: string;
-  dragActive: boolean;
   bridgeOnline: boolean;
   streaming: boolean;
   hasText: boolean;
@@ -39,7 +38,6 @@ export function ComposerInput({
   fileInputRef,
   value,
   placeholder,
-  dragActive,
   bridgeOnline,
   streaming,
   hasText,
@@ -62,7 +60,6 @@ export function ComposerInput({
   return (
     <div
       className="composer-row"
-      data-drag-active={dragActive || undefined}
       style={ROW_STYLE}
     >
       <input

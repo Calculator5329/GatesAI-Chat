@@ -4,7 +4,7 @@
 // orchestrator — it owns the draft/send pipeline and route gating, then hands
 // derived state to the focused subcomponents under ./composer.
 // Invariant: persisted chat state stays in stores; this surface is presentation only.
-import { useCallback, useRef, useState, type ChangeEvent, type ClipboardEvent, type DragEvent, type KeyboardEvent, type RefObject } from 'react';
+import { useCallback, useRef, useState, type ChangeEvent, type ClipboardEvent, type KeyboardEvent, type RefObject } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useEditorial } from '../../stores/context';
 import { normalizeOpenRouterThinkingEffort, type ChatContextMode, type ChatThinkingEffort } from '../../stores/ChatStore';
@@ -13,8 +13,10 @@ import { AttachmentTray } from './composer/AttachmentTray';
 import { LocalImageBanner, ModelsKeyBanner, NoticeBanner, OllamaOfflineBanner } from './composer/ComposerBanners';
 import { ComposerInput } from './composer/ComposerInput';
 import { ComposerMeta } from './composer/ComposerMeta';
-import { imageFilesFromClipboard } from './composer/composerAttachments';
+import { handleClipboardImagePaste } from './composer/composerAttachments';
 import { useComposerDraft } from './composer/useComposerDraft';
+import { useComposerRecall } from './composer/useComposerRecall';
+import { userMessageBodies } from '../../core/threadSelectors';
 
 interface ComposerProps {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -24,7 +26,6 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   const { chat, ui, bridge, registry, providers, localRuntime, skills } = useEditorial();
   const [modelOpen, setModelOpen] = useState(false);
   const [skillOpen, setSkillOpen] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeThread = chat.activeThread;
@@ -36,7 +37,25 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   const localContextMode = activeThread?.contextMode ?? (currentModel?.providerId === 'ollama' ? 'micro' : 'full');
   const thinkingEffort = normalizeOpenRouterThinkingEffort(activeThread?.thinkingEffort);
 
-  const { value, onDraftChange, flushDraft, cancelPendingFlush, resetDraftAfterSend } = useComposerDraft(ui, textareaRef);
+  const {
+    value,
+    onDraftChange: setDraftFromInput,
+    flushDraft,
+    cancelPendingFlush,
+    replaceDraft,
+    resetDraftAfterSend,
+  } = useComposerDraft(ui, textareaRef);
+  const recallMessages = activeThread ? userMessageBodies(activeThread) : [];
+  const {
+    onDraftChange: onRecallAwareDraftChange,
+    onKeyDown: onRecallKeyDown,
+    cancelRecall,
+  } = useComposerRecall({
+    threadId: activeThreadId,
+    messages: recallMessages,
+    value,
+    replaceDraft,
+  });
 
   const streaming = chat.isStreaming;
   const streamActivity = activeThreadId ? chat.streamActivityByThread[activeThreadId] : undefined;
@@ -78,20 +97,12 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     // Cancel any pending flush; we're committing the final value now.
     cancelPendingFlush();
     chat.sendMessage(value, ui.attachments);
+    cancelRecall();
     resetDraftAfterSend();
   };
 
-  const onDrop = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragActive(false);
-    if (e.dataTransfer.files.length > 0) void ui.uploadFiles(e.dataTransfer.files, bridge);
-  };
-
   const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
-    const files = imageFilesFromClipboard(e.clipboardData);
-    if (files.length === 0) return;
-    e.preventDefault();
-    void ui.uploadFiles(files, bridge);
+    handleClipboardImagePaste(e, files => { void ui.uploadFiles(files, bridge); });
   };
 
   const onStop = () => {
@@ -140,6 +151,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (onRecallKeyDown(e)) return;
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSend();
@@ -154,9 +166,6 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     <div
       className="editorial-composer"
       style={{ padding: '0 48px 16px', fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif' }}
-      onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-      onDragLeave={() => setDragActive(false)}
-      onDrop={onDrop}
     >
       <div className="editorial-composer__inner" style={{ width: 'min(750px, 70%)', margin: '0 auto', paddingTop: 4 }}>
         {/* Banner stack: route block → multi-tab conflict → compaction → per-thread error */}
@@ -195,7 +204,6 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           fileInputRef={fileInputRef}
           value={value}
           placeholder={placeholder}
-          dragActive={dragActive}
           bridgeOnline={bridge.isOnline}
           streaming={streaming}
           hasText={hasText}
@@ -203,7 +211,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           sendTitle={sendTitle}
           onFileChange={onFileChange}
           onAttachClick={() => bridge.isOnline && fileInputRef.current?.click()}
-          onDraftChange={onDraftChange}
+          onDraftChange={next => onRecallAwareDraftChange(next, setDraftFromInput)}
           onFlushDraft={flushDraft}
           onKeyDown={onKeyDown}
           onPaste={onPaste}

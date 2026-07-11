@@ -4,6 +4,7 @@ import {
   groupThreadsByDate,
   threadLlmSpendUsd,
   threadLlmUsageTotal,
+  userMessageBodies,
   usageAllTimeTotal,
   usageCloudLocalTotals,
   usageByDayLast30,
@@ -117,6 +118,24 @@ describe('thread usage selectors', () => {
     expect(summary.cloud.requests).toBe(1);
     expect(summary.local.requests).toBe(1);
     expect(summary.presentationMode).toBe('spend-led');
+  });
+});
+
+describe('userMessageBodies', () => {
+  it('returns only user-authored text in sent order and hides attachment context', () => {
+    const conversation = thread('recall', 'or-gemini-3-flash', [
+      { id: 'u1', role: 'user', content: 'first question', createdAt: 1 },
+      { id: 'a1', role: 'assistant', content: 'first answer', createdAt: 2 },
+      {
+        id: 'u2',
+        role: 'user',
+        content: 'review this\n\n📎 Attached files (use `inspect_file` for CSV/JSON/text; use fs for byte-level reads/writes):\n  - /workspace/attachments/plan.csv · 1KB · text/csv',
+        createdAt: 3,
+      },
+      { id: 'u3', role: 'user', content: '(see attachments)', createdAt: 4 },
+    ]);
+
+    expect(userMessageBodies(conversation)).toEqual(['first question', 'review this', '(see attachments)']);
   });
 });
 

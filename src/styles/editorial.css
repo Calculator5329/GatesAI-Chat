@@ -1341,10 +1341,9 @@
   min-width: 0;
 }
 
-/* Composer wrapper border. Default = static border. While dragging files
-   over the composer, the wrapper goes dashed-accent. When the textarea is
-   focused AND has content (`:not(:placeholder-shown)`), shift to a more
-   saturated accent border — a subtle keystroke ack that costs zero JS. */
+/* Composer wrapper border. When the textarea is focused AND has content
+   (`:not(:placeholder-shown)`), shift to a more saturated accent border — a
+   subtle keystroke ack that costs zero JS. */
 .composer-row {
   border: 1px solid var(--border);
   box-sizing: border-box;
@@ -1352,14 +1351,33 @@
   overflow: visible;
   transition: border-color var(--motion-fast);
 }
-.composer-row[data-drag-active] {
-  border: 1px dashed var(--accent);
+/* The app-level drop target is intentionally visual-only: window listeners
+   handle files once, while the overlay leaves pointer/drag events untouched. */
+.window-file-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  backdrop-filter: blur(2px);
 }
-.composer-row:not([data-drag-active]):has(.composer-textarea:focus) {
+.window-file-drop-overlay__hint {
+  padding: 16px 22px;
+  border: 1px dashed var(--accent);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--accent);
+  font-family: "Geist Mono", monospace;
+  font-size: 13px;
+  box-shadow: 0 12px 36px color-mix(in srgb, var(--bg) 72%, transparent);
+}
+.composer-row:has(.composer-textarea:focus) {
   border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
   box-shadow: 0 0 0 3px var(--focus-ring-glow);
 }
-.composer-row:not([data-drag-active]):has(.composer-textarea:focus:not(:placeholder-shown)) {
+.composer-row:has(.composer-textarea:focus:not(:placeholder-shown)) {
   border-color: color-mix(in srgb, var(--accent) 62%, var(--border));
 }
 

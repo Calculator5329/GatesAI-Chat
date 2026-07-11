@@ -307,7 +307,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 - [ ] Inline thread rename (F2 / right-click) and drag-to-reorder pins
 - [x] Global summon shortcut + tray icon (Tauri global shortcut) *(verified already-done, 2026-07-10 truth pass — Wave I; tray in `src-tauri/src/desktop.rs`)*
 - [ ] Jump-to-bottom pill with new-tokens indicator; sticky date separators
-- [ ] Composer: up-arrow recall, paste-image, window-wide drag-drop
+- [x] Composer: up-arrow recall, paste-image, window-wide drag-drop *(done 2026-07-11)*
 - [x] Auto-collapse tool outputs over ~40 lines *(done 2026-07-10, burndown w2)*
 - [x] What's-new panel on version change *(done 2026-07-11)*
 - [ ] Onboarding v2: bundled "tour" thread showing tools/artifacts/images

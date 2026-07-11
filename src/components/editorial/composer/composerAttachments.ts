@@ -20,6 +20,46 @@ export function imageFilesFromClipboard(data: DataTransfer): File[] {
   return files;
 }
 
+export function isFileDrag(data: DataTransfer | null): boolean {
+  if (!data) return false;
+  return data.files.length > 0 || Array.from(data.types).includes('Files');
+}
+
+interface ClipboardPasteEvent {
+  clipboardData: DataTransfer;
+  preventDefault(): void;
+}
+
+interface FileDropEvent {
+  dataTransfer: DataTransfer | null;
+  preventDefault(): void;
+}
+
+/** Route pasted images through the same upload callback as the file picker. */
+export function handleClipboardImagePaste(
+  event: ClipboardPasteEvent,
+  upload: (files: File[]) => void,
+): boolean {
+  const files = imageFilesFromClipboard(event.clipboardData);
+  if (files.length === 0) return false;
+  event.preventDefault();
+  upload(files);
+  return true;
+}
+
+/** Route a file drop through the same upload callback as the file picker. */
+export function handleFileDrop(
+  event: FileDropEvent,
+  upload: (files: File[]) => void,
+): boolean {
+  if (!isFileDrag(event.dataTransfer)) return false;
+  const files = Array.from(event.dataTransfer?.files ?? []);
+  if (files.length === 0) return false;
+  event.preventDefault();
+  upload(files);
+  return true;
+}
+
 function normalizePastedImageFile(file: File, index: number): File {
   if (file.name && file.name.trim()) return file;
   const extension = extensionForImageMime(file.type);

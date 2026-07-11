@@ -2,6 +2,7 @@
 // Depends only on core types; no MobX, no services. The single source of
 // truth for spend math and sidebar search matching (previously duplicated
 // between ChatStore's getter and module-level helpers).
+import { splitAttachmentFooter } from './attachments';
 import type { Model, Thread } from './types';
 import type { LlmUsage, ProviderId } from './llm';
 import { addUsageToTotals, emptyUsageTotals, type UsageTotals } from './usage';
@@ -12,6 +13,19 @@ const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ] as const;
+
+/**
+ * User-authored prompt bodies in sent order. Attachment footers are model
+ * context, not text the user typed, so callers that present prior prompts
+ * (such as composer recall) should not surface them as editable prose.
+ */
+export function userMessageBodies(thread: Thread): string[] {
+  return thread.messages.flatMap(message => {
+    if (message.role !== 'user') return [];
+    const body = splitAttachmentFooter(message.content).body;
+    return body.trim() ? [body] : [];
+  });
+}
 
 export interface UsageModelTotal extends UsageTotals {
   modelId: string;
