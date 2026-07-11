@@ -16,6 +16,11 @@ Note: npm flagged esbuild@0.28.1's postinstall for allow-scripts review.
 - Plus ~20 unmaintained-crate warnings (atk/gtk3 bindings — inherent to
   tauri v2 GTK3 on Linux; no action available upstream yet).
 
-Follow-up: attempt targeted `cargo update` for the three RUSTSECs and rerun
-`cargo audit` + the tauri build; do NOT jump major versions of the tauri
-stack for this.
+Follow-up executed 2026-07-11 (overnight loop, ~2:15 AM):
+- quinn-proto: `cargo update -p quinn-proto` bumped it — **RUSTSEC-2026-0185
+  CLEARED** (cargo audit no longer lists it). `cargo check` green.
+- quick-xml (0194/0195): `cargo update -p quick-xml` locked 0 packages — the
+  tauri tree pins a semver range below the patched release. Needs an upstream
+  tauri dependency bump; re-check on the next tauri point release. Both are
+  parser-DoS class (quadratic time / memory exhaustion), local desktop app
+  exposure is limited.
