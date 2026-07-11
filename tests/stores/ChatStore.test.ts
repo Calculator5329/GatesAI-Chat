@@ -21,6 +21,7 @@ import {
 } from '../../src/services/persistence';
 import type { ThreadArchiveStore } from '../../src/services/persistence/idb';
 import { installMultiTabStorageListener } from '../../src/services/storage/persistenceProvider';
+import { WebLocksLeaderElection, type WebLockRequestOptions, type WebLocksApi } from '../../src/services/storage/webLocksLeaderElection';
 import { messageAttachments, messageText, messageToolCalls, messageToolResults } from '../../src/core/messageParts';
 
 const activeChats: ChatStore[] = [];
@@ -74,6 +75,47 @@ function chatSnapshot(id: string, title: string) {
       messages: [{ id: `${id}-m1`, role: 'user' as const, content: title, createdAt: 3 }],
     }],
   };
+}
+
+class MockWebLocks implements WebLocksApi {
+  private held = false;
+  private readonly queue: Array<{
+    options: WebLockRequestOptions;
+    callback: (lock: unknown) => Promise<void> | void;
+    resolve: (value: unknown) => void;
+    reject: (reason: unknown) => void;
+  }> = [];
+
+  request(_: string, options: WebLockRequestOptions, callback: (lock: unknown) => Promise<void> | void): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+      const request = { options, callback, resolve, reject };
+      options.signal?.addEventListener('abort', () => {
+        const index = this.queue.indexOf(request);
+        if (index >= 0) {
+          this.queue.splice(index, 1);
+          reject(new DOMException('aborted', 'AbortError'));
+        }
+      }, { once: true });
+      this.queue.push(request);
+      this.grantNext();
+    });
+  }
+
+  private grantNext(): void {
+    if (this.held || this.queue.length === 0) return;
+    const request = this.queue.shift()!;
+    this.held = true;
+    void Promise.resolve(request.callback({})).then(() => {
+      this.held = false;
+      request.resolve(undefined);
+      this.grantNext();
+    }, request.reject);
+  }
+}
+
+async function settleWebLock(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
 }
 
 function archivedThreadPair(id = 'archived-thread'): { stub: Thread; full: Thread } {
@@ -1733,6 +1775,41 @@ describe('ChatStore', () => {
     chat.renameThread(threadId, 'After dismiss');
     await flush(300);
     expect(loadSnapshot()?.threads.find(t => t.id === threadId)?.title).toBe('After dismiss');
+  });
+
+  it('suppresses follower persistence until the Web Locks leader hands over', async () => {
+    disposeActiveChats();
+    flushPendingSnapshot();
+    clearAppStorage();
+    const locks = new MockWebLocks();
+    const currentLeader = new WebLocksLeaderElection({ locks });
+    const followerElection = new WebLocksLeaderElection({ locks });
+    currentLeader.start();
+    await settleWebLock();
+    followerElection.start();
+
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const follower = trackChat(new ChatStore(
+      providers,
+      registry,
+      new UserProfileStore(),
+      () => true,
+      followerElection,
+    ));
+    const threadId = follower.activeThreadId!;
+    expect(follower.isReadOnlyFollower).toBe(true);
+    follower.renameThread(threadId, 'Unsaved follower edit');
+    await flush(300);
+    expect(loadSnapshot()).toBeNull();
+
+    currentLeader.dispose();
+    await settleWebLock();
+    expect(follower.isReadOnlyFollower).toBe(false);
+    await flush(300);
+    expect(loadSnapshot()?.threads.find(thread => thread.id === threadId)?.title).not.toBe('Unsaved follower edit');
+
+    followerElection.dispose();
   });
 
   it('omits tools from the request when the active model has supportsTools=false', async () => {

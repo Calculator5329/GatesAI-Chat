@@ -30,6 +30,7 @@ import { RagStore } from '../services/rag/RagStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 import { configureLogSink, logger } from '../services/diagnostics/logger';
 import { installMultiTabStorageListener } from '../services/storage/persistenceProvider';
+import { WebLocksLeaderElection } from '../services/storage/webLocksLeaderElection';
 import { toolRegistry } from '../services/tools/registry';
 import { createMcpRegistryTools } from '../services/mcp/toolIntegration';
 import { isWebLite } from '../core/runtime';
@@ -48,6 +49,7 @@ export class RootStore {
   readonly providers: ProviderStore;
   readonly profile: UserProfileStore;
   readonly chat: ChatStore;
+  readonly chatLeaderElection: WebLocksLeaderElection;
   readonly ui: UiStore;
   readonly router: RouterStore;
   readonly openrouter: OpenRouterStore;
@@ -96,7 +98,8 @@ export class RootStore {
     }), { autoPersist: false });
     this.openrouter = new OpenRouterStore(this.registry, () => this.providers.getConfig('openrouter').apiKey);
     this.openAiCompatEndpoint = new OpenAiCompatEndpointStore(this.registry, this.providers);
-    this.chat = new ChatStore(this.providers, this.registry, this.profile, () => this.ui.autoNamingEnabled);
+    this.chatLeaderElection = new WebLocksLeaderElection();
+    this.chat = new ChatStore(this.providers, this.registry, this.profile, () => this.ui.autoNamingEnabled, this.chatLeaderElection);
     seedWelcomeTourOnFirstRun(this.chat, this.whatsNew);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
@@ -252,6 +255,7 @@ export class RootStore {
     this.schedules.start();
     this.rag.start();
     this.disposers.push(installMultiTabStorageListener());
+    this.chatLeaderElection.start();
 
     this.disposers.push(autorun(() => {
       if (this.ui.onboardingDismissed) return;
@@ -288,6 +292,9 @@ export class RootStore {
     this.mcp.dispose();
     this.ollama.dispose();
     this.chat.dispose();
+    // Flush the departing leader while it still owns the lock, then release
+    // it so a queued follower can refresh and take over safely.
+    this.chatLeaderElection.dispose();
     this.ui.dispose();
     this.router.destroy();
     this.booted = false;

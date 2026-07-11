@@ -28,6 +28,7 @@ import {
 } from '../services/persistence';
 import { CURRENT_CHAT_SCHEMA_VERSION } from '../services/persistence/migrations';
 import { setMultiTabWriteHandler } from '../services/storage/persistenceProvider';
+import type { LeaderElectionState, WebLocksLeaderElection } from '../services/storage/webLocksLeaderElection';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, estimateTokens, type TokenUsage } from '../core/tokens';
 import { StreamingTextBuffer } from '../services/streaming/StreamingTextBuffer';
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
@@ -107,6 +108,8 @@ export class ChatStore {
   lastErrorByThread: Record<string, string> = {};
   /** Set when another tab writes chat storage; local saves pause until dismissed. */
   persistenceConflict: string | null = null;
+  /** Visible while another Web Locks leader owns shared chat persistence. */
+  activeTabNotice: string | null = null;
   /** User-visible notice after an emergency compaction save. */
   compactionNotice: string | null = null;
   /** Archived thread ids currently loading their full message history. */
@@ -120,6 +123,8 @@ export class ChatStore {
   private readonly turnRunner: TurnRunner;
   private readonly textBuffer = new StreamingTextBuffer();
   private readonly persistence: ChatPersistenceCoordinator;
+  private readonly leaderElection: WebLocksLeaderElection | null;
+  private stopLeaderElectionSubscription: (() => void) | null = null;
   private readonly hydrationByThread = new Map<string, Promise<Thread | null>>();
   private readonly agentTaskStartTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private workspacePersistenceHydrating = false;
@@ -134,11 +139,13 @@ export class ChatStore {
     registry: ModelRegistry,
     profile: UserProfileStore,
     isAutoNamingEnabled: () => boolean = () => true,
+    leaderElection: WebLocksLeaderElection | null = null,
   ) {
     this.providers = providers;
     this.registry = registry;
     this.profile = profile;
     this.isAutoNamingEnabled = isAutoNamingEnabled;
+    this.leaderElection = leaderElection;
     this.autoNamer = new AutoNamer({
       host: this.createAutoNameHost(),
       router: this.providers.router,
@@ -166,6 +173,9 @@ export class ChatStore {
     const snapshotLoadError = consumeSnapshotLoadError();
     if (snapshotLoadError) this.compactionNotice = snapshotLoadError;
     setMultiTabWriteHandler(key => {
+      // With Web Locks, only the elected leader can write. Ignore storage
+      // events in that mode; this callback is retained for feature fallback.
+      if (this.leaderElection && !this.leaderElection.usesLegacyFallback) return;
       if (key !== CHAT_SNAPSHOT_STORAGE_KEY) return;
       logger.warn('persistence', 'Chat autosave paused after cross-tab write', { key });
       runInAction(() => {
@@ -181,7 +191,7 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'hydrationByThread' | 'agentTaskStartTimers' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'hydrationByThread' | 'agentTaskStartTimers' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -190,6 +200,8 @@ export class ChatStore {
       turnRunner: false,
       textBuffer: false,
       persistence: false,
+      leaderElection: false,
+      stopLeaderElectionSubscription: false,
       hydrationByThread: false,
       agentTaskStartTimers: false,
       workspacePersistenceHydrating: false,
@@ -204,6 +216,9 @@ export class ChatStore {
     // workspace save queue; the autorun it installs tracks `this.snapshot`
     // (plus deep thread fields) through the callback below.
     this.persistence = new ChatPersistenceCoordinator(() => this.snapshot);
+    if (this.leaderElection) {
+      this.stopLeaderElectionSubscription = this.leaderElection.subscribe(state => this.applyLeaderElectionState(state));
+    }
     this.persistence.start();
     if (this.activeThread?.archived) {
       void this.hydrateThread(this.activeThread.id);
@@ -278,7 +293,14 @@ export class ChatStore {
   dispose(): void {
     this.abortAllStreams();
     this.clearAgentTaskStartTimers();
+    this.stopLeaderElectionSubscription?.();
+    this.stopLeaderElectionSubscription = null;
     this.persistence.dispose();
+  }
+
+  /** True while a different tab owns the Web Locks persistence lease. */
+  get isReadOnlyFollower(): boolean {
+    return this.activeTabNotice != null;
   }
 
   get snapshot(): ChatSnapshot {
@@ -738,7 +760,7 @@ export class ChatStore {
     this.streamActivityByThread = {};
     this.lastErrorByThread = {};
     this.persistenceConflict = null;
-    this.persistence.resume();
+    this.resumePersistenceIfLeader();
     this.schedulePersistSnapshot(this.snapshot);
   }
 
@@ -1334,6 +1356,25 @@ export class ChatStore {
     this.clearPersistenceConflict();
   }
 
+  /** Apply Web Locks ownership changes to persistence and the thin UI surface. */
+  private applyLeaderElectionState(state: LeaderElectionState): void {
+    if (state === 'follower') {
+      this.persistence.pause();
+      cancelPendingDeferredSnapshot();
+      this.activeTabNotice =
+        'Another tab is active. This tab is read-only and will refresh automatically when it becomes active.';
+      return;
+    }
+
+    this.activeTabNotice = null;
+    this.resumePersistenceIfLeader();
+    if (state === 'leader') {
+      // Reuse the existing conflict-refresh machinery before this tab writes
+      // anything, so its memory catches up with the previous leader.
+      this.reloadFromStorage();
+    }
+  }
+
   /** Reload chat state from localStorage after another tab wrote newer data. */
   reloadFromStorage(): void {
     const snapshot = loadSnapshot();
@@ -1364,6 +1405,11 @@ export class ChatStore {
 
   private clearPersistenceConflict(): void {
     this.persistenceConflict = null;
+    this.resumePersistenceIfLeader();
+  }
+
+  private resumePersistenceIfLeader(): void {
+    if (this.leaderElection?.canWrite === false) return;
     this.persistence.resume();
   }
 

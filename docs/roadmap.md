@@ -339,7 +339,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 - [ ] Adaptive streaming reveal pacing (faster catch-up when far behind)
 
 ### State & data
-- [ ] Web Locks API leader election for multi-tab (replace pause-on-conflict)
+- [x] Web Locks API leader election for multi-tab (replace pause-on-conflict) *(done 2026-07-11)*
 - [ ] Generalized undo (command pattern) for destructive ops
 - [ ] Per-thread system-prompt presets (Coding / Writing / Research)
 

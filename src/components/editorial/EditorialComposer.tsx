@@ -58,7 +58,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   });
 
   const streaming = chat.isStreaming;
-  const readOnly = activeThread?.readOnly === true;
+  const readOnly = activeThread?.readOnly === true || chat.isReadOnlyFollower;
   const streamActivity = activeThreadId ? chat.streamActivityByThread[activeThreadId] : undefined;
   const hasText = value.trim().length > 0;
   const directImageMode = currentModel?.providerId === 'local-image';
@@ -184,6 +184,11 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             onAction={() => chat.reloadFromStorage()}
             onDismiss={() => chat.dismissPersistenceConflict()}
           />
+        )}
+        {chat.activeTabNotice && (
+          <div className="chat-error-banner" role="status" style={{ marginBottom: 8 }}>
+            <span>{chat.activeTabNotice}</span>
+          </div>
         )}
         {chat.compactionNotice && (
           <NoticeBanner

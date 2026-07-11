@@ -1,5 +1,6 @@
 // Owns the chat persistence policy in one place: the throttled localStorage
-// autosave, synchronous unload flush, multi-tab pause, and the serialized
+// autosave, synchronous unload flush, Web Locks follower suppression (or the
+// legacy multi-tab pause fallback), and the serialized
 // workspace (bridge) save queue. ChatStore calls `schedule(snapshot)` and
 // never juggles the three write paths itself.
 //
