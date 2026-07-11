@@ -1417,6 +1417,11 @@
     padding: 18px var(--mobile-gutter) var(--mobile-composer-reserve) !important;
   }
 
+  :is(.runtime-web-lite, .runtime-desktop) .editorial-jump-to-bottom {
+    position: fixed;
+    bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+
   :is(.runtime-web-lite, .runtime-desktop) .editorial-stream {
     width: 100% !important;
   }

@@ -425,6 +425,69 @@
   border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
   outline: none;
 }
+.editorial-date-separator {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 28px;
+  margin: 0 0 12px;
+  color: var(--text-faint);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  font: 10px "Geist Mono", ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.editorial-date-separator::before,
+.editorial-date-separator::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+}
+.editorial-jump-to-bottom {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  bottom: 88px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+  box-shadow: 0 8px 24px color-mix(in srgb, #000 22%, transparent);
+  color: var(--text-dim);
+  font: 11px "Geist Mono", ui-monospace, monospace;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  animation: fadeIn var(--motion-fade) ease both;
+}
+.editorial-jump-to-bottom:hover {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
+  color: var(--text);
+}
+.editorial-jump-to-bottom__arrow {
+  display: inline-flex;
+  transform: rotate(180deg);
+}
+.editorial-jump-to-bottom__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+  animation: jumpPillPulse 1.4s ease-out infinite;
+}
+@keyframes jumpPillPulse {
+  60%, 100% { box-shadow: 0 0 0 6px transparent; }
+}
 .message-copy-hint,
 .message-copy-feedback {
   font-family: "Geist Mono", ui-monospace, monospace;

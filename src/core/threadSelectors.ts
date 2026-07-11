@@ -3,7 +3,7 @@
 // truth for spend math and sidebar search matching (previously duplicated
 // between ChatStore's getter and module-level helpers).
 import { splitAttachmentFooter } from './attachments';
-import type { Model, Thread } from './types';
+import type { Message, Model, Thread } from './types';
 import type { LlmUsage, ProviderId } from './llm';
 import { addUsageToTotals, emptyUsageTotals, type UsageTotals } from './usage';
 import { messageText } from './messageParts';
@@ -188,6 +188,50 @@ export interface ThreadDateGroup {
   threads: Thread[];
 }
 
+/** A consecutive calendar-day group in the chat message stream. */
+export interface MessageDateGroup {
+  /** Local-calendar key, formatted as `YYYY-MM-DD`. */
+  key: string;
+  /** Human-readable header, e.g. `Today` or `July 10, 2026`. */
+  label: string;
+  messages: Message[];
+}
+
+/**
+ * Split messages into consecutive local-calendar days without changing their
+ * order. The relative labels intentionally match the thread sidebar, while
+ * older days use an exact date so separators remain useful in long chats.
+ */
+export function groupMessagesByDate(
+  messages: readonly Message[],
+  now: number = Date.now(),
+): MessageDateGroup[] {
+  const todayKey = localDayKey(now);
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = localDayKey(yesterday.getTime());
+  const groups: MessageDateGroup[] = [];
+
+  for (const message of messages) {
+    const key = localDayKey(message.createdAt);
+    const current = groups[groups.length - 1];
+    if (current?.key === key) {
+      current.messages.push(message);
+      continue;
+    }
+    groups.push({
+      key,
+      label: key === todayKey
+        ? 'Today'
+        : key === yesterdayKey
+          ? 'Yesterday'
+          : formatMessageDate(message.createdAt),
+      messages: [message],
+    });
+  }
+  return groups;
+}
+
 /**
  * Group threads into sidebar date buckets by `updatedAt`, newest first:
  * Today, Yesterday, Previous 7 days, Previous 30 days, then one bucket per
@@ -277,6 +321,20 @@ function startOfLocalDay(timestamp: number): number {
   const date = new Date(timestamp);
   date.setHours(0, 0, 0, 0);
   return date.getTime();
+}
+
+function localDayKey(timestamp: number): string {
+  const date = new Date(timestamp);
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+function formatMessageDate(timestamp: number): string {
+  const date = new Date(timestamp);
+  return `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 
 function startOfUtcDay(timestamp: number): number {

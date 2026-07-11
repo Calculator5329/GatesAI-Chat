@@ -1,7 +1,7 @@
 // The main chat view: the (windowed) message list, the composer, and the
 // empty/first-run state. Rendered by the app shell; reads RootStore via hooks.
 // Invariant: persisted chat state stays in stores; this surface is presentation only.
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
 import { useEditorial } from '../../stores/context';
@@ -9,7 +9,8 @@ import { isTauri, isWebLite } from '../../core/runtime';
 import { clientPlatform } from '../../core/clientPlatform';
 import { recommendedDownload } from '../../core/downloads';
 import type { Message, Model } from '../../core/types';
-import { SecretKeyField } from '../ui';
+import { groupMessagesByDate } from '../../core/threadSelectors';
+import { Icons, SecretKeyField } from '../ui';
 import { EditorialMessage } from './EditorialMessage';
 import { EditorialComposer } from './EditorialComposer';
 import {
@@ -458,6 +459,7 @@ export const EditorialChat = observer(function EditorialChat() {
   const stickyRef = useRef(true);
   const windowingSupported = hasMessageWindowingSupport();
   const [viewport, setViewport] = useState({ scrollTop: 0, height: 0 });
+  const [awayFromBottom, setAwayFromBottom] = useState(false);
   const [, setHeightVersion] = useState(0);
 
   const activeThread = chat.activeThread;
@@ -470,7 +472,9 @@ export const EditorialChat = observer(function EditorialChat() {
   const [renderLimit, setRenderLimit] = useState(INITIAL_RENDERED_MESSAGES);
   const hiddenMessageCount = Math.max(0, messageCount - renderLimit);
   const visibleMessages = hiddenMessageCount > 0 ? messages.slice(hiddenMessageCount) : messages;
+  const visibleDateGroups = groupMessagesByDate(visibleMessages);
   const visibleMessageIds = visibleMessages.map(message => message.id);
+  const visibleMessageIndexes = new Map(visibleMessages.map((message, index) => [message.id, index]));
   const edgeRenderedIds = edgeRenderedMessageIds(visibleMessageIds);
   const streamingNeighborIds = streamingNeighborMessageIds(visibleMessageIds, streamingId);
   const visibleRange = computeVisibleMessageRange({
@@ -488,6 +492,12 @@ export const EditorialChat = observer(function EditorialChat() {
       if (el) el.scrollTop = el.scrollHeight;
     });
   }, []);
+
+  const jumpToBottom = useCallback(() => {
+    stickyRef.current = true;
+    setAwayFromBottom(false);
+    scheduleScrollToBottom();
+  }, [scheduleScrollToBottom]);
 
   const goResultThread = useCallback((threadId: string | null) => {
     if (!threadId) return;
@@ -552,6 +562,7 @@ export const EditorialChat = observer(function EditorialChat() {
     const onScroll = () => {
       const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
       stickyRef.current = distance <= STICKY_BOTTOM_PX;
+      setAwayFromBottom(!stickyRef.current);
       setViewport(previous => (
         previous.scrollTop === el.scrollTop && previous.height === el.clientHeight
           ? previous
@@ -571,6 +582,7 @@ export const EditorialChat = observer(function EditorialChat() {
     if (!el) return;
     scheduleScrollToBottom();
     stickyRef.current = true;
+    setAwayFromBottom(false);
   }, [activeThread?.id, scheduleScrollToBottom]);
 
   // New user message: force-scroll so the just-sent turn is visible even if
@@ -583,6 +595,7 @@ export const EditorialChat = observer(function EditorialChat() {
     const lastMessage = messages[messageCount - 1];
     if (lastMessage?.role === 'user') {
       stickyRef.current = true;
+      setAwayFromBottom(false);
       scheduleScrollToBottom();
       return;
     }
@@ -608,12 +621,13 @@ export const EditorialChat = observer(function EditorialChat() {
     el.scrollTop += el.scrollHeight - previousHeight;
   }, [hiddenMessageCount]);
 
-  // Response finished: force-scroll once to reveal the final answer tail.
+  // Response finished: reveal the final tail only if the reader was already
+  // following the stream. Readers browsing history keep their position and
+  // can use the jump pill when ready.
   useEffect(() => {
     const previous = previousStreamingIdRef.current;
     previousStreamingIdRef.current = streamingId;
-    if (previous && !streamingId) {
-      stickyRef.current = true;
+    if (previous && !streamingId && stickyRef.current) {
       scheduleScrollToBottom();
     }
   }, [streamingId, scheduleScrollToBottom]);
@@ -644,34 +658,55 @@ export const EditorialChat = observer(function EditorialChat() {
               Show {Math.min(RENDERED_MESSAGE_PAGE_SIZE, hiddenMessageCount)} earlier messages
             </button>
           )}
-          {visibleMessages.map((m, index) => {
-            const modelId = m.role === 'assistant' ? m.model : undefined;
-            const originalIndex = hiddenMessageCount + index;
-            const renderBody = shouldRenderFullMessage({
-              windowingSupported,
-              nearViewport: index >= visibleRange.start && index < visibleRange.end,
-              edgeRendered: edgeRenderedIds.has(m.id),
-              streamingNeighbor: streamingNeighborIds.has(m.id),
-            });
-            return (
-              <WindowedEditorialMessage
-                key={m.id}
-                message={m}
-                modelName={renderBody && modelId ? (registry.findById(modelId)?.name ?? modelId) : undefined}
-                streaming={m.id === chat.streamingMessageId}
-                renderBody={renderBody}
-                placeholderHeight={placeholderHeightForMessage(measuredMessageHeightsRef.current, m.id)}
-                actionsDisabled={activeThreadStreaming || activeThread?.readOnly === true}
-                laterMessageCount={Math.max(0, messages.length - originalIndex - 1)}
-                onRegenerate={regenerateMessage}
-                onBranch={branchMessage}
-                onEditAndResend={editAndResendMessage}
-                onMeasure={recordMessageHeight}
-              />
-            );
-          })}
+          {visibleDateGroups.map(group => (
+            <Fragment key={`${group.key}-${group.messages[0]?.id ?? 'empty'}`}>
+              <div className="editorial-date-separator" role="separator" aria-label={group.label}>
+                <span>{group.label}</span>
+              </div>
+              {group.messages.map(m => {
+                const index = visibleMessageIndexes.get(m.id) ?? 0;
+                const modelId = m.role === 'assistant' ? m.model : undefined;
+                const originalIndex = hiddenMessageCount + index;
+                const renderBody = shouldRenderFullMessage({
+                  windowingSupported,
+                  nearViewport: index >= visibleRange.start && index < visibleRange.end,
+                  edgeRendered: edgeRenderedIds.has(m.id),
+                  streamingNeighbor: streamingNeighborIds.has(m.id),
+                });
+                return (
+                  <WindowedEditorialMessage
+                    key={m.id}
+                    message={m}
+                    modelName={renderBody && modelId ? (registry.findById(modelId)?.name ?? modelId) : undefined}
+                    streaming={m.id === chat.streamingMessageId}
+                    renderBody={renderBody}
+                    placeholderHeight={placeholderHeightForMessage(measuredMessageHeightsRef.current, m.id)}
+                    actionsDisabled={activeThreadStreaming || activeThread?.readOnly === true}
+                    laterMessageCount={Math.max(0, messages.length - originalIndex - 1)}
+                    onRegenerate={regenerateMessage}
+                    onBranch={branchMessage}
+                    onEditAndResend={editAndResendMessage}
+                    onMeasure={recordMessageHeight}
+                  />
+                );
+              })}
+            </Fragment>
+          ))}
         </div>
       </div>
+      {awayFromBottom && (
+        <button
+          type="button"
+          className="editorial-jump-to-bottom"
+          data-streaming={activeThreadStreaming || undefined}
+          aria-label={activeThreadStreaming ? 'Jump to latest; new response tokens available' : 'Jump to latest'}
+          onClick={jumpToBottom}
+        >
+          {activeThreadStreaming && <span className="editorial-jump-to-bottom__dot" aria-hidden="true" />}
+          <span>{activeThreadStreaming ? 'New response' : 'Jump to latest'}</span>
+          <span className="editorial-jump-to-bottom__arrow" aria-hidden="true"><Icons.ArrowUp /></span>
+        </button>
+      )}
       {isWebLite() && messages.length === 0 && <WebLiteDownloadCue />}
       <EditorialComposer textareaRef={textareaRef} />
     </div>
