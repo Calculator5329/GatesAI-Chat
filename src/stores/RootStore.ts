@@ -24,6 +24,7 @@ import { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
 import { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import { SkillsStore } from './SkillsStore';
+import { WhatsNewStore } from './WhatsNewStore';
 import { RagStore } from '../services/rag/RagStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 import { configureLogSink, logger } from '../services/diagnostics/logger';
@@ -65,6 +66,7 @@ export class RootStore {
   readonly sourceWorkspace: SourceWorkspaceStore;
   readonly skills: SkillsStore;
   readonly rag: RagStore;
+  readonly whatsNew: WhatsNewStore;
   private booted = false;
   private readonly disposers: Array<() => void> = [];
   readonly replaceImportConfirmation = REPLACE_IMPORT_CONFIRMATION;
@@ -74,6 +76,7 @@ export class RootStore {
     this.registry = new ModelRegistry();
     this.profile = new UserProfileStore();
     this.ui = new UiStore();
+    this.whatsNew = new WhatsNewStore();
     this.router = new RouterStore();
     this.localRuntime = new LocalRuntimeStore({
       getOllamaCatalog: () => ollamaStore?.catalog ?? [],

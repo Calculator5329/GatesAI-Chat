@@ -23,6 +23,7 @@ import type { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import type { RagStore } from '../services/rag/RagStore';
 import type { SkillsStore } from './SkillsStore';
 import type { SchedulesStore } from './SchedulesStore';
+import type { WhatsNewStore } from './WhatsNewStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -114,6 +115,10 @@ export function useSchedulesStore(): SchedulesStore {
 
 export function useRagStore(): RagStore {
   return useRootStore().rag;
+}
+
+export function useWhatsNewStore(): WhatsNewStore {
+  return useRootStore().whatsNew;
 }
 
 export interface EditorialStores {

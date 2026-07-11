@@ -309,7 +309,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 - [ ] Jump-to-bottom pill with new-tokens indicator; sticky date separators
 - [ ] Composer: up-arrow recall, paste-image, window-wide drag-drop
 - [x] Auto-collapse tool outputs over ~40 lines *(done 2026-07-10, burndown w2)*
-- [ ] What's-new panel on version change
+- [x] What's-new panel on version change *(done 2026-07-11)*
 - [ ] Onboarding v2: bundled "tour" thread showing tools/artifacts/images
 
 ### Architecture

@@ -9,6 +9,7 @@ import { useChatStore, useRootStore, useRouterStore, useUiStore } from '../store
 import { EditorialSidebar } from '../components/editorial/EditorialSidebar';
 import { EditorialChat } from '../components/editorial/EditorialChat';
 import { CommandPalette } from '../components/palette/CommandPalette';
+import { WhatsNewPanel } from '../components/whats-new/WhatsNewPanel';
 import { runtimeMode } from '../core/runtime';
 import { primeClientPlatform } from '../core/clientPlatform';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
@@ -102,6 +103,7 @@ export const App = observer(function App() {
           : <EditorialChat />
         }
         {ui.paletteOpen && <CommandPalette />}
+        <WhatsNewPanel />
       </div>
     </div>
   );
