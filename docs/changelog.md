@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-12 — ComfyUI "Load failed" root-caused + persistent error trail
+
+- Root cause: a ComfyUI started by `local-ai-lab`'s launcher (without
+  `--enable-cors-header`) 403s the Tauri webview's cross-origin `/prompt`
+  POST, which WebKit surfaces as an opaque "Load failed". Our own bundled
+  launcher already passed the flag; the reused external server didn't.
+  Fixed in `local-ai-lab` (launcher now defaults `--enable-cors-header *`,
+  loopback-only listen unchanged) and the running server was restarted.
+- `comfyClient` now wraps `/prompt` network failures with the base URL and
+  the two likely causes (server down / CORS-less server) instead of the
+  bare webview one-liner; aborts still report as `cancelled`. Tests added.
+- Error data collection: `logger` warn/error entries are now additionally
+  appended to a dedicated daily `/workspace/logs/errors-YYYY-MM-DD.jsonl`
+  (alongside the existing app log), and image-job dispatch failures attach
+  a structured payload (job id, backend, mode, dims, seed, thread, prompt
+  preview) so recurring failures are diagnosable after the fact. New
+  `tests/services/diagnostics/logger.test.ts`; `npm run ci` green.
+
 ## 2026-07-12 — Default chat model → Nemotron 3 Ultra free (OpenRouter)
 
 - `DEFAULT_MODEL_ID` is now `or-nemotron-3-ultra-free`

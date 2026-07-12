@@ -312,6 +312,23 @@ describe('ComfyClient', () => {
     await expect(client.generate({ prompt: 'x' })).rejects.toThrow(/timed out/);
   });
 
+  it('explains opaque webview network failures with the base URL and CORS hint', async () => {
+    const fakeFetch: typeof fetch = async () => { throw new TypeError('Load failed'); };
+    const client = new ComfyClient({ baseUrl: 'http://127.0.0.1:8188', fetch: fakeFetch, sleep: async () => undefined });
+    await expect(client.generate({ prompt: 'x' }))
+      .rejects.toThrow(/could not reach ComfyUI at http:\/\/127\.0\.0\.1:8188 \(Load failed\).*--enable-cors-header/s);
+  });
+
+  it('reports a cancelled fetch as cancelled, not a connectivity failure', async () => {
+    const ac = new AbortController();
+    const fakeFetch: typeof fetch = async () => {
+      ac.abort();
+      throw new DOMException('The operation was aborted.', 'AbortError');
+    };
+    const client = new ComfyClient({ baseUrl: 'http://h', fetch: fakeFetch, sleep: async () => undefined });
+    await expect(client.generate({ prompt: 'x', signal: ac.signal })).rejects.toThrow(/^cancelled$/);
+  });
+
   it('surfaces /prompt rejection', async () => {
     const { fetch: fakeFetch } = makeFakeFetch([
       { match: () => true, respond: () => new Response('bad workflow', { status: 400, statusText: 'Bad Request' }) },

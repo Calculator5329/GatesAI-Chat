@@ -122,12 +122,28 @@ export class ComfyClient implements ImageBackend {
     }
     const prompt = stripWorkflowMetadata(workflow);
 
-    const promptResp = await this.fetchImpl(`${this.baseUrl}/prompt`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: req.signal,
-      body: JSON.stringify({ prompt, client_id: this.clientId }),
-    });
+    let promptResp: Response;
+    try {
+      promptResp = await this.fetchImpl(`${this.baseUrl}/prompt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: req.signal,
+        body: JSON.stringify({ prompt, client_id: this.clientId }),
+      });
+    } catch (err) {
+      if (req.signal?.aborted) throw new Error('cancelled');
+      // WebView network failures are opaque one-liners ("Load failed" /
+      // "Failed to fetch") that don't say which URL or why. The two real
+      // causes are a down server and a ComfyUI started without
+      // --enable-cors-header (it 403s foreign Origins, which the webview
+      // reports as a generic network error). Spell both out.
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `could not reach ComfyUI at ${this.baseUrl} (${reason}). `
+        + 'Either the server is not running, or it was started without '
+        + '--enable-cors-header and is rejecting cross-origin requests from the app.',
+      );
+    }
     if (!promptResp.ok) {
       const text = await safeText(promptResp);
       throw new Error(`comfy ${promptResp.status} ${promptResp.statusText}: ${text || '(no body)'} [/prompt]`);

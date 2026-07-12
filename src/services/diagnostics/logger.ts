@@ -68,14 +68,21 @@ function writeFile(entry: LogEntry): void {
   queueMicrotask(() => {
     if (!active.isOnline) return;
     const day = entry.t.slice(0, 10);
-    const path = `/workspace/logs/app-${day}.log`;
-    const line = JSON.stringify(entry) + '\n';
-    void active.client.request('fs.write', {
-      path,
-      content: line,
-      encoding: 'utf8',
-      append: true,
-    }).catch(() => { /* diagnostics are best-effort */ });
+    const append = (path: string, line: string) => {
+      void active.client.request('fs.write', {
+        path,
+        content: line,
+        encoding: 'utf8',
+        append: true,
+      }).catch(() => { /* diagnostics are best-effort */ });
+    };
+    append(`/workspace/logs/app-${day}.log`, JSON.stringify(entry) + '\n');
+    // Warnings and errors additionally land in a dedicated error trail so
+    // failure data accumulates in one greppable place across sessions —
+    // the raw material for spotting recurring bugs and regressions.
+    if (LEVEL_ORDER[entry.level] >= LEVEL_ORDER.warn) {
+      append(`/workspace/logs/errors-${day}.jsonl`, JSON.stringify(entry) + '\n');
+    }
   });
 }
 

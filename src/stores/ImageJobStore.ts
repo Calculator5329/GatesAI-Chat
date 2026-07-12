@@ -268,7 +268,20 @@ export class ImageJobStore {
         if (reason === 'cancelled') {
           logger.info('image-jobs', 'dispatch cancelled', { jobId: next.id });
         } else {
-          logger.error('image-jobs', `dispatch ${next.id} failed: ${reason}`);
+          // Structured payload feeds the persisted error trail
+          // (/workspace/logs/errors-*.jsonl) so failures stay diagnosable
+          // after the fact: which backend, mode, and render params broke.
+          logger.error('image-jobs', `dispatch ${next.id} failed: ${reason}`, {
+            jobId: next.id,
+            backend: next.backend,
+            comfyMode: next.comfyMode,
+            width: next.width,
+            height: next.height,
+            count: next.count,
+            seed: next.seed,
+            threadId: next.threadId,
+            promptPreview: next.prompt.slice(0, 200),
+          });
           this.fail(next, reason);
         }
       }
