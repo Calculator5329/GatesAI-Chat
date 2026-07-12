@@ -16,6 +16,7 @@ function actions(overrides: Partial<KeyboardShortcutActions> = {}): KeyboardShor
     menuOpen: () => false,
     closeMenu: vi.fn(),
     undo: vi.fn(),
+    toggleFullscreen: vi.fn(),
     ...overrides,
   };
 }
@@ -34,6 +35,24 @@ describe('keyboard shortcut dispatcher', () => {
 
     expect(shortcutActions.togglePalette).toHaveBeenCalledTimes(1);
     expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('fires F11 with no modifiers and toggles fullscreen', () => {
+    const shortcutActions = actions();
+    const event = new KeyboardEvent('keydown', { key: 'F11', bubbles: true, cancelable: true });
+
+    expect(dispatchKeyboardShortcut(event, shortcutActions)).toBe(true);
+
+    expect(shortcutActions.toggleFullscreen).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it('ignores F11 with a modifier held', () => {
+    const shortcutActions = actions();
+    const event = new KeyboardEvent('keydown', { key: 'F11', ctrlKey: true, bubbles: true, cancelable: true });
+
+    expect(dispatchKeyboardShortcut(event, shortcutActions)).toBe(false);
+    expect(shortcutActions.toggleFullscreen).not.toHaveBeenCalled();
   });
 
   it('suppresses Ctrl+N inside a textarea', () => {

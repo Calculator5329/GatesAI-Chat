@@ -112,9 +112,12 @@ export const CommandPalette = observer(function CommandPalette() {
       menuItem('models', 'Open models', 'Models', ['model api key openrouter'], router.goMenu),
       menuItem('workspace', 'Open workspace', 'Workspace', ['files source bridge'], router.goMenu),
       menuItem('gallery', 'Open gallery', 'Gallery', ['images artifacts'], router.goMenu),
+      actionItem('toggle-fullscreen', 'Toggle fullscreen', 'F11 — use the whole screen', ['fullscreen full screen f11 window maximize'], () => {
+        ui.toggleFullscreen();
+      }),
       ...chat.visibleThreads.map(threadItem(chat, router)),
     ];
-  }, [chat, router]);
+  }, [chat, router, ui]);
 
   const ranked = useMemo(() => rankPaletteItems(items, query).map(entry => entry.item), [items, query]);
 

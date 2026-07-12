@@ -7,6 +7,7 @@ import {
   localEscapeOverlayOpen,
   type KeyboardShortcutActions,
 } from '../services/keyboard/shortcuts';
+import { toggleFullscreen } from '../services/window/fullscreen';
 
 export function useKeyboardShortcuts(root: RootStore): void {
   useEffect(() => {
@@ -36,6 +37,7 @@ export function useKeyboardShortcuts(root: RootStore): void {
         if (!root.undo.undo() || root.router.isMenu) return;
         root.router.goThread(root.chat.activeThreadId);
       },
+      toggleFullscreen: () => { void toggleFullscreen(); },
       localEscapeOverlayOpen: () => localEscapeOverlayOpen(),
     };
     return installKeyboardShortcuts(actions);

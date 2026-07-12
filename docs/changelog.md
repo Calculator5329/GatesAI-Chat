@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-12 — W-4: Fullscreen toggle (F11 + palette)
+
+- New `services/window/fullscreen.ts`: F11 (no modifier, works from any
+  focus) toggles true OS fullscreen on desktop via the Tauri window API
+  (`core:window:allow-set/is-fullscreen` capabilities added); Web Lite
+  falls back to the browser Fullscreen API. Never throws — failures log
+  to the `window` scope.
+- Command palette gains "Toggle fullscreen" (routed through a new
+  `UiStore.toggleFullscreen()` facade to respect layer rules). Dispatcher
+  + service tests added.
+
 ## 2026-07-12 — ComfyUI "Load failed" root-caused + persistent error trail
 
 - Root cause: a ComfyUI started by `local-ai-lab`'s launcher (without

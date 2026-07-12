@@ -14,6 +14,7 @@ import type {
 import { loadUiPrefs, saveUiPrefs, type UiPrefsSnapshot } from '../services/uiPrefsStorage';
 import { loadMenuHintSeen, saveMenuHintSeen } from '../services/storage/uiHintStorage';
 import { logger } from '../services/diagnostics/logger';
+import { toggleFullscreen } from '../services/window/fullscreen';
 import {
   clearLocalDataExceptCredentials,
   formatBytes,
@@ -299,6 +300,9 @@ export class UiStore {
   openPalette(): void { this.paletteOpen = true; }
   closePalette(): void { this.paletteOpen = false; }
   togglePalette(): void { this.paletteOpen = !this.paletteOpen; }
+
+  /** Store facade over the fullscreen service so UI (palette) stays layered. */
+  toggleFullscreen(): void { void toggleFullscreen(); }
 
   setComposerFocusHandler(handler: (() => void) | null): void {
     this.composerFocus = handler;

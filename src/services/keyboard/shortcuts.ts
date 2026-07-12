@@ -12,6 +12,7 @@ export interface KeyboardShortcutActions {
   menuOpen: () => boolean;
   closeMenu: () => void;
   undo: () => void;
+  toggleFullscreen: () => void;
   localEscapeOverlayOpen?: () => boolean;
 }
 
@@ -44,6 +45,14 @@ export function dispatchKeyboardShortcut(event: KeyboardEvent, actions: Keyboard
       return true;
     }
     return false;
+  }
+
+  // F11 is the platform fullscreen convention (Linux/Windows) — no modifier,
+  // and it works even from editable controls since it never types anything.
+  if (event.key === 'F11' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    handleEvent(event);
+    actions.toggleFullscreen();
+    return true;
   }
 
   const hasShortcutModifier = event.ctrlKey || event.metaKey;
