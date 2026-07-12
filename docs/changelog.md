@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-12 — Offline Library trusted client (G1)
+
+- Added dedicated `offline_library_read` and `offline_library_search` Tauri
+  commands. Rust owns the exact loopback base URL and fixed operation map;
+  browser input cannot supply a URL, route, method, header, SQL, or path.
+- Enforced public-alias and search bounds, no redirects, JSON-only responses,
+  finite timeouts, a strict 1,000,000-byte response ceiling, and typed
+  unavailable/timeout/HTTP/contract errors.
+- Added the typed frontend client for status, sources, evaluations, profiles,
+  Knowledge Arena summaries, public database catalog/schemas, and cited search.
+  Web Lite returns a desktop-only state without attempting any transport, and
+  citation strings are passed through unchanged.
+- The required full Rust gate exposed and now closes an existing source-jail
+  portability hole: Windows drive, backslash/UNC, and leading-slash absolute
+  paths are rejected consistently even when GatesAI runs on Unix.
+
 ## 2026-07-12 — Offline Library consumer boundary (G0)
 
 - Accepted a dedicated, fixed-authority Tauri proxy design for the optional

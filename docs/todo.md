@@ -15,7 +15,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
       `local.offline-library` 1.3 consumer fixture with static contract tests.
 - [ ] Consume the validated `local.offline-library` manifest and matching
       OpenAPI version through a trusted desktop backend boundary.
-- [ ] Typed read-only client: health, sources, cited search, public schemas,
+- [x] Typed read-only client: health, sources, cited search, public schemas,
       task-aware profiles, and Knowledge Arena summaries.
 - [ ] Explicit addon enable/disable, health, permissions, offline, version-
       mismatch, and unavailable-host states.

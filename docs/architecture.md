@@ -585,6 +585,7 @@ Generated from the `tauri::generate_handler!` registration in
 | `secrets.rs` | `secret_set`, `secret_get`, `secret_delete` |
 | `local_runtime.rs` | `spawn_runtime`, `stop_runtime`, `runtime_status`, `probe_http`, `ollama_tags`, `path_exists`, `pick_directory`, `pick_file`, `runtime_candidate_paths` |
 | `mcp_stdio.rs` | `mcp_stdio_start`, `mcp_stdio_send`, `mcp_stdio_stop`, `mcp_stdio_status` |
+| `offline_library.rs` | `offline_library_read`, `offline_library_search` |
 | `source_workspace.rs` | `source_workspace_status`, `source_workspace_prepare`, `source_workspace_open`, `source_workspace_list`, `source_workspace_read`, `source_workspace_write`, `source_workspace_stat`, `source_workspace_search`, `source_changed_files`, `source_revert_file` |
 | `source_build.rs` | `source_build_status`, `source_build_start`, `source_build_clear` |
 
@@ -594,19 +595,21 @@ Other Rust modules:
   spawning the bridge sidecar.
 - `main.rs` delegates to `lib::run()`.
 
-### Offline Library plugin boundary (accepted, implementation pending)
+### Offline Library plugin boundary
 
 The optional Offline Library addon uses a dedicated Tauri module rather than
 the Go workspace bridge, browser networking, or the general `fetch_page`
 command. The Rust side owns the fixed base URL
-`http://127.0.0.1:8892/api/v1` and will expose only typed read/search
+`http://127.0.0.1:8892/api/v1` and exposes only typed read/search
 operations declared by the validated plugin manifest. It accepts no arbitrary
 URL, route, method, SQL, or filesystem path; redirects are rejected and JSON
 responses are capped at 1,000,000 bytes. Web Lite never invokes this boundary
 and reports the addon as desktop-only. Exact evidence URIs are preserved
 across the consumer. See
 `docs/adr/2026-07-12-offline-library-plugin.md` for the threat model, lifecycle,
-version policy, and rejected alternatives.
+version policy, and rejected alternatives. Frontend access is isolated in
+`src/services/offlineLibrary/`; it returns explicit typed success/error states
+and does not invoke Tauri at all in Web Lite.
 
 ## Bridge and workspace
 

@@ -69,7 +69,12 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         model, Web Lite degradation, plugin lifecycle, and citation contract.
         Import a sanitized API fixture only after local-ai-lab declares the
         benchmark/profile endpoints in its manifest and OpenAPI document.
-  - [ ] **G1 — typed service client and trusted proxy.** Add a service-layer
+  - [x] **G1 — typed service client and trusted proxy.** *(done 2026-07-12 —
+        dedicated Rust commands own the exact `127.0.0.1:8892/api/v1`
+        authority and fixed route/method set; typed TypeScript result states
+        degrade without invoking transport in Web Lite; hostile aliases,
+        bounds, redirects, content types, sizes, errors, and citation identity
+        are covered in Rust/frontend tests)* Add a service-layer
         client for status, sources, search, public schemas, profiles, and
         benchmark summaries. Browser code must not fetch `127.0.0.1` directly;
         the desktop backend must allow only the fixed host/port/path set, bound

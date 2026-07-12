@@ -885,12 +885,21 @@ fn clean_required_file_path(path: &str, action: &str) -> Result<PathBuf, String>
 }
 
 fn clean_relative_path(path: &str) -> Result<PathBuf, String> {
-    let trimmed = path
-        .trim()
-        .trim_start_matches("source://")
-        .trim_start_matches('/');
+    let raw = path.trim();
+    let trimmed = raw.strip_prefix("source://").unwrap_or(raw);
     if trimmed.is_empty() || trimmed == "." {
         return Ok(PathBuf::new());
+    }
+    // Model-facing source paths are portable POSIX-style relative paths.
+    // Path::components() on Unix treats Windows separators and drive prefixes
+    // as ordinary filename bytes, so reject them explicitly before joining.
+    if trimmed.starts_with('/')
+        || trimmed.starts_with('\\')
+        || trimmed.contains('\\')
+        || (trimmed.as_bytes().get(1) == Some(&b':')
+            && trimmed.as_bytes()[0].is_ascii_alphabetic())
+    {
+        return Err("source workspace paths must be portable relative paths.".to_string());
     }
     let candidate = Path::new(trimmed);
     if candidate.is_absolute() {
@@ -1002,6 +1011,9 @@ mod tests {
         assert!(clean_relative_path("../secret.txt").is_err());
         assert!(clean_relative_path("src/../../secret.txt").is_err());
         assert!(clean_relative_path("C:\\Users\\secret.txt").is_err());
+        assert!(clean_relative_path("..\\secret.txt").is_err());
+        assert!(clean_relative_path("\\\\server\\share\\secret.txt").is_err());
+        assert!(clean_relative_path("/etc/passwd").is_err());
     }
 
     #[test]

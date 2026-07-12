@@ -10,6 +10,7 @@ mod desktop;
 mod fetch_page;
 mod local_runtime;
 mod mcp_stdio;
+mod offline_library;
 mod secrets;
 mod source_build;
 mod source_workspace;
@@ -89,6 +90,8 @@ pub fn run() {
       mcp_stdio::mcp_stdio_send,
       mcp_stdio::mcp_stdio_stop,
       mcp_stdio::mcp_stdio_status,
+      offline_library::offline_library_read,
+      offline_library::offline_library_search,
       source_workspace::source_workspace_status,
       source_workspace::source_workspace_prepare,
       source_workspace::source_workspace_open,
