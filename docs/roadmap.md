@@ -57,6 +57,32 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### Next
 
+**Workbench program (Ethan, 2026-07-12)** — design frame in
+`docs/plans/2026-07-12-workbench-vision-design.md`; each item gets its own
+dated plan doc before implementation. Order matters (5→4→1→2→3 in the doc):
+
+- [ ] **W-5: Auto-updater via releases repo.** `tauri-plugin-updater` +
+      signed `latest.json` on `GatesAI-Chat-releases`; in-app "restart to
+      update" pill; AppImage auto-applies, deb/rpm get notice+link.
+      *Acceptance:* a tagged release updates an older installed AppImage
+      in-app without a manual download. *(Supersedes the "Later" opt-in
+      auto-updater item — Ethan promoted it.)*
+- [ ] **W-4: Fullscreen toggle + discoverability (Linux first).** F11 via
+      shortcuts service → `setFullscreen`; palette entry + shortcuts help.
+      *Acceptance:* F11 toggles on Linux desktop build; palette lists it.
+- [ ] **W-1: Right dock panel framework.** DockStore (1 col × 1–2 cells,
+      movable/collapsible/persisted) + panel registry; first panels: file
+      viewer (md/html/json/txt), simple code editor (CodeMirror ADR), basic
+      file explorer, media viewer. Web Lite feature-gated.
+- [ ] **W-2: HTML artifact contract.** Versioned system-prompt block
+      generated from code, artifact id registry under
+      `/workspace/artifacts/html/`, smoke-render validation at creation,
+      failures into the error trail; artifacts open in the dock panel.
+- [ ] **W-3: Unified background-task framework.** Promote the ImageJob
+      lifecycle to a generic TaskStore (`image` | `agent` | `command`
+      kinds), task-center dock panel with progress/cancel/retry/cost;
+      strangler migration keeping ImageJobStore's 22 tests green.
+
 - [x] **BUG: 5 e2e tests failing on master (found 2026-07-11).** *(done 2026-07-11)* Pre-existing
       before the harness handshake fix (proven by stash-baseline):
       desktop.spec:171 first-run onboarding, web-lite.spec:43 onboarding,
@@ -137,7 +163,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### Later
 
-- [ ] Opt-in auto-updater (signed, OFF by default) — after signing lands.
+- [x] Opt-in auto-updater — promoted to Next as W-5 (2026-07-12); tracked there.
 - [ ] Portable mode (zip, data beside exe).
 - [ ] Agent eval harness — see `docs/IDEAS.md` #1; promotes to Next once the
       open-source track is done.
