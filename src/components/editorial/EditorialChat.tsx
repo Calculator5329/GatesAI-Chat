@@ -1,7 +1,7 @@
 // The main chat view: the (windowed) message list, the composer, and the
 // empty/first-run state. Rendered by the app shell; reads RootStore via hooks.
 // Invariant: persisted chat state stays in stores; this surface is presentation only.
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type WheelEvent } from 'react';
 import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
 import { useEditorial } from '../../stores/context';
@@ -22,6 +22,7 @@ import {
   shouldRenderFullMessage,
   streamingNeighborMessageIds,
 } from './messageWindowing';
+import { isNearScrollBottom, shouldDisengageScrollFollow } from './scrollFollow';
 
 const STICKY_BOTTOM_PX = 100;
 const INITIAL_RENDERED_MESSAGES = 120;
@@ -501,6 +502,15 @@ export const EditorialChat = observer(function EditorialChat() {
     scheduleScrollToBottom();
   }, [scheduleScrollToBottom]);
 
+  const handleTimelineWheel = useCallback((event: WheelEvent<HTMLDivElement>) => {
+    const el = scrollRef.current;
+    if (!el || !shouldDisengageScrollFollow(stickyRef.current, event.deltaY, el)) return;
+    // Wheel fires before scroll. Record the reader's intent now so the next
+    // streaming token cannot re-pin the viewport in between those events.
+    stickyRef.current = false;
+    setAwayFromBottom(true);
+  }, []);
+
   const goResultThread = useCallback((threadId: string | null) => {
     if (!threadId) return;
     chat.selectThread(threadId);
@@ -562,8 +572,7 @@ export const EditorialChat = observer(function EditorialChat() {
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
-      const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
-      stickyRef.current = distance <= STICKY_BOTTOM_PX;
+      stickyRef.current = isNearScrollBottom(el, STICKY_BOTTOM_PX);
       setAwayFromBottom(!stickyRef.current);
       setViewport(previous => (
         previous.scrollTop === el.scrollTop && previous.height === el.clientHeight
@@ -639,7 +648,12 @@ export const EditorialChat = observer(function EditorialChat() {
       flex: 1, display: 'flex', flexDirection: 'column',
       minWidth: 0, background: 'var(--bg)', position: 'relative',
     }}>
-      <div ref={scrollRef} className="editorial-chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px' }}>
+      <div
+        ref={scrollRef}
+        className="editorial-chat-scroll"
+        onWheelCapture={handleTimelineWheel}
+        style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px' }}
+      >
         <div style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
           {activeThreadHydrating && (
             <div className="editorial-empty-state" role="status">

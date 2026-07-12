@@ -8,8 +8,16 @@ import remarkMath from 'remark-math';
 import type { PluggableList } from 'unified';
 import { isWorkspacePath } from '../../core/workspacePaths';
 import type { BridgeStore } from '../../stores/BridgeStore';
-import { HtmlArtifactPreview, isHtmlWorkspacePath } from './HtmlArtifactPreview';
+import {
+  downloadHtmlDocument,
+  HtmlArtifactPreview,
+  InlineHtmlDocument,
+  isCompleteHtmlDocument,
+  isHtmlWorkspacePath,
+  openHtmlDocument,
+} from './HtmlArtifactPreview';
 import { MermaidDiagram } from './MermaidDiagram';
+import { hasClosedFencedCodeBlock } from './markdownChunks';
 import {
   highlightPluginLoader,
   katexPluginLoader,
@@ -17,7 +25,7 @@ import {
   type RehypePlugin,
 } from './markdownPluginLoader';
 
-const HAS_CODE_FENCE = (s: string) => s.includes('```');
+const HAS_CODE_FENCE = (s: string) => /(?:^|\n) {0,3}(?:`{3,}|~{3,})/.test(s);
 const MATH_RE = /\$\$[\s\S]+?\$\$|\\\(|\\\[/;
 const HAS_MATH = (s: string) => MATH_RE.test(s);
 
@@ -48,7 +56,7 @@ export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge, line
       rehypePlugins={rehypePlugins}
       components={{
         code: (props) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
-        pre: (props) => <CodeBlock {...props} lineNumbers={lineNumbers} onLineNumbersChange={onLineNumbersChange} />,
+        pre: (props) => <CodeBlock {...props} lineNumbers={lineNumbers} onLineNumbersChange={onLineNumbersChange} htmlPreviewEnabled={hasClosedFencedCodeBlock(content)} />,
         a: (props) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,
       }}
     >
@@ -60,27 +68,57 @@ export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge, line
 interface CodeBlockProps extends ComponentPropsWithoutRef<'pre'> {
   lineNumbers: boolean;
   onLineNumbersChange: (enabled: boolean) => void;
+  htmlPreviewEnabled: boolean;
 }
 
-function CodeBlock({ children, lineNumbers, onLineNumbersChange, ...rest }: CodeBlockProps) {
+function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnabled, ...rest }: CodeBlockProps) {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  const [wrapped, setWrapped] = useState(false);
+  const [htmlView, setHtmlView] = useState<'source' | 'preview'>('source');
+  useEffect(() => {
+    if (copyState === 'idle') return;
+    const timeout = window.setTimeout(() => setCopyState('idle'), 1_400);
+    return () => window.clearTimeout(timeout);
+  }, [copyState]);
   const child = Children.only(children);
-  if (!isValidElement(child) || child.type !== 'code') return <pre {...rest}>{children}</pre>;
+  if (!isValidElement(child)) return <pre {...rest}>{children}</pre>;
 
   const code = child as ReactElement<ComponentPropsWithoutRef<'code'>>;
+  // react-markdown passes the configured code renderer as this child rather
+  // than a literal `code` element. Mermaid owns its own presentation; every
+  // other fenced child receives the consistent code-block shell.
+  if (/\blanguage-mermaid\b/.test(code.props.className ?? '')) return <>{children}</>;
   const language = languageLabelFromClassName(code.props.className);
   const text = childrenToString(code.props.children).replace(/\n$/, '');
   const lineCount = text.split('\n').length;
+  const normalizedLanguage = language?.toLowerCase();
+  const htmlDocument = htmlPreviewEnabled
+    && (!normalizedLanguage || normalizedLanguage === 'html' || normalizedLanguage === 'htm')
+    && isCompleteHtmlDocument(text);
 
   return (
     <div className="code-block">
       <div className="code-block__toolbar">
         <span className="code-block__language">{language ?? 'Code'}</span>
-        <button type="button" aria-pressed={lineNumbers} onClick={() => onLineNumbersChange(!lineNumbers)}>
-          {lineNumbers ? 'Hide lines' : 'Show lines'}
+        {htmlDocument && (
+          <button type="button" aria-pressed={htmlView === 'preview'} onClick={() => setHtmlView(view => view === 'source' ? 'preview' : 'source')}>
+            {htmlView === 'source' ? 'Preview' : 'Source'}
+          </button>
+        )}
+        <button
+          type="button"
+          aria-label={lineNumbers ? 'Hide line numbers' : 'Show line numbers'}
+          aria-pressed={lineNumbers}
+          onClick={() => onLineNumbersChange(!lineNumbers)}
+        >
+          Lines
+        </button>
+        <button type="button" aria-pressed={wrapped} onClick={() => setWrapped(value => !value)}>
+          {wrapped ? 'Unwrap' : 'Wrap'}
         </button>
         <button
           type="button"
+          data-state={copyState}
           onClick={async () => {
             const copied = await copyCodeToClipboard(text);
             setCopyState(copied ? 'copied' : 'failed');
@@ -88,8 +126,15 @@ function CodeBlock({ children, lineNumbers, onLineNumbersChange, ...rest }: Code
         >
           {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy'}
         </button>
+        {htmlDocument && (
+          <>
+            <button type="button" onClick={() => openHtmlDocument(text)}>Open</button>
+            <button type="button" onClick={() => downloadHtmlDocument(text)}>Download</button>
+          </>
+        )}
       </div>
-      <div className={`code-block__body${lineNumbers ? ' code-block__body--numbered' : ''}`}>
+      {htmlDocument && htmlView === 'preview' ? <InlineHtmlDocument html={text} /> : (
+      <div className={`code-block__body${lineNumbers ? ' code-block__body--numbered' : ''}${wrapped ? ' code-block__body--wrapped' : ''}`}>
         {lineNumbers && (
           <span className="code-block__line-numbers" aria-hidden="true">
             {Array.from({ length: lineCount }, (_, index) => <span key={index}>{index + 1}</span>)}
@@ -97,6 +142,7 @@ function CodeBlock({ children, lineNumbers, onLineNumbersChange, ...rest }: Code
         )}
         <pre {...rest}>{code}</pre>
       </div>
+      )}
     </div>
   );
 }

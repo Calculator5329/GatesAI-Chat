@@ -11,6 +11,7 @@ import { ProviderStore } from '../../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../../src/stores/UserProfileStore';
 import { EditorialMessage } from '../../../src/components/editorial/EditorialMessage';
+import { MarkdownChunk } from '../../../src/components/editorial/MarkdownChunk';
 import {
   __artifactPreviewTestApi,
   loadHtmlArtifactPreview,
@@ -137,6 +138,28 @@ function renderMessageHarness(
   };
 
   rerender(message, streaming);
+  return { host, rerender };
+}
+
+function renderMarkdownChunkHarness(content: string): {
+  host: HTMLDivElement;
+  rerender: (nextContent: string) => void;
+} {
+  host = document.createElement('div');
+  document.body.appendChild(host);
+  root = createRoot(host);
+  const store = createTestStore();
+  const rerender = (nextContent: string) => {
+    act(() => {
+      root!.render(createElement(MarkdownChunk, {
+        content: nextContent,
+        bridge: store.bridge,
+        lineNumbers: false,
+        onLineNumbersChange: () => undefined,
+      }));
+    });
+  };
+  rerender(content);
   return { host, rerender };
 }
 
@@ -369,6 +392,40 @@ describe('EditorialMessage markdown rendering', () => {
 
     expect(rendered.querySelector('.mermaid-diagram')).not.toBeNull();
     expect(rendered.querySelector('.mermaid-diagram svg')).not.toBeNull();
+  });
+
+  it('renders unknown-language code with copy and wrap controls', async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    const { host: rendered } = renderMarkdownChunkHarness('```madeuplang\na very long line that should remain intact\n```');
+    const buttons = Array.from(rendered.querySelectorAll('.code-block__toolbar button'));
+    const wrap = buttons.find(button => button.textContent === 'Wrap') as HTMLButtonElement;
+    const copy = buttons.find(button => button.textContent === 'Copy') as HTMLButtonElement;
+    act(() => wrap.click());
+    await act(async () => { copy.click(); await flushMicrotasks(); });
+
+    expect(rendered.querySelector('.code-block__body--wrapped')).not.toBeNull();
+    expect(writeText).toHaveBeenCalledWith('a very long line that should remain intact');
+    expect(copy.textContent).toBe('Copied');
+  });
+
+  it('offers HTML preview only after the document fence closes', async () => {
+    const initial = {
+      id: 'm-streaming-html',
+      role: 'assistant' as const,
+      createdAt: Date.now(),
+      content: '```html\n<!doctype html><html><body><h1>Ready</h1></body></html>',
+    };
+    const { host: rendered, rerender } = renderMarkdownChunkHarness(initial.content);
+    expect(Array.from(rendered.querySelectorAll('button')).some(button => button.textContent === 'Preview')).toBe(false);
+
+    rerender(`${initial.content}\n\`\`\``);
+    const preview = Array.from(rendered.querySelectorAll('button')).find(button => button.textContent === 'Preview') as HTMLButtonElement;
+    act(() => preview.click());
+
+    expect(rendered.querySelector('.inline-html-preview iframe')?.getAttribute('sandbox')).not.toContain('allow-same-origin');
+    expect(htmlFromPreviewFrame(rendered.querySelector('.inline-html-preview iframe'))).toContain('<h1>Ready</h1>');
+    expect(Array.from(rendered.querySelectorAll('button')).some(button => button.textContent === 'Source')).toBe(true);
   });
 
   it('still renders external markdown anchors as anchor tags', () => {

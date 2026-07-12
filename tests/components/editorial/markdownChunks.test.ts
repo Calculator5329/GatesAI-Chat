@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   splitMarkdownChunks,
   splitMarkdownChunksIncremental,
+  hasClosedFencedCodeBlock,
   type MarkdownChunkSnapshot,
   type MarkdownTextChunk,
 } from '../../../src/components/editorial/markdownChunks';
@@ -32,6 +33,12 @@ function randomCutPoints(length: number, seed: number): number[] {
 }
 
 describe('splitMarkdownChunks', () => {
+  it('reports only completed backtick and tilde fences as closed', () => {
+    expect(hasClosedFencedCodeBlock('```html\n<html></html>')).toBe(false);
+    expect(hasClosedFencedCodeBlock('```html\n<html></html>\n```')).toBe(true);
+    expect(hasClosedFencedCodeBlock('~~~~odd\nx\n~~~~')).toBe(true);
+  });
+
   it('returns empty array for empty input', () => {
     expect(splitMarkdownChunks('')).toEqual([]);
   });

@@ -29,6 +29,25 @@
   preview) so recurring failures are diagnosable after the fact. New
   `tests/services/diagnostics/logger.test.ts`; `npm run ci` green.
 
+## 2026-07-12 — Chat interaction and artifact polish
+
+- Replaced the composer's square textarea focus outline with an accessible,
+  rounded accent ring on the composer shell, and changed sidebar-brand hover
+  feedback from a full-row wash to a quiet wordmark/dot response.
+- Hardened streaming scroll-follow: upward wheel intent over the message
+  column pauses following immediately, returning to the bottom or using the
+  floating latest-response button re-arms it, and nested content can no longer
+  leak horizontal overflow onto the page.
+- Refined fenced code blocks with tolerant language labels, stable monospace
+  rendering, contained horizontal scrolling, wrap/source controls, animated
+  copy confirmation, and safe handling of incomplete streaming fences.
+- Complete fenced HTML documents now offer a sandboxed inline preview with
+  source/preview, open-in-new-tab, and download actions. The iframe never gets
+  same-origin access and preview remains unavailable until the fence and HTML
+  document are complete.
+- Added unit and Playwright coverage for focus appearance, follow pause/re-arm,
+  code copy feedback, and HTML preview toggling.
+
 ## 2026-07-12 — Default chat model → Nemotron 3 Ultra free (OpenRouter)
 
 - `DEFAULT_MODEL_ID` is now `or-nemotron-3-ultra-free`

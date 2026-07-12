@@ -16,6 +16,45 @@ type PreviewDocumentUrl = { url: string; revoke?: () => void };
 
 export { isHtmlWorkspacePath };
 
+export function InlineHtmlDocument({ html }: { html: string }) {
+  const previewDocument = useMemo(() => createPreviewDocumentUrl(html), [html]);
+  useEffect(() => () => previewDocument.revoke?.(), [previewDocument]);
+
+  return (
+    <div className="inline-html-preview" data-testid="inline-html-preview">
+      <iframe
+        title="HTML code preview"
+        src={previewDocument.url}
+        sandbox={HTML_SANDBOX}
+      />
+    </div>
+  );
+}
+
+export function isCompleteHtmlDocument(html: string): boolean {
+  return /<html(?:\s|>)[\s\S]*<\/html\s*>/i.test(html.trim());
+}
+
+export function openHtmlDocument(html: string): void {
+  const previewDocument = createPreviewDocumentUrl(html);
+  const opened = window.open(previewDocument.url, '_blank', 'noopener,noreferrer');
+  if (opened) opened.opener = null;
+  // Blob URLs must remain alive long enough for the new tab to load.
+  if (previewDocument.revoke) window.setTimeout(previewDocument.revoke, 60_000);
+}
+
+export function downloadHtmlDocument(html: string, filename = 'artifact.html'): void {
+  const previewDocument = createPreviewDocumentUrl(html);
+  const anchor = document.createElement('a');
+  anchor.href = previewDocument.url;
+  anchor.download = filename;
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  if (previewDocument.revoke) window.setTimeout(previewDocument.revoke, 0);
+}
+
 export function HtmlArtifactPreview({ path, label }: { path: string; label?: string }) {
   const { bridge } = useEditorial();
   const [state, setState] = useState<HtmlLoadState>(() => {
@@ -23,6 +62,7 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
     return cached ? { status: 'ready', ...cached } : { status: 'loading' };
   });
   const [fullscreen, setFullscreen] = useState(false);
+  const [view, setView] = useState<'preview' | 'source'>('preview');
   const name = fileNameFromPath(path);
   const readyHtml = state.status === 'ready' ? state.html : null;
   const previewDocument = useMemo(
@@ -43,6 +83,11 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
   function openOs(event: MouseEvent): void {
     event.stopPropagation();
     void bridge.openWorkspacePath(path);
+  }
+
+  function runDocumentAction(event: MouseEvent, action: () => void): void {
+    event.stopPropagation();
+    action();
   }
 
   return (
@@ -66,18 +111,39 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
             <span className="html-artifact-preview__name">{label || name}</span>
             <code className="html-artifact-preview__path">{path}</code>
           </span>
-          <button type="button" className="html-artifact-preview__open" onClick={openOs}>
-            Open in OS
-          </button>
+          <span className="html-artifact-preview__actions">
+            {state.status === 'ready' && (
+              <>
+                <button
+                  type="button"
+                  className="html-artifact-preview__open"
+                  onClick={(event) => runDocumentAction(event, () => setView(current => current === 'preview' ? 'source' : 'preview'))}
+                >
+                  {view === 'preview' ? 'Source' : 'Preview'}
+                </button>
+                <button type="button" className="html-artifact-preview__open" onClick={(event) => runDocumentAction(event, () => openHtmlDocument(state.html))}>
+                  Open
+                </button>
+                <button type="button" className="html-artifact-preview__open" onClick={(event) => runDocumentAction(event, () => downloadHtmlDocument(state.html, name))}>
+                  Download
+                </button>
+              </>
+            )}
+            <button type="button" className="html-artifact-preview__open" onClick={openOs}>
+              Open in OS
+            </button>
+          </span>
         </span>
         <span className="html-artifact-preview__frame">
-          {state.status === 'ready' ? (
+          {state.status === 'ready' && view === 'preview' ? (
             <iframe
               title={`Preview of ${name}`}
               src={previewDocument?.url}
               sandbox={HTML_SANDBOX}
               loading="lazy"
             />
+          ) : state.status === 'ready' ? (
+            <span className="html-artifact-preview__source"><code>{state.html}</code></span>
           ) : (
             <span className="html-artifact-preview__fallback">
               {state.status === 'loading' ? 'Loading preview...' : state.reason}

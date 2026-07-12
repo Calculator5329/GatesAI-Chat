@@ -40,7 +40,7 @@ export const highlightPluginLoader = createMarkdownPluginLoader(async () => {
     import('rehype-highlight'),
     import('highlight.js/styles/github-dark.css'),
   ]);
-  return mod.default as RehypePlugin;
+  return [mod.default, { ignoreMissing: true }] as RehypePlugin;
 });
 
 export const katexPluginLoader = createMarkdownPluginLoader(async () => {

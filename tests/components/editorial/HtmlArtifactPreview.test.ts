@@ -268,4 +268,20 @@ describe('HtmlArtifactPreview', () => {
 
     expect(bridge.openWorkspacePath).toHaveBeenCalledWith(HTML_PATH);
   });
+
+  it('toggles a loaded workspace artifact between preview and source', async () => {
+    const rendered = renderPreview(onlineBridge());
+    await act(async () => { await flushMicrotasks(); });
+    const source = Array.from(rendered.querySelectorAll('button'))
+      .find(button => button.textContent === 'Source') as HTMLButtonElement;
+
+    act(() => source.click());
+    expect(rendered.querySelector('iframe')).toBeNull();
+    expect(rendered.querySelector('.html-artifact-preview__source')?.textContent).toContain('<button id="x">Hi</button>');
+
+    const preview = Array.from(rendered.querySelectorAll('button'))
+      .find(button => button.textContent === 'Preview') as HTMLButtonElement;
+    act(() => preview.click());
+    expect(rendered.querySelector('iframe')).not.toBeNull();
+  });
 });
