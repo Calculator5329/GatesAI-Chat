@@ -230,6 +230,43 @@
   overflow-wrap: anywhere;
 }
 
+.editorial-chat-scroll {
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+/* Keep the brand's generous hit target without painting the whole header as
+   a button. Hover/focus feedback stays on the wordmark itself. */
+.editorial-sidebar__brand:hover,
+.editorial-sidebar__brand:focus-visible {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: inherit !important;
+}
+.editorial-sidebar__brand:focus-visible {
+  outline: none !important;
+  box-shadow: none;
+}
+.editorial-sidebar__brand > div {
+  border-radius: 8px;
+  transition: color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
+}
+.editorial-sidebar__brand:hover > div {
+  transform: translateY(-1px);
+}
+.editorial-sidebar__brand:hover .editorial-sidebar__brand-text,
+.editorial-sidebar__brand:focus-visible .editorial-sidebar__brand-text {
+  color: color-mix(in srgb, var(--accent) 72%, var(--text)) !important;
+}
+.editorial-sidebar__brand:hover .editorial-sidebar__brand-dot,
+.editorial-sidebar__brand:focus-visible .editorial-sidebar__brand-dot {
+  transform: scale(1.35);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.editorial-sidebar__brand:focus-visible > div {
+  box-shadow: 0 0 0 2px var(--focus-ring), 0 0 0 5px var(--focus-ring-glow);
+}
+
 .bridge-status-pill,
 .editorial-sidebar__brand,
 .editorial-sidebar__new,
@@ -272,7 +309,6 @@
 }
 
 .bridge-status-pill:hover:not([aria-disabled="true"]),
-.editorial-sidebar__brand:hover,
 .editorial-sidebar__new:hover:not(:disabled),
 .editorial-sidebar__close:hover:not(:disabled),
 .editorial-sidebar__mobile-action:hover:not(:disabled),
@@ -1440,6 +1476,14 @@
   min-width: 0;
 }
 
+/* The textarea itself is rectangular; draw keyboard focus on its rounded
+   composer container so the affordance matches the control users perceive. */
+.composer-textarea:focus,
+.composer-textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Composer wrapper border. When the textarea is focused AND has content
    (`:not(:placeholder-shown)`), shift to a more saturated accent border — a
    subtle keystroke ack that costs zero JS. */
@@ -1475,6 +1519,10 @@
 .composer-row:has(.composer-textarea:focus) {
   border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
   box-shadow: 0 0 0 3px var(--focus-ring-glow);
+}
+.composer-row:has(.composer-textarea:focus-visible) {
+  border-color: color-mix(in srgb, var(--accent) 68%, var(--border));
+  box-shadow: 0 0 0 2px var(--focus-ring), 0 0 0 5px var(--focus-ring-glow);
 }
 .composer-row:has(.composer-textarea:focus:not(:placeholder-shown)) {
   border-color: color-mix(in srgb, var(--accent) 62%, var(--border));

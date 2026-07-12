@@ -27,6 +27,25 @@ export function splitMarkdownChunks(content: string): string[] {
   return splitMarkdownChunkRecords(content).map(chunk => chunk.content);
 }
 
+/** True only after a CommonMark-style fenced block has received its closer. */
+export function hasClosedFencedCodeBlock(content: string): boolean {
+  let fence: { marker: '`' | '~'; length: number } | null = null;
+  for (const line of content.split(/\r?\n/)) {
+    const match = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (!match) continue;
+    const run = match[1];
+    const marker = run[0] as '`' | '~';
+    if (!fence) {
+      fence = { marker, length: run.length };
+      continue;
+    }
+    if (marker === fence.marker && run.length >= fence.length && (match[2] ?? '').trim() === '') {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function splitMarkdownChunksIncremental(
   content: string,
   prev?: MarkdownChunkSnapshot,

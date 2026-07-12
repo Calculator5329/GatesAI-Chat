@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { copyCodeToClipboard, languageLabelFromClassName } from '../../../src/components/editorial/MarkdownChunk';
+import { isCompleteHtmlDocument } from '../../../src/components/editorial/HtmlArtifactPreview';
 
 describe('rendered code block helpers', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -8,6 +9,12 @@ describe('rendered code block helpers', () => {
     expect(languageLabelFromClassName('hljs language-typescript extra')).toBe('typescript');
     expect(languageLabelFromClassName('language-c++')).toBe('c++');
     expect(languageLabelFromClassName()).toBeNull();
+  });
+
+  it('offers preview only for complete HTML documents', () => {
+    expect(isCompleteHtmlDocument('<!doctype html><html><body>Ready</body></html>')).toBe(true);
+    expect(isCompleteHtmlDocument('<html><body>Still streaming')).toBe(false);
+    expect(isCompleteHtmlDocument('<section>HTML fragment</section>')).toBe(false);
   });
 
   it('copies the exact code text to the clipboard', async () => {
