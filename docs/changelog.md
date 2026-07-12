@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-12 — build: NO_STRIP wrapper for Linux AppImage packaging
+
+- `npm run tauri:build` now goes through `scripts/tauri-build.mjs`, which sets
+  `NO_STRIP=1` on Linux (only when unset): linuxdeploy's bundled strip cannot
+  parse `.relr.dyn` sections from newer toolchains (CachyOS) and killed
+  AppImage packaging. Other platforms and explicit `NO_STRIP` values are
+  untouched.
+
 ## 2026-07-12 — Release v4.6.0
 
 First self-updating release. Rollup of the entries below: signed auto-updater

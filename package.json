@@ -28,7 +28,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "npm run source:snapshot && tauri build"
+    "tauri:build": "npm run source:snapshot && node scripts/tauri-build.mjs"
   },
   "dependencies": {
     "@tauri-apps/plugin-process": "^2.3.1",
