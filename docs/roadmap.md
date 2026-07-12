@@ -199,6 +199,93 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       audit doc with per-screen verdicts, gaps filed as checkboxes. (Added
       2026-07-11, Ethan directive.)
 
+**Local-model UX + composer polish (Ethan, 2026-07-12)** — batch filed from a
+live session on the RTX box running `phi4:latest`. Group focus: make the
+local-first path feel first-class (its own copy, its own knobs) and make the
+composer quieter.
+
+- [ ] **CB-1: Composer focus highlight should be a soft background glow, not
+      a ring.** Today `.composer-row:has(.composer-textarea:focus-visible)`
+      draws a crisp 2px `--focus-ring` outline + 5px glow
+      (`src/styles/editorial.css` ~1519–1530); Ethan finds the ring too loud.
+      Replace it with a subtle *background* glow — e.g. shift the composer
+      fill toward `--accent` a few percent and/or a wide, low-alpha inset/blur
+      halo — so focus reads as a gentle warming of the field rather than a
+      hard border. Keep a real `:focus-visible` affordance for keyboard users
+      (WCAG) — soften, don't delete. *Acceptance:* focused composer has no
+      hard accent ring in the default theme; keyboard focus still visibly
+      distinct from blur in both light and dark; screenshot before/after in
+      the PR; `npm run ci` green.
+
+- [ ] **CB-2: Local models deserve their own status copy, not "Waiting on
+      provider…".** The stall/idle indicators (`ImageJobCard.tsx:125`
+      "Waiting on provider…"; text-turn stall copy via
+      `streamingRoundExecutor.ts`, `PROVIDER_STREAM_INITIAL_STALL_MS = 180s`)
+      are provider-framed and read wrong for an Ollama model loading locally.
+      Add local-aware messaging keyed off `providerId === 'ollama'` (and other
+      local runtimes): e.g. "Loading <model> into memory…", "Running locally —
+      first token can take a moment on a cold model", "Warming up the local
+      runtime…", cycling/curated rather than the single remote-provider line.
+      Distinguish cold-start (model not resident) from mid-stream idle if the
+      signal is available. *Acceptance:* a local turn never shows
+      "provider"-framed copy; unit tests cover the local vs remote branch;
+      copy lives in one place, not scattered string literals.
+
+- [ ] **SP-1: User-configurable system prompt.** Today the system prompt is
+      derived entirely from context mode
+      (`systemPromptForContextMode`, wired in `services/chat/turnRunner.ts`
+      and `ChatStore.ts:486`) with no user surface. Add a settings-level
+      custom system prompt (global default + optional per-thread override),
+      persisted via the normal persistence slots (migration + schemaVersion
+      bump per CLAUDE.md), composed *with* — not silently replacing — the
+      safety/tool-contract portions of the built-in prompt. Web Lite parity.
+      *Acceptance:* setting round-trips through persistence with a migration +
+      tests; the custom text reaches the wire prompt for both Ollama and
+      OpenAI-compat paths (`ollama.ts:131`, `openaiCompat.ts:273`); built-in
+      tool/safety instructions are preserved; documented in the user guide.
+
+- [ ] **SP-2: Auto-slim the system prompt for small-context local models.**
+      Large built-in prompts + tool schemas eat the whole window on
+      small-context local models (some Ollama models default to a 2–8k
+      `num_ctx`), pushing out the actual conversation and causing garbage or
+      truncated output. Introduce a "slim" prompt profile selected when the
+      model's effective context is below a threshold (context length is
+      already tracked — `core/localModelMeta.ts`, `modelFormatProfiles.ts`):
+      drop non-essential prose, prune/curtail tool schemas to the enabled set,
+      keep only load-bearing instructions. Should compose with SP-1.
+      *Acceptance:* for a model tagged small-context, the assembled prompt is
+      measurably shorter (token count asserted in a test) while still valid;
+      no regression for large-context models; a note in architecture.md on the
+      slimming rule and threshold.
+
+- [ ] **QW-1: Investigate the Qwen local-model failures.** Recent local
+      sessions with Qwen models (`qwen2.5:7b` / `qwen2.5-coder:14b`, offered
+      in `components/menu/sections/Local.tsx`) failed — reproduce and root-
+      cause before fixing. Candidate causes to rule out: system-prompt/tool-
+      schema overflow on Qwen's default `num_ctx` (ties to SP-2), Qwen chat-
+      template / stop-token handling in `services/llm/ollama.ts`
+      (`buildMessages`) and `modelFormatProfiles.ts`, tool-call format
+      mismatch, or thinking-tag leakage. Capture a concrete repro (prompt,
+      model tag, `num_ctx`, raw request/response) and file specific fix items.
+      *Acceptance:* a short findings note under `docs/audits/` with a
+      reproducible failing case and the identified cause(s); follow-up fix
+      checkboxes filed; if it turns out to be SP-2, link and close here.
+
+- [ ] **QA-1: Automated settings walkthrough + settings de-bloat (Playwright,
+      codex lane).** Dispatch a codex session (per the workspace orchestrator
+      flow) to drive a Playwright pass over **every** settings/menu control —
+      toggle each, change each select, save/reload, assert it persists and has
+      real effect — reusing the `scripts/screens-tour.mjs` harness and the
+      2026-07-11 screen audit as the map. Output: (a) a coverage report of
+      which settings work / are dead / are confusing, and (b) a proposal to
+      **slim settings we don't need** — remove or consolidate dead, redundant,
+      or never-changed options so the surface is smaller and clearer. Removal
+      of any setting is a separate reviewed PR, not done blind by the lane.
+      *Acceptance:* Playwright spec exercising all settings added under the
+      e2e suite (green in `npm run test:e2e`); a report doc under `docs/audits/`
+      listing per-setting verdicts; a checklist of proposed removals/merges
+      filed as follow-up items for review.
+
 
 - [x] **Flaky-test sweep.** *(done 2026-07-10)* Run the unit suite 5× and the e2e suite 3× in a
       row (`npm test`, `npm run test:e2e`); record any test that fails
