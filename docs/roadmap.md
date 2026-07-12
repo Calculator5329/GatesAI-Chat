@@ -84,6 +84,24 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       kinds), task-center dock panel with progress/cancel/retry/cost;
       strangler migration keeping ImageJobStore's 22 tests green.
 
+- [ ] **BUG: white screen on NVIDIA + Wayland — bake the WebKit DMABUF
+      workaround into the app.** Confirmed 2026-07-12 on the RTX 5070 Ti
+      (CachyOS/Hyprland): the AppImage renders an all-white webview because
+      WebKitGTK's DMABUF renderer fails on NVIDIA + Wayland. Workaround
+      verified working: `WEBKIT_DISABLE_DMABUF_RENDERER=1` (currently set
+      only in Ethan's `~/.local/bin/gatesai-launch`; any other Linux/NVIDIA
+      user still gets a white window). Fix in `src-tauri/src/main.rs` (or
+      `lib.rs` `run()` before the builder): on Linux, if an NVIDIA GPU is
+      present (e.g. `/proc/driver/nvidia/version` exists or `nvidia` in
+      `/sys/class/drm/card*/device/driver` — do NOT shell out to
+      `nvidia-smi`) and the var isn't already set, `std::env::set_var(
+      "WEBKIT_DISABLE_DMABUF_RENDERER", "1")`. Must run before the first
+      webview is created. Respect an existing user-set value (incl. `0` to
+      opt out).
+      *Acceptance:* unit-testable detection helper in Rust with tests
+      (`cargo test`); env var set on NVIDIA-detected Linux only; a line in
+      `docs/arch-linux-appimage-install.html`/README troubleshooting noting
+      the auto-workaround; `npm run ci` untouched; changelog entry.
 - [x] **BUG: 5 e2e tests failing on master (found 2026-07-11).** *(done 2026-07-11)* Pre-existing
       before the harness handshake fix (proven by stash-baseline):
       desktop.spec:171 first-run onboarding, web-lite.spec:43 onboarding,
