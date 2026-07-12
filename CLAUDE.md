@@ -4,25 +4,27 @@ Local-first desktop AI workspace: React 19 + TypeScript + MobX + Vite in a
 Tauri 2 (Rust) shell, with a companion Go bridge sidecar from the sibling repo
 `../gatesai-bridge`. A browser-only "Web Lite" build ships to GitHub Pages.
 Current version 4.5.0; branch `master`; releases publish to the separate
-public repo `Calculator5329/GatesAI-Chat-releases`.
+public repo `Calculator5329/GatesAI-Chat-releases`. The primary development
+checkout is `~/projects/ai/gatesai-chat` on CachyOS Linux.
 
 ## Read first
 
-1. `docs/architecture.md` — layers, store graph, turn pipeline, security
+1. `AGENTS.md` — pointer to the workspace-wide instructions that bind Codex.
+2. `docs/architecture.md` — layers, store graph, turn pipeline, security
    model, commands, known limitations. The canonical technical reference.
-2. `docs/handbook/README.md` — plain-English front door (direction, product
+3. `docs/handbook/README.md` — plain-English front door (direction, product
    brief, capabilities, patterns). Read `direction.md` before proposing big
    changes.
-3. `docs/roadmap.md` — Now/Next/Later handoff plan at the top; history below.
-4. `docs/IDEAS.md` — ranked expansion options.
-5. `docs/changelog.md` — append a session entry when you ship something.
+4. `docs/roadmap.md` — Now/Next/Later handoff plan at the top; history below.
+5. `docs/IDEAS.md` — ranked expansion options.
+6. `docs/changelog.md` — append a session entry when you ship something.
 
 ## Verify before any commit
 
 All of these must pass locally. CI (`.github/workflows/ci.yml`) enforces the
 first three on every push/PR; don't push red.
 
-```powershell
+```sh
 npm run ci          # = npm test (995 vitest) + npm run typecheck + npm run lint
 npm run test:e2e    # Playwright, 20 tests (desktop-mocked + web-lite projects)
 cargo test --manifest-path src-tauri/Cargo.toml   # required if you touched src-tauri/
@@ -32,8 +34,10 @@ Notes:
 - `npm run test:models` is a LIVE OpenRouter suite — needs a key, costs money,
   never run it as a routine gate.
 - Dev servers: `npm run dev` (Web Lite in browser), `npm run tauri:dev`
-  (desktop; bridge from `..\gatesai-bridge` via `go run ./cmd/gatesai-bridge`
-  or a prebuilt `bin\gatesai-bridge.exe`).
+  (desktop; from `../gatesai-bridge`, run `go run ./cmd/gatesai-bridge` or
+  use its prebuilt `bin/gatesai-bridge` binary). Windows builds used by the
+  Jordy worker and user installs still use the prebuilt
+  `bin/gatesai-bridge.exe` artifact.
 - Desktop build: `npm run tauri:build`. Release = push tag `v*` (see
   "Commands quick reference" in `docs/architecture.md` for the full flow).
 
