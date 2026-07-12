@@ -594,6 +594,20 @@ Other Rust modules:
   spawning the bridge sidecar.
 - `main.rs` delegates to `lib::run()`.
 
+### Offline Library plugin boundary (accepted, implementation pending)
+
+The optional Offline Library addon uses a dedicated Tauri module rather than
+the Go workspace bridge, browser networking, or the general `fetch_page`
+command. The Rust side owns the fixed base URL
+`http://127.0.0.1:8892/api/v1` and will expose only typed read/search
+operations declared by the validated plugin manifest. It accepts no arbitrary
+URL, route, method, SQL, or filesystem path; redirects are rejected and JSON
+responses are capped at 1,000,000 bytes. Web Lite never invokes this boundary
+and reports the addon as desktop-only. Exact evidence URIs are preserved
+across the consumer. See
+`docs/adr/2026-07-12-offline-library-plugin.md` for the threat model, lifecycle,
+version policy, and rejected alternatives.
+
 ## Bridge and workspace
 
 Purpose: desktop workspace, shell, artifact, attachment, and app persistence
@@ -738,6 +752,10 @@ be HTTPS unless local.
 **Web Lite degradation.** The browser build disables every bridge/Tauri-backed
 capability rather than proxying it through a server; there is no server
 component at all.
+
+The Offline Library addon follows the same rule: only the dedicated desktop
+Tauri boundary may contact its fixed loopback service. Browser code—including
+Web Lite—never fetches the service directly.
 
 ## Testing
 

@@ -74,7 +74,17 @@ test.describe('chat interaction polish', () => {
     await timeline.evaluate(el => { el.scrollTop = el.scrollHeight; });
     await expect(page.locator('.editorial-jump-to-bottom')).toHaveCount(0);
 
-    await timeline.evaluate(el => { el.scrollTop = Math.max(0, el.scrollHeight - el.clientHeight - 500); });
+    // Re-test disengagement with actual reader intent. A synthetic scrollTop
+    // write can be consumed as part of the component's programmatic pin
+    // bookkeeping and does not represent the wheel/touch interaction this
+    // contract protects.
+    const reboundBox = await timeline.boundingBox();
+    expect(reboundBox).not.toBeNull();
+    await page.mouse.move(
+      reboundBox!.x + reboundBox!.width / 2,
+      reboundBox!.y + reboundBox!.height / 2,
+    );
+    await page.mouse.wheel(0, -500);
     await expect(page.locator('.editorial-jump-to-bottom')).toBeVisible();
     await page.locator('.editorial-jump-to-bottom').click();
     await expect(page.locator('.editorial-jump-to-bottom')).toHaveCount(0);

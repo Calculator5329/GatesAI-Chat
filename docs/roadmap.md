@@ -61,7 +61,10 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       coordinated with `../local-ai-lab`)* Integrate the host-ready,
       loopback-only Offline Library as a swappable read-only addon. The work is
       ordered so UI/tool code never outruns the versioned safety contract:
-  - [ ] **G0 — ADR and shared contract fixture.** Record the desktop proxy
+  - [x] **G0 — ADR and shared contract fixture.** *(done 2026-07-12 —
+        dedicated fixed-authority Tauri boundary accepted in
+        `docs/adr/2026-07-12-offline-library-plugin.md`; sanitized host 1.3
+        manifest/profile/benchmark fixtures pinned with contract tests)* Record the desktop proxy
         choice (dedicated Tauri command or bridge operation), loopback threat
         model, Web Lite degradation, plugin lifecycle, and citation contract.
         Import a sanitized API fixture only after local-ai-lab declares the

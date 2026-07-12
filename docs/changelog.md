@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-12 — Offline Library consumer boundary (G0)
+
+- Accepted a dedicated, fixed-authority Tauri proxy design for the optional
+  Offline Library addon. It is loopback-only, read-only, redirect-free,
+  response-bounded, unavailable in Web Lite, and cannot accept arbitrary URLs,
+  paths, methods, SQL, or database mutations.
+- Pinned sanitized `local.offline-library` 1.3 manifest, task-aware profile,
+  and repeated Knowledge Arena fixtures with contract tests for transport,
+  version, evidence, and publication-safety invariants.
+- Runtime commands, settings, tools, and UI remain ordered follow-up work in
+  G1–G6; this checkpoint intentionally adds no active connection.
+- Repaired the existing scroll-follow E2E gate by using a real second wheel
+  interaction instead of a synthetic `scrollTop` write that could be consumed
+  by programmatic-pin bookkeeping; the user-behavior assertions are unchanged.
+
 ## 2026-07-12 — build: NO_STRIP wrapper for Linux AppImage packaging
 
 - `npm run tauri:build` now goes through `scripts/tauri-build.mjs`, which sets

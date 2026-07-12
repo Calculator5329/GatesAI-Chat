@@ -11,6 +11,8 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 > `Offline Library plugin consumer` item in `docs/roadmap.md`; this section is
 > the durable capability checklist.
 
+- [x] Accept the dedicated desktop proxy ADR and pin a sanitized, matching
+      `local.offline-library` 1.3 consumer fixture with static contract tests.
 - [ ] Consume the validated `local.offline-library` manifest and matching
       OpenAPI version through a trusted desktop backend boundary.
 - [ ] Typed read-only client: health, sources, cited search, public schemas,

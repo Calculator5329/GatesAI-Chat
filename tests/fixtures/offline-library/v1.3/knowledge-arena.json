@@ -1,0 +1,94 @@
+{
+  "api_version": "1",
+  "available": true,
+  "run": {
+    "name": "Sanitized repeated benchmark fixture",
+    "updated_at": "2026-07-12T00:00:00+00:00",
+    "trials": 3,
+    "cells": 1,
+    "tasks": 1,
+    "errors": 0,
+    "repetitions": [1, 2, 3],
+    "seeds": [101, 102, 103],
+    "local_only": true
+  },
+  "scoring": {
+    "sourceHit": 40,
+    "expectedTermRecall": 35,
+    "citationValidity": 25
+  },
+  "summaries": {
+    "model": [{
+      "name": "local-model-a",
+      "trials": 3,
+      "averageScore": 80,
+      "scoreConfidence95": {"low": 75, "high": 85},
+      "sourceHitRate": 1,
+      "citationValidityRate": 0.6667,
+      "averageTermRecall": 0.9,
+      "averageRetrievalLatencyMs": 20,
+      "averageGenerationLatencyMs": 800,
+      "averageLatencyMs": 820,
+      "trust": {
+        "citationPresenceRate": 0.6667,
+        "noCitationRate": 0.3333,
+        "unsupportedCitationTrialRate": 0,
+        "supportedCitationReferenceRate": 1,
+        "errorRate": 0
+      }
+    }],
+    "strategy": [{
+      "name": "hybrid-native",
+      "trials": 3,
+      "averageScore": 80,
+      "scoreConfidence95": {"low": 75, "high": 85},
+      "sourceHitRate": 1,
+      "citationValidityRate": 0.6667,
+      "averageTermRecall": 0.9,
+      "averageRetrievalLatencyMs": 20,
+      "averageGenerationLatencyMs": 800,
+      "averageLatencyMs": 820,
+      "trust": {
+        "citationPresenceRate": 0.6667,
+        "noCitationRate": 0.3333,
+        "unsupportedCitationTrialRate": 0,
+        "supportedCitationReferenceRate": 1,
+        "errorRate": 0
+      }
+    }],
+    "dataset": [{
+      "name": "public-docs",
+      "trials": 3,
+      "averageScore": 80,
+      "scoreConfidence95": {"low": 75, "high": 85},
+      "sourceHitRate": 1,
+      "citationValidityRate": 0.6667,
+      "averageTermRecall": 0.9,
+      "averageRetrievalLatencyMs": 20,
+      "averageGenerationLatencyMs": 800,
+      "averageLatencyMs": 820,
+      "trust": {
+        "citationPresenceRate": 0.6667,
+        "noCitationRate": 0.3333,
+        "unsupportedCitationTrialRate": 0,
+        "supportedCitationReferenceRate": 1,
+        "errorRate": 0
+      }
+    }]
+  },
+  "cells": [{
+    "model": "local-model-a",
+    "strategy": "hybrid-native",
+    "task_id": "public-task-one",
+    "dataset": "public-docs",
+    "trials": 3,
+    "averageScore": 80,
+    "scoreConfidence95": {"low": 75, "high": 85},
+    "sourceHitRate": 1,
+    "citationValidityRate": 0.6667,
+    "averageTermRecall": 0.9,
+    "averageRetrievalLatencyMs": 20,
+    "averageGenerationLatencyMs": 800,
+    "averageLatencyMs": 820
+  }]
+}

@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "plugin_version": "1.3.0",
+  "source_run": "Corpus v1 repeated acceptance",
+  "source_run_trials": 774,
+  "source_run_cells": 258,
+  "local_only": true,
+  "remote_fallback": false,
+  "selection": {
+    "public_database_schema": "public-schema-accurate",
+    "knowledge_document": "library-quality",
+    "knowledge_document_balanced": "library-balanced"
+  },
+  "profiles": [
+    {
+      "id": "public-schema-accurate",
+      "label": "Public schema — accurate",
+      "task_kind": "public_database_schema",
+      "model": "qwen2.5-coder:14b",
+      "retrieval": {"strategy": "public-db-schema", "mode": "database-schema", "include_kiwix": false},
+      "evidence": {
+        "trials": 6,
+        "average_score": 94,
+        "score_confidence_95": {"low": 88.74, "high": 99.26},
+        "source_hit_rate": 1,
+        "expected_term_recall": 0.8333,
+        "citation_validity_rate": 1,
+        "average_retrieval_latency_ms": 337,
+        "average_generation_latency_ms": 994.5,
+        "error_count": 0
+      },
+      "limitations": [
+        "Six-trial public-schema arm; confidence intervals overlap other models.",
+        "Retrieves approved public schemas only, never rows or private/restricted aliases."
+      ]
+    },
+    {
+      "id": "library-quality",
+      "label": "Offline documents — quality",
+      "task_kind": "knowledge_document",
+      "model": "phi4",
+      "retrieval": {"strategy": "hybrid-native", "mode": "hybrid", "include_kiwix": true},
+      "evidence": {
+        "trials": 84,
+        "average_score": 86.39,
+        "score_confidence_95": {"low": 83.52, "high": 89.27},
+        "source_hit_rate": 1,
+        "expected_term_recall": 0.9762,
+        "citation_validity_rate": 0.4881,
+        "average_retrieval_latency_ms": 699.25,
+        "average_generation_latency_ms": 5390.18,
+        "error_count": 0
+      },
+      "limitations": [
+        "Highest observed document score, but slower than the balanced profile.",
+        "Citation validity is a strict URI-grounding proxy, not factual entailment."
+      ]
+    },
+    {
+      "id": "library-balanced",
+      "label": "Offline documents — balanced",
+      "task_kind": "knowledge_document",
+      "model": "qwen2.5-coder:14b",
+      "retrieval": {"strategy": "hybrid-native", "mode": "hybrid", "include_kiwix": true},
+      "evidence": {
+        "trials": 84,
+        "average_score": 77.89,
+        "score_confidence_95": {"low": 75.17, "high": 80.61},
+        "source_hit_rate": 1,
+        "expected_term_recall": 0.9286,
+        "citation_validity_rate": 0.2143,
+        "average_retrieval_latency_ms": 688.08,
+        "average_generation_latency_ms": 3404.9,
+        "error_count": 0
+      },
+      "limitations": [
+        "Faster observed generation than the quality profile, with lower composite score.",
+        "Citation validity is a strict URI-grounding proxy, not factual entailment."
+      ]
+    }
+  ]
+}
