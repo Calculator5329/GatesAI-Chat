@@ -6,10 +6,9 @@ import { defineConfig, devices } from '@playwright/test';
 //     "online" and attachment / image-job / workspace flows are testable.
 //   web-lite       — the `firebase` mode build (VITE_GATESAI_WEB=1) where the
 //     bridge is intentionally absent; specs assert the degraded/notice states.
-// Uncommon ports so we never collide with (or accidentally reuse) another
-// Vite app a developer may already have on the default 5173/5174.
-const DESKTOP_PORT = 5273;
-const WEB_LITE_PORT = 5274;
+// Ports live in tests/e2e/ports.ts (shared with globalSetup, env-overridable);
+// globalSetup verifies whatever answers on them is actually this app.
+import { DESKTOP_PORT, WEB_LITE_PORT } from './tests/e2e/ports';
 const isCI = !!process.env.CI;
 const workerCount = isCI ? 1 : process.platform === 'win32' ? 4 : undefined;
 const screensTourEnabled = process.env.SCREENS_TOUR === '1';

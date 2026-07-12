@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-12 — e2e: foreign-server guard on the dev-server ports
+
+- `globalSetup` now verifies that whatever answers on the e2e ports is
+  actually GatesAI Chat (`<title>` marker) before reusing it, and fails fast
+  with a clear message otherwise — previously an unrelated dev server
+  squatting the port (concurrent agent sessions) made 19 specs fail with
+  cryptic element-not-found errors against the wrong app. Ports moved to a
+  shared `tests/e2e/ports.ts`, overridable via `GATESAI_E2E_DESKTOP_PORT` /
+  `GATESAI_E2E_WEB_LITE_PORT`.
+
 ## 2026-07-12 — W-5: Auto-updater (signed, via the public releases repo)
 
 - Desktop builds now self-update: `tauri-plugin-updater` + `tauri-plugin-process`

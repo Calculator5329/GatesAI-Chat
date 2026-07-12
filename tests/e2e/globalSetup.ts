@@ -2,10 +2,13 @@ import type { FullConfig } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { DESKTOP_PORT, WEB_LITE_PORT } from './ports';
 
-const DESKTOP_PORT = 5273;
-const WEB_LITE_PORT = 5274;
 const SERVER_TIMEOUT_MS = 120_000;
+// Marker proving the server on our port is actually this app. Without this
+// check, any unrelated dev server squatting the port gets "reused" and every
+// spec fails with cryptic element-not-found errors against the wrong app.
+const APP_MARKER = /<title>GatesAI Chat<\/title>/;
 const ROOT = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
 const VITE_BIN = path.join(ROOT, 'node_modules', 'vite', 'bin', 'vite.js');
 
@@ -46,7 +49,15 @@ async function ensureServer(args: {
   started: StartedServer[];
 }): Promise<void> {
   const url = `http://127.0.0.1:${args.port}`;
-  if (args.reuseExisting && await isReady(url)) return;
+  const occupant = await probe(url);
+  if (occupant === 'ours' && args.reuseExisting) return;
+  if (occupant !== 'free') {
+    throw new Error(
+      `Port ${args.port} is serving something that is not GatesAI Chat `
+      + `(or reuse is disabled). Stop that server, or rerun with `
+      + `GATESAI_E2E_DESKTOP_PORT / GATESAI_E2E_WEB_LITE_PORT set to free ports.`,
+    );
+  }
 
   const child = spawn(process.execPath, args.args, {
     cwd: ROOT,
@@ -66,18 +77,21 @@ async function waitForServer(url: string, child: ChildProcess, label: string): P
     if (child.exitCode !== null) {
       throw new Error(`${label} dev server exited early with code ${child.exitCode}.`);
     }
-    if (await isReady(url)) return;
+    if (await probe(url) === 'ours') return;
     await delay(250);
   }
   throw new Error(`${label} dev server did not become ready at ${url}.`);
 }
 
-async function isReady(url: string): Promise<boolean> {
+/** What is answering on this URL: nothing, this app, or a foreign server. */
+async function probe(url: string): Promise<'free' | 'ours' | 'foreign'> {
   try {
     const response = await fetch(url);
-    return response.status < 500;
+    if (response.status >= 500) return 'foreign';
+    const body = await response.text();
+    return APP_MARKER.test(body) ? 'ours' : 'foreign';
   } catch {
-    return false;
+    return 'free';
   }
 }
 
