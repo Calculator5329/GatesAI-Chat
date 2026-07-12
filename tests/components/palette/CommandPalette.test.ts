@@ -16,6 +16,7 @@ import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
 import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
 import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { SkillsStore } from '../../../src/stores/SkillsStore';
+import { UpdateStore } from '../../../src/stores/UpdateStore';
 import { EditorialSidebar } from '../../../src/components/editorial/EditorialSidebar';
 import { CommandPalette } from '../../../src/components/palette/CommandPalette';
 import { flushPendingSnapshot } from '../../../src/services/persistence';

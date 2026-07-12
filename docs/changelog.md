@@ -56,6 +56,14 @@ foreign-server port guard. Versions bumped in `package.json` +
   shared `tests/e2e/ports.ts`, overridable via `GATESAI_E2E_DESKTOP_PORT` /
   `GATESAI_E2E_WEB_LITE_PORT`.
 
+## 2026-07-12 — Deterministic UI review screenshots
+
+- Added `npm run screenshots`, a headless Playwright pipeline that captures
+  seven fixed 1440×900 app states under `screenshots/<git-short-sha>/` with
+  mocked providers, local persistence fixtures, reduced motion, and no live
+  model calls. Each run emits a versioned `manifest.json` and asserts that
+  every declared PNG was produced.
+
 ## 2026-07-12 — W-5: Auto-updater (signed, via the public releases repo)
 
 - Desktop builds now self-update: `tauri-plugin-updater` + `tauri-plugin-process`
