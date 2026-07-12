@@ -98,7 +98,13 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         summaries with honest read-only metadata. Preserve `kiwix://`,
         `library://`, `man:`, and `db://` citations through tool results,
         messages, persistence, export, and rendering.
-  - [ ] **G4 — task-aware local profiles.** Offer visible, overridable routing:
+  - [x] **G4 — task-aware local profiles.** *(done 2026-07-12 — the host's
+        evidence-linked schema/document recommendations load with lifecycle
+        state; Settings shows model, retrieval, trials, confidence interval,
+        citation-grounding proxy, latency, and limitation; users can persist
+        an explicit override and apply an installed Ollama model to the active
+        chat, while document search follows the visible local retrieval route;
+        unavailable local models stay disabled and never fall back remotely)* Offer visible, overridable routing:
         Qwen + public schema for public-schema questions; Phi-4 + hybrid/native
         for document quality; Qwen + hybrid/native for balanced latency. Show
         evidence/sample sizes, never claim one universal winner, and never

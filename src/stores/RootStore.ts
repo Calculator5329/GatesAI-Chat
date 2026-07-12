@@ -175,6 +175,7 @@ export class RootStore {
       sourceWorkspace: this.sourceWorkspace,
       offlineLibrary: {
         available: this.offlineLibrary.enabled && this.offlineLibrary.phase === 'healthy',
+        documentProfile: this.offlineLibrary.profileForTask('knowledge_document'),
         search: request => offlineLibraryService.search(request),
         getSources: () => offlineLibraryService.getSources(),
         getDatabases: () => offlineLibraryService.getDatabases(),

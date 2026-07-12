@@ -21,7 +21,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
       mismatch, and unavailable-host states.
 - [x] Read-only model tools with bounded inputs/outputs and exact citation URI
       preservation through rendering, persistence, and export.
-- [ ] Task-aware local model/retrieval selection with visible user override;
+- [x] Task-aware local model/retrieval selection with visible user override;
       never infer a universal winner from the small public-schema arm.
 - [ ] Model × retrieval-setup benchmark view with confidence intervals,
       component metrics, trust proxies, latency, sample size, and errors.

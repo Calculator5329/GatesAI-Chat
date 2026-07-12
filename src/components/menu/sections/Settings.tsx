@@ -9,6 +9,7 @@ import { Button, Card, Input, SegmentedControl, SettingsRow, Toggle } from '../.
 import { useRootStore, useRouterStore, useUiStore } from '../../../stores/context';
 import { isWebLite } from '../../../core/runtime';
 import { DEFAULT_GLOBAL_SUMMON_CHORD } from '../../../core/shortcutChord';
+import type { OfflineLibraryProfile } from '../../../core/offlineLibrary';
 import { ChordRecorder } from './ChordRecorder';
 
 type DataImportMode = 'merge' | 'replace';
@@ -55,8 +56,18 @@ export const SettingsSection = observer(function SettingsSection() {
 });
 
 const OfflineLibraryBlock = observer(function OfflineLibraryBlock() {
-  const addon = useRootStore().offlineLibrary;
+  const root = useRootStore();
+  const addon = root.offlineLibrary;
   const permissions = addon.declaredPermissions;
+  const applyProfile = (profile: OfflineLibraryProfile) => {
+    const model = root.registry.all.find(candidate => (
+      candidate.providerId === 'ollama' && candidate.providerModelId === profile.model
+    ));
+    const thread = root.chat.activeThread;
+    if (!model || !thread) return;
+    addon.setProfileOverride(profile.id);
+    root.chat.setThreadModel(thread.id, model.id);
+  };
   return (
     <div className="settings-section settings-offline-library" style={{ ...tokens.section, marginBottom: 28 }}>
       <div className="settings-section-title" style={tokens.sectionTitle}>Offline Library addon</div>
@@ -86,6 +97,30 @@ const OfflineLibraryBlock = observer(function OfflineLibraryBlock() {
           </div>
         </SettingsRow>
       )}
+      {addon.phase === 'healthy' && addon.profileOptions.length > 0 && (
+        <SettingsRow label="Knowledge routing">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start', maxWidth: 560 }}>
+            <select
+              aria-label="Offline Library routing profile"
+              value={addon.profileOverrideId ?? ''}
+              onChange={event => addon.setProfileOverride(event.target.value || null)}
+              style={{ background: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', maxWidth: '100%' }}
+            >
+              <option value="">Task-aware recommendations</option>
+              {addon.profileOptions.map(profile => (
+                <option key={profile.id} value={profile.id}>{profile.label}</option>
+              ))}
+            </select>
+            <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45 }}>
+              {addon.profileOverride
+                ? 'Explicit override for local knowledge work. You can return to task-aware recommendations at any time.'
+                : 'Uses separate evidence-backed suggestions for public schemas and documents. It never changes to a remote model.'}
+            </div>
+            <ProfileEvidence label="Public schemas" profile={addon.profileForTask('public_database_schema')} root={root} onApply={applyProfile} />
+            <ProfileEvidence label="Documents" profile={addon.profileForTask('knowledge_document')} root={root} onApply={applyProfile} />
+          </div>
+        </SettingsRow>
+      )}
       <SettingsRow label="Connection check" last>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'flex-start' }}>
           <Button
@@ -100,6 +135,42 @@ const OfflineLibraryBlock = observer(function OfflineLibraryBlock() {
     </div>
   );
 });
+
+function ProfileEvidence({
+  label,
+  profile,
+  root,
+  onApply,
+}: {
+  label: string;
+  profile: OfflineLibraryProfile | null;
+  root: ReturnType<typeof useRootStore>;
+  onApply: (profile: OfflineLibraryProfile) => void;
+}) {
+  if (!profile) return null;
+  const evidence = profile.evidence;
+  const model = root.registry.all.find(candidate => (
+    candidate.providerId === 'ollama' && candidate.providerModelId === profile.model
+  ));
+  const active = model?.id === root.chat.activeThread?.modelId;
+  return (
+    <div style={{ borderLeft: '2px solid var(--border)', paddingLeft: 10, color: 'var(--text-dim)', fontSize: 11.5, lineHeight: 1.5 }}>
+      <div><strong style={{ color: 'var(--text)' }}>{label}:</strong> {profile.model} · {profile.retrieval.strategy}</div>
+      <div>
+        Score {evidence.average_score.toFixed(1)} · 95% CI {evidence.score_confidence_95.low.toFixed(1)}–{evidence.score_confidence_95.high.toFixed(1)} · {evidence.trials} trials
+      </div>
+      <div>Citation grounding {Math.round(evidence.citation_validity_rate * 100)}% · generation {Math.round(evidence.average_generation_latency_ms)} ms</div>
+      <div style={{ color: 'var(--text-faint)' }}>{profile.limitations[0]}</div>
+      <Button
+        disabled={!model || !root.chat.activeThread || active}
+        onClick={() => onApply(profile)}
+        style={{ marginTop: 5 }}
+      >
+        {active ? 'Active in this chat' : model ? 'Use for this chat' : 'Local model not installed'}
+      </Button>
+    </div>
+  );
+}
 
 const ConversationBlock = observer(function ConversationBlock() {
   const ui = useUiStore();

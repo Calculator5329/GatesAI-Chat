@@ -2,6 +2,8 @@ import { makeAutoObservable, runInAction } from 'mobx'
 
 import type {
   OfflineLibraryPluginManifest,
+  OfflineLibraryProfile,
+  OfflineLibraryProfiles,
   OfflineLibraryResult,
   OfflineLibraryStatus,
 } from '../core/offlineLibrary'
@@ -27,7 +29,7 @@ export type OfflineLibraryPhase =
 
 export interface OfflineLibraryStoreOptions {
   runtime: GatesRuntimeMode
-  service?: Pick<OfflineLibraryService, 'getPlugin' | 'getStatus'>
+  service?: Pick<OfflineLibraryService, 'getPlugin' | 'getStatus' | 'getProfiles'>
   persistence?: PersistenceProvider<OfflineLibrarySettingsSnapshot>
 }
 
@@ -38,9 +40,11 @@ export class OfflineLibraryStore {
   status: OfflineLibraryStatus | null = null
   error: string | null = null
   lastCheckedAt: number | null = null
+  profiles: OfflineLibraryProfiles | null = null
+  profileOverrideId: string | null
 
   private readonly runtime: GatesRuntimeMode
-  private readonly service: Pick<OfflineLibraryService, 'getPlugin' | 'getStatus'>
+  private readonly service: Pick<OfflineLibraryService, 'getPlugin' | 'getStatus' | 'getProfiles'>
   private readonly persistence: PersistenceProvider<OfflineLibrarySettingsSnapshot>
   private requestGeneration = 0
 
@@ -50,6 +54,7 @@ export class OfflineLibraryStore {
     this.persistence = options.persistence ?? offlineLibrarySettingsPersistence
     const saved = this.persistence.load()
     this.enabled = this.runtime === 'desktop' && saved.enabled
+    this.profileOverrideId = saved.profileOverrideId
     this.phase = this.runtime === 'web-lite' ? 'web_lite' : 'disabled'
     makeAutoObservable<this, 'runtime' | 'service' | 'persistence' | 'requestGeneration'>(this, {
       runtime: false,
@@ -81,6 +86,26 @@ export class OfflineLibraryStore {
     }
   }
 
+  get profileOptions(): OfflineLibraryProfile[] {
+    return this.profiles?.profiles ?? []
+  }
+
+  get profileOverride(): OfflineLibraryProfile | null {
+    return this.profileOptions.find(profile => profile.id === this.profileOverrideId) ?? null
+  }
+
+  profileForTask(taskKind: string): OfflineLibraryProfile | null {
+    if (this.profileOverride) return this.profileOverride
+    const selectedId = this.profiles?.selection[taskKind]
+    return this.profileOptions.find(profile => profile.id === selectedId) ?? null
+  }
+
+  setProfileOverride(profileId: string | null): void {
+    if (profileId !== null && !this.profileOptions.some(profile => profile.id === profileId)) return
+    this.profileOverrideId = profileId
+    this.saveSettings()
+  }
+
   async initialize(): Promise<void> {
     if (this.enabled) await this.refresh()
   }
@@ -89,11 +114,12 @@ export class OfflineLibraryStore {
     if (!this.available) return
     this.requestGeneration += 1
     this.enabled = enabled
-    this.persistence.save({ version: 1, enabled })
+    this.saveSettings()
     if (!enabled) {
       this.phase = 'disabled'
       this.manifest = null
       this.status = null
+      this.profiles = null
       this.error = null
       return
     }
@@ -118,8 +144,19 @@ export class OfflineLibraryStore {
       this.applyFailure(status)
       return
     }
+    const profiles = await this.service.getProfiles()
+    if (!this.isCurrent(generation)) return
+    if (!profiles.ok) {
+      this.applyFailure(profiles)
+      return
+    }
     runInAction(() => {
       this.status = status.data
+      this.profiles = profiles.data
+      if (this.profileOverrideId && !profiles.data.profiles.some(profile => profile.id === this.profileOverrideId)) {
+        this.profileOverrideId = null
+        this.saveSettings()
+      }
       this.phase = 'healthy'
       this.error = null
       this.lastCheckedAt = Date.now()
@@ -137,10 +174,15 @@ export class OfflineLibraryStore {
   private applyFailure(result: Extract<OfflineLibraryResult<unknown>, { ok: false }>): void {
     const { error } = result
     this.status = null
+    this.profiles = null
     this.error = error.message
     this.lastCheckedAt = Date.now()
     if (error.kind === 'incompatible') this.phase = 'incompatible'
     else if (error.kind === 'unavailable' || error.kind === 'timeout') this.phase = 'offline'
     else this.phase = 'error'
+  }
+
+  private saveSettings(): void {
+    this.persistence.save({ version: 1, enabled: this.enabled, profileOverrideId: this.profileOverrideId })
   }
 }

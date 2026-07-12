@@ -33,11 +33,15 @@ export const librarySearchTool: Tool = {
   async execute(args, ctx) {
     const library = ctx.offlineLibrary
     if (!library?.available) return unavailable('library_search')
+    const route = library.documentProfile
+    const routedMode = route?.retrieval.mode
     const request: OfflineLibrarySearchRequest = {
       query: String(args.query).trim(),
       limit: typeof args.limit === 'number' ? Math.floor(args.limit) : SEARCH_LIMIT_DEFAULT,
-      mode: args.mode === 'fulltext' || args.mode === 'semantic' ? args.mode : 'hybrid',
-      includeKiwix: args.include_kiwix !== false,
+      mode: routedMode === 'fulltext' || routedMode === 'semantic' || routedMode === 'hybrid'
+        ? routedMode
+        : args.mode === 'fulltext' || args.mode === 'semantic' ? args.mode : 'hybrid',
+      includeKiwix: route ? route.retrieval.include_kiwix : args.include_kiwix !== false,
     }
     const result = await library.search(request)
     if (!result.ok) return toolFailure('library_search', result.error)
@@ -50,7 +54,18 @@ export const librarySearchTool: Tool = {
       score: numberField(match, 'score'),
     }))
     return success('library_search', `Found ${matches.length} cited local match${matches.length === 1 ? '' : 'es'}.`, {
-      query: result.data.query, mode: result.data.mode, matches,
+      query: result.data.query,
+      mode: result.data.mode,
+      profile: route ? {
+        id: route.id,
+        label: route.label,
+        model_suggestion: route.model,
+        retrieval: route.retrieval,
+        evidence: route.evidence,
+        limitations: route.limitations,
+        user_override_available: true,
+      } : null,
+      matches,
     })
   },
 }

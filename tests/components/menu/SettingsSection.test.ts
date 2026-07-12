@@ -20,11 +20,14 @@ function buildStore(): RootStore {
     ui,
     router: new MockRouter(),
     chat: {
+      activeThread: null,
       visibleThreads: [],
       threads: [],
       clearAllThreads: () => {},
       clearThreadMemory: () => {},
+      setThreadModel: () => {},
     },
+    registry: { all: [] },
     profile: {
       facts: [],
       defaultSystemPrompt: '',
@@ -46,6 +49,11 @@ function buildStore(): RootStore {
       statusLabel: 'Disabled',
       declaredPermissions: [],
       error: null,
+      profileOptions: [],
+      profileOverrideId: null,
+      profileOverride: null,
+      profileForTask: () => null,
+      setProfileOverride: () => {},
       setEnabled: () => Promise.resolve(),
       refresh: () => Promise.resolve(),
     },
@@ -115,5 +123,51 @@ describe('SettingsSection desktop ambient controls', () => {
     expect(store.ui.autoNamingEnabled).toBe(false);
     expect(store.ui.globalSummonEnabled).toBe(false);
     expect(store.ui.closeButtonHidesToTray).toBe(true);
+  });
+
+  it('shows evidence-backed local routing and accepts an explicit override', () => {
+    const store = buildStore();
+    const quality = {
+      id: 'library-quality', label: 'Offline documents — quality', task_kind: 'knowledge_document', model: 'phi4',
+      retrieval: { strategy: 'hybrid-native', mode: 'hybrid', include_kiwix: true },
+      evidence: { trials: 84, average_score: 86.39, score_confidence_95: { low: 83.52, high: 89.27 }, source_hit_rate: 1, expected_term_recall: 0.9762, citation_validity_rate: 0.4881, average_retrieval_latency_ms: 699.25, average_generation_latency_ms: 5390.18, error_count: 0 },
+      limitations: ['Highest observed document score, but slower than balanced.'],
+    };
+    const schema = { ...quality, id: 'public-schema-accurate', label: 'Public schema — accurate', task_kind: 'public_database_schema', model: 'qwen2.5-coder:14b', evidence: { ...quality.evidence, trials: 6, average_score: 94 } };
+    let override: string | null = null;
+    let modelId: string | null = null;
+    Object.assign(store.offlineLibrary, {
+      enabled: true, phase: 'healthy', statusLabel: 'Connected', profileOptions: [schema, quality],
+      profileForTask: (task: string) => task === 'public_database_schema' ? schema : quality,
+      setProfileOverride: (id: string | null) => { override = id; },
+    });
+    Object.assign(store.registry, {
+      all: [
+        { id: 'ollama-phi4', providerId: 'ollama', providerModelId: 'phi4' },
+        { id: 'ollama-qwen2.5-coder:14b', providerId: 'ollama', providerModelId: 'qwen2.5-coder:14b' },
+      ],
+    });
+    Object.assign(store.chat, {
+      activeThread: { id: 'thread-1', modelId: 'ollama-other' },
+      setThreadModel: (_threadId: string, nextModelId: string) => { modelId = nextModelId; },
+    });
+    const rendered = renderSettings(store);
+
+    expect(rendered.textContent).toContain('Task-aware recommendations');
+    expect(rendered.textContent).toContain('qwen2.5-coder:14b');
+    expect(rendered.textContent).toContain('phi4');
+    expect(rendered.textContent).toContain('95% CI');
+    const select = rendered.querySelector<HTMLSelectElement>('[aria-label="Offline Library routing profile"]');
+    act(() => {
+      if (select) {
+        select.value = 'library-quality';
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+    expect(override).toBe('library-quality');
+    const useButtons = Array.from(rendered.querySelectorAll<HTMLButtonElement>('button')).filter(button => button.textContent === 'Use for this chat');
+    act(() => useButtons[0]?.click());
+    expect(override).toBe('public-schema-accurate');
+    expect(modelId).toBe('ollama-qwen2.5-coder:14b');
   });
 });

@@ -105,7 +105,31 @@ export interface OfflineLibraryProfiles {
   local_only: true
   remote_fallback: false
   selection: Record<string, string>
-  profiles: Array<Record<string, unknown>>
+  profiles: OfflineLibraryProfile[]
+}
+
+export interface OfflineLibraryProfile {
+  id: string
+  label: string
+  task_kind: string
+  model: string
+  retrieval: {
+    strategy: string
+    mode: string
+    include_kiwix: boolean
+  }
+  evidence: {
+    trials: number
+    average_score: number
+    score_confidence_95: { low: number; high: number }
+    source_hit_rate: number
+    expected_term_recall: number
+    citation_validity_rate: number
+    average_retrieval_latency_ms: number
+    average_generation_latency_ms: number
+    error_count: number
+  }
+  limitations: string[]
 }
 
 export interface OfflineLibraryKnowledgeArena {

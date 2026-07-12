@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-12 — Offline Library task-aware profiles (G4)
+
+- Loaded the host's versioned, local-only routing profiles alongside lifecycle
+  discovery and kept its public-schema, document-quality, and balanced
+  recommendations distinct rather than naming one universal winner.
+- Added a compact Settings selector with persistent explicit override plus
+  visible model, retrieval, trials, 95% confidence interval, citation-grounding
+  proxy, generation latency, and limitation evidence.
+- Users can explicitly apply an installed recommended Ollama model to the
+  active chat; unavailable tags remain disabled. Cited document search follows
+  the effective local retrieval profile, with no automatic remote fallback.
+
 ## 2026-07-12 — Offline Library read-only tools (G3)
 
 - Added four bounded, read-only model tools for cited library search, source

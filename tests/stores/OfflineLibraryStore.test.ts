@@ -1,17 +1,19 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { OfflineLibraryPluginManifest, OfflineLibraryStatus } from '../../src/core/offlineLibrary'
+import type { OfflineLibraryPluginManifest, OfflineLibraryProfiles, OfflineLibraryStatus } from '../../src/core/offlineLibrary'
 import type { OfflineLibraryService } from '../../src/services/offlineLibrary'
 import type { PersistenceProvider } from '../../src/services/storage/persistenceProvider'
 import type { OfflineLibrarySettingsSnapshot } from '../../src/services/storage/offlineLibraryStorage'
 import { OfflineLibraryStore } from '../../src/stores/OfflineLibraryStore'
 import pluginFixture from '../fixtures/offline-library/v1.3/plugin.json'
+import profilesFixture from '../fixtures/offline-library/v1.3/profiles.json'
 
 const plugin = pluginFixture as OfflineLibraryPluginManifest
 const status = { api_version: '1', generated_at: 'now', library: {}, services: {}, catalog: {}, collections: [] } satisfies OfflineLibraryStatus
+const profiles = profilesFixture as OfflineLibraryProfiles
 
 function setup(options: { saved?: boolean; runtime?: 'desktop' | 'web-lite' } = {}) {
-  let snapshot: OfflineLibrarySettingsSnapshot = { version: 1, enabled: options.saved ?? false }
+  let snapshot: OfflineLibrarySettingsSnapshot = { version: 1, enabled: options.saved ?? false, profileOverrideId: null }
   const persistence: PersistenceProvider<OfflineLibrarySettingsSnapshot> = {
     load: () => snapshot,
     save: vi.fn(value => { snapshot = value }),
@@ -20,6 +22,7 @@ function setup(options: { saved?: boolean; runtime?: 'desktop' | 'web-lite' } = 
   const service = {
     getPlugin: vi.fn<OfflineLibraryService['getPlugin']>(async () => ({ ok: true, data: plugin })),
     getStatus: vi.fn<OfflineLibraryService['getStatus']>(async () => ({ ok: true, data: status })),
+    getProfiles: vi.fn<OfflineLibraryService['getProfiles']>(async () => ({ ok: true, data: profiles })),
   }
   const store = new OfflineLibraryStore({
     runtime: options.runtime ?? 'desktop', service, persistence,
@@ -37,12 +40,29 @@ describe('OfflineLibraryStore', () => {
   it('persists enablement, validates the manifest, and exposes read permissions', async () => {
     const { store, service, persistence } = setup()
     await store.setEnabled(true)
-    expect(persistence.save).toHaveBeenCalledWith({ version: 1, enabled: true })
+    expect(persistence.save).toHaveBeenCalledWith({ version: 1, enabled: true, profileOverrideId: null })
     expect(service.getPlugin).toHaveBeenCalledTimes(1)
     expect(service.getStatus).toHaveBeenCalledTimes(1)
     expect(store.phase).toBe('healthy')
     expect(store.declaredPermissions).toContain('search.read')
     expect(store.declaredPermissions).not.toContain('mutations')
+    expect(store.profileForTask('public_database_schema')?.model).toBe('qwen2.5-coder:14b')
+    expect(store.profileForTask('knowledge_document')?.model).toBe('phi4')
+  })
+
+  it('supports an explicit persisted profile override without a remote fallback', async () => {
+    const { store, persistence } = setup()
+    await store.setEnabled(true)
+    store.setProfileOverride('library-balanced')
+    expect(store.profileForTask('public_database_schema')?.id).toBe('library-balanced')
+    expect(store.profileForTask('knowledge_document')?.id).toBe('library-balanced')
+    expect(store.profiles?.local_only).toBe(true)
+    expect(store.profiles?.remote_fallback).toBe(false)
+    expect(persistence.save).toHaveBeenLastCalledWith({
+      version: 1, enabled: true, profileOverrideId: 'library-balanced',
+    })
+    store.setProfileOverride(null)
+    expect(store.profileForTask('knowledge_document')?.id).toBe('library-quality')
   })
 
   it('rehydrates enabled state and reports offline or incompatible distinctly', async () => {

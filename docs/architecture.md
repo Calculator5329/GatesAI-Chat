@@ -624,6 +624,14 @@ version policy, and rejected alternatives. Frontend access is isolated in
 and does not invoke Tauri at all in Web Lite.
 The tool registry receives only a narrow read facade from `RootStore`, and the
 four model-callable operations are absent unless lifecycle state is healthy.
+Lifecycle discovery also loads the host's versioned task-aware profiles. The
+store keeps the host's public-schema and document recommendations distinct,
+persists an optional user override, and supplies the effective document
+retrieval strategy to `library_search`. Settings shows the recommendation's
+model, retrieval strategy, sample size, confidence interval, grounding proxy,
+latency, and leading limitation. Applying a profile to the active chat is an
+explicit user action and is available only when that exact Ollama tag is
+installed; missing models never trigger a remote fallback.
 The Markdown renderer applies the normal URL sanitizer to all links while
 explicitly preserving exact `kiwix://`, `library://`, `man:`, and `db://`
 citation schemes; chat snapshot and data export/import retain those strings

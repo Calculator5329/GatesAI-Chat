@@ -8,6 +8,7 @@ import type { Thread, ToolResultArtifact } from '../../core/types';
 import type {
   OfflineLibraryDatabases,
   OfflineLibraryKnowledgeArena,
+  OfflineLibraryProfile,
   OfflineLibraryProfiles,
   OfflineLibraryPublicSchema,
   OfflineLibraryResult,
@@ -166,6 +167,7 @@ export interface RagFacade {
 
 export interface OfflineLibraryFacade {
   readonly available: boolean;
+  readonly documentProfile?: OfflineLibraryProfile | null;
   search(request: OfflineLibrarySearchRequest): Promise<OfflineLibraryResult<OfflineLibrarySearchResponse>>;
   getSources(): Promise<OfflineLibraryResult<OfflineLibrarySources>>;
   getDatabases(): Promise<OfflineLibraryResult<OfflineLibraryDatabases>>;

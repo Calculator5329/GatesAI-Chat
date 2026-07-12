@@ -10,8 +10,8 @@ describe('offlineLibrarySettingsPersistence', () => {
 
   it('defaults disabled and round-trips explicit enablement', () => {
     expect(offlineLibrarySettingsPersistence.load()).toEqual(DEFAULT_OFFLINE_LIBRARY_SETTINGS)
-    offlineLibrarySettingsPersistence.save({ version: 1, enabled: true })
-    expect(offlineLibrarySettingsPersistence.load()).toEqual({ version: 1, enabled: true })
+    offlineLibrarySettingsPersistence.save({ version: 1, enabled: true, profileOverrideId: 'library-quality' })
+    expect(offlineLibrarySettingsPersistence.load()).toEqual({ version: 1, enabled: true, profileOverrideId: 'library-quality' })
   })
 
   it('falls back safely for malformed and future snapshots', () => {
@@ -19,5 +19,10 @@ describe('offlineLibrarySettingsPersistence', () => {
     expect(offlineLibrarySettingsPersistence.load()).toEqual(DEFAULT_OFFLINE_LIBRARY_SETTINGS)
     localStorage.setItem('gatesai.offlineLibrary.v1', JSON.stringify({ version: 1, enabled: 'yes' }))
     expect(offlineLibrarySettingsPersistence.load()).toEqual(DEFAULT_OFFLINE_LIBRARY_SETTINGS)
+  })
+
+  it('migrates an existing v1 enablement snapshot without a profile override', () => {
+    localStorage.setItem('gatesai.offlineLibrary.v1', JSON.stringify({ version: 1, enabled: true }))
+    expect(offlineLibrarySettingsPersistence.load()).toEqual({ version: 1, enabled: true, profileOverrideId: null })
   })
 })

@@ -12,6 +12,7 @@ import { toolRegistry } from '../../../src/services/tools/registry'
 function facade(overrides: Partial<OfflineLibraryFacade> = {}): OfflineLibraryFacade {
   return {
     available: true,
+    documentProfile: null,
     search: vi.fn<OfflineLibraryFacade['search']>(async request => ({
       ok: true,
       data: {
@@ -36,7 +37,7 @@ function facade(overrides: Partial<OfflineLibraryFacade> = {}): OfflineLibraryFa
     })),
     getProfiles: vi.fn<OfflineLibraryFacade['getProfiles']>(async () => ({
       ok: true,
-      data: { schema_version: 1, plugin_version: '1.3.0', source_run: 'repeat', source_run_trials: 9, source_run_cells: 3, local_only: true, remote_fallback: false, selection: { knowledge_document: 'quality' }, profiles: [{ id: 'quality' }] },
+      data: { schema_version: 1, plugin_version: '1.3.0', source_run: 'repeat', source_run_trials: 9, source_run_cells: 3, local_only: true, remote_fallback: false, selection: {}, profiles: [] },
     })),
     getKnowledgeArena: vi.fn<OfflineLibraryFacade['getKnowledgeArena']>(async () => ({
       ok: true,
@@ -77,6 +78,22 @@ describe('Offline Library model tools', () => {
     expect(result.content).not.toContain('not projected')
     const persisted = JSON.parse(JSON.stringify({ toolResults: [{ content: result.content }] }))
     expect(persisted.toolResults[0].content).toContain('kiwix://archlinux/pacman-hooks')
+  })
+
+  it('applies the visible local profile retrieval override and reports its evidence', async () => {
+    const library = facade({
+      documentProfile: {
+        id: 'library-quality', label: 'Offline documents — quality', task_kind: 'knowledge_document', model: 'phi4',
+        retrieval: { strategy: 'hybrid-native', mode: 'hybrid', include_kiwix: true },
+        evidence: { trials: 84, average_score: 86.39, score_confidence_95: { low: 83.52, high: 89.27 }, source_hit_rate: 1, expected_term_recall: 0.9762, citation_validity_rate: 0.4881, average_retrieval_latency_ms: 699.25, average_generation_latency_ms: 5390.18, error_count: 0 },
+        limitations: ['Evidence-backed suggestion; user override remains available.'],
+      },
+    })
+    const result = await toolRegistry.execute('library_search', { query: 'pacman', mode: 'fulltext', include_kiwix: false }, context(library))
+    expect(library.search).toHaveBeenCalledWith(expect.objectContaining({ mode: 'hybrid', includeKiwix: true }))
+    expect(result.content).toContain('library-quality')
+    expect(result.content).toContain('"model_suggestion":"phi4"')
+    expect(result.content).toContain('"user_override_available":true')
   })
 
   it('returns public inventory and schema metadata without row access', async () => {

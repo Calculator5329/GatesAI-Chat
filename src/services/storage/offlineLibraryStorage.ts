@@ -5,11 +5,13 @@ export const OFFLINE_LIBRARY_SETTINGS_VERSION = 1
 export interface OfflineLibrarySettingsSnapshot {
   version: 1
   enabled: boolean
+  profileOverrideId: string | null
 }
 
 export const DEFAULT_OFFLINE_LIBRARY_SETTINGS: OfflineLibrarySettingsSnapshot = {
   version: OFFLINE_LIBRARY_SETTINGS_VERSION,
   enabled: false,
+  profileOverrideId: null,
 }
 
 export const offlineLibrarySettingsPersistence: PersistenceProvider<OfflineLibrarySettingsSnapshot> =
@@ -21,6 +23,9 @@ export const offlineLibrarySettingsPersistence: PersistenceProvider<OfflineLibra
       if (value.version !== OFFLINE_LIBRARY_SETTINGS_VERSION || typeof value.enabled !== 'boolean') {
         return { ...DEFAULT_OFFLINE_LIBRARY_SETTINGS }
       }
-      return { version: OFFLINE_LIBRARY_SETTINGS_VERSION, enabled: value.enabled }
+      const profileOverrideId = typeof value.profileOverrideId === 'string' && value.profileOverrideId.length <= 100
+        ? value.profileOverrideId
+        : null
+      return { version: OFFLINE_LIBRARY_SETTINGS_VERSION, enabled: value.enabled, profileOverrideId }
     },
   })
