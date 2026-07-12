@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-12 — Offline Library cross-repository acceptance (G6)
+
+- Completed the pinned plugin 1.3.0 acceptance matrix across host contract
+  tests, GatesAI CI/E2E/Rust gates, and the actual trusted desktop request path.
+- Added durable ignored live tests for citation-scheme/path preservation and
+  typed offline degradation. Both passed in the controlled smoke, and the
+  loopback service was restored afterward.
+- The live smoke exposed and drove a host fix for one legacy absolute-path
+  citation; local-ai-lab `083fef6` now emits opaque `library://` identities.
+  The verified record is in `docs/acceptance/offline-library-2026-07-12.md`.
+
 ## 2026-07-12 — Offline Library benchmark explorer (G5)
 
 - Added a compact, bridge-independent right-dock panel for the sanitized

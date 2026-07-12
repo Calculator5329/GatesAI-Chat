@@ -26,9 +26,9 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [x] Model × retrieval-setup benchmark view with confidence intervals,
       component metrics, trust proxies, latency, sample size, and errors.
 - [x] Web Lite desktop-only explanation with no loopback request attempt.
-- [ ] Security tests for fixed host/port/path allowlisting, redirects, response
+- [x] Security tests for fixed host/port/path allowlisting, redirects, response
       bounds, private/restricted aliases, and mutation absence.
-- [ ] Full CI, E2E, applicable Rust tests, sanitized fixture parity, and a live
+- [x] Full CI, E2E, applicable Rust tests, sanitized fixture parity, and a live
       desktop smoke against the local host.
 - [ ] Separately review any management action, private confirmation token,
       database row query, or labeled semantic hallucination evaluation.

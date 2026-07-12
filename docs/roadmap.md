@@ -57,7 +57,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### Next
 
-- [ ] **Offline Library plugin consumer.** *(owner-approved 2026-07-12;
+- [x] **Offline Library plugin consumer.** *(completed 2026-07-12;
       coordinated with `../local-ai-lab`)* Integrate the host-ready,
       loopback-only Offline Library as a swappable read-only addon. The work is
       ordered so UI/tool code never outruns the versioned safety contract:
@@ -119,7 +119,11 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         controls and benchmark model × setup inspection using the existing
         editorial system or right-dock framework. Avoid duplicating the Offline
         Library dashboard or exposing private database metadata.
-  - [ ] **G6 — full acceptance.** Unit-test validation, SSRF/redirect/size
+  - [x] **G6 — full acceptance.** *(done 2026-07-12 — pinned host `083fef6` /
+        plugin 1.3.0; host 42 tests + compile gate, GatesAI 1,146 frontend
+        tests + type/lint, 25/25 E2E, 39 normal Rust tests, live trusted-backend
+        citation test, and controlled typed-offline test all passed; service
+        restored; evidence in `docs/acceptance/offline-library-2026-07-12.md`)* Unit-test validation, SSRF/redirect/size
         limits, unavailable host, citation preservation, tool bounds, profile
         overrides, Web Lite degradation, and persistence. Pass `npm run ci`,
         `npm run test:e2e`, and Rust tests for Tauri changes, plus a live local

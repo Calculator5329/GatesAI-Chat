@@ -622,6 +622,9 @@ across the consumer. See
 version policy, and rejected alternatives. Frontend access is isolated in
 `src/services/offlineLibrary/`; it returns explicit typed success/error states
 and does not invoke Tauri at all in Web Lite.
+The completed cross-repository acceptance record, including live trusted-
+backend and controlled offline-degradation evidence, is in
+`docs/acceptance/offline-library-2026-07-12.md`.
 The tool registry receives only a narrow read facade from `RootStore`, and the
 four model-callable operations are absent unless lifecycle state is healthy.
 Lifecycle discovery also loads the host's versioned task-aware profiles. The

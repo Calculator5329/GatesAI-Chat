@@ -368,4 +368,51 @@ mod tests {
         assert_eq!(value["citation"], "kiwix://archlinux/title");
         assert_eq!(value["database"], "db://public/schema");
     }
+
+    #[test]
+    #[ignore = "requires the live loopback Offline Library host"]
+    fn live_loopback_contract_preserves_public_citations() {
+        tauri::async_runtime::block_on(async {
+            let plugin = offline_library_read(OfflineLibraryResource::Plugin, None)
+                .await
+                .expect("live plugin manifest");
+            assert_eq!(plugin["id"], "local.offline-library");
+            assert_eq!(plugin["version"], "1.3.0");
+            assert_eq!(plugin["transport"]["redirects"], false);
+
+            let response = offline_library_search(OfflineLibrarySearchRequest {
+                query: "pacman hooks".into(),
+                limit: 3,
+                mode: OfflineLibrarySearchMode::Hybrid,
+                include_kiwix: true,
+            })
+            .await
+            .expect("live cited search");
+            let matches = response["matches"].as_array().expect("search matches");
+            assert!(!matches.is_empty());
+            for item in matches {
+                let uri = item["uri"].as_str().expect("citation URI");
+                assert!(
+                    uri.starts_with("kiwix://")
+                        || uri.starts_with("library://")
+                        || uri.starts_with("man:")
+                        || uri.starts_with("db://"),
+                    "unexpected citation scheme: {uri}"
+                );
+                assert!(!uri.contains("/home/"));
+            }
+        });
+    }
+
+    #[test]
+    #[ignore = "requires the live loopback Offline Library host to be stopped"]
+    fn live_loopback_offline_degrades_to_typed_unavailable() {
+        tauri::async_runtime::block_on(async {
+            let error = offline_library_read(OfflineLibraryResource::Plugin, None)
+                .await
+                .expect_err("stopped host must be unavailable");
+            assert_eq!(error.kind, "unavailable");
+            assert_eq!(error.status, None);
+        });
+    }
 }
