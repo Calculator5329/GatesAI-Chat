@@ -88,7 +88,12 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         read permissions, and remain disabled/unavailable in Web Lite with a
         clear desktop-only explanation. Do not add secrets or background cloud
         dependencies.
-  - [ ] **G3 — read-only model tools.** Register bounded tools for library
+  - [x] **G3 — read-only model tools.** *(done 2026-07-12 — four knowledge
+        tools are exposed only while the explicitly enabled addon is healthy;
+        inputs and projected outputs are bounded, public-schema results exclude
+        rows, benchmark summaries retain evidence and trust-proxy labels, and
+        exact offline citation URIs are covered through tool execution,
+        rendering, export/import, and persisted snapshots)* Register bounded tools for library
         search, source inventory, public database schemas, and benchmark/profile
         summaries with honest read-only metadata. Preserve `kiwix://`,
         `library://`, `man:`, and `db://` citations through tool results,

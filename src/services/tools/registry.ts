@@ -29,6 +29,12 @@ import { artifactTool } from './artifact';
 import { sourceWorkspaceTool } from './sourceWorkspace';
 import { sourceBuildTool } from './sourceBuild';
 import { spawnTaskDescription, spawnTaskTool } from './spawnTask';
+import {
+  knowledgeBenchmarksTool,
+  librarySearchTool,
+  librarySourcesTool,
+  publicDatabaseSchemaTool,
+} from './offlineLibrary';
 
 export interface ToolSelectionContext {
   userText: string;
@@ -41,6 +47,7 @@ export interface ToolSelectionContext {
   imageGenAvailable?: boolean;
   webSearchAvailable?: boolean;
   semanticRecallAvailable?: boolean;
+  offlineLibraryAvailable?: boolean;
   spawnTaskAvailable?: boolean;
   spawnTaskRunningCount?: number;
   spawnTaskMaxConcurrent?: number;
@@ -137,6 +144,9 @@ export class ToolRegistry {
     if (ctx.webSearchAvailable) selected.add('web_search');
     if (ctx.desktopRuntime !== false && (ctx.webSearchAvailable || isFetchPageRelevant(text))) selected.add('fetch_page');
     if (ctx.semanticRecallAvailable) selected.add('recall');
+    if (ctx.offlineLibraryAvailable) {
+      for (const tool of this.toolDefsByCategory('knowledge')) selected.add(tool.name);
+    }
     if (ctx.bridgeOnline && ctx.imageGenAvailable && imageGenRelevant) selected.add('image_generate');
     if (ctx.bridgeOnline && imageVisionRelevant) {
       selected.add('workspace');
@@ -491,3 +501,7 @@ toolRegistry.register(describeImageTool);
 toolRegistry.register(webSearchTool);
 toolRegistry.register(fetchPageTool);
 toolRegistry.register(spawnTaskTool);
+toolRegistry.register(librarySearchTool);
+toolRegistry.register(librarySourcesTool);
+toolRegistry.register(publicDatabaseSchemaTool);
+toolRegistry.register(knowledgeBenchmarksTool);

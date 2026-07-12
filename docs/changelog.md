@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-12 — Offline Library read-only tools (G3)
+
+- Added four bounded, read-only model tools for cited library search, source
+  inventory, public database schemas, and Knowledge Arena benchmark/profile
+  summaries. They are registered only while the explicitly enabled addon is
+  compatible and healthy, and fail closed without remote fallback.
+- Search projection keeps exact evidence citations but omits full content and
+  local URLs; schema projection exposes no rows; benchmark projection omits raw
+  answers and labels citation/support metrics as trust proxies rather than a
+  factual hallucination rate.
+- Preserved exact `kiwix://`, `library://`, `man:`, and `db://` links through
+  tool results, rendered Markdown, exported/imported chats, and persisted
+  snapshots while retaining the existing unsafe-URL sanitizer.
+
 ## 2026-07-12 — Offline Library lifecycle and settings (G2)
 
 - Added a default-disabled, explicitly enabled Offline Library lifecycle with

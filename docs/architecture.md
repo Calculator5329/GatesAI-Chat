@@ -311,6 +311,8 @@ Availability is gated in layers:
 - Local/runtime state: image generation appears only when bridge is online and
   either OpenRouter image credentials or ComfyUI readiness exists. `recall`
   appears only when RAG is active. `web_search` appears only with a Brave key.
+  Offline Library knowledge tools appear only when the addon is explicitly
+  enabled, compatible, and healthy.
 - Provider/model state: context mode hides tools if the model lacks tool
   support; Ollama defaults to `micro` mode with a smaller tool set.
 - Skill allowlists: an active skill can restrict tools; `thread` is always
@@ -329,13 +331,21 @@ Context modes in `contextModes.ts` select prompt/messages/tools:
   source tools on desktop, and MCP tools.
 
 Static tool list generated from `src/services/tools/registry.ts` on this
-refresh: 24 tools:
+refresh: 28 tools:
 
 `memory`, `recall`, `time`, `logs`, `notes`, `schedules`, `thread`,
 `chat_history`, `workspace`, `source_workspace`, `source_build`, `fs`,
 `inspect_file`, `artifact`, `terminal`, `python_inline`, `sqlite_query`,
 `query_script`, `git`, `image_generate`, `describe_image`, `web_search`,
 `fetch_page`, `spawn_task`.
+
+The additional read-only knowledge tools are `library_search`,
+`library_sources`, `public_database_schema`, and `knowledge_benchmarks`.
+They project bounded public metadata rather than passing host responses
+through wholesale: searches retain exact evidence URIs while excluding local
+paths/full content, public schemas exclude rows, and benchmark output excludes
+raw answers and labels trust measurements as proxies rather than factual
+hallucination rates.
 
 Dynamic MCP tools are additional and are named by
 `src/services/mcp/toolIntegration.ts` as `mcp_<server-label>_<remote-tool>`,
@@ -612,6 +622,12 @@ across the consumer. See
 version policy, and rejected alternatives. Frontend access is isolated in
 `src/services/offlineLibrary/`; it returns explicit typed success/error states
 and does not invoke Tauri at all in Web Lite.
+The tool registry receives only a narrow read facade from `RootStore`, and the
+four model-callable operations are absent unless lifecycle state is healthy.
+The Markdown renderer applies the normal URL sanitizer to all links while
+explicitly preserving exact `kiwix://`, `library://`, `man:`, and `db://`
+citation schemes; chat snapshot and data export/import retain those strings
+without rewriting them.
 
 ## Bridge and workspace
 

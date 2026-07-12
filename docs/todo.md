@@ -13,19 +13,19 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 - [x] Accept the dedicated desktop proxy ADR and pin a sanitized, matching
       `local.offline-library` 1.3 consumer fixture with static contract tests.
-- [ ] Consume the validated `local.offline-library` manifest and matching
+- [x] Consume the validated `local.offline-library` manifest and matching
       OpenAPI version through a trusted desktop backend boundary.
 - [x] Typed read-only client: health, sources, cited search, public schemas,
       task-aware profiles, and Knowledge Arena summaries.
 - [x] Explicit addon enable/disable, health, permissions, offline, version-
       mismatch, and unavailable-host states.
-- [ ] Read-only model tools with bounded inputs/outputs and exact citation URI
+- [x] Read-only model tools with bounded inputs/outputs and exact citation URI
       preservation through rendering, persistence, and export.
 - [ ] Task-aware local model/retrieval selection with visible user override;
       never infer a universal winner from the small public-schema arm.
 - [ ] Model × retrieval-setup benchmark view with confidence intervals,
       component metrics, trust proxies, latency, sample size, and errors.
-- [ ] Web Lite desktop-only explanation with no loopback request attempt.
+- [x] Web Lite desktop-only explanation with no loopback request attempt.
 - [ ] Security tests for fixed host/port/path allowlisting, redirects, response
       bounds, private/restricted aliases, and mutation absence.
 - [ ] Full CI, E2E, applicable Rust tests, sanitized fixture parity, and a live

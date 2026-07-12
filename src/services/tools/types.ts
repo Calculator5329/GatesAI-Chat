@@ -5,6 +5,16 @@ import type { LlmMessage, ToolDef } from '../../core/llm';
 import type { Note } from '../../core/notes';
 import type { Schedule, ScheduleInput } from '../../core/schedules';
 import type { Thread, ToolResultArtifact } from '../../core/types';
+import type {
+  OfflineLibraryDatabases,
+  OfflineLibraryKnowledgeArena,
+  OfflineLibraryProfiles,
+  OfflineLibraryPublicSchema,
+  OfflineLibraryResult,
+  OfflineLibrarySearchRequest,
+  OfflineLibrarySearchResponse,
+  OfflineLibrarySources,
+} from '../../core/offlineLibrary';
 
 /**
  * Runtime context passed to every tool. Add fields here as tools need them
@@ -154,6 +164,16 @@ export interface RagFacade {
   recall(query: string, k?: number): Promise<string>;
 }
 
+export interface OfflineLibraryFacade {
+  readonly available: boolean;
+  search(request: OfflineLibrarySearchRequest): Promise<OfflineLibraryResult<OfflineLibrarySearchResponse>>;
+  getSources(): Promise<OfflineLibraryResult<OfflineLibrarySources>>;
+  getDatabases(): Promise<OfflineLibraryResult<OfflineLibraryDatabases>>;
+  getPublicSchema(alias: string): Promise<OfflineLibraryResult<OfflineLibraryPublicSchema>>;
+  getProfiles(): Promise<OfflineLibraryResult<OfflineLibraryProfiles>>;
+  getKnowledgeArena(): Promise<OfflineLibraryResult<OfflineLibraryKnowledgeArena>>;
+}
+
 export interface SourceWorkspaceFacade {
   readonly runtimeSnapshot?: {
     prepared: boolean;
@@ -183,6 +203,7 @@ export interface ToolContext {
   search?: SearchFacade;
   rag?: RagFacade;
   sourceWorkspace?: SourceWorkspaceFacade;
+  offlineLibrary?: OfflineLibraryFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;
   /** The provider tool-call id that triggered this execution. */
@@ -191,7 +212,7 @@ export interface ToolContext {
   signal?: AbortSignal;
 }
 
-export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'source' | 'shell' | 'git' | 'thread' | 'notes' | 'schedules' | 'time' | 'vision' | 'web' | 'diagnostics' | 'mcp';
+export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'source' | 'shell' | 'git' | 'thread' | 'notes' | 'schedules' | 'time' | 'vision' | 'web' | 'knowledge' | 'diagnostics' | 'mcp';
 
 export interface ToolResultPolicy {
   /** Default max chars returned to the model before compaction. */

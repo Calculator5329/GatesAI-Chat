@@ -2,7 +2,7 @@
 // workspace-aware links, code blocks, and embedded diagram/artifact previews.
 // Lazy-loaded by EditorialMessage. Presentation only.
 import { Children, isValidElement, memo, useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ComponentPropsWithoutRef, type ReactElement, type ReactNode } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import type { PluggableList } from 'unified';
@@ -28,6 +28,11 @@ import {
 const HAS_CODE_FENCE = (s: string) => /(?:^|\n) {0,3}(?:`{3,}|~{3,})/.test(s);
 const MATH_RE = /\$\$[\s\S]+?\$\$|\\\(|\\\[/;
 const HAS_MATH = (s: string) => MATH_RE.test(s);
+const OFFLINE_CITATION_URL = /^(?:(?:kiwix|library|db):\/\/[^\s<>"']+|man:[A-Za-z0-9_.:+-]+)$/;
+
+export function markdownUrlTransform(url: string): string {
+  return OFFLINE_CITATION_URL.test(url) ? url : defaultUrlTransform(url);
+}
 
 export interface MarkdownChunkProps {
   content: string;
@@ -67,6 +72,7 @@ export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge, line
       remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
       rehypePlugins={rehypePlugins}
       components={components}
+      urlTransform={markdownUrlTransform}
     >
       {content}
     </ReactMarkdown>

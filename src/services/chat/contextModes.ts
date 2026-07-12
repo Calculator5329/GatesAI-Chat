@@ -93,6 +93,7 @@ export function toolsForContextMode(args: {
   imageGenAvailable?: boolean;
   webSearchAvailable?: boolean;
   semanticRecallAvailable?: boolean;
+  offlineLibraryAvailable?: boolean;
   spawnTaskAvailable?: boolean;
   spawnTaskRunningCount?: number;
   spawnTaskMaxConcurrent?: number;
@@ -118,6 +119,7 @@ export function toolsForContextMode(args: {
     if (webSearch) tools.push(webSearch);
     const recall = args.semanticRecallAvailable ? toolRegistry.get('recall')?.def : undefined;
     if (recall) tools.push(recall);
+    if (args.offlineLibraryAvailable) tools.push(...toolRegistry.toolDefsByCategory('knowledge'));
     tools.push(...toolRegistry.toolDefsByCategory('mcp'));
     const filtered = toolRegistry.filterToolDefsForAllowlist(tools, args.toolAllowlist);
     return filtered.length > 0 ? filtered : undefined;
@@ -129,6 +131,7 @@ export function toolsForContextMode(args: {
     imageGenAvailable: args.imageGenAvailable,
     webSearchAvailable: args.webSearchAvailable,
     semanticRecallAvailable: args.semanticRecallAvailable,
+    offlineLibraryAvailable: args.offlineLibraryAvailable,
     spawnTaskAvailable: args.spawnTaskAvailable,
     spawnTaskRunningCount: args.spawnTaskRunningCount,
     spawnTaskMaxConcurrent: args.spawnTaskMaxConcurrent,

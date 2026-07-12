@@ -47,6 +47,7 @@ import {
 } from '../services/chat/dataExport';
 import { getSecret, migrateDesktopSecretsFromLocalStorage, SECRET_NAMES } from '../services/secretStorage';
 import { UndoService } from '../services/undo/UndoService';
+import { offlineLibraryService } from '../services/offlineLibrary';
 
 export class RootStore {
   readonly registry: ModelRegistry;
@@ -172,6 +173,15 @@ export class RootStore {
       search: this.search,
       rag: this.rag,
       sourceWorkspace: this.sourceWorkspace,
+      offlineLibrary: {
+        available: this.offlineLibrary.enabled && this.offlineLibrary.phase === 'healthy',
+        search: request => offlineLibraryService.search(request),
+        getSources: () => offlineLibraryService.getSources(),
+        getDatabases: () => offlineLibraryService.getDatabases(),
+        getPublicSchema: alias => offlineLibraryService.getPublicSchema(alias),
+        getProfiles: () => offlineLibraryService.getProfiles(),
+        getKnowledgeArena: () => offlineLibraryService.getKnowledgeArena(),
+      },
     }));
 
     this.disposers.push(toolRegistry.registerDynamicProvider(() => createMcpRegistryTools(this.mcp)));

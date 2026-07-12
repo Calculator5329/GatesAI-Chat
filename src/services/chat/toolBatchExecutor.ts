@@ -10,7 +10,7 @@ import { logEvent } from '../diagnostics/chatLog';
 import { isToolFailureContent, logToolCallFailure, safeJsonPreview } from './toolFailureLog';
 import { formatInterruptedToolBatchSummary, safeStableJson } from './turnFormatting';
 
-export type ToolStoreContext = Pick<ToolContext, 'notes' | 'schedules' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search' | 'rag' | 'sourceWorkspace'>;
+export type ToolStoreContext = Pick<ToolContext, 'notes' | 'schedules' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search' | 'rag' | 'sourceWorkspace' | 'offlineLibrary'>;
 
 export interface ToolBatchDeps {
   profile: ToolContext['profile'];

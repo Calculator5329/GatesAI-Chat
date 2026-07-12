@@ -442,6 +442,38 @@ describe('EditorialMessage markdown rendering', () => {
     expect(anchor?.getAttribute('target')).toBe('_blank');
   });
 
+  it('preserves safe Offline Library citation schemes as exact links', () => {
+    const rendered = renderMessage({
+      id: 'm-anchor-offline-library',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: [
+        '[Arch article](kiwix://archlinux/pacman-hooks)',
+        '[Book passage](library://books/handbook/chapter-2)',
+        '[Manual](man:pacman.8)',
+        '[Public schema](db://public/schema)',
+      ].join(' '),
+    });
+
+    expect(Array.from(rendered.querySelectorAll('a'), anchor => anchor.getAttribute('href'))).toEqual([
+      'kiwix://archlinux/pacman-hooks',
+      'library://books/handbook/chapter-2',
+      'man:pacman.8',
+      'db://public/schema',
+    ]);
+  });
+
+  it('continues to reject unsafe markdown URL schemes', () => {
+    const rendered = renderMessage({
+      id: 'm-anchor-unsafe',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '[unsafe](javascript:alert(1))',
+    });
+
+    expect(rendered.querySelector('a')?.getAttribute('href')).toBe('');
+  });
+
   it('can label an empty streaming assistant message as compacting', () => {
     const rendered = renderMessage({
       id: 'm-compacting',

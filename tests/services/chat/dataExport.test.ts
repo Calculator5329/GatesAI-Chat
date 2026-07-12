@@ -162,6 +162,63 @@ describe('chat data export/import', () => {
     // writable thread; both are ordinary persisted/exported threads.
     expect(createDataExportEnvelope(root).data.threads).toHaveLength(2);
   });
+
+  it('preserves Offline Library citations through export, import, and persistence', () => {
+    const citations = [
+      'kiwix://archlinux/pacman-hooks',
+      'library://books/handbook/chapter-2',
+      'man:pacman.8',
+      'db://public/schema',
+    ];
+    const source = makeRoot();
+    source.chat.applyImportedSnapshot({
+      activeThreadId: 't-library',
+      threads: [{
+        id: 't-library',
+        title: 'Offline research',
+        subtitle: '',
+        createdAt: 1,
+        updatedAt: 2,
+        pinned: false,
+        modelId: 'ollama-phi4',
+        messages: [{
+          id: 'a-library',
+          role: 'assistant',
+          createdAt: 2,
+          parts: [{
+            type: 'tool',
+            result: {
+              toolCallId: 'library-search-1',
+              toolName: 'library_search',
+              content: JSON.stringify({ citations }),
+              ok: true,
+              ranAt: 2,
+            },
+          }, {
+            type: 'text',
+            text: citations.map(citation => `[source](${citation})`).join(' '),
+          }],
+        }],
+      }],
+    });
+    const raw = serializeDataExport(source);
+    releaseRoot(source);
+    flushPendingSnapshot();
+    clearAppStorage();
+
+    for (const citation of citations) expect(raw).toContain(citation);
+
+    const target = makeRoot();
+    importDataFromJson(target, raw, 'replace');
+    flushPendingSnapshot();
+
+    const restored = JSON.stringify(target.chat.snapshot);
+    const persisted = localStorage.getItem('gatesai.state.v1') ?? '';
+    for (const citation of citations) {
+      expect(restored).toContain(citation);
+      expect(persisted).toContain(citation);
+    }
+  });
 });
 
 function seedRoot(
