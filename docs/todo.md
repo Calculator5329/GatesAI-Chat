@@ -5,6 +5,34 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 ---
 
+## Offline Library plugin
+
+> Activated by Ethan on 2026-07-12. Execution and acceptance live in the
+> `Offline Library plugin consumer` item in `docs/roadmap.md`; this section is
+> the durable capability checklist.
+
+- [ ] Consume the validated `local.offline-library` manifest and matching
+      OpenAPI version through a trusted desktop backend boundary.
+- [ ] Typed read-only client: health, sources, cited search, public schemas,
+      task-aware profiles, and Knowledge Arena summaries.
+- [ ] Explicit addon enable/disable, health, permissions, offline, version-
+      mismatch, and unavailable-host states.
+- [ ] Read-only model tools with bounded inputs/outputs and exact citation URI
+      preservation through rendering, persistence, and export.
+- [ ] Task-aware local model/retrieval selection with visible user override;
+      never infer a universal winner from the small public-schema arm.
+- [ ] Model × retrieval-setup benchmark view with confidence intervals,
+      component metrics, trust proxies, latency, sample size, and errors.
+- [ ] Web Lite desktop-only explanation with no loopback request attempt.
+- [ ] Security tests for fixed host/port/path allowlisting, redirects, response
+      bounds, private/restricted aliases, and mutation absence.
+- [ ] Full CI, E2E, applicable Rust tests, sanitized fixture parity, and a live
+      desktop smoke against the local host.
+- [ ] Separately review any management action, private confirmation token,
+      database row query, or labeled semantic hallucination evaluation.
+
+---
+
 ## LLM providers
 
 ### v1 (this refactor)

@@ -57,6 +57,48 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### Next
 
+- [ ] **Offline Library plugin consumer.** *(owner-approved 2026-07-12;
+      coordinated with `../local-ai-lab`)* Integrate the host-ready,
+      loopback-only Offline Library as a swappable read-only addon. The work is
+      ordered so UI/tool code never outruns the versioned safety contract:
+  - [ ] **G0 — ADR and shared contract fixture.** Record the desktop proxy
+        choice (dedicated Tauri command or bridge operation), loopback threat
+        model, Web Lite degradation, plugin lifecycle, and citation contract.
+        Import a sanitized API fixture only after local-ai-lab declares the
+        benchmark/profile endpoints in its manifest and OpenAPI document.
+  - [ ] **G1 — typed service client and trusted proxy.** Add a service-layer
+        client for status, sources, search, public schemas, profiles, and
+        benchmark summaries. Browser code must not fetch `127.0.0.1` directly;
+        the desktop backend must allow only the fixed host/port/path set, bound
+        response sizes, reject redirects, and preserve offline/error states.
+  - [ ] **G2 — plugin lifecycle and settings.** Discover and validate the
+        manifest, expose explicit enable/disable and health state, show declared
+        read permissions, and remain disabled/unavailable in Web Lite with a
+        clear desktop-only explanation. Do not add secrets or background cloud
+        dependencies.
+  - [ ] **G3 — read-only model tools.** Register bounded tools for library
+        search, source inventory, public database schemas, and benchmark/profile
+        summaries with honest read-only metadata. Preserve `kiwix://`,
+        `library://`, `man:`, and `db://` citations through tool results,
+        messages, persistence, export, and rendering.
+  - [ ] **G4 — task-aware local profiles.** Offer visible, overridable routing:
+        Qwen + public schema for public-schema questions; Phi-4 + hybrid/native
+        for document quality; Qwen + hybrid/native for balanced latency. Show
+        evidence/sample sizes, never claim one universal winner, and never
+        silently fall back to a remote provider.
+  - [ ] **G5 — user-facing addon surface.** Add compact health/source/profile
+        controls and benchmark model × setup inspection using the existing
+        editorial system or right-dock framework. Avoid duplicating the Offline
+        Library dashboard or exposing private database metadata.
+  - [ ] **G6 — full acceptance.** Unit-test validation, SSRF/redirect/size
+        limits, unavailable host, citation preservation, tool bounds, profile
+        overrides, Web Lite degradation, and persistence. Pass `npm run ci`,
+        `npm run test:e2e`, and Rust tests for Tauri changes, plus a live local
+        desktop smoke against the matching host API version.
+  - [ ] **G7 — separately gated follow-ups.** Management mutations, private
+        alias confirmation, row queries, and semantic hallucination judging are
+        excluded until separately approved and threat-modeled.
+
 **Workbench program (Ethan, 2026-07-12)** — design frame in
 `docs/plans/2026-07-12-workbench-vision-design.md`; each item gets its own
 dated plan doc before implementation. Order matters (5→4→1→2→3 in the doc):
