@@ -172,6 +172,15 @@ desktop build (attachments, image jobs, gallery, settings) and the Web Lite
 build (degraded-state assertions) — with the OpenRouter stream mocked. See
 [`docs/tech_spec.md`](docs/tech_spec.md#testing) for the mock strategy.
 
+### UI review screenshots
+
+Run `npm run screenshots` to capture the key desktop visual states at a fixed
+1440×900 viewport. The headless Playwright run starts Vite (or reuses the local
+test server outside CI), uses only local fixtures and mocked providers, and
+writes PNGs plus a machine-readable manifest to
+`screenshots/<git-short-sha>/manifest.json`. The output directory is ignored by
+Git so before/after packets can be generated without dirtying the worktree.
+
 ## Building the desktop app
 
 ```powershell

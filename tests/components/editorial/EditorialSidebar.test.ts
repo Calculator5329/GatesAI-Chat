@@ -14,6 +14,7 @@ import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
 import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
 import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { SkillsStore } from '../../../src/stores/SkillsStore';
+import { UpdateStore } from '../../../src/stores/UpdateStore';
 import { EditorialSidebar } from '../../../src/components/editorial/EditorialSidebar';
 import { EditorialChat } from '../../../src/components/editorial/EditorialChat';
 import { flushPendingSnapshot, loadSnapshot } from '../../../src/services/persistence';
@@ -39,6 +40,7 @@ function buildStore(): RootStore {
   const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
   const imageJobs = new ImageJobStore();
   const skills = new SkillsStore(bridge, () => ['thread']);
+  const updates = new UpdateStore();
   return {
     registry,
     providers,
@@ -51,6 +53,7 @@ function buildStore(): RootStore {
     localRuntime,
     imageJobs,
     skills,
+    updates,
   } as RootStore;
 }
 
