@@ -14,6 +14,15 @@ export default defineConfig(({ mode }) => {
 
   return {
     base,
+    server: {
+      watch: {
+        // src-tauri/target holds ~hundreds of thousands of cargo build files;
+        // watching them exhausts fs.inotify budgets and has crashed dev
+        // servers mid-session. Vite ignores node_modules by default but not
+        // this tree.
+        ignored: ['**/src-tauri/target/**'],
+      },
+    },
     // Web Lite is a build mode, not a deploy-time secret. Keep the runtime
     // switch in the build config so it does not depend on a tracked .env file.
     define: webLite

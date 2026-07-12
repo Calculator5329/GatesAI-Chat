@@ -53,9 +53,13 @@ test.describe('chat interaction polish', () => {
     const stream = page.locator('.editorial-stream');
     await expect.poll(() => timeline.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
     const before = await timeline.evaluate(el => el.scrollTop);
-    const box = await stream.boundingBox();
+    // Aim at the visible middle of the message column. The timeline's box is
+    // viewport-sized; the stream's content box extends far above the viewport
+    // once scrolled to bottom, so its coordinates land outside the window and
+    // the wheel would hit the sidebar instead.
+    const box = await timeline.boundingBox();
     expect(box).not.toBeNull();
-    await page.mouse.move(box!.x + box!.width / 2, box!.y + Math.min(100, box!.height / 2));
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
     await page.mouse.wheel(0, -700);
 
     await expect.poll(() => timeline.evaluate(el => el.scrollTop)).toBeLessThan(before);

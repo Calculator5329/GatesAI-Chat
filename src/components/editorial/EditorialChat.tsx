@@ -460,6 +460,10 @@ export const EditorialChat = observer(function EditorialChat() {
   // If they've scrolled up to read history we leave them there. Updated by a
   // rAF-throttled scroll listener so we're not measuring layout per token.
   const stickyRef = useRef(true);
+  // One pending consume per programmatic pin: the next scroll event is
+  // ours and must not demote sticky; anything after it is the reader's.
+  const pinConsumeRef = useRef(0);
+  const streamRef = useRef<HTMLDivElement>(null);
   const windowingSupported = hasMessageWindowingSupport();
   const [viewport, setViewport] = useState({ scrollTop: 0, height: 0 });
   const [awayFromBottom, setAwayFromBottom] = useState(false);
@@ -488,12 +492,35 @@ export const EditorialChat = observer(function EditorialChat() {
   });
 
   const scheduleScrollToBottom = useCallback(() => {
-    if (scrollRafRef.current !== null) return;
-    scrollRafRef.current = requestAnimationFrame(() => {
+    // Pin synchronously first: rAF callbacks never run in hidden/unpainted
+    // pages, and a pending frame id must never wedge future pins (an early
+    // "if scheduled, return" here once parked one unexecuted frame at mount
+    // and silently disabled every scroll-to-bottom after it, including the
+    // jump button). The bounded rAF loop that follows is only a settle
+    // assist: the windowed list grows scrollHeight over several frames while
+    // message heights are measured, so we keep re-pinning until the bottom
+    // holds still. Writes are stamped so the scroll listener can tell reader
+    // intent apart from our own follow-up events.
+    const now = scrollRef.current;
+    if (now && stickyRef.current) {
+      pinConsumeRef.current += 1;
+      now.scrollTop = now.scrollHeight;
+    }
+    if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
+    let settleFrames = 0;
+    const pin = () => {
       scrollRafRef.current = null;
       const el = scrollRef.current;
-      if (el) el.scrollTop = el.scrollHeight;
-    });
+      if (!el || !stickyRef.current) return;
+      pinConsumeRef.current += 1;
+      el.scrollTop = el.scrollHeight;
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 1;
+      if ((!atBottom || settleFrames < 3) && settleFrames < 60) {
+        settleFrames += 1;
+        scrollRafRef.current = requestAnimationFrame(pin);
+      }
+    };
+    scrollRafRef.current = requestAnimationFrame(pin);
   }, []);
 
   const jumpToBottom = useCallback(() => {
@@ -508,6 +535,7 @@ export const EditorialChat = observer(function EditorialChat() {
     // Wheel fires before scroll. Record the reader's intent now so the next
     // streaming token cannot re-pin the viewport in between those events.
     stickyRef.current = false;
+    pinConsumeRef.current = 0;
     setAwayFromBottom(true);
   }, []);
 
@@ -531,6 +559,23 @@ export const EditorialChat = observer(function EditorialChat() {
 
   useEffect(() => () => {
     if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
+  }, []);
+
+  // Content grows asynchronously (hydration, windowed height measurement,
+  // images) long after any single scroll write. While the reader is following,
+  // every growth of the stream re-pins the viewport to the bottom; once they
+  // scroll up, stickyRef gates this off entirely.
+  useEffect(() => {
+    const stream = streamRef.current;
+    const el = scrollRef.current;
+    if (!stream || !el || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => {
+      if (!stickyRef.current) return;
+      pinConsumeRef.current += 1;
+      el.scrollTop = el.scrollHeight;
+    });
+    observer.observe(stream);
+    return () => observer.disconnect();
   }, []);
 
   const recordMessageHeight = useCallback((messageId: string, height: number) => {
@@ -572,8 +617,24 @@ export const EditorialChat = observer(function EditorialChat() {
     const el = scrollRef.current;
     if (!el) return;
     const onScroll = () => {
-      stickyRef.current = isNearScrollBottom(el, STICKY_BOTTOM_PX);
-      setAwayFromBottom(!stickyRef.current);
+      // Scroll events caused by our own pinning (or the layout shifts right
+      // after it) must not demote sticky — only genuine reader scrolling may.
+      // Reader wheel intent is captured separately in handleTimelineWheel.
+      // Tolerances are asymmetric on purpose: leaving follow is generous
+      // (STICKY_BOTTOM_PX) but re-engaging demands a deliberate return to the
+      // true bottom, so one wheel-up near the bottom isn't instantly undone.
+      const programmatic = pinConsumeRef.current > 0;
+      if (programmatic) pinConsumeRef.current -= 1;
+      if (stickyRef.current) {
+        if (!programmatic && !isNearScrollBottom(el, STICKY_BOTTOM_PX)) {
+          stickyRef.current = false;
+          pinConsumeRef.current = 0;
+          setAwayFromBottom(true);
+        }
+      } else if (!programmatic && isNearScrollBottom(el, 2)) {
+        stickyRef.current = true;
+        setAwayFromBottom(false);
+      }
       setViewport(previous => (
         previous.scrollTop === el.scrollTop && previous.height === el.clientHeight
           ? previous
@@ -652,9 +713,9 @@ export const EditorialChat = observer(function EditorialChat() {
         ref={scrollRef}
         className="editorial-chat-scroll"
         onWheelCapture={handleTimelineWheel}
-        style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px' }}
+        style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px', overflowAnchor: 'none' }}
       >
-        <div style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
+        <div ref={streamRef} style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
           {activeThreadHydrating && (
             <div className="editorial-empty-state" role="status">
               <div className="editorial-empty-state__ready">Loading conversation...</div>
