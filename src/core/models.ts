@@ -43,7 +43,7 @@ export const MODELS: Model[] = [
   { id: 'or-gemini-pro-latest',       name: 'Gemini Pro latest',      vendor: 'Google', providerId: 'openrouter', providerModelId: '~google/gemini-pro-latest', description: 'OpenRouter latest alias for Gemini Pro.' },
   { id: 'or-gemini-3.1-pro',          name: 'Gemini 3.1 Pro Preview', vendor: 'Google', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-pro-preview', description: 'Large Gemini reasoning and vision model with controllable thinking. Retains the old stable id for saved threads.', contextLength: 1_048_576, pricing: { prompt: 2, completion: 12 } },
   { id: 'or-gemini-3.5-flash',        name: 'Gemini 3.5 Flash',       vendor: 'Google', providerId: 'openrouter', providerModelId: 'google/gemini-3.5-flash', description: 'Newest Gemini Flash family model.', contextLength: 1_000_000, pricing: { prompt: 1.5, completion: 9 } },
-  { id: 'or-gemini-3-flash',          name: 'Gemini 3 Flash',         vendor: 'Google', providerId: 'openrouter', providerModelId: '~google/gemini-flash-latest', description: 'Default chat — fast, vision, reliable tools.', contextLength: 1_000_000, pricing: { prompt: 0.3, completion: 2.5 } },
+  { id: 'or-gemini-3-flash',          name: 'Gemini 3 Flash',         vendor: 'Google', providerId: 'openrouter', providerModelId: '~google/gemini-flash-latest', description: 'Fast, vision, reliable tools.', contextLength: 1_000_000, pricing: { prompt: 0.3, completion: 2.5 } },
   { id: 'or-gemini-3.1-flash-lite',   name: 'Gemini 3.1 Flash Lite',  vendor: 'Google', providerId: 'openrouter', providerModelId: 'google/gemini-3.1-flash-lite', description: 'Cost-efficient Gemini model with controllable thinking.', contextLength: 1_048_576, pricing: { prompt: 0.25, completion: 1.5 } },
 
   // xAI
@@ -54,7 +54,7 @@ export const MODELS: Model[] = [
   { id: 'or-llama-4-maverick', name: 'Llama 4 Maverick', vendor: 'Meta', providerId: 'openrouter', providerModelId: 'meta-llama/llama-4-maverick', description: 'Meta multimodal MoE generalist.', contextLength: 1_000_000 },
   { id: 'or-llama-4-scout',    name: 'Llama 4 Scout',    vendor: 'Meta', providerId: 'openrouter', providerModelId: 'meta-llama/llama-4-scout', description: 'Meta long-context multimodal MoE model.', contextLength: 10_000_000 },
   { id: 'or-nemotron-3-ultra',      name: 'Nemotron 3 Ultra',      vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-ultra-550b-a55b', description: 'NVIDIA open-weight frontier reasoning and orchestration MoE.', contextLength: 1_000_000, pricing: { prompt: 0.5, completion: 2.5 } },
-  { id: 'or-nemotron-3-ultra-free', name: 'Nemotron 3 Ultra free', vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-ultra-550b-a55b:free', description: 'Free OpenRouter route for Nemotron 3 Ultra open weights.', contextLength: 1_000_000, pricing: { prompt: 0, completion: 0 } },
+  { id: 'or-nemotron-3-ultra-free', name: 'Nemotron 3 Ultra free', vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-ultra-550b-a55b:free', description: 'Default chat — free OpenRouter route for Nemotron 3 Ultra open weights.', contextLength: 1_000_000, pricing: { prompt: 0, completion: 0 } },
   { id: 'or-nemotron-3-super',      name: 'Nemotron 3 Super',      vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-super-120b-a12b', description: 'NVIDIA open-weight 120B/12B-active hybrid MoE for agentic systems.', contextLength: 1_000_000, pricing: { prompt: 0.09, completion: 0.45 } },
   { id: 'or-nemotron-3-super-free', name: 'Nemotron 3 Super free', vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-super-120b-a12b:free', description: 'Free OpenRouter route for Nemotron 3 Super open weights.', contextLength: 1_000_000, pricing: { prompt: 0, completion: 0 } },
   { id: 'or-nemotron-3-nano-free',  name: 'Nemotron 3 Nano 30B free', vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-nano-30b-a3b:free', description: 'NVIDIA open-weight 30B/3B-active MoE suitable for local-adjacent workflows.', contextLength: 256_000, pricing: { prompt: 0, completion: 0 } },
@@ -99,7 +99,7 @@ export const MODELS: Model[] = [
   },
 ];
 
-export const DEFAULT_MODEL_ID = 'or-gemini-3-flash';
+export const DEFAULT_MODEL_ID = 'or-nemotron-3-ultra-free';
 
 export const DEFAULT_OPENROUTER_CATALOG_MODEL_IDS = [
   'or-gpt-5.5',

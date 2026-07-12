@@ -124,7 +124,7 @@ describe('workspace chat persistence', () => {
 
     expect(loaded.kind).toBe('loaded');
     if (loaded.kind !== 'loaded') throw new Error('expected loaded');
-    expect(loaded.snapshot.threads[0].modelId).toBe('or-gemini-3-flash');
+    expect(loaded.snapshot.threads[0].modelId).toBe('or-nemotron-3-ultra-free');
   });
 
   it('reports missing state without writing over local fallback', async () => {

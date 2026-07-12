@@ -183,7 +183,7 @@ describe('EditorialComposer API-key banner', () => {
     expect(control.disabled).toBe(false);
   });
 
-  it('falls back to Gemini 3 Flash when the active thread has no resolvable model', async () => {
+  it('falls back to Nemotron 3 Ultra free when the active thread has no resolvable model', async () => {
     store = buildStore();
     store.chat.setThreadModel(store.chat.activeThreadId!, 'missing-model');
     store.providers.setKey('openrouter', 'sk-test');
@@ -192,7 +192,7 @@ describe('EditorialComposer API-key banner', () => {
     const rendered = render(store);
     act(() => store!.ui.setDraft('hello'));
 
-    expect(rendered.textContent).toContain('Gemini 3 Flash');
+    expect(rendered.textContent).toContain('Nemotron 3 Ultra free');
     expect(rendered.textContent).not.toContain('Select model');
     expect(rendered.textContent).not.toContain('Add an OpenRouter key in Models to start chatting.');
     const sendWrapper = sendControl(rendered);
@@ -340,7 +340,7 @@ describe('EditorialComposer API-key banner', () => {
       rendered.querySelector('[data-model-row="auto-gemini-3-flash"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
 
-    expect(store.chat.activeThread?.modelId).toBe('or-gemini-3-flash');
+    expect(store.chat.activeThread?.modelId).toBe('or-nemotron-3-ultra-free');
   });
 
   it('shows an empty local tab while the runtime is offline', async () => {

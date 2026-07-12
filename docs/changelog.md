@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-12 — Default chat model → Nemotron 3 Ultra free (OpenRouter)
+
+- `DEFAULT_MODEL_ID` is now `or-nemotron-3-ultra-free`
+  (`nvidia/nemotron-3-ultra-550b-a55b:free`), so fresh installs and unresolved
+  legacy thread models land on the free OpenRouter route instead of Gemini 3
+  Flash. Keyless-with-Ollama still prefers the best local model; the composer
+  banner still prompts for an OpenRouter key otherwise.
+- Updated picker tags (`modelPicker.ts`), catalog descriptions, and the unit
+  tests that pinned the old default. No provider or persistence changes —
+  the key still lives in Menu → Models → OpenRouter (keychain on desktop,
+  browser storage in Web Lite).
+
 ## 2026-07-10 — Flaky-test sweep: clean bill of health
 
 - Ran the unit suite 5× (995 tests) and the Playwright e2e suite 3× (20

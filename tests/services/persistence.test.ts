@@ -180,7 +180,7 @@ describe('persistence', () => {
     expect(loaded).not.toBeNull();
     const msgs = loaded!.threads[0].messages;
     expect(msgs.map(m => m.role)).toEqual(['user', 'assistant']);
-    expect(loaded!.threads[0].modelId).toBe('or-gemini-3-flash');
+    expect(loaded!.threads[0].modelId).toBe('or-nemotron-3-ultra-free');
     const a = msgs[1];
     if (a.role !== 'assistant') throw new Error('expected assistant');
     // Identity comes from the first round's message (so external refs survive).

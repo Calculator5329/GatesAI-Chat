@@ -63,6 +63,9 @@ it points you to the matching download above).
 
 - **Bring-your-own-model chat** — OpenRouter cloud catalog (live `/api/v1/models` refresh,
   pricing, favorites) plus local **Ollama** models, behind one streaming `LlmProvider` contract.
+  New chats default to **Nemotron 3 Ultra free** (`nvidia/nemotron-3-ultra-550b-a55b:free` via
+  OpenRouter, $0 but free-tier rate-limited); paste your OpenRouter API key under
+  **Menu → Models → OpenRouter → Connect** to start chatting.
 - **Threaded conversations** with per-thread streaming, interrupt-and-resend, branching,
   regenerate-in-place, soft-delete with undo, sidebar search, and AI auto-naming.
 - **Durable autosave** — every conversation is throttled-saved to `localStorage`, survives quota

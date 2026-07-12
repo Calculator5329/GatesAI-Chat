@@ -71,8 +71,8 @@ describe('curated model catalog', () => {
     expect(DEFAULT_OPENROUTER_CATALOG_MODEL_IDS).not.toContain('or-nemotron-3.5-content-safety');
   });
 
-  it('defaults normal chat to Gemini 3 Flash via OpenRouter', () => {
-    expect(DEFAULT_MODEL_ID).toBe('or-gemini-3-flash');
+  it('defaults normal chat to the free Nemotron 3 Ultra route via OpenRouter', () => {
+    expect(DEFAULT_MODEL_ID).toBe('or-nemotron-3-ultra-free');
   });
 
   it('does not invent GPT-5.5 mini or nano variants', () => {

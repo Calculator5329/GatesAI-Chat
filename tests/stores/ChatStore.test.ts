@@ -619,7 +619,7 @@ describe('ChatStore', () => {
     expect(chat.isThreadStreaming(threadId)).toBe(false);
   });
 
-  it('defaults persisted unresolved thread models back to Gemini 3 Flash', () => {
+  it('defaults persisted unresolved thread models back to the free Nemotron 3 Ultra route', () => {
     localStorage.setItem('gatesai.state.v1', JSON.stringify({
       activeThreadId: 't-stale',
       threads: [{
@@ -639,7 +639,7 @@ describe('ChatStore', () => {
 
     const chat = new ChatStore(providers, registry, profile);
 
-    expect(chat.activeThread?.modelId).toBe('or-gemini-3-flash');
+    expect(chat.activeThread?.modelId).toBe('or-nemotron-3-ultra-free');
   });
 
   it('repairs a persisted active thread id that no longer points to a visible thread', () => {
@@ -811,7 +811,7 @@ describe('ChatStore', () => {
 
     chat.sendMessage('hello');
 
-    expect(chat.activeThread?.modelId).toBe('or-gemini-3-flash');
+    expect(chat.activeThread?.modelId).toBe('or-nemotron-3-ultra-free');
   });
 
   it('passes per-thread thinking effort to model requests', async () => {
@@ -1255,6 +1255,7 @@ describe('ChatStore', () => {
       { type: 'done', finishReason: 'stop' },
     ]);
     chat.createThread();
+    chat.setThreadModel(chat.activeThreadId!, 'or-gemini-3-flash');
 
     chat.sendMessage('hi');
     await flush(20);
