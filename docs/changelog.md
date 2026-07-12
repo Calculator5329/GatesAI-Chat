@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-12 — Release v4.6.0
+
+First self-updating release. Rollup of the entries below: signed auto-updater
+(W-5) with sidebar update pill and `latest.json` on the public releases repo,
+right dock panel framework slices 1+2 (W-1), F11 fullscreen toggle (W-4),
+ComfyUI failure diagnosis + persistent error trail, scroll-follow and
+code-block stability fixes, default model → Nemotron 3 Ultra free, e2e
+foreign-server port guard. Versions bumped in `package.json` +
+`tauri.conf.json`; what's-new panel entry added.
+
 ## 2026-07-12 — W-1 slice 1+2: right dock panel framework
 
 - New right dock column (desktop only): `DockStore` (one column × 1–2 cells,
