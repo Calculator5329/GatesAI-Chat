@@ -8,6 +8,7 @@ import type { MenuSectionKey, Thread } from '../../core/types';
 import { groupThreadsByDate } from '../../core/threadSelectors';
 import { useEditorial } from '../../stores/context';
 import { BridgeStatusPill } from './BridgeStatusPill';
+import { UpdatePill } from './UpdatePill';
 import { ThreadTitle } from './ThreadTitle';
 
 // First-run menu coach: show it briefly, then bow out on its own so it never nags.
@@ -374,6 +375,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           </div>
         )}
       </div>
+      <UpdatePill />
       <BridgeStatusPill />
     </aside>
     </>

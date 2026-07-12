@@ -61,15 +61,16 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 `docs/plans/2026-07-12-workbench-vision-design.md`; each item gets its own
 dated plan doc before implementation. Order matters (5→4→1→2→3 in the doc):
 
-- [ ] **W-5: Auto-updater via releases repo.** `tauri-plugin-updater` +
-      signed `latest.json` on `GatesAI-Chat-releases`; in-app "restart to
-      update" pill; AppImage auto-applies, deb/rpm get notice+link.
-      *Acceptance:* a tagged release updates an older installed AppImage
-      in-app without a manual download. *(Supersedes the "Later" opt-in
-      auto-updater item — Ethan promoted it.)*
-- [ ] **W-4: Fullscreen toggle + discoverability (Linux first).** F11 via
-      shortcuts service → `setFullscreen`; palette entry + shortcuts help.
-      *Acceptance:* F11 toggles on Linux desktop build; palette lists it.
+- [x] **W-5: Auto-updater via releases repo.** *(shipped 2026-07-12 —
+      plugins + signed workflow + latest.json manifest job + sidebar
+      UpdatePill; signing key in GH secrets, pubkey pinned in
+      tauri.conf.json; see docs/release-checklist.md. Final acceptance —
+      an older AppImage updating in-app — verifies on the first tagged
+      release, tracked in "Verify published assets".)*
+- [x] **W-4: Fullscreen toggle + discoverability (Linux first).** *(shipped
+      2026-07-12 — F11 via shortcuts dispatcher → services/window/fullscreen
+      (Tauri setFullscreen on desktop, browser Fullscreen API on Web Lite);
+      "Toggle fullscreen" palette entry via UiStore facade.)*
 - [ ] **W-1: Right dock panel framework.** DockStore (1 col × 1–2 cells,
       movable/collapsible/persisted) + panel registry; first panels: file
       viewer (md/html/json/txt), simple code editor (CodeMirror ADR), basic

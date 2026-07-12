@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-12 — W-5: Auto-updater (signed, via the public releases repo)
+
+- Desktop builds now self-update: `tauri-plugin-updater` + `tauri-plugin-process`
+  registered (Rust + capabilities), updater artifacts signed in CI
+  (`TAURI_SIGNING_PRIVATE_KEY` secret; pubkey pinned in `tauri.conf.json`),
+  and a new `updater-manifest` release job assembles `latest.json` (tag-pinned
+  URLs + signatures) and publishes it to `GatesAI-Chat-releases`. Installed
+  apps poll `releases/latest/download/latest.json` on launch and every 6h.
+- New `UpdateStore` (+ `services/updates/appUpdater.ts`, Web Lite no-op) and a
+  sidebar `UpdatePill`: "vX available — update" → background download with
+  progress → "restart to finish updating"; dismissible; failures land in the
+  error trail and offer retry. 6 store tests; release checklist gains signing
+  guardrails and an auto-update smoke test.
+
 ## 2026-07-12 — W-4: Fullscreen toggle (F11 + palette)
 
 - New `services/window/fullscreen.ts`: F11 (no modifier, works from any

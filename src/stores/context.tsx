@@ -24,6 +24,7 @@ import type { RagStore } from '../services/rag/RagStore';
 import type { SkillsStore } from './SkillsStore';
 import type { SchedulesStore } from './SchedulesStore';
 import type { WhatsNewStore } from './WhatsNewStore';
+import type { UpdateStore } from './UpdateStore';
 
 const StoreContext = createContext<RootStore | null>(null);
 
@@ -119,6 +120,10 @@ export function useRagStore(): RagStore {
 
 export function useWhatsNewStore(): WhatsNewStore {
   return useRootStore().whatsNew;
+}
+
+export function useUpdateStore(): UpdateStore {
+  return useRootStore().updates;
 }
 
 export interface EditorialStores {

@@ -181,6 +181,12 @@ jobs:
 
       - name: Build Tauri NSIS installer
         working-directory: chat
+        env:
+          # Signs the updater artifact so installed apps can verify updates
+          # (see docs/release-checklist.md). Without the secret the build
+          # still succeeds but no .sig is produced and auto-update won't fire.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npx tauri build --bundles nsis
 
       - name: Stage installer with stable name
@@ -190,12 +196,16 @@ jobs:
           mkdir -p release-assets
           src=$(ls "chat/src-tauri/target/release/bundle/nsis/"*_x64-setup.exe | head -n1)
           cp "$src" "release-assets/GatesAI-Chat-Setup-x64.exe"
+          # Updater signature (present when the signing key secret is set).
+          if [ -f "$src.sig" ]; then
+            cp "$src.sig" "release-assets/GatesAI-Chat-Setup-x64.exe.sig"
+          fi
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: GatesAI-Chat-windows-setup
-          path: release-assets/GatesAI-Chat-Setup-x64.exe
+          path: release-assets/GatesAI-Chat-Setup-x64.exe*
           if-no-files-found: error
 
       - name: Publish to public releases repo
@@ -208,7 +218,7 @@ jobs:
           repository: Calculator5329/GatesAI-Chat-releases
           token: ${{ secrets.RELEASES_TOKEN }}
           tag_name: ${{ github.ref_name }}
-          files: release-assets/GatesAI-Chat-Setup-x64.exe
+          files: release-assets/GatesAI-Chat-Setup-x64.exe*
 
   linux:
     runs-on: ubuntu-22.04
@@ -308,6 +318,9 @@ jobs:
 
       - name: Build Tauri AppImage
         working-directory: chat
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npx tauri build --bundles appimage
 
       - name: Stage AppImage with stable name
@@ -316,12 +329,15 @@ jobs:
           mkdir -p release-assets
           src=$(ls chat/src-tauri/target/release/bundle/appimage/*.AppImage | head -n1)
           cp "$src" "release-assets/GatesAI-Chat-x86_64.AppImage"
+          if [ -f "$src.sig" ]; then
+            cp "$src.sig" "release-assets/GatesAI-Chat-x86_64.AppImage.sig"
+          fi
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: GatesAI-Chat-linux-appimage
-          path: release-assets/GatesAI-Chat-x86_64.AppImage
+          path: release-assets/GatesAI-Chat-x86_64.AppImage*
           if-no-files-found: error
 
       - name: Publish to public releases repo
@@ -332,4 +348,59 @@ jobs:
           repository: Calculator5329/GatesAI-Chat-releases
           token: ${{ secrets.RELEASES_TOKEN }}
           tag_name: ${{ github.ref_name }}
-          files: release-assets/GatesAI-Chat-x86_64.AppImage
+          files: release-assets/GatesAI-Chat-x86_64.AppImage*
+
+  # Assembles the auto-updater manifest AFTER both signed platform builds
+  # publish. Installed apps poll releases/latest/download/latest.json (see
+  # plugins.updater in tauri.conf.json); the URLs inside pin the tag so the
+  # manifest and binaries can never disagree.
+  updater-manifest:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [windows, linux]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Build latest.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          base="https://github.com/Calculator5329/GatesAI-Chat-releases/releases/download/${tag}"
+          win_sig="artifacts/GatesAI-Chat-windows-setup/GatesAI-Chat-Setup-x64.exe.sig"
+          linux_sig="artifacts/GatesAI-Chat-linux-appimage/GatesAI-Chat-x86_64.AppImage.sig"
+          for f in "$win_sig" "$linux_sig"; do
+            if [ ! -f "$f" ]; then
+              echo "Missing updater signature $f — is TAURI_SIGNING_PRIVATE_KEY set?" >&2
+              exit 1
+            fi
+          done
+          mkdir -p release-assets
+          jq -n \
+            --arg version "$version" \
+            --arg pub_date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg win_sig "$(cat "$win_sig")" \
+            --arg win_url "${base}/GatesAI-Chat-Setup-x64.exe" \
+            --arg linux_sig "$(cat "$linux_sig")" \
+            --arg linux_url "${base}/GatesAI-Chat-x86_64.AppImage" \
+            '{
+              version: $version,
+              pub_date: $pub_date,
+              platforms: {
+                "windows-x86_64": { signature: $win_sig, url: $win_url },
+                "linux-x86_64": { signature: $linux_sig, url: $linux_url }
+              }
+            }' > release-assets/latest.json
+          cat release-assets/latest.json
+
+      - name: Publish manifest to public releases repo
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: Calculator5329/GatesAI-Chat-releases
+          token: ${{ secrets.RELEASES_TOKEN }}
+          tag_name: ${{ github.ref_name }}
+          files: release-assets/latest.json

@@ -26,9 +26,18 @@
       "csp": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'self' blob: data:; child-src 'self' blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https:; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: http://127.0.0.1:* http://localhost:* https:; connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:* https:"
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDIzMzUyRUJEQTlCMzRFNzMKUldSelRyT3B2UzQxSXl0MEd6aFBuaHNuL0lTb3dYRklnY3Z0S2VpSWpxTWhobysxcDZUdDM4NTQK",
+      "endpoints": [
+        "https://github.com/Calculator5329/GatesAI-Chat-releases/releases/latest/download/latest.json"
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["nsis", "appimage"],
+    "createUpdaterArtifacts": true,
     "externalBin": ["binaries/gatesai-bridge"],
     "resources": {
       "resources/source/": "source/"

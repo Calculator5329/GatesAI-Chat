@@ -15,6 +15,7 @@ import { NotesStore } from './NotesStore';
 import { SchedulesStore } from './SchedulesStore';
 import { BridgeStore } from './BridgeStore';
 import { ExecStreamStore } from './ExecStreamStore';
+import { UpdateStore } from './UpdateStore';
 import { ImageGenStore } from './ImageGenStore';
 import { ImageJobStore } from './ImageJobStore';
 import { LocalRuntimeStore } from './LocalRuntimeStore';
@@ -60,6 +61,7 @@ export class RootStore {
   readonly notes: NotesStore;
   readonly schedules: SchedulesStore;
   readonly bridge: BridgeStore;
+  readonly updates: UpdateStore;
   readonly execStream: ExecStreamStore;
   readonly imageGen: ImageGenStore;
   readonly imageJobs: ImageJobStore;
@@ -132,6 +134,7 @@ export class RootStore {
     this.skills = new SkillsStore(this.bridge, () => toolRegistry.list().map(tool => tool.def.name));
     this.openrouterCompatibility = new OpenRouterCompatibilityStore(this.providers, this.registry, this.bridge);
     this.sourceWorkspace = new SourceWorkspaceStore();
+    this.updates = new UpdateStore();
     this.execStream = new ExecStreamStore();
     this.imageGen = new ImageGenStore(this.localRuntime, () => this.providers.getConfig('openrouter').apiKey);
     this.imageJobs = new ImageJobStore({
@@ -251,6 +254,7 @@ export class RootStore {
     if (this.runtime === 'desktop') {
       this.bridge.start();
       void this.localRuntime.init();
+      this.updates.startBackgroundChecks();
 
       const bridge = this.bridge;
       configureChatLog({
