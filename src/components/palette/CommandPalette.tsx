@@ -3,7 +3,7 @@
 // remains, so it cannot intercept sidebar clicks.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useChatStore, useRouterStore, useUiStore } from '../../stores/context';
+import { useChatStore, useDockStore, useRouterStore, useUiStore } from '../../stores/context';
 import { Icons } from '../ui/icons';
 import { rankPaletteItems } from './ranking';
 import type { MenuSectionKey, Thread } from '../../core/types';
@@ -94,9 +94,13 @@ export const CommandPalette = observer(function CommandPalette() {
   const ui = useUiStore();
   const chat = useChatStore();
   const router = useRouterStore();
+  const dock = useDockStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  // Read observables outside the memo so the observer keeps tracking them
+  // across re-renders (a memoized callback skips the read on cached hits).
+  const dockEntryVisible = dock.available && !ui.mobileShell;
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -115,9 +119,19 @@ export const CommandPalette = observer(function CommandPalette() {
       actionItem('toggle-fullscreen', 'Toggle fullscreen', 'F11 — use the whole screen', ['fullscreen full screen f11 window maximize'], () => {
         ui.toggleFullscreen();
       }),
+      // Dock entry points are desktop-only: the v1 panels read workspace
+      // files through the bridge, which Web Lite doesn't have.
+      ...(dockEntryVisible
+        ? [
+          actionItem('open-file-in-dock', 'Open file in dock…', 'View a workspace file in the right dock', ['dock panel file viewer open workspace'], () => {
+            const path = window.prompt('Workspace path to open in the dock', '/workspace/');
+            if (path && path.trim() && path.trim() !== '/workspace/') dock.openPath(path);
+          }),
+        ]
+        : []),
       ...chat.visibleThreads.map(threadItem(chat, router)),
     ];
-  }, [chat, router, ui]);
+  }, [chat, router, ui, dock, dockEntryVisible]);
 
   const ranked = useMemo(() => rankPaletteItems(items, query).map(entry => entry.item), [items, query]);
 

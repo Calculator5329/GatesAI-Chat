@@ -558,7 +558,14 @@ export const EditorialChat = observer(function EditorialChat() {
   }, [activeThreadId, chat, goResultThread]);
 
   useEffect(() => () => {
-    if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
+    if (scrollRafRef.current !== null) {
+      cancelAnimationFrame(scrollRafRef.current);
+      // Reset the guard: StrictMode runs this cleanup between its double
+      // mount, and a cancelled frame never clears the ref itself — leaving
+      // it stuck non-null would make every future scheduleScrollToBottom
+      // early-return, silently disabling scroll-follow for the session.
+      scrollRafRef.current = null;
+    }
   }, []);
 
   // Content grows asynchronously (hydration, windowed height measurement,

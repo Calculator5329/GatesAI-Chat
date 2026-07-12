@@ -3,7 +3,7 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { makeAutoObservable, runInAction } from 'mobx';
 import type { ActivityItem, DraftAttachment } from '../core/types';
-import type { BridgeConnectionState, BridgeStatus, FsListResp } from '../core/workspace';
+import type { BridgeConnectionState, BridgeStatus, FsListResp, FsReadResp } from '../core/workspace';
 import { isWorkspacePath, resolveWorkspacePath } from '../core/workspacePaths';
 import { uploadAttachment } from '../services/bridge/attachments';
 import {
@@ -144,6 +144,26 @@ export class BridgeStore {
     } catch (err) {
       logger.warn('BridgeStore', 'openExternalTarget failed', { target, err });
       return false;
+    }
+  }
+
+  /**
+   * Read a workspace file as UTF-8 text through the bridge. Store facade so
+   * UI (e.g. the dock's file viewer) never issues raw bridge requests.
+   * Failures are logged here and surfaced as a `{ ok: false }` result the
+   * caller can render in place.
+   */
+  async readWorkspaceTextFile(path: string): Promise<
+    { ok: true; content: string; mime: string } | { ok: false; reason: string }
+  > {
+    if (!this.isOnline) return { ok: false, reason: 'Bridge is offline. Start gatesai-bridge to read workspace files.' };
+    try {
+      const resp = await this.client.request<FsReadResp>('fs.read', { path, encoding: 'utf8' });
+      return { ok: true, content: resp.content, mime: resp.mime };
+    } catch (err) {
+      const reason = (err as Error).message || 'Read failed.';
+      logger.warn('BridgeStore', 'readWorkspaceTextFile failed', { path, err });
+      return { ok: false, reason };
     }
   }
 

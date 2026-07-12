@@ -1,0 +1,170 @@
+/* Right dock panel column (W-1). Rendered by components/dock/DockPanel as
+ * the third column of the app shell; hidden on the mobile shell via JS
+ * (ui.mobileShell), so no @media block is needed here. */
+
+.dock-panel {
+  position: relative;
+  display: flex;
+  flex: none;
+  min-width: 260px;
+  max-width: 60%;
+  height: 100%;
+  border-left: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
+  box-sizing: border-box;
+}
+
+.dock-panel--collapsed {
+  width: 28px;
+  min-width: 28px;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.dock-panel__reopen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.dock-panel__reopen:hover { color: var(--text); }
+
+.dock-panel__resizer {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 5;
+}
+.dock-panel__resizer:hover { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+
+.dock-panel__cells {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dock-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 80px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dock-cell__divider {
+  height: 6px;
+  flex: none;
+  border-top: 1px solid var(--border);
+  cursor: row-resize;
+}
+.dock-cell__divider:hover { background: color-mix(in srgb, var(--accent) 35%, transparent); }
+
+.dock-cell__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel-2) 60%, transparent);
+  color: var(--text-dim);
+  font: 12px "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+.dock-cell__icon { display: flex; color: var(--text-faint); }
+
+.dock-cell__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.dock-cell__actions { display: flex; gap: 2px; }
+.dock-cell__actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.dock-cell__actions button:hover {
+  background: var(--panel-2);
+  color: var(--text);
+}
+
+.dock-cell__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.dock-panel__notice {
+  padding: 18px 14px;
+  color: var(--text-faint);
+  font: italic 13px "Source Serif 4", Georgia, serif;
+}
+
+.dock-file-viewer { padding: 12px 16px; }
+.dock-file-viewer pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12.5px "Geist Mono", ui-monospace, monospace;
+  color: var(--text);
+}
+
+/* The HTML view reuses InlineHtmlDocument (same sandbox policy as chat's
+ * inline preview) but fills the cell and stays interactive in the dock. */
+.dock-file-viewer--html { padding: 0; height: 100%; box-sizing: border-box; }
+.dock-file-viewer--html .inline-html-preview { height: 100%; }
+.dock-file-viewer--html .inline-html-preview iframe { pointer-events: auto; }
+
+.dock-json-view details {
+  border-bottom: 1px solid var(--border);
+  padding: 4px 0;
+}
+.dock-json-view summary {
+  cursor: pointer;
+  color: var(--text-dim);
+  font: 12.5px "Geist Mono", ui-monospace, monospace;
+}
+.dock-json-view pre { padding: 6px 0 6px 16px; }
+
+.dock-media-viewer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+}
+.dock-media-viewer img,
+.dock-media-viewer video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.dock-media-viewer audio { width: 100%; }

@@ -3,6 +3,7 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, reaction, runInAction } from 'mobx';
 import { ChatStore } from './ChatStore';
+import { DockStore } from './DockStore';
 import { UiStore } from './UiStore';
 import { ProviderStore } from './ProviderStore';
 import { RouterStore } from './RouterStore';
@@ -54,6 +55,7 @@ export class RootStore {
   readonly chat: ChatStore;
   readonly chatLeaderElection: WebLocksLeaderElection;
   readonly ui: UiStore;
+  readonly dock: DockStore;
   readonly router: RouterStore;
   readonly openrouter: OpenRouterStore;
   readonly ollama: OllamaStore;
@@ -86,6 +88,7 @@ export class RootStore {
     this.profile = new UserProfileStore();
     this.undo = new UndoService();
     this.ui = new UiStore();
+    this.dock = new DockStore({ runtime: this.runtime });
     this.whatsNew = new WhatsNewStore();
     this.router = new RouterStore();
     this.localRuntime = new LocalRuntimeStore({
@@ -314,6 +317,7 @@ export class RootStore {
     // Flush the departing leader while it still owns the lock, then release
     // it so a queued follower can refresh and take over safely.
     this.chatLeaderElection.dispose();
+    this.dock.dispose();
     this.ui.dispose();
     this.router.destroy();
     this.booted = false;
