@@ -212,6 +212,7 @@ and auxiliary stores, then one-way providers are injected into `ChatStore`.
 | `ExecStreamStore` | Live terminal output tails. | `src/stores/ExecStreamStore.ts` | `terminal` streams bridge event chunks into it; activity rows render the live tail. |
 | `ImageGenStore` | Image backend credentials/settings. | `src/stores/ImageGenStore.ts`, `src/services/imageGenStorage.ts` | Converts UI settings into backend config for `image_generate` and `ImageJobStore`. |
 | `ImageJobStore` | Image queue, active job, completed history, gallery data. | `src/stores/ImageJobStore.ts`, `src/services/image/imageBackend.ts`, `src/services/image/comfyClient.ts` | `image_generate` enqueues; the runner dispatches to ComfyUI/OpenRouter image APIs and writes final files through the bridge. |
+| `DockStore` | Right dock layout: open panel cells, split/width ratios, collapsed flag. | `src/stores/DockStore.ts`, `src/services/storage/dockStorage.ts`, `src/core/dock.ts` | Palette/gallery entry points call `openPanel`/`openPath`; `components/dock/DockPanel.tsx` renders the cells; layout persists to `gatesai.dock.v1`. |
 
 `RootStore` then wires four provider hooks into `ChatStore`:
 
@@ -639,6 +640,38 @@ Usage tracking:
   and by-day usage. No separate usage counter is persisted outside messages.
 - Image jobs track `costUsd` when image backends return it and expose per-thread
   image spend from `ImageJobStore`.
+
+## Right dock (W-1, slices 1–2)
+
+A third app-shell column to the right of the chat/menu surface hosting up to
+two stacked read-only panels (one column × 1–2 cells).
+
+- **State**: `DockStore` owns `cells: [PanelRef|null, PanelRef|null]`,
+  `splitRatio`, `dockRatio`, and `collapsed`, persisted (debounced) through
+  `services/storage/dockStorage.ts` (`gatesai.dock.v1`, versioned snapshot,
+  corrupt → defaults). `openPanel()` fills the first empty cell (both full →
+  replaces cell 0) and un-collapses; `openPath()` routes a workspace path to
+  the right panel kind by extension.
+- **Registry**: `components/dock/panelRegistry.tsx` maps panel kind →
+  `{ title, icon, Component, requiresBridge }` — one line per panel, same
+  shape as the tool registry.
+- **Panels (v1)**: `FileViewerPanel` reads through the
+  `BridgeStore.readWorkspaceTextFile` facade and dispatches on content type
+  (markdown → `MarkdownChunk`, JSON → per-key `<details>`, HTML → the same
+  sandboxed-iframe policy as `HtmlArtifactPreview` via `InlineHtmlDocument`,
+  else `<pre>`); `MediaViewerPanel` renders images through the shared
+  `useImageDataUrl` machinery and video/audio via native elements.
+- **Shell**: `components/dock/DockPanel.tsx` renders in `App.tsx` after the
+  surface; left-edge column resizer, draggable cell divider, per-cell header
+  (icon, title, swap, close), and a thin reopen rail when collapsed. Hidden
+  entirely on the mobile shell and on Web Lite (`DockStore.available` — the
+  v1 panels all need the bridge).
+- **Entry points**: command palette "Open file in dock…" (workspace-path
+  prompt) and an "Open in dock" action on gallery tiles. Both go through the
+  `useDockStore` hook; dock components never import services directly.
+
+Slice 3 (CodeMirror editor panel, file explorer, terminal panel) is a
+follow-up lane — see `docs/plans/2026-07-12-dock-framework.md`.
 
 ## Routing
 

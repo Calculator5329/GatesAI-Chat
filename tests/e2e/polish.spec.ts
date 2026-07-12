@@ -50,19 +50,26 @@ test.describe('chat interaction polish', () => {
     await expect(page.locator('button.composer-send-control[aria-label="Stop"]')).toBeVisible();
 
     const timeline = page.locator('.editorial-chat-scroll');
-    const stream = page.locator('.editorial-stream');
     await expect.poll(() => timeline.evaluate(el => el.scrollTop)).toBeGreaterThan(0);
     const before = await timeline.evaluate(el => el.scrollTop);
-    const box = await stream.boundingBox();
+    // Aim the wheel at the timeline's on-screen box. The inner
+    // `.editorial-stream` column is scrolled to the bottom here, so its
+    // bounding box starts thousands of pixels above the viewport and the old
+    // stream-based coordinates landed off-screen — the wheel never scrolled.
+    const box = await timeline.boundingBox();
     expect(box).not.toBeNull();
-    await page.mouse.move(box!.x + box!.width / 2, box!.y + Math.min(100, box!.height / 2));
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
     await page.mouse.wheel(0, -700);
 
     await expect.poll(() => timeline.evaluate(el => el.scrollTop)).toBeLessThan(before);
     await expect(page.locator('.editorial-jump-to-bottom')).toBeVisible();
-    const pausedTop = await timeline.evaluate(el => el.scrollTop);
+    // While disengaged, the message-windowing prepend compensation may nudge
+    // scrollTop to hold the visual position, so assert the real invariant:
+    // the stream finishing must not re-pin the viewport to the bottom.
     await expect(page.getByText('A delayed final streaming response.')).toBeVisible();
-    expect(await timeline.evaluate(el => el.scrollTop)).toBeLessThanOrEqual(pausedTop + 2);
+    expect(
+      await timeline.evaluate(el => el.scrollHeight - el.scrollTop - el.clientHeight),
+    ).toBeGreaterThan(200);
 
     await timeline.evaluate(el => { el.scrollTop = el.scrollHeight; });
     await expect(page.locator('.editorial-jump-to-bottom')).toHaveCount(0);
@@ -85,7 +92,11 @@ test.describe('chat interaction polish', () => {
     await mockOpenRouter(page);
     await page.goto('/');
 
-    const copy = page.locator('.code-block__toolbar button', { hasText: 'Copy' });
+    // Target the stateful copy button by its data-state attribute: a
+    // `hasText: 'Copy'` filter stops matching the moment the label flips to
+    // "Copied" (Playwright string filters don't see the new text as a
+    // match), so the success state could never be observed.
+    const copy = page.locator('.code-block__toolbar button[data-state]');
     await copy.click();
     await expect(copy).toHaveText('Copied');
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('const exact = "copied";');

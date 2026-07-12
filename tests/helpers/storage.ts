@@ -8,6 +8,7 @@ export function clearAppStorage(): void {
     localStorage.removeItem('gatesai.notes.v1');
     localStorage.removeItem('gatesai.schedules.v1');
     localStorage.removeItem('gatesai.uiprefs.v1');
+    localStorage.removeItem('gatesai.dock.v1');
     localStorage.removeItem('gatesai.ollama.v1');
     localStorage.removeItem('gatesai.imagegen.v1');
     localStorage.removeItem('gatesai.imagejobs.v1');

@@ -113,6 +113,9 @@ export class UiStore {
       setGlobalSummonEnabled: action.bound,
       setGlobalSummonChord: action.bound,
       setCloseButtonHidesToTray: action.bound,
+      // Bound so UI can pass it as a stable prop (unstable identities break
+      // MarkdownChunk's memo and remount code blocks mid-interaction).
+      setCodeLineNumbers: action.bound,
       setAutoNamingEnabled: action.bound,
       setGlobalShortcutStatus: action.bound,
     });

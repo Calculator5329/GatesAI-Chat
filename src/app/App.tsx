@@ -9,6 +9,7 @@ import { useChatStore, useRootStore, useRouterStore, useUiStore } from '../store
 import { EditorialSidebar } from '../components/editorial/EditorialSidebar';
 import { EditorialChat } from '../components/editorial/EditorialChat';
 import { CommandPalette } from '../components/palette/CommandPalette';
+import { DockPanel } from '../components/dock/DockPanel';
 import { WhatsNewPanel } from '../components/whats-new/WhatsNewPanel';
 import { UndoToast } from '../components/editorial/UndoToast';
 import { runtimeMode } from '../core/runtime';
@@ -105,6 +106,7 @@ export const App = observer(function App() {
           )
           : <EditorialChat />
         }
+        <DockPanel />
         {ui.paletteOpen && <CommandPalette />}
         {windowDropActive && (
           <div className="window-file-drop-overlay" role="status" aria-live="polite">

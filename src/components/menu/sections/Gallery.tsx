@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
-import { useBridgeStore, useImageJobStore } from '../../../stores/context';
+import { useBridgeStore, useDockStore, useImageJobStore } from '../../../stores/context';
 import type { CompletedJob } from '../../../stores/ImageJobStore';
 import { Button } from '../../ui';
 import { Lightbox } from '../../media/Lightbox';
@@ -123,6 +123,7 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
   onDelete: () => void;
 }) {
   const bridge = useBridgeStore();
+  const dock = useDockStore();
   const bridgeOnline = bridge.isOnline;
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
@@ -190,6 +191,22 @@ const GalleryTile = observer(function GalleryTile({ path, prompt, onClick, onDel
         color: '#fff', fontSize: 11,
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
       }}>{prompt}</div>
+      {dock.available && (
+        <button
+          type="button"
+          className="gallery-tile__dock"
+          onClick={(e) => { e.stopPropagation(); dock.openPanel('media-viewer', { path }); }}
+          title="Open in dock"
+          aria-label="Open in dock"
+          style={{
+            position: 'absolute', top: 4, right: 28,
+            width: 20, height: 20, borderRadius: 10,
+            border: '1px solid rgba(255,255,255,0.3)',
+            background: 'rgba(0,0,0,0.55)', color: '#fff',
+            fontSize: 11, lineHeight: 1, cursor: 'pointer',
+          }}
+        >⧉</button>
+      )}
       <button
         type="button"
         className="gallery-tile__remove"

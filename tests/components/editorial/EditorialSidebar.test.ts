@@ -39,6 +39,10 @@ function buildStore(): RootStore {
   const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
   const imageJobs = new ImageJobStore();
   const skills = new SkillsStore(bridge, () => ['thread']);
+  // W-5's UpdatePill reads updates.visible from the sidebar; a hidden stub
+  // keeps these presentation tests focused on the history list.
+  const updates = { visible: false } as RootStore['updates'];
+
   return {
     registry,
     providers,
@@ -51,6 +55,7 @@ function buildStore(): RootStore {
     localRuntime,
     imageJobs,
     skills,
+    updates,
   } as RootStore;
 }
 

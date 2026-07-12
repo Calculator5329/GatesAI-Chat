@@ -491,7 +491,7 @@ function MarkdownBody({ content, incremental = false }: { content: string; incre
               content={chunk.content}
               bridge={bridge}
               lineNumbers={ui.codeLineNumbers}
-              onLineNumbersChange={ui.setCodeLineNumbers.bind(ui)}
+              onLineNumbersChange={ui.setCodeLineNumbers}
             />
           )
         ))}

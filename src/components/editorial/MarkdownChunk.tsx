@@ -1,7 +1,7 @@
 // The full markdown block renderer (react-markdown + GFM/math) with
 // workspace-aware links, code blocks, and embedded diagram/artifact previews.
 // Lazy-loaded by EditorialMessage. Presentation only.
-import { Children, isValidElement, memo, useCallback, useEffect, useState, useSyncExternalStore, type ComponentPropsWithoutRef, type ReactElement, type ReactNode } from 'react';
+import { Children, isValidElement, memo, useCallback, useEffect, useMemo, useState, useSyncExternalStore, type ComponentPropsWithoutRef, type ReactElement, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -50,15 +50,23 @@ export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge, line
   if (needsHighlight && highlightPlugin) rehypePlugins.push(highlightPlugin);
   if (needsKatex && katexPlugin) rehypePlugins.push(katexPlugin);
 
+  // Memoize the renderer map so the element *types* stay stable across
+  // re-renders (e.g. when a lazy rehype plugin finishes loading). Inline
+  // arrow components would change identity every render, forcing React to
+  // remount every code block and wipe its local UI state (copy feedback,
+  // wrap, HTML preview toggle) mid-interaction.
+  const htmlPreviewEnabled = hasClosedFencedCodeBlock(content);
+  const components = useMemo(() => ({
+    code: (props: ComponentPropsWithoutRef<'code'>) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
+    pre: (props: ComponentPropsWithoutRef<'pre'>) => <CodeBlock {...props} lineNumbers={lineNumbers} onLineNumbersChange={onLineNumbersChange} htmlPreviewEnabled={htmlPreviewEnabled} />,
+    a: (props: ComponentPropsWithoutRef<'a'>) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,
+  }), [bridge, lineNumbers, onLineNumbersChange, htmlPreviewEnabled]);
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
       rehypePlugins={rehypePlugins}
-      components={{
-        code: (props) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
-        pre: (props) => <CodeBlock {...props} lineNumbers={lineNumbers} onLineNumbersChange={onLineNumbersChange} htmlPreviewEnabled={hasClosedFencedCodeBlock(content)} />,
-        a: (props) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,
-      }}
+      components={components}
     >
       {content}
     </ReactMarkdown>

@@ -9,6 +9,7 @@ import { ProviderStore } from '../../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../../src/stores/UserProfileStore';
 import { UiStore } from '../../../src/stores/UiStore';
+import { DockStore } from '../../../src/stores/DockStore';
 import { RouterStore } from '../../../src/stores/RouterStore';
 import { BridgeStore } from '../../../src/stores/BridgeStore';
 import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
@@ -49,6 +50,11 @@ function buildStore(): RootStore {
   const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
   const imageJobs = new ImageJobStore();
   const skills = new SkillsStore(bridge, () => ['thread']);
+  // W-5's UpdatePill reads updates.visible from the sidebar; a hidden stub
+  // keeps these presentation tests focused on the history list.
+  const updates = { visible: false } as RootStore['updates'];
+
+  const dock = new DockStore();
   return {
     registry,
     providers,
@@ -61,6 +67,8 @@ function buildStore(): RootStore {
     localRuntime,
     imageJobs,
     skills,
+    dock,
+    updates,
   } as RootStore;
 }
 
@@ -135,6 +143,7 @@ afterEach(() => {
   store?.router.destroy();
   store?.chat.dispose();
   store?.ui.dispose();
+  store?.dock.dispose();
   store = null;
   vi.restoreAllMocks();
   flushPendingSnapshot();

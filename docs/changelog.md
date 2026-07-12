@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-07-12 — W-1 slice 1+2: right dock panel framework
+
+- New right dock column (desktop only): `DockStore` (one column × 1–2 cells,
+  split/width ratios, collapse rail, persisted to `gatesai.dock.v1` with
+  corrupt-snapshot fallback), `components/dock/` shell + panel registry, and
+  the first two read-only panels — `FileViewerPanel` (markdown via the
+  existing markdown renderer, JSON per-key `<details>`, HTML in the same
+  sandboxed iframe policy as `HtmlArtifactPreview`, plain text) and
+  `MediaViewerPanel` (workspace images via the shared image machinery,
+  video/audio via native elements). File reads go through a new
+  `BridgeStore.readWorkspaceTextFile` facade.
+- Entry points: command palette "Open file in dock…" (workspace-path prompt)
+  and an "Open in dock" button on gallery tiles. Hidden on Web Lite and the
+  mobile shell (`DockStore.available` + `ui.mobileShell`).
+- Tests: DockStore unit suite, dockStorage round-trip/corrupt cases, panel
+  registry lookups, FileViewerPanel content-type dispatch with a mocked
+  bridge, and a desktop e2e (`tests/e2e/dock.spec.ts`) that opens a markdown
+  file in the dock via the palette (open → render → collapse → reopen →
+  close).
+- Fixed pre-existing red e2e (all three `polish.spec.ts` failures from the
+  UI/UX polish lane): (1) real bug — `EditorialChat`'s unmount cleanup
+  cancelled the pending scroll rAF without resetting the guard ref, so
+  StrictMode's dev double-mount permanently disabled scroll-follow;
+  (2) real bug — unstable renderer identities (`bind(ui)` prop + inline
+  `components` map in `MarkdownChunk`) remounted code blocks on message
+  re-renders, wiping copy/preview state (now a bound store action + memoized
+  components map); (3) test bugs — the copy assertion's `hasText: 'Copy'`
+  locator stops matching once the label flips to "Copied", the wheel test
+  aimed at the off-screen `.editorial-stream` box, and the paused-scroll
+  assertion now checks distance-from-bottom instead of a scrollTop that
+  windowing legitimately adjusts. Also stubbed `updates` into two
+  component-test store builders that broke when W-5's `UpdatePill` landed in
+  the sidebar.
+- Slice 3 (CodeMirror editor, file explorer, terminal panel) intentionally
+  not in this lane; W-1 stays open on the roadmap.
+
 ## 2026-07-12 — e2e: foreign-server guard on the dev-server ports
 
 - `globalSetup` now verifies that whatever answers on the e2e ports is
