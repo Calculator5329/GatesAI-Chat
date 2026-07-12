@@ -23,7 +23,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
       preservation through rendering, persistence, and export.
 - [x] Task-aware local model/retrieval selection with visible user override;
       never infer a universal winner from the small public-schema arm.
-- [ ] Model × retrieval-setup benchmark view with confidence intervals,
+- [x] Model × retrieval-setup benchmark view with confidence intervals,
       component metrics, trust proxies, latency, sample size, and errors.
 - [x] Web Lite desktop-only explanation with no loopback request attempt.
 - [ ] Security tests for fixed host/port/path allowlisting, redirects, response

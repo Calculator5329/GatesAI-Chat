@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-12 — Offline Library benchmark explorer (G5)
+
+- Added a compact, bridge-independent right-dock panel for the sanitized
+  Knowledge Arena summary, opened from the existing Offline Library Settings
+  block rather than duplicating the full host dashboard.
+- The panel filters model × retrieval-setup cells and shows restrained score
+  bars, sample counts, 95% confidence intervals, source/term/citation
+  components, and separate retrieval/generation latency.
+- Lifecycle refresh now also caches public/offline source inventory and
+  benchmark summaries. Optional detail failure is visible without disabling
+  otherwise healthy search/tools; raw answers, evidence passages, private
+  database metadata, and factual-hallucination claims remain excluded.
+
 ## 2026-07-12 — Offline Library task-aware profiles (G4)
 
 - Loaded the host's versioned, local-only routing profiles alongside lifecycle

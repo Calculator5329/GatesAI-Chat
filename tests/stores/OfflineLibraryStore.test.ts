@@ -1,16 +1,18 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import type { OfflineLibraryPluginManifest, OfflineLibraryProfiles, OfflineLibraryStatus } from '../../src/core/offlineLibrary'
+import type { OfflineLibraryKnowledgeArena, OfflineLibraryPluginManifest, OfflineLibraryProfiles, OfflineLibraryStatus } from '../../src/core/offlineLibrary'
 import type { OfflineLibraryService } from '../../src/services/offlineLibrary'
 import type { PersistenceProvider } from '../../src/services/storage/persistenceProvider'
 import type { OfflineLibrarySettingsSnapshot } from '../../src/services/storage/offlineLibraryStorage'
 import { OfflineLibraryStore } from '../../src/stores/OfflineLibraryStore'
 import pluginFixture from '../fixtures/offline-library/v1.3/plugin.json'
 import profilesFixture from '../fixtures/offline-library/v1.3/profiles.json'
+import knowledgeArenaFixture from '../fixtures/offline-library/v1.3/knowledge-arena.json'
 
 const plugin = pluginFixture as OfflineLibraryPluginManifest
 const status = { api_version: '1', generated_at: 'now', library: {}, services: {}, catalog: {}, collections: [] } satisfies OfflineLibraryStatus
 const profiles = profilesFixture as OfflineLibraryProfiles
+const knowledgeArena = knowledgeArenaFixture as OfflineLibraryKnowledgeArena
 
 function setup(options: { saved?: boolean; runtime?: 'desktop' | 'web-lite' } = {}) {
   let snapshot: OfflineLibrarySettingsSnapshot = { version: 1, enabled: options.saved ?? false, profileOverrideId: null }
@@ -23,6 +25,11 @@ function setup(options: { saved?: boolean; runtime?: 'desktop' | 'web-lite' } = 
     getPlugin: vi.fn<OfflineLibraryService['getPlugin']>(async () => ({ ok: true, data: plugin })),
     getStatus: vi.fn<OfflineLibraryService['getStatus']>(async () => ({ ok: true, data: status })),
     getProfiles: vi.fn<OfflineLibraryService['getProfiles']>(async () => ({ ok: true, data: profiles })),
+    getSources: vi.fn<OfflineLibraryService['getSources']>(async () => ({
+      ok: true,
+      data: { api_version: '1', sources: [{ name: 'arch-wiki', kind: 'kiwix', license: 'CC BY-SA', version: null, enabled: true, document_count: 10, provenance: {} }] },
+    })),
+    getKnowledgeArena: vi.fn<OfflineLibraryService['getKnowledgeArena']>(async () => ({ ok: true, data: knowledgeArena })),
   }
   const store = new OfflineLibraryStore({
     runtime: options.runtime ?? 'desktop', service, persistence,
@@ -48,6 +55,19 @@ describe('OfflineLibraryStore', () => {
     expect(store.declaredPermissions).not.toContain('mutations')
     expect(store.profileForTask('public_database_schema')?.model).toBe('qwen2.5-coder:14b')
     expect(store.profileForTask('knowledge_document')?.model).toBe('phi4')
+    expect(store.sources?.sources).toHaveLength(1)
+    expect(store.knowledgeArena?.available).toBe(true)
+  })
+
+  it('keeps the addon healthy when optional benchmark details are unavailable', async () => {
+    const { store, service } = setup()
+    service.getKnowledgeArena.mockResolvedValueOnce({
+      ok: false, error: { kind: 'unavailable', message: 'benchmark host busy' },
+    })
+    await store.setEnabled(true)
+    expect(store.phase).toBe('healthy')
+    expect(store.knowledgeArena).toBeNull()
+    expect(store.detailsError).toBe('benchmark host busy')
   })
 
   it('supports an explicit persisted profile override without a remote fallback', async () => {

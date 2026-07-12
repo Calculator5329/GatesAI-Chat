@@ -3,7 +3,7 @@
 // components; kept dependency-free per core/ layer rules.
 
 /** Panel kinds the dock can host in v1 (Slice 1+2: read-only viewers). */
-export type DockPanelKind = 'file-viewer' | 'media-viewer';
+export type DockPanelKind = 'file-viewer' | 'media-viewer' | 'offline-library';
 
 export interface DockPanelRef {
   kind: DockPanelKind;
@@ -49,7 +49,7 @@ export function clampDockRatio(value: number): number {
 }
 
 export function isDockPanelKind(value: unknown): value is DockPanelKind {
-  return value === 'file-viewer' || value === 'media-viewer';
+  return value === 'file-viewer' || value === 'media-viewer' || value === 'offline-library';
 }
 
 /** Content categories the read-only viewer panels distinguish between. */

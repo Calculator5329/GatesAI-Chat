@@ -109,7 +109,13 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         for document quality; Qwen + hybrid/native for balanced latency. Show
         evidence/sample sizes, never claim one universal winner, and never
         silently fall back to a remote provider.
-  - [ ] **G5 — user-facing addon surface.** Add compact health/source/profile
+  - [x] **G5 — user-facing addon surface.** *(done 2026-07-12 — Settings now
+        combines health, declared permissions, source count, task-aware profile
+        evidence/override, and a right-dock entry point; the bridge-independent
+        dock explorer filters model × retrieval-setup cells and shows aggregate
+        score bars, trials, 95% confidence intervals, component metrics,
+        retrieval/generation latency, and trust labeling without raw answers,
+        evidence passages, or private metadata)* Add compact health/source/profile
         controls and benchmark model × setup inspection using the existing
         editorial system or right-dock framework. Avoid duplicating the Offline
         Library dashboard or exposing private database metadata.

@@ -632,6 +632,13 @@ model, retrieval strategy, sample size, confidence interval, grounding proxy,
 latency, and leading limitation. Applying a profile to the active chat is an
 explicit user action and is available only when that exact Ollama tag is
 installed; missing models never trigger a remote fallback.
+The `offline-library` right-dock panel is bridge-independent but desktop-only
+with the dock shell. It reads the lifecycle store's sanitized source and
+Knowledge Arena summaries, supports model/setup filtering over published
+aggregate cells, and displays disaggregated score, confidence, source-hit,
+expected-term, citation-grounding, retrieval-latency, generation-latency, and
+error context. Citation metrics stay labeled as grounding proxies, and the
+panel never renders raw answers or evidence passages.
 The Markdown renderer applies the normal URL sanitizer to all links while
 explicitly preserving exact `kiwix://`, `library://`, `man:`, and `db://`
 citation schemes; chat snapshot and data export/import retain those strings

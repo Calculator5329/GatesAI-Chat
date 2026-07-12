@@ -7,6 +7,7 @@ import { dockFileName } from '../../core/dock';
 import { Icons } from '../ui/icons';
 import { FileViewerPanel } from './FileViewerPanel';
 import { MediaViewerPanel } from './MediaViewerPanel';
+import { OfflineLibraryPanel } from './OfflineLibraryPanel';
 
 export interface DockPanelProps {
   params: DockPanelRef['params'];
@@ -35,6 +36,13 @@ const PANELS: Record<DockPanelKind, DockPanelDefinition> = {
     icon: () => <Icons.Image />,
     Component: MediaViewerPanel,
     requiresBridge: true,
+  },
+  'offline-library': {
+    kind: 'offline-library',
+    title: 'Knowledge benchmarks',
+    icon: () => <Icons.Brain />,
+    Component: OfflineLibraryPanel,
+    requiresBridge: false,
   },
 };
 

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import type { OfflineLibraryKnowledgeArena } from '../../../src/core/offlineLibrary'
 import type { OfflineLibraryFacade, ToolContext } from '../../../src/services/tools/types'
 import {
   knowledgeBenchmarksTool,
@@ -41,7 +42,7 @@ function facade(overrides: Partial<OfflineLibraryFacade> = {}): OfflineLibraryFa
     })),
     getKnowledgeArena: vi.fn<OfflineLibraryFacade['getKnowledgeArena']>(async () => ({
       ok: true,
-      data: { api_version: '1', available: true, run: { trials: 9 }, summaries: { model: [{ name: 'phi4' }] }, cells: [{ raw: 'excluded' }] },
+      data: { api_version: '1', available: true, run: { trials: 9 }, summaries: { model: [{ name: 'phi4' }] }, cells: [{ raw: 'excluded' }] } as unknown as OfflineLibraryKnowledgeArena,
     })),
     ...overrides,
   }

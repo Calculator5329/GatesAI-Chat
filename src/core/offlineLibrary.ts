@@ -137,9 +137,40 @@ export interface OfflineLibraryKnowledgeArena {
   available: boolean
   run?: Record<string, unknown>
   scoring?: Record<string, number>
-  summaries?: Record<string, unknown[]>
-  cells?: unknown[]
+  summaries?: {
+    model?: OfflineLibraryBenchmarkSummary[]
+    strategy?: OfflineLibraryBenchmarkSummary[]
+    dataset?: OfflineLibraryBenchmarkSummary[]
+  }
+  cells?: OfflineLibraryBenchmarkCell[]
   reason?: string
+}
+
+export interface OfflineLibraryBenchmarkSummary {
+  name: string
+  trials: number
+  averageScore: number
+  scoreConfidence95: { low: number; high: number }
+  sourceHitRate: number
+  citationValidityRate: number
+  averageTermRecall: number
+  averageRetrievalLatencyMs: number
+  averageGenerationLatencyMs: number
+  averageLatencyMs: number
+  trust?: {
+    citationPresenceRate?: number
+    noCitationRate?: number
+    unsupportedCitationTrialRate?: number
+    supportedCitationReferenceRate?: number
+    errorRate?: number
+  }
+}
+
+export interface OfflineLibraryBenchmarkCell extends Omit<OfflineLibraryBenchmarkSummary, 'name' | 'trust'> {
+  model: string
+  strategy: string
+  task_id: string
+  dataset: string
 }
 
 export interface OfflineLibrarySearchResponse {

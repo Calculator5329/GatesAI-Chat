@@ -168,3 +168,100 @@
   object-fit: contain;
 }
 .dock-media-viewer audio { width: 100%; }
+
+.offline-library-panel {
+  padding: 14px;
+  color: var(--text-dim);
+  font: 12px "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+.offline-library-panel__eyebrow {
+  color: var(--accent);
+  font: 10px "Geist Mono", ui-monospace, monospace;
+  letter-spacing: .12em;
+}
+.offline-library-panel__run {
+  display: grid;
+  gap: 3px;
+  margin: 7px 0 14px;
+}
+.offline-library-panel__run strong { color: var(--text); font-size: 14px; }
+.offline-library-panel__run span { color: var(--text-faint); }
+.offline-library-panel__controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.offline-library-panel__controls label {
+  display: grid;
+  gap: 4px;
+  color: var(--text-faint);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.offline-library-panel select {
+  min-width: 0;
+  padding: 6px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: 11px "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+.offline-library-panel__section-title {
+  margin: 13px 0 7px;
+  color: var(--text-faint);
+  font: 10px "Geist Mono", ui-monospace, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.offline-library-panel__summary-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) minmax(50px, 1fr) 34px;
+  gap: 7px;
+  align-items: center;
+  margin: 5px 0;
+}
+.offline-library-panel__summary-row > span {
+  overflow: hidden;
+  color: var(--text-dim);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.offline-library-panel__summary-row strong { color: var(--text); text-align: right; }
+.offline-library-panel__bar { height: 3px; background: var(--border); }
+.offline-library-panel__bar i { display: block; height: 100%; background: var(--accent); }
+.offline-library-panel__cells { display: grid; gap: 7px; }
+.offline-library-panel__cell {
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--panel-2) 55%, transparent);
+  color: var(--text-faint);
+  line-height: 1.4;
+}
+.offline-library-panel__cell-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 6px;
+  color: var(--text-dim);
+}
+.offline-library-panel__cell-head strong,
+.offline-library-panel__cell-head span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.offline-library-panel__cell-head strong,
+.offline-library-panel__cell-head b { color: var(--text); }
+.offline-library-panel__footnote {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--text-faint);
+  font: italic 11.5px "Source Serif 4", Georgia, serif;
+  line-height: 1.45;
+}

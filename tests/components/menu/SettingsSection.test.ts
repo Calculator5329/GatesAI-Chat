@@ -28,6 +28,7 @@ function buildStore(): RootStore {
       setThreadModel: () => {},
     },
     registry: { all: [] },
+    dock: { openPanel: () => {} },
     profile: {
       facts: [],
       defaultSystemPrompt: '',
@@ -49,6 +50,8 @@ function buildStore(): RootStore {
       statusLabel: 'Disabled',
       declaredPermissions: [],
       error: null,
+      detailsError: null,
+      sources: null,
       profileOptions: [],
       profileOverrideId: null,
       profileOverride: null,
@@ -136,6 +139,7 @@ describe('SettingsSection desktop ambient controls', () => {
     const schema = { ...quality, id: 'public-schema-accurate', label: 'Public schema — accurate', task_kind: 'public_database_schema', model: 'qwen2.5-coder:14b', evidence: { ...quality.evidence, trials: 6, average_score: 94 } };
     let override: string | null = null;
     let modelId: string | null = null;
+    let dockKind: string | null = null;
     Object.assign(store.offlineLibrary, {
       enabled: true, phase: 'healthy', statusLabel: 'Connected', profileOptions: [schema, quality],
       profileForTask: (task: string) => task === 'public_database_schema' ? schema : quality,
@@ -151,6 +155,7 @@ describe('SettingsSection desktop ambient controls', () => {
       activeThread: { id: 'thread-1', modelId: 'ollama-other' },
       setThreadModel: (_threadId: string, nextModelId: string) => { modelId = nextModelId; },
     });
+    Object.assign(store.dock, { openPanel: (kind: string) => { dockKind = kind; } });
     const rendered = renderSettings(store);
 
     expect(rendered.textContent).toContain('Task-aware recommendations');
@@ -169,5 +174,8 @@ describe('SettingsSection desktop ambient controls', () => {
     act(() => useButtons[0]?.click());
     expect(override).toBe('public-schema-accurate');
     expect(modelId).toBe('ollama-qwen2.5-coder:14b');
+    const explorer = Array.from(rendered.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent === 'Open in right dock');
+    act(() => explorer?.click());
+    expect(dockKind).toBe('offline-library');
   });
 });

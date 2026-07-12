@@ -121,6 +121,17 @@ const OfflineLibraryBlock = observer(function OfflineLibraryBlock() {
           </div>
         </SettingsRow>
       )}
+      {addon.phase === 'healthy' && (
+        <SettingsRow label="Local benchmark explorer">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'flex-start' }}>
+            <Button onClick={() => root.dock.openPanel('offline-library')}>Open in right dock</Button>
+            <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
+              Inspect model × retrieval setup scores, confidence intervals, trust proxies, latency, and errors across {addon.sources?.sources.length ?? 0} public/offline sources.
+            </div>
+            {addon.detailsError && <div style={{ fontSize: 12, color: 'var(--danger)' }}>{addon.detailsError}</div>}
+          </div>
+        </SettingsRow>
+      )}
       <SettingsRow label="Connection check" last>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'flex-start' }}>
           <Button

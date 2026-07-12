@@ -5,6 +5,8 @@ import type {
   OfflineLibraryProfile,
   OfflineLibraryProfiles,
   OfflineLibraryResult,
+  OfflineLibraryKnowledgeArena,
+  OfflineLibrarySources,
   OfflineLibraryStatus,
 } from '../core/offlineLibrary'
 import type { GatesRuntimeMode } from '../core/runtime'
@@ -29,7 +31,7 @@ export type OfflineLibraryPhase =
 
 export interface OfflineLibraryStoreOptions {
   runtime: GatesRuntimeMode
-  service?: Pick<OfflineLibraryService, 'getPlugin' | 'getStatus' | 'getProfiles'>
+  service?: Pick<OfflineLibraryService, 'getPlugin' | 'getStatus' | 'getProfiles' | 'getSources' | 'getKnowledgeArena'>
   persistence?: PersistenceProvider<OfflineLibrarySettingsSnapshot>
 }
 
@@ -41,10 +43,13 @@ export class OfflineLibraryStore {
   error: string | null = null
   lastCheckedAt: number | null = null
   profiles: OfflineLibraryProfiles | null = null
+  sources: OfflineLibrarySources | null = null
+  knowledgeArena: OfflineLibraryKnowledgeArena | null = null
+  detailsError: string | null = null
   profileOverrideId: string | null
 
   private readonly runtime: GatesRuntimeMode
-  private readonly service: Pick<OfflineLibraryService, 'getPlugin' | 'getStatus' | 'getProfiles'>
+  private readonly service: Pick<OfflineLibraryService, 'getPlugin' | 'getStatus' | 'getProfiles' | 'getSources' | 'getKnowledgeArena'>
   private readonly persistence: PersistenceProvider<OfflineLibrarySettingsSnapshot>
   private requestGeneration = 0
 
@@ -120,6 +125,9 @@ export class OfflineLibraryStore {
       this.manifest = null
       this.status = null
       this.profiles = null
+      this.sources = null
+      this.knowledgeArena = null
+      this.detailsError = null
       this.error = null
       return
     }
@@ -150,9 +158,19 @@ export class OfflineLibraryStore {
       this.applyFailure(profiles)
       return
     }
+    const [sources, knowledgeArena] = await Promise.all([
+      this.service.getSources(),
+      this.service.getKnowledgeArena(),
+    ])
+    if (!this.isCurrent(generation)) return
     runInAction(() => {
       this.status = status.data
       this.profiles = profiles.data
+      this.sources = sources.ok ? sources.data : null
+      this.knowledgeArena = knowledgeArena.ok ? knowledgeArena.data : null
+      this.detailsError = !sources.ok
+        ? sources.error.message
+        : !knowledgeArena.ok ? knowledgeArena.error.message : null
       if (this.profileOverrideId && !profiles.data.profiles.some(profile => profile.id === this.profileOverrideId)) {
         this.profileOverrideId = null
         this.saveSettings()
@@ -175,6 +193,9 @@ export class OfflineLibraryStore {
     const { error } = result
     this.status = null
     this.profiles = null
+    this.sources = null
+    this.knowledgeArena = null
+    this.detailsError = null
     this.error = error.message
     this.lastCheckedAt = Date.now()
     if (error.kind === 'incompatible') this.phase = 'incompatible'
