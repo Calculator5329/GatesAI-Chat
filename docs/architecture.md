@@ -194,6 +194,7 @@ and auxiliary stores, then one-way providers are injected into `ChatStore`.
 | `UiStore` | Drafts, view prefs, palette state, onboarding flags, local data usage facade. | `src/stores/UiStore.ts`, `src/services/uiPrefsStorage.ts`, `src/services/storage/webLiteLocalData.ts` | Components mutate UI state; persistence slots store durable prefs. |
 | `RouterStore` | Observable hash route. | `src/stores/RouterStore.ts`, `src/services/router.ts` | `RootStore.bindRouterToChat()` syncs `#/thread/<id>` with `ChatStore.activeThreadId` and keeps menu routes explicit. |
 | `LocalRuntimeStore` | Local Ollama/ComfyUI paths, managed process state, base URLs, vision model. | `src/stores/LocalRuntimeStore.ts`, `src/services/local/localRuntimeService.ts` | Tauri commands start/probe runtimes; Ollama/Image stores read base URLs and readiness. |
+| `OfflineLibraryStore` | Explicit addon enablement, manifest compatibility, health, and declared read permissions. | `src/stores/OfflineLibraryStore.ts`, `src/services/offlineLibrary/`, `src/services/storage/offlineLibraryStorage.ts` | Starts disabled; desktop enablement discovers the fixed host through Tauri, while Web Lite exposes a stable unavailable state without transport. |
 | `SearchStore` | Brave API key and web-search facade. | `src/stores/SearchStore.ts`, `src/services/searchStorage.ts`, `src/services/search/braveClient.ts` | `web_search` calls through this store; secrets hydrate at boot. |
 | `McpStore` | User-configured MCP servers, connection state, dynamic tool inventory. | `src/stores/McpStore.ts`, `src/services/mcp/client.ts`, `src/services/mcp/stdioTransport.ts` | Configs load from `gatesai.mcp.v1`; secrets hydrate; connected tools become registry tools through a dynamic provider. |
 | `OllamaStore` | Ollama catalog, API key, tool-call setting, pull/delete state. | `src/stores/OllamaStore.ts`, `src/services/llm/ollamaCatalog.ts`, `src/services/llm/ollamaPull.ts` | Reads `LocalRuntimeStore` base URL/status; writes dynamic Ollama models to the registry. |
@@ -402,6 +403,7 @@ Feature storage slots:
 | `gatesai.openrouter.catalog.v1` | OpenRouter catalog cache |
 | `gatesai.ollama.v1` | Ollama config/catalog and Web Lite key fallback |
 | `gatesai.local.v1` | Local runtime settings |
+| `gatesai.offlineLibrary.v1` | Offline Library explicit enablement only; no secret or host override |
 | `gatesai.imagegen.v1` | Image backend settings |
 | `gatesai.imagejobs.v1` | Image job history plus interrupted recovery state |
 | `gatesai.search.v1` | Brave config and Web Lite key fallback |

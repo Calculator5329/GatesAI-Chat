@@ -27,6 +27,7 @@ import { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
 import { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import { SkillsStore } from './SkillsStore';
 import { WhatsNewStore } from './WhatsNewStore';
+import { OfflineLibraryStore } from './OfflineLibraryStore';
 import { seedWelcomeTourOnFirstRun } from '../tourThread';
 import { RagStore } from '../services/rag/RagStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
@@ -76,6 +77,7 @@ export class RootStore {
   readonly skills: SkillsStore;
   readonly rag: RagStore;
   readonly whatsNew: WhatsNewStore;
+  readonly offlineLibrary: OfflineLibraryStore;
   private booted = false;
   readonly runtime: GatesRuntimeMode;
   private readonly disposers: Array<() => void> = [];
@@ -90,6 +92,7 @@ export class RootStore {
     this.ui = new UiStore();
     this.dock = new DockStore({ runtime: this.runtime });
     this.whatsNew = new WhatsNewStore();
+    this.offlineLibrary = new OfflineLibraryStore({ runtime: this.runtime });
     this.router = new RouterStore();
     this.localRuntime = new LocalRuntimeStore({
       getOllamaCatalog: () => ollamaStore?.catalog ?? [],
@@ -178,6 +181,7 @@ export class RootStore {
     if (this.booted) return;
     this.booted = true;
     void this.hydrateSecretsAtBoot();
+    void this.offlineLibrary.initialize();
 
     let attemptedOpenRouterCatalogHydrationForKey: string | null = null;
     this.disposers.push(autorun(() => {
@@ -312,6 +316,7 @@ export class RootStore {
     this.search.dispose();
     this.mcp.dispose();
     this.ollama.dispose();
+    this.offlineLibrary.dispose();
     this.chat.dispose();
     this.undo.clear();
     // Flush the departing leader while it still owns the lock, then release

@@ -39,6 +39,16 @@ function buildStore(): RootStore {
     imageGen: { reset: () => {} },
     localRuntime: { resetConfig: () => {} },
     bridge: { isOnline: false, resetWorkspaceDirectory: async () => {} },
+    offlineLibrary: {
+      enabled: false,
+      available: true,
+      phase: 'disabled',
+      statusLabel: 'Disabled',
+      declaredPermissions: [],
+      error: null,
+      setEnabled: () => Promise.resolve(),
+      refresh: () => Promise.resolve(),
+    },
     replaceImportConfirmation: 'REPLACE',
     downloadDataExport: () => {},
     importDataFromJson: () => ({ merged: true }),
@@ -79,6 +89,8 @@ describe('SettingsSection desktop ambient controls', () => {
     expect(rendered.textContent).toContain('Summon shortcut');
     expect(rendered.textContent).toContain('Close button hides to tray');
     expect(rendered.textContent).toContain('Automatic thread titles');
+    expect(rendered.textContent).toContain('Offline Library addon');
+    expect(rendered.textContent).toContain('No cloud fallback');
     expect((rendered.querySelector('input[aria-label="Global summon shortcut"]') as HTMLInputElement).value)
       .toBe('Ctrl+Shift+Space');
   });

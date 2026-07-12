@@ -17,7 +17,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
       OpenAPI version through a trusted desktop backend boundary.
 - [x] Typed read-only client: health, sources, cited search, public schemas,
       task-aware profiles, and Knowledge Arena summaries.
-- [ ] Explicit addon enable/disable, health, permissions, offline, version-
+- [x] Explicit addon enable/disable, health, permissions, offline, version-
       mismatch, and unavailable-host states.
 - [ ] Read-only model tools with bounded inputs/outputs and exact citation URI
       preservation through rendering, persistence, and export.

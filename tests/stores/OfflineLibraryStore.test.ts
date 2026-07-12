@@ -1,0 +1,85 @@
+import { describe, expect, it, vi } from 'vitest'
+
+import type { OfflineLibraryPluginManifest, OfflineLibraryStatus } from '../../src/core/offlineLibrary'
+import type { OfflineLibraryService } from '../../src/services/offlineLibrary'
+import type { PersistenceProvider } from '../../src/services/storage/persistenceProvider'
+import type { OfflineLibrarySettingsSnapshot } from '../../src/services/storage/offlineLibraryStorage'
+import { OfflineLibraryStore } from '../../src/stores/OfflineLibraryStore'
+import pluginFixture from '../fixtures/offline-library/v1.3/plugin.json'
+
+const plugin = pluginFixture as OfflineLibraryPluginManifest
+const status = { api_version: '1', generated_at: 'now', library: {}, services: {}, catalog: {}, collections: [] } satisfies OfflineLibraryStatus
+
+function setup(options: { saved?: boolean; runtime?: 'desktop' | 'web-lite' } = {}) {
+  let snapshot: OfflineLibrarySettingsSnapshot = { version: 1, enabled: options.saved ?? false }
+  const persistence: PersistenceProvider<OfflineLibrarySettingsSnapshot> = {
+    load: () => snapshot,
+    save: vi.fn(value => { snapshot = value }),
+    clear: vi.fn(),
+  }
+  const service = {
+    getPlugin: vi.fn<OfflineLibraryService['getPlugin']>(async () => ({ ok: true, data: plugin })),
+    getStatus: vi.fn<OfflineLibraryService['getStatus']>(async () => ({ ok: true, data: status })),
+  }
+  const store = new OfflineLibraryStore({
+    runtime: options.runtime ?? 'desktop', service, persistence,
+  })
+  return { store, service, persistence }
+}
+
+describe('OfflineLibraryStore', () => {
+  it('starts disabled and performs no discovery until explicitly enabled', () => {
+    const { store, service } = setup()
+    expect(store.phase).toBe('disabled')
+    expect(service.getPlugin).not.toHaveBeenCalled()
+  })
+
+  it('persists enablement, validates the manifest, and exposes read permissions', async () => {
+    const { store, service, persistence } = setup()
+    await store.setEnabled(true)
+    expect(persistence.save).toHaveBeenCalledWith({ version: 1, enabled: true })
+    expect(service.getPlugin).toHaveBeenCalledTimes(1)
+    expect(service.getStatus).toHaveBeenCalledTimes(1)
+    expect(store.phase).toBe('healthy')
+    expect(store.declaredPermissions).toContain('search.read')
+    expect(store.declaredPermissions).not.toContain('mutations')
+  })
+
+  it('rehydrates enabled state and reports offline or incompatible distinctly', async () => {
+    const offline = setup({ saved: true })
+    offline.service.getPlugin.mockResolvedValueOnce({
+      ok: false, error: { kind: 'unavailable', message: 'host down' },
+    })
+    await offline.store.initialize()
+    expect(offline.store.phase).toBe('offline')
+
+    const incompatible = setup({ saved: true })
+    incompatible.service.getPlugin.mockResolvedValueOnce({
+      ok: false, error: { kind: 'incompatible', message: 'wrong major' },
+    })
+    await incompatible.store.initialize()
+    expect(incompatible.store.phase).toBe('incompatible')
+  })
+
+  it('never enables or invokes transport in Web Lite', async () => {
+    const { store, service } = setup({ saved: true, runtime: 'web-lite' })
+    expect(store.phase).toBe('web_lite')
+    expect(store.enabled).toBe(false)
+    await store.setEnabled(true)
+    await store.initialize()
+    expect(store.enabled).toBe(false)
+    expect(service.getPlugin).not.toHaveBeenCalled()
+  })
+
+  it('ignores an in-flight discovery result after disable', async () => {
+    let resolvePlugin: ((value: { ok: true; data: OfflineLibraryPluginManifest }) => void) | undefined
+    const { store, service } = setup()
+    service.getPlugin.mockImplementationOnce(() => new Promise(resolve => { resolvePlugin = resolve }))
+    const enabling = store.setEnabled(true)
+    await store.setEnabled(false)
+    resolvePlugin?.({ ok: true, data: plugin })
+    await enabling
+    expect(store.phase).toBe('disabled')
+    expect(service.getStatus).not.toHaveBeenCalled()
+  })
+})

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-12 — Offline Library lifecycle and settings (G2)
+
+- Added a default-disabled, explicitly enabled Offline Library lifecycle with
+  a minimal versioned local preference containing only the enable flag—no
+  secret, configurable host, cloud dependency, or background remote fallback.
+- Compatible manifest and health discovery now surface distinct checking,
+  healthy, offline, incompatible, and error states plus the host-declared
+  read permissions. Disabling invalidates in-flight discovery immediately.
+- Added a compact Settings block for enablement, status, permissions, and a
+  manual health check. Web Lite shows a desktop-only explanation, disables the
+  switch, and never invokes the local transport.
+
 ## 2026-07-12 — Offline Library trusted client (G1)
 
 - Added dedicated `offline_library_read` and `offline_library_search` Tauri

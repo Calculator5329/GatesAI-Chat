@@ -46,9 +46,57 @@ export const SettingsSection = observer(function SettingsSection() {
       <ThemeBlock />
       <ConversationBlock />
       <DesktopBlock />
+      <OfflineLibraryBlock />
       <WebLiteBrowserData />
       <ExportImportBlock />
       <DangerZone />
+    </div>
+  );
+});
+
+const OfflineLibraryBlock = observer(function OfflineLibraryBlock() {
+  const addon = useRootStore().offlineLibrary;
+  const permissions = addon.declaredPermissions;
+  return (
+    <div className="settings-section settings-offline-library" style={{ ...tokens.section, marginBottom: 28 }}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Offline Library addon</div>
+      <SettingsRow label="Enable local knowledge addon">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+          <Toggle
+            on={addon.enabled}
+            disabled={!addon.available}
+            onChange={enabled => { void addon.setEnabled(enabled); }}
+          />
+          <div role="status" style={{ fontSize: 12, color: addon.phase === 'healthy' ? 'var(--accent)' : 'var(--text-faint)' }}>
+            {addon.statusLabel}
+          </div>
+          <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
+            {addon.available
+              ? 'Connects only to the read-only Offline Library service on this computer. No cloud fallback, secrets, database rows, or management actions.'
+              : 'Available only in the GatesAI desktop app. Web Lite never attempts a loopback connection.'}
+          </div>
+        </div>
+      </SettingsRow>
+      {permissions.length > 0 && (
+        <SettingsRow label="Declared permissions">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxWidth: 520 }}>
+            {permissions.map(permission => (
+              <code key={permission} style={{ ...tokens.mono, fontSize: 10.5, color: 'var(--text-dim)' }}>{permission}</code>
+            ))}
+          </div>
+        </SettingsRow>
+      )}
+      <SettingsRow label="Connection check" last>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'flex-start' }}>
+          <Button
+            disabled={!addon.enabled || addon.phase === 'checking'}
+            onClick={() => { void addon.refresh(); }}
+          >
+            {addon.phase === 'checking' ? 'Checking…' : 'Check now'}
+          </Button>
+          {addon.error && <div style={{ fontSize: 12, color: 'var(--danger)', maxWidth: 520 }}>{addon.error}</div>}
+        </div>
+      </SettingsRow>
     </div>
   );
 });

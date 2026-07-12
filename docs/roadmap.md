@@ -79,7 +79,11 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         benchmark summaries. Browser code must not fetch `127.0.0.1` directly;
         the desktop backend must allow only the fixed host/port/path set, bound
         response sizes, reject redirects, and preserve offline/error states.
-  - [ ] **G2 — plugin lifecycle and settings.** Discover and validate the
+  - [x] **G2 — plugin lifecycle and settings.** *(done 2026-07-12 — explicit
+        default-off enablement persists locally; compatible manifest + health
+        discovery exposes healthy/offline/incompatible/error states and
+        declared read permissions; Web Lite stays disabled and makes zero
+        transport calls)* Discover and validate the
         manifest, expose explicit enable/disable and health state, show declared
         read permissions, and remain disabled/unavailable in Web Lite with a
         clear desktop-only explanation. Do not add secrets or background cloud

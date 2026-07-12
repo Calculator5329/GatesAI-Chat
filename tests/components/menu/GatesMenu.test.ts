@@ -83,6 +83,16 @@ function buildStore(section: MenuSectionKey = 'settings'): { store: RootStore; r
       resetConfig: () => {},
     },
     bridge: { isOnline: false, client: { request: async () => ({}) } },
+    offlineLibrary: {
+      enabled: false,
+      available: true,
+      phase: 'disabled',
+      statusLabel: 'Disabled',
+      declaredPermissions: [],
+      error: null,
+      setEnabled: async () => {},
+      refresh: async () => {},
+    },
     skills: { skills: [], count: 0, loading: false, refresh: async () => {} },
   } as unknown as RootStore;
   builtStores.push(store);
