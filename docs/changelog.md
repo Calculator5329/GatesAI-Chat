@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-13 — LF-6: Settings leads with local/appearance, not the cloud key
+
+- `SettingsSection` (`src/components/menu/sections/Settings.tsx`) now renders
+  the local/appearance blocks (Theme, Conversation, Desktop, OfflineLibrary)
+  ABOVE the OpenRouter API-key credential card — a local-first surface should
+  lead with local settings, not cloud credentials. Order-only, no behavior
+  change.
+- Added a DOM-position regression test asserting the theme block precedes the
+  API-key card (`compareDocumentPosition`). SettingsSection 5/5 green.
+
 ## 2026-07-13 — LF-5: no more "December 1969" sidebar date bucket
 
 - `groupThreadsByDate` (`src/core/threadSelectors.ts`) now resolves a sane

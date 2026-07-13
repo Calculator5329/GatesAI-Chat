@@ -218,8 +218,11 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       `createdAt`, and parks a thread with no sane timestamp in a shared
       "Older" bucket rather than dropping it or minting a pre-2000 month;
       threadSelectors 19 + EditorialSidebar 7 green on master @730b416)
-- [ ] **LF-6: Settings leads with the OpenRouter key card** — reorder so
-      local/appearance settings precede cloud credentials. (screen-menu-settings.png)
+- [x] **LF-6: Settings leads with the OpenRouter key card** *(done 2026-07-13)*
+      — reordered so local/appearance settings (Theme, Conversation, Desktop,
+      OfflineLibrary) render ABOVE the OpenRouter credential card; order-only,
+      no behavior change; DOM-position regression test added (SettingsSection
+      5/5 green on master @92cb7ce). (screen-menu-settings.png)
 - [x] **LF-7: Local runtimes panel hardcodes Windows placeholders** *(done 2026-07-11)*
       (C:\Users paths, ollama.exe copy) + cramped error column — platform-
       aware copy + layout fix. (screen-menu-local.png)
