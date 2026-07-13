@@ -10,6 +10,17 @@ import { messageText } from './messageParts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Timestamps below this are treated as missing/corrupt rather than real dates.
+ * A 0, negative, NaN, or absent `updatedAt` (uninitialized state or an epoch-0
+ * persistence leak) would otherwise render `new Date(t)` as late-1969 in any
+ * negative-offset timezone and surface a spurious "December 1969" sidebar
+ * bucket (LF-5). No GatesAI thread predates the app, so anything under this
+ * floor is a data artifact, not a date — the offset margin also keeps small
+ * positive values from folding back into 1969 across timezones.
+ */
+const MIN_SANE_TIMESTAMP = Date.UTC(2000, 0, 1);
+
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -238,7 +249,10 @@ export function groupMessagesByDate(
  * older calendar month (`June 2026`). Boundaries use the local day so buckets
  * line up with what the user sees on their clock (matching the library export
  * grouping). Input order is preserved within each bucket, so callers control
- * intra-group ordering; empty buckets are omitted.
+ * intra-group ordering; empty buckets are omitted. Threads whose `updatedAt`
+ * is missing or corrupt fall back to `createdAt`; a thread with no sane
+ * timestamp at all is kept in a shared "Older" bucket at the bottom of the
+ * list rather than dropped or stamped with a pre-app (e.g. 1969) date.
  */
 export function groupThreadsByDate(
   threads: readonly Thread[],
@@ -254,9 +268,18 @@ export function groupThreadsByDate(
   const weekThreads: Thread[] = [];
   const monthThreads: Thread[] = [];
   const olderByMonth = new Map<string, { label: string; sort: number; threads: Thread[] }>();
+  // Threads with neither a sane updatedAt nor a sane createdAt. They MUST stay
+  // visible — EditorialSidebar renders every thread — so collect them and park
+  // them in a shared oldest bucket rather than mint a spurious pre-2000 month.
+  const undateable: Thread[] = [];
 
   for (const thread of threads) {
-    const t = thread.updatedAt;
+    // Resolve a sane timestamp: prefer updatedAt, fall back to createdAt. A
+    // 0/negative/NaN/absent updatedAt therefore never leaks a pre-epoch
+    // "December 1969" bucket (LF-5); an entirely undateable thread is parked in
+    // the shared "Older" bucket below instead of being dropped.
+    const t = saneTimestamp(thread.updatedAt) ?? saneTimestamp(thread.createdAt);
+    if (t === null) { undateable.push(thread); continue; }
     if (t >= today) todayThreads.push(thread);
     else if (t >= yesterday) yesterdayThreads.push(thread);
     else if (t >= last7) weekThreads.push(thread);
@@ -282,6 +305,11 @@ export function groupThreadsByDate(
   if (monthThreads.length) groups.push({ key: 'month', label: 'Previous 30 days', threads: monthThreads });
   for (const [key, bucket] of Array.from(olderByMonth.entries()).sort((a, b) => b[1].sort - a[1].sort)) {
     groups.push({ key: `m-${key}`, label: bucket.label, threads: bucket.threads });
+  }
+  // Undateable threads sit at the bottom in a shared "Older" bucket: still
+  // rendered, never dropped, and never under a pre-2000 (e.g. 1969) label.
+  if (undateable.length) {
+    groups.push({ key: 'older', label: 'Older', threads: undateable });
   }
   return groups;
 }
@@ -315,6 +343,18 @@ function isLocalUsage(usage: LlmUsage): boolean {
   return usage.providerId === 'ollama'
     || usage.providerId === 'local-image'
     || usage.costSource === 'local';
+}
+
+/**
+ * A thread timestamp that is safe to render as a real date, or null when the
+ * value is absent, non-numeric, NaN, or predates {@link MIN_SANE_TIMESTAMP}
+ * (0/negative epoch leaks). The parameter is typed loosely because persisted
+ * data can violate the `number` contract at runtime.
+ */
+function saneTimestamp(value: number | undefined | null): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= MIN_SANE_TIMESTAMP
+    ? value
+    : null;
 }
 
 function startOfLocalDay(timestamp: number): number {

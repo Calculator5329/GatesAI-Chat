@@ -194,6 +194,84 @@ describe('groupThreadsByDate', () => {
   });
 });
 
+describe('groupThreadsByDate with a missing or corrupt updatedAt (LF-5)', () => {
+  const now = Date.UTC(2026, 5, 15, 12);
+  // Four days back lands safely inside "Previous 7 days" regardless of the
+  // runner's local timezone, matching the recent-buckets test above.
+  const recent = now - 4 * DAY_MS;
+
+  function threadWith(id: string, updatedAt: number | undefined, createdAt: number): Thread {
+    return {
+      id,
+      title: id,
+      subtitle: '',
+      createdAt,
+      // Persisted data can violate the `number` contract; the cast reproduces
+      // exactly the corrupt values that leaked a "December 1969" bucket.
+      updatedAt: updatedAt as number,
+      pinned: false,
+      modelId: 'or-gpt-5.4-mini',
+      messages: [],
+    };
+  }
+
+  const CORRUPT: ReadonlyArray<readonly [string, number | undefined]> = [
+    ['zero', 0],
+    ['negative', -1000],
+    ['NaN', Number.NaN],
+    ['undefined', undefined],
+  ];
+
+  for (const [name, updatedAt] of CORRUPT) {
+    it(`falls back to createdAt when updatedAt is ${name}`, () => {
+      const groups = groupThreadsByDate([threadWith('t', updatedAt, recent)], now);
+
+      expect(groups.map(g => g.label)).toEqual(['Previous 7 days']);
+      expect(groups.flatMap(g => g.threads.map(t => t.id))).toEqual(['t']);
+      expect(groups.some(g => /196\d|197\d/.test(g.label))).toBe(false);
+    });
+
+    it(`keeps a fully undateable thread visible (never dropped, never 196x/197x) when updatedAt is ${name}`, () => {
+      // Both timestamps corrupt: the thread has no sane date at all, yet the
+      // sidebar still renders it, so grouping must keep it — in a bucket that is
+      // never labelled with a pre-2000 (196x/197x) date.
+      const groups = groupThreadsByDate([threadWith('t', updatedAt, updatedAt ?? 0)], now);
+
+      expect(groups.flatMap(g => g.threads.map(t => t.id))).toEqual(['t']);
+      expect(groups.some(g => /196\d|197\d/.test(g.label))).toBe(false);
+    });
+  }
+
+  it('parks undateable threads in a shared "Older" bucket instead of leaking December 1969', () => {
+    const groups = groupThreadsByDate([
+      threadWith('epoch', 0, 0),
+      threadWith('negative', -86_400_000, -86_400_000),
+      threadWith('nan', Number.NaN, Number.NaN),
+    ], now);
+
+    // Order preserved, all threads present, and no 1969-style label anywhere.
+    expect(groups.map(g => [g.label, g.threads.map(t => t.id)])).toEqual([
+      ['Older', ['epoch', 'negative', 'nan']],
+    ]);
+    expect(groups.some(g => /196\d|197\d/.test(g.label))).toBe(false);
+  });
+
+  it('keeps undateable threads at the bottom while dateable ones bucket normally', () => {
+    const groups = groupThreadsByDate([
+      threadWith('good', now, now),
+      threadWith('bad', 0, 0),
+      threadWith('recovered', 0, recent),
+    ], now);
+
+    expect(groups.map(g => [g.label, g.threads.map(t => t.id)])).toEqual([
+      ['Today', ['good']],
+      ['Previous 7 days', ['recovered']],
+      ['Older', ['bad']],
+    ]);
+    expect(groups.some(g => /196\d|197\d/.test(g.label))).toBe(false);
+  });
+});
+
 function datedThread(id: string, updatedAt: number): Thread {
   return {
     id,
