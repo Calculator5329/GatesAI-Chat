@@ -132,6 +132,19 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         alias confirmation, row queries, and semantic hallucination judging are
         excluded until separately approved and threat-modeled.
 
+- [x] **Super+G Offline Knowledge entry point.** *(done 2026-07-12 — fixed
+      desktop chord registration has independent availability state; pressing
+      it shows/focuses GatesAI, requires a healthy explicitly enabled addon and
+      connected Ollama runtime, prefers the installed evidence-backed Qwen
+      profile, creates a fresh policy-scoped knowledge thread, and routes
+      visibly to Settings or Local rather than falling back remotely)*
+      Register a fixed desktop chord that opens a fresh knowledge chat using an
+      installed tool-capable Ollama model and the healthy read-only Offline
+      Library. Disabled/unhealthy addons route visibly to Settings; missing
+      local models route visibly to Local; neither path may use a remote
+      fallback. Show shortcut availability in Settings and cover Rust + ambient
+      event routing in tests.
+
 **Workbench program (Ethan, 2026-07-12)** — design frame in
 `docs/plans/2026-07-12-workbench-vision-design.md`; each item gets its own
 dated plan doc before implementation. Order matters (5→4→1→2→3 in the doc):

@@ -44,6 +44,16 @@ describe('OfflineLibraryStore', () => {
     expect(service.getPlugin).not.toHaveBeenCalled()
   })
 
+  it('records fixed knowledge shortcut availability separately from host health', () => {
+    const { store } = setup()
+    store.setKnowledgeShortcutStatus(false, 'shortcut unavailable')
+    expect(store.knowledgeShortcutAvailable).toBe(false)
+    expect(store.knowledgeShortcutError).toBe('shortcut unavailable')
+    store.setKnowledgeShortcutStatus(true, null)
+    expect(store.knowledgeShortcutAvailable).toBe(true)
+    expect(store.knowledgeShortcutError).toBeNull()
+  })
+
   it('persists enablement, validates the manifest, and exposes read permissions', async () => {
     const { store, service, persistence } = setup()
     await store.setEnabled(true)

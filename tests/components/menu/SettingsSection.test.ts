@@ -52,6 +52,8 @@ function buildStore(): RootStore {
       error: null,
       detailsError: null,
       sources: null,
+      knowledgeShortcutAvailable: true,
+      knowledgeShortcutError: null,
       profileOptions: [],
       profileOverrideId: null,
       profileOverride: null,
@@ -102,6 +104,8 @@ describe('SettingsSection desktop ambient controls', () => {
     expect(rendered.textContent).toContain('Automatic thread titles');
     expect(rendered.textContent).toContain('Offline Library addon');
     expect(rendered.textContent).toContain('No cloud fallback');
+    expect(rendered.textContent).toContain('Super+G');
+    expect(rendered.textContent).toContain('never falls back to a cloud model');
     expect((rendered.querySelector('input[aria-label="Global summon shortcut"]') as HTMLInputElement).value)
       .toBe('Ctrl+Shift+Space');
   });

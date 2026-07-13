@@ -625,6 +625,15 @@ and does not invoke Tauri at all in Web Lite.
 The completed cross-repository acceptance record, including live trusted-
 backend and controlled offline-degradation evidence, is in
 `docs/acceptance/offline-library-2026-07-12.md`.
+
+Desktop registers a second fixed global shortcut, `Super+G`, independently of
+the configurable summon chord. Its dedicated event always shows and focuses
+the window. The frontend accepts it only when Offline Library is explicitly
+enabled/healthy and Ollama is connected, selects an installed tool-capable
+local profile model, and creates a fresh `Offline knowledge` thread with a
+local-evidence/citation policy. Missing prerequisites navigate to their visible
+Settings or Local recovery surface; a cloud model is never selected as a
+fallback. Shortcut registration availability is reported in Settings.
 The tool registry receives only a narrow read facade from `RootStore`, and the
 four model-callable operations are absent unless lifecycle state is healthy.
 Lifecycle discovery also loads the host's versioned task-aware profiles. The

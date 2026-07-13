@@ -65,11 +65,12 @@ pub fn run() {
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_process::init())
     .plugin(tauri_plugin_global_shortcut::Builder::new()
-      .with_handler(|app, _shortcut, event| desktop::handle_global_shortcut(app, event.state()))
+      .with_handler(|app, shortcut, event| desktop::handle_global_shortcut(app, shortcut, event.state()))
       .build())
     .invoke_handler(tauri::generate_handler![
       desktop::set_global_shortcut,
       desktop::global_shortcut_state,
+      desktop::knowledge_shortcut_state,
       desktop::set_close_to_tray,
       open_path,
       brave_search::brave_llm_context,

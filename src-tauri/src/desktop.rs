@@ -9,9 +9,12 @@ use tauri_plugin_global_shortcut::{
 };
 
 pub const DEFAULT_GLOBAL_SUMMON_CHORD: &str = "Ctrl+Shift+Space";
+pub const KNOWLEDGE_SHORTCUT_CHORD: &str = "Super+G";
 const SUMMON_EVENT: &str = "gatesai://summon";
+const KNOWLEDGE_EVENT: &str = "gatesai://knowledge";
 const NEW_CONVERSATION_EVENT: &str = "gatesai://new-conversation";
 const SHORTCUT_STATE_EVENT: &str = "gatesai://global-shortcut-state";
+const KNOWLEDGE_SHORTCUT_STATE_EVENT: &str = "gatesai://knowledge-shortcut-state";
 const TRAY_OPEN_ID: &str = "open-gatesai";
 const TRAY_NEW_CONVERSATION_ID: &str = "new-conversation";
 const TRAY_QUIT_ID: &str = "quit-gatesai";
@@ -19,6 +22,7 @@ const TRAY_QUIT_ID: &str = "quit-gatesai";
 #[derive(Default)]
 pub struct DesktopState {
   shortcut: Mutex<ShortcutRegistration>,
+  knowledge_shortcut: Mutex<ShortcutRegistration>,
   close_to_tray: Mutex<bool>,
 }
 
@@ -66,6 +70,18 @@ pub fn global_shortcut_state(app: AppHandle) -> GlobalShortcutStatus {
 }
 
 #[tauri::command]
+pub fn knowledge_shortcut_state(app: AppHandle) -> GlobalShortcutStatus {
+  let state = app.state::<DesktopState>();
+  let guard = lock_or_recover(&state.knowledge_shortcut);
+  GlobalShortcutStatus {
+    enabled: guard.chord.is_some(),
+    chord: guard.chord.clone(),
+    available: guard.unavailable_reason.is_none(),
+    reason: guard.unavailable_reason.clone(),
+  }
+}
+
+#[tauri::command]
 pub fn set_close_to_tray(app: AppHandle, enabled: bool) {
   let state = app.state::<DesktopState>();
   *lock_or_recover(&state.close_to_tray) = enabled;
@@ -90,13 +106,21 @@ where
   if !status.available {
     log::warn!("[gatesai] global shortcut unavailable at boot: {:?}", status.reason);
   }
+  let knowledge_status = install_knowledge_shortcut(app.handle());
+  if !knowledge_status.available {
+    log::warn!("[gatesai] knowledge shortcut unavailable at boot: {:?}", knowledge_status.reason);
+  }
   Ok(())
 }
 
-pub fn handle_global_shortcut(app: &AppHandle, event: ShortcutState) {
-  if event == ShortcutState::Pressed {
-    toggle_summon(app);
-  }
+pub fn handle_global_shortcut(app: &AppHandle, shortcut: &Shortcut, event: ShortcutState) {
+  if event != ShortcutState::Pressed { return; }
+  let is_knowledge = {
+    let state = app.state::<DesktopState>();
+    let matches = lock_or_recover(&state.knowledge_shortcut).shortcut.as_ref() == Some(shortcut);
+    matches
+  };
+  if is_knowledge { show_knowledge(app); } else { toggle_summon(app); }
 }
 
 pub fn toggle_summon(app: &AppHandle) {
@@ -125,6 +149,57 @@ pub fn toggle_summon(app: &AppHandle) {
   }
   if let Err(err) = window.emit(SUMMON_EVENT, ()) {
     log::warn!("[gatesai] failed to emit summon event: {err}");
+  }
+}
+
+fn show_knowledge(app: &AppHandle) {
+  let Some(window) = app.get_webview_window("main") else { return; };
+  if let Err(err) = window.show() {
+    log::warn!("[gatesai] failed to show knowledge window: {err}");
+  }
+  if window.is_minimized().unwrap_or(false) {
+    if let Err(err) = window.unminimize() {
+      log::warn!("[gatesai] failed to unminimize knowledge window: {err}");
+    }
+  }
+  if let Err(err) = window.set_focus() {
+    log::warn!("[gatesai] failed to focus knowledge window: {err}");
+  }
+  if let Err(err) = window.emit(KNOWLEDGE_EVENT, ()) {
+    log::warn!("[gatesai] failed to emit knowledge event: {err}");
+  }
+}
+
+fn install_knowledge_shortcut(app: &AppHandle) -> GlobalShortcutStatus {
+  let state = app.state::<DesktopState>();
+  let mut guard = lock_or_recover(&state.knowledge_shortcut);
+  let chord = KNOWLEDGE_SHORTCUT_CHORD.to_string();
+  let shortcut = match parse_chord(&chord) {
+    Ok(shortcut) => shortcut,
+    Err(reason) => {
+      let status = GlobalShortcutStatus::unavailable(Some(chord), reason);
+      guard.unavailable_reason = status.reason.clone();
+      emit_knowledge_shortcut_status(app, &status);
+      return status;
+    }
+  };
+  match app.global_shortcut().register(shortcut) {
+    Ok(()) => {
+      guard.shortcut = Some(shortcut);
+      guard.chord = Some(chord.clone());
+      guard.unavailable_reason = None;
+      let status = GlobalShortcutStatus { enabled: true, chord: Some(chord), available: true, reason: None };
+      emit_knowledge_shortcut_status(app, &status);
+      status
+    }
+    Err(err) => {
+      let reason = format!("shortcut unavailable - in use by another app ({err})");
+      guard.chord = Some(chord.clone());
+      guard.unavailable_reason = Some(reason.clone());
+      let status = GlobalShortcutStatus::unavailable(Some(chord), reason);
+      emit_knowledge_shortcut_status(app, &status);
+      status
+    }
   }
 }
 
@@ -375,6 +450,12 @@ fn emit_shortcut_status(app: &AppHandle, status: &GlobalShortcutStatus) {
   }
 }
 
+fn emit_knowledge_shortcut_status(app: &AppHandle, status: &GlobalShortcutStatus) {
+  if let Err(err) = app.emit(KNOWLEDGE_SHORTCUT_STATE_EVENT, status) {
+    log::warn!("[gatesai] failed to emit knowledge shortcut state: {err}");
+  }
+}
+
 fn lock_or_recover<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
   match mutex.lock() {
     Ok(guard) => guard,
@@ -389,6 +470,7 @@ mod tests {
   #[test]
   fn parses_default_chord() {
     assert!(parse_chord(DEFAULT_GLOBAL_SUMMON_CHORD).is_ok());
+    assert!(parse_chord(KNOWLEDGE_SHORTCUT_CHORD).is_ok());
   }
 
   #[test]

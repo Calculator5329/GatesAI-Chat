@@ -132,6 +132,17 @@ const OfflineLibraryBlock = observer(function OfflineLibraryBlock() {
           </div>
         </SettingsRow>
       )}
+      <SettingsRow label="Offline knowledge shortcut">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+          <kbd style={{ ...tokens.mono, padding: '4px 7px', border: '1px solid var(--border)', borderRadius: 5, color: addon.knowledgeShortcutAvailable ? 'var(--accent)' : 'var(--text-faint)' }}>
+            Super+G
+          </kbd>
+          <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
+            Opens a fresh knowledge chat with an installed tool-capable Ollama model and the read-only local library. It never falls back to a cloud model.
+          </div>
+          {addon.knowledgeShortcutError && <div style={{ fontSize: 12, color: 'var(--danger)' }}>{addon.knowledgeShortcutError}</div>}
+        </div>
+      </SettingsRow>
       <SettingsRow label="Connection check" last>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'flex-start' }}>
           <Button

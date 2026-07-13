@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-12 — Super+G Offline Knowledge
+
+- Added a fixed desktop `Super+G` shortcut, independent from the configurable
+  summon chord, with its own registration status in Settings.
+- The chord opens a fresh `Offline knowledge` conversation on a connected,
+  installed tool-capable Ollama model and injects a strict local-library,
+  citation-first, public-schema-only context.
+- Disabled/unhealthy library state routes to Settings; a missing/offline local
+  runtime routes to Local. Neither path creates a thread or silently selects a
+  remote provider.
+
 ## 2026-07-12 — Offline Library cross-repository acceptance (G6)
 
 - Completed the pinned plugin 1.3.0 acceptance matrix across host contract

@@ -46,6 +46,8 @@ export class OfflineLibraryStore {
   sources: OfflineLibrarySources | null = null
   knowledgeArena: OfflineLibraryKnowledgeArena | null = null
   detailsError: string | null = null
+  knowledgeShortcutAvailable = false
+  knowledgeShortcutError: string | null = null
   profileOverrideId: string | null
 
   private readonly runtime: GatesRuntimeMode
@@ -109,6 +111,11 @@ export class OfflineLibraryStore {
     if (profileId !== null && !this.profileOptions.some(profile => profile.id === profileId)) return
     this.profileOverrideId = profileId
     this.saveSettings()
+  }
+
+  setKnowledgeShortcutStatus(available: boolean, error: string | null): void {
+    this.knowledgeShortcutAvailable = available
+    this.knowledgeShortcutError = error
   }
 
   async initialize(): Promise<void> {
