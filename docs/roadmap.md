@@ -212,8 +212,12 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       composer defaults to keyless cloud Gemini. Give the local path equal
       or leading prominence; default composer to a detected Ollama model
       when present. (screen-chat-onboarding.png)
-- [ ] **LF-5: sidebar renders "DECEMBER 1969" date group** — epoch-0
-      timestamp leak in date bucketing. (screen-chat-empty.png)
+- [x] **LF-5: sidebar renders "DECEMBER 1969" date group** — epoch-0
+      timestamp leak in date bucketing. (screen-chat-empty.png) *(done
+      2026-07-13 — `groupThreadsByDate` prefers `updatedAt`, falls back to
+      `createdAt`, and parks a thread with no sane timestamp in a shared
+      "Older" bucket rather than dropping it or minting a pre-2000 month;
+      threadSelectors 19 + EditorialSidebar 7 green on master @730b416)
 - [ ] **LF-6: Settings leads with the OpenRouter key card** — reorder so
       local/appearance settings precede cloud credentials. (screen-menu-settings.png)
 - [x] **LF-7: Local runtimes panel hardcodes Windows placeholders** *(done 2026-07-11)*

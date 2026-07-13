@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-13 — LF-5: no more "December 1969" sidebar date bucket
+
+- `groupThreadsByDate` (`src/core/threadSelectors.ts`) now resolves a sane
+  timestamp per thread: prefer `updatedAt`, fall back to `createdAt`, and park
+  a thread with no sane timestamp at all in a shared "Older" bucket at the
+  bottom of the list — never dropping it (EditorialSidebar renders every
+  thread) and never minting a spurious pre-2000/epoch-0 month label.
+- Regression tests cover `updatedAt` of 0, negative, NaN, and absent, asserting
+  the thread stays present and no pre-app date label appears. threadSelectors
+  (19) + EditorialSidebar (7) green.
+
 ## 2026-07-12 — Super+G Offline Knowledge
 
 - Added a fixed desktop `Super+G` shortcut, independent from the configurable
