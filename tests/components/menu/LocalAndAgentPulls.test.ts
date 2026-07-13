@@ -49,6 +49,13 @@ function renderWithStore(store: RootStoreType, element: React.ReactElement): HTM
   return host;
 }
 
+// The Local section gates its managed-runtime UI on the real desktop check
+// (`isTauri()` in core/runtime), so desktop-path tests must present the Tauri
+// shell. `vi.stubGlobal` is undone by `vi.unstubAllGlobals()` in afterEach.
+function enterDesktopRuntime(): void {
+  vi.stubGlobal('__TAURI_INTERNALS__', {});
+}
+
 function makeLocalStore(ollamaOnline: boolean): RootStoreType {
   const registry = new ModelRegistry();
   const service: LocalRuntimeService = {
@@ -88,6 +95,7 @@ function makeLocalStore(ollamaOnline: boolean): RootStoreType {
 
 describe('LocalSection recommended Ollama pulls', () => {
   it('shows the custom OpenAI-compatible endpoint card on desktop', () => {
+    enterDesktopRuntime();
     const store = makeLocalStore(false);
     const rendered = renderWithStore(store, createElement(LocalSection));
 
@@ -105,7 +113,59 @@ describe('LocalSection recommended Ollama pulls', () => {
     expect(rendered.textContent).not.toContain('Recommended models');
   });
 
+  // LF-1: in a non-desktop (Web Lite / browser) runtime the section must render
+  // a desktop-only explainer WITHOUT calling any local-runtime service — those
+  // calls throw "Cannot ... outside the GatesAI desktop app." and previously
+  // surfaced as an unhandled rejection / console error.
+  it('degrades gracefully in a non-desktop runtime without touching the local runtime service', () => {
+    vi.stubEnv('VITE_GATESAI_WEB', '1'); // core/runtime reports web-lite; isTauri() stays false
+    const outsideDesktop = () => { throw new Error('Cannot read local runtime status outside the GatesAI desktop app.'); };
+    const startRuntime = vi.fn(outsideDesktop);
+    const stopRuntime = vi.fn(outsideDesktop);
+    const getRuntimeStatus = vi.fn(outsideDesktop);
+
+    const registry = new ModelRegistry();
+    const service: LocalRuntimeService = {
+      startRuntime,
+      stopRuntime,
+      getRuntimeStatus,
+      probeHttp: async () => {},
+      fetchOllamaTags: async () => ({ models: [] }),
+      pathExists: async () => false,
+      pickDirectory: async () => null,
+      pickFile: async () => null,
+      getCandidatePaths: async () => null,
+    };
+    const local = new LocalRuntimeStore({ service, autoDetect: async () => ({}) });
+    const ollama = new OllamaStore(registry, local);
+    const providers = new ProviderStore(registry, undefined, { autoPersist: false });
+    const store = {
+      registry,
+      providers,
+      openAiCompatEndpoint: new OpenAiCompatEndpointStore(registry, providers),
+      localRuntime: local,
+      ollama,
+      imageGen: new ImageGenStore(),
+      bridge: {
+        openWorkspacePath: async () => {},
+        openExternalTarget: async () => {},
+      },
+    } as unknown as RootStoreType;
+
+    let rendered: HTMLDivElement | null = null;
+    expect(() => { rendered = renderWithStore(store, createElement(LocalSection)); }).not.toThrow();
+
+    // (a) the desktop-only explainer is present
+    expect(rendered!.textContent).toContain('Web Lite');
+    expect(rendered!.textContent).toContain('desktop-only');
+    // (b) no managed-runtime service call was made (nothing that would throw)
+    expect(startRuntime).not.toHaveBeenCalled();
+    expect(stopRuntime).not.toHaveBeenCalled();
+    expect(getRuntimeStatus).not.toHaveBeenCalled();
+  });
+
   it('shows recommended models and gates pulls while Ollama is offline', () => {
+    enterDesktopRuntime();
     const store = makeLocalStore(false);
     const rendered = renderWithStore(store, createElement(LocalSection));
 
@@ -118,6 +178,7 @@ describe('LocalSection recommended Ollama pulls', () => {
   });
 
   it('shows installed state with delete affordance', () => {
+    enterDesktopRuntime();
     const store = makeLocalStore(true);
     runInAction(() => {
       store.ollama.tagNames = ['llama3.2:3b'];
@@ -135,6 +196,7 @@ describe('LocalSection recommended Ollama pulls', () => {
   });
 
   it('shows pulling progress and cancel', () => {
+    enterDesktopRuntime();
     const store = makeLocalStore(true);
     runInAction(() => {
       store.ollama.pulls.set('qwen2.5:7b', { percent: 42, phase: 'pulling layer' });
@@ -152,6 +214,7 @@ describe('LocalSection recommended Ollama pulls', () => {
   });
 
   it('renders auto-detect not-found guidance as neutral instead of alert red', () => {
+    enterDesktopRuntime();
     const store = makeLocalStore(false);
     runInAction(() => {
       store.localRuntime.runtimes.ollama.lastError = 'Auto-detect could not find ollama.exe - use Browse to point at it.';
@@ -167,6 +230,7 @@ describe('LocalSection recommended Ollama pulls', () => {
   });
 
   it('renders start failures as error alerts', () => {
+    enterDesktopRuntime();
     const store = makeLocalStore(false);
     runInAction(() => {
       store.localRuntime.runtimes.ollama.lastError = 'spawn failed';

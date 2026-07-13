@@ -9,18 +9,24 @@ import type { LocalRuntimeId, RuntimeState } from '../../../stores/LocalRuntimeS
 import { Button, Card, Input, Pill, Select, SettingsRow, Toggle, SecretKeyField } from '../../ui';
 import { ProviderAvatar } from './api/ProviderAvatar';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
-import { isWebLite } from '../../../core/runtime';
+import { isTauri } from '../../../core/runtime';
 
 export const LocalSection = observer(function LocalSection() {
   const local = useLocalRuntimeStore();
   const bridge = useBridgeStore();
   const [logRuntime, setLogRuntime] = useState<LocalRuntimeId | null>(null);
-  const webLite = isWebLite();
+  // Managed local runtimes only exist inside the Tauri desktop shell. In any
+  // browser context (hosted Web Lite *or* `npm run dev`) `isTauri()` is false,
+  // so we must never touch localRuntimeService here — its calls throw
+  // "Cannot ... outside the GatesAI desktop app." Gate on the real desktop
+  // check, not `isWebLite()` (which is only true for the firebase web build
+  // and would let the dev browser fall through and crash).
+  const desktop = isTauri();
 
   // Eagerly refresh both runtimes on first paint so we don't show stale
   // 'stopped' chips while the underlying service is actually online.
   useEffect(() => {
-    if (webLite) return;
+    if (!desktop) return;
     local.refreshAll();
     const timer = setInterval(() => {
       for (const id of ['ollama', 'comfyui'] as const) {
@@ -29,7 +35,7 @@ export const LocalSection = observer(function LocalSection() {
       }
     }, 3000);
     return () => clearInterval(timer);
-  }, [local, webLite]);
+  }, [local, desktop]);
 
   useEffect(() => {
     if (!logRuntime) return;
@@ -38,12 +44,12 @@ export const LocalSection = observer(function LocalSection() {
     return () => window.removeEventListener('keydown', onKey);
   }, [logRuntime]);
 
-  if (webLite) {
+  if (!desktop) {
     return (
       <>
         <h1 style={tokens.h1}>Local</h1>
         <div style={tokens.kicker}>desktop runtimes</div>
-        <WebLiteNotice show={webLite}>
+        <WebLiteNotice show>
           <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
           Ollama, ComfyUI, local vision, and managed runtime controls are desktop-only.
           Custom OpenAI-compatible endpoints can still work from this browser when they allow CORS.
@@ -63,10 +69,6 @@ export const LocalSection = observer(function LocalSection() {
     <>
       <h1 style={tokens.h1}>Local</h1>
       <div style={tokens.kicker}>installed runtimes · Ollama · ComfyUI · local vision</div>
-        <WebLiteNotice show={webLite}>
-        <strong style={{ color: 'var(--text)' }}>Web Lite:</strong>{' '}
-        local runtimes are desktop-only. Use Models for OpenRouter/API chat in the hosted web app.
-      </WebLiteNotice>
 
       <RuntimeCard onOpenLogs={setLogRuntime} />
       <CustomOpenAiCompatCard />
