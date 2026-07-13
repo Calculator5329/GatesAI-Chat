@@ -462,20 +462,7 @@
   outline: none;
 }
 .editorial-date-separator {
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 28px;
-  margin: 0 0 12px;
-  color: var(--text-faint);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(8px);
-  font: 10px "Geist Mono", ui-monospace, monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  display: none;
 }
 .editorial-date-separator::before,
 .editorial-date-separator::after {
