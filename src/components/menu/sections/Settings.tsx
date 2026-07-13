@@ -22,6 +22,11 @@ export const SettingsSection = observer(function SettingsSection() {
       <h1 style={tokens.h1}>Settings</h1>
       <div className="settings-page__kicker" style={tokens.kicker}>API key · app data · danger zone</div>
 
+      <ThemeBlock />
+      <ConversationBlock />
+      <DesktopBlock />
+      <OfflineLibraryBlock />
+
       <Card
         className="settings-apikey-card"
         style={{ padding: '16px 18px', marginTop: 8, marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}
@@ -44,10 +49,6 @@ export const SettingsSection = observer(function SettingsSection() {
         your app data and reset actions in one place.
       </p>
 
-      <ThemeBlock />
-      <ConversationBlock />
-      <DesktopBlock />
-      <OfflineLibraryBlock />
       <WebLiteBrowserData />
       <ExportImportBlock />
       <DangerZone />

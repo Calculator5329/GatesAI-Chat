@@ -110,6 +110,21 @@ describe('SettingsSection desktop ambient controls', () => {
       .toBe('Ctrl+Shift+Space');
   });
 
+  it('leads with local/appearance settings before the cloud credential card', () => {
+    const store = buildStore();
+    const rendered = renderSettings(store);
+
+    const theme = rendered.querySelector('.settings-theme');
+    const apiKeyCard = rendered.querySelector('.settings-apikey-card');
+    expect(theme).not.toBeNull();
+    expect(apiKeyCard).not.toBeNull();
+    expect(apiKeyCard!.textContent).toContain('OpenRouter API key');
+
+    // Theme (appearance) must appear before the OpenRouter API-key card in the document.
+    const relation = theme!.compareDocumentPosition(apiKeyCard!);
+    expect(relation & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('surfaces shortcut unavailable state', () => {
     const store = buildStore();
     store.ui.setGlobalShortcutStatus('shortcut unavailable - in use by another app');
