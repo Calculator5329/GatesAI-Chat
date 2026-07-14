@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-14 — v4.6.1: bridge v2 sidecar release
+
+- Release bundling the protocol-v2 bridge sidecar so the shipped app matches
+  its own bundled bridge (v4.6.0 pinned protocol 2 but shipped the v1
+  sidecar). No app-code changes beyond the version bump; bridge v2 was merged
+  and verified on master 2026-07-13.
+- Cross-platform release build validated green (linux/windows/macos) on
+  workflow run 29303417151 before tagging.
+
 ## 2026-07-13 — LF-6: Settings leads with local/appearance, not the cloud key
 
 - `SettingsSection` (`src/components/menu/sections/Settings.tsx`) now renders
