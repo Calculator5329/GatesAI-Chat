@@ -4,6 +4,17 @@
 > session). This is the steering document; docs/purpose.md and the roadmap
 > should stay consistent with it.
 
+## Identity & license (2026-07-14)
+
+- **This repo (gatesai-chat) is THE GatesAI product** — the installable
+  Tauri/Rust desktop app (with ollama + OpenRouter). The `gates-ai` repo is
+  a **separate product**: a business website with a chatbot. Don't conflate.
+- **License intent (Ethan's words): "I will be open source but if you take
+  my code, so do you."** That is *copyleft* — Apache-2.0 does NOT do that
+  (it's permissive). **GPL-3.0 matches the stated intent** and is the
+  working recommendation; confirm before first outside contribution (cheap
+  to change until then).
+
 ## What it is
 
 An **open-source desktop AI chat app** (Linux, Mac, Windows — all three
