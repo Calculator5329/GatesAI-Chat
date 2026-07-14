@@ -69,4 +69,4 @@ now. No other API providers.
 - [ ] Self-update loop: define the safe path (edit own repo → rebuild → installer → user installs) and how far it can be closed.
 - [ ] ComfyUI seamless integration (today requires `--enable-cors-header`).
 - [ ] Browser-use deepening beyond Brave Search.
-- [ ] Cross-platform release health: macOS build currently failing in CI (v4.6.1 blocker).
+- [ ] Cross-platform release health: publish the macOS .dmg as a stable public asset (build is green as of v4.6.1; win+linux published).
