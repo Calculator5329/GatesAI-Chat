@@ -671,3 +671,4 @@ composer quieter.
 - [ ] Multi-window / split-thread layouts
 - [ ] Extend `inspect_file` to source-code structure (`py`, `js`, `ts`, `go`)
 - [ ] Extend `inspect_file` to document formats (`pdf`, `docx`, `xlsx`)
+- [ ] Release pipeline: publish the macOS .dmg (+sig) as a stable public asset alongside win/linux — v4.6.1 shipped win+linux only (2026-07-14)
