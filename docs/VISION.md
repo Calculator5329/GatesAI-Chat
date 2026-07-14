@@ -61,6 +61,7 @@ now. No other API providers.
 - Downloadable datasets (pairs with the Offline Library).
 - agent-orchestrator as a plugin once it's in a more mature state.
 - Databases as plugins.
+- **Method plugins** — discipline-not-knowledge scaffolds (plan/execute/judge loops) that make cheap OpenRouter/local models punch above their weight (cf. fable-method plugin results, 2026-07-14). On-brand: "pick any model, make the free ones good."
 
 ## Open items this vision implies (for roadmap triage)
 
