@@ -669,7 +669,7 @@ composer quieter.
 - 4.3: sub-agents + scheduled tasks + light theme + global summon
 - 5.0: self-improvement loop closed + macOS + opt-in updater + content-parts
 
-+## Migration inbox — legacy `docs/todo.md` (mechanical import, 2026-07-15)
+## Migration inbox — legacy `docs/todo.md` (mechanical import, 2026-07-15)
 
 > Exact unchecked records copied without reprioritization or semantic merging.
 > Provenance comments retain the former source line. The archived original
