@@ -1,0 +1,894 @@
+{
+  "algorithm": "exact unchecked-checkbox title plus full indented block; one provenance anchor per former source line; no semantic matching",
+  "checks": {
+    "archiveBlobMatchesBase": true,
+    "compatibilityPointerHasNoOpenCheckboxes": true,
+    "everyMappedBlockByteEquivalent": true,
+    "everySourceMappedOnce": true,
+    "noExactOpenTitleDuplicates": true
+  },
+  "compatibilityPointer": {
+    "document": "docs/todo.md",
+    "openCount": 0,
+    "sha256": "sha256:ff3cb075ca480108ef372472bbb5d6134692f68558ce74567fb32cbf52bc33b9"
+  },
+  "counts": {
+    "exactTitleReuses": 1,
+    "mappedOnce": 45,
+    "mechanicalCopies": 44,
+    "sourceOpen": 45
+  },
+  "generatedAt": null,
+  "mappings": [
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:cde5955e3b677844c198b0f5b680991406241443aa0be0d5a050cc570370d581",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|33",
+        "line": 33,
+        "title": "Separately review any management action, private confirmation token,"
+      },
+      "target": {
+        "blockDigest": "sha256:cde5955e3b677844c198b0f5b680991406241443aa0be0d5a050cc570370d581",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|681",
+        "line": 681,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:33 -->",
+        "title": "Separately review any management action, private confirmation token,"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:972a8faad1f6ee9712f193a6460fa49ca18ac8d2c03314292389888932cbf04d",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|52",
+        "line": 52,
+        "title": "Mistral (direct API)"
+      },
+      "target": {
+        "blockDigest": "sha256:972a8faad1f6ee9712f193a6460fa49ca18ac8d2c03314292389888932cbf04d",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|688",
+        "line": 688,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:52 -->",
+        "title": "Mistral (direct API)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:eecf51e8eedc2a30e4dafee79555a6b1e29d6e88b1a8ff75fa4f9cf7433ccb32",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|53",
+        "line": 53,
+        "title": "Cohere (Command R+)"
+      },
+      "target": {
+        "blockDigest": "sha256:eecf51e8eedc2a30e4dafee79555a6b1e29d6e88b1a8ff75fa4f9cf7433ccb32",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|691",
+        "line": 691,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:53 -->",
+        "title": "Cohere (Command R+)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:bd3833fe8f79d943b9314380ae667acb214bb899d9be275b70420125ad99a914",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|54",
+        "line": 54,
+        "title": "xAI (Grok)"
+      },
+      "target": {
+        "blockDigest": "sha256:bd3833fe8f79d943b9314380ae667acb214bb899d9be275b70420125ad99a914",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|694",
+        "line": 694,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:54 -->",
+        "title": "xAI (Grok)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:076c00186bfabbbbc9d1d05ce1390da824f3bff945c578372a6ba968fa768c38",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|55",
+        "line": 55,
+        "title": "DeepSeek"
+      },
+      "target": {
+        "blockDigest": "sha256:076c00186bfabbbbc9d1d05ce1390da824f3bff945c578372a6ba968fa768c38",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|697",
+        "line": 697,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:55 -->",
+        "title": "DeepSeek"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:942e4a0c57cb8412eeb66fdcc826e46556dfae9424e5af7587737837063dbcda",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|56",
+        "line": 56,
+        "title": "Perplexity (Sonar)"
+      },
+      "target": {
+        "blockDigest": "sha256:942e4a0c57cb8412eeb66fdcc826e46556dfae9424e5af7587737837063dbcda",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|700",
+        "line": 700,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:56 -->",
+        "title": "Perplexity (Sonar)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:c74f2183e8d36443d663fb9ded30623808617c50e7f2c1dbb71c4600ef7617ac",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|57",
+        "line": 57,
+        "title": "Together AI"
+      },
+      "target": {
+        "blockDigest": "sha256:c74f2183e8d36443d663fb9ded30623808617c50e7f2c1dbb71c4600ef7617ac",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|703",
+        "line": 703,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:57 -->",
+        "title": "Together AI"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:bdf4c2b3f0996aab4b8c0b932312a307eaaf14c121dc7d4383a5496816ca4c04",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|58",
+        "line": 58,
+        "title": "Fireworks"
+      },
+      "target": {
+        "blockDigest": "sha256:bdf4c2b3f0996aab4b8c0b932312a307eaaf14c121dc7d4383a5496816ca4c04",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|706",
+        "line": 706,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:58 -->",
+        "title": "Fireworks"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:0255ecfcec795ac088573b05f8f36863da1a087e44aa838a21c0b68fbc2e1bac",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|59",
+        "line": 59,
+        "title": "Replicate"
+      },
+      "target": {
+        "blockDigest": "sha256:0255ecfcec795ac088573b05f8f36863da1a087e44aa838a21c0b68fbc2e1bac",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|709",
+        "line": 709,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:59 -->",
+        "title": "Replicate"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:4ad2752b42fbcde61f8dbe02bfcdc5d9e318da816c692a4ac7056a815148f154",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|60",
+        "line": 60,
+        "title": "Hugging Face Inference API"
+      },
+      "target": {
+        "blockDigest": "sha256:4ad2752b42fbcde61f8dbe02bfcdc5d9e318da816c692a4ac7056a815148f154",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|712",
+        "line": 712,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:60 -->",
+        "title": "Hugging Face Inference API"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:0df0529057f68cd0e612384965e29baf0869282e57777a052e88a63ccaeb55bc",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|61",
+        "line": 61,
+        "title": "AWS Bedrock"
+      },
+      "target": {
+        "blockDigest": "sha256:0df0529057f68cd0e612384965e29baf0869282e57777a052e88a63ccaeb55bc",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|715",
+        "line": 715,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:61 -->",
+        "title": "AWS Bedrock"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:ecfea93a2e1467f4c6eded0ebd9bb1ae1dce03e6a6f9c6716702cc92bed4c108",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|62",
+        "line": 62,
+        "title": "Azure OpenAI"
+      },
+      "target": {
+        "blockDigest": "sha256:ecfea93a2e1467f4c6eded0ebd9bb1ae1dce03e6a6f9c6716702cc92bed4c108",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|718",
+        "line": 718,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:62 -->",
+        "title": "Azure OpenAI"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:dd3104db7c2800fd6f770707b7da6c3f340f229e88e7dea2297f5d77a88259c1",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|63",
+        "line": 63,
+        "title": "Google Vertex AI (enterprise Gemini)"
+      },
+      "target": {
+        "blockDigest": "sha256:dd3104db7c2800fd6f770707b7da6c3f340f229e88e7dea2297f5d77a88259c1",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|721",
+        "line": 721,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:63 -->",
+        "title": "Google Vertex AI (enterprise Gemini)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:c0999ce62741a49d7b701ba401ef9b3301d633e5fe0d91cbe332835db206bcfd",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|64",
+        "line": 64,
+        "title": "Cerebras (fast inference)"
+      },
+      "target": {
+        "blockDigest": "sha256:c0999ce62741a49d7b701ba401ef9b3301d633e5fe0d91cbe332835db206bcfd",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|724",
+        "line": 724,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:64 -->",
+        "title": "Cerebras (fast inference)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:1a3ad179f661a5db03b5b333df16234fbabf634eb12e705836893a5ee3e101cf",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|65",
+        "line": 65,
+        "title": "SambaNova"
+      },
+      "target": {
+        "blockDigest": "sha256:1a3ad179f661a5db03b5b333df16234fbabf634eb12e705836893a5ee3e101cf",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|727",
+        "line": 727,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:65 -->",
+        "title": "SambaNova"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:290f174baed6afec4e3e3f574e8808fba160c1772854bda17f6c404a53cf639b",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|66",
+        "line": 66,
+        "title": "OpenRouter custom routes / fallbacks per model"
+      },
+      "target": {
+        "blockDigest": "sha256:290f174baed6afec4e3e3f574e8808fba160c1772854bda17f6c404a53cf639b",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|730",
+        "line": 730,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:66 -->",
+        "title": "OpenRouter custom routes / fallbacks per model"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:fa0378e5bef3d62f49d7e8ff03cff2c9cd3d6f350bd9e2bfcbc707c0e2be01ca",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|72",
+        "line": 72,
+        "title": "Audio input (Whisper-style transcription)"
+      },
+      "target": {
+        "blockDigest": "sha256:fa0378e5bef3d62f49d7e8ff03cff2c9cd3d6f350bd9e2bfcbc707c0e2be01ca",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|736",
+        "line": 736,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:72 -->",
+        "title": "Audio input (Whisper-style transcription)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:7d5044271793b09944a80b613977b28f7eb791a41055d319bdc5e37f2dfcc67a",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|73",
+        "line": 73,
+        "title": "Audio output (TTS)"
+      },
+      "target": {
+        "blockDigest": "sha256:7d5044271793b09944a80b613977b28f7eb791a41055d319bdc5e37f2dfcc67a",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|739",
+        "line": 739,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:73 -->",
+        "title": "Audio output (TTS)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:5f6508d952e5b428ffc2d06984d89c236044f02f844d545be62571ceabf6ffc4",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|78",
+        "line": 78,
+        "title": "Live catalog refresh for the direct providers (Anthropic / OpenAI / Gemini / Groq) — today only OpenRouter has a fetcher"
+      },
+      "target": {
+        "blockDigest": "sha256:5f6508d952e5b428ffc2d06984d89c236044f02f844d545be62571ceabf6ffc4",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|742",
+        "line": 742,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:78 -->",
+        "title": "Live catalog refresh for the direct providers (Anthropic / OpenAI / Gemini / Groq) — today only OpenRouter has a fetcher"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:e791e8e107abb97603f638b9267f00ddef6c087cf6b67b17fb93f72e81f966cd",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|80",
+        "line": 80,
+        "title": "Provider health checks + automatic fallback"
+      },
+      "target": {
+        "blockDigest": "sha256:e791e8e107abb97603f638b9267f00ddef6c087cf6b67b17fb93f72e81f966cd",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|745",
+        "line": 745,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:80 -->",
+        "title": "Provider health checks + automatic fallback"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:9c8d76a7ea0b13aece7afe82c1516d02640ca271b7824c411c09153fee06c680",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|96",
+        "line": 96,
+        "title": "**Firestore** for thread + message storage (multi-device sync)"
+      },
+      "target": {
+        "blockDigest": "sha256:9c8d76a7ea0b13aece7afe82c1516d02640ca271b7824c411c09153fee06c680",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|751",
+        "line": 751,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:96 -->",
+        "title": "**Firestore** for thread + message storage (multi-device sync)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:0cae8a117929c9b0b699c2e2596d55abe8fd8aa14d5d43fecce2bc8f56c3a46f",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|101",
+        "line": 101,
+        "title": "**Google Cloud Storage** for attachments (images, audio, files)"
+      },
+      "target": {
+        "blockDigest": "sha256:0cae8a117929c9b0b699c2e2596d55abe8fd8aa14d5d43fecce2bc8f56c3a46f",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|758",
+        "line": 758,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:101 -->",
+        "title": "**Google Cloud Storage** for attachments (images, audio, files)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:dc762bc65b3cc805df3234fd35fb8aa4807a1201f4a7d68df24ef159f656fad0",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|104",
+        "line": 104,
+        "title": "Firebase Auth (email + Google sign-in) — prerequisite for the above"
+      },
+      "target": {
+        "blockDigest": "sha256:dc762bc65b3cc805df3234fd35fb8aa4807a1201f4a7d68df24ef159f656fad0",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|763",
+        "line": 763,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:104 -->",
+        "title": "Firebase Auth (email + Google sign-in) — prerequisite for the above"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:c06a8a7fb3c6798bb22c8ac6e9305d505925c75d7c463521839e35556a74975d",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|105",
+        "line": 105,
+        "title": "Security rules: users can only read/write their own threads"
+      },
+      "target": {
+        "blockDigest": "sha256:c06a8a7fb3c6798bb22c8ac6e9305d505925c75d7c463521839e35556a74975d",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|766",
+        "line": 766,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:105 -->",
+        "title": "Security rules: users can only read/write their own threads"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:37cc5abfd40accc6d7bff6dc3dae924bfd5f2f1fe791c1bd52c62bacb8e0d9b3",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|114",
+        "line": 114,
+        "title": "Per-thread `MessageStore` once histories get big (>500 messages)"
+      },
+      "target": {
+        "blockDigest": "sha256:37cc5abfd40accc6d7bff6dc3dae924bfd5f2f1fe791c1bd52c62bacb8e0d9b3",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|772",
+        "line": 772,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:114 -->",
+        "title": "Per-thread `MessageStore` once histories get big (>500 messages)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:f9aec912b134f3005f660f2bdbffac7180a21d48f0aa11aa6af850e3d1f73482",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|117",
+        "line": 117,
+        "title": "Web Worker for token counting / markdown rendering of huge messages"
+      },
+      "target": {
+        "blockDigest": "sha256:f9aec912b134f3005f660f2bdbffac7180a21d48f0aa11aa6af850e3d1f73482",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|775",
+        "line": 775,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:117 -->",
+        "title": "Web Worker for token counting / markdown rendering of huge messages"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:7ea7f427ca4fd578e58b65acbf0aec5e4205a2a893182216aa08f1bddab5140c",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|118",
+        "line": 118,
+        "title": "Code-splitting: lazy-load `GatesMenu` and `react-markdown` plugins"
+      },
+      "target": {
+        "blockDigest": "sha256:7ea7f427ca4fd578e58b65acbf0aec5e4205a2a893182216aa08f1bddab5140c",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|778",
+        "line": 778,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:118 -->",
+        "title": "Code-splitting: lazy-load `GatesMenu` and `react-markdown` plugins"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:9abfbff20374314efb50ad405bb79fb16ff03fa644018d2b5d62fa6262de9463",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|133",
+        "line": 133,
+        "title": "Drag-to-reorder pinned threads"
+      },
+      "target": {
+        "blockDigest": "sha256:9abfbff20374314efb50ad405bb79fb16ff03fa644018d2b5d62fa6262de9463",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|784",
+        "line": 784,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:133 -->",
+        "title": "Drag-to-reorder pinned threads"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:4f07ecda32de9fa7245eaa8e51f9a8c35638c5ec9127ebbfa86d59870cf81fe3",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|137",
+        "line": 137,
+        "title": "Inline attachment previews (image thumbnails, PDF first-page peek)"
+      },
+      "target": {
+        "blockDigest": "sha256:4f07ecda32de9fa7245eaa8e51f9a8c35638c5ec9127ebbfa86d59870cf81fe3",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|787",
+        "line": 787,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:137 -->",
+        "title": "Inline attachment previews (image thumbnails, PDF first-page peek)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:b112584bc7e59d324e40a3d8e1ca3354937c47f65ab72c3b6501700df30c143e",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|139",
+        "line": 139,
+        "title": "Persistent `Thread.naming` flag (so closing the tab mid-name doesn't strand a thread on the fallback \"first 40 chars\" title forever)"
+      },
+      "target": {
+        "blockDigest": "sha256:b112584bc7e59d324e40a3d8e1ca3354937c47f65ab72c3b6501700df30c143e",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|790",
+        "line": 790,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:139 -->",
+        "title": "Persistent `Thread.naming` flag (so closing the tab mid-name doesn't strand a thread on the fallback \"first 40 chars\" title forever)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:f194e53b913e027ed45e7d5b02215c62262aeba9b47bc8ab9856cbdbc13a74d8",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|140",
+        "line": 140,
+        "title": "Voice input (Web Speech API)"
+      },
+      "target": {
+        "blockDigest": "sha256:f194e53b913e027ed45e7d5b02215c62262aeba9b47bc8ab9856cbdbc13a74d8",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|793",
+        "line": 793,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:140 -->",
+        "title": "Voice input (Web Speech API)"
+      }
+    },
+    {
+      "disposition": "exact-title-reuse",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:4055e9f78398f3b93e3315f9d345af854e91d436515ad11956fee13542d6512f",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|141",
+        "line": 141,
+        "title": "Multi-window / split-thread layouts"
+      },
+      "target": {
+        "blockDigest": "sha256:4055e9f78398f3b93e3315f9d345af854e91d436515ad11956fee13542d6512f",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|848",
+        "line": 848,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:141; exact-title-reuse -->",
+        "title": "Multi-window / split-thread layouts"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:636f929c0cbb17217dbb4565b133cb7df9d98680d2058f0e1a4a168d6e6aab4b",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|142",
+        "line": 142,
+        "title": "Mobile / responsive layout pass"
+      },
+      "target": {
+        "blockDigest": "sha256:636f929c0cbb17217dbb4565b133cb7df9d98680d2058f0e1a4a168d6e6aab4b",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|796",
+        "line": 796,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:142 -->",
+        "title": "Mobile / responsive layout pass"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:36394c6390ceb41a57f56853d40c4c63ddde7a2cd66c5546ed40d9103b6ed683",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|156",
+        "line": 156,
+        "title": "Bridge installer / one-click \"Install GatesAI bridge\" download"
+      },
+      "target": {
+        "blockDigest": "sha256:36394c6390ceb41a57f56853d40c4c63ddde7a2cd66c5546ed40d9103b6ed683",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|802",
+        "line": 802,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:156 -->",
+        "title": "Bridge installer / one-click \"Install GatesAI bridge\" download"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:e048508ba0ccca39941f12ccf54ef1f40f72b9061a0d00981a646523e2206f0d",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|157",
+        "line": 157,
+        "title": "Bridge GUI tray-icon companion (start/stop, edit allowlist, open workspace)"
+      },
+      "target": {
+        "blockDigest": "sha256:e048508ba0ccca39941f12ccf54ef1f40f72b9061a0d00981a646523e2206f0d",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|805",
+        "line": 805,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:157 -->",
+        "title": "Bridge GUI tray-icon companion (start/stop, edit allowlist, open workspace)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:2b0f9d46accb98882921afb372a832366e9db1f63ceec9eb2d70815f3fd7e7ce",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|158",
+        "line": 158,
+        "title": "Workspace settings: open-in-OS-file-explorer button, drag-drop into the panel"
+      },
+      "target": {
+        "blockDigest": "sha256:2b0f9d46accb98882921afb372a832366e9db1f63ceec9eb2d70815f3fd7e7ce",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|808",
+        "line": 808,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:158 -->",
+        "title": "Workspace settings: open-in-OS-file-explorer button, drag-drop into the panel"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:c8a221697c4e349eb6eabaa1d00befba6404033c2ab5b1c9bbf1fab2d5beb85a",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|159",
+        "line": 159,
+        "title": "Per-job timeouts surfaced in `terminal` UI (today: silent until the bridge kills it)"
+      },
+      "target": {
+        "blockDigest": "sha256:c8a221697c4e349eb6eabaa1d00befba6404033c2ab5b1c9bbf1fab2d5beb85a",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|811",
+        "line": 811,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:159 -->",
+        "title": "Per-job timeouts surfaced in `terminal` UI (today: silent until the bridge kills it)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:19786baad6f57855c919db6fe75edd541613ca0b8c4a9959a79c5e5cae181aa1",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|160",
+        "line": 160,
+        "title": "`exec.run` stdin streaming (today: stdin is one-shot)"
+      },
+      "target": {
+        "blockDigest": "sha256:19786baad6f57855c919db6fe75edd541613ca0b8c4a9959a79c5e5cae181aa1",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|814",
+        "line": 814,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:160 -->",
+        "title": "`exec.run` stdin streaming (today: stdin is one-shot)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:0cff8704874e5678b08b092e03e48dc09de72df9c80dab73f3c2f6bbfa8ec007",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|161",
+        "line": 161,
+        "title": "Auth header for non-loopback deployments (when we eventually want bridge on a remote host)"
+      },
+      "target": {
+        "blockDigest": "sha256:0cff8704874e5678b08b092e03e48dc09de72df9c80dab73f3c2f6bbfa8ec007",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|817",
+        "line": 817,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:161 -->",
+        "title": "Auth header for non-loopback deployments (when we eventually want bridge on a remote host)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:69af248639c3f6c041076e405bec8928afceba25f3c3c66d2d68d601f42ad68d",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|163",
+        "line": 163,
+        "title": "Diff-aware `fs.write` (e.g. `apply_patch`) so big files don't round-trip"
+      },
+      "target": {
+        "blockDigest": "sha256:69af248639c3f6c041076e405bec8928afceba25f3c3c66d2d68d601f42ad68d",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|820",
+        "line": 820,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:163 -->",
+        "title": "Diff-aware `fs.write` (e.g. `apply_patch`) so big files don't round-trip"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:ae41bcfdca907efc65979460d41ffe1086e616564fbd8e6fda7ceb2340a99648",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|170",
+        "line": 170,
+        "title": "Re-name a thread on demand (right-click → \"Re-name with AI\")"
+      },
+      "target": {
+        "blockDigest": "sha256:ae41bcfdca907efc65979460d41ffe1086e616564fbd8e6fda7ceb2340a99648",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|826",
+        "line": 826,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:170 -->",
+        "title": "Re-name a thread on demand (right-click → \"Re-name with AI\")"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:067e4de6fcb5730a0bd56a28cb0d681a515df50ad017aa3076ddfe9db1bb5dba",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|178",
+        "line": 178,
+        "title": "Bundle-size budget + report in CI"
+      },
+      "target": {
+        "blockDigest": "sha256:067e4de6fcb5730a0bd56a28cb0d681a515df50ad017aa3076ddfe9db1bb5dba",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|832",
+        "line": 832,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:178 -->",
+        "title": "Bundle-size budget + report in CI"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:446005b773458540c475f77e65b02b0e0b327a9faeeb97e7b73d2a96339fcf23",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|185",
+        "line": 185,
+        "title": "**Profile** — actual user identity (post-auth)"
+      },
+      "target": {
+        "blockDigest": "sha256:446005b773458540c475f77e65b02b0e0b327a9faeeb97e7b73d2a96339fcf23",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|838",
+        "line": 838,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:185 -->",
+        "title": "**Profile** — actual user identity (post-auth)"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:e5f5ff15fb9f0075509b4b817ee38150a7f2330f521fa5f13f6d64f5420c2a22",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|186",
+        "line": 186,
+        "title": "**Agent** — system prompt, default model, temperature persisted"
+      },
+      "target": {
+        "blockDigest": "sha256:e5f5ff15fb9f0075509b4b817ee38150a7f2330f521fa5f13f6d64f5420c2a22",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|841",
+        "line": 841,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:186 -->",
+        "title": "**Agent** — system prompt, default model, temperature persisted"
+      }
+    },
+    {
+      "disposition": "mechanical-copy",
+      "source": {
+        "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+        "blockDigest": "sha256:140fe8048e8ca97632e3f6b51a25ccac7ea361a44f8de6001e4ed1004b3226f0",
+        "document": "docs/todo.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/todo.md|187",
+        "line": 187,
+        "title": "**Settings** — language, timezone, retention all wired"
+      },
+      "target": {
+        "blockDigest": "sha256:140fe8048e8ca97632e3f6b51a25ccac7ea361a44f8de6001e4ed1004b3226f0",
+        "document": "docs/roadmap.md",
+        "identity": "ai/gatesai-chat|checkbox|docs/roadmap.md|844",
+        "line": 844,
+        "provenanceAnchor": "<!-- legacy-source:docs/todo.md:187 -->",
+        "title": "**Settings** — language, timezone, retention all wired"
+      }
+    }
+  ],
+  "repo": "ai/gatesai-chat",
+  "schemaVersion": "gatesai-todo-roadmap-reconciliation/v1",
+  "source": {
+    "archiveGitBlob": "0c5e67960b329c517845b70c0c49191784e676c2",
+    "archivedDocument": "docs/archive/todo-pre-roadmap-20260715.md",
+    "baseGitBlob": "0c5e67960b329c517845b70c0c49191784e676c2",
+    "document": "docs/todo.md",
+    "openCount": 45,
+    "sha256": "sha256:7519f6256e61503754ef49da6e046d6ba15c866b17ff2263f6490e6fda0bbf71"
+  },
+  "target": {
+    "document": "docs/roadmap.md",
+    "mappedOpenCount": 45,
+    "sha256": "sha256:8677f8108a4edfe70cbb600deec46c0bc9c6d5ad0b5db89c7a1e2bf44aba68be"
+  }
+}

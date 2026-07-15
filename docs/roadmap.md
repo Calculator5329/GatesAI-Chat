@@ -669,7 +669,182 @@ composer quieter.
 - 4.3: sub-agents + scheduled tasks + light theme + global summon
 - 5.0: self-improvement loop closed + macOS + opt-in updater + content-parts
 
++## Migration inbox — legacy `docs/todo.md` (mechanical import, 2026-07-15)
+
+> Exact unchecked records copied without reprioritization or semantic merging.
+> Provenance comments retain the former source line. The archived original
+> and item-for-item proof are linked from `docs/todo.md`.
+
+### Offline Library plugin
+
+<!-- legacy-source:docs/todo.md:33 -->
+- [ ] Separately review any management action, private confirmation token,
+      database row query, or labeled semantic hallucination evaluation.
+
+
+### LLM providers — Future providers
+
+<!-- legacy-source:docs/todo.md:52 -->
+- [ ] Mistral (direct API)
+
+<!-- legacy-source:docs/todo.md:53 -->
+- [ ] Cohere (Command R+)
+
+<!-- legacy-source:docs/todo.md:54 -->
+- [ ] xAI (Grok)
+
+<!-- legacy-source:docs/todo.md:55 -->
+- [ ] DeepSeek
+
+<!-- legacy-source:docs/todo.md:56 -->
+- [ ] Perplexity (Sonar)
+
+<!-- legacy-source:docs/todo.md:57 -->
+- [ ] Together AI
+
+<!-- legacy-source:docs/todo.md:58 -->
+- [ ] Fireworks
+
+<!-- legacy-source:docs/todo.md:59 -->
+- [ ] Replicate
+
+<!-- legacy-source:docs/todo.md:60 -->
+- [ ] Hugging Face Inference API
+
+<!-- legacy-source:docs/todo.md:61 -->
+- [ ] AWS Bedrock
+
+<!-- legacy-source:docs/todo.md:62 -->
+- [ ] Azure OpenAI
+
+<!-- legacy-source:docs/todo.md:63 -->
+- [ ] Google Vertex AI (enterprise Gemini)
+
+<!-- legacy-source:docs/todo.md:64 -->
+- [ ] Cerebras (fast inference)
+
+<!-- legacy-source:docs/todo.md:65 -->
+- [ ] SambaNova
+
+<!-- legacy-source:docs/todo.md:66 -->
+- [ ] OpenRouter custom routes / fallbacks per model
+
+
+### LLM providers — Provider features
+
+<!-- legacy-source:docs/todo.md:72 -->
+- [ ] Audio input (Whisper-style transcription)
+
+<!-- legacy-source:docs/todo.md:73 -->
+- [ ] Audio output (TTS)
+
+<!-- legacy-source:docs/todo.md:78 -->
+- [ ] Live catalog refresh for the direct providers (Anthropic / OpenAI / Gemini / Groq) — today only OpenRouter has a fetcher
+
+<!-- legacy-source:docs/todo.md:80 -->
+- [ ] Provider health checks + automatic fallback
+
+
+### Backend / persistence
+
+<!-- legacy-source:docs/todo.md:96 -->
+- [ ] **Firestore** for thread + message storage (multi-device sync)
+  - Collection design: `users/{uid}/threads/{threadId}/messages/{messageId}`
+  - Real-time listeners on the active thread, paginated load for sidebar
+  - Offline persistence via Firestore SDK
+  - Migration: read existing `gatesai.state.v1` snapshot once, write to Firestore, then drop localStorage
+
+<!-- legacy-source:docs/todo.md:101 -->
+- [ ] **Google Cloud Storage** for attachments (images, audio, files)
+  - Signed-URL upload flow
+  - Reference URLs stored on the message, blobs in GCS
+
+<!-- legacy-source:docs/todo.md:104 -->
+- [ ] Firebase Auth (email + Google sign-in) — prerequisite for the above
+
+<!-- legacy-source:docs/todo.md:105 -->
+- [ ] Security rules: users can only read/write their own threads
+
+
+### Architecture
+
+<!-- legacy-source:docs/todo.md:114 -->
+- [ ] Per-thread `MessageStore` once histories get big (>500 messages)
+
+<!-- legacy-source:docs/todo.md:117 -->
+- [ ] Web Worker for token counting / markdown rendering of huge messages
+
+<!-- legacy-source:docs/todo.md:118 -->
+- [ ] Code-splitting: lazy-load `GatesMenu` and `react-markdown` plugins
+
+
+### UI / UX
+
+<!-- legacy-source:docs/todo.md:133 -->
+- [ ] Drag-to-reorder pinned threads
+
+<!-- legacy-source:docs/todo.md:137 -->
+- [ ] Inline attachment previews (image thumbnails, PDF first-page peek)
+
+<!-- legacy-source:docs/todo.md:139 -->
+- [ ] Persistent `Thread.naming` flag (so closing the tab mid-name doesn't strand a thread on the fallback "first 40 chars" title forever)
+
+<!-- legacy-source:docs/todo.md:140 -->
+- [ ] Voice input (Web Speech API)
+
+<!-- legacy-source:docs/todo.md:142 -->
+- [ ] Mobile / responsive layout pass
+
+
+### Bridge / workspace
+
+<!-- legacy-source:docs/todo.md:156 -->
+- [ ] Bridge installer / one-click "Install GatesAI bridge" download
+
+<!-- legacy-source:docs/todo.md:157 -->
+- [ ] Bridge GUI tray-icon companion (start/stop, edit allowlist, open workspace)
+
+<!-- legacy-source:docs/todo.md:158 -->
+- [ ] Workspace settings: open-in-OS-file-explorer button, drag-drop into the panel
+
+<!-- legacy-source:docs/todo.md:159 -->
+- [ ] Per-job timeouts surfaced in `terminal` UI (today: silent until the bridge kills it)
+
+<!-- legacy-source:docs/todo.md:160 -->
+- [ ] `exec.run` stdin streaming (today: stdin is one-shot)
+
+<!-- legacy-source:docs/todo.md:161 -->
+- [ ] Auth header for non-loopback deployments (when we eventually want bridge on a remote host)
+
+<!-- legacy-source:docs/todo.md:163 -->
+- [ ] Diff-aware `fs.write` (e.g. `apply_patch`) so big files don't round-trip
+
+
+### Auto-naming
+
+<!-- legacy-source:docs/todo.md:170 -->
+- [ ] Re-name a thread on demand (right-click → "Re-name with AI")
+
+
+### Quality
+
+<!-- legacy-source:docs/todo.md:178 -->
+- [ ] Bundle-size budget + report in CI
+
+
+### Wired-up menu sections
+
+<!-- legacy-source:docs/todo.md:185 -->
+- [ ] **Profile** — actual user identity (post-auth)
+
+<!-- legacy-source:docs/todo.md:186 -->
+- [ ] **Agent** — system prompt, default model, temperature persisted
+
+<!-- legacy-source:docs/todo.md:187 -->
+- [ ] **Settings** — language, timezone, retention all wired
+
 ## Later
+<!-- legacy-source:docs/todo.md:141; exact-title-reuse -->
 - [ ] Multi-window / split-thread layouts
 - [ ] Extend `inspect_file` to source-code structure (`py`, `js`, `ts`, `go`)
 - [ ] Extend `inspect_file` to document formats (`pdf`, `docx`, `xlsx`)

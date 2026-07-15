@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-15 — canonical roadmap reconciliation
+
+- Mechanically reconciled all 45 unchecked records formerly in `docs/todo.md`
+  into the constitutional `docs/roadmap.md` queue: 44 byte-equivalent copies
+  plus one exact-title reuse of the existing multi-window item. Provenance
+  anchors and a deterministic item-for-item report retain every old identity;
+  no semantic merging or reprioritization was performed.
+- Preserved the complete original TODO document verbatim under `docs/archive/`
+  and replaced its old path with a compatibility pointer containing no open
+  checkboxes. This is documentation-only and changes no product, deployment,
+  service, or data behavior.
+
 ## 2026-07-15 — W-1 basic dock file explorer
 
 - Added a compact, read-only File Explorer panel to the existing dock registry.
