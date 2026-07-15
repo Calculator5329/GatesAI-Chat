@@ -151,6 +151,23 @@ afterEach(() => {
 });
 
 describe('CommandPalette', () => {
+  it('opens the desktop workspace explorer from the palette', () => {
+    store = buildStore();
+    const rendered = renderPaletteShell(store);
+    act(() => store!.ui.openPalette());
+    setPaletteQuery(rendered, 'browse workspace');
+
+    const input = rendered.querySelector<HTMLInputElement>('input[aria-label="Search commands and threads"]');
+    act(() => {
+      input!.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter', bubbles: true, cancelable: true,
+      }));
+    });
+
+    expect(store.dock.cells[0]).toEqual({ kind: 'file-explorer', params: { path: '/workspace' } });
+    expect(store.ui.paletteOpen).toBe(false);
+  });
+
   it('opens from UiStore state and filters visible threads', () => {
     store = buildStore();
     seedThreads(store.chat);

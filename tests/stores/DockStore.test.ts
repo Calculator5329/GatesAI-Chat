@@ -53,6 +53,15 @@ describe('DockStore', () => {
     expect(dock.cells[1]?.kind).toBe('media-viewer');
   });
 
+  it('opens the file explorer through the same persisted registry contract', () => {
+    const dock = makeStore();
+    dock.openPanel('file-explorer', { path: '/workspace' });
+    expect(dock.cells[0]).toEqual({ kind: 'file-explorer', params: { path: '/workspace' } });
+    dock.dispose();
+    const restored = makeStore();
+    expect(restored.cells[0]).toEqual({ kind: 'file-explorer', params: { path: '/workspace' } });
+  });
+
   it('closing cell 0 promotes cell 1 so a lone panel sits in cell 0', () => {
     const dock = makeStore();
     dock.openPath('/workspace/a.md');

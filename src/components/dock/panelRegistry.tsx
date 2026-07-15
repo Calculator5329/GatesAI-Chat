@@ -6,11 +6,13 @@ import type { DockPanelKind, DockPanelRef } from '../../core/dock';
 import { dockFileName } from '../../core/dock';
 import { Icons } from '../ui/icons';
 import { FileViewerPanel } from './FileViewerPanel';
+import { FileExplorerPanel } from './FileExplorerPanel';
 import { MediaViewerPanel } from './MediaViewerPanel';
 import { OfflineLibraryPanel } from './OfflineLibraryPanel';
 
 export interface DockPanelProps {
   params: DockPanelRef['params'];
+  cell?: 0 | 1;
 }
 
 export interface DockPanelDefinition {
@@ -28,6 +30,13 @@ const PANELS: Record<DockPanelKind, DockPanelDefinition> = {
     title: 'File viewer',
     icon: () => <Icons.FileText />,
     Component: FileViewerPanel,
+    requiresBridge: true,
+  },
+  'file-explorer': {
+    kind: 'file-explorer',
+    title: 'File explorer',
+    icon: () => <Icons.Folder />,
+    Component: FileExplorerPanel,
     requiresBridge: true,
   },
   'media-viewer': {
@@ -56,6 +65,6 @@ export function listDockPanelDefinitions(): DockPanelDefinition[] {
 
 /** Header label for an open panel: the file name when present, else the panel title. */
 export function dockCellTitle(ref: DockPanelRef): string {
-  if (ref.params.path) return dockFileName(ref.params.path);
+  if (ref.params.path && ref.kind !== 'file-explorer') return dockFileName(ref.params.path);
   return getDockPanelDefinition(ref.kind)?.title ?? ref.kind;
 }

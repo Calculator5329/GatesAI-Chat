@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-15 — W-1 basic dock file explorer
+
+- Added a compact, read-only File Explorer panel to the existing dock registry.
+  It navigates one jailed workspace directory at a time, sorts folders first,
+  provides breadcrumbs/back/refresh, surfaces truncation and bridge errors,
+  and opens selected files through the existing file/media viewer in the other
+  dock cell.
+- Added the desktop-only "Browse workspace in dock" palette entry and persisted
+  panel-kind support. Existing Web Lite and mobile dock gates remain unchanged.
+  No write, terminal, network, dependency, bridge protocol, or filesystem
+  authority was added.
+
 ## 2026-07-14 — v4.6.1: bridge v2 sidecar release
 
 - Release bundling the protocol-v2 bridge sidecar so the shipped app matches

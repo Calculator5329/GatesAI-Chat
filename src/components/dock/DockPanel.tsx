@@ -143,7 +143,7 @@ export const DockPanel = observer(function DockPanel() {
               </div>
               <div className="dock-cell__body">
                 {def
-                  ? <def.Component params={cell.params} />
+                  ? <def.Component params={cell.params} cell={index} />
                   : <div className="dock-panel__notice">Unknown panel: {cell.kind}</div>}
               </div>
             </div>

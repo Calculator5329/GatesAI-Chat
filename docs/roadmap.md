@@ -165,10 +165,12 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       file explorer, media viewer. Web Lite feature-gated.
       *(Slices 1+2 shipped 2026-07-12: DockStore + persisted shell + panel
       registry, FileViewerPanel + MediaViewerPanel, palette/gallery entry
-      points, Web Lite + mobile gating — see the changelog entry. Remaining
-      for slice 3 in a follow-up lane: CodeMirror editor panel (dependency
-      ADR first), basic file explorer, terminal panel (blocked on a bridge
-      pty op). Plan: `docs/plans/2026-07-12-dock-framework.md`.)*
+      points, Web Lite + mobile gating — see the changelog entry. The basic
+      read-only file explorer shipped 2026-07-15 through the existing jailed
+      `fs.list`/file-viewer path, with no bridge expansion. Remaining for slice
+      3: CodeMirror editor panel (dependency ADR first) and terminal panel
+      (blocked on a bridge pty op). Plan:
+      `docs/plans/2026-07-12-dock-framework.md`.)*
 - [ ] **W-2: HTML artifact contract.** Versioned system-prompt block
       generated from code, artifact id registry under
       `/workspace/artifacts/html/`, smoke-render validation at creation,

@@ -56,3 +56,11 @@ and file explorer land in a follow-up lane once the shell is proven.
 
 CodeMirror-based editor panel (dependency ADR first), basic file explorer
 (`fs.list`), terminal panel (blocked on bridge pty op — sibling-repo task).
+
+**Progress 2026-07-15:** the basic file explorer is complete. It is a compact,
+read-only dock registry panel over the existing non-recursive
+`BridgeStore.listWorkspaceDir` facade. Folder navigation and breadcrumbs stay
+inside `/workspace`; selecting a file routes it to the existing viewer in the
+other dock cell. The palette entry, Web Lite/mobile dock gates, truncation and
+error states, and persisted panel kind are covered without adding bridge
+authority or protocol. CodeMirror and terminal remain separate work.

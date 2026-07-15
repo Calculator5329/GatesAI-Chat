@@ -717,8 +717,12 @@ two stacked read-only panels (one column × 1–2 cells).
 - **Registry**: `components/dock/panelRegistry.tsx` maps panel kind →
   `{ title, icon, Component, requiresBridge }` — one line per panel, same
   shape as the tool registry.
-- **Panels (v1)**: `FileViewerPanel` reads through the
-  `BridgeStore.readWorkspaceTextFile` facade and dispatches on content type
+- **Panels (v1)**: `FileExplorerPanel` performs non-recursive directory reads
+  through `BridgeStore.listWorkspaceDir`, clamps persisted roots to
+  `/workspace`, renders compact folder-first rows and breadcrumbs, and opens a
+  selected file through `DockStore.openPath()` in the other cell. It cannot
+  write, execute, fetch, or widen the bridge jail. `FileViewerPanel` reads
+  through the `BridgeStore.readWorkspaceTextFile` facade and dispatches on content type
   (markdown → `MarkdownChunk`, JSON → per-key `<details>`, HTML → the same
   sandboxed-iframe policy as `HtmlArtifactPreview` via `InlineHtmlDocument`,
   else `<pre>`); `MediaViewerPanel` renders images through the shared
@@ -728,12 +732,14 @@ two stacked read-only panels (one column × 1–2 cells).
   (icon, title, swap, close), and a thin reopen rail when collapsed. Hidden
   entirely on the mobile shell and on Web Lite (`DockStore.available` — the
   v1 panels all need the bridge).
-- **Entry points**: command palette "Open file in dock…" (workspace-path
-  prompt) and an "Open in dock" action on gallery tiles. Both go through the
-  `useDockStore` hook; dock components never import services directly.
+- **Entry points**: command palette "Browse workspace in dock" and "Open file
+  in dock…" (workspace-path prompt), plus an "Open in dock" action on gallery
+  tiles. All go through `useDockStore`; dock components never import services
+  directly.
 
-Slice 3 (CodeMirror editor panel, file explorer, terminal panel) is a
-follow-up lane — see `docs/plans/2026-07-12-dock-framework.md`.
+Slice 3 still retains the CodeMirror editor and terminal panel. The basic
+read-only file explorer shipped 2026-07-15; see
+`docs/plans/2026-07-12-dock-framework.md`.
 
 ## Routing
 

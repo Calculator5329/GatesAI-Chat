@@ -169,6 +169,88 @@
 }
 .dock-media-viewer audio { width: 100%; }
 
+.dock-file-explorer {
+  min-height: 100%;
+  color: var(--text-dim);
+  font: 12.5px "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+.dock-file-explorer__toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+}
+.dock-file-explorer__toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 3px 5px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.dock-file-explorer__toolbar button:hover:not(:disabled) {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.dock-file-explorer__toolbar button:disabled { opacity: .35; cursor: default; }
+.dock-file-explorer__crumbs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+.dock-file-explorer__crumbs span { display: inline-flex; align-items: center; }
+.dock-file-explorer__crumbs i { color: var(--text-faint); font-style: normal; }
+.dock-file-explorer__crumbs button { color: var(--text-dim); }
+.dock-file-explorer__entries { padding: 4px 0 8px; }
+.dock-file-explorer__entry {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  gap: 7px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  text-align: left;
+  cursor: pointer;
+}
+.dock-file-explorer__entry:hover {
+  background: color-mix(in srgb, var(--panel-2) 75%, transparent);
+  color: var(--text);
+}
+.dock-file-explorer__entry > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dock-file-explorer__entry-icon { display: flex; color: var(--text-faint); }
+.dock-file-explorer__entry small {
+  color: var(--text-faint);
+  font: 10px "Geist Mono", ui-monospace, monospace;
+}
+.dock-file-explorer__truncated {
+  padding: 9px 12px;
+  color: var(--text-faint);
+  font: italic 11.5px "Source Serif 4", Georgia, serif;
+}
+
 .offline-library-panel {
   padding: 14px;
   color: var(--text-dim);

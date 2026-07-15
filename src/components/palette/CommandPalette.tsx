@@ -127,6 +127,9 @@ export const CommandPalette = observer(function CommandPalette() {
             const path = window.prompt('Workspace path to open in the dock', '/workspace/');
             if (path && path.trim() && path.trim() !== '/workspace/') dock.openPath(path);
           }),
+          actionItem('browse-files-in-dock', 'Browse workspace in dock', 'Explore jailed workspace files', ['dock panel file explorer folders'], () => {
+            dock.openPanel('file-explorer', { path: '/workspace' });
+          }),
         ]
         : []),
       ...chat.visibleThreads.map(threadItem(chat, router)),
