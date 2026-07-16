@@ -214,11 +214,14 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       LOCAL tab fed by the Ollama registry, with an offline-graceful empty
       state that links the user back to Local settings. (Evidence:
       screen-picker-model.png; audit 2026-07-11.)
-- [ ] **LF-4: first-boot hero leads cloud despite local-first banner.**
+- [x] **LF-4: first-boot hero leads cloud despite local-first banner.** *(done 2026-07-16)*
       Primary CTA is the cloud card; tagline "chat with frontier models";
       composer defaults to keyless cloud Gemini. Give the local path equal
       or leading prominence; default composer to a detected Ollama model
-      when present. (screen-chat-onboarding.png)
+      when present. The local card now leads on desktop, detected Ollama is
+      the automatic default for untouched empty chats, and persisted explicit
+      choices survive delayed runtime discovery. Web Lite remains cloud-only.
+      (screen-chat-onboarding.png)
 - [x] **LF-5: sidebar renders "DECEMBER 1969" date group** — epoch-0
       timestamp leak in date bucketing. (screen-chat-empty.png) *(done
       2026-07-13 — `groupThreadsByDate` prefers `updatedAt`, falls back to

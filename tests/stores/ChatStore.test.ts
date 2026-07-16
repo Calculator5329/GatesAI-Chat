@@ -642,6 +642,34 @@ describe('ChatStore', () => {
     expect(chat.activeThread?.modelId).toBe('or-nemotron-3-ultra-free');
   });
 
+  it('adopts delayed Ollama discovery only for untouched automatic empty threads', () => {
+    const { chat, registry, providers } = setup();
+    const automaticThreadId = chat.activeThreadId!;
+    const explicitThreadId = chat.createThread();
+    chat.setThreadModel(explicitThreadId, 'or-nemotron-3-ultra-free');
+
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-qwen-local',
+      name: 'Qwen Local',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'qwen2.5:7b',
+      supportsTools: true,
+    }]);
+    providers.setAvailable('ollama', true);
+    chat.reconcileDefaultModelForEmptyThreads();
+
+    expect(chat.threads.find(thread => thread.id === automaticThreadId)).toMatchObject({
+      modelId: 'ollama-qwen-local',
+      modelSelection: 'automatic',
+      contextMode: 'micro',
+    });
+    expect(chat.threads.find(thread => thread.id === explicitThreadId)).toMatchObject({
+      modelId: 'or-nemotron-3-ultra-free',
+      modelSelection: 'explicit',
+    });
+  });
+
   it('repairs a persisted active thread id that no longer points to a visible thread', () => {
     localStorage.setItem('gatesai.state.v1', JSON.stringify({
       activeThreadId: 'missing',

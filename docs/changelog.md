@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-16 — LF-4 local-first onboarding and safe defaults
+
+- Desktop first-run onboarding now leads with Ollama, makes the cloud path an
+  explicit choice, and defaults an untouched empty chat to the best detected
+  local model. Web Lite keeps its cloud-only onboarding.
+- Added persisted automatic-versus-explicit model-selection provenance. A
+  delayed Ollama catalog refresh may update only an untouched automatic chat;
+  an explicit picker choice is never silently overwritten. Schema v4 migrates
+  older threads conservatively as explicit because prior snapshots cannot
+  prove how their model was chosen.
+- Added regression coverage for delayed local discovery, persistence migration,
+  local-first card ordering/copy, and Web Lite isolation.
+
 ## 2026-07-16 — Linux compatibility pair (A13)
 
 - NVIDIA + Wayland white-screen fixed in the app itself: Linux-only NVIDIA

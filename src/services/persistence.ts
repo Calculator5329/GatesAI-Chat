@@ -299,6 +299,7 @@ function createArchivedThreadStub(thread: Thread): Thread {
     pinned: thread.pinned,
     ...(thread.pinOrder === undefined ? {} : { pinOrder: thread.pinOrder }),
     modelId: thread.modelId,
+    ...(thread.modelSelection === undefined ? {} : { modelSelection: thread.modelSelection }),
     messages: [],
     archived: true,
   };
@@ -572,6 +573,7 @@ function parseThread(value: unknown): Thread | null {
     pinOrder: numberField(value.pinOrder),
     readOnly: booleanField(value.readOnly),
     modelId: stringField(value.modelId) ?? DEFAULT_MODEL_ID,
+    modelSelection: parseModelSelection(value.modelSelection),
     messages: messages as Message[],
     contextMode: parseContextMode(value.contextMode),
     thinkingEffort: parseThinkingEffort(value.thinkingEffort),
@@ -591,6 +593,10 @@ function parseThread(value: unknown): Thread | null {
   };
   if (archived) thread.archived = true;
   return thread;
+}
+
+function parseModelSelection(value: unknown): Thread['modelSelection'] {
+  return value === 'automatic' || value === 'explicit' ? value : undefined;
 }
 
 function parseLegacyMessage(value: unknown): LegacyMessage | null {
