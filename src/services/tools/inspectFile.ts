@@ -7,7 +7,8 @@ import { decodeFsRead, stripBom } from './textDecode';
 import { denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
 import type { Tool, ToolContext } from './types';
 
-type InspectFormat = 'csv' | 'json' | 'txt';
+type InspectFormat = 'csv' | 'json' | 'txt' | 'py' | 'js' | 'ts' | 'go';
+type SourceFormat = Extract<InspectFormat, 'py' | 'js' | 'ts' | 'go'>;
 type CsvRow = Record<string, string>;
 type CsvDelimiter = ',' | '\t' | ';' | '|';
 
@@ -29,6 +30,7 @@ const MAX_LIMIT = 100;
 const MAX_CELL_CHARS = 240;
 const MAX_LINE_CHARS = 320;
 const MAX_JSON_STRING_CHARS = 320;
+const MAX_SOURCE_SYMBOLS = 100;
 
 /**
  * inspect_file - semantic, read-only inspection for data/text files.
@@ -40,7 +42,7 @@ export const inspectFileTool: Tool = {
   def: {
     name: 'inspect_file',
     description: [
-      'Inspect CSV, JSON, and text files without loading the whole file into model context.',
+      'Inspect CSV, JSON, text, and source files without loading the whole file into model context.',
       '',
       'Use this before `fs.read` when the user asks questions about attached or workspace data files.',
       'Artifact-first workflow: call `workspace_profile` before raw attachment reads, check /workspace/artifacts for existing processed JSON summaries, then inspect /workspace/attachments only if artifacts do not answer the question.',
@@ -52,15 +54,16 @@ export const inspectFileTool: Tool = {
       '- `search` - search within parsed rows, JSON values, or text lines.',
       '- `extract` - select CSV columns, a JSON path, or a text line range.',
       '- `aggregate` - CSV only: count, sum, avg, min, max with optional group_by.',
+      '- `structure` - source only: bounded declarations/imports for Python, JavaScript, TypeScript, or Go.',
       '',
-      'Supported day-one formats: csv, json, txt. Later: py/js/ts/go structure, then pdf/docx/xlsx.',
+      'Supported formats: csv, json, txt, py, js, ts, go. Later: pdf/docx/xlsx.',
     ].join('\n'),
     parameters: {
       type: 'object',
       properties: {
-        action: { type: 'string', enum: ['workspace_profile', 'profile', 'preview', 'search', 'extract', 'aggregate'] },
+        action: { type: 'string', enum: ['workspace_profile', 'profile', 'preview', 'search', 'extract', 'aggregate', 'structure'] },
         path: { type: 'string', description: 'Workspace-relative or /workspace/-prefixed path.' },
-        format: { type: 'string', enum: ['csv', 'json', 'txt'], description: 'Override format detection.' },
+        format: { type: 'string', enum: ['csv', 'json', 'txt', 'py', 'js', 'ts', 'go'], description: 'Override format detection.' },
         limit: { type: 'number', description: 'Max rows/records/lines to return. Default 10, max 100.' },
         query: { type: 'string', description: 'Search query for search or workspace_profile hints.' },
         columns: { type: 'array', items: { type: 'string' }, description: 'CSV columns to extract.' },
@@ -117,7 +120,7 @@ export const inspectFileTool: Tool = {
 
       const format = detectFormat(args, decoded.resp);
       if (!format) {
-        return `Error: unsupported file format for ${resp.path}. Supported: csv, json, txt.`;
+        return `Error: unsupported file format for ${resp.path}. Supported: csv, json, txt, py, js, ts, go.`;
       }
 
       switch (format) {
@@ -127,6 +130,11 @@ export const inspectFileTool: Tool = {
           return inspectJson(action, args, decoded.resp);
         case 'txt':
           return inspectText(action, args, decoded.resp);
+        case 'py':
+        case 'js':
+        case 'ts':
+        case 'go':
+          return inspectSource(action, args, decoded.resp, format);
       }
     } catch (err) {
       return describeBridgeError(err);
@@ -315,12 +323,142 @@ function inspectText(action: string, args: Record<string, unknown>, resp: Decode
 
 function detectFormat(args: Record<string, unknown>, resp: FsReadResp): InspectFormat | null {
   const explicit = strArg(args, 'format').toLowerCase();
-  if (explicit === 'csv' || explicit === 'json' || explicit === 'txt') return explicit;
+  if (['csv', 'json', 'txt', 'py', 'js', 'ts', 'go'].includes(explicit)) return explicit as InspectFormat;
   const path = resp.path.toLowerCase();
   const mime = resp.mime.toLowerCase();
   if (path.endsWith('.csv') || mime.includes('csv')) return 'csv';
   if (path.endsWith('.json') || mime.includes('json')) return 'json';
+  if (path.endsWith('.py') || mime.includes('python')) return 'py';
+  if (path.endsWith('.tsx') || path.endsWith('.ts') || mime.includes('typescript')) return 'ts';
+  if (path.endsWith('.jsx') || path.endsWith('.js') || mime.includes('javascript')) return 'js';
+  if (path.endsWith('.go') || mime.includes('x-go')) return 'go';
   if (path.endsWith('.txt') || mime.startsWith('text/')) return 'txt';
+  return null;
+}
+
+interface SourceSymbol {
+  line: number;
+  kind: string;
+  name: string;
+}
+
+function inspectSource(
+  action: string,
+  args: Record<string, unknown>,
+  resp: DecodedReadResp,
+  format: SourceFormat,
+): string {
+  const lines = splitLines(resp.content);
+  if (action === 'preview') return renderNumberedLines(lines.slice(0, limitArg(args)), 1);
+  if (action === 'search') return searchText(args, lines, limitArg(args));
+  if (action === 'extract') {
+    const start = Math.max(1, numberArg(args, 'start_line') ?? 1);
+    const end = Math.min(lines.length, numberArg(args, 'end_line') ?? Math.min(lines.length, start + limitArg(args) - 1));
+    if (end < start) return 'Error: `end_line` must be greater than or equal to `start_line`.';
+    return renderNumberedLines(lines.slice(start - 1, end), start);
+  }
+  if (action !== 'structure' && action !== 'profile') {
+    return `Error: action "${action}" is not supported for ${format} source. Use structure, profile, preview, search, or extract.`;
+  }
+
+  const symbols = sourceSymbols(lines, format);
+  const limit = Math.min(limitArg(args), MAX_SOURCE_SYMBOLS);
+  const shown = symbols.slice(0, limit);
+  return [
+    `path: ${resp.path}`,
+    `format: ${format}`,
+    `detected_encoding: ${resp.detectedEncoding}`,
+    `size: ${resp.size}`,
+    `lines: ${lines.length}`,
+    `symbols: ${symbols.length}`,
+    `showing: ${shown.length} of ${symbols.length}`,
+    '',
+    ...(shown.length > 0 ? shown.map(symbol => `${symbol.line}: ${symbol.kind} ${truncate(symbol.name, MAX_LINE_CHARS)}`) : ['(no supported declarations found)']),
+    ...(symbols.length > shown.length ? ['truncated: true'] : []),
+  ].join('\n');
+}
+
+function sourceSymbols(lines: string[], format: SourceFormat): SourceSymbol[] {
+  const symbols: SourceSymbol[] = [];
+  let inBlockComment = false;
+  let inGoImportBlock = false;
+  lines.forEach((rawLine, index) => {
+    let line = rawLine;
+    if (format !== 'py') {
+      if (inBlockComment) {
+        const end = line.indexOf('*/');
+        if (end < 0) return;
+        line = line.slice(end + 2);
+        inBlockComment = false;
+      }
+      const start = line.indexOf('/*');
+      if (start >= 0) {
+        const end = line.indexOf('*/', start + 2);
+        if (end < 0) {
+          line = line.slice(0, start);
+          inBlockComment = true;
+        } else {
+          line = `${line.slice(0, start)} ${line.slice(end + 2)}`;
+        }
+      }
+    }
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith(format === 'py' ? '#' : '//')) return;
+    if (format === 'go' && /^import\s*\($/.test(trimmed)) {
+      inGoImportBlock = true;
+      return;
+    }
+    if (inGoImportBlock) {
+      if (trimmed === ')') {
+        inGoImportBlock = false;
+        return;
+      }
+      const imported = /^(?:[A-Za-z_.][\w.]*\s+)?["`]([^"`]+)["`]/.exec(trimmed);
+      if (imported) symbols.push({ line: index + 1, kind: 'import', name: imported[1] });
+      return;
+    }
+    const match = matchSourceSymbol(trimmed, format);
+    if (match) symbols.push({ line: index + 1, ...match });
+  });
+  return symbols;
+}
+
+function matchSourceSymbol(line: string, format: SourceFormat): Omit<SourceSymbol, 'line'> | null {
+  let match: RegExpExecArray | null;
+  if (format === 'py') {
+    match = /^(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\(/.exec(line);
+    if (match) return { kind: 'function', name: match[1] };
+    match = /^class\s+([A-Za-z_]\w*)\b/.exec(line);
+    if (match) return { kind: 'class', name: match[1] };
+    match = /^from\s+([^\s;#]+)\s+import\s+([^;#]+)/.exec(line);
+    if (match) return { kind: 'import', name: `${match[1]}: ${match[2].trim()}` };
+    match = /^import\s+([^;#]+)/.exec(line);
+    if (match) return { kind: 'import', name: match[1].trim() };
+    return null;
+  }
+  if (format === 'go') {
+    match = /^package\s+([A-Za-z_]\w*)/.exec(line);
+    if (match) return { kind: 'package', name: match[1] };
+    match = /^func\s+(?:\([^)]*\)\s*)?([A-Za-z_]\w*)\s*\(/.exec(line);
+    if (match) return { kind: 'function', name: match[1] };
+    match = /^type\s+([A-Za-z_]\w*)\s+(struct|interface)\b/.exec(line);
+    if (match) return { kind: match[2], name: match[1] };
+    match = /^import\s+(?:[A-Za-z_.]\w*\s+)?["`]([^"`]+)["`]/.exec(line);
+    if (match) return { kind: 'import', name: match[1] };
+    return null;
+  }
+  match = /^(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/.exec(line);
+  if (match) return { kind: 'function', name: match[1] };
+  match = /^(?:export\s+)?(?:default\s+)?class\s+([A-Za-z_$][\w$]*)\b/.exec(line);
+  if (match) return { kind: 'class', name: match[1] };
+  if (format === 'ts') {
+    match = /^(?:export\s+)?(?:declare\s+)?(interface|type|enum|namespace)\s+([A-Za-z_$][\w$]*)\b/.exec(line);
+    if (match) return { kind: match[1], name: match[2] };
+  }
+  match = /^import\s+(?:type\s+)?(.+?)\s+from\s+["']([^"']+)["']/.exec(line);
+  if (match) return { kind: 'import', name: `${match[2]} (${match[1]})` };
+  match = /^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/.exec(line);
+  if (match) return { kind: 'function', name: match[1] };
   return null;
 }
 
@@ -572,7 +710,7 @@ function splitLines(content: string): string[] {
 function decodeReadResponse(resp: FsReadResp): { ok: true; resp: DecodedReadResp } | { ok: false; error: string } {
   const decoded = decodeFsRead(resp);
   if (decoded.kind === 'binary') {
-    return { ok: false, error: `${resp.path} is not a text file (${decoded.reason}); inspect_file only supports csv, json, txt.` };
+    return { ok: false, error: `${resp.path} is not a text file (${decoded.reason}); inspect_file supports csv, json, txt, py, js, ts, and go.` };
   }
   return { ok: true, resp: { ...resp, content: decoded.text, detectedEncoding: decoded.encoding } };
 }

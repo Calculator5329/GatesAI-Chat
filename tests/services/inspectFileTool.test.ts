@@ -198,6 +198,123 @@ describe('inspect_file tool', () => {
     expect(out).not.toContain('y'.repeat(700));
   });
 
+  it('summarizes TypeScript structure without returning implementation bodies', async () => {
+    const source = [
+      "import type { Tool } from './types';",
+      'export interface InspectResult { ok: boolean }',
+      'export type InspectMode = \'fast\' | \'full\';',
+      'export class Inspector {',
+      '  run() { return "private implementation"; }',
+      '}',
+      'export async function inspect(path: string) {',
+      '  return path;',
+      '}',
+      'export const summarize = (value: string) => value;',
+    ].join('\n');
+
+    const out = await inspectFileTool.execute(
+      { action: 'structure', path: 'src/inspect.ts', limit: 20 },
+      makeCtx(source, 'text/typescript'),
+    );
+
+    expect(out).toContain('format: ts');
+    expect(out).toContain("1: import ./types ({ Tool })");
+    expect(out).toContain('2: interface InspectResult');
+    expect(out).toContain('3: type InspectMode');
+    expect(out).toContain('4: class Inspector');
+    expect(out).toContain('7: function inspect');
+    expect(out).toContain('10: function summarize');
+    expect(out).not.toContain('private implementation');
+  });
+
+  it('summarizes Python and Go declarations with bounded output', async () => {
+    const python = [
+      'from pathlib import Path; print("must stay hidden")',
+      'class Indexer:',
+      '    def build(self):',
+      '        return Path(".")',
+      'async def refresh():',
+      '    pass',
+    ].join('\n');
+    const pyOut = await inspectFileTool.execute(
+      { action: 'structure', path: 'tools/indexer.py', limit: 2 },
+      makeCtx(python, 'text/x-python'),
+    );
+    expect(pyOut).toContain('format: py');
+    expect(pyOut).toContain('1: import pathlib: Path');
+    expect(pyOut).toContain('2: class Indexer');
+    expect(pyOut).toContain('truncated: true');
+    expect(pyOut).not.toContain('return Path');
+    expect(pyOut).not.toContain('must stay hidden');
+
+    const go = [
+      'package index',
+      'import "context"',
+      'type Store interface { Get() error }',
+      'func (s *store) Get(ctx context.Context) error { return nil }',
+    ].join('\n');
+    const goOut = await inspectFileTool.execute(
+      { action: 'profile', path: 'index/store.go' },
+      makeCtx(go, 'text/x-go'),
+    );
+    expect(goOut).toContain('format: go');
+    expect(goOut).toContain('1: package index');
+    expect(goOut).toContain('2: import context');
+    expect(goOut).toContain('3: interface Store');
+    expect(goOut).toContain('4: function Get');
+  });
+
+  it('recognizes grouped Go imports without exposing unrelated lines', async () => {
+    const source = [
+      'package main',
+      'import (',
+      '  "context"',
+      '  alias "example.com/project/pkg"',
+      ')',
+      'func main() {}',
+    ].join('\n');
+
+    const out = await inspectFileTool.execute(
+      { action: 'structure', path: 'cmd/main.go' },
+      makeCtx(source, 'text/x-go'),
+    );
+
+    expect(out).toContain('3: import context');
+    expect(out).toContain('4: import example.com/project/pkg');
+    expect(out).toContain('6: function main');
+  });
+
+  it('lists every supported format in unsupported-format errors', async () => {
+    const out = await inspectFileTool.execute(
+      { action: 'structure', path: 'attachments/archive.rb' },
+      makeCtx('class Archive; end', 'application/octet-stream'),
+    );
+
+    expect(out).toContain('Supported: csv, json, txt, py, js, ts, go.');
+  });
+
+  it('summarizes JavaScript declarations and ignores block-comment examples', async () => {
+    const source = [
+      '/* function fake() {} */',
+      "import { readFile } from 'node:fs';",
+      'export class Reader {}',
+      'export function load() { return readFile; }',
+      'export const normalize = value => String(value);',
+    ].join('\n');
+
+    const out = await inspectFileTool.execute(
+      { action: 'structure', path: 'src/reader.js' },
+      makeCtx(source, 'text/javascript'),
+    );
+
+    expect(out).toContain('format: js');
+    expect(out).toContain('2: import node:fs ({ readFile })');
+    expect(out).toContain('3: class Reader');
+    expect(out).toContain('4: function load');
+    expect(out).toContain('5: function normalize');
+    expect(out).not.toContain('fake');
+  });
+
   it('validates CSV aggregate columns', async () => {
     const csv = [
       'name,team,score',

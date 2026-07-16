@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-16 — Source structure inspection
+
+- Extended the read-only `inspect_file` tool with bounded structure summaries
+  for Python, JavaScript, TypeScript, and Go. Results list declaration/import
+  names and line numbers without returning implementation bodies; existing
+  preview, search, and line extraction remain available for source files.
+- Format detection uses workspace path/MIME metadata, output remains capped,
+  and no parser dependency, code execution, write, or network authority was
+  added.
+
 ## 2026-07-16 — Linux compatibility pair (A13)
 
 - NVIDIA + Wayland white-screen fixed in the app itself: Linux-only NVIDIA

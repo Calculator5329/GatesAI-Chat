@@ -676,7 +676,10 @@ composer quieter.
 
 ## Later
 - [ ] Multi-window / split-thread layouts
-- [ ] Extend `inspect_file` to source-code structure (`py`, `js`, `ts`, `go`)
+- [x] Extend `inspect_file` to source-code structure (`py`, `js`, `ts`, `go`)
+      — completed 2026-07-16 with bounded, read-only declaration/import
+      summaries plus preview/search/extract reuse; no parser dependency or
+      execution authority added.
 - [ ] Extend `inspect_file` to document formats (`pdf`, `docx`, `xlsx`)
 - [ ] Release pipeline: publish the macOS .dmg (+sig) as a stable public asset alongside win/linux — v4.6.1 shipped win+linux only (2026-07-14)
 - [ ] Adopt headless `@shadcn/react/message-scroller` (MIT, unstyled) to replace hand-rolled chat scroll logic — owns streamed-reply anchoring, thread restore, jump-to-message (we already patched one scroll-follow bug, LF-4). Keep GatesAI's own styles; also mirror shadcn's Marker slot pattern for tool-activity/streaming rows. Ref: https://ui.shadcn.com/docs/changelog/2026-06-chat-components (Ethan design-input packet, 2026-07-14)
