@@ -374,8 +374,10 @@ Chat persistence flow:
    `services/persistence.ts` and flushes synchronously on `pagehide` /
    `beforeunload`.
 3. `persistence.ts` writes a hot localStorage snapshot with
-   `schemaVersion: 2`. Raw migrations live in `persistence/migrations.ts`;
-   version 1 to 2 normalizes thinking-effort aliases.
+   `schemaVersion: 4`. Raw migrations live in `persistence/migrations.ts`;
+   v2 normalizes thinking-effort aliases, v3 canonicalizes message parts, and
+   v4 records whether a thread model was assigned automatically or selected
+   explicitly.
 4. If there are more than 20 full threads, or the serialized snapshot exceeds
    3,500,000 chars, older threads move to the IndexedDB archive
    `gatesai-chat` / object store `threads`; the localStorage snapshot keeps
@@ -397,6 +399,13 @@ Chat persistence flow:
    not create a missing database, delete, or compact archive records; permanent
    cleanup is owner-gated. Scans stop after 500 records and label larger totals
    as lower bounds so opening Usage cannot trigger an unbounded archive walk.
+
+On desktop without an OpenRouter key, a fresh empty thread starts with an
+automatic cloud placeholder only until Ollama discovery completes. The store
+may then reconcile that untouched thread to the best online local model. Model
+picker and workflow selections are marked explicit and never reconciled.
+Because schemas before v4 did not retain provenance, migration treats every
+existing thread as explicit rather than risk changing a prior user choice.
 
 Secrets:
 

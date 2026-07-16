@@ -67,6 +67,7 @@ describe('persistence', () => {
       threads: [{
         id: 't1', title: 'hi', subtitle: '', pinned: false,
         modelId: 'or-gpt-5.4-mini',
+        modelSelection: 'explicit' as const,
         skillId: 'code-reviewer',
         createdAt: 1, updatedAt: 2,
         messages: [{ id: 'm1', role: 'user' as const, parts: [{ type: 'text' as const, text: 'yo' }], createdAt: 3 }],
@@ -275,6 +276,23 @@ describe('persistence', () => {
 
     expect(loaded?.schemaVersion).toBe(CURRENT_CHAT_SCHEMA_VERSION);
     expect(loaded?.threads.map(thread => thread.thinkingEffort)).toEqual(['low', 'high']);
+  });
+
+  it('migrates v3 model choices conservatively so delayed local discovery cannot overwrite them', () => {
+    localStorage.setItem('gatesai.state.v1', JSON.stringify({
+      schemaVersion: 3,
+      threads: [{
+        id: 't-explicit-default', title: 'Keep my model', subtitle: '', pinned: false,
+        modelId: 'or-nemotron-3-ultra-free', createdAt: 1, updatedAt: 2,
+        messages: [],
+      }],
+      activeThreadId: 't-explicit-default',
+    }));
+
+    const loaded = loadSnapshot();
+
+    expect(loaded?.schemaVersion).toBe(CURRENT_CHAT_SCHEMA_VERSION);
+    expect(loaded?.threads[0].modelSelection).toBe('explicit');
   });
 
   it('notifies listeners when an emergency compaction save succeeds', () => {

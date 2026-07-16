@@ -2,7 +2,7 @@
 // Called before shape parsing so legacy values can be normalized without
 // teaching every parser branch about every historical spelling.
 
-export const CURRENT_CHAT_SCHEMA_VERSION = 3;
+export const CURRENT_CHAT_SCHEMA_VERSION = 4;
 
 export interface RawChatSnapshotMigration {
   from: number;
@@ -24,6 +24,11 @@ export const chatSnapshotMigrations: RawChatSnapshotMigration[] = [
     from: 2,
     to: 3,
     migrate: migrateMessagesToContentParts,
+  },
+  {
+    from: 3,
+    to: 4,
+    migrate: migrateModelSelectionProvenance,
   },
 ];
 
@@ -80,6 +85,29 @@ function migrateMessagesToContentParts(snapshot: unknown): unknown {
   return {
     ...snapshot,
     schemaVersion: 3,
+    ...(Array.isArray(snapshot.threads) ? { threads } : {}),
+  };
+}
+
+/**
+ * Schema v3 cannot distinguish an untouched default from a deliberate model
+ * choice. Preserve existing chats conservatively: only fresh v4 threads may
+ * be auto-reconciled when a local runtime appears after first paint.
+ */
+function migrateModelSelectionProvenance(snapshot: unknown): unknown {
+  if (!isRecord(snapshot)) return snapshot;
+  const threads = Array.isArray(snapshot.threads)
+    ? snapshot.threads.map(thread => {
+      if (!isRecord(thread)) return thread;
+      const modelSelection = thread.modelSelection === 'automatic' || thread.modelSelection === 'explicit'
+        ? thread.modelSelection
+        : 'explicit';
+      return { ...thread, modelSelection };
+    })
+    : snapshot.threads;
+  return {
+    ...snapshot,
+    schemaVersion: 4,
     ...(Array.isArray(snapshot.threads) ? { threads } : {}),
   };
 }
