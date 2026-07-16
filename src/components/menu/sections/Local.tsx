@@ -9,19 +9,16 @@ import type { LocalRuntimeId, RuntimeState } from '../../../stores/LocalRuntimeS
 import { Button, Card, Input, Pill, Select, SettingsRow, Toggle, SecretKeyField } from '../../ui';
 import { ProviderAvatar } from './api/ProviderAvatar';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
-import { isTauri } from '../../../core/runtime';
+import { hasDesktopRuntime } from '../../../core/runtime';
 
 export const LocalSection = observer(function LocalSection() {
   const local = useLocalRuntimeStore();
   const bridge = useBridgeStore();
   const [logRuntime, setLogRuntime] = useState<LocalRuntimeId | null>(null);
-  // Managed local runtimes only exist inside the Tauri desktop shell. In any
-  // browser context (hosted Web Lite *or* `npm run dev`) `isTauri()` is false,
-  // so we must never touch localRuntimeService here — its calls throw
-  // "Cannot ... outside the GatesAI desktop app." Gate on the real desktop
-  // check, not `isWebLite()` (which is only true for the firebase web build
-  // and would let the dev browser fall through and crash).
-  const desktop = isTauri();
+  // Managed local runtimes only exist inside the Tauri desktop shell. The
+  // semantic runtime capability check keeps both Web Lite and an ordinary dev
+  // browser away from localRuntimeService, whose desktop-only calls throw.
+  const desktop = hasDesktopRuntime();
 
   // Eagerly refresh both runtimes on first paint so we don't show stale
   // 'stopped' chips while the underlying service is actually online.

@@ -8,6 +8,11 @@ export function isTauri(): boolean {
     && typeof (window as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ !== 'undefined';
 }
 
+/** True only when desktop-only Tauri capabilities are actually available. */
+export function hasDesktopRuntime(): boolean {
+  return runtimeMode() === 'desktop' && isTauri();
+}
+
 export function runtimeMode(): GatesRuntimeMode {
   if (typeof window === 'undefined') return 'headless';
   return import.meta.env.VITE_GATESAI_WEB === '1' ? 'web-lite' : 'desktop';
