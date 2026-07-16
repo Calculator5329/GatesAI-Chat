@@ -9,6 +9,7 @@ import { FileExplorerPanel } from '../../../src/components/dock/FileExplorerPane
 import { MediaViewerPanel } from '../../../src/components/dock/MediaViewerPanel';
 import { OfflineLibraryPanel } from '../../../src/components/dock/OfflineLibraryPanel';
 import { HtmlArtifactPanel } from '../../../src/components/dock/HtmlArtifactPanel';
+import { TaskCenterPanel } from '../../../src/components/dock/TaskCenterPanel';
 
 describe('dock panelRegistry', () => {
   it('resolves the file viewer definition', () => {
@@ -53,9 +54,16 @@ describe('dock panelRegistry', () => {
     expect(def?.requiresBridge).toBe(false);
   });
 
+  it('resolves the bridge-independent task center panel', () => {
+    const def = getDockPanelDefinition('task-center');
+    expect(def?.title).toBe('Task center');
+    expect(def?.Component).toBe(TaskCenterPanel);
+    expect(def?.requiresBridge).toBe(false);
+  });
+
   it('lists every registered panel', () => {
     const kinds = listDockPanelDefinitions().map(def => def.kind);
-    expect(kinds).toEqual(['file-viewer', 'file-explorer', 'media-viewer', 'html-artifact', 'offline-library']);
+    expect(kinds).toEqual(['file-viewer', 'file-explorer', 'media-viewer', 'html-artifact', 'offline-library', 'task-center']);
   });
 
   it('titles a cell by file name when a path is present, else by panel title', () => {
@@ -64,5 +72,6 @@ describe('dock panelRegistry', () => {
     expect(dockCellTitle({ kind: 'file-explorer', params: { path: '/workspace' } })).toBe('File explorer');
     expect(dockCellTitle({ kind: 'offline-library', params: {} })).toBe('Knowledge benchmarks');
     expect(dockCellTitle({ kind: 'html-artifact', params: { id: 'demo-1' } })).toBe('HTML artifact');
+    expect(dockCellTitle({ kind: 'task-center', params: {} })).toBe('Task center');
   });
 });

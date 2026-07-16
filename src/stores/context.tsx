@@ -15,6 +15,7 @@ import type { UserProfileStore } from './UserProfileStore';
 import type { BridgeStore } from './BridgeStore';
 import type { ImageGenStore } from './ImageGenStore';
 import type { ImageJobStore } from './ImageJobStore';
+import type { TaskStore } from './TaskStore';
 import type { OllamaStore } from './OllamaStore';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
 import type { SearchStore } from './SearchStore';
@@ -87,6 +88,10 @@ export function useImageGenStore(): ImageGenStore {
 
 export function useImageJobStore(): ImageJobStore {
   return useRootStore().imageJobs;
+}
+
+export function useTaskStore(): TaskStore {
+  return useRootStore().tasks;
 }
 
 export function useOllamaStore(): OllamaStore {

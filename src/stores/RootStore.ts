@@ -20,6 +20,7 @@ import { ExecStreamStore } from './ExecStreamStore';
 import { UpdateStore } from './UpdateStore';
 import { ImageGenStore } from './ImageGenStore';
 import { ImageJobStore } from './ImageJobStore';
+import { TaskStore } from './TaskStore';
 import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { SearchStore } from './SearchStore';
 import { McpStore } from './McpStore';
@@ -71,6 +72,7 @@ export class RootStore {
   readonly execStream: ExecStreamStore;
   readonly imageGen: ImageGenStore;
   readonly imageJobs: ImageJobStore;
+  readonly tasks: TaskStore;
   readonly localRuntime: LocalRuntimeStore;
   readonly search: SearchStore;
   readonly mcp: McpStore;
@@ -152,6 +154,7 @@ export class RootStore {
       imageGen: this.imageGen,
       onTerminal: job => this.chat.notifyImageJobTerminal(job),
     });
+    this.tasks = new TaskStore(this.imageJobs, this.chat);
 
     // Cross-thread awareness: ChatStore asks SummaryStore for the digest
     // list every time it composes a system prompt. Wiring is one-way

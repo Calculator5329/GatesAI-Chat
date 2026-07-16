@@ -10,6 +10,7 @@ import { FileExplorerPanel } from './FileExplorerPanel';
 import { MediaViewerPanel } from './MediaViewerPanel';
 import { OfflineLibraryPanel } from './OfflineLibraryPanel';
 import { HtmlArtifactPanel } from './HtmlArtifactPanel';
+import { TaskCenterPanel } from './TaskCenterPanel';
 
 export interface DockPanelProps {
   params: DockPanelRef['params'];
@@ -59,6 +60,13 @@ const PANELS: Record<DockPanelKind, DockPanelDefinition> = {
     title: 'Knowledge benchmarks',
     icon: () => <Icons.Brain />,
     Component: OfflineLibraryPanel,
+    requiresBridge: false,
+  },
+  'task-center': {
+    kind: 'task-center',
+    title: 'Task center',
+    icon: () => <Icons.Clock />,
+    Component: TaskCenterPanel,
     requiresBridge: false,
   },
 };

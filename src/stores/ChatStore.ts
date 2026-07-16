@@ -644,6 +644,55 @@ export class ChatStore {
     };
   }
 
+  /** Cancel a scheduled or running background-agent task from shared task UI. */
+  cancelAgentTask(threadId: string): boolean {
+    const thread = this.findThread(threadId);
+    if (
+      !thread
+      || thread.deletedAt != null
+      || thread.agentTask !== true
+      || (thread.agentTaskStatus !== 'scheduled' && thread.agentTaskStatus !== 'running')
+    ) return false;
+    const originThreadId = thread.agentTaskOriginThreadId;
+    if (!originThreadId) return false;
+    const title = displayAgentTaskTitle(thread.title);
+    this.cancelScheduledAgentTask(threadId);
+    this.interruptThread(threadId);
+    this.finalizeAgentTask(threadId, originThreadId, title, 'interrupted');
+    return true;
+  }
+
+  /** Retry a failed/interrupted agent task in its existing linked thread. */
+  retryAgentTask(threadId: string): boolean {
+    const thread = this.findThread(threadId);
+    if (
+      !thread
+      || thread.deletedAt != null
+      || thread.agentTask !== true
+      || (thread.agentTaskStatus !== 'error' && thread.agentTaskStatus !== 'interrupted')
+      || this.runningAgentTaskCount() >= MAX_CONCURRENT_AGENT_TASKS
+    ) return false;
+    const initialPrompt = thread.messages.find(message => message.role === 'user');
+    if (!initialPrompt) return false;
+    runInAction(() => {
+      thread.messages = [initialPrompt];
+      thread.updatedAt = Date.now();
+      delete this.lastErrorByThread[thread.id];
+      const origin = this.findThread(thread.agentTaskOriginThreadId ?? '');
+      if (origin) {
+        for (const message of origin.messages) {
+          if (message.role !== 'assistant' || !message.activityEvents) continue;
+          message.activityEvents = message.activityEvents.filter(event =>
+            event.kind !== 'agent-task' || event.linkThreadId !== thread.id
+          );
+        }
+      }
+    });
+    this.startAgentTaskTurn(thread.id);
+    this.schedulePersistSnapshot(this.snapshot);
+    return true;
+  }
+
   setThreadModel(threadId: string, modelId: string): void {
     this.updateThread(threadId, () => ({ modelId }));
   }
@@ -1282,7 +1331,11 @@ export class ChatStore {
   ): void {
     runInAction(() => {
       const thread = this.findThread(threadId);
-      if (!thread || thread.agentTask !== true || thread.agentTaskStatus !== 'running') return;
+      if (
+        !thread
+        || thread.agentTask !== true
+        || (thread.agentTaskStatus !== 'running' && thread.agentTaskStatus !== 'scheduled')
+      ) return;
       thread.agentTaskStatus = status;
       thread.updatedAt = Date.now();
       const summary = summarizeAgentTaskThread(thread, status, errorMessage);
