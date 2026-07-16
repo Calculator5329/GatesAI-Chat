@@ -12,6 +12,8 @@ import { ImageGenStore } from '../../../src/stores/ImageGenStore';
 import { GatesMenu } from '../../../src/components/menu/GatesMenu';
 import type { RootStore } from '../../../src/stores/RootStore';
 import type { MenuSectionKey } from '../../../src/core/types';
+import { setThreadArchiveStoreForTests } from '../../../src/services/persistence';
+import type { ThreadArchiveStore } from '../../../src/services/persistence/idb';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -143,6 +145,7 @@ afterEach(() => {
   host?.remove();
   host = null;
   while (builtStores.length > 0) builtStores.pop()?.ui.dispose();
+  setThreadArchiveStoreForTests(undefined);
 });
 
 describe('GatesMenu tab strip', () => {
@@ -172,6 +175,13 @@ describe('GatesMenu tab strip', () => {
 
   it('renders the real Usage section from message usage', async () => {
     await preloadUsageSection();
+    const archiveStore: ThreadArchiveStore = {
+      getThread: async () => null,
+      usage: async () => ({ entries: 500, bytes: 2048, truncated: true }),
+      putThread: async () => undefined,
+      deleteThread: async () => undefined,
+    };
+    setThreadArchiveStoreForTests(archiveStore);
     const { store } = buildStore('usage');
     (store.chat as unknown as { threads: unknown[] }).threads = [{
       id: 't1',
@@ -204,6 +214,11 @@ describe('GatesMenu tab strip', () => {
     expect(rendered.textContent).toContain('Usage');
     expect(rendered.textContent).toContain('$0.0042');
     expect(rendered.textContent).toContain('Gemini 3 Flash');
+    expect(rendered.textContent).toContain('Local storage');
+    expect(rendered.textContent).toContain('App data');
+    expect(rendered.textContent).toContain('Thread archive');
+    expect(rendered.textContent).toContain('at least 2.0 KB · 500+ archived threads');
+    expect(rendered.textContent).toContain('does not delete or compact data');
   });
 
   it('renders local-led Usage with local cost rows', async () => {
@@ -241,6 +256,7 @@ describe('GatesMenu tab strip', () => {
     expect(rendered.textContent).toContain('Requests');
     expect(rendered.textContent).toContain('local');
     expect(rendered.textContent).not.toContain('$0.00local');
+    expect(rendered.textContent).toContain('Unavailable');
   });
 
   it('does not render the retired Appearance tab', async () => {

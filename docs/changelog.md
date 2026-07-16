@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-16 — Read-only local storage totals
+
+- Usage now shows byte totals for browser-local app slots and the IndexedDB
+  archived-thread tier, including active-slot and archived-thread counts.
+- The inspection path is deliberately read-only. Automatic IDB compaction
+  remains deferred because workspace policy requires an explicit owner decision
+  before permanently deleting orphaned archive records.
+- Archive inspection aborts rather than creating a missing database and scans
+  at most 500 records per view; larger totals are labeled as lower bounds.
+
 ## 2026-07-16 — Source structure inspection
 
 - Extended the read-only `inspect_file` tool with bounded structure summaries
