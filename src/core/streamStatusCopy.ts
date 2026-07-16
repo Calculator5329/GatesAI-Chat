@@ -1,4 +1,4 @@
-import type { AssistantMessage, StreamActivity } from '../../core/types';
+import type { AssistantMessage, StreamActivity } from './types';
 
 export interface StreamStatusCopyArgs {
   phase: StreamActivity['phase'];
@@ -10,6 +10,7 @@ export interface StreamStatusCopyArgs {
 
 export interface StreamStatusCopy {
   verb: string;
+  footer: string;
   stallReason?: string;
 }
 
@@ -27,6 +28,7 @@ function localStreamStatusCopy(args: StreamStatusCopyArgs): StreamStatusCopy {
   if (args.phase === 'stalled') {
     return {
       verb: 'Local model paused',
+      footer: 'local model paused',
       stallReason: args.idleSeconds == null
         ? 'The local runtime stopped sending data, so GatesAI stopped the stalled stream.'
         : `The local runtime sent no data for ${args.idleSeconds}s, so GatesAI stopped the stalled stream.`,
@@ -34,26 +36,32 @@ function localStreamStatusCopy(args: StreamStatusCopyArgs): StreamStatusCopy {
   }
   if (args.phase === 'connecting') {
     const model = args.providerModelId?.trim();
-    return { verb: model ? `Loading ${model} locally` : 'Warming up local model' };
+    return {
+      verb: model ? `Loading ${model} locally` : 'Warming up local model',
+      footer: model ? `loading ${model} locally...` : 'warming up local model...',
+    };
   }
-  if (args.preTokenLabel === 'responding') return { verb: 'Responding' };
-  if (args.preTokenLabel === 'compacting') return { verb: 'Compacting' };
-  if (args.preTokenLabel === 'generating') return { verb: 'Generating' };
-  return { verb: 'Streaming locally' };
+  if (args.phase === 'tooling') return { verb: 'Running tools', footer: 'running tools...' };
+  if (args.preTokenLabel === 'responding') return { verb: 'Responding', footer: 'responding locally...' };
+  if (args.preTokenLabel === 'compacting') return { verb: 'Compacting', footer: 'compacting locally...' };
+  if (args.preTokenLabel === 'generating') return { verb: 'Generating', footer: 'generating locally...' };
+  return { verb: 'Streaming locally', footer: 'streaming locally...' };
 }
 
 function remoteStreamStatusCopy(args: StreamStatusCopyArgs): StreamStatusCopy {
   if (args.phase === 'stalled') {
     return {
       verb: 'Provider stalled',
+      footer: 'provider stalled',
       stallReason: args.idleSeconds == null
         ? 'The provider stopped sending data, so GatesAI stopped the stalled stream.'
         : `No provider data arrived for ${args.idleSeconds}s, so GatesAI stopped the stalled stream.`,
     };
   }
-  if (args.phase === 'connecting') return { verb: 'Waiting for provider' };
-  if (args.preTokenLabel === 'responding') return { verb: 'Responding' };
-  if (args.preTokenLabel === 'compacting') return { verb: 'Compacting' };
-  if (args.preTokenLabel === 'generating') return { verb: 'Generating' };
-  return { verb: 'Streaming' };
+  if (args.phase === 'connecting') return { verb: 'Waiting for provider', footer: 'waiting for provider...' };
+  if (args.phase === 'tooling') return { verb: 'Running tools', footer: 'running tools...' };
+  if (args.preTokenLabel === 'responding') return { verb: 'Responding', footer: 'responding...' };
+  if (args.preTokenLabel === 'compacting') return { verb: 'Compacting', footer: 'compacting...' };
+  if (args.preTokenLabel === 'generating') return { verb: 'Generating', footer: 'generating...' };
+  return { verb: 'Streaming', footer: 'streaming...' };
 }
