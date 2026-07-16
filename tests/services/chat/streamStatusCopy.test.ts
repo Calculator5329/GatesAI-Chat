@@ -32,11 +32,19 @@ describe('streamStatusCopy', () => {
     });
   });
 
-  it('does not guess that an OpenAI-compatible endpoint is local', () => {
+  it('uses provider-neutral copy when an OpenAI-compatible endpoint may be local or remote', () => {
     expect(isLocalStreamProvider('ollama')).toBe(true);
     expect(isLocalStreamProvider('local-image')).toBe(true);
     expect(isLocalStreamProvider('openai-compat')).toBe(false);
-    expect(streamStatusCopy({ phase: 'connecting', providerId: 'openai-compat' }).verb).toBe('Waiting for provider');
+    const connecting = streamStatusCopy({ phase: 'connecting', providerId: 'openai-compat' });
+    const stalled = streamStatusCopy({ phase: 'stalled', providerId: 'openai-compat', idleSeconds: 180 });
+    expect(connecting).toEqual({ verb: 'Waiting for model', footer: 'waiting for model...' });
+    expect(stalled).toEqual({
+      verb: 'Model paused',
+      footer: 'model paused',
+      stallReason: 'No model data arrived for 180s, so GatesAI stopped the stalled stream.',
+    });
+    expect(`${connecting.verb} ${stalled.verb} ${stalled.stallReason}`).not.toMatch(/provider/i);
   });
 
   it('keeps pre-token activity labels provider-neutral', () => {

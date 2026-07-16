@@ -277,8 +277,8 @@ Semantics:
   stalled outcome for `TurnRunner` to format as an error.
 - Activity and composer stream-status copy is centralized in
   `core/streamStatusCopy.ts` and is aware of runtime kind. Ollama and explicit
-  `local-*` IDs use local wording; ambiguous OpenAI-compatible endpoints retain
-  remote/neutral wording until their runtime location is known.
+  `local-*` IDs use local wording; ambiguous OpenAI-compatible endpoints use
+  provider-neutral model wording until their runtime location is known.
 - Abort: user stop/thread switch aborts the turn signal. Provider attempts,
   retry delays, and unfinished tool calls observe that signal; unexecuted tool
   calls become cancelled results.

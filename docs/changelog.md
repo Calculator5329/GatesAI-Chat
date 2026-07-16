@@ -55,7 +55,8 @@
   helper. Ollama and explicit local runtimes now say they are loading or
   streaming locally and report local-runtime stalls without provider wording.
 - Preserved existing remote-provider messaging and deliberately avoided
-  guessing whether user-configured OpenAI-compatible endpoints are local.
+  guessing whether user-configured OpenAI-compatible endpoints are local;
+  those ambiguous endpoints use provider-neutral model wording.
 - Pinned the image-card boundary with local-versus-remote rendering coverage:
   provider-wait copy is remote OpenRouter-only, while local ComfyUI progress
   stays locally framed.
