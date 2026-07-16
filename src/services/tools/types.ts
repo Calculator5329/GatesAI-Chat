@@ -191,6 +191,21 @@ export interface SourceWorkspaceFacade {
   refreshRuntimeContext?(): Promise<void>;
 }
 
+export interface ArtifactValidationFacade {
+  smokeRender(html: string, options?: { signal?: AbortSignal }): Promise<{
+    ok: boolean;
+    errors: string[];
+  }>;
+}
+
+export interface ArtifactRegistryFacade {
+  refresh(): Promise<void>;
+}
+
+export interface ArtifactSurfaceFacade {
+  openArtifact(id: string, cell?: 0 | 1): void;
+}
+
 export interface ToolContext {
   profile: ProfileFacade;
   chat: ChatFacade;
@@ -206,6 +221,9 @@ export interface ToolContext {
   rag?: RagFacade;
   sourceWorkspace?: SourceWorkspaceFacade;
   offlineLibrary?: OfflineLibraryFacade;
+  artifactValidation?: ArtifactValidationFacade;
+  artifacts?: ArtifactRegistryFacade;
+  artifactSurface?: ArtifactSurfaceFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;
   /** The provider tool-call id that triggered this execution. */

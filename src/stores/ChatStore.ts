@@ -81,6 +81,7 @@ import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import type { UserProfileStore } from './UserProfileStore';
 import { appendSkillInstructionsToSystemPrompt, type WorkspaceSkill } from '../services/skills/skillsService';
+import { appendArtifactContractPrompt } from '../services/prompts/artifactContract';
 import type { BridgeClientFacade } from '../services/tools/types';
 import type { CompletedJob } from '../services/image/jobs/types';
 import { createWelcomeTourThread, WELCOME_TOUR_THREAD_ID } from '../tourThread';
@@ -484,13 +485,16 @@ export class ChatStore {
       toolAllowlist: this.activeSkillProvider?.(thread.id)?.tools,
     });
     const activeSkill = this.activeSkillProvider?.(thread.id);
-    const systemPrompt = appendSkillInstructionsToSystemPrompt(systemPromptForContextMode(mode, () =>
-      this.profile.composeSystemPrompt({
+    const systemPrompt = appendArtifactContractPrompt(
+      appendSkillInstructionsToSystemPrompt(systemPromptForContextMode(mode, () =>
+        this.profile.composeSystemPrompt({
           runtimeContext: buildRuntimeContext({ bridge }),
           threadContext: mode === 'full' ? thread.threadContext : undefined,
           recentSummaries: mode === 'full' ? this.recentSummariesProvider?.() ?? [] : [],
         })
-    ), activeSkill);
+      ), activeSkill),
+      tools,
+    );
     const baseUsed = estimateLlmPayloadTokens({
       systemPrompt,
       messages: wireMessagesForContextMode(thread, mode),

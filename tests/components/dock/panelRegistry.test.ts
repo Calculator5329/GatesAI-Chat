@@ -8,6 +8,7 @@ import { FileViewerPanel } from '../../../src/components/dock/FileViewerPanel';
 import { FileExplorerPanel } from '../../../src/components/dock/FileExplorerPanel';
 import { MediaViewerPanel } from '../../../src/components/dock/MediaViewerPanel';
 import { OfflineLibraryPanel } from '../../../src/components/dock/OfflineLibraryPanel';
+import { HtmlArtifactPanel } from '../../../src/components/dock/HtmlArtifactPanel';
 
 describe('dock panelRegistry', () => {
   it('resolves the file viewer definition', () => {
@@ -33,6 +34,13 @@ describe('dock panelRegistry', () => {
     expect(def?.requiresBridge).toBe(true);
   });
 
+  it('resolves the registry-backed HTML artifact panel', () => {
+    const def = getDockPanelDefinition('html-artifact');
+    expect(def?.title).toBe('HTML artifact');
+    expect(def?.Component).toBe(HtmlArtifactPanel);
+    expect(def?.requiresBridge).toBe(true);
+  });
+
   it('returns undefined for unknown kinds', () => {
     expect(getDockPanelDefinition('terminal')).toBeUndefined();
     expect(getDockPanelDefinition('')).toBeUndefined();
@@ -47,7 +55,7 @@ describe('dock panelRegistry', () => {
 
   it('lists every registered panel', () => {
     const kinds = listDockPanelDefinitions().map(def => def.kind);
-    expect(kinds).toEqual(['file-viewer', 'file-explorer', 'media-viewer', 'offline-library']);
+    expect(kinds).toEqual(['file-viewer', 'file-explorer', 'media-viewer', 'html-artifact', 'offline-library']);
   });
 
   it('titles a cell by file name when a path is present, else by panel title', () => {
@@ -55,5 +63,6 @@ describe('dock panelRegistry', () => {
     expect(dockCellTitle({ kind: 'media-viewer', params: {} })).toBe('Media viewer');
     expect(dockCellTitle({ kind: 'file-explorer', params: { path: '/workspace' } })).toBe('File explorer');
     expect(dockCellTitle({ kind: 'offline-library', params: {} })).toBe('Knowledge benchmarks');
+    expect(dockCellTitle({ kind: 'html-artifact', params: { id: 'demo-1' } })).toBe('HTML artifact');
   });
 });

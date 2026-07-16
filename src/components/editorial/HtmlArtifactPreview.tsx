@@ -4,11 +4,13 @@
 // Rendered by the markdown layer.
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  applyHtmlArtifactDocumentPolicy,
+  HTML_ARTIFACT_IFRAME_SANDBOX,
+} from '../../core/htmlArtifactPolicy';
 import { isHtmlWorkspacePath } from '../../core/workspacePaths';
 import { useEditorial } from '../../stores/context';
 import type { HtmlArtifactPreviewResult } from '../../stores/BridgeStore';
-
-const HTML_SANDBOX = 'allow-scripts allow-forms allow-popups allow-downloads';
 
 type HtmlLoadState = { status: 'loading' } | HtmlArtifactPreviewResult;
 
@@ -25,7 +27,7 @@ export function InlineHtmlDocument({ html }: { html: string }) {
       <iframe
         title="HTML code preview"
         src={previewDocument.url}
-        sandbox={HTML_SANDBOX}
+        sandbox={HTML_ARTIFACT_IFRAME_SANDBOX}
       />
     </div>
   );
@@ -44,7 +46,7 @@ export function openHtmlDocument(html: string): void {
 }
 
 export function downloadHtmlDocument(html: string, filename = 'artifact.html'): void {
-  const previewDocument = createPreviewDocumentUrl(html);
+  const previewDocument = createDownloadDocumentUrl(html);
   const anchor = document.createElement('a');
   anchor.href = previewDocument.url;
   anchor.download = filename;
@@ -139,7 +141,7 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
             <iframe
               title={`Preview of ${name}`}
               src={previewDocument?.url}
-              sandbox={HTML_SANDBOX}
+              sandbox={HTML_ARTIFACT_IFRAME_SANDBOX}
               loading="lazy"
             />
           ) : state.status === 'ready' ? (
@@ -208,13 +210,21 @@ function HtmlArtifactFullscreen({
       <iframe
         title={`Fullscreen preview of ${name}`}
         src={previewDocument.url}
-        sandbox={HTML_SANDBOX}
+        sandbox={HTML_ARTIFACT_IFRAME_SANDBOX}
       />
     </div>
   );
 }
 
 function createPreviewDocumentUrl(html: string): PreviewDocumentUrl {
+  return createDocumentUrl(applyHtmlArtifactDocumentPolicy(html));
+}
+
+function createDownloadDocumentUrl(html: string): PreviewDocumentUrl {
+  return createDocumentUrl(html);
+}
+
+function createDocumentUrl(html: string): PreviewDocumentUrl {
   if (
     typeof Blob !== 'undefined'
     && typeof URL !== 'undefined'
@@ -235,6 +245,7 @@ function fileNameFromPath(path: string): string {
 // Cache/pipeline test hooks live in services/bridge/artifactPreview
 // (__artifactPreviewTestApi); this covers the component-level bits.
 export const __htmlArtifactPreviewTestApi = {
-  sandbox: HTML_SANDBOX,
+  sandbox: HTML_ARTIFACT_IFRAME_SANDBOX,
   createPreviewDocumentUrl,
+  createDownloadDocumentUrl,
 };

@@ -108,6 +108,25 @@ afterEach(() => {
 });
 
 describe('HtmlArtifactPreview', () => {
+  it('applies the preview CSP without modifying downloaded artifact content', () => {
+    const source = '<html><body>portable</body></html>';
+    const preview = __htmlArtifactPreviewTestApi.createPreviewDocumentUrl(source).url;
+    const download = __htmlArtifactPreviewTestApi.createDownloadDocumentUrl(source).url;
+
+    expect(decodeURIComponent(preview.split(',', 2)[1] ?? '')).toContain('Content-Security-Policy');
+    expect(decodeURIComponent(download.split(',', 2)[1] ?? '')).toBe(source);
+  });
+
+  it('places preview policy before scripts when source contains a head decoy', () => {
+    const source = '<!-- <head> decoy --><html><head><script>fetch("https://example.com")</script></head><body>x</body></html>';
+    const preview = __htmlArtifactPreviewTestApi.createPreviewDocumentUrl(source).url;
+    const rendered = decodeURIComponent(preview.split(',', 2)[1] ?? '');
+    const doc = new DOMParser().parseFromString(rendered, 'text/html');
+
+    expect(doc.head.firstElementChild?.getAttribute('http-equiv')).toBe('Content-Security-Policy');
+    expect(doc.head.querySelector('script')?.textContent).toContain('fetch("https://example.com")');
+  });
+
   it('reads HTML through fs.stat and fs.read, then renders a sandboxed document preview', async () => {
     const bridge = onlineBridge();
     const rendered = renderPreview(bridge);
@@ -220,7 +239,7 @@ describe('HtmlArtifactPreview', () => {
     expect(rendered.querySelector('iframe')).toBeNull();
   });
 
-  it('shows a fallback for HTML files over 2 MB', async () => {
+  it('shows a fallback for HTML files over 1 MB', async () => {
     const bridge = onlineBridge({ stat: { size: 2 * 1024 * 1024 + 1 } });
     const rendered = renderPreview(bridge);
 
@@ -228,7 +247,7 @@ describe('HtmlArtifactPreview', () => {
       await flushMicrotasks();
     });
 
-    expect(rendered.textContent).toContain('over 2 MB');
+    expect(rendered.textContent).toContain('over 1 MB');
     expect(bridge.client.request).toHaveBeenCalledTimes(1);
   });
 

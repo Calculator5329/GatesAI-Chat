@@ -21,9 +21,13 @@ function parseCell(value: unknown): DockPanelRef | null {
   if (!isDockPanelKind(cell.kind)) return null;
   const params = cell.params && typeof cell.params === 'object' ? cell.params : {};
   const path = (params as { path?: unknown }).path;
+  const id = (params as { id?: unknown }).id;
   return {
     kind: cell.kind,
-    params: typeof path === 'string' && path.length > 0 ? { path } : {},
+    params: {
+      ...(typeof path === 'string' && path.length > 0 ? { path } : {}),
+      ...(typeof id === 'string' && id.length > 0 ? { id } : {}),
+    },
   };
 }
 

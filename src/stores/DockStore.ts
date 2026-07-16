@@ -122,6 +122,13 @@ export class DockStore {
     this.openPanel(dockPanelKindForPath(trimmed), { path: trimmed }, cell);
   }
 
+  /** Open a stable registry artifact in the dedicated HTML panel. */
+  openArtifact(id: string, cell?: 0 | 1): void {
+    const trimmed = id.trim();
+    if (!trimmed) return;
+    this.openPanel('html-artifact', { id: trimmed }, cell);
+  }
+
   closeCell(index: 0 | 1): void {
     this.cells[index] = null;
     // Keep the single remaining panel in cell 0 so the layout stays simple.

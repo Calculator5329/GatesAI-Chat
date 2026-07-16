@@ -4,6 +4,7 @@
 import { autorun, reaction, runInAction } from 'mobx';
 import { ChatStore } from './ChatStore';
 import { DockStore } from './DockStore';
+import { ArtifactStore } from './ArtifactStore';
 import { UiStore } from './UiStore';
 import { ProviderStore } from './ProviderStore';
 import { RouterStore } from './RouterStore';
@@ -58,6 +59,7 @@ export class RootStore {
   readonly chatLeaderElection: WebLocksLeaderElection;
   readonly ui: UiStore;
   readonly dock: DockStore;
+  readonly artifacts: ArtifactStore;
   readonly router: RouterStore;
   readonly openrouter: OpenRouterStore;
   readonly ollama: OllamaStore;
@@ -138,6 +140,7 @@ export class RootStore {
       isStreaming: () => this.chat.threads.some(thread => this.chat.isThreadStreaming(thread.id)),
     });
     this.bridge = new BridgeStore();
+    this.artifacts = new ArtifactStore(this.bridge);
     this.skills = new SkillsStore(this.bridge, () => toolRegistry.list().map(tool => tool.def.name));
     this.openrouterCompatibility = new OpenRouterCompatibilityStore(this.providers, this.registry, this.bridge);
     this.sourceWorkspace = new SourceWorkspaceStore();
@@ -173,6 +176,8 @@ export class RootStore {
       search: this.search,
       rag: this.rag,
       sourceWorkspace: this.sourceWorkspace,
+      artifacts: this.artifacts,
+      artifactSurface: this.dock,
       offlineLibrary: {
         available: this.offlineLibrary.enabled && this.offlineLibrary.phase === 'healthy',
         documentProfile: this.offlineLibrary.profileForTask('knowledge_document'),
@@ -260,6 +265,19 @@ export class RootStore {
         .then(() => { attemptedSkillsRoot = workspaceRoot; })
         .catch(err => { logger.warn('skills', 'workspace skills refresh failed', err); })
         .finally(() => { skillsRefreshInFlight = false; });
+    }));
+
+    let attemptedArtifactRoot: string | undefined;
+    let artifactRefreshInFlight = false;
+    this.disposers.push(autorun(() => {
+      if (this.runtime !== 'desktop') return;
+      if (!this.bridge.isOnline || !this.bridge.workspaceRoot) return;
+      if (attemptedArtifactRoot === this.bridge.workspaceRoot || artifactRefreshInFlight) return;
+      const workspaceRoot = this.bridge.workspaceRoot;
+      artifactRefreshInFlight = true;
+      void this.artifacts.refresh()
+        .then(() => { attemptedArtifactRoot = workspaceRoot; })
+        .finally(() => { artifactRefreshInFlight = false; });
     }));
 
     const deliveredBridgeActivityIds = new Set<string>();

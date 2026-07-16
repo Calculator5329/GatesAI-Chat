@@ -62,6 +62,15 @@ describe('DockStore', () => {
     expect(restored.cells[0]).toEqual({ kind: 'file-explorer', params: { path: '/workspace' } });
   });
 
+  it('opens and persists a stable HTML artifact id', () => {
+    const dock = makeStore();
+    dock.openArtifact('demo-1');
+    expect(dock.cells[0]).toEqual({ kind: 'html-artifact', params: { id: 'demo-1' } });
+    dock.dispose();
+    const restored = makeStore();
+    expect(restored.cells[0]).toEqual({ kind: 'html-artifact', params: { id: 'demo-1' } });
+  });
+
   it('closing cell 0 promotes cell 1 so a lone panel sits in cell 0', () => {
     const dock = makeStore();
     dock.openPath('/workspace/a.md');

@@ -5,6 +5,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { RootStore } from './RootStore';
 import type { ChatStore } from './ChatStore';
 import type { DockStore } from './DockStore';
+import type { ArtifactStore } from './ArtifactStore';
 import type { UiStore } from './UiStore';
 import type { ProviderStore } from './ProviderStore';
 import type { RouterStore } from './RouterStore';
@@ -50,6 +51,10 @@ export function useUiStore(): UiStore {
 
 export function useDockStore(): DockStore {
   return useRootStore().dock;
+}
+
+export function useArtifactStore(): ArtifactStore {
+  return useRootStore().artifacts;
 }
 
 export function useProviderStore(): ProviderStore {
