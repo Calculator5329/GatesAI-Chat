@@ -662,7 +662,9 @@ composer quieter.
 - [ ] Canvas/whiteboard artifact type for planning sessions
 - [ ] In-app `ollama pull` with progress for missing local models
 - [ ] Record the self-improvement demo (app edits itself, rebuilds, asks to
-      update) once the loop closes
+      update). The safety boundary is closed through manual installer handoff;
+      recording and owner review remain pending. See
+      [`docs/self-update.md`](self-update.md).
 
 ### Suggested release sequencing
 - 4.2: semantic memory + fetch_page + sidebar QoL

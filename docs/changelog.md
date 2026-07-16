@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-16 — Self-update safety boundary
+
+- Defined the desktop self-update authority contract from managed-source edit
+  through manual installer handoff; live installation remains explicitly
+  user-authorized.
+- Changed stale managed-source refreshes and file reverts to archive prior
+  content, preserving model and user edits instead of deleting or overwriting
+  them.
+- Added Rust coverage for archive preservation and collision-safe archive
+  naming, and reconciled the Vision and roadmap with the shipped boundary.
+
 ## 2026-07-15 — W-1 basic dock file explorer
 
 - Added a compact, read-only File Explorer panel to the existing dock registry.
