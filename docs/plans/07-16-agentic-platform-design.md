@@ -253,12 +253,18 @@ a local outcome record used by AP-4.
   work, but unsolicited follow-on tasks require a visible proposal.
 - Default cloud limits are `$1.00` per one-off task and `$5.00` across all
   agent tasks per local day; local models record `$0`. Users may lower or
-  explicitly raise them, but no run may exceed the workspace Ring-0 ceiling
-  of `$100`. Because usage can arrive after a provider response, the UI says
-  that enforcement can overshoot by at most the already-started request.
+  explicitly raise these soft limits, but no run may exceed the workspace
+  Ring-0 ceiling of `$100`. Before every paid request, reserve a conservative
+  worst-case cost from known route pricing, current prompt tokens, and the
+  request's maximum output tokens. Clamp the output bound or refuse the call
+  when that reservation cannot fit the remaining hard budget. Reconcile the
+  reservation to reported usage afterward. A soft per-task or daily limit may
+  exceed its display threshold only by one disclosed, already-reserved request;
+  the `$100` hard ceiling may never overshoot.
 - Before each model round, check remaining round/token/time/spend allowance.
-  Unknown-price cloud models may run interactively with a warning and token
-  cap, but cannot run unattended on a schedule in V1.
+  Unknown-price paid routes cannot run as background or scheduled work in V1,
+  because no conservative hard-budget reservation can be proved. Local routes
+  with declared zero provider cost remain eligible.
 - Cancellation aborts the active turn and prevents unstarted tool calls. Boot
   recovery marks orphaned work interrupted; it never auto-replays a cloud
   call.
@@ -346,9 +352,12 @@ off or logged-out machine.
   global limit—for example to approve an hourly schedule. Missed and slot-
   retry ticks do not multiply wakes.
 - Default cloud cap is `$0.50` per wake, also subject to the `$5.00` daily
-  agent cap and `$100` hard per-run ceiling. A cap exhaustion disables future
-  wakes until the user lowers cost, changes the exact route explicitly, or
-  renews the budget. There is no provider switch.
+  agent cap and `$100` hard per-run ceiling. Every paid wake inherits AP-2's
+  conservative pre-call reservation; a request that cannot fit the remaining
+  hard budget is not started, and unknown-price paid routes cannot be
+  scheduled in V1. A soft-cap exhaustion disables future wakes until the user
+  lowers cost, changes the exact route explicitly, or renews the budget. There
+  is no provider switch.
 - Notifications show fired, skipped, waiting, completed, failed, budget-
   stopped, and consent-expired states. A global “Pause all schedules” control
   is always available.
@@ -441,8 +450,11 @@ versions are immutable; activation is a small pointer change with rollback.
   a plugin, change a provider, activate a schedule, or modify source without
   the feature's own consent gate.
 - Retention is visible and configurable. Export excludes secrets. “Forget”
-  removes a lesson from active retrieval immediately; archive/irreversible
-  deletion follows the user's explicit data-management flow.
+  removes a lesson from active retrieval immediately and archives its record;
+  V1 never permanently deletes outcome or lesson evidence. Archive/disable
+  actions require a visible owner confirmation card, remain reversible, and
+  preserve receipts. No implementation lane in this platform may permanently
+  delete records or inherit deletion authority from a feedback loop.
 - Evaluation itself has round/token/time/spend limits and cannot recursively
   generate another evaluation task.
 
@@ -503,8 +515,9 @@ smoke; tests that bind a listener are verified outside the Codex sandbox.
 
 ## Phased implementation lanes
 
-Every Item below is sized for one Codex session. `owns` are literal suggested
-boundaries; concurrent Items in the same phase are disjoint. Shared frontend
+Every Item below is sized for one Codex session. `owns` are enforceable paths
+or directory globs to claim literally before dispatch; concurrent Items in the
+same phase are disjoint. Shared frontend
 registry/root-store wiring, architecture/changelog/roadmap, and end-to-end
 composition are deliberately reserved for integration Items instead of being
 touched opportunistically. A lane's run/evidence proves its Item; it does not
@@ -530,10 +543,20 @@ add a planning level or imply product acceptance.
      `tests/core/agentOutcomes.test.ts`.
    - Sub-items: versioned record/proposal/applied-lesson schemas, redaction and
      scope rules, deterministic outcome metrics.
+4. **Item C4 — UX/taste contract and owner selection**
+   - `owns`: `docs/plans/07-16-agentic-platform-ux.md`,
+     `docs/assets/agentic-platform-ux/**`.
+   - Sub-items: generate 5–10 genuinely divergent mockups spanning plugin
+     lifecycle, task detail, schedule consent, and lesson review; present them
+     to Ethan for selection and annotation; record the selected interaction
+     grammar, progressive-disclosure rules, motion, and information hierarchy.
+   - Acceptance: quiet power at the Jarvis standard, no settings-page sprawl,
+     primary actions visible without enterprise-dashboard density, and an
+     explicit owner selection. No component lane starts before C4 is accepted.
 
 ### Phase 1 — downloadable data and durable task policy
 
-4. **Item D1 — Tauri database package engine** *(depends C1)*
+5. **Item D1 — Tauri database package engine** *(depends C1)*
    - `owns`: `src-tauri/src/database_plugins.rs`, `src-tauri/src/lib.rs`,
      `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`,
      `src-tauri/tests/database_plugins.rs`, `tests/fixtures/database-plugins/`.
@@ -541,14 +564,14 @@ add a planning level or imply product acceptance.
      bomb/digest defenses, immutable SQLite query builders, atomic versions,
      and Tauri command registration.
    - Verify: Rust unit/integration tests with hostile archives; no bridge edits.
-5. **Item D2 — database plugin service/store** *(depends C1; parallel D1)*
+6. **Item D2 — database plugin service/store** *(depends C1; parallel D1)*
    - `owns`: `src/services/databasePlugins/`,
      `src/stores/DatabasePluginStore.ts`,
      `tests/services/databasePlugins/`,
      `tests/stores/DatabasePluginStore.test.ts`.
    - Sub-items: typed states, lifecycle, version pins, citation projection,
      Web Lite no-invoke facade, persisted enablement.
-6. **Item B1 — TaskStore policy and attempt ledger** *(depends C2; parallel D1/D2)*
+7. **Item B1 — TaskStore policy and attempt ledger** *(depends C2; parallel D1/D2)*
    - `owns`: `src/services/tasks/agentTaskSpec.ts`,
      `src/services/tasks/budgets.ts`, `src/stores/TaskStore.ts`,
      `tests/services/tasks/agentTaskSpec.test.ts`,
@@ -556,69 +579,97 @@ add a planning level or imply product acceptance.
    - Sub-items: pending reasons, immutable policy snapshots, FIFO/attempt
      linkage, budget/cost projection, two-slot tests.
 
-7. **Item X1 — Phase-1 platform wiring** *(depends D1, D2, B1)*
+8. **Item X1 — Phase-1 platform wiring** *(depends D1, D2, B1)*
    - `owns`: `src/stores/RootStore.ts`, `src/stores/context.tsx`,
      `src/services/tools/registry.ts`,
      `src/services/chat/contextModes.ts`, `src/services/persistence/migrations.ts`,
-     their directly corresponding tests.
+     `tests/stores/RootStore.agenticPlatform.test.ts`,
+     `tests/services/tools/registry.agenticPlatform.test.ts`,
+     `tests/services/chat/contextModes.agenticPlatform.test.ts`,
+     `tests/services/persistence/migrations.agenticPlatform.test.ts`.
    - Sub-items: register stores and the narrow tool facade; migrate persisted
      shapes; enforce the local-data/cloud-route block before prompt assembly.
 
 ### Phase 2 — user-facing plugins and background agents
 
-8. **Item D3 — plugin lifecycle and query surfaces** *(depends X1)*
+9. **Item D3 — plugin lifecycle and query surfaces** *(depends X1, C4)*
    - `owns`: `src/services/tools/databasePlugins.ts`,
      `src/components/menu/sections/DatabasePlugins.tsx`,
-     `src/components/dock/DatabasePluginPanel.tsx`, and focused tests.
+     `src/components/dock/DatabasePluginPanel.tsx`,
+     `tests/services/tools/databasePlugins.test.ts`,
+     `tests/components/menu/DatabasePlugins.test.tsx`,
+     `tests/components/dock/DatabasePluginPanel.test.tsx`.
    - Sub-items: inspect/propose/install confirmation, enable/update/archive,
      permissions/data-policy display, bounded tool result and citations.
-9. **Item B2 — strict-route agent runner** *(depends B1/X1; parallel D3)*
+10. **Item B2 — strict-route agent runner** *(depends B1/X1; parallel D3)*
    - `owns`: `src/services/chat/agentTasks.ts`,
-     `src/services/tools/spawnTask.ts`, `src/stores/ChatStore.ts`, and focused
-     agent-task tests.
+     `src/services/tools/spawnTask.ts`, `src/stores/ChatStore.ts`,
+     `tests/services/chat/agentTasks.test.ts`,
+     `tests/services/tools/spawnTask.test.ts`,
+     `tests/stores/ChatStore.agentTasks.test.ts`.
    - Sub-items: exact route pin, pre-round budget enforcement, DB/tool policy
      injection, no nested tasks, interruption and attempt-aware retry.
-10. **Item B3 — task-center agent controls** *(depends B1; parallel D3/B2)*
-    - `owns`: `src/components/dock/TaskCenterPanel.tsx`, agent-task-specific
-      task-center child components, and focused component tests.
+11. **Item B3 — task-center agent controls** *(depends B1, C4; parallel D3/B2)*
+    - `owns`: `src/components/dock/TaskCenterPanel.tsx`,
+      `src/components/dock/task-center/AgentTaskDetails.tsx`,
+      `tests/components/dock/TaskCenterPanel.agentTasks.test.tsx`,
+      `tests/components/dock/AgentTaskDetails.test.tsx`.
     - Sub-items: route/grants/budgets/pending reasons, cancel/retry, partial
       result and spend-cap states; preserve image-task rendering.
 
 ### Phase 3 — self-scheduling
 
-11. **Item S1 — schedule-v2 domain and persistence** *(depends C2/B1)*
+12. **Item S1 — schedule-v2 domain and persistence** *(depends C2/B1)*
     - `owns`: `src/core/schedules.ts`, `src/services/schedulesStorage.ts`,
-      `src/stores/SchedulesStore.ts`, and their focused tests.
+      `src/stores/SchedulesStore.ts`, `tests/core/schedules.v2.test.ts`,
+      `tests/services/schedulesStorage.v2.test.ts`,
+      `tests/stores/SchedulesStore.v2.test.ts`.
     - Sub-items: triggers/timezones/DST, proposal/consent state, wake caps,
       one catch-up, overlap/coalescing, TaskSpec enqueue facade, v1 migration.
-12. **Item S2 — schedule proposal and controls** *(depends S1/B2)*
-    - `owns`: `src/services/tools/schedules.ts`, schedule-specific menu
-      components, notification adapters, and focused tests.
+13. **Item S2 — schedule proposal and controls** *(depends S1/B2/C4)*
+    - `owns`: `src/services/tools/schedules.ts`,
+      `src/components/menu/sections/AgentSchedules.tsx`,
+      `src/services/notifications/scheduleNotifications.ts`,
+      `tests/services/tools/schedules.v2.test.ts`,
+      `tests/components/menu/AgentSchedules.test.tsx`,
+      `tests/services/notifications/scheduleNotifications.test.ts`.
     - Sub-items: approval card, exact route/grant/cap summary, pause/edit/run-
       now/archive, renewed-consent rules, honest app-open copy.
 
 ### Phase 4 — outcome learning
 
-13. **Item I1 — local outcome journal** *(depends C3/B2)*
+14. **Item I1 — local outcome journal** *(depends C3/B2)*
     - `owns`: `src/services/outcomes/`, `src/stores/OutcomeStore.ts`,
       `tests/services/outcomes/`, `tests/stores/OutcomeStore.test.ts`.
     - Sub-items: IndexedDB journal/hot index, redaction, task completion
       ingestion, feedback mutation, export/retention, deterministic metrics.
-14. **Item I2 — lesson proposal and retrieval** *(depends I1; parallel UI below)*
+15. **Item I2 — lesson proposal and retrieval** *(depends I1; parallel UI below)*
     - `owns`: `src/services/learning/`, `src/stores/LearningStore.ts`,
       `tests/services/learning/`, `tests/stores/LearningStore.test.ts`.
     - Sub-items: bounded local evaluator, scoped evidence-linked proposal,
       accepted-lesson semantic source, injection delimiter, regression disable.
-15. **Item I3 — feedback/review UI** *(depends C3; parallel I2)*
-    - `owns`: task-feedback components, learning menu/dock components, diff
-      adapters dedicated to learning, and focused component tests.
+16. **Item I3 — feedback/review UI** *(depends C3/C4; parallel I2)*
+    - `owns`: `src/components/editorial/TaskFeedback.tsx`,
+      `src/components/menu/sections/Learning.tsx`,
+      `src/components/dock/LearningPanel.tsx`,
+      `src/services/learning/lessonDiff.ts`,
+      `tests/components/editorial/TaskFeedback.test.tsx`,
+      `tests/components/menu/Learning.test.tsx`,
+      `tests/components/dock/LearningPanel.test.tsx`,
+      `tests/services/learning/lessonDiff.test.ts`.
     - Sub-items: feedback capture, evidence view, accept/reject, prompt/skill
       diff, version activation, disable/rollback, privacy controls.
 
 ### Phase 5 — composition and evidence
 
-16. **Item X2 — integration, truth docs, and acceptance** *(depends all prior Items)*
-    - `owns`: shared prompt assembly/wiring files not already assigned,
+17. **Item X2 — integration, truth docs, and acceptance** *(depends all prior Items)*
+    - `owns`: `src/services/chat/contextModes.ts`,
+      `src/services/chat/turnRunner.ts`, `src/stores/RootStore.ts`,
+      `src/stores/context.tsx`, `src/services/tools/registry.ts`,
+      `tests/services/chat/contextModes.agenticPlatform.test.ts`,
+      `tests/services/chat/turnRunner.agenticPlatform.test.ts`,
+      `tests/stores/RootStore.agenticPlatform.test.ts`,
+      `tests/services/tools/registry.agenticPlatform.test.ts`,
       `tests/e2e/agentic-platform.spec.ts`, `docs/architecture.md`,
       `docs/handbook/capabilities.md`, `docs/changelog.md`, `docs/roadmap.md`,
       and `docs/acceptance/agentic-platform-v1.md`.

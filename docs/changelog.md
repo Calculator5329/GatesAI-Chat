@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-16 — Agentic platform design
+
+- Added the implementation contract and single-session lane map for four open
+  Stories: data-only database plugins, TaskStore-backed background sub-agents,
+  visible app-open scheduling, and reviewable outcome-driven improvement.
+  The design pins exact provider/data routes, consent, spend and wake bounds,
+  untrusted-evidence handling, reversible learning, and archive-only V1 data
+  lifecycle behavior. This is planning only; no runtime authority was added.
+
 ## 2026-07-16 — Local-first first-boot (LF-4)
 
 - The first-boot hero now leads with the local path: detected Ollama models
