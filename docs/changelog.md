@@ -7,7 +7,8 @@
   user-authorized.
 - Changed stale managed-source refreshes and file reverts to archive prior
   content, preserving model and user edits instead of deleting or overwriting
-  them.
+  them. Archive paths now reject symlinks and fail closed unless they resolve
+  as a direct child of the managed workspace.
 - Added Rust coverage for archive preservation and collision-safe archive
   naming, and reconciled the Vision and roadmap with the shipped boundary.
 
