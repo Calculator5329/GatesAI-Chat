@@ -563,21 +563,28 @@ Lite. Key modules are `src/stores/SourceWorkspaceStore.ts`,
 `src/services/tools/sourceWorkspace.ts`, `src/services/tools/sourceBuild.ts`,
 `src/components/menu/sections/Workspace.tsx`,
 `src-tauri/src/source_workspace.rs`, and `src-tauri/src/source_build.rs`.
+The normative authority and installation boundary is
+[`docs/self-update.md`](self-update.md).
 
 Data flow:
 
 1. `scripts/create-source-snapshot.mjs` prepares bundled source data for builds.
 2. Desktop Tauri commands report whether a source workspace is available,
-   prepared, stale, and where the workspace/source roots are.
+   prepared, stale, and where the workspace/source roots are. Refreshing a
+   stale app-managed copy archives the previous tree before preparing the new
+   snapshot; an unmanaged directory is never replaced.
 3. The Workspace menu can prepare/open the source workspace, list changed files,
    show diffs through `services/diff/lineDiff.ts`, revert files, and run build
-   commands (`install`, `test`, `build`, `package`).
+   commands (`install`, `test`, `build`, `package`). Reverting a modified or
+   added file archives its current content outside the active source root.
 4. Model tools `source_workspace` and `source_build` call the same Tauri-backed
    services, so assistant-driven source edits and the human review UI share one
    command surface.
 5. `SourceWorkspaceStore.runtimeSnapshot` is injected into prompt runtime
    context so the model can see prepared/change/build status without reading UI
    state.
+6. Packaging reports the generated artifact but never installs it. The user
+   must explicitly approve and run any installer or update.
 
 ## Rust layer
 
