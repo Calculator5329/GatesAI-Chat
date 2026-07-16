@@ -9,6 +9,7 @@ const RESOURCE_SOURCE_DIR: &str = "source";
 const SNAPSHOT_ROOT_NAME: &str = "current";
 const MANIFEST_NAME: &str = "manifest.json";
 const WORKSPACE_DIR_NAME: &str = "source-workspace";
+const ARCHIVE_DIR_NAME: &str = "archive";
 const INSTALLED_MARKER_NAME: &str = ".gatesai-source-workspace.json";
 const MAX_DIFF_PREVIEW_BYTES: u64 = 200 * 1024;
 
@@ -409,8 +410,11 @@ fn prepare_for_app(app: &AppHandle) -> Result<(), String> {
         if marker.source_manifest.content_hash == bundle.manifest.content_hash {
             return Ok(());
         }
-        fs::remove_dir_all(&paths.source_root)
-            .map_err(|err| format!("cannot replace stale source workspace: {err}"))?;
+        archive_source_workspace(
+            &paths.workspace_root,
+            &paths.source_root,
+            marker.prepared_at_unix,
+        )?;
     }
 
     fs::create_dir_all(&paths.workspace_root)
@@ -423,6 +427,38 @@ fn prepare_for_app(app: &AppHandle) -> Result<(), String> {
         source_manifest: bundle.manifest,
     };
     write_marker(&paths.marker_path, &marker)
+}
+
+fn archive_source_workspace(
+    workspace_root: &Path,
+    source_root: &Path,
+    prepared_at_unix: u64,
+) -> Result<PathBuf, String> {
+    let archive_root = workspace_root.join(ARCHIVE_DIR_NAME);
+    fs::create_dir_all(&archive_root)
+        .map_err(|err| format!("cannot create source workspace archive: {err}"))?;
+
+    for suffix in 0..1_000_u32 {
+        let name = if suffix == 0 {
+            format!("{SNAPSHOT_ROOT_NAME}-{prepared_at_unix}")
+        } else {
+            format!("{SNAPSHOT_ROOT_NAME}-{prepared_at_unix}-{suffix}")
+        };
+        let archived = archive_root.join(name);
+        if archived.exists() {
+            continue;
+        }
+        fs::rename(source_root, &archived).map_err(|err| {
+            format!(
+                "cannot archive stale source workspace {} to {}: {err}",
+                source_root.display(),
+                archived.display()
+            )
+        })?;
+        return Ok(archived);
+    }
+
+    Err("cannot archive stale source workspace: archive name limit exhausted".to_string())
 }
 
 pub(crate) fn prepared_source_root(app: &AppHandle) -> Result<PathBuf, String> {
@@ -772,6 +808,9 @@ fn revert_file_for_roots(
         .is_some();
 
     if original_file {
+        if current_file {
+            archive_reverted_source_file(source_root, &current, &relative, unix_now())?;
+        }
         if let Some(parent) = current.parent() {
             fs::create_dir_all(parent).map_err(|err| {
                 format!(
@@ -797,12 +836,7 @@ fn revert_file_for_roots(
     }
 
     if current_file {
-        fs::remove_file(&current).map_err(|err| {
-            format!(
-                "cannot remove added source file {}: {err}",
-                display_source_path(&relative)
-            )
-        })?;
+        archive_reverted_source_file(source_root, &current, &relative, unix_now())?;
         return Ok(SourceRevertResult {
             path: display_source_path(&relative),
             change: "added".to_string(),
@@ -813,6 +847,46 @@ fn revert_file_for_roots(
         "source file has no bundled or current file to revert: {}",
         display_source_path(&relative)
     ))
+}
+
+fn archive_reverted_source_file(
+    source_root: &Path,
+    current: &Path,
+    relative: &Path,
+    archived_at_unix: u64,
+) -> Result<PathBuf, String> {
+    let workspace_root = source_root
+        .parent()
+        .ok_or_else(|| "source workspace root has no managed parent".to_string())?;
+    let archive_root = workspace_root.join(ARCHIVE_DIR_NAME);
+    fs::create_dir_all(&archive_root)
+        .map_err(|err| format!("cannot create source workspace archive: {err}"))?;
+
+    for suffix in 0..1_000_u32 {
+        let name = if suffix == 0 {
+            format!("reverted-{archived_at_unix}")
+        } else {
+            format!("reverted-{archived_at_unix}-{suffix}")
+        };
+        let archived = archive_root.join(name).join(relative);
+        if archived.exists() {
+            continue;
+        }
+        if let Some(parent) = archived.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|err| format!("cannot create source revert archive: {err}"))?;
+        }
+        fs::rename(current, &archived).map_err(|err| {
+            format!(
+                "cannot archive reverted source file {} to {}: {err}",
+                display_source_path(relative),
+                archived.display()
+            )
+        })?;
+        return Ok(archived);
+    }
+
+    Err("cannot archive reverted source file: archive name limit exhausted".to_string())
 }
 
 fn collect_file_paths(
@@ -896,8 +970,7 @@ fn clean_relative_path(path: &str) -> Result<PathBuf, String> {
     if trimmed.starts_with('/')
         || trimmed.starts_with('\\')
         || trimmed.contains('\\')
-        || (trimmed.as_bytes().get(1) == Some(&b':')
-            && trimmed.as_bytes()[0].is_ascii_alphabetic())
+        || (trimmed.as_bytes().get(1) == Some(&b':') && trimmed.as_bytes()[0].is_ascii_alphabetic())
     {
         return Err("source workspace paths must be portable relative paths.".to_string());
     }
@@ -1006,6 +1079,52 @@ mod tests {
     }
 
     #[test]
+    fn archive_source_workspace_preserves_stale_tree() {
+        let root = temp_root("archive-stale");
+        let workspace = root.join("source-workspace");
+        let source = workspace.join(SNAPSHOT_ROOT_NAME);
+        fs::create_dir_all(source.join("src")).expect("create stale source");
+        fs::write(source.join("src").join("App.tsx"), "stale edit").expect("write stale edit");
+
+        let archived = archive_source_workspace(&workspace, &source, 1234).expect("archive");
+
+        assert_eq!(
+            archived,
+            workspace.join(ARCHIVE_DIR_NAME).join("current-1234")
+        );
+        assert!(!source.exists());
+        assert_eq!(
+            fs::read_to_string(archived.join("src").join("App.tsx")).expect("read archived edit"),
+            "stale edit"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn archive_source_workspace_uses_collision_safe_name() {
+        let root = temp_root("archive-collision");
+        let workspace = root.join("source-workspace");
+        let source = workspace.join(SNAPSHOT_ROOT_NAME);
+        let occupied = workspace.join(ARCHIVE_DIR_NAME).join("current-1234");
+        fs::create_dir_all(&source).expect("create stale source");
+        fs::create_dir_all(&occupied).expect("create occupied archive");
+        fs::write(source.join("keep.txt"), "keep").expect("write stale file");
+
+        let archived = archive_source_workspace(&workspace, &source, 1234).expect("archive");
+
+        assert_eq!(
+            archived,
+            workspace.join(ARCHIVE_DIR_NAME).join("current-1234-1")
+        );
+        assert!(occupied.exists());
+        assert_eq!(
+            fs::read_to_string(archived.join("keep.txt")).expect("read archived file"),
+            "keep"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn clean_relative_path_rejects_escape_attempts() {
         assert!(clean_relative_path("src/App.tsx").is_ok());
         assert!(clean_relative_path("../secret.txt").is_err());
@@ -1083,7 +1202,7 @@ mod tests {
     }
 
     #[test]
-    fn revert_file_restores_deleted_and_removes_added_files() {
+    fn revert_file_restores_deleted_and_archives_added_files() {
         let root = temp_root("revert-files");
         let snapshot = root.join("snapshot");
         let source = root.join("source");
@@ -1103,6 +1222,52 @@ mod tests {
             "original"
         );
         assert!(!source.join("src").join("added.txt").exists());
+        let archive = root.join(ARCHIVE_DIR_NAME);
+        let archived = fs::read_dir(&archive)
+            .expect("list archive")
+            .next()
+            .expect("archive entry")
+            .expect("read archive entry")
+            .path()
+            .join("src")
+            .join("added.txt");
+        assert_eq!(
+            fs::read_to_string(archived).expect("read archived added file"),
+            "new"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn revert_file_archives_modified_content_before_restore() {
+        let root = temp_root("revert-modified");
+        let snapshot = root.join("snapshot");
+        let source = root.join("source");
+        fs::create_dir_all(snapshot.join("src")).expect("create snapshot");
+        fs::create_dir_all(source.join("src")).expect("create source");
+        fs::write(snapshot.join("src").join("App.tsx"), "original").expect("write snapshot");
+        fs::write(source.join("src").join("App.tsx"), "edited").expect("write edit");
+
+        let reverted = revert_file_for_roots(&snapshot, &source, "src/App.tsx").expect("revert");
+
+        assert_eq!(reverted.change, "modified");
+        assert_eq!(
+            fs::read_to_string(source.join("src").join("App.tsx")).expect("read restored source"),
+            "original"
+        );
+        let archive = root.join(ARCHIVE_DIR_NAME);
+        let archived = fs::read_dir(&archive)
+            .expect("list archive")
+            .next()
+            .expect("archive entry")
+            .expect("read archive entry")
+            .path()
+            .join("src")
+            .join("App.tsx");
+        assert_eq!(
+            fs::read_to_string(archived).expect("read archived edit"),
+            "edited"
+        );
         let _ = fs::remove_dir_all(root);
     }
 

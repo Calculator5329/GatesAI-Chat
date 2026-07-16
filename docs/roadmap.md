@@ -667,7 +667,9 @@ composer quieter.
 - [ ] Canvas/whiteboard artifact type for planning sessions
 - [x] In-app `ollama pull` with progress for missing local models *(done 2026-07-16, codex lane: streamed /api/pull progress UI with cancel/failure/already-installed handling, explicit user action only, Web Lite explainer degradation; service + component tests)*
 - [ ] Record the self-improvement demo (app edits itself, rebuilds, asks to
-      update) once the loop closes
+      update). The safety boundary is closed through manual installer handoff;
+      recording and owner review remain pending. See
+      [`docs/self-update.md`](self-update.md).
 
 ### Suggested release sequencing
 - 4.2: semantic memory + fetch_page + sidebar QoL

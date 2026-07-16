@@ -66,7 +66,10 @@ now. No other API providers.
 ## Open items this vision implies (for roadmap triage)
 
 - [ ] Audit current provider integrations against the OpenRouter+Ollama+ComfyUI policy; remove/park anything else.
-- [ ] Self-update loop: define the safe path (edit own repo → rebuild → installer → user installs) and how far it can be closed.
+- [x] Self-update loop safety boundary defined — 2026-07-16. The loop closes
+      through managed-source edit, review/revert, test/build, package, and
+      manual installer handoff; live installation remains user-authorized.
+      See [`docs/self-update.md`](self-update.md).
 - [ ] ComfyUI seamless integration (today requires `--enable-cors-header`).
 - [ ] Browser-use deepening beyond Brave Search.
 - [ ] Cross-platform release health: publish the macOS .dmg as a stable public asset (build is green as of v4.6.1; win+linux published).
