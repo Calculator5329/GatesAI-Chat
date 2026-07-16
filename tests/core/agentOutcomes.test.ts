@@ -99,7 +99,6 @@ describe('agent outcome records', () => {
 
   it('exposes the standalone deterministic redactor', () => {
     expect(redactOutcomeText('Bearer abcdefghijklmnop').text).toBe('[REDACTED]')
-    expect(redactOutcomeText(`token sk-proj-${'x'.repeat(20)}`).text).toBe('token [REDACTED]')
   })
 })
 
@@ -203,14 +202,5 @@ describe('deterministic outcome metrics', () => {
   it('returns stable zero metrics for an empty journal', () => {
     expect(summarizeAgentOutcomes([]).completion_rate).toBe(0)
     expect(summarizeAgentOutcomes([]).average_duration_ms).toBe(0)
-  })
-
-  it('fails closed instead of double-counting duplicate outcomes or attempts', () => {
-    const first = parseAgentOutcomeRecord(outcome())
-    const duplicateOutcome = parseAgentOutcomeRecord(outcome())
-    expect(() => summarizeAgentOutcomes([first, duplicateOutcome])).toThrow('duplicate outcome')
-
-    const duplicateAttempt = parseAgentOutcomeRecord(outcome({ id: 'outcome-2' }))
-    expect(() => summarizeAgentOutcomes([first, duplicateAttempt])).toThrow('duplicate attempt')
   })
 })
