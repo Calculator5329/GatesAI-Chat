@@ -175,7 +175,7 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       generated from code, artifact id registry under
       `/workspace/artifacts/html/`, smoke-render validation at creation,
       failures into the error trail; artifacts open in the dock panel.
-- [ ] **W-3: Unified background-task framework.** Promote the ImageJob
+- [x] **W-3: Unified background-task framework.** *(done 2026-07-16, codex lane per docs/plans/07-12-unified-tasks.md — generic TaskStore with image/agent/command kinds, task-center dock panel with progress/cancel/retry/cost, ImageJobStore strangler migration kept green.)* Promote the ImageJob
       lifecycle to a generic TaskStore (`image` | `agent` | `command`
       kinds), task-center dock panel with progress/cancel/retry/cost;
       strangler migration keeping ImageJobStore's 22 tests green.
