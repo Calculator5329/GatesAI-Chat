@@ -14,6 +14,7 @@ import {
   userMessageParts,
 } from '../../src/core/messageParts';
 import { parseChatSnapshotValue, prepareChatSnapshotForSave } from '../../src/services/persistence';
+import { CURRENT_CHAT_SCHEMA_VERSION } from '../../src/services/persistence/migrations';
 
 describe('content-parts message model', () => {
   it('keeps user text, images, and file artifacts in send order', () => {
@@ -83,7 +84,7 @@ describe('content-parts message model', () => {
       }],
     });
 
-    expect(loaded?.schemaVersion).toBe(3);
+    expect(loaded?.schemaVersion).toBe(CURRENT_CHAT_SCHEMA_VERSION);
     const user = loaded!.threads[0].messages[0];
     expect(contentPartsForMessage(user).map(part => part.type)).toEqual(['text', 'image', 'artifact']);
     const assistant = loaded!.threads[0].messages[1];
@@ -126,7 +127,7 @@ describe('content-parts message model', () => {
 
   it('round-trips the versioned canonical persistence shape', () => {
     const snapshot: ChatSnapshot = {
-      schemaVersion: 3,
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
       activeThreadId: 't',
       threads: [{
         id: 't', title: 'Parts', subtitle: '', pinned: false, modelId: 'or-gpt-5.4-mini',

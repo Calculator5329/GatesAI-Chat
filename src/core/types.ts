@@ -253,6 +253,8 @@ export interface Thread {
   /** Bundled reference conversation: visible and deletable, but not editable or runnable. */
   readOnly?: boolean;
   modelId: string;
+  /** Whether the model was assigned automatically or deliberately selected. */
+  modelSelection?: 'automatic' | 'explicit';
   messages: Message[];
   /**
    * True when this row is only the localStorage sidebar stub for a thread

@@ -41,6 +41,13 @@
   default the composer on untouched chats, the Local card precedes Cloud, and
   offline states link Local settings instead of nagging for cloud keys.
   Providers never switch silently; explicit choices stay put.
+- Added persisted automatic-versus-explicit model-selection provenance. A
+  delayed Ollama catalog refresh may update only an untouched automatic chat;
+  an explicit picker choice is never silently overwritten. Schema v4 migrates
+  older threads conservatively as explicit because prior snapshots cannot
+  prove how their model was chosen.
+- Added regression coverage for delayed local discovery, persistence migration,
+  local-first card ordering/copy, and Web Lite isolation.
 
 ## 2026-07-16 — Linux compatibility pair (A13)
 

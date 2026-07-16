@@ -352,8 +352,14 @@ export class ChatStore {
     if (nextDefault === DEFAULT_MODEL_ID) return;
     let changed = false;
     for (const thread of this.threads) {
-      if (thread.deletedAt != null || thread.messages.length > 0 || thread.modelId !== DEFAULT_MODEL_ID) continue;
+      if (
+        thread.deletedAt != null
+        || thread.messages.length > 0
+        || thread.modelId !== DEFAULT_MODEL_ID
+        || thread.modelSelection === 'explicit'
+      ) continue;
       thread.modelId = nextDefault;
+      thread.modelSelection = 'automatic';
       thread.contextMode = 'micro';
       changed = true;
     }
@@ -694,7 +700,7 @@ export class ChatStore {
   }
 
   setThreadModel(threadId: string, modelId: string): void {
-    this.updateThread(threadId, () => ({ modelId }));
+    this.updateThread(threadId, () => ({ modelId, modelSelection: 'explicit' }));
   }
 
   private resolveAgentTaskModelId(inputModelId: string | undefined, origin: Thread): string | null {
