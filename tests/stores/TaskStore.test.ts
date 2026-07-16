@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Thread } from '../../src/core/types';
 import type { CompletedJob, ImageJob } from '../../src/services/image/jobs/types';
 import { TaskStore, type TaskAgentThreadsFacade, type TaskImageJobsFacade } from '../../src/stores/TaskStore';
+import type { AgentTaskPolicy } from '../../src/core/agentTaskPolicy';
 
 function imageJob(overrides: Partial<ImageJob> = {}): ImageJob {
   return {
@@ -146,4 +147,76 @@ describe('TaskStore unified facade', () => {
     expect(chat.cancelAgentTask).toHaveBeenCalledWith('agent-running');
     expect(store.tasks.find(task => task.id === 'agent-running')?.status).toBe('cancelled');
   });
+
+  it('queues immutable policy snapshots FIFO and enforces the two-slot ceiling', () => {
+    const now = 100;
+    let id = 0;
+    const images: TaskImageJobsFacade = { queue: [], active: null, history: [], cancel: vi.fn(), retry: vi.fn() };
+    const chat: TaskAgentThreadsFacade = { visibleAgentTaskThreads: [], streamActivityByThread: {}, lastErrorByThread: {}, cancelAgentTask: vi.fn(), retryAgentTask: vi.fn() };
+    const ledger = new TaskStore(images, chat, {
+      clock: () => now, idFactory: () => `ledger-${++id}`,
+    });
+    const policy = agentPolicy();
+    const first = ledger.enqueueAgentTask({ title: 'First', instructions: 'Do first.', origin_thread_id: 'origin', policy });
+    ledger.enqueueAgentTask({ title: 'Second', instructions: 'Do second.', origin_thread_id: 'origin', policy });
+    ledger.enqueueAgentTask({ title: 'Third', instructions: 'Do third.', origin_thread_id: 'origin', policy });
+    expect(Object.isFrozen(first.spec.policy)).toBe(true);
+    expect(ledger.ledgerPending.map(entry => entry.pending_reason)).toEqual(['ready', 'ready', 'waiting_for_slot']);
+    expect(ledger.ledgerPending.map(entry => entry.spec.id)).toEqual(['ledger-1', 'ledger-2', 'ledger-3']);
+    expect(ledger.startNextAgentTask()?.task_id).toBe('ledger-1');
+    expect(ledger.startNextAgentTask()?.task_id).toBe('ledger-2');
+    expect(ledger.startNextAgentTask()).toBeNull();
+    expect(ledger.ledgerPending[0]).toMatchObject({ spec: { id: 'ledger-3' }, pending_reason: 'waiting_for_slot' });
+  });
+
+  it('links retries to monotonic attempts and preserves partial usage/results', () => {
+    let now = 200;
+    const images: TaskImageJobsFacade = { queue: [], active: null, history: [], cancel: vi.fn(), retry: vi.fn() };
+    const chat: TaskAgentThreadsFacade = { visibleAgentTaskThreads: [], streamActivityByThread: {}, lastErrorByThread: {}, cancelAgentTask: vi.fn(), retryAgentTask: vi.fn() };
+    const ledger = new TaskStore(images, chat, { clock: () => now++, idFactory: () => 'ledger-task' });
+    ledger.enqueueAgentTask({ title: 'Retry me', instructions: 'Try safely.', origin_thread_id: 'origin', policy: agentPolicy() });
+    expect(ledger.startNextAgentTask()?.id).toBe('ledger-task:attempt:1');
+    expect(ledger.finishAgentAttempt('ledger-task', { state: 'interrupted', actual_cost_usd: 0.1, used_tokens: 100, result_ref: 'artifact://partial' })).toBe(true);
+    expect(ledger.retryLedgerTask('ledger-task')).toBe(true);
+    expect(ledger.startNextAgentTask()?.id).toBe('ledger-task:attempt:2');
+    expect(ledger.agentLedger[0].attempts[0]).toMatchObject({ state: 'interrupted', result_ref: 'artifact://partial', actual_cost_usd: 0.1 });
+  });
+
+  it('fails closed on invalid/cumulative usage and can cancel pending work only', () => {
+    const images: TaskImageJobsFacade = { queue: [], active: null, history: [], cancel: vi.fn(), retry: vi.fn() };
+    const chat: TaskAgentThreadsFacade = { visibleAgentTaskThreads: [], streamActivityByThread: {}, lastErrorByThread: {}, cancelAgentTask: vi.fn(), retryAgentTask: vi.fn() };
+    let id = 0;
+    const ledger = new TaskStore(images, chat, { clock: () => 1, idFactory: () => `ledger-${++id}` });
+    const first = ledger.enqueueAgentTask({ title: 'Cost', instructions: 'Stay bounded.', origin_thread_id: 'origin', policy: agentPolicy() });
+    const second = ledger.enqueueAgentTask({ title: 'Cancel', instructions: 'Wait.', origin_thread_id: 'origin', policy: agentPolicy() });
+    ledger.startNextAgentTask();
+    expect(ledger.finishAgentAttempt(first.spec.id, { state: 'done', actual_cost_usd: -1, used_tokens: 1 })).toBe(false);
+    expect(ledger.finishAgentAttempt(first.spec.id, { state: 'done', actual_cost_usd: 1.1, used_tokens: 1 })).toBe(true);
+    expect(ledger.agentLedger[0]).toMatchObject({
+      state: 'failed',
+      attempts: [{ state: 'failed', actual_cost_usd: 1.1, stop_reason: 'budget_exceeded' }],
+    });
+    expect(ledger.cancelLedgerTask(second.spec.id)).toBe(true);
+    expect(ledger.cancelLedgerTask(first.spec.id)).toBe(false);
+  });
+
+  it('exposes frozen attempt projections that cannot mutate ledger authority', () => {
+    const images: TaskImageJobsFacade = { queue: [], active: null, history: [], cancel: vi.fn(), retry: vi.fn() };
+    const chat: TaskAgentThreadsFacade = { visibleAgentTaskThreads: [], streamActivityByThread: {}, lastErrorByThread: {}, cancelAgentTask: vi.fn(), retryAgentTask: vi.fn() };
+    const ledger = new TaskStore(images, chat, { clock: () => 1, idFactory: () => 'ledger-frozen' });
+    ledger.enqueueAgentTask({ title: 'Frozen', instructions: 'Do not mutate.', origin_thread_id: 'origin', policy: agentPolicy() });
+    const returned = ledger.startNextAgentTask();
+    expect(Object.isFrozen(returned)).toBe(true);
+    expect(Object.isFrozen(ledger.agentLedger[0])).toBe(true);
+    expect(Object.isFrozen(ledger.agentLedger[0].attempts[0])).toBe(true);
+  });
 });
+
+function agentPolicy(): AgentTaskPolicy {
+  return {
+    schema_version: 1,
+    route: { model_id: 'local-model', provider_id: 'ollama', locality: 'local' },
+    requested_tools: [], database_pins: [], max_rounds: 3, max_tokens: 1000,
+    max_runtime_ms: 60_000, max_cost_usd: 1, consent_ref: 'consent-1',
+  };
+}
