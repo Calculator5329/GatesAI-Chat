@@ -434,9 +434,7 @@ fn archive_source_workspace(
     source_root: &Path,
     prepared_at_unix: u64,
 ) -> Result<PathBuf, String> {
-    let archive_root = workspace_root.join(ARCHIVE_DIR_NAME);
-    fs::create_dir_all(&archive_root)
-        .map_err(|err| format!("cannot create source workspace archive: {err}"))?;
+    let archive_root = prepare_archive_root(workspace_root)?;
 
     for suffix in 0..1_000_u32 {
         let name = if suffix == 0 {
@@ -445,7 +443,7 @@ fn archive_source_workspace(
             format!("{SNAPSHOT_ROOT_NAME}-{prepared_at_unix}-{suffix}")
         };
         let archived = archive_root.join(name);
-        if archived.exists() {
+        if fs::symlink_metadata(&archived).is_ok() {
             continue;
         }
         fs::rename(source_root, &archived).map_err(|err| {
@@ -459,6 +457,37 @@ fn archive_source_workspace(
     }
 
     Err("cannot archive stale source workspace: archive name limit exhausted".to_string())
+}
+
+fn prepare_archive_root(workspace_root: &Path) -> Result<PathBuf, String> {
+    let canonical_workspace = workspace_root
+        .canonicalize()
+        .map_err(|err| format!("cannot resolve managed source workspace: {err}"))?;
+    let archive_root = workspace_root.join(ARCHIVE_DIR_NAME);
+
+    match fs::symlink_metadata(&archive_root) {
+        Ok(metadata) => {
+            if metadata.file_type().is_symlink() {
+                return Err("refusing symlinked source workspace archive".to_string());
+            }
+            if !metadata.is_dir() {
+                return Err("source workspace archive path is not a directory".to_string());
+            }
+        }
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            fs::create_dir(&archive_root)
+                .map_err(|err| format!("cannot create source workspace archive: {err}"))?;
+        }
+        Err(err) => return Err(format!("cannot inspect source workspace archive: {err}")),
+    }
+
+    let canonical_archive = archive_root
+        .canonicalize()
+        .map_err(|err| format!("cannot resolve source workspace archive: {err}"))?;
+    if canonical_archive.parent() != Some(canonical_workspace.as_path()) {
+        return Err("source workspace archive escapes the managed workspace".to_string());
+    }
+    Ok(canonical_archive)
 }
 
 pub(crate) fn prepared_source_root(app: &AppHandle) -> Result<PathBuf, String> {
@@ -858,9 +887,7 @@ fn archive_reverted_source_file(
     let workspace_root = source_root
         .parent()
         .ok_or_else(|| "source workspace root has no managed parent".to_string())?;
-    let archive_root = workspace_root.join(ARCHIVE_DIR_NAME);
-    fs::create_dir_all(&archive_root)
-        .map_err(|err| format!("cannot create source workspace archive: {err}"))?;
+    let archive_root = prepare_archive_root(workspace_root)?;
 
     for suffix in 0..1_000_u32 {
         let name = if suffix == 0 {
@@ -868,10 +895,13 @@ fn archive_reverted_source_file(
         } else {
             format!("reverted-{archived_at_unix}-{suffix}")
         };
-        let archived = archive_root.join(name).join(relative);
-        if archived.exists() {
-            continue;
+        let batch_root = archive_root.join(name);
+        match fs::create_dir(&batch_root) {
+            Ok(()) => {}
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(err) => return Err(format!("cannot create source revert archive: {err}")),
         }
+        let archived = batch_root.join(relative);
         if let Some(parent) = archived.parent() {
             fs::create_dir_all(parent)
                 .map_err(|err| format!("cannot create source revert archive: {err}"))?;
@@ -1124,6 +1154,31 @@ mod tests {
         let _ = fs::remove_dir_all(root);
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn archive_source_workspace_rejects_symlinked_archive_root() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_root("archive-symlink-workspace");
+        let workspace = root.join("source-workspace");
+        let source = workspace.join(SNAPSHOT_ROOT_NAME);
+        let outside = root.join("outside");
+        fs::create_dir_all(&source).expect("create stale source");
+        fs::create_dir_all(&outside).expect("create outside");
+        symlink(&outside, workspace.join(ARCHIVE_DIR_NAME)).expect("link archive outside");
+
+        let err = archive_source_workspace(&workspace, &source, 1234)
+            .expect_err("reject symlinked archive");
+
+        assert!(err.contains("refusing symlinked source workspace archive"));
+        assert!(source.exists());
+        assert!(fs::read_dir(&outside)
+            .expect("list outside")
+            .next()
+            .is_none());
+        let _ = fs::remove_dir_all(root);
+    }
+
     #[test]
     fn clean_relative_path_rejects_escape_attempts() {
         assert!(clean_relative_path("src/App.tsx").is_ok());
@@ -1268,6 +1323,36 @@ mod tests {
             fs::read_to_string(archived).expect("read archived edit"),
             "edited"
         );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn revert_file_rejects_symlinked_archive_root() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_root("archive-symlink-revert");
+        let snapshot = root.join("snapshot");
+        let source = root.join("source");
+        let outside = root.join("outside");
+        fs::create_dir_all(&snapshot).expect("create snapshot");
+        fs::create_dir_all(&source).expect("create source");
+        fs::create_dir_all(&outside).expect("create outside");
+        fs::write(source.join("added.txt"), "keep").expect("write added file");
+        symlink(&outside, root.join(ARCHIVE_DIR_NAME)).expect("link archive outside");
+
+        let err = revert_file_for_roots(&snapshot, &source, "added.txt")
+            .expect_err("reject symlinked archive");
+
+        assert!(err.contains("refusing symlinked source workspace archive"));
+        assert_eq!(
+            fs::read_to_string(source.join("added.txt")).expect("read preserved source"),
+            "keep"
+        );
+        assert!(fs::read_dir(&outside)
+            .expect("list outside")
+            .next()
+            .is_none());
         let _ = fs::remove_dir_all(root);
     }
 
