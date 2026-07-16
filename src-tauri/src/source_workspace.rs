@@ -152,12 +152,8 @@ pub fn source_workspace_prepare(app: AppHandle) -> Result<SourceWorkspaceStatus,
 
 #[tauri::command]
 pub fn source_workspace_open(app: AppHandle) -> Result<(), String> {
-    let paths = managed_paths(&app)?;
-    if !paths.source_root.exists() {
-        return Err("Source workspace has not been prepared yet.".to_string());
-    }
-    open::that_detached(&paths.source_root)
-        .map_err(|err| format!("cannot open {}: {err}", paths.source_root.display()))
+    let root = prepared_source_root(&app)?;
+    open::that_detached(&root).map_err(|err| format!("cannot open {}: {err}", root.display()))
 }
 
 #[tauri::command]
@@ -168,8 +164,8 @@ pub fn source_workspace_list(
 ) -> Result<SourceWorkspaceList, String> {
     let root = prepared_source_root(&app)?;
     let relative = clean_relative_path(path.as_deref().unwrap_or(""))?;
-    let target = root.join(&relative);
-    let metadata = fs::metadata(&target).map_err(|err| {
+    let target = resolve_existing_source_path(&root, &relative)?;
+    let metadata = fs::symlink_metadata(&target).map_err(|err| {
         format!(
             "cannot list source path {}: {err}",
             display_source_path(&relative)
@@ -205,8 +201,8 @@ pub fn source_workspace_read(
 ) -> Result<SourceWorkspaceRead, String> {
     let root = prepared_source_root(&app)?;
     let relative = clean_required_file_path(&path, "read")?;
-    let target = root.join(&relative);
-    let metadata = fs::metadata(&target).map_err(|err| {
+    let target = resolve_existing_source_path(&root, &relative)?;
+    let metadata = fs::symlink_metadata(&target).map_err(|err| {
         format!(
             "cannot read source file {}: {err}",
             display_source_path(&relative)
@@ -247,15 +243,7 @@ pub fn source_workspace_write(
 ) -> Result<SourceWorkspaceWrite, String> {
     let root = prepared_source_root(&app)?;
     let relative = clean_required_file_path(&path, "write")?;
-    let target = root.join(&relative);
-    if let Some(parent) = target.parent() {
-        fs::create_dir_all(parent).map_err(|err| {
-            format!(
-                "cannot create parent directory for {}: {err}",
-                display_source_path(&relative)
-            )
-        })?;
-    }
+    let target = resolve_source_write_path(&root, &relative)?;
     fs::write(&target, content.as_bytes()).map_err(|err| {
         format!(
             "cannot write source file {}: {err}",
@@ -272,8 +260,8 @@ pub fn source_workspace_write(
 pub fn source_workspace_stat(app: AppHandle, path: String) -> Result<SourceWorkspaceStat, String> {
     let root = prepared_source_root(&app)?;
     let relative = clean_relative_path(&path)?;
-    let target = root.join(&relative);
-    let metadata = fs::metadata(&target).map_err(|err| {
+    let target = resolve_existing_source_path(&root, &relative)?;
+    let metadata = fs::symlink_metadata(&target).map_err(|err| {
         format!(
             "cannot stat source path {}: {err}",
             display_source_path(&relative)
@@ -300,7 +288,7 @@ pub fn source_workspace_search(
     }
     let root = prepared_source_root(&app)?;
     let relative = clean_relative_path(path.as_deref().unwrap_or(""))?;
-    let target = root.join(&relative);
+    let target = resolve_existing_source_path(&root, &relative)?;
     let limit = max_hits.unwrap_or(100).clamp(1, 500);
     let mut hits = Vec::new();
     let mut truncated = false;
@@ -357,9 +345,13 @@ fn status_for_app(app: &AppHandle) -> SourceWorkspaceStatus {
         }
     };
 
-    let installed = fallback_paths
-        .as_ref()
-        .and_then(|paths| read_marker(&paths.marker_path).ok());
+    let installed = fallback_paths.as_ref().and_then(|paths| {
+        let metadata = fs::symlink_metadata(&paths.source_root).ok()?;
+        if metadata.file_type().is_symlink() || !metadata.is_dir() {
+            return None;
+        }
+        read_marker(&paths.marker_path).ok()
+    });
     let prepared = fallback_paths
         .as_ref()
         .map(|paths| paths.source_root.exists())
@@ -394,27 +386,42 @@ fn prepare_for_app(app: &AppHandle) -> Result<(), String> {
     let bundle = bundled_source(app)?;
     let paths = managed_paths(app)?;
 
-    if paths.source_root.exists() {
-        let marker = read_marker(&paths.marker_path).map_err(|err| {
-            format!(
-                "Refusing to replace unmanaged source workspace at {}: {err}",
-                paths.source_root.display()
-            )
-        })?;
-        if !marker.app_managed {
+    match fs::symlink_metadata(&paths.source_root) {
+        Ok(metadata) => {
+            if metadata.file_type().is_symlink() || !metadata.is_dir() {
+                return Err(format!(
+                    "Refusing non-directory or symlinked source workspace at {}.",
+                    paths.source_root.display()
+                ));
+            }
+            let marker = read_marker(&paths.marker_path).map_err(|err| {
+                format!(
+                    "Refusing to replace unmanaged source workspace at {}: {err}",
+                    paths.source_root.display()
+                )
+            })?;
+            if !marker.app_managed {
+                return Err(format!(
+                    "Refusing to replace unmanaged source workspace at {}.",
+                    paths.source_root.display()
+                ));
+            }
+            if marker.source_manifest.content_hash == bundle.manifest.content_hash {
+                return Ok(());
+            }
+            archive_source_workspace(
+                &paths.workspace_root,
+                &paths.source_root,
+                marker.prepared_at_unix,
+            )?;
+        }
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+        Err(err) => {
             return Err(format!(
-                "Refusing to replace unmanaged source workspace at {}.",
+                "cannot inspect source workspace {}: {err}",
                 paths.source_root.display()
             ));
         }
-        if marker.source_manifest.content_hash == bundle.manifest.content_hash {
-            return Ok(());
-        }
-        archive_source_workspace(
-            &paths.workspace_root,
-            &paths.source_root,
-            marker.prepared_at_unix,
-        )?;
     }
 
     fs::create_dir_all(&paths.workspace_root)
@@ -492,8 +499,10 @@ fn prepare_archive_root(workspace_root: &Path) -> Result<PathBuf, String> {
 
 pub(crate) fn prepared_source_root(app: &AppHandle) -> Result<PathBuf, String> {
     let paths = managed_paths(app)?;
-    if !paths.source_root.exists() {
-        return Err("Source workspace has not been prepared yet.".to_string());
+    let metadata = fs::symlink_metadata(&paths.source_root)
+        .map_err(|_| "Source workspace has not been prepared yet.".to_string())?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err("Source workspace root must be a real directory.".to_string());
     }
     let marker = read_marker(&paths.marker_path)?;
     if !marker.app_managed {
@@ -582,6 +591,14 @@ fn read_manifest(path: &Path) -> Result<SourceManifest, String> {
 }
 
 fn read_marker(path: &Path) -> Result<InstalledSourceMarker, String> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|err| format!("missing app-managed marker {}: {err}", path.display()))?;
+    if metadata.file_type().is_symlink() || !metadata.is_file() {
+        return Err(format!(
+            "app-managed marker must be a real file: {}",
+            path.display()
+        ));
+    }
     let raw = fs::read_to_string(path)
         .map_err(|err| format!("missing app-managed marker {}: {err}", path.display()))?;
     serde_json::from_str(&raw)
@@ -650,7 +667,13 @@ fn collect_entries(
             return Ok(());
         }
         let path = entry.path();
-        let metadata = entry.metadata().map_err(|err| err.to_string())?;
+        let metadata = fs::symlink_metadata(&path).map_err(|err| err.to_string())?;
+        if metadata.file_type().is_symlink() {
+            return Err(format!(
+                "source workspace symlinks are not allowed: {}",
+                path.display()
+            ));
+        }
         let relative = path.strip_prefix(root).map_err(|err| err.to_string())?;
         let kind = if metadata.is_dir() { "dir" } else { "file" };
         entries.push(SourceWorkspaceEntry {
@@ -679,8 +702,14 @@ fn search_path(
         *truncated = true;
         return Ok(());
     }
-    let metadata = fs::metadata(target)
+    let metadata = fs::symlink_metadata(target)
         .map_err(|err| format!("cannot search source path {}: {err}", target.display()))?;
+    if metadata.file_type().is_symlink() {
+        return Err(format!(
+            "source workspace symlinks are not allowed: {}",
+            target.display()
+        ));
+    }
     if metadata.is_file() {
         search_file(root, target, query, limit, hits, truncated)?;
         return Ok(());
@@ -696,7 +725,13 @@ fn search_path(
             break;
         }
         let path = entry.path();
-        let metadata = entry.metadata().map_err(|err| err.to_string())?;
+        let metadata = fs::symlink_metadata(&path).map_err(|err| err.to_string())?;
+        if metadata.file_type().is_symlink() {
+            return Err(format!(
+                "source workspace symlinks are not allowed: {}",
+                path.display()
+            ));
+        }
         if metadata.is_dir() {
             search_path(root, &path, query, limit, hits, truncated)?;
         } else if metadata.is_file() {
@@ -825,13 +860,15 @@ fn revert_file_for_roots(
     if is_internal_marker(&relative) {
         return Err("cannot revert the source workspace marker.".to_string());
     }
-    let original = snapshot_root.join(&relative);
-    let current = source_root.join(&relative);
-    let original_file = fs::metadata(&original)
+    let original = resolve_optional_source_path(snapshot_root, &relative)?
+        .unwrap_or_else(|| snapshot_root.join(&relative));
+    let current = resolve_optional_source_path(source_root, &relative)?
+        .unwrap_or_else(|| source_root.join(&relative));
+    let original_file = fs::symlink_metadata(&original)
         .ok()
         .filter(|meta| meta.is_file())
         .is_some();
-    let current_file = fs::metadata(&current)
+    let current_file = fs::symlink_metadata(&current)
         .ok()
         .filter(|meta| meta.is_file())
         .is_some();
@@ -840,15 +877,8 @@ fn revert_file_for_roots(
         if current_file {
             archive_reverted_source_file(source_root, &current, &relative, unix_now())?;
         }
-        if let Some(parent) = current.parent() {
-            fs::create_dir_all(parent).map_err(|err| {
-                format!(
-                    "cannot create parent directory for {}: {err}",
-                    display_source_path(&relative)
-                )
-            })?;
-        }
-        fs::copy(&original, &current).map_err(|err| {
+        let restore_target = resolve_source_write_path(source_root, &relative)?;
+        fs::copy(&original, &restore_target).map_err(|err| {
             format!(
                 "cannot restore {} from bundled snapshot: {err}",
                 display_source_path(&relative)
@@ -939,7 +969,13 @@ fn collect_file_paths(
     children.sort_by_key(|entry| entry.path());
     for entry in children {
         let path = entry.path();
-        let metadata = entry.metadata().map_err(|err| err.to_string())?;
+        let metadata = fs::symlink_metadata(&path).map_err(|err| err.to_string())?;
+        if metadata.file_type().is_symlink() {
+            return Err(format!(
+                "source workspace symlinks are not allowed: {}",
+                path.display()
+            ));
+        }
         if metadata.is_dir() {
             collect_file_paths(root, &path, out)?;
         } else if metadata.is_file() {
@@ -978,6 +1014,107 @@ fn is_internal_marker(path: &Path) -> bool {
         .and_then(|name| name.to_str())
         .map(|name| name == INSTALLED_MARKER_NAME)
         .unwrap_or(false)
+}
+
+fn resolve_existing_source_path(root: &Path, relative: &Path) -> Result<PathBuf, String> {
+    resolve_optional_source_path(root, relative)?.ok_or_else(|| {
+        format!(
+            "source workspace path does not exist: {}",
+            display_source_path(relative)
+        )
+    })
+}
+
+fn resolve_optional_source_path(root: &Path, relative: &Path) -> Result<Option<PathBuf>, String> {
+    let mut current = root.to_path_buf();
+    let root_metadata = fs::symlink_metadata(&current)
+        .map_err(|err| format!("cannot inspect source workspace root: {err}"))?;
+    if root_metadata.file_type().is_symlink() || !root_metadata.is_dir() {
+        return Err("source workspace root must be a real directory".to_string());
+    }
+
+    for component in relative.components() {
+        let Component::Normal(part) = component else {
+            return Err("source workspace path contains an invalid component".to_string());
+        };
+        current.push(part);
+        match fs::symlink_metadata(&current) {
+            Ok(metadata) => {
+                if metadata.file_type().is_symlink() {
+                    return Err(format!(
+                        "source workspace symlinks are not allowed: {}",
+                        display_source_path(relative)
+                    ));
+                }
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(err) => {
+                return Err(format!(
+                    "cannot inspect source workspace path {}: {err}",
+                    display_source_path(relative)
+                ));
+            }
+        }
+    }
+    Ok(Some(current))
+}
+
+fn resolve_source_write_path(root: &Path, relative: &Path) -> Result<PathBuf, String> {
+    let parent = relative.parent().unwrap_or_else(|| Path::new(""));
+    let mut current = root.to_path_buf();
+    let root_metadata = fs::symlink_metadata(&current)
+        .map_err(|err| format!("cannot inspect source workspace root: {err}"))?;
+    if root_metadata.file_type().is_symlink() || !root_metadata.is_dir() {
+        return Err("source workspace root must be a real directory".to_string());
+    }
+
+    for component in parent.components() {
+        let Component::Normal(part) = component else {
+            return Err("source workspace path contains an invalid component".to_string());
+        };
+        current.push(part);
+        match fs::symlink_metadata(&current) {
+            Ok(metadata) => {
+                if metadata.file_type().is_symlink() {
+                    return Err(format!(
+                        "source workspace symlinks are not allowed: {}",
+                        display_source_path(relative)
+                    ));
+                }
+                if !metadata.is_dir() {
+                    return Err(format!(
+                        "source workspace parent is not a directory: {}",
+                        display_source_path(relative)
+                    ));
+                }
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                fs::create_dir(&current).map_err(|err| {
+                    format!(
+                        "cannot create parent directory for {}: {err}",
+                        display_source_path(relative)
+                    )
+                })?;
+            }
+            Err(err) => {
+                return Err(format!(
+                    "cannot inspect source workspace path {}: {err}",
+                    display_source_path(relative)
+                ));
+            }
+        }
+    }
+
+    let target = root.join(relative);
+    if let Ok(metadata) = fs::symlink_metadata(&target) {
+        if metadata.file_type().is_symlink() {
+            return Err(format!(
+                "source workspace symlinks are not allowed: {}",
+                display_source_path(relative)
+            ));
+        }
+    }
+    Ok(target)
 }
 
 fn clean_required_file_path(path: &str, action: &str) -> Result<PathBuf, String> {
@@ -1353,6 +1490,125 @@ mod tests {
             .expect("list outside")
             .next()
             .is_none());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn source_path_resolution_rejects_intermediate_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_root("source-path-symlink");
+        let source = root.join("source");
+        let source_link = root.join("source-link");
+        let outside = root.join("outside");
+        fs::create_dir_all(&source).expect("create source");
+        fs::create_dir_all(&outside).expect("create outside");
+        fs::write(outside.join("secret.txt"), "secret").expect("write outside file");
+        symlink(&outside, source.join("link")).expect("link source outside");
+        symlink(&source, &source_link).expect("link source root");
+        let relative = Path::new("link/secret.txt");
+
+        let read_err = resolve_existing_source_path(&source, relative)
+            .expect_err("reject symlinked read path");
+        let write_err =
+            resolve_source_write_path(&source, relative).expect_err("reject symlinked write path");
+        let root_err = resolve_existing_source_path(&source_link, relative)
+            .expect_err("reject symlinked source root");
+
+        assert!(read_err.contains("source workspace symlinks are not allowed"));
+        assert!(write_err.contains("source workspace symlinks are not allowed"));
+        assert!(root_err.contains("source workspace root must be a real directory"));
+        assert_eq!(
+            fs::read_to_string(outside.join("secret.txt")).expect("read outside file"),
+            "secret"
+        );
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn read_marker_rejects_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_root("marker-symlink");
+        fs::create_dir_all(&root).expect("create root");
+        let outside = root.join("outside.json");
+        let marker = root.join(INSTALLED_MARKER_NAME);
+        fs::write(&outside, "{}").expect("write outside marker");
+        symlink(&outside, &marker).expect("link marker");
+
+        let err = read_marker(&marker).expect_err("reject symlinked marker");
+
+        assert!(err.contains("app-managed marker must be a real file"));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn revert_file_rejects_intermediate_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_root("revert-path-symlink");
+        let snapshot = root.join("snapshot");
+        let source = root.join("source");
+        let outside = root.join("outside");
+        fs::create_dir_all(&snapshot).expect("create snapshot");
+        fs::create_dir_all(&source).expect("create source");
+        fs::create_dir_all(&outside).expect("create outside");
+        fs::write(outside.join("host.txt"), "host content").expect("write outside file");
+        symlink(&outside, source.join("link")).expect("link source outside");
+
+        let err = revert_file_for_roots(&snapshot, &source, "link/host.txt")
+            .expect_err("reject symlinked revert path");
+
+        assert!(err.contains("source workspace symlinks are not allowed"));
+        assert_eq!(
+            fs::read_to_string(outside.join("host.txt")).expect("read outside file"),
+            "host content"
+        );
+        assert!(!root.join(ARCHIVE_DIR_NAME).exists());
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn recursive_source_walks_reject_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_root("recursive-symlink");
+        let snapshot = root.join("snapshot");
+        let source = root.join("source");
+        let outside = root.join("outside");
+        fs::create_dir_all(&snapshot).expect("create snapshot");
+        fs::create_dir_all(&source).expect("create source");
+        fs::create_dir_all(&outside).expect("create outside");
+        fs::write(outside.join("secret.txt"), "needle").expect("write outside file");
+        symlink(&outside, source.join("link")).expect("link source outside");
+
+        let mut entries = Vec::new();
+        let mut list_truncated = false;
+        let list_err = collect_entries(&source, &source, true, &mut entries, &mut list_truncated)
+            .expect_err("reject symlinked list");
+        let mut hits = Vec::new();
+        let mut search_truncated = false;
+        let search_err = search_path(
+            &source,
+            &source,
+            "needle",
+            10,
+            &mut hits,
+            &mut search_truncated,
+        )
+        .expect_err("reject symlinked search");
+        let changed_err =
+            changed_files_for_roots(&snapshot, &source).expect_err("reject symlinked diff walk");
+
+        assert!(list_err.contains("source workspace symlinks are not allowed"));
+        assert!(search_err.contains("source workspace symlinks are not allowed"));
+        assert!(changed_err.contains("source workspace symlinks are not allowed"));
+        assert!(entries.is_empty());
+        assert!(hits.is_empty());
         let _ = fs::remove_dir_all(root);
     }
 
