@@ -346,6 +346,7 @@ fn status_for_app(app: &AppHandle) -> SourceWorkspaceStatus {
     };
 
     let installed = fallback_paths.as_ref().and_then(|paths| {
+        validate_managed_workspace_root(paths).ok()?;
         let metadata = fs::symlink_metadata(&paths.source_root).ok()?;
         if metadata.file_type().is_symlink() || !metadata.is_dir() {
             return None;
@@ -385,6 +386,7 @@ fn status_for_app(app: &AppHandle) -> SourceWorkspaceStatus {
 fn prepare_for_app(app: &AppHandle) -> Result<(), String> {
     let bundle = bundled_source(app)?;
     let paths = managed_paths(app)?;
+    ensure_managed_workspace_root(&paths)?;
 
     match fs::symlink_metadata(&paths.source_root) {
         Ok(metadata) => {
@@ -424,8 +426,6 @@ fn prepare_for_app(app: &AppHandle) -> Result<(), String> {
         }
     }
 
-    fs::create_dir_all(&paths.workspace_root)
-        .map_err(|err| format!("cannot create {}: {err}", paths.workspace_root.display()))?;
     copy_dir_recursive(&bundle.snapshot_root, &paths.source_root)?;
     let marker = InstalledSourceMarker {
         schema_version: 1,
@@ -499,6 +499,7 @@ fn prepare_archive_root(workspace_root: &Path) -> Result<PathBuf, String> {
 
 pub(crate) fn prepared_source_root(app: &AppHandle) -> Result<PathBuf, String> {
     let paths = managed_paths(app)?;
+    validate_managed_workspace_root(&paths)?;
     let metadata = fs::symlink_metadata(&paths.source_root)
         .map_err(|_| "Source workspace has not been prepared yet.".to_string())?;
     if metadata.file_type().is_symlink() || !metadata.is_dir() {
@@ -523,6 +524,7 @@ struct BundledSource {
 
 #[derive(Debug)]
 struct ManagedPaths {
+    data_root: PathBuf,
     workspace_root: PathBuf,
     source_root: PathBuf,
     marker_path: PathBuf,
@@ -569,18 +571,73 @@ fn bundled_source_from_root(root: PathBuf) -> Result<BundledSource, String> {
 }
 
 fn managed_paths(app: &AppHandle) -> Result<ManagedPaths, String> {
-    let workspace_root = app
+    let data_root = app
         .path()
         .app_local_data_dir()
-        .map_err(|err| err.to_string())?
-        .join(WORKSPACE_DIR_NAME);
+        .map_err(|err| err.to_string())?;
+    let workspace_root = data_root.join(WORKSPACE_DIR_NAME);
     let source_root = workspace_root.join(SNAPSHOT_ROOT_NAME);
     let marker_path = source_root.join(INSTALLED_MARKER_NAME);
     Ok(ManagedPaths {
+        data_root,
         workspace_root,
         source_root,
         marker_path,
     })
+}
+
+fn ensure_managed_workspace_root(paths: &ManagedPaths) -> Result<PathBuf, String> {
+    fs::create_dir_all(&paths.data_root).map_err(|err| {
+        format!(
+            "cannot create app-local data root {}: {err}",
+            paths.data_root.display()
+        )
+    })?;
+    match fs::symlink_metadata(&paths.workspace_root) {
+        Ok(_) => {}
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            fs::create_dir(&paths.workspace_root).map_err(|err| {
+                format!(
+                    "cannot create managed source workspace {}: {err}",
+                    paths.workspace_root.display()
+                )
+            })?;
+        }
+        Err(err) => {
+            return Err(format!(
+                "cannot inspect managed source workspace {}: {err}",
+                paths.workspace_root.display()
+            ));
+        }
+    }
+    validate_managed_workspace_root(paths)
+}
+
+fn validate_managed_workspace_root(paths: &ManagedPaths) -> Result<PathBuf, String> {
+    let metadata = fs::symlink_metadata(&paths.workspace_root).map_err(|err| {
+        format!(
+            "managed source workspace is unavailable {}: {err}",
+            paths.workspace_root.display()
+        )
+    })?;
+    if metadata.file_type().is_symlink() || !metadata.is_dir() {
+        return Err(format!(
+            "managed source workspace must be a real directory: {}",
+            paths.workspace_root.display()
+        ));
+    }
+    let canonical_data_root = paths
+        .data_root
+        .canonicalize()
+        .map_err(|err| format!("cannot resolve app-local data root: {err}"))?;
+    let canonical_workspace = paths
+        .workspace_root
+        .canonicalize()
+        .map_err(|err| format!("cannot resolve managed source workspace: {err}"))?;
+    if canonical_workspace.parent() != Some(canonical_data_root.as_path()) {
+        return Err("managed source workspace escapes app-local data".to_string());
+    }
+    Ok(canonical_workspace)
 }
 
 fn read_manifest(path: &Path) -> Result<SourceManifest, String> {
@@ -1541,6 +1598,41 @@ mod tests {
         let err = read_marker(&marker).expect_err("reject symlinked marker");
 
         assert!(err.contains("app-managed marker must be a real file"));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn managed_workspace_root_rejects_parent_symlink() {
+        use std::os::unix::fs::symlink;
+
+        let root = temp_root("workspace-parent-symlink");
+        let data_root = root.join("data");
+        let outside = root.join("outside");
+        fs::create_dir_all(&data_root).expect("create data root");
+        fs::create_dir_all(outside.join(SNAPSHOT_ROOT_NAME)).expect("create outside source");
+        symlink(&outside, data_root.join(WORKSPACE_DIR_NAME)).expect("link workspace outside");
+        let paths = ManagedPaths {
+            data_root: data_root.clone(),
+            workspace_root: data_root.join(WORKSPACE_DIR_NAME),
+            source_root: data_root.join(WORKSPACE_DIR_NAME).join(SNAPSHOT_ROOT_NAME),
+            marker_path: data_root
+                .join(WORKSPACE_DIR_NAME)
+                .join(SNAPSHOT_ROOT_NAME)
+                .join(INSTALLED_MARKER_NAME),
+        };
+
+        let validate_err =
+            validate_managed_workspace_root(&paths).expect_err("reject symlinked workspace parent");
+        let ensure_err = ensure_managed_workspace_root(&paths)
+            .expect_err("refuse to prepare through symlinked workspace parent");
+
+        assert!(validate_err.contains("managed source workspace must be a real directory"));
+        assert!(ensure_err.contains("managed source workspace must be a real directory"));
+        assert!(fs::read_dir(outside.join(SNAPSHOT_ROOT_NAME))
+            .expect("list outside source")
+            .next()
+            .is_none());
         let _ = fs::remove_dir_all(root);
     }
 
