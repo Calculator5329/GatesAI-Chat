@@ -15,6 +15,7 @@ import { loadUiPrefs, saveUiPrefs, type UiPrefsSnapshot } from '../services/uiPr
 import { loadMenuHintSeen, saveMenuHintSeen } from '../services/storage/uiHintStorage';
 import { logger } from '../services/diagnostics/logger';
 import { toggleFullscreen } from '../services/window/fullscreen';
+import { readThreadArchiveUsage, type ThreadArchiveUsage } from '../services/persistence';
 import {
   clearLocalDataExceptCredentials,
   formatBytes,
@@ -24,6 +25,7 @@ import {
 import type { BridgeStore } from './BridgeStore';
 
 export type { LocalDataSlotUsage } from '../services/storage/webLiteLocalData';
+export type { ThreadArchiveUsage } from '../services/persistence';
 
 /**
  * Owns ephemeral UI state: composer draft and reading preferences.
@@ -384,6 +386,7 @@ export class UiStore {
   // These let the Settings UI inspect and clear browser-resident app data
   // without importing the storage service directly.
   localDataUsage(): LocalDataSlotUsage[] { return readLocalDataUsage(); }
+  threadArchiveUsage(): Promise<ThreadArchiveUsage | null> { return readThreadArchiveUsage(); }
   clearLocalDataExceptCredentials(): void { clearLocalDataExceptCredentials(); }
   formatBytes(bytes: number): string { return formatBytes(bytes); }
 }

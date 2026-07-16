@@ -387,6 +387,11 @@ Chat persistence flow:
    `/workspace/chat-history` HTML/Markdown mirror.
 8. Multi-tab storage events pause autosave and show reload/dismiss behavior;
    there is no merge.
+9. The Usage panel reads localStorage slot sizes synchronously and archived
+   thread count/serialized byte totals from IndexedDB asynchronously. It does
+   not create a missing database, delete, or compact archive records; permanent
+   cleanup is owner-gated. Scans stop after 500 records and label larger totals
+   as lower bounds so opening Usage cannot trigger an unbounded archive walk.
 
 Secrets:
 

@@ -622,6 +622,9 @@ composer quieter.
 - [ ] Cold-start budget (<1.5s to interactive): lazy menu sections, idle-time
       catalog hydration, audit source-snapshot resource cost in installer
 - [ ] IDB background compaction; storage stats in Usage panel
+      — storage stats completed 2026-07-16: Usage now reports localStorage and
+      archived-thread entry/byte totals read-only. Compaction remains open and
+      owner-policy-gated because it permanently deletes orphaned IDB records.
 - [ ] Rust release profile tuning (thin LTO, strip) for installer size
 - [x] Adaptive streaming reveal pacing (faster catch-up when far behind) *(done 2026-07-11)*
 

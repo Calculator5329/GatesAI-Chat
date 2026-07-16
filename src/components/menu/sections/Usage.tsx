@@ -1,21 +1,34 @@
 // Renders real LLM usage and spend from persisted assistant-message usage.
 // Called by GatesMenu; depends on pure selectors and store context only.
 // Invariant: no usage counters are stored outside messages.
-import type { CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import { usageSummary, type UsageDayTotal, type UsageModelTotal } from '../../../core/threadSelectors';
 import { formatTokenCount, formatUsd } from '../../../core/usage';
-import { useChatStore, useModelRegistry } from '../../../stores/context';
+import { useChatStore, useModelRegistry, useUiStore } from '../../../stores/context';
+import type { ThreadArchiveUsage } from '../../../stores/UiStore';
 import { Card } from '../../ui';
 
 export const UsageSection = observer(function UsageSection() {
   const chat = useChatStore();
   const registry = useModelRegistry();
+  const ui = useUiStore();
+  const [archiveUsage, setArchiveUsage] = useState<ThreadArchiveUsage | null | undefined>(undefined);
   const summary = usageSummary(chat.threads, registry.all);
   const maxDayCost = Math.max(...summary.byDay.map(day => day.costUsd), 0);
   const maxDayTokens = Math.max(...summary.byDay.map(day => day.totalTokens), 0);
   const empty = summary.allTime.requests === 0;
+  const localData = ui.localDataUsage();
+  const localBytes = localData.reduce((total, slot) => total + slot.bytes, 0);
+
+  useEffect(() => {
+    let active = true;
+    void ui.threadArchiveUsage().then(usage => {
+      if (active) setArchiveUsage(usage);
+    });
+    return () => { active = false; };
+  }, [ui]);
 
   return (
     <div className="usage-page">
@@ -31,6 +44,8 @@ export const UsageSection = observer(function UsageSection() {
         ))}
       </div>
 
+      <StorageUsage localBytes={localBytes} localSlots={localData.filter(slot => slot.present).length} archiveUsage={archiveUsage} formatBytes={bytes => ui.formatBytes(bytes)} />
+
       {empty ? (
         <Card className="usage-empty editorial-empty-copy" style={{ padding: '18px' }}>
           Usage will appear here after the first completed model response.
@@ -44,6 +59,45 @@ export const UsageSection = observer(function UsageSection() {
     </div>
   );
 });
+
+function StorageUsage({
+  localBytes,
+  localSlots,
+  archiveUsage,
+  formatBytes,
+}: {
+  localBytes: number;
+  localSlots: number;
+  archiveUsage: ThreadArchiveUsage | null | undefined;
+  formatBytes: (bytes: number) => string;
+}) {
+  const archiveValue = archiveUsage === undefined
+    ? 'Checking…'
+    : archiveUsage === null
+      ? 'Unavailable'
+      : `${archiveUsage.truncated ? 'at least ' : ''}${formatBytes(archiveUsage.bytes)} · ${archiveUsage.entries}${archiveUsage.truncated ? '+' : ''} archived thread${archiveUsage.entries === 1 ? '' : 's'}`;
+  return (
+    <div className="usage-section usage-storage" style={{ ...tokens.section, marginTop: 0 }}>
+      <div className="usage-section-title" style={tokens.sectionTitle}>Local storage</div>
+      <Card style={{ padding: '13px 16px', display: 'grid', gap: 8 }}>
+        <StorageRow label="App data" value={`${formatBytes(localBytes)} · ${localSlots} active slots`} />
+        <StorageRow label="Thread archive" value={archiveValue} />
+        <div style={{ color: 'var(--text-faint)', fontSize: 11.5 }}>
+          Read-only totals. Archived history is preserved; this screen does not delete or compact data.
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function StorageRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, color: 'var(--text-dim)', fontSize: 12.5 }}>
+      <span>{label}</span>
+      <span style={{ ...tokens.mono, color: 'var(--text)', textAlign: 'right' }}>{value}</span>
+    </div>
+  );
+}
 
 function UsageStat({ label, value }: { label: string; value: string }) {
   return (

@@ -11,9 +11,10 @@ import {
   scheduleSaveSnapshot,
   setCompactionNoticeHandler,
   setThreadArchiveStoreForTests,
+  readThreadArchiveUsage,
 } from '../../src/services/persistence';
 import { CURRENT_CHAT_SCHEMA_VERSION } from '../../src/services/persistence/migrations';
-import type { ThreadArchiveStore } from '../../src/services/persistence/idb';
+import { createIndexedDbThreadArchiveStore, type ThreadArchiveStore } from '../../src/services/persistence/idb';
 import type { ChatSnapshot, Thread } from '../../src/core/types';
 import { logger } from '../../src/services/diagnostics/logger';
 import { messageText, messageToolCalls, messageToolResults } from '../../src/core/messageParts';
@@ -426,6 +427,59 @@ describe('persistence', () => {
     expect(stored.threads.find(thread => thread.id === 't6')).toMatchObject({ archived: true });
   });
 
+  it('reports read-only archived-thread entry and byte totals', async () => {
+    const archive = memoryThreadArchiveStore();
+    setThreadArchiveStoreForTests(archive);
+    await archive.putThread(snapshotWithThreads(1).threads[0]);
+    await archive.putThread(snapshotWithThreads(2).threads[1]);
+
+    const usage = await readThreadArchiveUsage();
+
+    expect(usage?.entries).toBe(2);
+    expect(usage?.bytes).toBeGreaterThan(100);
+    expect(usage?.truncated).toBe(false);
+    expect(archive.threads.size).toBe(2);
+  });
+
+  it('reads archive stats through an existing IndexedDB cursor without writes', async () => {
+    const fake = fakeIndexedDbUsage([{ id: 'one', title: 'One' }, { id: 'two', title: 'Two' }]);
+    const store = createIndexedDbThreadArchiveStore(fake.factory);
+
+    await expect(store.usage()).resolves.toMatchObject({ entries: 2, truncated: false });
+    expect(fake.state.transactionModes).toEqual(['readonly']);
+    expect(fake.state.closed).toBe(true);
+    expect(fake.state.upgradeAborted).toBe(false);
+  });
+
+  it('bounds archive scans at 500 records and marks totals as truncated', async () => {
+    const values = Array.from({ length: 501 }, (_, index) => ({ id: `thread-${index}`, title: 'Archived' }));
+    const fake = fakeIndexedDbUsage(values);
+    const store = createIndexedDbThreadArchiveStore(fake.factory);
+
+    const usage = await store.usage();
+
+    expect(usage).toMatchObject({ entries: 500, truncated: true });
+    expect(usage.bytes).toBeGreaterThan(0);
+    expect(fake.state.transactionModes).toEqual(['readonly']);
+  });
+
+  it('aborts a fresh IndexedDB upgrade so stats cannot create storage', async () => {
+    const fake = fakeIndexedDbUsage([], { missing: true });
+    const store = createIndexedDbThreadArchiveStore(fake.factory);
+
+    await expect(store.usage()).rejects.toThrow('archive does not exist');
+    expect(fake.state.upgradeAborted).toBe(true);
+    expect(fake.state.transactionModes).toEqual([]);
+  });
+
+  it('rejects malformed archive values instead of leaving stats pending', async () => {
+    const fake = fakeIndexedDbUsage([{ id: 'bad', value: 1n }]);
+    const store = createIndexedDbThreadArchiveStore(fake.factory);
+
+    await expect(store.usage()).rejects.toThrow(/BigInt|serialize/i);
+    expect(fake.state.closed).toBe(true);
+  });
+
   it('falls back to the single localStorage snapshot when the archive store is unavailable', async () => {
     setThreadArchiveStoreForTests(null);
 
@@ -572,6 +626,13 @@ function memoryThreadArchiveStore(
     async getThread(id: string): Promise<Thread | null> {
       return threads.get(id) ?? null;
     },
+    async usage(): Promise<{ entries: number; bytes: number; truncated: boolean }> {
+      return {
+        entries: threads.size,
+        bytes: [...threads.values()].reduce((total, thread) => total + new TextEncoder().encode(JSON.stringify(thread)).byteLength, 0),
+        truncated: false,
+      };
+    },
     async putThread(thread: Thread): Promise<void> {
       if (options.failPutFor?.has(thread.id)) throw new Error(`failed put ${thread.id}`);
       threads.set(thread.id, JSON.parse(JSON.stringify(thread)) as Thread);
@@ -580,4 +641,68 @@ function memoryThreadArchiveStore(
       threads.delete(id);
     },
   };
+}
+
+function fakeIndexedDbUsage(
+  values: unknown[],
+  options: { missing?: boolean } = {},
+): {
+  factory: IDBFactory;
+  state: { upgradeAborted: boolean; closed: boolean; transactionModes: string[] };
+} {
+  const state = { upgradeAborted: false, closed: false, transactionModes: [] as string[] };
+  const database = {
+    close(): void { state.closed = true; },
+    transaction(_store: string, mode: IDBTransactionMode) {
+      state.transactionModes.push(mode);
+      return {
+        objectStore: () => ({
+          openCursor: () => {
+            const cursorRequest = { result: null, error: null, onsuccess: null, onerror: null } as unknown as IDBRequest<IDBCursorWithValue | null>;
+            let index = 0;
+            const emit = (): void => {
+              const cursor = index < values.length
+                ? {
+                    value: values[index],
+                    continue: () => { index += 1; queueMicrotask(emit); },
+                  }
+                : null;
+              Object.assign(cursorRequest, { result: cursor });
+              cursorRequest.onsuccess?.(new Event('success'));
+            };
+            queueMicrotask(emit);
+            return cursorRequest;
+          },
+        }),
+      };
+    },
+  } as unknown as IDBDatabase;
+  const factory = {
+    open: () => {
+      const request = {
+        result: database,
+        error: null,
+        transaction: {
+          abort: () => {
+            state.upgradeAborted = true;
+            Object.assign(request, { error: new Error('IndexedDB archive does not exist.') });
+          },
+        },
+        onupgradeneeded: null,
+        onsuccess: null,
+        onerror: null,
+        onblocked: null,
+      } as unknown as IDBOpenDBRequest;
+      queueMicrotask(() => {
+        if (options.missing) {
+          request.onupgradeneeded?.(new Event('upgradeneeded') as IDBVersionChangeEvent);
+          request.onerror?.(new Event('error'));
+        } else {
+          request.onsuccess?.(new Event('success'));
+        }
+      });
+      return request;
+    },
+  } as unknown as IDBFactory;
+  return { factory, state };
 }
