@@ -351,6 +351,11 @@ Dynamic MCP tools are additional and are named by
 `src/services/mcp/toolIntegration.ts` as `mcp_<server-label>_<remote-tool>`,
 truncated to 64 characters with numeric suffixes for collisions.
 
+`inspect_file` provides bounded semantic reads for CSV, JSON, text, and source
+files. Its `structure` action recognizes imports and declarations in Python,
+JavaScript, TypeScript, and Go using a dependency-free best-effort scanner; it
+does not parse or execute source code, and results are capped at 100 symbols.
+
 ## Persistence
 
 Purpose: keep chat state local-first, migrate old shapes, avoid browser storage
