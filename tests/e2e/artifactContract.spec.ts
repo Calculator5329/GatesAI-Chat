@@ -52,6 +52,9 @@ test.describe('HTML artifact contract (mocked bridge)', () => {
     await expect(dock).toBeVisible();
     await expect(dock.locator('.dock-cell__title')).toHaveText('HTML artifact');
     await expect(dock.locator('[data-testid="dock-html-artifact"]')).toBeVisible();
-    await expect(dock.locator('iframe[title="Preview of Status board"]')).toBeVisible();
+    // The registry title is user-facing metadata, while the iframe's accessible
+    // title deliberately identifies the concrete workspace file being rendered.
+    await expect(dock.locator('.html-artifact-preview__name')).toHaveText('Status board');
+    await expect(dock.locator('iframe[title="Preview of status-board-1.html"]')).toBeVisible();
   });
 });

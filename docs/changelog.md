@@ -12,6 +12,9 @@
   the mocked desktop specs intentionally exercise.
 - Added a focused config regression for both modes. No sysctl, kernel, service,
   production build, provider, or application-runtime behavior changed.
+- Corrected the registry-backed HTML artifact browser assertion to verify both
+  contracts independently: the visible registry label remains `Status board`,
+  while the iframe's accessible title identifies `status-board-1.html`.
 
 ## 2026-07-16 — Local-first first-boot (LF-4)
 

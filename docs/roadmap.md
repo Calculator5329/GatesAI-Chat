@@ -350,6 +350,10 @@ composer quieter.
       pin development semantics instead of inheriting the workstation's
       production `NODE_ENV`. QA-1 remains open until every settings control and
       the de-bloat report meet acceptance.
+  - Browser-contract progress (2026-07-16): the registry-backed artifact E2E
+    now checks its user-facing registry title separately from the iframe's
+    concrete workspace-filename title, matching the shipped accessibility
+    contract instead of conflating the two labels.
 
 
 - [x] **Flaky-test sweep.** *(done 2026-07-10)* Run the unit suite 5× and the e2e suite 3× in a
