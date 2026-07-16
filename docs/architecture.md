@@ -577,6 +577,8 @@ Data flow:
    show diffs through `services/diff/lineDiff.ts`, revert files, and run build
    commands (`install`, `test`, `build`, `package`). Reverting a modified or
    added file archives its current content outside the active source root.
+   Source roots, intermediate components, targets, and recursive walks reject
+   symlinks before filesystem access.
 4. Model tools `source_workspace` and `source_build` call the same Tauri-backed
    services, so assistant-driven source edits and the human review UI share one
    command surface.

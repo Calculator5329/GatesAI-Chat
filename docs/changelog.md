@@ -9,6 +9,8 @@
   content, preserving model and user edits instead of deleting or overwriting
   them. Archive paths now reject symlinks and fail closed unless they resolve
   as a direct child of the managed workspace.
+- Hardened the `source://` jail so read/write/stat/list/search/diff/revert paths
+  reject root, intermediate, target, and recursively discovered symlinks.
 - Added Rust coverage for archive preservation and collision-safe archive
   naming, and reconciled the Vision and roadmap with the shipped boundary.
 
