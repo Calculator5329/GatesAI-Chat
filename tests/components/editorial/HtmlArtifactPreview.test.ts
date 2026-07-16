@@ -117,6 +117,16 @@ describe('HtmlArtifactPreview', () => {
     expect(decodeURIComponent(download.split(',', 2)[1] ?? '')).toBe(source);
   });
 
+  it('places preview policy before scripts when source contains a head decoy', () => {
+    const source = '<!-- <head> decoy --><html><head><script>fetch("https://example.com")</script></head><body>x</body></html>';
+    const preview = __htmlArtifactPreviewTestApi.createPreviewDocumentUrl(source).url;
+    const rendered = decodeURIComponent(preview.split(',', 2)[1] ?? '');
+    const doc = new DOMParser().parseFromString(rendered, 'text/html');
+
+    expect(doc.head.firstElementChild?.getAttribute('http-equiv')).toBe('Content-Security-Policy');
+    expect(doc.head.querySelector('script')?.textContent).toContain('fetch("https://example.com")');
+  });
+
   it('reads HTML through fs.stat and fs.read, then renders a sandboxed document preview', async () => {
     const bridge = onlineBridge();
     const rendered = renderPreview(bridge);

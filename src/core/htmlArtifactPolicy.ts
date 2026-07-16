@@ -22,18 +22,22 @@ export const HTML_ARTIFACT_DOCUMENT_CSP = [
   "form-action 'none'",
 ].join('; ');
 
-/** Add the preview CSP as the first head policy; later policies can only tighten it. */
+/** Add the preview CSP as the first parsed head policy; later policies can only tighten it. */
 export function applyHtmlArtifactDocumentPolicy(html: string): string {
-  const policy = `<meta http-equiv="Content-Security-Policy" content="${HTML_ARTIFACT_DOCUMENT_CSP}">`;
-  const head = /<head(?:\s[^>]*)?>/i.exec(html);
-  if (head?.index != null) {
-    const offset = head.index + head[0].length;
-    return `${html.slice(0, offset)}${policy}${html.slice(offset)}`;
-  }
-  const htmlRoot = /<html(?:\s[^>]*)?>/i.exec(html);
-  if (htmlRoot?.index != null) {
-    const offset = htmlRoot.index + htmlRoot[0].length;
-    return `${html.slice(0, offset)}<head>${policy}</head>${html.slice(offset)}`;
-  }
-  return `<head>${policy}</head>${html}`;
+  if (typeof DOMParser === 'undefined') return blockedSourceDocument(html);
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const policy = doc.createElement('meta');
+  policy.setAttribute('http-equiv', 'Content-Security-Policy');
+  policy.setAttribute('content', HTML_ARTIFACT_DOCUMENT_CSP);
+  doc.head.prepend(policy);
+  const doctype = doc.doctype ? `<!doctype ${doc.doctype.name}>\n` : '';
+  return `${doctype}${doc.documentElement.outerHTML}`;
+}
+
+function blockedSourceDocument(html: string): string {
+  const escaped = html
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+  return `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="${HTML_ARTIFACT_DOCUMENT_CSP}"></head><body><pre>${escaped}</pre></body></html>`;
 }
