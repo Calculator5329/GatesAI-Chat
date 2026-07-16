@@ -233,7 +233,7 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
 - [x] **LF-7: Local runtimes panel hardcodes Windows placeholders** *(done 2026-07-11)*
       (C:\Users paths, ollama.exe copy) + cramped error column — platform-
       aware copy + layout fix. (screen-menu-local.png)
-- [ ] **LF-8: gallery thumbnails/lightbox render black** while captions
+- [x] **LF-8: gallery thumbnails/lightbox render black** *(fixed 2026-07-16, codex lane: image-source resolution corrected for desktop+Web Lite, regression tests added; merged after gate pass, full suite 1220/1220)* while captions
       render — image blobs not displayed. May share a root with the
       bridge.spec gallery fix (2026-07-11) — re-capture first. (screen-menu-gallery.png)
 - [ ] **LF-9: tool-activity screen never actually captured** (byte-identical
