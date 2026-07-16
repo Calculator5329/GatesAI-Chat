@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-16 — Local-aware streaming status copy (CB-2)
+
+- Centralized text-turn connecting, streaming, and stall copy in one helper.
+  Ollama and explicit local runtimes now say they are loading or streaming
+  locally and report local-runtime stalls without provider-framed wording.
+- Preserved existing remote-provider messaging and deliberately avoided
+  guessing whether user-configured OpenAI-compatible endpoints are local.
+
 ## 2026-07-16 — Linux compatibility pair (A13)
 
 - NVIDIA + Wayland white-screen fixed in the app itself: Linux-only NVIDIA
