@@ -9,10 +9,11 @@ const BRIDGE_HEALTH_URL = 'http://127.0.0.1:7331/health';
 const BRIDGE_WS_URL = 'ws://127.0.0.1:7331/ws';
 const OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
 
-// A valid 1x1 transparent PNG so image tiles that read bytes via the bridge
-// render a real <img> instead of the loading placeholder.
-const ONE_PX_PNG_BASE64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+// A visibly rendered image for bridge-backed image reads. The old fixture was
+// a fully transparent 1x1 PNG: <img> visibility assertions passed, but every
+// gallery and lightbox capture looked black against the app background.
+const VISIBLE_IMAGE_SVG_BASE64 =
+  'PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCIgdmlld0JveD0iMCAwIDY0IDY0Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBzdG9wLWNvbG9yPSIjMjdkMTdmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNDg2Y2ZmIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSJ1cmwoI2cpIi8+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMTQiIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iLjg1Ii8+PC9zdmc+';
 
 // ── localStorage seeding ─────────────────────────────────────────────────
 // addInitScript runs before app code on every navigation, so the stores read
@@ -244,10 +245,10 @@ function handleBridgeOp(op: string | undefined, data: Record<string, unknown>, o
       const base64 = data.encoding === 'base64';
       return {
         path,
-        content: base64 ? ONE_PX_PNG_BASE64 : '',
+        content: base64 ? VISIBLE_IMAGE_SVG_BASE64 : '',
         encoding: base64 ? 'base64' : 'utf8',
-        size: base64 ? 70 : 0,
-        mime: base64 ? 'image/png' : 'text/plain',
+        size: base64 ? 345 : 0,
+        mime: base64 ? 'image/svg+xml' : 'text/plain',
       };
     }
     case 'fs.stat':
