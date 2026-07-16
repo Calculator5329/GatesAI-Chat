@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-16 — Local-first first-boot (LF-4)
+
+- The first-boot hero now leads with the local path: detected Ollama models
+  default the composer on untouched chats, the Local card precedes Cloud, and
+  offline states link Local settings instead of nagging for cloud keys.
+  Providers never switch silently; explicit choices stay put.
+
 ## 2026-07-16 — Linux compatibility pair (A13)
 
 - NVIDIA + Wayland white-screen fixed in the app itself: Linux-only NVIDIA

@@ -214,7 +214,7 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       LOCAL tab fed by the Ollama registry, with an offline-graceful empty
       state that links the user back to Local settings. (Evidence:
       screen-picker-model.png; audit 2026-07-11.)
-- [ ] **LF-4: first-boot hero leads cloud despite local-first banner.**
+- [x] **LF-4: first-boot hero leads cloud despite local-first banner.** *(done 2026-07-16, codex lane a14-lf4-local-first-boot-20260716: Local card leads, detected Ollama models default for untouched empty chats, explicit selections respected, offline state routes to Local settings without key-nagging, no-fallback stated; component tests cover both detection states.)*
       Primary CTA is the cloud card; tagline "chat with frontier models";
       composer defaults to keyless cloud Gemini. Give the local path equal
       or leading prominence; default composer to a detected Ollama model
