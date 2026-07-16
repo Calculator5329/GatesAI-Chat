@@ -61,6 +61,7 @@ import {
   type StreamingRoundActivityUpdate,
 } from './streamingRoundExecutor';
 import { appendSkillInstructionsToSystemPrompt, type WorkspaceSkill } from '../skills/skillsService';
+import { appendArtifactContractPrompt } from '../prompts/artifactContract';
 import {
   DEFAULT_AGENT_TASK_MAX_ROUNDS,
   MAX_CONCURRENT_AGENT_TASKS,
@@ -525,7 +526,10 @@ export class TurnRunner {
       toolAllowlist: activeSkill?.tools,
     });
     const finalSystemPrompt = appendImageGenAddendum(
-      appendSkillInstructionsToSystemPrompt(systemPrompt, activeSkill),
+      appendArtifactContractPrompt(
+        appendSkillInstructionsToSystemPrompt(systemPrompt, activeSkill),
+        tools,
+      ),
       tools,
     );
     const maxTokens = reservedOutputTokensForContextMode(mode);

@@ -175,6 +175,10 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       generated from code, artifact id registry under
       `/workspace/artifacts/html/`, smoke-render validation at creation,
       failures into the error trail; artifacts open in the dock panel.
+      *(Slice 1 shipped 2026-07-16: one shared preview CSP/sandbox/size policy,
+      versioned prompt block enabled only with the artifact tool, and pre-write
+      1 MiB rejection with a 256 KiB warning. Registry, update/list actions,
+      smoke render, error trail, and dock/palette surfaces remain.)*
 - [ ] **W-3: Unified background-task framework.** Promote the ImageJob
       lifecycle to a generic TaskStore (`image` | `agent` | `command`
       kinds), task-center dock panel with progress/cancel/retry/cost;

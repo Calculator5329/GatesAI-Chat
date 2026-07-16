@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 describe('tauri security config', () => {
-  it('allows sandboxed HTML artifact previews to run common dashboard CDNs', () => {
+  it('keeps host webview sources explicit while artifact documents add their stricter CSP', () => {
     const config = JSON.parse(readFileSync('src-tauri/tauri.conf.json', 'utf8')) as {
       app?: { security?: { csp?: string } };
     };

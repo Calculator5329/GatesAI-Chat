@@ -741,6 +741,21 @@ Slice 3 still retains the CodeMirror editor and terminal panel. The basic
 read-only file explorer shipped 2026-07-15; see
 `docs/plans/2026-07-12-dock-framework.md`.
 
+## HTML artifact contract (W-2, slice 1)
+
+`core/htmlArtifactPolicy.ts` is the single policy source for preview sandbox,
+document CSP, and byte budgets. Every preview document receives that CSP before
+it becomes a blob/data URL, so it cannot fetch, frame, or submit to the network.
+The workspace-artifact preview pipeline inlines readable local assets first;
+raw HTML opened directly in the dock is therefore expected to be self-contained.
+`services/prompts/artifactContract.ts` renders the versioned model contract from
+those same constants and appends it only on turns where the `artifact` tool is
+actually enabled. Creation rejects content over 1 MiB before the first
+filesystem write and reports a warning above 256 KiB.
+
+The stable-id registry, update/list actions, smoke-render gate, error trail,
+and dock/palette surfaces remain subsequent W-2 slices.
+
 ## Routing
 
 Tiny hash router (`#/thread/<id>` and `#/menu/<section>`) lives in

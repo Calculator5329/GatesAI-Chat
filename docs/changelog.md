@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-16 — W-2 HTML artifact contract, slice 1
+
+- Added a versioned model-facing artifact contract only when the artifact tool
+  is enabled. It derives preview CSP and byte budgets from the same core policy
+  used by rendering and validation, preventing prompt/runtime drift.
+- Sandboxed HTML previews now receive an artifact-specific CSP that blocks
+  network connections, frames, forms, objects, and external dependencies after
+  local assets are inlined. Creation rejects documents over 1 MiB before any
+  filesystem write and reports a warning above 256 KiB.
+
 ## 2026-07-16 — Local-first first-boot (LF-4)
 
 - The first-boot hero now leads with the local path: detected Ollama models

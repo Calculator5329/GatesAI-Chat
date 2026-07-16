@@ -108,6 +108,15 @@ afterEach(() => {
 });
 
 describe('HtmlArtifactPreview', () => {
+  it('applies the preview CSP without modifying downloaded artifact content', () => {
+    const source = '<html><body>portable</body></html>';
+    const preview = __htmlArtifactPreviewTestApi.createPreviewDocumentUrl(source).url;
+    const download = __htmlArtifactPreviewTestApi.createDownloadDocumentUrl(source).url;
+
+    expect(decodeURIComponent(preview.split(',', 2)[1] ?? '')).toContain('Content-Security-Policy');
+    expect(decodeURIComponent(download.split(',', 2)[1] ?? '')).toBe(source);
+  });
+
   it('reads HTML through fs.stat and fs.read, then renders a sandboxed document preview', async () => {
     const bridge = onlineBridge();
     const rendered = renderPreview(bridge);

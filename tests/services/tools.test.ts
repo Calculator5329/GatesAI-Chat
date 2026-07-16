@@ -18,6 +18,7 @@ import type { ToolContext } from '../../src/services/tools/types';
 import type { Thread } from '../../src/core/types';
 import { DEFAULT_MODEL_ID } from '../../src/core/models';
 import { clearAppStorage } from '../helpers/storage';
+import { HTML_ARTIFACT_MAX_BYTES } from '../../src/core/htmlArtifactPolicy';
 
 const NOTES_KEY = 'gatesai.notes.v1';
 
@@ -887,6 +888,45 @@ describe('artifact tool', () => {
     expect(out.errorCode).toBe('invalid_html_artifact');
     expect(out.content).toContain('inline script 1 has a syntax error');
     expect(out.content).toContain('missing local assets');
+  });
+
+  it('rejects oversized HTML before creating a directory or writing a file', async () => {
+    const requests: FakeRequest[] = [];
+    const bridge = fakeBridge({ online: true, requests });
+
+    const out = await toolRegistry.execute('artifact', {
+      action: 'create_html_artifact',
+      path: '/workspace/artifacts/exports/too-large.html',
+      content: `<html><body>${'x'.repeat(HTML_ARTIFACT_MAX_BYTES)}</body></html>`,
+    }, makeCtx({ bridge }));
+
+    expect(out.ok).toBe(false);
+    expect(out.errorCode).toBe('artifact_too_large');
+    expect(requests).toEqual([]);
+  });
+
+  it('surfaces the soft size warning after validating a large existing artifact', async () => {
+    const size = 256 * 1024 + 1;
+    const bridge = fakeBridge({
+      online: true,
+      respond: (op, data) => {
+        const path = (data as { path?: string }).path ?? '';
+        if (op === 'fs.stat') return { path, kind: 'file', size, mtime: 1, mime: 'text/html' };
+        if (op === 'fs.read') {
+          const content = `<html><body>${'x'.repeat(size - 26)}</body></html>`;
+          return { path, content, encoding: 'utf8', size, mime: 'text/html' };
+        }
+        throw new Error(`unexpected op ${op}`);
+      },
+    });
+
+    const out = await toolRegistry.execute('artifact', {
+      action: 'validate_html',
+      path: '/workspace/artifacts/exports/large.html',
+    }, makeCtx({ bridge }));
+
+    expect(out.ok).toBe(true);
+    expect(out.content).toContain('HTML artifact is over 262144 bytes');
   });
 });
 

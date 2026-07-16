@@ -2,6 +2,10 @@
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { FsReadResp, FsStatResp, FsWriteResp } from '../../core/workspace';
+import {
+  HTML_ARTIFACT_MAX_BYTES,
+  HTML_ARTIFACT_WARN_BYTES,
+} from '../../core/htmlArtifactPolicy';
 import { BridgeOfflineError } from '../bridge/client';
 import { requireBridgeOutcome } from './requireBridge';
 import type { Tool, ToolOutcome, ToolValidationIssue } from './types';
@@ -56,6 +60,8 @@ export const artifactTool: Tool = {
     try {
       if (action === 'create_html_artifact') {
         const content = typeof args.content === 'string' ? args.content : '';
+        const sizeBytes = utf8Size(content);
+        if (sizeBytes > HTML_ARTIFACT_MAX_BYTES) return artifactTooLarge(path, sizeBytes);
         const dir = parentWorkspacePath(path);
         if (dir) await guard.bridge.client.request('fs.mkdir', { path: dir });
         const write = await guard.bridge.client.request<FsWriteResp>('fs.write', {
@@ -129,6 +135,7 @@ function validateArtifactArgs(args: Record<string, unknown>): ToolValidationIssu
 
 async function validateHtmlArtifact(path: string, client: { request<T = unknown>(op: string, data: unknown): Promise<T> }): Promise<ToolOutcome> {
   const stat = await client.request<FsStatResp>('fs.stat', { path });
+  if (stat.size > HTML_ARTIFACT_MAX_BYTES) return artifactTooLarge(path, stat.size);
   const read = await client.request<FsReadResp>('fs.read', { path, encoding: 'utf8' });
   const content = typeof read.content === 'string' ? read.content : '';
   const issues: string[] = [];
@@ -165,8 +172,24 @@ async function validateHtmlArtifact(path: string, client: { request<T = unknown>
       size: stat.size,
       inlineScripts: countInlineScripts(content),
       localAssetsChecked: localAssetRefs(content).length,
+      warnings: stat.size > HTML_ARTIFACT_WARN_BYTES
+        ? [`HTML artifact is over ${HTML_ARTIFACT_WARN_BYTES} bytes; consider simplifying it.`]
+        : [],
     },
   };
+}
+
+function artifactTooLarge(path: string, sizeBytes: number): ToolOutcome {
+  return errorOutcome(
+    'artifact_too_large',
+    `HTML artifact at ${path} is ${sizeBytes} bytes; the limit is ${HTML_ARTIFACT_MAX_BYTES} bytes.`,
+    'Simplify or split the deliverable, then retry without writing the oversized document.',
+    { path, sizeBytes, maxBytes: HTML_ARTIFACT_MAX_BYTES },
+  );
+}
+
+function utf8Size(content: string): number {
+  return new TextEncoder().encode(content).byteLength;
 }
 
 function validateInlineScripts(html: string): string[] {
