@@ -387,6 +387,41 @@ composer quieter.
 
 ---
 
+## Agentic platform (2026-07-16, Ethan)
+
+Design and phased single-session lane boundaries:
+[`docs/plans/07-16-agentic-platform-design.md`](plans/07-16-agentic-platform-design.md).
+These are open Stories in the mandated Vision; unchecked workflow state does
+not by itself imply acceptance of every proposed implementation detail.
+
+- [ ] **AP-1 — Downloadable database plugins.** Ship versioned, data-only
+      knowledge/database bundles that users can inspect, explicitly install
+      and enable; agents can initiate the approval-gated install flow and query
+      enabled bundles through bounded read-only operations with stable
+      citations. Carry forward the Offline Library plugin's typed lifecycle,
+      fixed authority, privacy states, and no-remote-fallback rules.
+      See [Story AP-1](plans/07-16-agentic-platform-design.md#story-ap-1--downloadable-database-plugins).
+- [ ] **AP-2 — Background sub-agents on TaskStore.** Make agent runs durable
+      first-class tasks using W-3's existing two-agent cap, linked threads,
+      task-center progress, cancel/retry/interruption, exact provider/model,
+      tool/data grants, result, and round/time/token/spend caps—without a
+      parallel queue or silent provider switching. See
+      [Story AP-2](plans/07-16-agentic-platform-design.md#story-ap-2--background-sub-agents-on-taskstore).
+- [ ] **AP-3 — User-controlled self-scheduling.** Let agents propose one-shot,
+      delayed, interval, and daily wakes that become ordinary TaskStore runs
+      only after visible user consent, with pause/edit/run-now/archive, exact
+      route, wake/overlap/catch-up/spend caps, and honest app-open-only V1
+      behavior. See
+      [Story AP-3](plans/07-16-agentic-platform-design.md#story-ap-3--self-scheduling-with-visible-wakes).
+- [ ] **AP-4 — Outcome-driven self-improvement.** Add a local outcome/feedback
+      journal and reviewable, scoped memory/prompt/skill proposals that can
+      improve future task context with provenance and rollback; do not claim
+      client-side weight training or permit hidden prompt, tool, provider,
+      schedule, or source changes. See
+      [Story AP-4](plans/07-16-agentic-platform-design.md#story-ap-4--self-improvement-through-outcomes-and-feedback).
+
+---
+
 ## Done
 - [x] Clean up dead code, root HTML mockups, and unused assets
 - [x] Convert codebase to TypeScript
