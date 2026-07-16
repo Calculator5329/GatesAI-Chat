@@ -1,4 +1,6 @@
 export const AGENT_TASK_POLICY_SCHEMA_VERSION = 1 as const
+export const DEFAULT_AGENT_TASK_MAX_COST_USD = 1
+export const DEFAULT_AGENT_TASK_DAILY_COST_USD = 5
 export const AGENT_TASK_HARD_COST_CEILING_USD = 100
 
 export type AgentTaskPolicyFailureCode =
@@ -43,7 +45,11 @@ export interface AgentTaskLaunchContext {
   available_routes: AgentTaskRoutePin[]
   parent_allowed_tools: string[]
   runtime_available_tools: string[]
-  available_plugins: Array<{ plugin_id: string; version: string }>
+  available_plugins: Array<{
+    plugin_id: string
+    version: string
+    data_policy: 'local_only' | 'cloud_allowed'
+  }>
 }
 
 export type AgentTaskPolicyDecision =
@@ -110,8 +116,12 @@ export function evaluateAgentTaskLaunch(
     if (availableVersions.length === 0) {
       return { ok: false, code: 'plugin_unavailable', detail: `${pin.plugin_id} is unavailable` }
     }
-    if (!availableVersions.some(plugin => plugin.version === pin.version)) {
+    const exactPlugin = availableVersions.find(plugin => plugin.version === pin.version)
+    if (!exactPlugin) {
       return { ok: false, code: 'plugin_version_mismatch', detail: `${pin.plugin_id}@${pin.version} is unavailable` }
+    }
+    if (exactPlugin.data_policy === 'local_only' && pin.data_policy !== 'local_only') {
+      return { ok: false, code: 'data_policy_mismatch', detail: `${pin.plugin_id}@${pin.version} cannot be loosened beyond local_only` }
     }
     if (pin.data_policy === 'local_only' && policy.route.locality === 'cloud') {
       return { ok: false, code: 'data_policy_mismatch', detail: `${pin.plugin_id}@${pin.version} requires a local route` }
