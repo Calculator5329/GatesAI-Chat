@@ -19,6 +19,7 @@ import {
 } from './persistence/migrations';
 import {
   createIndexedDbThreadArchiveStore,
+  type ThreadArchiveStats,
   type ThreadArchiveStore,
 } from './persistence/idb';
 
@@ -31,6 +32,8 @@ export const PROACTIVE_HOT_THREAD_LIMIT = Math.max(1, Math.floor(HOT_THREAD_LIMI
 export const PROACTIVE_SNAPSHOT_CHARS = 3_500_000;
 
 export type CompactionNoticeHandler = (message: string) => void;
+
+export type ThreadArchiveUsage = ThreadArchiveStats;
 
 let compactionNoticeHandler: CompactionNoticeHandler | null = null;
 let defaultThreadArchiveStore: ThreadArchiveStore | null = null;
@@ -361,6 +364,23 @@ export async function loadArchivedThread(threadId: string): Promise<Thread | nul
     return hydrated;
   } catch (err) {
     logIdbUnavailable('IndexedDB thread archive read failed.', err);
+    return null;
+  }
+}
+
+/**
+ * Read-only archive sizing for the Usage panel. This deliberately does not
+ * delete stale entries: workspace policy forbids permanent deletion without
+ * an explicit owner decision, so compaction remains a separate gated task.
+ */
+export async function readThreadArchiveUsage(): Promise<ThreadArchiveUsage | null> {
+  if (threadArchiveStoreForTests === undefined && typeof indexedDB === 'undefined') return null;
+  const store = getThreadArchiveStore();
+  if (!store) return null;
+  try {
+    return await store.usage();
+  } catch (err) {
+    logIdbUnavailable('IndexedDB thread archive usage read failed.', err);
     return null;
   }
 }

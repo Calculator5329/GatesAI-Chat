@@ -156,6 +156,9 @@ function deferredThreadArchiveStore(): ThreadArchiveStore & {
     async getThread(): Promise<Thread | null> {
       return new Promise(resolve => { resolveGet = resolve; });
     },
+    async usage(): Promise<{ entries: number; bytes: number; truncated: boolean }> {
+      return { entries: threads.size, bytes: 0, truncated: false };
+    },
     async putThread(thread: Thread): Promise<void> {
       threads.set(thread.id, thread);
     },
@@ -170,6 +173,9 @@ function memoryThreadArchiveStore(initial: Record<string, Thread>): ThreadArchiv
   return {
     async getThread(id: string): Promise<Thread | null> {
       return threads.get(id) ?? null;
+    },
+    async usage(): Promise<{ entries: number; bytes: number; truncated: boolean }> {
+      return { entries: threads.size, bytes: 0, truncated: false };
     },
     async putThread(thread: Thread): Promise<void> {
       threads.set(thread.id, thread);
