@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-16 — Linux compatibility pair (A13)
+
+- NVIDIA + Wayland white-screen fixed in the app itself: Linux-only NVIDIA
+  detection (no shelling out) sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` before
+  the first webview unless the user already set a value (including `0`).
+  Six Rust unit tests; cargo suite 45/45.
+- Web Lite `/#/menu/local` no longer throws: the Local panel is gated on a
+  semantic desktop-capability check and renders a desktop-only explainer;
+  screens-tour asserts the explainer and zero console errors.
+
 ## 2026-07-15 — W-1 basic dock file explorer
 
 - Added a compact, read-only File Explorer panel to the existing dock registry.

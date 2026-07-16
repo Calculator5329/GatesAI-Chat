@@ -180,8 +180,13 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       kinds), task-center dock panel with progress/cancel/retry/cost;
       strangler migration keeping ImageJobStore's 22 tests green.
 
-- [ ] **BUG: white screen on NVIDIA + Wayland — bake the WebKit DMABUF
-      workaround into the app.** Confirmed 2026-07-12 on the RTX 5070 Ti
+- [x] **BUG: white screen on NVIDIA + Wayland — bake the WebKit DMABUF
+      workaround into the app.** *(done 2026-07-16, codex lane
+      a13-nvidia-wayland-dmabuf-20260716: Linux-only /proc + /sys NVIDIA
+      detection without shelling out, respects user-set values incl. 0,
+      runs before the first webview; 6 unit tests, cargo suite 45/45.
+      README/troubleshooting doc line still pending — folded into the
+      docs sweep.)* Confirmed 2026-07-12 on the RTX 5070 Ti
       (CachyOS/Hyprland): the AppImage renders an all-white webview because
       WebKitGTK's DMABUF renderer fails on NVIDIA + Wayland. Workaround
       verified working: `WEBKIT_DISABLE_DMABUF_RENDERER=1` (currently set
@@ -234,7 +239,7 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
 - [ ] **LF-9: tool-activity screen never actually captured** (byte-identical
       to chat-active) — fix the tour step to expand the activity panel and
       re-audit that surface.
-- [ ] **LF-1: Local menu section breaks in Web Lite.** Found by the screen
+- [x] **LF-1: Local menu section breaks in Web Lite.** *(done 2026-07-16, codex lane a13-weblite-local-menu-20260716: Local panel gated on a semantic desktop-capability check in core/runtime.ts, friendly desktop-only explainer in Web Lite, screens-tour asserts explainer + zero console errors; vitest green.)* Found by the screen
       audit 2026-07-11: `/#/menu/local` throws unhandled
       "Cannot read local runtime status outside the GatesAI desktop app"
       (localRuntimeService.ensureTauri) instead of degrading gracefully —
