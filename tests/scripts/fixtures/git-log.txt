@@ -1,0 +1,7 @@
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	2026-07-16T10:15:00-05:00	feat(chat): add jump-to-latest control
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb	2026-07-16T10:10:00-05:00	fix(web-lite): keep local settings available offline
+cccccccccccccccccccccccccccccccccccccccc	2026-07-16T10:05:00-05:00	docs(handbook): explain workspace tools
+dddddddddddddddddddddddddddddddddddddddd	2026-07-16T10:00:00-05:00	style(settings): tighten theme selector spacing
+eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee	2026-07-16T09:55:00-05:00	refactor(bridge)!: replace the legacy request envelope
+ffffffffffffffffffffffffffffffffffffffff	2026-07-16T09:50:00-05:00	chore(deps): update lockfile
+1111111111111111111111111111111111111111	2026-07-16T09:45:00-05:00	Merge branch 'example'
