@@ -21,6 +21,7 @@ export function isLocalStreamProvider(providerId?: string): boolean {
 
 export function streamStatusCopy(args: StreamStatusCopyArgs): StreamStatusCopy {
   if (isLocalStreamProvider(args.providerId)) return localStreamStatusCopy(args);
+  if (args.providerId === 'openai-compat') return neutralStreamStatusCopy(args);
   return remoteStreamStatusCopy(args);
 }
 
@@ -46,6 +47,24 @@ function localStreamStatusCopy(args: StreamStatusCopyArgs): StreamStatusCopy {
   if (args.preTokenLabel === 'compacting') return { verb: 'Compacting', footer: 'compacting locally...' };
   if (args.preTokenLabel === 'generating') return { verb: 'Generating', footer: 'generating locally...' };
   return { verb: 'Streaming locally', footer: 'streaming locally...' };
+}
+
+function neutralStreamStatusCopy(args: StreamStatusCopyArgs): StreamStatusCopy {
+  if (args.phase === 'stalled') {
+    return {
+      verb: 'Model paused',
+      footer: 'model paused',
+      stallReason: args.idleSeconds == null
+        ? 'The model stopped sending data, so GatesAI stopped the stalled stream.'
+        : `No model data arrived for ${args.idleSeconds}s, so GatesAI stopped the stalled stream.`,
+    };
+  }
+  if (args.phase === 'connecting') return { verb: 'Waiting for model', footer: 'waiting for model...' };
+  if (args.phase === 'tooling') return { verb: 'Running tools', footer: 'running tools...' };
+  if (args.preTokenLabel === 'responding') return { verb: 'Responding', footer: 'responding...' };
+  if (args.preTokenLabel === 'compacting') return { verb: 'Compacting', footer: 'compacting...' };
+  if (args.preTokenLabel === 'generating') return { verb: 'Generating', footer: 'generating...' };
+  return { verb: 'Streaming', footer: 'streaming...' };
 }
 
 function remoteStreamStatusCopy(args: StreamStatusCopyArgs): StreamStatusCopy {
