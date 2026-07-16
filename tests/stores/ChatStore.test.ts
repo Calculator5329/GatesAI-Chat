@@ -329,7 +329,44 @@ describe('ChatStore', () => {
     await flush();
     expect(chat.activeThread?.archived).not.toBe(true);
     expect(chat.activeThread?.messages.map(messageText)).toEqual(['old message']);
+    expect(chat.activeThread?.modelSelection).toBe('explicit');
     expect(chat.activeThreadHydrating).toBe(false);
+  });
+
+  it('keeps a legacy empty archived thread explicit after hydration and delayed Ollama discovery', async () => {
+    const { stub, full } = archivedThreadPair('legacy-empty-archive');
+    stub.modelId = 'or-nemotron-3-ultra-free';
+    full.modelId = 'or-nemotron-3-ultra-free';
+    full.messages = [];
+    setThreadArchiveStoreForTests(memoryThreadArchiveStore({ [full.id]: full }));
+    localStorage.setItem('gatesai.state.v1', JSON.stringify({
+      schemaVersion: 3,
+      threads: [stub],
+      activeThreadId: stub.id,
+    }));
+    const registry = new ModelRegistry();
+    const providers = new ProviderStore(registry);
+    const profile = new UserProfileStore();
+    const chat = trackChat(new ChatStore(providers, registry, profile));
+
+    await flush();
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-after-archive',
+      name: 'Local after archive',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'qwen2.5:7b',
+      supportsTools: true,
+    }]);
+    providers.setAvailable('ollama', true);
+    chat.reconcileDefaultModelForEmptyThreads();
+
+    expect(chat.activeThread).toMatchObject({
+      messages: [],
+      modelId: 'or-nemotron-3-ultra-free',
+      modelSelection: 'explicit',
+    });
+    expect(chat.activeThread).not.toHaveProperty('archived');
   });
 
   it('waits for archived-thread hydration before sending a message', async () => {
