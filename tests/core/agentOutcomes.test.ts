@@ -213,4 +213,19 @@ describe('deterministic outcome metrics', () => {
     const duplicateAttempt = parseAgentOutcomeRecord(outcome({ id: 'outcome-2' }))
     expect(() => summarizeAgentOutcomes([first, duplicateAttempt])).toThrow('duplicate attempt')
   })
+
+  it('keeps slash-bearing task and attempt tuples unambiguous', () => {
+    const first = parseAgentOutcomeRecord(outcome({
+      id: 'outcome-a',
+      task_id: 'a/b',
+      attempt_id: 'c',
+    }))
+    const second = parseAgentOutcomeRecord(outcome({
+      id: 'outcome-b',
+      task_id: 'a',
+      attempt_id: 'b/c',
+    }))
+
+    expect(summarizeAgentOutcomes([first, second]).total).toBe(2)
+  })
 })
