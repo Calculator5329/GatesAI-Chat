@@ -277,7 +277,7 @@ composer quieter.
       distinct from blur in both light and dark; screenshot before/after in
       the PR; `npm run ci` green.
 
-- [x] **CB-2: Local models deserve their own status copy, not "Waiting on
+- [ ] **CB-2: Local models deserve their own status copy, not "Waiting on
       provider…".** The stall/idle indicators (`ImageJobCard.tsx:125`
       "Waiting on provider…"; text-turn stall copy via
       `streamingRoundExecutor.ts`, `PROVIDER_STREAM_INITIAL_STALL_MS = 180s`)
@@ -290,10 +290,6 @@ composer quieter.
       signal is available. *Acceptance:* a local turn never shows
       "provider"-framed copy; unit tests cover the local vs remote branch;
       copy lives in one place, not scattered string literals.
-      **Completed 2026-07-16:** text-turn connecting, streaming, and stalled
-      copy now comes from one provider-kind-aware helper. Ollama and explicit
-      `local-*` runtimes get local wording; ambiguous OpenAI-compatible
-      endpoints remain remote/neutral until their runtime location is known.
 
 - [ ] **SP-1: User-configurable system prompt.** Today the system prompt is
       derived entirely from context mode
