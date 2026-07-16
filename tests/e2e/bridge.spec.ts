@@ -32,7 +32,7 @@ test.describe('bridge-backed flows (faked online bridge)', () => {
     await expect(page.getByText('note.txt')).toBeVisible();
   });
 
-  test('renders gallery thumbnails from seeded completed jobs', async ({ page }) => {
+  test('renders gallery thumbnails and lightbox from seeded image bytes', async ({ page }) => {
     await seedImageJobs(page, [
       makeCompletedImageJob('job-1', 'a calm editorial landscape', [
         '/workspace/artifacts/images/api/test-1.png',
@@ -41,7 +41,20 @@ test.describe('bridge-backed flows (faked online bridge)', () => {
     await page.goto('/#/menu/gallery');
 
     await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible();
-    await expect(page.locator('.gallery-grid img')).toBeVisible({ timeout: 15_000 });
+    const thumbnail = page.locator('.gallery-grid img');
+    await expect(thumbnail).toBeVisible({ timeout: 15_000 });
+    await expect(thumbnail).toHaveAttribute('src', /^data:image\/svg\+xml;base64,/);
+    await expect.poll(() => thumbnail.evaluate(img => ({
+      width: (img as HTMLImageElement).naturalWidth,
+      height: (img as HTMLImageElement).naturalHeight,
+    }))).toEqual({ width: 64, height: 64 });
+
+    await thumbnail.click();
+    const lightbox = page.getByRole('dialog', { name: 'Image viewer' });
+    await expect(lightbox).toBeVisible();
+    const fullSize = lightbox.locator('img');
+    await expect(fullSize).toBeVisible();
+    await expect(fullSize).toHaveAttribute('src', /^data:image\/svg\+xml;base64,/);
   });
 
   test('clears all threads from the danger zone', async ({ page }) => {
