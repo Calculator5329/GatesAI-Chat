@@ -58,6 +58,30 @@ describe('ollamaPull', () => {
     expect(percents).toContain(50);
   });
 
+  it('parses NDJSON progress split across transport chunks and ignores malformed frames', async () => {
+    const enc = new TextEncoder();
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/x-ndjson' }),
+      body: new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(enc.encode('{"status":"pulling layer","digest":"a","total":100,'));
+          controller.enqueue(enc.encode('"completed":25}\nnot-json\n{"status":"success"}\n'));
+          controller.close();
+        },
+      }),
+    } as unknown as Response)));
+    const updates: OllamaPullProgress[] = [];
+
+    await pullModel('qwen2.5:7b', {
+      baseUrl: 'http://host',
+      onProgress: progress => updates.push(progress),
+    }, new AbortController().signal);
+
+    expect(updates).toContainEqual({ phase: 'pulling layer', percent: 25 });
+    expect(updates.at(-1)).toEqual({ phase: 'success', percent: 100 });
+  });
+
   it('throws an error frame mid-stream', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([
       { status: 'pulling manifest' },
