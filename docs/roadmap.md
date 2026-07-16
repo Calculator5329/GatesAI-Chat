@@ -665,7 +665,7 @@ composer quieter.
       off by default; fully local. Its own wave when picked.
 - [ ] Duel mode: two models side-by-side or cross-reviewing
 - [ ] Canvas/whiteboard artifact type for planning sessions
-- [ ] In-app `ollama pull` with progress for missing local models
+- [x] In-app `ollama pull` with progress for missing local models *(done 2026-07-16, codex lane: streamed /api/pull progress UI with cancel/failure/already-installed handling, explicit user action only, Web Lite explainer degradation; service + component tests)*
 - [ ] Record the self-improvement demo (app edits itself, rebuilds, asks to
       update) once the loop closes
 
