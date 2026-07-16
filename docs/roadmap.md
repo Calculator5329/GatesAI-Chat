@@ -171,7 +171,7 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       3: CodeMirror editor panel (dependency ADR first) and terminal panel
       (blocked on a bridge pty op). Plan:
       `docs/plans/2026-07-12-dock-framework.md`.)*
-- [ ] **W-2: HTML artifact contract.** Versioned system-prompt block
+- [x] **W-2: HTML artifact contract.** *(done 2026-07-16, codex lane: versioned prompt contract + CSP/sandbox/size limits, /workspace/artifacts/html/ registry with migration+revisions, pre-write static+sandboxed smoke validation into the error trail, dock panel + auto-open; 1,199 tests green.)* Versioned system-prompt block
       generated from code, artifact id registry under
       `/workspace/artifacts/html/`, smoke-render validation at creation,
       failures into the error trail; artifacts open in the dock panel.
@@ -649,7 +649,7 @@ composer quieter.
 - [x] Bridge protocol spec in docs/ *(done 2026-07-16, codex lane: docs/bridge-protocol.md audited/completed against code incl. protocolVersion 2 handshake, envelope types, Privileged flag, compat matrix)*
 
 ### Tooling & release
-- [ ] Changelog automation from commits; nightly channel from master
+- [x] Changelog automation from commits *(local script half done 2026-07-16: scripts/generate-changelog.mjs drafts grouped entries from conventional commits, --write inserts a marked DRAFT section; nightly channel deferred until GitHub Actions billing is fixed)*
 - [ ] Windows e2e job in CI; upload Playwright traces on failure; coverage
 - [ ] Settings-only config profile export
 
