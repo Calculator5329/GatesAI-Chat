@@ -163,6 +163,26 @@ describe('ImageJobCard UI (Batch D)', () => {
     expect(rendered.textContent).toContain('Waiting on provider...');
     expect(rendered.textContent).toContain('OpenRouter remote render');
   });
+
+  it('never shows provider-framed copy for a local ComfyUI render', () => {
+    const imageJobs = new ImageJobStore();
+    const bridge = new BridgeStore();
+    runInAction(() => {
+      bridge.state = 'online';
+      imageJobs.active = {
+        ...baseJob,
+        id: 'comfy-local-running',
+        backend: 'local-comfy',
+        status: 'running',
+        startedAt: Date.now() - 130_000,
+        progress: { value: 92, max: 100 },
+      };
+    });
+
+    const rendered = renderCard(minimalStore(imageJobs, bridge), 'comfy-local-running');
+    expect(rendered.textContent).toContain('generating · 92% · ComfyUI');
+    expect(rendered.textContent).not.toMatch(/provider|remote/i);
+  });
 });
 
 describe('imageFailureAdvice', () => {

@@ -294,6 +294,9 @@ composer quieter.
       outcomes now share one provider-kind-aware helper. Ollama and explicit
       `local-*` runtimes get local wording; ambiguous OpenAI-compatible
       endpoints remain remote/neutral until their runtime location is known.
+      The image-card provider copy remains restricted to the remote
+      `openrouter-image` backend; a regression proves local ComfyUI rendering
+      never enters that branch.
 
 - [ ] **SP-1: User-configurable system prompt.** Today the system prompt is
       derived entirely from context mode

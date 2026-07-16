@@ -56,6 +56,9 @@
   streaming locally and report local-runtime stalls without provider wording.
 - Preserved existing remote-provider messaging and deliberately avoided
   guessing whether user-configured OpenAI-compatible endpoints are local.
+- Pinned the image-card boundary with local-versus-remote rendering coverage:
+  provider-wait copy is remote OpenRouter-only, while local ComfyUI progress
+  stays locally framed.
 
 ## 2026-07-16 — Linux compatibility pair (A13)
 
