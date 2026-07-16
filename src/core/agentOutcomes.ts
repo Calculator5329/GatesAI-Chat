@@ -274,7 +274,7 @@ export function summarizeAgentOutcomes(records: readonly AgentOutcomeRecord[]): 
   for (const outcome of records) {
     if (outcomeIds.has(outcome.id)) fail('metrics.records', `contains duplicate outcome ${outcome.id}`)
     outcomeIds.add(outcome.id)
-    const attemptIdentity = `${outcome.task_id}/${outcome.attempt_id}`
+    const attemptIdentity = JSON.stringify([outcome.task_id, outcome.attempt_id])
     if (attemptIds.has(attemptIdentity)) fail('metrics.records', `contains duplicate attempt ${attemptIdentity}`)
     attemptIds.add(attemptIdentity)
     terminal[outcome.terminal_state] += 1
