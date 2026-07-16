@@ -25,7 +25,9 @@ desktop-only and fail closed when the Tauri commands are unavailable.
    GatesAI refuses to replace a directory without a valid app-managed marker.
 3. If a newer bundled snapshot makes the managed copy stale, **Prepare first
    archives the entire prior copy** under `source-workspace/archive/`, then
-   creates the fresh copy. Edits are preserved; refresh is not deletion.
+   creates the fresh copy. The archive root must be a real direct child of the
+   managed workspace; symlinked or escaping archive paths fail closed. Edits
+   are preserved; refresh is not deletion.
 4. The assistant may edit only the prepared `source://` tree. The Workspace UI
    exposes the same tree for human review and per-file revert. Reverting a
    modified or newly added file first moves the current version under
