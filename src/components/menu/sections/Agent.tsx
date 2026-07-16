@@ -25,6 +25,7 @@ import {
   useUserProfileStore,
 } from '../../../stores/context';
 import { McpSettingsBlock } from './McpSettings';
+import { OllamaPullAction, OllamaPullStatus } from '../OllamaPullStatus';
 
 interface AgentAbility {
   name: string;
@@ -489,11 +490,13 @@ const SemanticMemorySection = observer(function SemanticMemorySection() {
               <>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                   <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>Pull the embedding model in app.</span>
-                  {pullState && (
-                    <span role={pullState.error ? 'alert' : 'status'} style={{ color: pullState.error ? 'var(--danger)' : 'var(--text-faint)', fontSize: 11.5 }}>
-                      {pullState.error ? pullState.error : `${pullState.phase} · ${Math.round(pullState.percent)}%`}
-                    </span>
-                  )}
+                  <OllamaPullStatus
+                    model={model}
+                    installed={ollama.hasModelTag(model)}
+                    pulling={ollama.isPulling(model)}
+                    snapshot={pullState}
+                    style={{ marginTop: 0 }}
+                  />
                 </div>
                 <code style={{ ...inlineCodeStyle, color: 'var(--text-faint)' }}>{pullCommand}</code>
               </>
@@ -502,11 +505,16 @@ const SemanticMemorySection = observer(function SemanticMemorySection() {
             )}
           </div>
           {ollamaOnline ? (
-            ollama.isPulling(model) ? (
-              <Button variant="danger" onClick={() => ollama.cancelPull(model)}>Cancel</Button>
-            ) : (
-              <Button onClick={() => void ollama.startPull(model)}>Pull now</Button>
-            )
+            <OllamaPullAction
+              model={model}
+              online={ollamaOnline}
+              installed={ollama.hasModelTag(model)}
+              pulling={ollama.isPulling(model)}
+              snapshot={pullState}
+              pullLabel="Pull now"
+              onPull={() => { void ollama.startPull(model); }}
+              onCancel={() => ollama.cancelPull(model)}
+            />
           ) : (
             <Button onClick={() => void navigator.clipboard?.writeText(pullCommand)}>Copy</Button>
           )}

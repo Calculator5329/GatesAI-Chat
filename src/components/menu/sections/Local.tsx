@@ -10,6 +10,7 @@ import { Button, Card, Input, Pill, Select, SettingsRow, Toggle, SecretKeyField 
 import { ProviderAvatar } from './api/ProviderAvatar';
 import { WebLiteNotice } from '../../ui/WebLiteNotice';
 import { hasDesktopRuntime } from '../../../core/runtime';
+import { OllamaPullAction, OllamaPullStatus, resolveOllamaPullViewState } from '../OllamaPullStatus';
 
 export const LocalSection = observer(function LocalSection() {
   const local = useLocalRuntimeStore();
@@ -406,8 +407,12 @@ const RECOMMENDED_EMBED_MODEL = {
 };
 
 const RecommendedModelsBlock = observer(function RecommendedModelsBlock({ online }: { online: boolean }) {
+  const ollama = useOllamaStore();
   const [customModel, setCustomModel] = useState('');
   const trimmedCustom = customModel.trim();
+  const installed = ollama.hasModelTag(trimmedCustom);
+  const pulling = ollama.isPulling(trimmedCustom);
+  const snapshot = ollama.pulls.get(trimmedCustom);
 
   return (
     <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
@@ -428,9 +433,24 @@ const RecommendedModelsBlock = observer(function RecommendedModelsBlock({ online
           placeholder="any model from ollama.com/library"
           style={{ ...tokens.mono, fontSize: 12 }}
         />
-        <OllamaPullButton model={trimmedCustom} online={online} label="Pull" disabled={!trimmedCustom} />
+        <OllamaPullAction
+          model={trimmedCustom}
+          online={online}
+          installed={installed}
+          pulling={pulling}
+          snapshot={snapshot}
+          onPull={() => { void ollama.startPull(trimmedCustom); }}
+          onCancel={() => ollama.cancelPull(trimmedCustom)}
+        />
       </div>
-      {trimmedCustom && <OllamaPullProgress model={trimmedCustom} />}
+      {trimmedCustom && (
+        <OllamaPullStatus
+          model={trimmedCustom}
+          installed={installed}
+          pulling={pulling}
+          snapshot={snapshot}
+        />
+      )}
     </div>
   );
 });
@@ -455,6 +475,8 @@ const OllamaPullRow = observer(function OllamaPullRow({
   const ollama = useOllamaStore();
   const installed = ollama.hasModelTag(model);
   const pulling = ollama.isPulling(model);
+  const snapshot = ollama.pulls.get(model);
+  const pullViewState = resolveOllamaPullViewState({ installed, pulling, snapshot });
 
   return (
     <div style={{
@@ -476,71 +498,29 @@ const OllamaPullRow = observer(function OllamaPullRow({
         <div style={{ marginTop: 3, color: 'var(--text-faint)', fontSize: 11.5 }}>
           <code style={tokens.mono}>{model}</code> · {desc}
         </div>
-        <OllamaPullProgress model={model} />
+        <OllamaPullStatus model={model} installed={installed} pulling={pulling} snapshot={snapshot} />
       </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        {installed ? (
-          <>
-            <span style={{ color: 'var(--accent)', fontSize: 12 }}>✓ Installed</span>
-            <Button
-              variant="danger"
-              onClick={() => {
-                if (window.confirm(`Delete ${model} from Ollama?`)) void ollama.deleteModel(model);
-              }}
-            >
-              Delete
-            </Button>
-          </>
-        ) : pulling ? (
-          <Button variant="danger" onClick={() => ollama.cancelPull(model)}>Cancel</Button>
+        {pullViewState === 'done' && installed ? (
+          <Button
+            variant="danger"
+            onClick={() => {
+              if (window.confirm(`Delete ${model} from Ollama?`)) void ollama.deleteModel(model);
+            }}
+          >
+            Delete
+          </Button>
         ) : (
-          <OllamaPullButton model={model} online={online} label="Pull" />
+          <OllamaPullAction
+            model={model}
+            online={online}
+            installed={installed}
+            pulling={pulling}
+            snapshot={snapshot}
+            onPull={() => { void ollama.startPull(model); }}
+            onCancel={() => ollama.cancelPull(model)}
+          />
         )}
-      </div>
-    </div>
-  );
-});
-
-const OllamaPullButton = observer(function OllamaPullButton({
-  model,
-  online,
-  label,
-  disabled,
-}: {
-  model: string;
-  online: boolean;
-  label: string;
-  disabled?: boolean;
-}) {
-  const ollama = useOllamaStore();
-  return (
-    <Button
-      variant="accent"
-      disabled={disabled || !online || !model || ollama.isPulling(model) || ollama.hasModelTag(model)}
-      title={!online ? 'Start Ollama first.' : undefined}
-      onClick={() => { void ollama.startPull(model); }}
-    >
-      {label}
-    </Button>
-  );
-});
-
-const OllamaPullProgress = observer(function OllamaPullProgress({ model }: { model: string }) {
-  const ollama = useOllamaStore();
-  const state = ollama.pulls.get(model);
-  if (!state) return null;
-  return (
-    <div style={{ marginTop: 7, display: 'grid', gap: 4 }}>
-      <div style={{ height: 5, borderRadius: 999, background: 'var(--surface-wash-8)', overflow: 'hidden' }}>
-        <div style={{
-          height: '100%',
-          width: `${Math.max(0, Math.min(100, state.percent))}%`,
-          background: state.error ? 'var(--danger)' : 'var(--accent)',
-          transition: 'width 160ms ease',
-        }} />
-      </div>
-      <div role={state.error ? 'alert' : 'status'} style={{ fontSize: 11, color: state.error ? 'var(--danger)' : 'var(--text-faint)' }}>
-        {state.error ? state.error : `${state.phase} · ${Math.round(state.percent)}%`}
       </div>
     </div>
   );
