@@ -17,6 +17,7 @@ Extraction plan:
 import type { LlmChunk, LlmRequest, LlmUsage, ToolCall } from '../../core/llm';
 import type { AssistantFinishReason, StreamActivity } from '../../core/types';
 import { parseStructuredOutput } from '../llm/structuredOutput';
+import { streamStatusCopy } from './streamStatusCopy';
 
 export const OUTPUT_LIMIT_RETRY_ROUNDS = 2;
 export const PROVIDER_STREAM_STALL_MS = 120_000;
@@ -211,7 +212,12 @@ export class StreamingRoundExecutor {
       clearStallTimer();
       stallTimer = setTimeout(() => {
         const idleSeconds = Math.max(1, Math.round((Date.now() - lastProviderAt) / 1000));
-        stalledReason = `No provider data arrived for ${idleSeconds}s, so GatesAI stopped the stalled stream.`;
+        stalledReason = streamStatusCopy({
+          phase: 'stalled',
+          providerId: options.providerId,
+          providerModelId: options.providerModelId,
+          idleSeconds,
+        }).stallReason ?? 'GatesAI stopped the stalled stream.';
         emitActivity('stalled', {
           stallReason: stalledReason,
           idleSeconds,

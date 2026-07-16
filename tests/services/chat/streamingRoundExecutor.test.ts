@@ -184,6 +184,40 @@ describe('StreamingRoundExecutor', () => {
     expect(phases).toEqual(['connecting', 'stalled']);
   });
 
+  it('uses local-runtime stall copy for an Ollama round', async () => {
+    vi.useFakeTimers();
+    const updates: Array<{ phase: string; providerId: string; stallReason?: string }> = [];
+    const executor = new StreamingRoundExecutor({ initialStallMs: 5, stallMs: 5 });
+
+    const promise = executor.execute({
+      request,
+      stream: async function*(_req: LlmRequest, signal: AbortSignal): AsyncIterable<LlmChunk> {
+        await new Promise<void>(resolve => {
+          if (signal.aborted) resolve();
+          else signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+        yield { type: 'done', finishReason: 'cancelled' };
+      },
+      signal: new AbortController().signal,
+      round: 0,
+      providerId: 'ollama',
+      providerModelId: 'phi4:latest',
+      callbacks: { onActivityPhase: update => updates.push(update) },
+    });
+
+    await flush();
+    await vi.advanceTimersByTimeAsync(6);
+    const outcome = await promise;
+
+    expect(outcome).toMatchObject({ status: 'stalled', error: expect.stringContaining('local runtime') });
+    expect(outcome.status === 'stalled' ? outcome.error : '').not.toMatch(/provider/i);
+    expect(updates.map(update => [update.phase, update.providerId])).toEqual([
+      ['connecting', 'ollama'],
+      ['stalled', 'ollama'],
+    ]);
+    expect(updates[1].stallReason).toContain('local runtime');
+  });
+
   it('retries a transient error before the first token per policy', async () => {
     vi.useFakeTimers();
     let calls = 0;
