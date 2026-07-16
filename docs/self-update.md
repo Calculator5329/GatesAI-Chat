@@ -10,7 +10,7 @@ is the authority boundary for the desktop self-improvement loop.
 | --- | --- | --- |
 | Installed app | Read the bundled source manifest and report availability | Rewrite the live installation, restart itself, enroll an updater, or install a package |
 | Bundled snapshot | Copy the build-time snapshot into app-local data | Modify the bundled snapshot in place |
-| Prepared source workspace | Read, search, write, stat, and list paths jailed below `source://` | Escape the managed root or write an arbitrary host path |
+| Prepared source workspace | Read, search, write, stat, and list paths jailed below `source://` | Escape the managed root, follow a symlink, or write an arbitrary host path |
 | Human review | Show changed files and diffs; revert an individual file to the bundled snapshot | Hide changes or treat model output as reviewed |
 | Build runner | Run one bounded `install`, `test`, `build`, or `package` job against the prepared copy | Run a second concurrent job or target the live installation |
 | Installer handoff | Report the generated artifact and open its containing folder | Execute the installer or approve an update for the user |
@@ -31,7 +31,9 @@ desktop-only and fail closed when the Tauri commands are unavailable.
 4. The assistant may edit only the prepared `source://` tree. The Workspace UI
    exposes the same tree for human review and per-file revert. Reverting a
    modified or newly added file first moves the current version under
-   `source-workspace/archive/reverted-*/`, so the edit is preserved.
+   `source-workspace/archive/reverted-*/`, so the edit is preserved. All
+   source operations reject symlinks in the root, intermediate directories,
+   and target path.
 5. The build runner performs install/test/build/package commands in that copy,
    one job at a time, and records its status and output.
 6. Packaging ends at artifact discovery. GatesAI may open the output folder;
@@ -40,6 +42,13 @@ desktop-only and fail closed when the Tauri commands are unavailable.
 If archiving or copying fails, preparation or revert returns an error. It does
 not fall back to deleting the prior copy or file, or writing into the installed
 application.
+
+The jail rejects symlinks that exist when an operation resolves its path. It
+assumes the app-local workspace is not being concurrently rewritten by a
+hostile process running as the same OS user. Defending against that narrower
+race requires directory-handle-relative filesystem operations and remains a
+separate hardening decision; no model tool is granted access to the archive
+root or its parent.
 
 ## Closure and future decisions
 
