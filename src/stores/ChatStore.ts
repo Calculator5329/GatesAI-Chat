@@ -1160,9 +1160,12 @@ export class ChatStore {
           if (idx < 0) return null;
           const current = this.threads[idx];
           if (!current.archived) return current;
-          const hydrated = this.registry.findById(thread.modelId)
-            ? thread
-            : { ...thread, modelId: this.defaultModelId };
+          const archivedThread = thread.modelSelection === undefined && current.modelSelection !== undefined
+            ? { ...thread, modelSelection: current.modelSelection }
+            : thread;
+          const hydrated = this.registry.findById(archivedThread.modelId)
+            ? archivedThread
+            : { ...archivedThread, modelId: this.defaultModelId };
           const next = { ...hydrated };
           delete next.archived;
           this.threads[idx] = next;
