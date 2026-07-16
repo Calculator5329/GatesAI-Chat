@@ -115,7 +115,7 @@ const SHA256 = /^sha256:[a-f0-9]{64}$/
 const RESULT_REF = /^task-result:\/\/[A-Za-z0-9][A-Za-z0-9._:@/-]*$/
 
 const SECRET_PATTERNS: RegExp[] = [
-  /\b(?:sk|ghp|github_pat)_[A-Za-z0-9_-]{16,}\b/gi,
+  /\b(?:sk[-_]|ghp_|github_pat_)[A-Za-z0-9_-]{16,}\b/gi,
   /\bBearer\s+[A-Za-z0-9._~+/-]{12,}=*\b/gi,
   /\b(?:api[_ -]?key|password|secret|access[_ -]?token)\s*[:=]\s*[^\s,;]{4,}/gi,
   /\b\d{3}-\d{2}-\d{4}\b/g,
@@ -268,8 +268,15 @@ export function summarizeAgentOutcomes(records: readonly AgentOutcomeRecord[]): 
   let toolFailures = 0
   let outcomesNeedingReview = 0
   const taskAttempts = new Map<string, number>()
+  const outcomeIds = new Set<string>()
+  const attemptIds = new Set<string>()
 
   for (const outcome of records) {
+    if (outcomeIds.has(outcome.id)) fail('metrics.records', `contains duplicate outcome ${outcome.id}`)
+    outcomeIds.add(outcome.id)
+    const attemptIdentity = `${outcome.task_id}/${outcome.attempt_id}`
+    if (attemptIds.has(attemptIdentity)) fail('metrics.records', `contains duplicate attempt ${attemptIdentity}`)
+    attemptIds.add(attemptIdentity)
     terminal[outcome.terminal_state] += 1
     totalInputTokens += outcome.usage.input_tokens
     totalOutputTokens += outcome.usage.output_tokens
