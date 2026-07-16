@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildActivitiesForMessage } from '../../../src/services/chat/activityProjection';
-import { isLocalStreamProvider, streamStatusCopy } from '../../../src/services/chat/streamStatusCopy';
+import { isLocalStreamProvider, streamStatusCopy } from '../../../src/core/streamStatusCopy';
 
 describe('streamStatusCopy', () => {
   it('uses local-first copy throughout an Ollama turn', () => {
@@ -14,6 +14,7 @@ describe('streamStatusCopy', () => {
     expect(statuses[1].verb).toBe('Streaming locally');
     expect(statuses[2]).toEqual({
       verb: 'Local model paused',
+      footer: 'local model paused',
       stallReason: 'The local runtime sent no data for 120s, so GatesAI stopped the stalled stream.',
     });
     expect(statuses.flatMap(status => [status.verb, status.stallReason ?? '']).join(' ')).not.toMatch(/provider/i);
@@ -22,9 +23,11 @@ describe('streamStatusCopy', () => {
   it('preserves remote-provider copy', () => {
     expect(streamStatusCopy({ phase: 'connecting', providerId: 'openrouter' })).toEqual({
       verb: 'Waiting for provider',
+      footer: 'waiting for provider...',
     });
     expect(streamStatusCopy({ phase: 'stalled', providerId: 'openrouter', idleSeconds: 180 })).toEqual({
       verb: 'Provider stalled',
+      footer: 'provider stalled',
       stallReason: 'No provider data arrived for 180s, so GatesAI stopped the stalled stream.',
     });
   });

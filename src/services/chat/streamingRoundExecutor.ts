@@ -17,7 +17,7 @@ Extraction plan:
 import type { LlmChunk, LlmRequest, LlmUsage, ToolCall } from '../../core/llm';
 import type { AssistantFinishReason, StreamActivity } from '../../core/types';
 import { parseStructuredOutput } from '../llm/structuredOutput';
-import { streamStatusCopy } from './streamStatusCopy';
+import { streamStatusCopy } from '../../core/streamStatusCopy';
 
 export const OUTPUT_LIMIT_RETRY_ROUNDS = 2;
 export const PROVIDER_STREAM_STALL_MS = 120_000;
