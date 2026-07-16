@@ -46,4 +46,59 @@ test.describe('dock (mocked bridge)', () => {
     await dock.getByRole('button', { name: 'Close dock-demo.md' }).click();
     await expect(page.locator('[data-testid="dock-panel"]')).toHaveCount(0);
   });
+
+  test('shows an image job running and completing in the task center', async ({ page }) => {
+    await page.route('https://openrouter.ai/api/v1/chat/completions', async route => {
+      const payload = route.request().postDataJSON() as { modalities?: string[] } | null;
+      if (!payload?.modalities?.includes('image')) {
+        await route.fallback();
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 150));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          choices: [{ message: { images: [{ image_url: { url: 'data:image/png;base64,iVBORw0KGgo=' } }] } }],
+          usage: { cost: 0.04 },
+        }),
+      });
+    });
+
+    await page.goto('/');
+    await expect(page.locator('.composer-textarea')).toBeVisible();
+    await page.keyboard.press('Control+k');
+    const paletteInput = page.locator('input[aria-label="Search commands and threads"]');
+    await paletteInput.fill('task center');
+    await page.locator('.palette-row', { hasText: 'Open task center' }).click();
+
+    await page.evaluate(() => {
+      const devWindow = window as Window & {
+        __gatesai?: {
+          store?: {
+            chat: { activeThreadId: string | null };
+            imageJobs: { enqueue: (input: Record<string, unknown>) => unknown };
+          };
+        };
+      };
+      const store = devWindow.__gatesai?.store;
+      const threadId = store?.chat.activeThreadId;
+      if (!store || !threadId) throw new Error('GatesAI dev store unavailable');
+      store.imageJobs.enqueue({
+        threadId,
+        prompt: 'Moonlit observatory',
+        count: 1,
+        width: 512,
+        height: 512,
+        backend: 'openrouter-image',
+      });
+    });
+
+    const taskCenter = page.locator('[data-testid="task-center-panel"]');
+    await expect(taskCenter.getByText('Moonlit observatory')).toBeVisible();
+    await expect(taskCenter.getByText('In progress')).toBeVisible();
+    await expect(taskCenter.getByText('Completed')).toBeVisible();
+    await expect(taskCenter.getByText('1 result')).toBeVisible();
+    await expect(taskCenter.getByText('$0.04')).toBeVisible();
+  });
 });

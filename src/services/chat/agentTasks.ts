@@ -1,7 +1,7 @@
 // Shared constants and prompt helpers for background agent tasks.
 // Called by ChatStore, TurnRunner, and the spawn_task tool.
 
-export const MAX_CONCURRENT_AGENT_TASKS = 3;
+export const MAX_CONCURRENT_AGENT_TASKS = 2;
 export const DEFAULT_AGENT_TASK_MAX_ROUNDS = 6;
 export const MAX_AGENT_TASK_MAX_ROUNDS = 10;
 export const MAX_AGENT_TASK_SYSTEM_PROMPT_CHARS = 4000;

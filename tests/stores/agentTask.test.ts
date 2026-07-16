@@ -210,9 +210,9 @@ describe('agent task background turns', () => {
 
     const originCalls = provider.calls.filter(call => call.threadId === originId);
     expect(originCalls[0].tools?.some(tool => tool.name === 'spawn_task')).toBe(true);
-    expect(originCalls[0].tools?.find(tool => tool.name === 'spawn_task')?.description).toContain('0 of 3 slots in use');
+    expect(originCalls[0].tools?.find(tool => tool.name === 'spawn_task')?.description).toContain(`0 of ${MAX_CONCURRENT_AGENT_TASKS} slots in use`);
     expect(originCalls[1].tools?.some(tool => tool.name === 'spawn_task')).toBe(true);
-    expect(originCalls[1].tools?.find(tool => tool.name === 'spawn_task')?.description).toContain('1 of 3 slots in use');
+    expect(originCalls[1].tools?.find(tool => tool.name === 'spawn_task')?.description).toContain(`1 of ${MAX_CONCURRENT_AGENT_TASKS} slots in use`);
     const agentCall = provider.calls.find(call => call.threadId !== originId);
     expect(agentCall?.tools?.some(tool => tool.name === 'spawn_task')).toBe(false);
 
@@ -259,7 +259,7 @@ describe('agent task background turns', () => {
     expect(completionEvents(chat, originA)[0].summary).toContain('A finished second');
   });
 
-  it('rejects a fourth immediate task while three run without creating a thread', async () => {
+  it('rejects another immediate task when every agent slot is occupied', async () => {
     const { chat, provider } = setup();
     provider.holdAgent = true;
     const originId = chat.createThread();
@@ -269,11 +269,11 @@ describe('agent task background turns', () => {
     const started = Array.from({ length: MAX_CONCURRENT_AGENT_TASKS }, (_, index) =>
       chat.spawnTask({ title: `Task ${index + 1}`, instructions: `Hold ${index + 1}` }, originId)
     );
-    const rejected = chat.spawnTask({ title: 'Task 4', instructions: 'Should not start' }, originId);
+    const rejected = chat.spawnTask({ title: 'Overflow task', instructions: 'Should not start' }, originId);
 
     expect(started.every(result => result.ok)).toBe(true);
     expect(rejected.ok).toBe(false);
-    expect(rejected.message).toContain('all 3 background task slots are in use');
+    expect(rejected.message).toContain(`all ${MAX_CONCURRENT_AGENT_TASKS} background task slots are in use`);
     expect(chat.threads).toHaveLength(beforeCount + MAX_CONCURRENT_AGENT_TASKS);
     provider.release();
     await flush(80);
@@ -517,6 +517,29 @@ describe('agent task background turns', () => {
 
     expect(chat.threads.find(thread => thread.id === agent.id)?.agentTaskStatus).toBe('interrupted');
     expect(completionEvents(chat, originId)[0]).toMatchObject({ state: 'cancelled', linkThreadId: agent.id });
+  });
+
+  it('cancels and retries an agent through the shared task controls', async () => {
+    const { chat, provider } = setup();
+    provider.holdAgent = true;
+    const originId = chat.createThread();
+    seedOriginAssistant(chat, originId);
+    const started = chat.spawnTask({ title: 'Retryable', instructions: 'Inspect once.' }, originId);
+    const agentId = started.threadId!;
+    await flush(30);
+
+    expect(chat.cancelAgentTask(agentId)).toBe(true);
+    expect(chat.threads.find(thread => thread.id === agentId)?.agentTaskStatus).toBe('interrupted');
+    expect(completionEvents(chat, originId)[0]).toMatchObject({ state: 'cancelled', linkThreadId: agentId });
+
+    provider.release();
+    await flush(30);
+    expect(chat.retryAgentTask(agentId)).toBe(true);
+    await flush(80);
+
+    expect(chat.threads.find(thread => thread.id === agentId)?.agentTaskStatus).toBe('done');
+    expect(completionEvents(chat, originId)).toHaveLength(1);
+    expect(completionEvents(chat, originId)[0]).toMatchObject({ state: 'done', linkThreadId: agentId });
   });
 
   it('finalizes a dangling running agent task as interrupted on boot', () => {

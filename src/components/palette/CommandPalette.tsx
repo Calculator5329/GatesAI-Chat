@@ -132,6 +132,9 @@ export const CommandPalette = observer(function CommandPalette() {
           actionItem('browse-files-in-dock', 'Browse workspace in dock', 'Explore jailed workspace files', ['dock panel file explorer folders'], () => {
             dock.openPanel('file-explorer', { path: '/workspace' });
           }),
+          actionItem('open-task-center', 'Open task center', 'Monitor background work in the right dock', ['dock panel tasks agents images progress'], () => {
+            dock.openPanel('task-center');
+          }),
           ...registeredArtifacts.map(artifact => actionItem(
             `open-artifact-${artifact.id}`,
             `Open artifact: ${artifact.title}`,

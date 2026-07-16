@@ -71,6 +71,15 @@ describe('DockStore', () => {
     expect(restored.cells[0]).toEqual({ kind: 'html-artifact', params: { id: 'demo-1' } });
   });
 
+  it('opens and persists the task center through the dock registry contract', () => {
+    const dock = makeStore();
+    dock.openPanel('task-center');
+    expect(dock.cells[0]).toEqual({ kind: 'task-center', params: {} });
+    dock.dispose();
+    const restored = makeStore();
+    expect(restored.cells[0]).toEqual({ kind: 'task-center', params: {} });
+  });
+
   it('closing cell 0 promotes cell 1 so a lone panel sits in cell 0', () => {
     const dock = makeStore();
     dock.openPath('/workspace/a.md');
