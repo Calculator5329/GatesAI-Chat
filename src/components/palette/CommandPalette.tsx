@@ -3,7 +3,7 @@
 // remains, so it cannot intercept sidebar clicks.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useChatStore, useDockStore, useRouterStore, useUiStore } from '../../stores/context';
+import { useArtifactStore, useChatStore, useDockStore, useRouterStore, useUiStore } from '../../stores/context';
 import { Icons } from '../ui/icons';
 import { rankPaletteItems } from './ranking';
 import type { MenuSectionKey, Thread } from '../../core/types';
@@ -95,12 +95,14 @@ export const CommandPalette = observer(function CommandPalette() {
   const chat = useChatStore();
   const router = useRouterStore();
   const dock = useDockStore();
+  const artifactStore = useArtifactStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   // Read observables outside the memo so the observer keeps tracking them
   // across re-renders (a memoized callback skips the read on cached hits).
   const dockEntryVisible = dock.available && !ui.mobileShell;
+  const registeredArtifacts = artifactStore.artifacts;
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -130,11 +132,18 @@ export const CommandPalette = observer(function CommandPalette() {
           actionItem('browse-files-in-dock', 'Browse workspace in dock', 'Explore jailed workspace files', ['dock panel file explorer folders'], () => {
             dock.openPanel('file-explorer', { path: '/workspace' });
           }),
+          ...registeredArtifacts.map(artifact => actionItem(
+            `open-artifact-${artifact.id}`,
+            `Open artifact: ${artifact.title}`,
+            `HTML artifact · revision ${artifact.revision}`,
+            ['dock panel html artifact', artifact.id],
+            () => { dock.openArtifact(artifact.id); },
+          )),
         ]
         : []),
       ...chat.visibleThreads.map(threadItem(chat, router)),
     ];
-  }, [chat, router, ui, dock, dockEntryVisible]);
+  }, [chat, router, ui, dock, dockEntryVisible, registeredArtifacts]);
 
   const ranked = useMemo(() => rankPaletteItems(items, query).map(entry => entry.item), [items, query]);
 

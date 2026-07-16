@@ -1,12 +1,29 @@
 // Defines the artifact tool contract, validation, execution, or display formatting.
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
+import {
+  HTML_ARTIFACT_MAX_BYTES,
+  HTML_ARTIFACT_WARN_BYTES,
+} from '../../core/htmlArtifactPolicy';
+import {
+  HTML_ARTIFACT_ROOT,
+  htmlArtifactPath,
+  isHtmlArtifactId,
+  type HtmlArtifactIndex,
+  type HtmlArtifactRecord,
+} from '../../core/htmlArtifacts';
 import type { FsReadResp, FsStatResp, FsWriteResp } from '../../core/workspace';
+import {
+  loadHtmlArtifactIndex,
+  nextHtmlArtifactId,
+  writeHtmlArtifactIndex,
+} from '../artifacts/artifactRegistry';
 import { BridgeOfflineError } from '../bridge/client';
+import { logger } from '../diagnostics/logger';
 import { requireBridgeOutcome } from './requireBridge';
-import type { Tool, ToolOutcome, ToolValidationIssue } from './types';
+import type { BridgeClientFacade, Tool, ToolContext, ToolOutcome, ToolValidationIssue } from './types';
 
-type ArtifactAction = 'validate_html' | 'create_html_artifact';
+type ArtifactAction = 'validate_html' | 'create_html_artifact' | 'update_html_artifact' | 'list_artifacts';
 
 export const artifactTool: Tool = {
   def: {
@@ -15,24 +32,28 @@ export const artifactTool: Tool = {
       'Create and validate user-facing workspace artifacts.',
       '',
       'Use this for finished deliverables instead of hand-rolling repeated fs calls.',
-      'For requests like "make a cool HTML game", call create_html_artifact once with a complete HTML document.',
+      'For requests like "make a cool HTML game", call create_html_artifact once with a title and complete HTML document.',
       'Actions:',
       '- `validate_html` checks an existing HTML artifact for file presence, non-empty content, basic HTML shape, inline script syntax, and missing local assets.',
-      '- `create_html_artifact` writes an HTML artifact, then runs the same validation before returning the final path.',
+      '- `create_html_artifact` assigns a stable id, statically validates and smoke-renders the candidate, then writes it under /workspace/artifacts/html/.',
+      '- `update_html_artifact` reuses an existing id, validates before writing, and bumps its registry revision.',
+      '- `list_artifacts` returns the versioned HTML artifact registry.',
       '',
-      'Put finished HTML games/apps/reports under /workspace/artifacts/reports or /workspace/artifacts/exports.',
+      'Create once and update in place by id; never fork a second artifact just to fix the first.',
     ].join('\n'),
     parameters: {
       type: 'object',
       properties: {
         action: {
           type: 'string',
-          enum: ['validate_html', 'create_html_artifact'],
+          enum: ['validate_html', 'create_html_artifact', 'update_html_artifact', 'list_artifacts'],
         },
-        path: { type: 'string', description: 'A /workspace/artifacts/... HTML path.' },
-        content: { type: 'string', description: 'HTML content for create_html_artifact.' },
+        path: { type: 'string', description: 'A /workspace/artifacts/... HTML path for validate_html. Legacy create calls may supply this instead of title.' },
+        title: { type: 'string', description: 'User-facing title for create_html_artifact.' },
+        id: { type: 'string', description: 'Stable artifact id for update_html_artifact.' },
+        content: { type: 'string', description: 'Complete HTML content for create_html_artifact or update_html_artifact.' },
       },
-      required: ['action', 'path'],
+      required: ['action'],
       additionalProperties: false,
     },
     strict: true,
@@ -40,7 +61,7 @@ export const artifactTool: Tool = {
   meta: {
     category: 'workspace',
     isReadOnly: args => args.action === 'validate_html',
-    hasSideEffects: args => args.action === 'create_html_artifact',
+    hasSideEffects: args => args.action !== 'validate_html',
     resultPolicy: { maxChars: 8_000, summarizeLargeOutput: false },
     validate: validateArtifactArgs,
   },
@@ -51,36 +72,55 @@ export const artifactTool: Tool = {
 
     const action = stringArg(args.action) as ArtifactAction;
     const path = stringArg(args.path);
-    if (!path) return errorOutcome('missing_required_argument', '`path` is required.', 'Retry with a /workspace/artifacts/... HTML path.');
 
     try {
       if (action === 'create_html_artifact') {
         const content = typeof args.content === 'string' ? args.content : '';
-        const dir = parentWorkspacePath(path);
-        if (dir) await guard.bridge.client.request('fs.mkdir', { path: dir });
-        const write = await guard.bridge.client.request<FsWriteResp>('fs.write', {
-          path,
-          content,
-          encoding: 'utf8',
+        const title = stringArg(args.title) || titleFromLegacyPath(path);
+        const sizeBytes = utf8Size(content);
+        if (sizeBytes > HTML_ARTIFACT_MAX_BYTES) {
+          return artifactTooLarge(path || `${HTML_ARTIFACT_ROOT}/<new-artifact>.html`, sizeBytes);
+        }
+        const index = await loadHtmlArtifactIndex(guard.bridge.client, { migrate: false, threadId: ctx.threadId });
+        const id = nextHtmlArtifactId(title, index.artifacts);
+        return await createOrUpdateArtifact({
+          action: 'create', id, title, content, revision: 1, index, ctx,
+          client: guard.bridge.client,
         });
-        const validation = await validateHtmlArtifact(path, guard.bridge.client);
-        if (!validation.ok) return validation;
+      }
+
+      if (action === 'update_html_artifact') {
+        const id = stringArg(args.id);
+        const content = typeof args.content === 'string' ? args.content : '';
+        const index = await loadHtmlArtifactIndex(guard.bridge.client, { threadId: ctx.threadId });
+        const current = index.artifacts.find(record => record.id === id);
+        if (!current) {
+          return errorOutcome('artifact_not_found', `No HTML artifact is registered with id "${id}".`, 'Call list_artifacts and retry with an existing id.', { id });
+        }
+        return await createOrUpdateArtifact({
+          action: 'update', id, title: current.title, content,
+          revision: current.revision + 1, current, index, ctx,
+          client: guard.bridge.client,
+        });
+      }
+
+      if (action === 'list_artifacts') {
+        const index = await loadHtmlArtifactIndex(guard.bridge.client, { threadId: ctx.threadId });
         return {
           ok: true,
-          summary: `Created and validated HTML artifact at ${write.path ?? path}.`,
-          data: {
-            path: write.path ?? path,
-            bytes: write.bytes,
-            validation: validation.data,
-          },
+          summary: index.artifacts.length === 0
+            ? 'No HTML artifacts are registered.'
+            : `Found ${index.artifacts.length} registered HTML artifact${index.artifacts.length === 1 ? '' : 's'}.`,
+          data: index,
         } satisfies ToolOutcome;
       }
 
       if (action === 'validate_html') {
+        if (!path) return errorOutcome('missing_required_argument', '`path` is required.', 'Retry with a /workspace/artifacts/... HTML path.');
         return await validateHtmlArtifact(path, guard.bridge.client);
       }
 
-      return errorOutcome('unknown_action', `Unknown artifact action "${String(args.action)}".`, 'Use action "validate_html" or "create_html_artifact".');
+      return errorOutcome('unknown_action', `Unknown artifact action "${String(args.action)}".`, 'Use a documented artifact action.');
     } catch (err) {
       if (err instanceof BridgeOfflineError) return errorOutcome('bridge_offline', err.message, 'Start the bridge, then retry.');
       return errorOutcome('artifact_error', (err as Error).message, 'Inspect the path/content and retry if the artifact is still needed.');
@@ -91,8 +131,8 @@ export const artifactTool: Tool = {
 function validateArtifactArgs(args: Record<string, unknown>): ToolValidationIssue | null {
   const action = stringArg(args.action);
   const path = stringArg(args.path);
-  if (action !== 'validate_html' && action !== 'create_html_artifact') return null;
-  if (!path) {
+  if (!['validate_html', 'create_html_artifact', 'update_html_artifact', 'list_artifacts'].includes(action)) return null;
+  if (action === 'validate_html' && !path) {
     return {
       errorCode: 'missing_required_argument',
       summary: '`path` is required for artifact.',
@@ -100,7 +140,7 @@ function validateArtifactArgs(args: Record<string, unknown>): ToolValidationIssu
       retryable: true,
     };
   }
-  if (!isWorkspaceArtifactHtmlPath(path)) {
+  if (action === 'validate_html' && !isWorkspaceArtifactHtmlPath(path)) {
     return {
       errorCode: 'invalid_artifact_path',
       summary: 'HTML artifacts must use a .html or .htm path under /workspace/artifacts/.',
@@ -108,15 +148,15 @@ function validateArtifactArgs(args: Record<string, unknown>): ToolValidationIssu
       retryable: true,
     };
   }
-  if (action === 'create_html_artifact' && typeof args.content !== 'string') {
+  if ((action === 'create_html_artifact' || action === 'update_html_artifact') && typeof args.content !== 'string') {
     return {
       errorCode: 'missing_required_argument',
-      summary: '`content` is required for artifact action "create_html_artifact".',
+      summary: `\`content\` is required for artifact action "${action}".`,
       fix: 'Retry with complete HTML content.',
       retryable: true,
     };
   }
-  if (action === 'create_html_artifact' && typeof args.content === 'string' && args.content.trim() === '') {
+  if ((action === 'create_html_artifact' || action === 'update_html_artifact') && typeof args.content === 'string' && args.content.trim() === '') {
     return {
       errorCode: 'empty_artifact_content',
       summary: 'HTML artifact content must not be empty.',
@@ -124,37 +164,108 @@ function validateArtifactArgs(args: Record<string, unknown>): ToolValidationIssu
       retryable: true,
     };
   }
+  if (action === 'create_html_artifact' && !stringArg(args.title) && !path) {
+    return {
+      errorCode: 'missing_required_argument',
+      summary: '`title` is required for artifact action "create_html_artifact".',
+      fix: 'Retry with a short user-facing artifact title.',
+      retryable: true,
+    };
+  }
+  if (action === 'update_html_artifact' && !isHtmlArtifactId(stringArg(args.id))) {
+    return {
+      errorCode: 'invalid_artifact_id',
+      summary: '`id` must be a stable lowercase artifact id for update_html_artifact.',
+      fix: 'Call list_artifacts and retry with an existing id.',
+      retryable: true,
+    };
+  }
   return null;
+}
+
+async function createOrUpdateArtifact(options: {
+  action: 'create' | 'update';
+  id: string;
+  title: string;
+  content: string;
+  revision: number;
+  current?: HtmlArtifactRecord;
+  index: HtmlArtifactIndex;
+  ctx: ToolContext;
+  client: BridgeClientFacade;
+}): Promise<ToolOutcome> {
+  const { action, id, title, content, revision, current, index, ctx, client } = options;
+  const path = htmlArtifactPath(id);
+  const sizeBytes = utf8Size(content);
+  if (sizeBytes > HTML_ARTIFACT_MAX_BYTES) return artifactTooLarge(path, sizeBytes);
+
+  const staticIssues = await validateHtmlContent(path, content, client);
+  if (staticIssues.length > 0) {
+    logArtifactFailure(ctx, id, revision, 'static', staticIssues);
+    return invalidArtifact(path, staticIssues, id, revision);
+  }
+  if (!ctx.artifactValidation) {
+    const issues = ['smoke-render validator is unavailable'];
+    logArtifactFailure(ctx, id, revision, 'smoke', issues);
+    return errorOutcome(
+      'artifact_smoke_unavailable',
+      `HTML artifact smoke render could not run for ${id}.`,
+      'Retry when the desktop artifact validator is available.',
+      { id, revision, issues },
+    );
+  }
+  const smoke = await ctx.artifactValidation.smokeRender(content, { signal: ctx.signal });
+  if (!smoke.ok) {
+    logArtifactFailure(ctx, id, revision, 'smoke', smoke.errors);
+    return errorOutcome(
+      'artifact_smoke_failed',
+      `HTML artifact smoke render failed for ${id}: ${smoke.errors.join('; ')}.`,
+      'Fix the runtime or CSP errors, then retry the same create/update action.',
+      { id, revision, issues: smoke.errors },
+    );
+  }
+
+  await client.request('fs.mkdir', { path: HTML_ARTIFACT_ROOT });
+  const write = await client.request<FsWriteResp>('fs.write', { path, content, encoding: 'utf8' });
+  const now = new Date().toISOString();
+  const record: HtmlArtifactRecord = {
+    id,
+    title,
+    threadId: current?.threadId ?? ctx.threadId,
+    createdAt: current?.createdAt ?? now,
+    updatedAt: now,
+    revision,
+    sizeBytes: write.bytes ?? sizeBytes,
+  };
+  const artifacts = current
+    ? index.artifacts.map(existing => existing.id === id ? record : existing)
+    : [...index.artifacts, record];
+  await writeHtmlArtifactIndex(client, { ...index, artifacts });
+  await ctx.artifacts?.refresh();
+  ctx.artifactSurface?.openArtifact(id);
+  return {
+    ok: true,
+    summary: `${action === 'create' ? 'Created' : 'Updated'} and validated HTML artifact ${id} (revision ${revision}) at ${path}.`,
+    data: {
+      artifact: record,
+      path,
+      warnings: sizeBytes > HTML_ARTIFACT_WARN_BYTES
+        ? [`HTML artifact is over ${HTML_ARTIFACT_WARN_BYTES} bytes; consider simplifying it.`]
+        : [],
+      validation: { static: 'passed', smoke: 'passed' },
+    },
+  };
 }
 
 async function validateHtmlArtifact(path: string, client: { request<T = unknown>(op: string, data: unknown): Promise<T> }): Promise<ToolOutcome> {
   const stat = await client.request<FsStatResp>('fs.stat', { path });
+  if (stat.size > HTML_ARTIFACT_MAX_BYTES) return artifactTooLarge(path, stat.size);
   const read = await client.request<FsReadResp>('fs.read', { path, encoding: 'utf8' });
   const content = typeof read.content === 'string' ? read.content : '';
-  const issues: string[] = [];
-
-  if (stat.kind !== 'file') issues.push('path is not a file');
-  if ((stat.size ?? 0) <= 0 || content.trim().length === 0) issues.push('file is empty');
-  if (!/<!doctype\s+html/i.test(content) && !/<html[\s>]/i.test(content)) issues.push('missing <!doctype html> or <html> root');
-  if (!/<body[\s>]/i.test(content) && !/<canvas[\s>]/i.test(content) && !/<main[\s>]/i.test(content)) {
-    issues.push('missing visible body/main/canvas content');
-  }
-
-  const scriptIssues = validateInlineScripts(content);
-  issues.push(...scriptIssues);
-
-  const missingAssets = await missingLocalAssets(path, content, client);
-  if (missingAssets.length > 0) {
-    issues.push(`missing local assets: ${missingAssets.slice(0, 6).join(', ')}${missingAssets.length > 6 ? `, and ${missingAssets.length - 6} more` : ''}`);
-  }
+  const issues = await validateHtmlContent(path, content, client, stat);
 
   if (issues.length > 0) {
-    return errorOutcome(
-      'invalid_html_artifact',
-      `HTML artifact validation failed for ${path}: ${issues.join('; ')}.`,
-      'Fix the HTML or missing asset references, then validate again.',
-      { path, issues },
-    );
+    return invalidArtifact(path, issues);
   }
 
   return {
@@ -165,8 +276,70 @@ async function validateHtmlArtifact(path: string, client: { request<T = unknown>
       size: stat.size,
       inlineScripts: countInlineScripts(content),
       localAssetsChecked: localAssetRefs(content).length,
+      warnings: stat.size > HTML_ARTIFACT_WARN_BYTES
+        ? [`HTML artifact is over ${HTML_ARTIFACT_WARN_BYTES} bytes; consider simplifying it.`]
+        : [],
     },
   };
+}
+
+async function validateHtmlContent(
+  path: string,
+  content: string,
+  client: { request<T = unknown>(op: string, data: unknown): Promise<T> },
+  stat?: FsStatResp,
+): Promise<string[]> {
+  const issues: string[] = [];
+  if (stat?.kind && stat.kind !== 'file') issues.push('path is not a file');
+  if ((stat && stat.size <= 0) || content.trim().length === 0) issues.push('file is empty');
+  if (!/<!doctype\s+html/i.test(content) && !/<html[\s>]/i.test(content)) issues.push('missing <!doctype html> or <html> root');
+  if (!/<body[\s>]/i.test(content) && !/<canvas[\s>]/i.test(content) && !/<main[\s>]/i.test(content)) {
+    issues.push('missing visible body/main/canvas content');
+  }
+  issues.push(...validateInlineScripts(content));
+  const missingAssets = await missingLocalAssets(path, content, client);
+  if (missingAssets.length > 0) {
+    issues.push(`missing local assets: ${missingAssets.slice(0, 6).join(', ')}${missingAssets.length > 6 ? `, and ${missingAssets.length - 6} more` : ''}`);
+  }
+  return issues;
+}
+
+function invalidArtifact(path: string, issues: string[], id?: string, revision?: number): ToolOutcome {
+  return errorOutcome(
+    'invalid_html_artifact',
+    `HTML artifact validation failed for ${path}: ${issues.join('; ')}.`,
+    'Fix the HTML or missing asset references, then validate again.',
+    { path, ...(id ? { id } : {}), ...(revision ? { revision } : {}), issues },
+  );
+}
+
+function artifactTooLarge(path: string, sizeBytes: number): ToolOutcome {
+  return errorOutcome(
+    'artifact_too_large',
+    `HTML artifact at ${path} is ${sizeBytes} bytes; the limit is ${HTML_ARTIFACT_MAX_BYTES} bytes.`,
+    'Simplify or split the deliverable, then retry without writing the oversized document.',
+    { path, sizeBytes, maxBytes: HTML_ARTIFACT_MAX_BYTES },
+  );
+}
+
+function logArtifactFailure(
+  ctx: ToolContext,
+  id: string,
+  revision: number,
+  phase: 'static' | 'smoke',
+  issues: string[],
+): void {
+  logger.error('html-artifacts', `${phase} validation failed for ${id} revision ${revision}`, {
+    artifactId: id,
+    revision,
+    threadId: ctx.threadId,
+    phase,
+    issues,
+  });
+}
+
+function utf8Size(content: string): number {
+  return new TextEncoder().encode(content).byteLength;
 }
 
 function validateInlineScripts(html: string): string[] {
@@ -244,6 +417,15 @@ function parentWorkspacePath(path: string): string | null {
   const index = normalized.lastIndexOf('/');
   if (index <= '/workspace'.length) return null;
   return normalized.slice(0, index);
+}
+
+function titleFromLegacyPath(path: string): string {
+  const name = path.split('/').filter(Boolean).pop()?.replace(/\.html?$/i, '') ?? '';
+  return name
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map(word => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(' ') || 'Artifact';
 }
 
 function normalizeWorkspacePath(path: string): string {

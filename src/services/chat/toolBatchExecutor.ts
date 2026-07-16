@@ -9,8 +9,9 @@ import type { ToolContext } from '../tools/types';
 import { logEvent } from '../diagnostics/chatLog';
 import { isToolFailureContent, logToolCallFailure, safeJsonPreview } from './toolFailureLog';
 import { formatInterruptedToolBatchSummary, safeStableJson } from './turnFormatting';
+import { smokeRenderHtmlArtifact } from '../artifacts/smokeRender';
 
-export type ToolStoreContext = Pick<ToolContext, 'notes' | 'schedules' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search' | 'rag' | 'sourceWorkspace' | 'offlineLibrary'>;
+export type ToolStoreContext = Pick<ToolContext, 'notes' | 'schedules' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search' | 'rag' | 'sourceWorkspace' | 'offlineLibrary' | 'artifacts' | 'artifactSurface'>;
 
 export interface ToolBatchDeps {
   profile: ToolContext['profile'];
@@ -302,6 +303,9 @@ async function executeOneToolCall(
     search: extras.search,
     rag: extras.rag,
     sourceWorkspace: extras.sourceWorkspace,
+    artifacts: extras.artifacts,
+    artifactSurface: extras.artifactSurface,
+    artifactValidation: { smokeRender: smokeRenderHtmlArtifact },
     threadId,
     toolCallId: call.id,
     signal,

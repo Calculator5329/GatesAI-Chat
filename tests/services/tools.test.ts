@@ -18,6 +18,8 @@ import type { ToolContext } from '../../src/services/tools/types';
 import type { Thread } from '../../src/core/types';
 import { DEFAULT_MODEL_ID } from '../../src/core/models';
 import { clearAppStorage } from '../helpers/storage';
+import { HTML_ARTIFACT_MAX_BYTES } from '../../src/core/htmlArtifactPolicy';
+import { HTML_ARTIFACT_INDEX_PATH, HTML_ARTIFACT_ROOT } from '../../src/core/htmlArtifacts';
 
 const NOTES_KEY = 'gatesai.notes.v1';
 
@@ -32,6 +34,9 @@ function makeCtx(overrides: Partial<ToolContext>): ToolContext {
     notes: undefined,
     summary: undefined,
     threadId: 't-test',
+    artifactValidation: {
+      smokeRender: async () => ({ ok: true, errors: [] }),
+    },
     ...overrides,
   } as unknown as ToolContext;
 }
@@ -843,13 +848,9 @@ describe('artifact tool', () => {
           files.set(path, content);
           return { path, bytes: content.length };
         }
-        if (op === 'fs.stat') {
+        if (op === 'fs.read') {
           const content = files.get(path);
           if (content == null) throw new Error(`missing ${path}`);
-          return { path, kind: 'file', size: content.length, mtime: 1, mime: 'text/html' };
-        }
-        if (op === 'fs.read') {
-          const content = files.get(path) ?? '';
           return { path, content, encoding: 'utf8', size: content.length, mime: 'text/html' };
         }
         throw new Error(`unexpected op ${op}`);
@@ -858,13 +859,56 @@ describe('artifact tool', () => {
 
     const out = await toolRegistry.execute('artifact', {
       action: 'create_html_artifact',
-      path: '/workspace/artifacts/exports/game.html',
+      title: 'Game',
       content: '<!doctype html><html><body><canvas id="game"></canvas><script>const score = 1;</script></body></html>',
     }, makeCtx({ bridge }));
 
     expect(out.ok).toBe(true);
-    expect(out.content).toContain('Created and validated HTML artifact');
-    expect(requests.map(req => req.op)).toEqual(['fs.mkdir', 'fs.write', 'fs.stat', 'fs.read']);
+    expect(out.content).toContain('Created and validated HTML artifact game-1 (revision 1)');
+    expect(files.has(`${HTML_ARTIFACT_ROOT}/game-1.html`)).toBe(true);
+    expect(JSON.parse(files.get(HTML_ARTIFACT_INDEX_PATH) ?? '{}')).toEqual(expect.objectContaining({
+      version: 1,
+      artifacts: [expect.objectContaining({ id: 'game-1', revision: 1, threadId: 't-test' })],
+    }));
+    expect(requests.map(req => req.op)).toEqual(['fs.read', 'fs.list', 'fs.mkdir', 'fs.write', 'fs.mkdir', 'fs.write']);
+  });
+
+  it('updates an artifact in place and bumps its revision', async () => {
+    const files = new Map<string, string>();
+    const bridge = fakeBridge({
+      online: true,
+      respond: (op, data) => {
+        const request = data as { path: string; content?: string };
+        if (op === 'fs.read') {
+          const content = files.get(request.path);
+          if (content == null) throw new Error(`missing ${request.path}`);
+          return { path: request.path, content, encoding: 'utf8', size: content.length, mime: 'text/plain' };
+        }
+        if (op === 'fs.list') throw new Error('missing directory');
+        if (op === 'fs.mkdir') return { path: request.path };
+        if (op === 'fs.write') {
+          files.set(request.path, request.content ?? '');
+          return { path: request.path, bytes: new TextEncoder().encode(request.content ?? '').byteLength };
+        }
+        throw new Error(`unexpected op ${op}`);
+      },
+    });
+    const first = await toolRegistry.execute('artifact', {
+      action: 'create_html_artifact', title: 'Clock',
+      content: '<!doctype html><html><body>one</body></html>',
+    }, makeCtx({ bridge }));
+    const second = await toolRegistry.execute('artifact', {
+      action: 'update_html_artifact', id: 'clock-1',
+      content: '<!doctype html><html><body>two</body></html>',
+    }, makeCtx({ bridge }));
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    expect(second.content).toContain('revision 2');
+    expect(files.get(`${HTML_ARTIFACT_ROOT}/clock-1.html`)).toContain('two');
+    expect(JSON.parse(files.get(HTML_ARTIFACT_INDEX_PATH) ?? '{}').artifacts[0]).toEqual(expect.objectContaining({
+      id: 'clock-1', revision: 2,
+    }));
   });
 
   it('reports invalid HTML and missing local assets', async () => {
@@ -887,6 +931,70 @@ describe('artifact tool', () => {
     expect(out.errorCode).toBe('invalid_html_artifact');
     expect(out.content).toContain('inline script 1 has a syntax error');
     expect(out.content).toContain('missing local assets');
+  });
+
+  it('rejects oversized HTML before creating a directory or writing a file', async () => {
+    const requests: FakeRequest[] = [];
+    const bridge = fakeBridge({ online: true, requests });
+
+    const out = await toolRegistry.execute('artifact', {
+      action: 'create_html_artifact',
+      title: 'Too large',
+      content: `<html><body>${'x'.repeat(HTML_ARTIFACT_MAX_BYTES)}</body></html>`,
+    }, makeCtx({ bridge }));
+
+    expect(out.ok).toBe(false);
+    expect(out.errorCode).toBe('artifact_too_large');
+    expect(requests.some(request => request.op === 'fs.mkdir' || request.op === 'fs.write')).toBe(false);
+  });
+
+  it('rejects a smoke-render failure before writing and preserves id/revision evidence', async () => {
+    const requests: FakeRequest[] = [];
+    const bridge = fakeBridge({
+      online: true,
+      requests,
+      respond: (op) => {
+        if (op === 'fs.read' || op === 'fs.list') throw new Error('missing registry');
+        return {};
+      },
+    });
+
+    const out = await toolRegistry.execute('artifact', {
+      action: 'create_html_artifact', title: 'Broken',
+      content: '<!doctype html><html><body><script>throw new Error("boom")</script></body></html>',
+    }, makeCtx({
+      bridge,
+      artifactValidation: { smokeRender: async () => ({ ok: false, errors: ['Uncaught Error: boom'] }) },
+    }));
+
+    expect(out.ok).toBe(false);
+    expect(out.errorCode).toBe('artifact_smoke_failed');
+    expect(out.data).toEqual(expect.objectContaining({ id: 'broken-1', revision: 1 }));
+    expect(requests.some(request => request.op === 'fs.mkdir' || request.op === 'fs.write')).toBe(false);
+  });
+
+  it('surfaces the soft size warning after validating a large existing artifact', async () => {
+    const size = 256 * 1024 + 1;
+    const bridge = fakeBridge({
+      online: true,
+      respond: (op, data) => {
+        const path = (data as { path?: string }).path ?? '';
+        if (op === 'fs.stat') return { path, kind: 'file', size, mtime: 1, mime: 'text/html' };
+        if (op === 'fs.read') {
+          const content = `<html><body>${'x'.repeat(size - 26)}</body></html>`;
+          return { path, content, encoding: 'utf8', size, mime: 'text/html' };
+        }
+        throw new Error(`unexpected op ${op}`);
+      },
+    });
+
+    const out = await toolRegistry.execute('artifact', {
+      action: 'validate_html',
+      path: '/workspace/artifacts/html/large-1.html',
+    }, makeCtx({ bridge }));
+
+    expect(out.ok).toBe(true);
+    expect(out.content).toContain('HTML artifact is over 262144 bytes');
   });
 });
 

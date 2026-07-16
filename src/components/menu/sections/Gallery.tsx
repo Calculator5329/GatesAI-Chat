@@ -4,7 +4,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
-import { useBridgeStore, useDockStore, useImageJobStore } from '../../../stores/context';
+import { useArtifactStore, useBridgeStore, useDockStore, useImageJobStore } from '../../../stores/context';
+import type { HtmlArtifactRecord } from '../../../core/htmlArtifacts';
 import type { CompletedJob } from '../../../stores/ImageJobStore';
 import { Button } from '../../ui';
 import { Lightbox } from '../../media/Lightbox';
@@ -20,6 +21,7 @@ interface LightboxState {
 
 export const GallerySection = observer(function GallerySection() {
   const jobs = useImageJobStore();
+  const artifacts = useArtifactStore();
   const webLite = isWebLite();
   const completed = jobs.history.filter(j => j.status === 'done' && j.results.length > 0) as CompletedJob[];
   const imageCount = completed.reduce((sum, job) => sum + job.results.length, 0);
@@ -28,6 +30,7 @@ export const GallerySection = observer(function GallerySection() {
     [completed],
   );
   const [lightbox, setLightbox] = useState<LightboxState | null>(null);
+  const [tab, setTab] = useState<'images' | 'artifacts'>('images');
 
   if (webLite) {
     return (
@@ -77,7 +80,14 @@ export const GallerySection = observer(function GallerySection() {
         )}
       </div>
 
-      {completed.length === 0
+      <div role="tablist" aria-label="Gallery type" style={{ display: 'flex', gap: 6, margin: '12px 0 16px' }}>
+        <Button role="tab" aria-selected={tab === 'images'} onClick={() => setTab('images')}>Images</Button>
+        <Button role="tab" aria-selected={tab === 'artifacts'} onClick={() => setTab('artifacts')}>
+          HTML artifacts ({artifacts.artifacts.length})
+        </Button>
+      </div>
+
+      {tab === 'images' && (completed.length === 0
         ? <EmptyState />
         : (
           <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
@@ -91,9 +101,11 @@ export const GallerySection = observer(function GallerySection() {
               />
             ))}
           </div>
-        )}
+        ))}
 
-      {lightbox && (
+      {tab === 'artifacts' && <HtmlArtifactGallery records={artifacts.artifacts} loading={artifacts.loading} onRefresh={() => { void artifacts.refresh(); }} />}
+
+      {tab === 'images' && lightbox && (
         <Lightbox
           images={lightbox.paths.map(p => ({ path: p, alt: 'gallery image' }))}
           startIndex={lightbox.index}
@@ -104,6 +116,63 @@ export const GallerySection = observer(function GallerySection() {
     </>
   );
 });
+
+function HtmlArtifactGallery({
+  records,
+  loading,
+  onRefresh,
+}: {
+  records: HtmlArtifactRecord[];
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  const dock = useDockStore();
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <Button onClick={onRefresh} disabled={loading}>{loading ? 'Refreshing…' : 'Refresh'}</Button>
+      </div>
+      {records.length === 0
+        ? (
+          <div className="editorial-empty-copy" style={{ padding: '44px 28px', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 8 }}>
+            HTML artifacts created through the artifact tool will collect here.
+          </div>
+        )
+        : (
+          <div className="gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 8 }}>
+            {records.map(record => (
+              <button
+                type="button"
+                key={record.id}
+                onClick={() => dock.openArtifact(record.id)}
+                style={{
+                  minHeight: 120,
+                  padding: 14,
+                  textAlign: 'left',
+                  border: '1px solid var(--border)',
+                  borderRadius: 7,
+                  background: 'var(--surface-raised)',
+                  color: 'var(--text)',
+                  cursor: 'pointer',
+                }}
+              >
+                <strong style={{ display: 'block', marginBottom: 8 }}>{record.title}</strong>
+                <span style={{ display: 'block', color: 'var(--text-dim)', fontSize: 12 }}>{record.id}</span>
+                <span style={{ display: 'block', color: 'var(--text-faint)', fontSize: 11, marginTop: 14 }}>
+                  Revision {record.revision} · {formatArtifactSize(record.sizeBytes)}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+    </div>
+  );
+}
+
+function formatArtifactSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  return `${Math.round(bytes / 1024)} KB`;
+}
 
 function EmptyState() {
   return (

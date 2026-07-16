@@ -4,8 +4,8 @@
 // Called by BridgeStore.loadHtmlArtifactPreview; depends on core path helpers only.
 import type { FsReadResp, FsStatResp } from '../../core/workspace';
 import { isHtmlWorkspacePath } from '../../core/workspacePaths';
+import { HTML_ARTIFACT_MAX_BYTES } from '../../core/htmlArtifactPolicy';
 
-const HTML_ARTIFACT_MAX_BYTES = 2 * 1024 * 1024;
 const HTML_CACHE_LIMIT = 12;
 
 /** Narrow bridge surface the preview pipeline needs (BridgeStore satisfies it). */
@@ -84,7 +84,7 @@ async function loadHtmlArtifactUncached(
   try {
     const stat = await bridge.client.request<FsStatResp>('fs.stat', { path });
     if (stat.kind !== 'file') return { status: 'error', reason: 'HTML preview is only available for files.' };
-    if (stat.size > HTML_ARTIFACT_MAX_BYTES) return { status: 'error', reason: 'Preview skipped: HTML file is over 2 MB.' };
+    if (stat.size > HTML_ARTIFACT_MAX_BYTES) return { status: 'error', reason: 'Preview skipped: HTML file is over 1 MB.' };
     if (cached && cached.size === stat.size && cached.mtime === stat.mtime) return { status: 'ready', ...cached };
     const read = await bridge.client.request<FsReadResp>('fs.read', { path, encoding: 'utf8' });
     if (read.encoding !== 'utf8') return { status: 'error', reason: 'Preview unavailable: file is not UTF-8 text.' };

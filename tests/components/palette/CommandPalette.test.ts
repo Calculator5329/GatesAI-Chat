@@ -10,6 +10,7 @@ import { ModelRegistry } from '../../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../../src/stores/UserProfileStore';
 import { UiStore } from '../../../src/stores/UiStore';
 import { DockStore } from '../../../src/stores/DockStore';
+import { ArtifactStore } from '../../../src/stores/ArtifactStore';
 import { RouterStore } from '../../../src/stores/RouterStore';
 import { BridgeStore } from '../../../src/stores/BridgeStore';
 import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
@@ -55,6 +56,7 @@ function buildStore(): RootStore {
   const updates = { visible: false } as RootStore['updates'];
 
   const dock = new DockStore();
+  const artifacts = new ArtifactStore(bridge);
   return {
     registry,
     providers,
@@ -68,6 +70,7 @@ function buildStore(): RootStore {
     imageJobs,
     skills,
     dock,
+    artifacts,
     updates,
   } as RootStore;
 }
@@ -151,6 +154,27 @@ afterEach(() => {
 });
 
 describe('CommandPalette', () => {
+  it('lists registered HTML artifacts and opens one in the dock', () => {
+    store = buildStore();
+    runInAction(() => {
+      store!.artifacts.artifacts = [{
+        id: 'status-board-1', title: 'Status board', threadId: 't',
+        createdAt: '2026-07-16T00:00:00.000Z', updatedAt: '2026-07-16T00:00:00.000Z',
+        revision: 2, sizeBytes: 100,
+      }];
+    });
+    const rendered = renderPaletteShell(store);
+    act(() => store!.ui.openPalette());
+    setPaletteQuery(rendered, 'status board');
+
+    const input = rendered.querySelector<HTMLInputElement>('input[aria-label="Search commands and threads"]');
+    act(() => {
+      input!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    });
+
+    expect(store.dock.cells[0]).toEqual({ kind: 'html-artifact', params: { id: 'status-board-1' } });
+  });
+
   it('opens the desktop workspace explorer from the palette', () => {
     store = buildStore();
     const rendered = renderPaletteShell(store);

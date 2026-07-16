@@ -9,6 +9,7 @@ import { FileViewerPanel } from './FileViewerPanel';
 import { FileExplorerPanel } from './FileExplorerPanel';
 import { MediaViewerPanel } from './MediaViewerPanel';
 import { OfflineLibraryPanel } from './OfflineLibraryPanel';
+import { HtmlArtifactPanel } from './HtmlArtifactPanel';
 
 export interface DockPanelProps {
   params: DockPanelRef['params'];
@@ -44,6 +45,13 @@ const PANELS: Record<DockPanelKind, DockPanelDefinition> = {
     title: 'Media viewer',
     icon: () => <Icons.Image />,
     Component: MediaViewerPanel,
+    requiresBridge: true,
+  },
+  'html-artifact': {
+    kind: 'html-artifact',
+    title: 'HTML artifact',
+    icon: () => <Icons.FileText />,
+    Component: HtmlArtifactPanel,
     requiresBridge: true,
   },
   'offline-library': {
