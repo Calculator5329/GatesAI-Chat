@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { AgentTaskLaunchContext } from '../../src/core/agentTaskPolicy'
-import {
-  DEFAULT_AGENT_TASK_DAILY_COST_USD,
-  DEFAULT_AGENT_TASK_MAX_COST_USD,
-  evaluateAgentTaskLaunch,
-  parseAgentTaskPolicy,
-} from '../../src/core/agentTaskPolicy'
+import { evaluateAgentTaskLaunch, parseAgentTaskPolicy } from '../../src/core/agentTaskPolicy'
 
 function policy(overrides: Record<string, unknown> = {}) {
   return {
@@ -28,7 +23,7 @@ function context(overrides: Partial<AgentTaskLaunchContext> = {}): AgentTaskLaun
     available_routes: [{ model_id: 'qwen2.5-coder:14b', provider_id: 'ollama', locality: 'local' }],
     parent_allowed_tools: ['workspace.read', 'database_plugins.search'],
     runtime_available_tools: ['workspace.read', 'database_plugins.search'],
-    available_plugins: [{ plugin_id: 'org.example.reference', version: '1.2.3', data_policy: 'local_only' }],
+    available_plugins: [{ plugin_id: 'org.example.reference', version: '1.2.3' }],
     ...overrides,
   }
 }
@@ -68,7 +63,7 @@ describe('agent task policy core', () => {
     const parsed = parseAgentTaskPolicy(policy())
     expect(evaluateAgentTaskLaunch(parsed, context({ available_plugins: [] }))).toMatchObject({ code: 'plugin_unavailable' })
     expect(evaluateAgentTaskLaunch(parsed, context({
-      available_plugins: [{ plugin_id: 'org.example.reference', version: '2.0.0', data_policy: 'local_only' }],
+      available_plugins: [{ plugin_id: 'org.example.reference', version: '2.0.0' }],
     }))).toMatchObject({ code: 'plugin_version_mismatch' })
 
     const cloud = parseAgentTaskPolicy(policy({
@@ -77,18 +72,6 @@ describe('agent task policy core', () => {
     expect(evaluateAgentTaskLaunch(cloud, context({
       available_routes: [{ model_id: 'claude', provider_id: 'openrouter', locality: 'cloud' }],
     }))).toMatchObject({ code: 'data_policy_mismatch' })
-  })
-
-  it('never lets a task snapshot loosen the installed plugin data ceiling', () => {
-    const loosened = parseAgentTaskPolicy(policy({
-      database_pins: [{ plugin_id: 'org.example.reference', version: '1.2.3', data_policy: 'cloud_allowed' }],
-    }))
-    expect(evaluateAgentTaskLaunch(loosened, context())).toMatchObject({ code: 'data_policy_mismatch' })
-  })
-
-  it('exports the V1 soft defaults below the hard ceiling', () => {
-    expect(DEFAULT_AGENT_TASK_MAX_COST_USD).toBe(1)
-    expect(DEFAULT_AGENT_TASK_DAILY_COST_USD).toBe(5)
   })
 
   it.each([
