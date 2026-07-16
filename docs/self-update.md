@@ -22,7 +22,9 @@ desktop-only and fail closed when the Tauri commands are unavailable.
 
 1. A release build bundles a source snapshot and manifest.
 2. **Prepare** copies that snapshot into the app-local managed workspace.
-   GatesAI refuses to replace a directory without a valid app-managed marker.
+   The workspace must canonicalize as a real direct child of the app-local data
+   directory; a symlinked or escaping parent fails closed. GatesAI refuses to
+   replace a directory without a valid real-file app-managed marker.
 3. If a newer bundled snapshot makes the managed copy stale, **Prepare first
    archives the entire prior copy** under `source-workspace/archive/`, then
    creates the fresh copy. The archive root must be a real direct child of the
