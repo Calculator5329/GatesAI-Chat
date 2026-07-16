@@ -61,7 +61,16 @@ async function ensureServer(args: {
 
   const child = spawn(process.execPath, args.args, {
     cwd: ROOT,
-    env: process.env,
+    env: {
+      ...process.env,
+      // E2E servers are immutable for the duration of one suite. Ignore all
+      // file changes and disable HMR so browser evidence does not depend on
+      // host watcher headroom. Ordinary development servers remain unchanged.
+      GATESAI_VITE_NO_WATCH: '1',
+      // The workstation shell may export NODE_ENV=production. These are Vite
+      // development servers, and specs rely on development-only test hooks.
+      NODE_ENV: 'development',
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });

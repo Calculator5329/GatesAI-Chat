@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-16 — Watcher-independent browser verification
+
+- Playwright's disposable desktop and Web Lite Vite servers now ignore every
+  file change because E2E runs never need HMR. Browser verification can start
+  even when unrelated desktop sessions have exhausted the host inotify pool,
+  with HMR and React-refresh transforms disabled together for those disposable
+  servers; ordinary development servers keep HMR and the Cargo-target ignore.
+- The E2E child servers now pin `NODE_ENV=development` instead of inheriting a
+  workstation-wide production setting, preserving the dev-only browser hooks
+  the mocked desktop specs intentionally exercise.
+- Added a focused config regression for both modes. No sysctl, kernel, service,
+  production build, provider, or application-runtime behavior changed.
+
 ## 2026-07-16 — Local-first first-boot (LF-4)
 
 - The first-boot hero now leads with the local path: detected Ollama models

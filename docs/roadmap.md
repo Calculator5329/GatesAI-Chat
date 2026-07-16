@@ -342,6 +342,14 @@ composer quieter.
       e2e suite (green in `npm run test:e2e`); a report doc under `docs/audits/`
       listing per-setting verdicts; a checklist of proposed removals/merges
       filed as follow-up items for review.
+      *Infrastructure progress 2026-07-16:* Playwright-owned Vite servers now
+      ignore every file change, so the suite does not consume or depend on host
+      inotify headroom. HMR and React-refresh transforms are disabled together
+      only for those disposable servers; ordinary development servers retain
+      HMR and the existing `src-tauri/target` exclusion. The child servers also
+      pin development semantics instead of inheriting the workstation's
+      production `NODE_ENV`. QA-1 remains open until every settings control and
+      the de-bloat report meet acceptance.
 
 
 - [x] **Flaky-test sweep.** *(done 2026-07-10)* Run the unit suite 5× and the e2e suite 3× in a
