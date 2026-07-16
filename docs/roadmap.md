@@ -608,7 +608,13 @@ composer quieter.
       `ComposerBanners`, `SkillPopover`, the `useComposerDraft` send/draft pipeline,
       and shared `composerStyles`/`composerAttachments`. Public props unchanged;
       DOM/classes byte-identical so the existing unit+e2e suites stay green)*
-- [ ] Bridge protocol doc + version handshake (fail loud on mismatch)
+- [x] Bridge protocol doc + version handshake (fail loud on mismatch)
+      *(done 2026-07-16 — protocol v2 hello is documented in
+      `docs/bridge-protocol.md`; the app requires an exact version match before
+      entering online state, classifies silent pre-handshake bridges as v0,
+      disconnects mismatches, and shows explicit update guidance; focused
+      client/store tests cover compatible, legacy, malformed, closed, and
+      mismatched paths)*
 - [x] Headless core entry (boot RootStore without React) → CLI mode, scripted
       smokes, scheduler runner *(done 2026-07-11)*
 - [ ] Decide deliberately: Go bridge vs folding into a Rust sidecar

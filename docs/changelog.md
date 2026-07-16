@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-07-16 — bridge v2 contract and fail-closed compatibility evidence
+
+- Documented the app/sidecar hello sequence, correlated request envelopes,
+  timeout behavior, security boundary, versioning rule, and cross-repo release
+  verification in `docs/bridge-protocol.md`.
+- Added direct tests for compatible v2 negotiation, silent legacy-v0
+  classification, malformed hello frames, connection loss during negotiation,
+  and the store's explicit incompatible/update-required state. The shipped
+  runtime behavior is unchanged; this closes the stale documentation and
+  evidence gap around the already-live v2 handshake.
+
 ## 2026-07-15 — W-1 basic dock file explorer
 
 - Added a compact, read-only File Explorer panel to the existing dock registry.

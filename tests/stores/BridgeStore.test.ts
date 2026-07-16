@@ -1,5 +1,44 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { BRIDGE_PROTOCOL_VERSION } from '../../src/services/bridge/client';
+import { probeBridgeHealth } from '../../src/services/bridge/health';
 import { BridgeStore } from '../../src/stores/BridgeStore';
+
+vi.mock('../../src/services/bridge/health', () => ({
+  probeBridgeHealth: vi.fn(),
+}));
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('BridgeStore protocol compatibility', () => {
+  it('fails closed with explicit update guidance when health is up but protocol differs', async () => {
+    vi.mocked(probeBridgeHealth).mockResolvedValue({
+      status: 'ok',
+      version: '1.9.0',
+      workspace_root: '/home/test/GatesAI/workspace',
+      platform: 'linux',
+      allowlist: ['git'],
+    });
+    const bridge = new BridgeStore();
+    vi.spyOn(bridge.client, 'connect').mockResolvedValue();
+    vi.spyOn(bridge.client, 'negotiateProtocol').mockResolvedValue(BRIDGE_PROTOCOL_VERSION - 1);
+    const disconnect = vi.spyOn(bridge.client, 'disconnect').mockImplementation(() => {});
+
+    await bridge.poll();
+
+    expect(bridge.state).toBe('incompatible');
+    expect(bridge.isOnline).toBe(false);
+    expect(bridge.lastError).toBe(
+      `Bridge speaks v${BRIDGE_PROTOCOL_VERSION - 1}, app needs v${BRIDGE_PROTOCOL_VERSION} — update the bridge.`,
+    );
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(bridge.activityEvents.at(-1)).toMatchObject({
+      state: 'failed',
+      verb: 'Bridge update required',
+    });
+  });
+});
 
 describe('BridgeStore attachment facade', () => {
   it('uploads files through the bridge client and returns draft attachment metadata', async () => {

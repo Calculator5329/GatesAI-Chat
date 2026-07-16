@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  BRIDGE_PROTOCOL_VERSION,
   BridgeClient,
   BridgeError,
   BridgeOfflineError,
+  LEGACY_BRIDGE_PROTOCOL_VERSION,
 } from '../../../src/services/bridge/client';
 
 const CONNECT_TIMEOUT_MS = 3000;
@@ -376,6 +378,56 @@ describe('BridgeClient', () => {
       // The request is still live and resolves normally afterwards.
       ws.message(JSON.stringify({ id, type: 'result', data: { ok: true } }));
       await expect(pending).resolves.toEqual({ ok: true });
+    });
+  });
+
+  describe('negotiateProtocol()', () => {
+    it('sends the v2 hello frame and resolves the bridge reply', async () => {
+      const { client, ws } = await connectedClient();
+
+      const negotiation = client.negotiateProtocol();
+      expect(parseFrame(ws.sent[0])).toEqual({
+        type: 'hello',
+        protocolVersion: BRIDGE_PROTOCOL_VERSION,
+      });
+
+      ws.message(JSON.stringify({
+        type: 'hello',
+        protocolVersion: BRIDGE_PROTOCOL_VERSION,
+      }));
+
+      await expect(negotiation).resolves.toBe(BRIDGE_PROTOCOL_VERSION);
+    });
+
+    it('classifies a silent pre-handshake bridge as legacy after the grace window', async () => {
+      const { client } = await connectedClient();
+
+      const negotiation = client.negotiateProtocol(250);
+      vi.advanceTimersByTime(250);
+
+      await expect(negotiation).resolves.toBe(LEGACY_BRIDGE_PROTOCOL_VERSION);
+    });
+
+    it('classifies a connection closed during negotiation as legacy', async () => {
+      const { client, ws } = await connectedClient();
+
+      const negotiation = client.negotiateProtocol();
+      ws.serverClose();
+
+      await expect(negotiation).resolves.toBe(LEGACY_BRIDGE_PROTOCOL_VERSION);
+      expect(client.isOpen()).toBe(false);
+    });
+
+    it('ignores malformed hello replies until a valid integer version arrives', async () => {
+      const { client, ws } = await connectedClient();
+
+      const negotiation = client.negotiateProtocol();
+      ws.message(JSON.stringify({ type: 'hello', protocolVersion: '2' }));
+      ws.message(JSON.stringify({ type: 'hello', protocolVersion: 2.5 }));
+      ws.message(JSON.stringify({ type: 'hello' }));
+      ws.message(JSON.stringify({ type: 'hello', protocolVersion: BRIDGE_PROTOCOL_VERSION }));
+
+      await expect(negotiation).resolves.toBe(BRIDGE_PROTOCOL_VERSION);
     });
   });
 });
