@@ -14,6 +14,7 @@ mod offline_library;
 mod secrets;
 mod source_build;
 mod source_workspace;
+mod webkit_dmabuf;
 
 use http_health::probe_health;
 
@@ -59,6 +60,8 @@ fn open_path(path: String) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+  webkit_dmabuf::configure();
+
   tauri::Builder::default()
     .plugin(tauri_plugin_shell::init())
     .plugin(tauri_plugin_dialog::init())
