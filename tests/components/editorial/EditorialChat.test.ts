@@ -149,18 +149,32 @@ afterEach(() => {
 });
 
 describe('EditorialChat empty state (Batch C)', () => {
-  it('renders onboarding paths when no provider and no prior messages are configured', () => {
+  it('leads with the local path and links Local settings when Ollama is not detected', () => {
     store = buildStore();
+    const initialModelId = store.chat.activeThread?.modelId;
     const rendered = renderChat(store);
+    const localCard = rendered.querySelector('[data-onboarding-path="local"]');
+    const cloudCard = rendered.querySelector('[data-onboarding-path="cloud"]');
 
     expect(rendered.textContent).toContain('GatesAI Chat');
     expect(rendered.textContent).toContain('Local-first AI workspace');
-    expect(rendered.textContent).toContain('Chat with frontier models');
-    expect(rendered.textContent).toContain('Use cloud models');
-    expect(rendered.textContent).toContain('Use local models');
+    expect(rendered.textContent).toContain('Chat locally on your own machine');
+    expect(rendered.textContent).toContain('Bring cloud models');
+    expect(rendered.textContent).toContain('Start with local models');
     expect(rendered.textContent).toContain('Just look around');
-    expect(rendered.textContent).toContain('OpenRouter requires a key');
+    expect(rendered.textContent).toContain('no account or cloud key');
+    expect(rendered.textContent).toContain('Open Local settings');
+    expect(localCard).not.toBeNull();
+    expect(cloudCard).not.toBeNull();
+    expect(localCard!.compareDocumentPosition(cloudCard!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(store.chat.activeThread?.modelId).toBe(initialModelId);
     expect(rendered.textContent).not.toContain('Connect OpenRouter in Models');
+
+    const openLocal = Array.from(rendered.querySelectorAll('button'))
+      .find(button => button.textContent === 'Open Local settings') as HTMLButtonElement | undefined;
+    act(() => openLocal?.click());
+
+    expect(store.router.menuSection).toBe('local');
   });
 
   it('does not treat the bundled read-only tour as prior user chat', () => {
@@ -168,8 +182,8 @@ describe('EditorialChat empty state (Batch C)', () => {
     store.chat.seedWelcomeTour();
     const rendered = renderChat(store);
 
-    expect(rendered.textContent).toContain('Use cloud models');
-    expect(rendered.textContent).toContain('Use local models');
+    expect(rendered.textContent).toContain('Bring cloud models');
+    expect(rendered.textContent).toContain('Start with local models');
     expect(store.ui.onboardingDismissed).toBe(false);
   });
 
@@ -179,7 +193,7 @@ describe('EditorialChat empty state (Batch C)', () => {
     const rendered = renderChat(store);
 
     expect(rendered.textContent).toContain('A blank thread is ready; write below when you want to begin.');
-    expect(rendered.textContent).not.toContain('Use cloud models');
+    expect(rendered.textContent).not.toContain('Bring cloud models');
     expect(rendered.textContent).not.toContain('Connect OpenRouter in Models');
   });
 
@@ -210,11 +224,11 @@ describe('EditorialChat empty state (Batch C)', () => {
 
     expect(setKey).toHaveBeenCalledWith('openrouter', 'sk-or-good');
     expect(store.ui.onboardingDismissed).toBe(true);
-    expect(rendered.textContent).not.toContain('Use cloud models');
+    expect(rendered.textContent).not.toContain('Bring cloud models');
     expect(rendered.textContent).toContain('Key works - 1 model available.');
   });
 
-  it('selects an online Ollama model and dismisses onboarding', () => {
+  it('defaults an untouched first chat to a detected Ollama model and keeps the local choice first', () => {
     store = buildStore();
     store.registry.setDynamicForProvider('ollama', [{
       id: 'ollama-llama3',
@@ -227,14 +241,23 @@ describe('EditorialChat empty state (Batch C)', () => {
       store!.localRuntime.runtimes.ollama.status = 'online';
     });
     const rendered = renderChat(store);
+    const localCard = rendered.querySelector('[data-onboarding-path="local"]');
+    const cloudCard = rendered.querySelector('[data-onboarding-path="cloud"]');
     const useLocal = Array.from(rendered.querySelectorAll('button'))
-      .find(button => button.textContent?.includes('Use Llama 3 Local')) as HTMLButtonElement | undefined;
+      .find(button => button.textContent?.includes('Continue with Llama 3 Local')) as HTMLButtonElement | undefined;
+
+    expect(store.chat.activeThread?.modelId).toBe('ollama-llama3');
+    expect(rendered.textContent).toContain('Llama 3 Local is selected for this chat');
+    expect(rendered.textContent).toContain('will not switch providers unless you choose another model');
+    expect(localCard).not.toBeNull();
+    expect(cloudCard).not.toBeNull();
+    expect(localCard!.compareDocumentPosition(cloudCard!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     act(() => useLocal?.click());
 
     expect(store.chat.activeThread?.modelId).toBe('ollama-llama3');
     expect(store.ui.onboardingDismissed).toBe(true);
-    expect(rendered.textContent).not.toContain('Use cloud models');
+    expect(rendered.textContent).not.toContain('Bring cloud models');
     expect(rendered.textContent).toContain('Ollama detected - 1 model ready.');
   });
 
@@ -280,6 +303,7 @@ describe('EditorialChat empty state (Batch C)', () => {
       store!.localRuntime.runtimes.ollama.status = 'online';
       store!.chat.activeThread!.modelId = 'ollama-llama3.2:3b';
     });
+    store.ui.setOnboardingDismissed(true);
     const pull = vi.spyOn(store.ollama, 'startPull').mockResolvedValue(true);
     const rendered = renderChat(store);
 
@@ -301,7 +325,7 @@ describe('EditorialChat empty state (Batch C)', () => {
     store.ui.dispose();
 
     expect(store.ui.onboardingDismissed).toBe(true);
-    expect(rendered.textContent).not.toContain('Use cloud models');
+    expect(rendered.textContent).not.toContain('Bring cloud models');
     expect(JSON.parse(localStorage.getItem('gatesai.uiprefs.v1') ?? '{}').onboardingDismissed).toBe(true);
   });
 
@@ -310,8 +334,8 @@ describe('EditorialChat empty state (Batch C)', () => {
     store = buildStore();
     const rendered = renderChat(store);
 
-    expect(rendered.textContent).toContain('Use cloud models');
-    expect(rendered.textContent).not.toContain('Use local models');
+    expect(rendered.textContent).toContain('Bring cloud models');
+    expect(rendered.textContent).not.toContain('Start with local models');
   });
 
   it('does not render onboarding when any prior thread has messages', () => {
@@ -320,7 +344,7 @@ describe('EditorialChat empty state (Batch C)', () => {
     store.chat.createThread();
     const rendered = renderChat(store);
 
-    expect(rendered.textContent).not.toContain('Use cloud models');
+    expect(rendered.textContent).not.toContain('Bring cloud models');
     expect(store.ui.onboardingDismissed).toBe(true);
   });
 });

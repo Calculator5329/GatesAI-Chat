@@ -8,6 +8,7 @@ import { useEditorial } from '../../stores/context';
 import { isTauri, isWebLite } from '../../core/runtime';
 import { clientPlatform } from '../../core/clientPlatform';
 import { recommendedDownload } from '../../core/downloads';
+import { bestLocalModel } from '../../core/defaultModel';
 import type { Message, Model } from '../../core/types';
 import { groupMessagesByDate } from '../../core/threadSelectors';
 import { Icons, SecretKeyField } from '../ui';
@@ -50,6 +51,10 @@ const ChatEmptyState = observer(function ChatEmptyState() {
   const activeProviderReady = activeModel
     ? providers.isConnected(activeModel.providerId)
     : providers.hasUsableProvider;
+  const localFirstRunReady = !webLite
+    && activeModel?.providerId === 'ollama'
+    && activeProviderReady
+    && !providers.getConfig('openrouter').apiKey;
   const [readyMessage, setReadyMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,7 +63,7 @@ const ChatEmptyState = observer(function ChatEmptyState() {
 
   const showOnboarding =
     !ui.onboardingDismissed
-    && !activeProviderReady
+    && (!activeProviderReady || localFirstRunReady)
     && !hasPriorMessages
     && !hasMessages;
 
@@ -74,7 +79,7 @@ const ChatEmptyState = observer(function ChatEmptyState() {
       <p className="editorial-empty-state__lede">
         {webLite
           ? 'Chat with frontier models from this browser. Move to desktop when you want local files, tools, and image generation in the same workspace.'
-          : 'Chat with frontier models, run tools over local files, and generate images in one quiet workspace.'}
+          : 'Chat locally on your own machine, run tools over your files, and bring frontier cloud models when you choose.'}
       </p>
 
       {showOnboarding ? (
@@ -194,16 +199,28 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
   }, [localChecking, localRuntime, ollama]);
 
   const localModels = registry.all.filter(model => model.providerId === 'ollama');
+
+  useEffect(() => {
+    if (webLite || !ollama.online || localModels.length === 0) return;
+    // RootStore performs the same reconciliation as the registry hydrates.
+    // Keep the first-run surface self-contained too: an empty untouched chat
+    // adopts the detected local default, but an explicit model choice or a
+    // thread with messages is never overwritten.
+    chat.reconcileDefaultModelForEmptyThreads();
+  }, [chat, localModels, ollama.online, webLite]);
+
+  const activeLocalModel = localModels.find(model => model.id === chat.activeThread?.modelId);
+  const localModelForChat = activeLocalModel ?? bestLocalModel(localModels);
   const selectLocalModel = useCallback(() => {
     const threadId = chat.activeThreadId;
-    const model = bestLocalModel(localModels);
+    const model = localModelForChat;
     if (!threadId || !model) return;
     chat.setThreadModel(threadId, model.id);
     const message = `Ollama detected - ${formatModelCount(localModels.length)} ready.`;
     onReady(message);
     ui.setOnboardingDismissed(true);
     ui.focusComposer();
-  }, [chat, localModels, onReady, ui]);
+  }, [chat, localModelForChat, localModels.length, onReady, ui]);
 
   const startStarterPull = useCallback(async () => {
     const ok = await ollama.startPull('llama3.2:3b');
@@ -225,11 +242,23 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
 
   return (
     <div className="editorial-onboarding" aria-label="Choose how to start chatting">
-      <section className="editorial-onboarding__card">
+      {!webLite && (
+        <OllamaOnboardingCard
+          models={localModels}
+          selectedModel={localModelForChat}
+          checking={localChecking || ollama.fetching || localRuntime.autoDetecting}
+          error={localError ?? ollama.lastError ?? null}
+          onRefresh={refreshLocal}
+          onSelect={selectLocalModel}
+          onStarterPull={startStarterPull}
+        />
+      )}
+
+      <section className="editorial-onboarding__card" data-onboarding-path="cloud">
         <div className="editorial-onboarding__kicker">Cloud</div>
-        <h2>Use cloud models</h2>
+        <h2>Bring cloud models</h2>
         <p>
-          Paste an OpenRouter API key. OpenRouter requires a key for every route, including free models.
+          Choose OpenRouter when you want a cloud model. Free and paid routes both use your own API key.
         </p>
         <SecretKeyField
           value={providers.getConfig('openrouter').apiKey ?? ''}
@@ -251,17 +280,6 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
         )}
       </section>
 
-      {!webLite && (
-        <OllamaOnboardingCard
-          models={localModels}
-          checking={localChecking || ollama.fetching || localRuntime.autoDetecting}
-          error={localError ?? ollama.lastError ?? null}
-          onRefresh={refreshLocal}
-          onSelect={selectLocalModel}
-          onStarterPull={startStarterPull}
-        />
-      )}
-
       <section className="editorial-onboarding__card editorial-onboarding__card--muted">
         <div className="editorial-onboarding__kicker">Explore</div>
         <h2>Just look around</h2>
@@ -278,6 +296,7 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
 
 const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
   models,
+  selectedModel,
   checking,
   error,
   onRefresh,
@@ -285,13 +304,14 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
   onStarterPull,
 }: {
   models: Model[];
+  selectedModel: Model | undefined;
   checking: boolean;
   error: string | null;
   onRefresh: () => void;
   onSelect: () => void;
   onStarterPull: () => void;
 }) {
-  const { bridge, localRuntime, ollama } = useEditorial();
+  const { localRuntime, ollama, router } = useEditorial();
   const runtime = localRuntime.runtimes.ollama;
   const online = runtime.status === 'online';
   const ready = online && models.length > 0;
@@ -299,21 +319,25 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
   const buttonLabel = checking ? 'Checking...' : 'Check again';
   const starter = 'llama3.2:3b';
   const starterState = ollama.pulls.get(starter);
+  const openLocalSettings = () => router.goMenu('local');
 
   return (
-    <section className="editorial-onboarding__card">
+    <section className="editorial-onboarding__card" data-onboarding-path="local">
       <div className="editorial-onboarding__kicker">Local</div>
-      <h2>Use local models</h2>
+      <h2>Start with local models</h2>
       {ready ? (
         <>
-          <p>Ollama detected - {formatModelCount(models.length)} ready.</p>
+          <p>
+            Ollama detected - {formatModelCount(models.length)} ready. {selectedModel?.name ?? 'A local model'}
+            {' '}is selected for this chat, and GatesAI will not switch providers unless you choose another model.
+          </p>
           <button type="button" className="editorial-empty-state__primary" onClick={onSelect}>
-            Use {bestLocalModel(models)?.name ?? 'local model'}
+            Continue with {selectedModel?.name ?? 'local model'}
           </button>
         </>
       ) : online ? (
         <>
-          <p>Ollama is running, but no chat models are pulled yet.</p>
+          <p>Ollama is running, but no chat models are pulled yet. Add one here and keep the whole conversation on this machine.</p>
           <button
             type="button"
             className="editorial-empty-state__primary"
@@ -331,33 +355,27 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
               {starterState.error ? starterState.error : `${starterState.phase} · ${Math.round(starterState.percent)}%`}
             </div>
           )}
+          <button type="button" className="editorial-empty-state__secondary" onClick={openLocalSettings}>
+            Open Local settings
+          </button>
         </>
       ) : notDetected ? (
         <>
-          <p>
-            Ollama is not detected. Install it from{' '}
-            <a
-              href="https://ollama.com"
-              target="_blank"
-              rel="noreferrer"
-              onClick={event => {
-                if (!isTauri()) return;
-                event.preventDefault();
-                void bridge.openExternalTarget('https://ollama.com');
-              }}
-            >
-              ollama.com
-            </a>
-            , then check again.
-          </p>
-          <button type="button" className="editorial-empty-state__primary" onClick={onRefresh} disabled={checking}>
+          <p>Run chat and tools on your machine with Ollama - no account or cloud key. Local settings can help you install or connect it.</p>
+          <button type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
+            Open Local settings
+          </button>
+          <button type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
             {buttonLabel}
           </button>
         </>
       ) : (
         <>
-          <p>Start Ollama, then check again. If no models appear, run <code>ollama pull llama3.1</code>.</p>
-          <button type="button" className="editorial-empty-state__primary" onClick={onRefresh} disabled={checking}>
+          <p>Ollama is configured but not running. Start it from Local settings; GatesAI will not silently fall back to cloud.</p>
+          <button type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
+            Open Local settings
+          </button>
+          <button type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
             {buttonLabel}
           </button>
         </>
@@ -380,10 +398,6 @@ function formatOpenRouterKeyError(error: string): string {
 
 function formatModelCount(count: number): string {
   return `${count} model${count === 1 ? '' : 's'}`;
-}
-
-function bestLocalModel(models: Model[]): Model | undefined {
-  return models.find(model => model.supportsTools !== false) ?? models[0];
 }
 
 /**
