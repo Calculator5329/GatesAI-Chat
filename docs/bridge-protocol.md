@@ -79,8 +79,9 @@ Envelope fields observed by the app are:
 
 An `event` is routed to the matching request callback without settling its
 promise. A `result` resolves it. An `error` rejects with
-`BridgeError(message, op, code)`. A known id with no frame type rejects as
-`bridge_protocol_error`; other malformed or unknown frames are ignored.
+`BridgeError(message, op, code)`. Frames missing a valid type, malformed
+frames, and unknown ids are ignored; an existing request remains pending until
+a valid terminal frame, timeout, or socket close arrives.
 
 The v2 operation families are `fs.*`, `exec.*`, and `bridge.info`. Adding an
 operation or changing a payload is a cross-repo protocol change and requires

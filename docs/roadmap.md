@@ -647,7 +647,9 @@ composer quieter.
       delivered ones
 - [ ] ADRs for standing decisions (bridge language, Firestore parked, updater)
 - [ ] Refresh bundled in-app user guide
-- [ ] Bridge protocol spec in docs/
+- [x] Bridge protocol spec in docs/ *(done 2026-07-16 — canonical app-side
+      contract is `docs/bridge-protocol.md`; retained here as a resolved alias
+      of the Architecture item above, not a second implementation task)*
 
 ### Tooling & release
 - [ ] Changelog automation from commits; nightly channel from master
