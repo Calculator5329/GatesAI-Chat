@@ -1,0 +1,1471 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>GatesAI Chat — Local hearth</title>
+  <style>
+    :root,
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #121212;
+      --panel: #181818;
+      --panel-2: #202020;
+      --panel-3: #282828;
+      --border: rgba(255, 255, 255, .075);
+      --border-strong: rgba(255, 255, 255, .14);
+      --text: #e4e7ef;
+      --text-dim: #a0a9bd;
+      --text-faint: #696f7d;
+      --accent: #3ecf8e;
+      --accent-2: #5fe0a7;
+      --accent-glow: rgba(62, 207, 142, .28);
+      --accent-contrast: #06120a;
+      --danger: #ff7597;
+      --warning: #d19a66;
+      --success: #5fbf7a;
+      --focus-ring: color-mix(in srgb, var(--accent) 58%, transparent);
+      --focus-ring-glow: color-mix(in srgb, var(--accent) 18%, transparent);
+      --sidebar-wash: rgba(255, 255, 255, .012);
+      --quiet-wash: rgba(255, 255, 255, .026);
+      --hover-wash: rgba(255, 255, 255, .048);
+      --hearth-wash: rgba(62, 207, 142, .055);
+      --hearth-ember: rgba(209, 154, 102, .13);
+      --shadow: 0 18px 52px rgba(0, 0, 0, .22);
+    }
+
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f4efe6;
+      --panel: #faf8f3;
+      --panel-2: #fdfbf6;
+      --panel-3: #fffefa;
+      --border: rgba(58, 52, 42, .14);
+      --border-strong: rgba(58, 52, 42, .23);
+      --text: #1d211d;
+      --text-dim: #5f645d;
+      --text-faint: #858b82;
+      --accent: #0f6b46;
+      --accent-2: #157f55;
+      --accent-glow: rgba(15, 107, 70, .2);
+      --accent-contrast: #faf8f3;
+      --danger: #9b2945;
+      --warning: #8a5a00;
+      --success: #156b3f;
+      --focus-ring: color-mix(in srgb, var(--accent) 58%, transparent);
+      --focus-ring-glow: color-mix(in srgb, var(--accent) 17%, transparent);
+      --sidebar-wash: rgba(70, 58, 38, .025);
+      --quiet-wash: rgba(70, 58, 38, .035);
+      --hover-wash: rgba(29, 33, 29, .055);
+      --hearth-wash: rgba(15, 107, 70, .055);
+      --hearth-ember: rgba(138, 90, 0, .08);
+      --shadow: 0 18px 52px rgba(70, 58, 38, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body { height: 100%; }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      text-rendering: optimizeLegibility;
+    }
+
+    button,
+    input,
+    textarea { font: inherit; }
+
+    button,
+    a { -webkit-tap-highlight-color: transparent; }
+
+    button { color: inherit; }
+
+    :where(button, input, textarea, a[href]):focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 3px var(--focus-ring-glow);
+    }
+
+    ::selection {
+      background: color-mix(in srgb, var(--accent) 28%, transparent);
+      color: var(--text);
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      display: block;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .shell {
+      height: 100dvh;
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 270px minmax(0, 1fr);
+      background:
+        radial-gradient(circle at 59% 19%, var(--hearth-wash), transparent 29%),
+        var(--bg);
+    }
+
+    .sidebar {
+      min-width: 0;
+      border-right: 1px solid var(--border);
+      background: var(--sidebar-wash);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 10;
+    }
+
+    .sidebar-head {
+      position: relative;
+      padding: 23px 19px 15px;
+    }
+
+    .brand {
+      border: 0;
+      padding: 2px 3px 4px;
+      background: transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: baseline;
+      font-family: "Source Serif 4", Iowan Old Style, Baskerville, Georgia, serif;
+      font-size: 25px;
+      letter-spacing: -.04em;
+    }
+
+    .brand:hover { color: color-mix(in srgb, var(--accent) 65%, var(--text)); }
+
+    .brand-dot { color: var(--accent); }
+
+    .coachmark {
+      position: absolute;
+      left: 19px;
+      top: 62px;
+      z-index: 15;
+      border: 1px solid var(--border-strong);
+      background: var(--panel-3);
+      color: var(--text-dim);
+      border-radius: 7px;
+      padding: 8px 10px;
+      font-size: 11px;
+      box-shadow: var(--shadow);
+      animation: coach-in 420ms ease-out both;
+    }
+
+    .coachmark::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      left: 16px;
+      width: 8px;
+      height: 8px;
+      border-left: 1px solid var(--border-strong);
+      border-top: 1px solid var(--border-strong);
+      background: var(--panel-3);
+      transform: rotate(45deg);
+    }
+
+    .sidebar-new {
+      margin: 10px 19px 7px;
+      min-height: 38px;
+      width: calc(100% - 38px);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 11px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: 140ms ease;
+    }
+
+    .sidebar-new:hover {
+      border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+      background: var(--hover-wash);
+      color: var(--text);
+    }
+
+    .sidebar-section {
+      padding: 17px 21px 7px;
+      font: 9px/1.3 "Geist Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    .thread {
+      width: 100%;
+      min-height: 38px;
+      border: 0;
+      border-left: 2px solid transparent;
+      background: transparent;
+      color: var(--text-dim);
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 19px;
+      text-align: left;
+      font-size: 12.5px;
+      cursor: pointer;
+      transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+    }
+
+    .thread:hover { background: var(--hover-wash); color: var(--text); }
+
+    .thread[aria-current="page"] {
+      border-left-color: var(--accent);
+      background: var(--hearth-wash);
+      color: var(--text);
+    }
+
+    .thread .pin {
+      color: var(--text-faint);
+      transform: rotate(-18deg);
+    }
+
+    .thread-meta {
+      color: var(--text-faint);
+      font: 9px/1 "Geist Mono", ui-monospace, monospace;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .sidebar-empty {
+      padding: 7px 21px 2px;
+      color: var(--text-faint);
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 12px;
+      font-style: italic;
+    }
+
+    .sidebar-spacer { flex: 1; }
+
+    .runtime {
+      width: calc(100% - 38px);
+      margin: 12px 19px 19px;
+      padding: 9px 0;
+      border: 0;
+      border-top: 1px solid var(--border);
+      background: transparent;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-faint);
+      cursor: pointer;
+      text-align: left;
+      font: 10px/1.2 "Geist Mono", ui-monospace, monospace;
+      letter-spacing: .04em;
+      text-transform: lowercase;
+    }
+
+    .runtime:hover { color: var(--text-dim); }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 12%, transparent);
+      flex: 0 0 auto;
+    }
+
+    .main {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      position: relative;
+    }
+
+    .top-mobile { display: none; }
+
+    .theme-button {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      z-index: 4;
+      width: 34px;
+      height: 34px;
+      border: 1px solid transparent;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--text-faint);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .theme-button:hover {
+      border-color: var(--border);
+      background: var(--hover-wash);
+      color: var(--text);
+    }
+
+    .theme-button .sun,
+    :root[data-theme="light"] .theme-button .moon { display: none; }
+    :root[data-theme="light"] .theme-button .sun { display: block; }
+
+    .scroll {
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-gutter: stable;
+      padding: clamp(38px, 7vh, 76px) 36px 32px;
+    }
+
+    .empty-state {
+      width: min(100%, 890px);
+      margin: 0 auto;
+    }
+
+    .hero-copy {
+      width: min(100%, 560px);
+      margin: 0 auto 29px;
+      text-align: center;
+    }
+
+    .eyebrow,
+    .kicker {
+      font-family: "Geist Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+      text-transform: uppercase;
+      letter-spacing: .145em;
+      color: var(--text-faint);
+    }
+
+    .eyebrow {
+      margin-bottom: 10px;
+      font-size: 9px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Source Serif 4", Iowan Old Style, Baskerville, Georgia, serif;
+      font-size: clamp(42px, 5vw, 62px);
+      line-height: .98;
+      font-weight: 400;
+      letter-spacing: -.055em;
+    }
+
+    .lede {
+      margin: 18px auto 0;
+      max-width: 550px;
+      color: var(--text-dim);
+      font-family: "Source Serif 4", Iowan Old Style, Baskerville, Georgia, serif;
+      font-size: 16px;
+      line-height: 1.55;
+    }
+
+    .onboarding {
+      display: grid;
+      grid-template-columns: minmax(0, 1.16fr) minmax(280px, .84fr);
+      gap: 12px;
+      animation: rise 480ms 70ms ease-out both;
+    }
+
+    .card {
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: color-mix(in srgb, var(--panel) 93%, transparent);
+      padding: 20px;
+    }
+
+    .local-card {
+      position: relative;
+      overflow: hidden;
+      border-color: color-mix(in srgb, var(--accent) 27%, var(--border));
+      background:
+        radial-gradient(circle at 85% 12%, var(--hearth-ember), transparent 29%),
+        linear-gradient(145deg, var(--hearth-wash), transparent 52%),
+        var(--panel);
+    }
+
+    .local-card::after {
+      content: "";
+      position: absolute;
+      right: -51px;
+      top: -58px;
+      width: 140px;
+      height: 140px;
+      border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .card-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .kicker {
+      font-size: 9px;
+      margin-bottom: 7px;
+    }
+
+    .kicker.local { color: var(--accent); }
+
+    h2 {
+      margin: 0;
+      font-family: "Source Serif 4", Iowan Old Style, Baskerville, Georgia, serif;
+      font-size: 23px;
+      line-height: 1.15;
+      font-weight: 400;
+      letter-spacing: -.025em;
+    }
+
+    .online-pill {
+      flex: 0 0 auto;
+      min-height: 25px;
+      border: 1px solid color-mix(in srgb, var(--success) 30%, var(--border));
+      border-radius: 999px;
+      padding: 0 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: color-mix(in srgb, var(--success) 72%, var(--text));
+      background: color-mix(in srgb, var(--success) 6%, transparent);
+      font: 9px/1 "Geist Mono", ui-monospace, monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .online-pill .status-dot {
+      width: 5px;
+      height: 5px;
+      box-shadow: none;
+    }
+
+    .model-hearth {
+      position: relative;
+      margin: 18px 0 14px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 0 13px;
+      display: grid;
+      grid-template-columns: 37px minmax(0, 1fr) auto;
+      gap: 11px;
+      align-items: center;
+    }
+
+    .model-mark {
+      width: 37px;
+      height: 37px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 23%, var(--border));
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      position: relative;
+    }
+
+    .model-mark::after {
+      content: "";
+      position: absolute;
+      inset: 7px;
+      border-radius: 50%;
+      border: 1px solid color-mix(in srgb, var(--warning) 42%, transparent);
+    }
+
+    .model-mark .status-dot {
+      width: 8px;
+      height: 8px;
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+
+    .model-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 20px;
+      letter-spacing: -.02em;
+    }
+
+    .model-sub {
+      margin-top: 3px;
+      color: var(--text-faint);
+      font: 9px/1.3 "Geist Mono", ui-monospace, monospace;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .models-count {
+      text-align: right;
+      color: var(--text-dim);
+      font: 10px/1.35 "Geist Mono", ui-monospace, monospace;
+    }
+
+    .models-count strong {
+      display: block;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 400;
+    }
+
+    .card-copy {
+      margin: 0;
+      color: var(--text-dim);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .local-card .card-copy { max-width: 570px; }
+
+    .model-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 13px 0 16px;
+      min-height: 25px;
+    }
+
+    .model-choice {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: var(--quiet-wash);
+      color: var(--text-faint);
+      padding: 5px 9px;
+      font: 9px/1 "Geist Mono", ui-monospace, monospace;
+      cursor: pointer;
+      transition: 140ms ease;
+    }
+
+    .model-choice:hover { color: var(--text); border-color: var(--border-strong); }
+
+    .model-choice[aria-pressed="true"] {
+      color: var(--accent);
+      border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+      background: color-mix(in srgb, var(--accent) 7%, transparent);
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      min-height: 38px;
+      border-radius: 7px;
+      padding: 0 14px;
+      border: 1px solid var(--border-strong);
+      background: transparent;
+      color: var(--text-dim);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+    }
+
+    .button:hover:not(:disabled) {
+      background: var(--hover-wash);
+      border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+      color: var(--text);
+      transform: translateY(-1px);
+    }
+
+    .button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--accent-contrast);
+      font-weight: 600;
+      box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 11%, transparent);
+    }
+
+    .button.primary:hover:not(:disabled) {
+      border-color: color-mix(in srgb, var(--accent) 84%, var(--text));
+      background: color-mix(in srgb, var(--accent) 88%, var(--text));
+      color: var(--accent-contrast);
+    }
+
+    .button:disabled {
+      opacity: .42;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .cloud-card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cloud-card .card-copy { margin-top: 14px; }
+
+    .cloud-form { margin-top: auto; padding-top: 17px; }
+
+    .key-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 7px;
+    }
+
+    .key-field {
+      min-width: 0;
+      height: 38px;
+      border: 1px solid var(--border-strong);
+      border-radius: 7px;
+      background: color-mix(in srgb, var(--bg) 54%, transparent);
+      color: var(--text);
+      padding: 0 11px;
+      font-size: 11px;
+      transition: border-color 140ms ease, background 140ms ease;
+    }
+
+    .key-field::placeholder { color: var(--text-faint); }
+    .key-field:hover { border-color: color-mix(in srgb, var(--accent) 25%, var(--border)); }
+    .key-field:focus { border-color: color-mix(in srgb, var(--accent) 65%, var(--border)); }
+
+    .cloud-help {
+      margin-top: 8px;
+      color: var(--text-faint);
+      font-size: 10px;
+    }
+
+    .cloud-help a { color: var(--text-dim); text-underline-offset: 3px; }
+    .cloud-help a:hover { color: var(--accent); }
+
+    .inline-status {
+      min-height: 16px;
+      margin-top: 8px;
+      color: var(--text-faint);
+      font: 9px/1.4 "Geist Mono", ui-monospace, monospace;
+    }
+
+    .inline-status.error { color: var(--danger); }
+    .inline-status.success { color: var(--success); }
+
+    .explore-card {
+      grid-column: 1 / -1;
+      min-height: 75px;
+      display: grid;
+      grid-template-columns: minmax(150px, .42fr) minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: center;
+      padding-top: 14px;
+      padding-bottom: 14px;
+      background: transparent;
+    }
+
+    .explore-card h2 { font-size: 18px; }
+
+    .ready-state {
+      display: none;
+      margin: 54px auto 0;
+      text-align: center;
+      animation: rise 360ms ease-out both;
+    }
+
+    .ready-line {
+      color: var(--text-dim);
+      font-family: "Source Serif 4", Georgia, serif;
+      font-size: 15px;
+      font-style: italic;
+    }
+
+    .memory {
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 9px;
+      color: var(--text-faint);
+      font-size: 10px;
+    }
+
+    .text-button {
+      min-height: 30px;
+      border: 0;
+      border-bottom: 1px solid var(--border-strong);
+      background: transparent;
+      color: var(--text-dim);
+      padding: 0 3px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    .text-button:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .composer-wrap {
+      min-width: 0;
+      padding: 0 max(24px, env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+      background: linear-gradient(to bottom, transparent, var(--bg) 24px);
+      position: relative;
+      z-index: 5;
+    }
+
+    .composer {
+      width: min(100%, 780px);
+      margin: 0 auto;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--panel) 97%, transparent);
+      box-shadow: 0 16px 45px rgba(0, 0, 0, .14);
+      transition: border-color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .composer:focus-within,
+    .composer:hover {
+      border-color: color-mix(in srgb, var(--accent) 31%, var(--border));
+      box-shadow: 0 16px 45px rgba(0, 0, 0, .14), 0 0 0 3px var(--focus-ring-glow);
+    }
+
+    .compose-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 7px;
+      align-items: end;
+      padding: 10px 10px 6px;
+    }
+
+    .icon-button {
+      width: 34px;
+      height: 34px;
+      border-radius: 7px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-faint);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: 140ms ease;
+    }
+
+    .icon-button:hover:not(:disabled) {
+      background: var(--hover-wash);
+      border-color: var(--border);
+      color: var(--text);
+    }
+
+    .icon-button:disabled { opacity: .36; cursor: not-allowed; }
+
+    .composer-input {
+      width: 100%;
+      min-height: 35px;
+      max-height: 200px;
+      resize: none;
+      overflow-y: auto;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      padding: 7px 3px 5px;
+      font-family: "Source Serif 4", Iowan Old Style, Baskerville, Georgia, serif;
+      font-size: 16px;
+      line-height: 1.35;
+    }
+
+    .composer-input::placeholder { color: var(--text-faint); }
+
+    .send {
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--accent-contrast);
+    }
+
+    .send:disabled { background: var(--panel-3); color: var(--text-faint); }
+
+    .composer-meta {
+      min-height: 35px;
+      padding: 0 10px 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text-faint);
+      font-size: 10px;
+    }
+
+    .model-trigger,
+    .meta-trigger {
+      min-height: 28px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-dim);
+      padding: 0 7px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    .model-trigger:hover,
+    .meta-trigger:hover { background: var(--hover-wash); border-color: var(--border); color: var(--text); }
+
+    .model-trigger .status-dot { width: 5px; height: 5px; box-shadow: none; }
+    .meta-trigger .icon { width: 14px; height: 14px; }
+
+    .progressive {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(2px);
+      transition: 140ms ease;
+    }
+
+    .composer:hover .progressive,
+    .composer:focus-within .progressive {
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+    }
+
+    .meta-spacer { flex: 1; }
+
+    .meter {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font: 9px/1 "Geist Mono", ui-monospace, monospace;
+      white-space: nowrap;
+    }
+
+    .meter-bar {
+      width: 52px;
+      height: 2px;
+      border-radius: 999px;
+      background: var(--panel-3);
+      overflow: hidden;
+    }
+
+    .meter-bar span { display: block; width: 1%; height: 100%; background: var(--accent); }
+
+    .model-popover,
+    .brand-menu {
+      position: fixed;
+      z-index: 30;
+      display: none;
+      border: 1px solid var(--border-strong);
+      border-radius: 9px;
+      background: var(--panel-2);
+      box-shadow: var(--shadow);
+    }
+
+    .model-popover {
+      left: max(290px, calc(50% - 320px));
+      bottom: 89px;
+      width: min(420px, calc(100vw - 310px));
+      padding: 10px;
+    }
+
+    .popover-head {
+      padding: 3px 5px 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-faint);
+      font: 9px/1 "Geist Mono", ui-monospace, monospace;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .popover-row {
+      width: 100%;
+      min-height: 43px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      padding: 7px 9px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .popover-row:hover,
+    .popover-row.selected { background: var(--hover-wash); border-color: var(--border); }
+
+    .popover-row strong { display: block; font-size: 11px; font-weight: 500; }
+    .popover-row span { color: var(--text-faint); font: 9px/1.4 "Geist Mono", ui-monospace, monospace; }
+    .popover-row .check { color: var(--accent); align-self: center; }
+
+    .brand-menu {
+      left: 19px;
+      top: 63px;
+      width: 232px;
+      padding: 7px;
+    }
+
+    .menu-row {
+      width: 100%;
+      min-height: 38px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      padding: 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--text-dim);
+      text-align: left;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .menu-row:hover { background: var(--hover-wash); color: var(--text); }
+    .menu-row .icon { width: 15px; height: 15px; }
+
+    .menu-rule { height: 1px; margin: 5px 6px; background: var(--border); }
+
+    .mobile-scrim { display: none; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(9px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes coach-in {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 1040px) {
+      .scroll { padding-left: 24px; padding-right: 24px; }
+      .onboarding { grid-template-columns: 1fr; }
+      .explore-card { grid-column: auto; grid-template-columns: minmax(140px, .5fr) minmax(0, 1fr) auto; }
+      .cloud-form { margin-top: 0; }
+    }
+
+    @media (max-width: 760px) {
+      body { overflow: hidden; }
+      .shell { display: block; }
+      .main { height: 100dvh; grid-template-rows: 50px minmax(0, 1fr) auto; }
+      .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: min(82vw, 300px);
+        transform: translateX(-102%);
+        transition: transform 180ms ease;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .mobile-scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 9;
+        border: 0;
+        background: rgba(0, 0, 0, .54);
+        opacity: 0;
+        pointer-events: none;
+        display: block;
+        transition: opacity 180ms ease;
+      }
+      .mobile-scrim.open { opacity: 1; pointer-events: auto; }
+      .top-mobile {
+        grid-row: 1;
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 2px;
+        padding: max(4px, env(safe-area-inset-top)) 8px 4px;
+        border-bottom: 1px solid var(--border);
+        background: color-mix(in srgb, var(--bg) 92%, transparent);
+      }
+      .mobile-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-family: "Source Serif 4", Georgia, serif; font-size: 13px; }
+      .theme-button { display: none; }
+      .scroll { grid-row: 2; padding: 30px 16px 22px; }
+      .hero-copy { margin-bottom: 22px; }
+      h1 { font-size: 43px; }
+      .lede { font-size: 14px; }
+      .onboarding { display: block; }
+      .card { margin-bottom: 10px; padding: 17px; }
+      .card-head { gap: 8px; }
+      .model-hearth { grid-template-columns: 37px minmax(0, 1fr); }
+      .models-count { display: none; }
+      .model-row { overflow-x: auto; padding-bottom: 2px; }
+      .explore-card { display: block; }
+      .explore-card .card-copy { margin: 9px 0 14px; }
+      .composer-wrap { grid-row: 3; padding: 0 10px calc(9px + env(safe-area-inset-bottom)); }
+      .composer-meta { overflow-x: auto; }
+      .progressive { opacity: 1; pointer-events: auto; transform: none; }
+      .meter { display: none; }
+      .model-popover { left: 10px; right: 10px; bottom: 82px; width: auto; }
+      .brand-menu { left: 12px; top: 62px; }
+    }
+
+    @media (max-width: 460px) {
+      .online-pill { display: none; }
+      .local-card .actions .button { width: 100%; }
+      .key-row { grid-template-columns: 1fr; }
+      .key-row .button { width: 100%; }
+      .composer-meta .meta-trigger[aria-label="Choose workspace skill"] { display: none; }
+      .model-trigger { max-width: 180px; }
+      .model-trigger span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0s !important;
+        animation-delay: 0s !important;
+        transition-duration: 0s !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    .no-animations *,
+    .no-animations *::before,
+    .no-animations *::after {
+      animation-duration: 0s !important;
+      animation-delay: 0s !important;
+      transition-duration: 0s !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <button class="mobile-scrim" id="mobileScrim" aria-label="Close sidebar"></button>
+
+    <aside class="sidebar" id="sidebar" aria-label="Conversations">
+      <div class="sidebar-head">
+        <button class="brand" id="brandButton" aria-expanded="false" aria-controls="brandMenu">
+          GatesAI<span class="brand-dot">.</span>
+        </button>
+        <div class="coachmark" id="coachmark">Settings &amp; menu live here</div>
+      </div>
+
+      <button class="sidebar-new" id="newConversation">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Begin a new conversation
+      </button>
+
+      <div class="sidebar-section">Pinned</div>
+      <button class="thread" data-thread="tour">
+        <svg class="icon pin" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6-3.5 1.5-4 4L11 21l-2-2-2-2 5.5-1.5 4-4z"/></svg>
+        <span>Welcome tour</span>
+        <span class="thread-meta">read</span>
+      </button>
+
+      <div class="sidebar-section">Today</div>
+      <button class="thread" data-thread="new" aria-current="page">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8h10M7 12h7M4 20l1.2-3.6A8 8 0 1 1 20 9.7 8 8 0 0 1 7.8 18H6z"/></svg>
+        <span>New conversation</span>
+        <span class="thread-meta">now</span>
+      </button>
+      <div class="sidebar-empty">No conversations yet.</div>
+
+      <div class="sidebar-spacer"></div>
+      <button class="runtime" id="runtimeStatus" title="Check workspace bridge again">
+        <span class="status-dot"></span>
+        <span id="runtimeText">workspace ready</span>
+      </button>
+    </aside>
+
+    <main class="main">
+      <header class="top-mobile">
+        <button class="icon-button" id="openSidebar" aria-label="Open sidebar">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="mobile-title">New conversation</div>
+        <button class="icon-button" aria-label="Begin a new conversation">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="icon-button" aria-label="Copy conversation link">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"/></svg>
+        </button>
+      </header>
+
+      <button class="theme-button" id="themeButton" aria-label="Switch to light theme">
+        <svg class="icon moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 15.6A8 8 0 0 1 8.4 3.6 8.3 8.3 0 1 0 20.4 15.6Z"/></svg>
+        <svg class="icon sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"/></svg>
+      </button>
+
+      <section class="scroll" aria-label="First boot chat surface">
+        <div class="empty-state">
+          <div class="hero-copy">
+            <div class="eyebrow">Local-first AI workspace</div>
+            <h1>GatesAI Chat</h1>
+            <p class="lede">Chat locally on your own machine, run tools over your files, and bring frontier cloud models when you choose.</p>
+          </div>
+
+          <div class="onboarding" id="onboarding" aria-label="Choose how to start chatting">
+            <section class="card local-card" data-onboarding-path="local">
+              <div class="card-head">
+                <div>
+                  <div class="kicker local">Local</div>
+                  <h2>Start with local models</h2>
+                </div>
+                <div class="online-pill"><span class="status-dot"></span>Ollama online</div>
+              </div>
+
+              <div class="model-hearth" aria-label="Selected local model">
+                <div class="model-mark" aria-hidden="true"><span class="status-dot"></span></div>
+                <div>
+                  <div class="model-name" id="heroModelName">qwen2.5:7b</div>
+                  <div class="model-sub">selected · tools ready · on this machine</div>
+                </div>
+                <div class="models-count"><strong>3</strong>models ready</div>
+              </div>
+
+              <p class="card-copy" id="localCopy">Ollama detected - 3 models ready. qwen2.5:7b is selected for this chat, and GatesAI will not switch providers unless you choose another model.</p>
+
+              <div class="model-row" aria-label="Detected models">
+                <button class="model-choice" data-model="qwen2.5:7b" aria-pressed="true">qwen2.5:7b</button>
+                <button class="model-choice" data-model="llama3.2:3b" aria-pressed="false">llama3.2:3b</button>
+                <button class="model-choice" data-model="deepseek-r1:8b" aria-pressed="false">deepseek-r1:8b</button>
+              </div>
+
+              <div class="actions">
+                <button class="button primary" id="continueLocal">
+                  <span id="continueText">Continue with qwen2.5:7b</span>
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M14 7l5 5-5 5"/></svg>
+                </button>
+              </div>
+            </section>
+
+            <section class="card cloud-card" data-onboarding-path="cloud">
+              <div class="kicker">Cloud</div>
+              <h2>Bring cloud models</h2>
+              <p class="card-copy">Choose OpenRouter when you want a cloud model. Free and paid routes both use your own API key.</p>
+
+              <form class="cloud-form" id="cloudForm">
+                <div class="key-row">
+                  <input class="key-field" id="keyField" type="password" autocomplete="off" placeholder="Paste your OpenRouter API key..." aria-label="OpenRouter API key">
+                  <button class="button" id="connectCloud" type="submit" disabled>Connect</button>
+                </div>
+                <div class="cloud-help">Get a key → <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">openrouter.ai/keys</a></div>
+                <div class="inline-status" id="cloudStatus" role="status" aria-live="polite"></div>
+              </form>
+            </section>
+
+            <section class="card explore-card" data-onboarding-path="explore">
+              <div>
+                <div class="kicker">Explore</div>
+                <h2>Just look around</h2>
+              </div>
+              <p class="card-copy">Hide this setup panel and keep the normal empty chat surface. You can connect a provider later.</p>
+              <button class="button" id="lookAround">Look around</button>
+            </section>
+          </div>
+
+          <div class="ready-state" id="readyState">
+            <div class="ready-line" id="readyLine" role="status">A blank thread is ready; write below when you want to begin.</div>
+            <div class="memory" id="memoryNudge">
+              <span>Optional: add semantic memory</span>
+              <button class="text-button" id="pullMemory">Pull nomic-embed-text</button>
+              <button class="text-button" id="dismissMemory">Dismiss</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="composer-wrap">
+        <div class="composer" id="composer">
+          <div class="compose-row">
+            <input type="file" id="fileInput" multiple hidden>
+            <button class="icon-button" id="attachButton" aria-label="Attach files">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20.5 11.5-8.9 8.9a6 6 0 0 1-8.5-8.5l9.4-9.4a4 4 0 0 1 5.7 5.7l-9.4 9.4a2 2 0 0 1-2.8-2.8l8.9-8.9"/></svg>
+            </button>
+            <textarea class="composer-input" id="composerInput" rows="1" placeholder="Ask your first question..." aria-label="Message"></textarea>
+            <button class="icon-button send" id="sendButton" aria-label="Send message" disabled>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6.5 10.5 12 5l5.5 5.5"/></svg>
+            </button>
+          </div>
+          <div class="composer-meta">
+            <button class="model-trigger" id="modelTrigger" aria-label="Choose model" aria-haspopup="dialog" aria-expanded="false">
+              <span class="status-dot"></span>
+              <span id="composerModelName">qwen2.5:7b</span>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+            </button>
+            <button class="meta-trigger" aria-label="Choose workspace skill" title="Workspace skill">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 4a3 3 0 0 0-3 3v.3A3.5 3.5 0 0 0 5 14v.5A3.5 3.5 0 0 0 8.5 18H10M14.5 4a3 3 0 0 1 3 3v.3A3.5 3.5 0 0 1 19 14v.5a3.5 3.5 0 0 1-3.5 3.5H14M12 3v18M8 10h4M12 14h4"/></svg>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+            </button>
+            <button class="meta-trigger progressive" aria-label="Choose Ollama context mode">
+              micro tools
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+            </button>
+            <span class="meta-spacer"></span>
+            <span class="meter" aria-label="0 of 32 thousand context tokens used">
+              <span class="meter-bar"><span></span></span>
+              0 / 32k
+            </span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="brand-menu" id="brandMenu" role="menu" aria-label="GatesAI menu">
+    <button class="menu-row" role="menuitem">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/></svg>
+      Agent
+    </button>
+    <button class="menu-row" role="menuitem">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+      Local
+    </button>
+    <button class="menu-row" role="menuitem">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16M8 3v4M16 10v4M11 17v4"/></svg>
+      Settings
+    </button>
+    <div class="menu-rule"></div>
+    <button class="menu-row" id="menuTheme" role="menuitem">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 15.6A8 8 0 0 1 8.4 3.6 8.3 8.3 0 1 0 20.4 15.6Z"/></svg>
+      Change appearance
+    </button>
+  </div>
+
+  <div class="model-popover" id="modelPopover" role="dialog" aria-label="Choose model">
+    <div class="popover-head"><span>Local models</span><span>3 available</span></div>
+    <button class="popover-row selected" data-popover-model="qwen2.5:7b">
+      <span><strong>qwen2.5:7b</strong><span>Ollama · tools · recommended</span></span><span class="check">✓</span>
+    </button>
+    <button class="popover-row" data-popover-model="llama3.2:3b">
+      <span><strong>llama3.2:3b</strong><span>Ollama · tools · fast</span></span><span class="check"></span>
+    </button>
+    <button class="popover-row" data-popover-model="deepseek-r1:8b">
+      <span><strong>deepseek-r1:8b</strong><span>Ollama · reasoning</span></span><span class="check"></span>
+    </button>
+  </div>
+
+  <script>
+    (() => {
+      const root = document.documentElement;
+      const onboarding = document.getElementById('onboarding');
+      const readyState = document.getElementById('readyState');
+      const readyLine = document.getElementById('readyLine');
+      const composerInput = document.getElementById('composerInput');
+      const sendButton = document.getElementById('sendButton');
+      const keyField = document.getElementById('keyField');
+      const connectCloud = document.getElementById('connectCloud');
+      const cloudStatus = document.getElementById('cloudStatus');
+      const heroModelName = document.getElementById('heroModelName');
+      const composerModelName = document.getElementById('composerModelName');
+      const continueText = document.getElementById('continueText');
+      const localCopy = document.getElementById('localCopy');
+      const modelPopover = document.getElementById('modelPopover');
+      const modelTrigger = document.getElementById('modelTrigger');
+      const brandMenu = document.getElementById('brandMenu');
+      const brandButton = document.getElementById('brandButton');
+      const sidebar = document.getElementById('sidebar');
+      const mobileScrim = document.getElementById('mobileScrim');
+      let selectedModel = 'qwen2.5:7b';
+      let cloudChecking = false;
+
+      function chooseModel(model) {
+        selectedModel = model;
+        heroModelName.textContent = model;
+        composerModelName.textContent = model;
+        continueText.textContent = `Continue with ${model}`;
+        localCopy.textContent = `Ollama detected - 3 models ready. ${model} is selected for this chat, and GatesAI will not switch providers unless you choose another model.`;
+        document.querySelectorAll('.model-choice').forEach((button) => {
+          button.setAttribute('aria-pressed', String(button.dataset.model === model));
+        });
+        document.querySelectorAll('.popover-row').forEach((button) => {
+          const selected = button.dataset.popoverModel === model;
+          button.classList.toggle('selected', selected);
+          button.querySelector('.check').textContent = selected ? '✓' : '';
+        });
+      }
+
+      function showReady(message, showMemory = true) {
+        onboarding.style.display = 'none';
+        readyState.style.display = 'block';
+        readyLine.textContent = message;
+        document.getElementById('memoryNudge').style.display = showMemory ? 'flex' : 'none';
+        window.setTimeout(() => {
+          composerInput.focus();
+          composerInput.setSelectionRange(composerInput.value.length, composerInput.value.length);
+        }, 0);
+      }
+
+      function resetFirstBoot() {
+        onboarding.style.display = '';
+        readyState.style.display = 'none';
+        cloudStatus.textContent = '';
+        cloudStatus.className = 'inline-status';
+        keyField.value = '';
+        connectCloud.disabled = true;
+        connectCloud.textContent = 'Connect';
+      }
+
+      function toggleTheme() {
+        const next = root.dataset.theme === 'light' ? 'dark' : 'light';
+        root.dataset.theme = next;
+        document.getElementById('themeButton').setAttribute('aria-label', `Switch to ${next === 'light' ? 'dark' : 'light'} theme`);
+      }
+
+      function closeModelPopover() {
+        modelPopover.style.display = 'none';
+        modelTrigger.setAttribute('aria-expanded', 'false');
+      }
+
+      function closeBrandMenu() {
+        brandMenu.style.display = 'none';
+        brandButton.setAttribute('aria-expanded', 'false');
+      }
+
+      function closeSidebar() {
+        sidebar.classList.remove('open');
+        mobileScrim.classList.remove('open');
+      }
+
+      document.querySelectorAll('.model-choice').forEach((button) => {
+        button.addEventListener('click', () => chooseModel(button.dataset.model));
+      });
+
+      document.querySelectorAll('.popover-row').forEach((button) => {
+        button.addEventListener('click', () => {
+          chooseModel(button.dataset.popoverModel);
+          closeModelPopover();
+          modelTrigger.focus();
+        });
+      });
+
+      document.getElementById('continueLocal').addEventListener('click', () => {
+        showReady('Ollama detected - 3 models ready.');
+      });
+
+      document.getElementById('lookAround').addEventListener('click', () => {
+        showReady('A blank thread is ready; write below when you want to begin.');
+      });
+
+      keyField.addEventListener('input', () => {
+        connectCloud.disabled = !keyField.value.trim() || cloudChecking;
+        cloudStatus.textContent = '';
+        cloudStatus.className = 'inline-status';
+        cloudStatus.setAttribute('role', 'status');
+      });
+
+      keyField.addEventListener('paste', (event) => {
+        const pasted = event.clipboardData?.getData('text')?.trim();
+        if (!pasted || cloudChecking) return;
+        event.preventDefault();
+        keyField.value = pasted;
+        connectCloud.disabled = false;
+        document.getElementById('cloudForm').requestSubmit();
+      });
+
+      document.getElementById('cloudForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (!keyField.value.trim() || cloudChecking) return;
+        cloudChecking = true;
+        connectCloud.disabled = true;
+        connectCloud.textContent = 'Checking...';
+        cloudStatus.textContent = 'Checking OpenRouter...';
+        cloudStatus.className = 'inline-status';
+        window.setTimeout(() => {
+          cloudChecking = false;
+          connectCloud.textContent = 'Connect';
+          if (/^(bad|invalid|rejected)/i.test(keyField.value.trim())) {
+            connectCloud.disabled = false;
+            cloudStatus.textContent = 'OpenRouter rejected this key. Check the key and paste it again.';
+            cloudStatus.className = 'inline-status error';
+            cloudStatus.setAttribute('role', 'alert');
+            return;
+          }
+          cloudStatus.textContent = 'Key works - 327 models available.';
+          cloudStatus.className = 'inline-status success';
+          cloudStatus.setAttribute('role', 'status');
+          window.setTimeout(() => showReady('Key works - 327 models available.', false), 350);
+        }, 700);
+      });
+
+      composerInput.addEventListener('input', () => {
+        composerInput.style.height = 'auto';
+        composerInput.style.height = `${Math.min(composerInput.scrollHeight, 200)}px`;
+        sendButton.disabled = !composerInput.value.trim();
+      });
+
+      composerInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey && composerInput.value.trim()) {
+          event.preventDefault();
+          composerInput.value = '';
+          composerInput.style.height = 'auto';
+          sendButton.disabled = true;
+        }
+      });
+
+      document.getElementById('attachButton').addEventListener('click', () => document.getElementById('fileInput').click());
+      document.getElementById('newConversation').addEventListener('click', resetFirstBoot);
+      document.querySelector('[data-thread="new"]').addEventListener('click', resetFirstBoot);
+
+      document.getElementById('runtimeStatus').addEventListener('click', () => {
+        const runtimeText = document.getElementById('runtimeText');
+        runtimeText.textContent = 'checking…';
+        window.setTimeout(() => { runtimeText.textContent = 'workspace ready'; }, 650);
+      });
+
+      modelTrigger.addEventListener('click', () => {
+        const willOpen = modelPopover.style.display !== 'block';
+        closeBrandMenu();
+        modelPopover.style.display = willOpen ? 'block' : 'none';
+        modelTrigger.setAttribute('aria-expanded', String(willOpen));
+      });
+
+      brandButton.addEventListener('click', () => {
+        document.getElementById('coachmark').style.display = 'none';
+        const willOpen = brandMenu.style.display !== 'block';
+        closeModelPopover();
+        brandMenu.style.display = willOpen ? 'block' : 'none';
+        brandButton.setAttribute('aria-expanded', String(willOpen));
+      });
+
+      document.getElementById('themeButton').addEventListener('click', toggleTheme);
+      document.getElementById('menuTheme').addEventListener('click', toggleTheme);
+      document.getElementById('pullMemory').addEventListener('click', (event) => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        button.textContent = 'pulling manifest · 42%';
+        window.setTimeout(() => {
+          document.getElementById('memoryNudge').style.display = 'none';
+        }, 900);
+      });
+      document.getElementById('dismissMemory').addEventListener('click', () => {
+        document.getElementById('memoryNudge').style.display = 'none';
+      });
+
+      document.getElementById('openSidebar').addEventListener('click', () => {
+        sidebar.classList.add('open');
+        mobileScrim.classList.add('open');
+      });
+      mobileScrim.addEventListener('click', closeSidebar);
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeModelPopover();
+          closeBrandMenu();
+          closeSidebar();
+        }
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!modelPopover.contains(event.target) && !modelTrigger.contains(event.target)) closeModelPopover();
+        if (!brandMenu.contains(event.target) && !brandButton.contains(event.target)) closeBrandMenu();
+      });
+
+      window.setTimeout(() => {
+        const coachmark = document.getElementById('coachmark');
+        if (coachmark) coachmark.style.display = 'none';
+      }, 9000);
+    })();
+  </script>
+</body>
+</html>
+<!-- Direction: local-hearth · Model: GPT-5 Codex (smart) -->
