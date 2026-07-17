@@ -1,0 +1,1298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <title>GatesAI Chat — Capability Tour</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --panel: #181818;
+      --panel-2: #1d1e1d;
+      --panel-3: #242524;
+      --border: #30332f;
+      --text: #e4e7ef;
+      --text-dim: #a0a9bd;
+      --text-faint: #747c89;
+      --accent: #3ecf8e;
+      --accent-2: #76e6b2;
+      --accent-glow: rgba(62, 207, 142, .14);
+      --accent-contrast: #07170f;
+      --danger: #f08b84;
+      --warning: #d6b36c;
+      --success: #6ed8a7;
+      --focus-ring: #8ee8bd;
+      --focus-ring-glow: rgba(62, 207, 142, .25);
+      --shadow: 0 28px 70px rgba(0, 0, 0, .22);
+      --sans: Geist, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --serif: "Source Serif 4", Iowan Old Style, Charter, Georgia, serif;
+      --mono: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    html[data-theme="light"] {
+      --bg: #f4efe6;
+      --panel: #faf8f3;
+      --panel-2: #f1ede5;
+      --panel-3: #e9e4da;
+      --border: #d8d1c4;
+      --text: #1d211d;
+      --text-dim: #5f645d;
+      --text-faint: #868980;
+      --accent: #0f6b46;
+      --accent-2: #0b5739;
+      --accent-glow: rgba(15, 107, 70, .11);
+      --accent-contrast: #f7fff9;
+      --danger: #a6453f;
+      --warning: #846114;
+      --success: #176b49;
+      --focus-ring: #187a54;
+      --focus-ring-glow: rgba(15, 107, 70, .18);
+      --shadow: 0 28px 70px rgba(60, 48, 26, .10);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, textarea { font: inherit; }
+
+    button, a { -webkit-tap-highlight-color: transparent; }
+
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    [tabindex]:focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 5px var(--focus-ring-glow);
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.7;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 270px minmax(0, 1fr);
+      height: 100dvh;
+      min-height: 620px;
+    }
+
+    .sidebar {
+      position: relative;
+      z-index: 20;
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      padding: 22px 18px 16px;
+      overflow: hidden;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+
+    .brand {
+      position: relative;
+      border: 0;
+      padding: 3px 5px;
+      color: var(--text);
+      background: transparent;
+      cursor: pointer;
+      font: 600 22px/1 var(--serif);
+      letter-spacing: -.025em;
+    }
+
+    .brand::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      bottom: 4px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+    }
+
+    .coachmark {
+      position: absolute;
+      z-index: 3;
+      top: 56px;
+      left: 22px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      color: var(--text-dim);
+      background: var(--panel-3);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      box-shadow: var(--shadow);
+      font-size: 11px;
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity .2s ease, transform .2s ease;
+    }
+
+    .coachmark::before {
+      content: "";
+      position: absolute;
+      top: -5px;
+      left: 20px;
+      width: 8px;
+      height: 8px;
+      background: var(--panel-3);
+      border-top: 1px solid var(--border);
+      border-left: 1px solid var(--border);
+      transform: rotate(45deg);
+    }
+
+    .coachmark.hidden {
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+
+    .icon-button {
+      display: inline-grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      padding: 0;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .icon-button:hover {
+      color: var(--text);
+      background: var(--panel-2);
+      border-color: var(--border);
+    }
+
+    .new-chat {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 42px;
+      margin-bottom: 28px;
+      padding: 0 11px;
+      color: var(--text);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .new-chat:hover { background: var(--panel-2); }
+
+    .new-chat .shortcut {
+      margin-left: auto;
+      color: var(--text-faint);
+      font: 10px/1 var(--mono);
+    }
+
+    .nav-label {
+      margin: 0 10px 9px;
+      color: var(--text-faint);
+      font: 10px/1.2 var(--mono);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .thread {
+      display: grid;
+      grid-template-columns: 16px minmax(0, 1fr) auto;
+      gap: 9px;
+      align-items: center;
+      min-height: 39px;
+      padding: 0 10px;
+      color: var(--text-dim);
+      border-radius: 7px;
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .thread:hover { color: var(--text); background: var(--panel-2); }
+
+    .thread.active { color: var(--text); background: var(--panel-2); }
+
+    .thread .pin { color: var(--accent); }
+
+    .thread .tag {
+      color: var(--text-faint);
+      font: 9px/1 var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .empty-copy {
+      padding: 12px 10px;
+      color: var(--text-faint);
+      font: italic 13px/1.45 var(--serif);
+    }
+
+    .sidebar-spacer { flex: 1; }
+
+    .runtime {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      min-height: 38px;
+      padding: 0 10px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 0;
+      border-radius: 7px;
+      cursor: pointer;
+      text-align: left;
+      font: 11px/1 var(--mono);
+    }
+
+    .runtime:hover { color: var(--text); background: var(--panel-2); }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 4px var(--accent-glow);
+    }
+
+    .mobile-bar, .scrim { display: none; }
+
+    .main {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(var(--border), var(--border)) top / 100% 1px no-repeat,
+        var(--bg);
+    }
+
+    .top-tools {
+      position: absolute;
+      z-index: 5;
+      top: 18px;
+      right: 22px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .top-tools .hint {
+      margin-right: 8px;
+      color: var(--text-faint);
+      font: 10px/1 var(--mono);
+      letter-spacing: .05em;
+    }
+
+    .workspace {
+      height: 100%;
+      overflow-y: auto;
+      scrollbar-color: var(--border) transparent;
+      scrollbar-width: thin;
+    }
+
+    .content {
+      display: flex;
+      width: min(1080px, calc(100% - 64px));
+      min-height: 100%;
+      margin: 0 auto;
+      padding: clamp(58px, 7vh, 84px) 0 26px;
+      flex-direction: column;
+    }
+
+    .hero {
+      width: min(580px, 100%);
+      margin: 0 auto 30px;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      color: var(--accent-2);
+      font: 10px/1 var(--mono);
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 18px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    h1 {
+      margin: 0;
+      font: 500 clamp(38px, 5vw, 54px)/.98 var(--serif);
+      letter-spacing: -.045em;
+    }
+
+    .lede {
+      margin: 18px auto 0;
+      color: var(--text-dim);
+      font: 400 17px/1.55 var(--serif);
+      text-wrap: balance;
+    }
+
+    .tour-intro {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .tour-intro h2 {
+      margin: 0;
+      font: 500 14px/1.2 var(--serif);
+    }
+
+    .tour-intro .rule { height: 1px; flex: 1; background: var(--border); }
+
+    .tour-intro .meta {
+      color: var(--text-faint);
+      font: 10px/1 var(--mono);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .tour {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .capability {
+      position: relative;
+      display: flex;
+      min-width: 0;
+      min-height: 300px;
+      padding: 22px 22px 20px;
+      flex-direction: column;
+      background: var(--panel);
+      transition: background-color .18s ease;
+    }
+
+    .capability + .capability { border-left: 1px solid var(--border); }
+
+    .capability:hover,
+    .capability:focus-within { background: var(--panel-2); }
+
+    .cap-index {
+      position: absolute;
+      top: 22px;
+      right: 20px;
+      color: var(--text-faint);
+      font: 10px/1 var(--mono);
+    }
+
+    .kicker {
+      margin-bottom: 13px;
+      color: var(--accent-2);
+      font: 10px/1 var(--mono);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .capability h3 {
+      max-width: 230px;
+      margin: 0 0 12px;
+      font: 500 21px/1.1 var(--serif);
+      letter-spacing: -.025em;
+    }
+
+    .capability .copy {
+      min-height: 76px;
+      margin: 0 0 16px;
+      color: var(--text-dim);
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+
+    .truths {
+      display: grid;
+      gap: 8px;
+      margin: 0 0 20px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .truths li {
+      display: grid;
+      grid-template-columns: 15px 1fr;
+      gap: 8px;
+      align-items: start;
+      color: var(--text-dim);
+      font-size: 11.5px;
+      line-height: 1.35;
+    }
+
+    .truths svg { width: 14px; height: 14px; color: var(--text-faint); }
+    .truths strong { color: var(--text); font-weight: 550; }
+
+    .local-state {
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      min-height: 42px;
+      margin: 0 0 12px;
+      padding: 9px 10px;
+      background: var(--accent-glow);
+      border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+      border-radius: 7px;
+    }
+
+    .local-state .status-dot { width: 6px; height: 6px; }
+
+    .local-state strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--text);
+      font: 10px/1 var(--mono);
+    }
+
+    .local-state span {
+      display: block;
+      color: var(--text-dim);
+      font-size: 10.5px;
+    }
+
+    .actions { margin-top: auto; }
+
+    .primary,
+    .secondary {
+      min-height: 40px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .primary {
+      width: 100%;
+      padding: 0 14px;
+      color: var(--accent-contrast);
+      background: var(--accent);
+      border: 1px solid var(--accent);
+    }
+
+    .primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+
+    .secondary {
+      padding: 0 12px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid var(--border);
+    }
+
+    .secondary:hover { color: var(--text); background: var(--panel-3); }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .45;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      margin-bottom: 9px;
+    }
+
+    .key-field {
+      min-width: 0;
+      height: 40px;
+      padding: 0 10px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-right: 0;
+      border-radius: 7px 0 0 7px;
+      font-size: 11px;
+    }
+
+    .key-field::placeholder { color: var(--text-faint); }
+
+    .connect {
+      min-width: 70px;
+      height: 40px;
+      padding: 0 10px;
+      color: var(--text);
+      background: var(--panel-3);
+      border: 1px solid var(--border);
+      border-radius: 0 7px 7px 0;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .connect:not(:disabled):hover { color: var(--accent-2); }
+
+    .help-line, .inline-status {
+      min-height: 15px;
+      margin: 0;
+      color: var(--text-faint);
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .help-line a { color: var(--text-dim); text-underline-offset: 2px; }
+
+    .inline-status { margin-top: 4px; color: var(--success); }
+    .inline-status:empty { display: none; }
+
+    .agent-strip {
+      display: flex;
+      gap: 6px;
+      margin: 1px 0 16px;
+      flex-wrap: wrap;
+    }
+
+    .agent-strip span {
+      padding: 5px 7px;
+      color: var(--text-dim);
+      background: var(--panel-3);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font: 9px/1 var(--mono);
+    }
+
+    .fine-print {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 10px 2px 0;
+      color: var(--text-faint);
+      font: 10px/1.45 var(--mono);
+    }
+
+    .fine-print span:last-child { text-align: right; }
+
+    .ready-state {
+      display: none;
+      min-height: 344px;
+      align-items: center;
+      justify-content: center;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .ready-state.visible { display: flex; }
+
+    .ready-state p {
+      margin: 0;
+      color: var(--text-dim);
+      font: italic 17px/1.5 var(--serif);
+    }
+
+    .ready-state .ready-mark {
+      display: block;
+      width: 7px;
+      height: 7px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px var(--accent-glow);
+    }
+
+    .composer-wrap {
+      position: relative;
+      width: min(780px, calc(100% - 32px));
+      margin: auto auto 0;
+      padding-top: 24px;
+    }
+
+    .route-note {
+      margin: 0 0 9px 5px;
+      color: var(--text-faint);
+      font: 10px/1 var(--mono);
+    }
+
+    .composer {
+      position: relative;
+      padding: 13px 13px 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 16px 42px rgba(0, 0, 0, .12);
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+    .composer:focus-within {
+      border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+      box-shadow: 0 16px 42px rgba(0, 0, 0, .12), 0 0 0 3px var(--accent-glow);
+    }
+
+    .composer-input {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    textarea {
+      min-height: 34px;
+      max-height: 104px;
+      padding: 7px 1px 5px;
+      resize: none;
+      overflow-y: auto;
+      color: var(--text);
+      background: transparent;
+      border: 0;
+      outline: 0;
+      font: 16px/1.45 var(--serif);
+    }
+
+    textarea::placeholder { color: var(--text-faint); }
+
+    .send {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      padding: 0;
+      color: var(--accent-contrast);
+      background: var(--accent);
+      border: 0;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .send:disabled { color: var(--text-faint); background: var(--panel-3); }
+
+    .composer-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .meta-button {
+      display: inline-flex;
+      min-height: 30px;
+      align-items: center;
+      gap: 7px;
+      padding: 0 8px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 10.5px;
+      white-space: nowrap;
+    }
+
+    .meta-button:hover { color: var(--text); background: var(--panel-2); border-color: var(--border); }
+    .meta-button .status-dot { width: 5px; height: 5px; box-shadow: none; }
+    .meta-button .chevron { width: 10px; height: 10px; }
+
+    .progressive {
+      opacity: 0;
+      transition: opacity .16s ease;
+    }
+
+    .composer:hover .progressive,
+    .composer:focus-within .progressive { opacity: 1; }
+
+    .meter {
+      display: flex;
+      min-width: 140px;
+      margin-left: auto;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-faint);
+      font: 9px/1 var(--mono);
+    }
+
+    .meter-track {
+      width: 54px;
+      height: 3px;
+      overflow: hidden;
+      background: var(--panel-3);
+      border-radius: 99px;
+    }
+
+    .meter-fill { width: 4%; height: 100%; background: var(--accent); }
+
+    .legal {
+      margin: 8px 0 0;
+      color: var(--text-faint);
+      text-align: center;
+      font-size: 9.5px;
+    }
+
+    .model-popover {
+      position: absolute;
+      z-index: 12;
+      left: 58px;
+      bottom: 78px;
+      display: none;
+      width: min(340px, calc(100vw - 42px));
+      padding: 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      box-shadow: var(--shadow);
+    }
+
+    .model-popover.open { display: block; }
+
+    .popover-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .popover-head strong { font: 500 15px/1 var(--serif); }
+    .popover-head span { color: var(--text-faint); font: 9px/1 var(--mono); }
+
+    .model-search {
+      width: 100%;
+      height: 36px;
+      margin-bottom: 10px;
+      padding: 0 10px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 11px;
+    }
+
+    .source-tabs { display: flex; gap: 5px; margin-bottom: 8px; }
+
+    .source-tabs button {
+      min-height: 28px;
+      padding: 0 9px;
+      color: var(--text-faint);
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 10px;
+    }
+
+    .source-tabs button.active { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); background: var(--accent-glow); }
+
+    .model-option {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      width: 100%;
+      min-height: 46px;
+      padding: 8px 9px;
+      color: var(--text-dim);
+      background: transparent;
+      border: 0;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .model-option:hover { background: var(--panel-2); }
+    .model-option strong { display: block; color: var(--text); font-size: 11px; }
+    .model-option small { color: var(--text-faint); font-size: 9.5px; }
+    .model-option .selected { color: var(--accent); font: 9px/1 var(--mono); }
+
+    .toast {
+      position: fixed;
+      z-index: 30;
+      top: 20px;
+      left: 50%;
+      padding: 9px 12px;
+      color: var(--text-dim);
+      background: var(--panel-3);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      box-shadow: var(--shadow);
+      font-size: 11px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -8px);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 1020px) {
+      .content { width: min(760px, calc(100% - 48px)); }
+      .tour { grid-template-columns: 1fr 1fr; }
+      .capability { min-height: 284px; }
+      .capability:nth-child(3) { grid-column: 1 / -1; min-height: 218px; }
+      .capability:nth-child(3) { border-top: 1px solid var(--border); border-left: 0; }
+      .capability:nth-child(3) .truths { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      body { overflow: auto; }
+      .shell { display: block; min-height: 100dvh; }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: min(300px, calc(100vw - 54px));
+        transform: translateX(-102%);
+        transition: transform .2s ease;
+        box-shadow: var(--shadow);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .scrim {
+        position: fixed;
+        z-index: 15;
+        inset: 0;
+        display: block;
+        background: rgba(0, 0, 0, .48);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .2s ease;
+      }
+      .scrim.visible { opacity: 1; pointer-events: auto; }
+      .mobile-bar {
+        position: fixed;
+        z-index: 10;
+        top: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        height: calc(52px + env(safe-area-inset-top));
+        padding: env(safe-area-inset-top) 10px 0;
+        align-items: center;
+        gap: 6px;
+        background: color-mix(in srgb, var(--bg) 94%, transparent);
+        border-bottom: 1px solid var(--border);
+      }
+      .mobile-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 14px/1 var(--serif); }
+      .main { min-height: 100dvh; overflow: visible; }
+      .top-tools { display: none; }
+      .workspace { overflow: visible; }
+      .content { width: min(600px, calc(100% - 28px)); padding: calc(82px + env(safe-area-inset-top)) 0 calc(18px + env(safe-area-inset-bottom)); }
+      .hero { margin-bottom: 24px; }
+      .tour { grid-template-columns: 1fr; }
+      .capability { min-height: 0; }
+      .capability + .capability, .capability:nth-child(3) { grid-column: auto; border-top: 1px solid var(--border); border-left: 0; }
+      .capability:nth-child(3) .truths { grid-template-columns: 1fr; }
+      .capability .copy { min-height: 0; }
+      .actions { margin-top: 8px; }
+      .fine-print { display: block; }
+      .fine-print span { display: block; margin-bottom: 5px; text-align: left !important; }
+      .composer-wrap { width: 100%; }
+      .progressive { opacity: 1; }
+      .meter { min-width: 0; }
+      .meter-track { display: none; }
+      .skill-control { display: none; }
+    }
+
+    @media (max-width: 420px) {
+      .content { width: calc(100% - 20px); }
+      h1 { font-size: 38px; }
+      .lede { font-size: 15px; }
+      .capability { padding: 20px 18px; }
+      .tour-intro .meta { display: none; }
+      .composer-meta { gap: 2px; }
+      .meta-button { padding: 0 5px; }
+      .progressive span { display: none; }
+    }
+
+    @media (pointer: coarse) {
+      .progressive { opacity: 1; }
+      .icon-button, .send { min-width: 44px; min-height: 44px; }
+      .primary, .secondary, .connect, .key-field { min-height: 44px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; scroll-behavior: auto !important; }
+    }
+
+    .no-animations *, .no-animations *::before, .no-animations *::after { animation-duration: 0s !important; transition-duration: 0s !important; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar" aria-label="Conversations">
+      <div class="brand-row">
+        <button class="brand" id="brand" type="button" aria-label="Open Settings and menu">GatesAI</button>
+        <button class="icon-button" type="button" aria-label="Collapse sidebar">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>
+        </button>
+      </div>
+      <div class="coachmark" id="coachmark" role="status">Settings &amp; menu live here</div>
+
+      <button class="new-chat" type="button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Begin a new conversation</span>
+        <span class="shortcut">⌘N</span>
+      </button>
+
+      <p class="nav-label">Pinned</p>
+      <a class="thread" href="#welcome">
+        <svg class="icon pin" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6-3 1-4 4-1 5-3-3-4 4-1-1 4-4-3-3 5-1 4-4z"/></svg>
+        <span>Welcome tour</span>
+        <span class="tag">read only</span>
+      </a>
+
+      <p class="nav-label" style="margin-top:24px">Today</p>
+      <a class="thread active" href="#new" aria-current="page">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v11H9l-4 4V5Z"/></svg>
+        <span>New conversation</span>
+      </a>
+      <p class="empty-copy">No conversations yet.</p>
+
+      <div class="sidebar-spacer"></div>
+      <button class="runtime" type="button" aria-label="Workspace ready. Poll bridge status again">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>workspace ready</span>
+      </button>
+    </aside>
+
+    <div class="scrim" id="scrim" aria-hidden="true"></div>
+
+    <header class="mobile-bar">
+      <button class="icon-button" id="mobile-sidebar" type="button" aria-label="Open sidebar">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="mobile-title">New conversation</div>
+      <button class="icon-button" type="button" aria-label="Begin a new conversation">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button class="icon-button" type="button" aria-label="Copy conversation link">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></svg>
+      </button>
+    </header>
+
+    <main class="main">
+      <div class="top-tools">
+        <span class="hint">Everything stays on your terms</span>
+        <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to light theme">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/><circle cx="12" cy="12" r="4"/></svg>
+        </button>
+        <button class="icon-button" type="button" aria-label="Open command palette">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>
+        </button>
+      </div>
+
+      <div class="workspace">
+        <div class="content">
+          <section class="hero" aria-labelledby="page-title">
+            <div class="eyebrow">Local-first AI workspace</div>
+            <h1 id="page-title">GatesAI Chat</h1>
+            <p class="lede">Chat locally on your own machine, run tools over your files, and bring frontier cloud models when you choose.</p>
+          </section>
+
+          <section id="setup-panel" aria-labelledby="setup-title">
+            <div class="tour-intro">
+              <h2 id="setup-title">Choose how to start chatting</h2>
+              <span class="rule" aria-hidden="true"></span>
+              <span class="meta">Three capabilities · one workspace</span>
+            </div>
+
+            <div class="tour" role="group" aria-label="Choose how to start chatting">
+              <article class="capability">
+                <span class="cap-index" aria-hidden="true">01</span>
+                <div class="kicker">Local</div>
+                <h3>Start with local models</h3>
+                <p class="copy">Ollama detected - 2 models ready. qwen2.5:7b is selected for this chat, and GatesAI will not switch providers unless you choose another model.</p>
+                <ul class="truths" aria-label="Local model tradeoffs">
+                  <li>
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.8 8 7 10 4.2-2 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+                    <span><strong>Your machine.</strong> Prompts and files stay local.</span>
+                  </li>
+                  <li>
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h5"/></svg>
+                    <span><strong>Your compute.</strong> Speed depends on this device.</span>
+                  </li>
+                </ul>
+                <div class="local-state" role="status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <div><strong>OLLAMA · READY</strong><span>qwen2.5:7b · tools supported</span></div>
+                </div>
+                <div class="actions">
+                  <button class="primary" id="continue-local" type="button">Continue with qwen2.5:7b</button>
+                </div>
+              </article>
+
+              <article class="capability">
+                <span class="cap-index" aria-hidden="true">02</span>
+                <div class="kicker">Cloud</div>
+                <h3>Bring cloud models</h3>
+                <p class="copy">Choose OpenRouter when you want a cloud model. Free and paid routes both use your own API key.</p>
+                <ul class="truths" aria-label="Cloud model tradeoffs">
+                  <li>
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18h12a4 4 0 0 0 .5-8A7 7 0 0 0 5 9a4.5 4.5 0 0 0 1 9Z"/></svg>
+                    <span><strong>Frontier choice.</strong> More models, internet required.</span>
+                  </li>
+                  <li>
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 8.5c-.7-.5-1.7-.8-2.8-.8-1.5 0-2.7.7-2.7 1.8 0 2.8 5.5 1.2 5.5 4.2 0 1.3-1.2 2.2-3 2.2-1.2 0-2.4-.4-3.2-1M12 6v12"/></svg>
+                    <span><strong>Direct billing.</strong> OpenRouter charges your key.</span>
+                  </li>
+                </ul>
+                <div class="actions">
+                  <div class="field-row">
+                    <label for="api-key" style="position:absolute;clip:rect(0 0 0 0);clip-path:inset(50%)">OpenRouter API key</label>
+                    <input class="key-field" id="api-key" type="password" autocomplete="off" placeholder="Paste your OpenRouter API key...">
+                    <button class="connect" id="connect" type="button" disabled>Connect</button>
+                  </div>
+                  <p class="help-line">Get a key → <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">openrouter.ai/keys</a></p>
+                  <p class="inline-status" id="cloud-status" role="status"></p>
+                </div>
+              </article>
+
+              <article class="capability">
+                <span class="cap-index" aria-hidden="true">03</span>
+                <div class="kicker">Explore</div>
+                <h3>Just look around</h3>
+                <p class="copy">Hide this setup panel and keep the normal empty chat surface. You can connect a provider later.</p>
+                <ul class="truths" aria-label="Agent capability tradeoffs">
+                  <li>
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8a4 4 0 1 1 8 0v1a5 5 0 0 1 3 4.6V19H5v-5.4A5 5 0 0 1 8 9V8Z"/><path d="M9 14h.01M15 14h.01"/></svg>
+                    <span><strong>Agents have local hands.</strong> They can read files and use approved tools.</span>
+                  </li>
+                  <li>
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.8 8 7 10 4.2-2 7-5.5 7-10V6l-7-3Z"/><path d="M9 12h6"/></svg>
+                    <span><strong>You stay in control.</strong> High-impact changes still require approval.</span>
+                  </li>
+                </ul>
+                <div class="agent-strip" aria-label="Available workspace capabilities">
+                  <span>FILES</span><span>TOOLS</span><span>SUB-AGENTS</span>
+                </div>
+                <div class="actions">
+                  <button class="secondary" id="look-around" type="button" style="width:100%">Look around</button>
+                </div>
+              </article>
+            </div>
+
+            <div class="fine-print">
+              <span>No account. No subscription. Change providers any time.</span>
+              <span>Keys use your OS credential store.</span>
+            </div>
+          </section>
+
+          <section class="ready-state" id="ready-state" aria-live="polite">
+            <div>
+              <span class="ready-mark" aria-hidden="true"></span>
+              <p id="ready-copy">A blank thread is ready; write below when you want to begin.</p>
+            </div>
+          </section>
+
+          <div class="composer-wrap">
+            <p class="route-note" id="route-note">Local route selected · nothing leaves this machine</p>
+            <div class="model-popover" id="model-popover" role="dialog" aria-label="Choose a model">
+              <div class="popover-head"><strong>Choose a model</strong><span>2 AVAILABLE</span></div>
+              <input class="model-search" id="model-search" type="search" placeholder="Search local models" aria-label="Search models">
+              <div class="source-tabs" role="tablist" aria-label="Model sources">
+                <button class="active" type="button" role="tab" aria-selected="true">Ollama</button>
+                <button type="button" role="tab" aria-selected="false">OpenRouter</button>
+              </div>
+              <button class="model-option" type="button">
+                <span><strong>qwen2.5:7b</strong><small>Ollama · tools · recommended</small></span>
+                <span class="selected">SELECTED</span>
+              </button>
+              <button class="model-option" type="button">
+                <span><strong>llama3.2:3b</strong><small>Ollama · fast on this device</small></span>
+              </button>
+            </div>
+
+            <div class="composer">
+              <div class="composer-input">
+                <input id="file-input" type="file" multiple hidden>
+                <button class="icon-button" id="attach" type="button" aria-label="Attach files">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20.5 11.5-8.8 8.8a5 5 0 0 1-7.1-7.1l9.2-9.2a3.5 3.5 0 0 1 5 5l-9.2 9.2a2 2 0 1 1-2.8-2.8l8.5-8.5"/></svg>
+                </button>
+                <textarea id="composer-input" rows="1" placeholder="Ask your first question..." aria-label="Message"></textarea>
+                <button class="send" id="send" type="button" aria-label="Send message" disabled>
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+                </button>
+              </div>
+              <div class="composer-meta">
+                <button class="meta-button" id="model-trigger" type="button" aria-label="Choose model" aria-expanded="false">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  <span>qwen2.5:7b</span>
+                  <svg class="icon chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+                </button>
+                <button class="meta-button skill-control" type="button" aria-label="Choose workspace skill">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 4A3.5 3.5 0 0 0 6 7.5v.8A3.5 3.5 0 0 0 4 11.5c0 1.2.6 2.4 1.6 3A3.5 3.5 0 0 0 9 19h1V5.5A1.5 1.5 0 0 0 8.5 4M14.5 4A3.5 3.5 0 0 1 18 7.5v.8a3.5 3.5 0 0 1 2 3.2c0 1.2-.6 2.4-1.6 3A3.5 3.5 0 0 1 15 19h-1V5.5A1.5 1.5 0 0 1 15.5 4"/></svg>
+                  <svg class="icon chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+                </button>
+                <button class="meta-button progressive" type="button" aria-label="Context mode: micro tools">
+                  <span>micro tools</span>
+                  <svg class="icon chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+                </button>
+                <div class="meter" aria-label="Context: 0 of 32 thousand tokens used">
+                  <div class="meter-track"><div class="meter-fill"></div></div>
+                  <span>0 / 32k</span>
+                </div>
+              </div>
+            </div>
+            <p class="legal">Enter to send · Shift+Enter for a new line</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status">New conversation ready</div>
+
+  <script>
+    const root = document.documentElement;
+    const setup = document.getElementById('setup-panel');
+    const ready = document.getElementById('ready-state');
+    const readyCopy = document.getElementById('ready-copy');
+    const composerInput = document.getElementById('composer-input');
+    const send = document.getElementById('send');
+    const apiKey = document.getElementById('api-key');
+    const connect = document.getElementById('connect');
+    const cloudStatus = document.getElementById('cloud-status');
+    const modelTrigger = document.getElementById('model-trigger');
+    const modelPopover = document.getElementById('model-popover');
+    const coachmark = document.getElementById('coachmark');
+    const sidebar = document.getElementById('sidebar');
+    const scrim = document.getElementById('scrim');
+    const toast = document.getElementById('toast');
+
+    function revealReady(message) {
+      setup.hidden = true;
+      ready.classList.add('visible');
+      readyCopy.textContent = message;
+      window.setTimeout(() => composerInput.focus(), 40);
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('visible');
+      window.setTimeout(() => toast.classList.remove('visible'), 1600);
+    }
+
+    document.getElementById('continue-local').addEventListener('click', () => {
+      revealReady('Ollama detected - 2 models ready.');
+    });
+
+    document.getElementById('look-around').addEventListener('click', () => {
+      revealReady('A blank thread is ready; write below when you want to begin.');
+    });
+
+    apiKey.addEventListener('input', () => {
+      connect.disabled = !apiKey.value.trim();
+      cloudStatus.textContent = '';
+    });
+
+    connect.addEventListener('click', () => {
+      if (!apiKey.value.trim() || connect.disabled) return;
+      connect.disabled = true;
+      connect.textContent = 'Checking...';
+      cloudStatus.textContent = 'Checking OpenRouter...';
+      window.setTimeout(() => {
+        cloudStatus.textContent = 'Key works - 327 models available.';
+        connect.textContent = 'Connect';
+        revealReady('Key works - 327 models available.');
+        document.getElementById('route-note').textContent = 'Cloud route selected · your key, your provider';
+      }, 900);
+    });
+
+    composerInput.addEventListener('input', () => {
+      send.disabled = !composerInput.value.trim();
+      composerInput.style.height = 'auto';
+      composerInput.style.height = `${Math.min(composerInput.scrollHeight, 104)}px`;
+    });
+
+    composerInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey && composerInput.value.trim()) {
+        event.preventDefault();
+        showToast('Static mockup · message ready to send');
+      }
+    });
+
+    send.addEventListener('click', () => showToast('Static mockup · message ready to send'));
+    document.getElementById('attach').addEventListener('click', () => document.getElementById('file-input').click());
+
+    modelTrigger.addEventListener('click', () => {
+      const open = modelPopover.classList.toggle('open');
+      modelTrigger.setAttribute('aria-expanded', String(open));
+      if (open) document.getElementById('model-search').focus();
+    });
+
+    document.getElementById('brand').addEventListener('click', () => {
+      coachmark.classList.add('hidden');
+      showToast('Settings & menu');
+    });
+
+    window.setTimeout(() => coachmark.classList.add('hidden'), 9000);
+
+    document.getElementById('theme-toggle').addEventListener('click', (event) => {
+      const isLight = root.dataset.theme === 'light';
+      root.dataset.theme = isLight ? 'dark' : 'light';
+      event.currentTarget.setAttribute('aria-label', isLight ? 'Switch to light theme' : 'Switch to dark theme');
+    });
+
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      scrim.classList.remove('visible');
+      document.getElementById('mobile-sidebar').setAttribute('aria-expanded', 'false');
+    }
+
+    document.getElementById('mobile-sidebar').addEventListener('click', () => {
+      const open = !sidebar.classList.contains('open');
+      sidebar.classList.toggle('open', open);
+      scrim.classList.toggle('visible', open);
+      document.getElementById('mobile-sidebar').setAttribute('aria-expanded', String(open));
+    });
+    scrim.addEventListener('click', closeSidebar);
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        modelPopover.classList.remove('open');
+        modelTrigger.setAttribute('aria-expanded', 'false');
+        closeSidebar();
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'l' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
+        event.preventDefault();
+        composerInput.focus();
+      }
+    });
+  </script>
+  <!-- Direction: capability-tour · Model: GPT-5 Codex (smart) -->
+</body>
+</html>
