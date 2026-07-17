@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>GatesAI Chat — First boot, clean slate</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #121212;
+      --panel: #181818;
+      --panel-2: #1d1e1d;
+      --panel-3: #242624;
+      --border: #2b2e2c;
+      --border-strong: #3a3f3c;
+      --text: #e4e7ef;
+      --text-dim: #a0a9bd;
+      --text-faint: #697168;
+      --accent: #3ecf8e;
+      --accent-2: #78e1b2;
+      --accent-glow: rgba(62, 207, 142, .12);
+      --accent-contrast: #071a11;
+      --danger: #f08080;
+      --warning: #ddb86c;
+      --success: #67d9a3;
+      --focus-ring: rgba(114, 227, 176, .92);
+      --focus-ring-glow: rgba(62, 207, 142, .20);
+      --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      --sans: Geist, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --mono: "Geist Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --shadow: 0 24px 70px rgba(0, 0, 0, .22);
+    }
+
+    html[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f4efe6;
+      --panel: #faf8f3;
+      --panel-2: #f0ece4;
+      --panel-3: #e8e4dc;
+      --border: #d8d3c9;
+      --border-strong: #bdb8ae;
+      --text: #1d211d;
+      --text-dim: #5f645d;
+      --text-faint: #8a8d86;
+      --accent: #0f6b46;
+      --accent-2: #185f43;
+      --accent-glow: rgba(15, 107, 70, .10);
+      --accent-contrast: #f8fff9;
+      --danger: #a54545;
+      --warning: #88631f;
+      --success: #196c49;
+      --focus-ring: rgba(15, 107, 70, .9);
+      --focus-ring-glow: rgba(15, 107, 70, .18);
+      --shadow: 0 24px 70px rgba(38, 31, 20, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, textarea { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    [tabindex]:focus-visible {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
+      box-shadow: 0 0 0 5px var(--focus-ring-glow);
+    }
+
+    button:disabled { cursor: not-allowed; opacity: .38; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 270px minmax(0, 1fr);
+      height: 100dvh;
+      min-height: 620px;
+    }
+
+    .sidebar {
+      position: relative;
+      z-index: 20;
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .brand-wrap { position: relative; padding: 25px 22px 16px; }
+
+    .brand {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 4px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 23px;
+      letter-spacing: -.035em;
+      cursor: pointer;
+    }
+
+    .brand-dot { color: var(--accent); }
+
+    .coachmark {
+      position: absolute;
+      top: 54px;
+      left: 22px;
+      z-index: 2;
+      padding: 7px 9px;
+      border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+      border-radius: 7px;
+      background: var(--panel-3);
+      color: var(--text-dim);
+      font-size: 11px;
+      box-shadow: var(--shadow);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .coachmark::before {
+      content: "";
+      position: absolute;
+      top: -4px;
+      left: 15px;
+      width: 7px;
+      height: 7px;
+      transform: rotate(45deg);
+      border-left: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+      border-top: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+      background: var(--panel-3);
+    }
+
+    .coachmark.hidden { opacity: 0; transform: translateY(-3px); pointer-events: none; }
+
+    .new-chat {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      margin: 14px 14px 22px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-dim);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+    }
+
+    .new-chat:hover { border-color: var(--border-strong); background: var(--panel-2); color: var(--text); }
+
+    .side-label {
+      padding: 0 22px 8px;
+      color: var(--text-faint);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 650;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .thread-list { display: grid; gap: 4px; padding: 0 10px; }
+
+    .thread {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 0 10px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-dim);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .thread:hover { background: var(--panel-2); color: var(--text); }
+    .thread.active { border-color: var(--border); background: var(--panel-2); color: var(--text); }
+    .thread-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .pin {
+      color: var(--text-faint);
+      font-family: var(--mono);
+      font-size: 8px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .side-spacer { flex: 1; }
+
+    .runtime {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 52px;
+      padding: 0 20px calc(4px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--border);
+      color: var(--text-faint);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .035em;
+      cursor: pointer;
+    }
+
+    .status-dot { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px var(--accent-glow); }
+
+    .workspace { position: relative; min-width: 0; background: var(--bg); }
+
+    .mobile-bar { display: none; }
+
+    .theme-toggle {
+      position: absolute;
+      z-index: 3;
+      top: 18px;
+      right: 22px;
+      width: 35px;
+      height: 35px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: var(--panel);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: color 150ms ease, border-color 150ms ease, transform 150ms ease;
+    }
+
+    .theme-toggle:hover { color: var(--text); border-color: var(--border-strong); transform: rotate(8deg); }
+
+    .chat-column {
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      height: 100dvh;
+      min-height: 620px;
+    }
+
+    .first-boot {
+      overflow: auto;
+      scrollbar-gutter: stable;
+      padding: clamp(66px, 10vh, 112px) 24px 34px;
+    }
+
+    .hero { width: min(100%, 610px); margin: 0 auto; }
+
+    .eyebrow {
+      margin: 0 0 13px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 650;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(38px, 5vw, 55px);
+      font-weight: 450;
+      line-height: .98;
+      letter-spacing: -.045em;
+    }
+
+    .lede {
+      max-width: 555px;
+      margin: 19px 0 0;
+      color: var(--text-dim);
+      font-family: var(--serif);
+      font-size: 17px;
+      line-height: 1.56;
+    }
+
+    .start-group { margin-top: clamp(35px, 6vh, 54px); }
+
+    .start-heading {
+      margin: 0 0 14px;
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 21px;
+      font-weight: 450;
+      letter-spacing: -.015em;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 4px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .choice {
+      position: relative;
+      display: grid;
+      grid-template-columns: 31px minmax(0, 1fr);
+      gap: 11px;
+      min-height: 68px;
+      padding: 12px 14px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-dim);
+      text-align: left;
+      cursor: pointer;
+      transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+    }
+
+    .choice:hover { background: var(--panel-2); color: var(--text); }
+    .choice[aria-pressed="true"] { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); background: var(--accent-glow); color: var(--text); }
+
+    .choice-icon {
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      margin-top: 2px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      color: var(--text-faint);
+    }
+
+    .choice[aria-pressed="true"] .choice-icon { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); color: var(--accent); }
+
+    .choice-title { display: block; color: inherit; font-size: 13px; font-weight: 620; }
+    .choice-meta { display: block; margin-top: 2px; color: var(--text-faint); font-size: 11px; }
+
+    .detail {
+      display: grid;
+      grid-template-rows: 1fr;
+      opacity: 1;
+      transition: grid-template-rows 220ms ease, opacity 180ms ease;
+    }
+
+    .detail[hidden] { display: grid; grid-template-rows: 0fr; opacity: 0; pointer-events: none; }
+    .detail-inner { overflow: hidden; }
+
+    .detail-content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 24px;
+      align-items: center;
+      min-height: 108px;
+      margin: 10px 4px 0;
+      padding: 17px 15px 15px;
+      border-top: 1px solid var(--border);
+    }
+
+    .kicker {
+      margin-bottom: 5px;
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 650;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .detail-title { margin: 0; font-family: var(--serif); font-size: 17px; font-weight: 500; }
+    .detail-copy { max-width: 420px; margin: 5px 0 0; color: var(--text-dim); font-size: 11px; line-height: 1.55; }
+
+    .local-actions { display: grid; justify-items: end; gap: 8px; }
+
+    .primary {
+      min-height: 40px;
+      padding: 0 15px;
+      border: 1px solid var(--accent);
+      border-radius: 7px;
+      background: var(--accent);
+      color: var(--accent-contrast);
+      font-size: 12px;
+      font-weight: 680;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: filter 150ms ease, transform 150ms ease;
+    }
+
+    .primary:hover { filter: brightness(1.06); transform: translateY(-1px); }
+
+    .text-action {
+      min-height: 30px;
+      padding: 0 3px;
+      border: 0;
+      background: transparent;
+      color: var(--text-faint);
+      font-size: 10px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: transparent;
+      text-underline-offset: 3px;
+    }
+
+    .text-action:hover { color: var(--text-dim); text-decoration-color: currentColor; }
+
+    .cloud-detail .detail-content { align-items: end; }
+
+    .key-form {
+      display: grid;
+      grid-template-columns: minmax(180px, 270px) auto;
+      gap: 8px;
+    }
+
+    .key-input {
+      min-width: 0;
+      height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: 7px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .key-input::placeholder { color: var(--text-faint); font-family: var(--sans); }
+    .key-input:hover { border-color: color-mix(in srgb, var(--accent) 24%, var(--border-strong)); }
+
+    .key-help, .status-message {
+      grid-column: 1 / -1;
+      margin: 0;
+      color: var(--text-faint);
+      font-size: 10px;
+    }
+
+    .key-help a { color: var(--text-dim); text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
+    .status-message { color: var(--success); }
+
+    .browse-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 13px 7px 0;
+      color: var(--text-faint);
+      font-size: 10px;
+    }
+
+    .browse-row .text-action { min-height: 34px; }
+
+    .composer-shell {
+      position: relative;
+      z-index: 4;
+      padding: 0 24px calc(20px + env(safe-area-inset-bottom));
+      background: linear-gradient(to bottom, transparent, var(--bg) 24px);
+    }
+
+    .composer {
+      width: min(100%, 740px);
+      margin: 0 auto;
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .composer:focus-within { border-color: color-mix(in srgb, var(--accent) 45%, var(--border-strong)); box-shadow: 0 0 0 3px var(--accent-glow), var(--shadow); }
+
+    .compose-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 6px; padding: 8px; }
+
+    .icon-button {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--text-faint);
+      cursor: pointer;
+    }
+
+    .icon-button:hover:not(:disabled) { background: var(--panel-3); color: var(--text); }
+
+    .composer textarea {
+      resize: none;
+      width: 100%;
+      max-height: 200px;
+      min-height: 36px;
+      padding: 7px 5px 5px;
+      overflow: auto;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 16px;
+      line-height: 1.35;
+    }
+
+    .composer textarea::placeholder { color: var(--text-faint); }
+
+    .send {
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--accent-contrast);
+    }
+
+    .send:hover:not(:disabled) { background: var(--accent-2); color: var(--accent-contrast); }
+
+    .compose-meta {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-height: 35px;
+      padding: 0 11px 5px;
+      border-top: 1px solid var(--border);
+      color: var(--text-faint);
+      font-size: 10px;
+    }
+
+    .model-button, .skill-button, .context-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 27px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .model-button:hover, .skill-button:hover, .context-button:hover { background: var(--panel-3); color: var(--text); }
+
+    .model-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+    .context-button { margin-left: 2px; opacity: 0; transition: opacity 150ms ease; }
+    .composer:hover .context-button, .composer:focus-within .context-button { opacity: 1; }
+
+    .meter { width: 60px; height: 2px; margin-left: auto; overflow: hidden; border-radius: 2px; background: var(--panel-3); }
+    .meter-fill { width: 4%; height: 100%; background: var(--accent); }
+    .token-count { font-family: var(--mono); font-size: 9px; }
+
+    .scrim { display: none; }
+
+    svg { display: block; }
+
+    @media (max-width: 850px) {
+      .app { grid-template-columns: 230px minmax(0, 1fr); }
+      .first-boot { padding-inline: 18px; }
+      .detail-content { grid-template-columns: 1fr; gap: 14px; }
+      .local-actions { grid-template-columns: auto auto; justify-content: start; align-items: center; }
+      .cloud-detail .detail-content { align-items: start; }
+      .key-form { grid-template-columns: minmax(0, 1fr) auto; }
+    }
+
+    @media (max-width: 640px), (max-width: 960px) and (max-height: 480px) {
+      body { overflow: auto; }
+      .app { display: block; min-height: 100dvh; }
+      .workspace, .chat-column { min-height: 100dvh; }
+      .chat-column { height: 100dvh; padding-top: calc(49px + env(safe-area-inset-top)); }
+      .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: min(82vw, 300px);
+        transform: translateX(-105%);
+        box-shadow: var(--shadow);
+        transition: transform 210ms ease;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .scrim { position: fixed; z-index: 19; inset: 0; display: block; border: 0; background: rgba(0, 0, 0, .52); opacity: 0; pointer-events: none; transition: opacity 210ms ease; }
+      .scrim.open { opacity: 1; pointer-events: auto; }
+      .mobile-bar {
+        position: fixed;
+        z-index: 10;
+        top: 0;
+        right: 0;
+        left: 0;
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr) auto auto;
+        align-items: center;
+        min-height: calc(49px + env(safe-area-inset-top));
+        padding: env(safe-area-inset-top) 8px 0;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel);
+      }
+      .mobile-title { overflow: hidden; padding: 0 8px; color: var(--text-dim); font-family: var(--serif); text-overflow: ellipsis; white-space: nowrap; }
+      .theme-toggle { display: none; }
+      .first-boot { padding: 43px 18px 24px; }
+      .lede { font-size: 16px; }
+      .start-group { margin-top: 34px; }
+      .choices { grid-template-columns: 1fr; }
+      .choice { min-height: 62px; }
+      .detail-content { padding-inline: 8px; }
+      .key-form { grid-template-columns: 1fr; }
+      .key-form .primary { width: 100%; }
+      .composer-shell { padding: 0 10px calc(10px + env(safe-area-inset-bottom)); }
+      .composer { border-radius: 9px; }
+      .skill-button, .context-button, .meter, .token-count { display: none; }
+    }
+
+    @media (pointer: coarse) { .context-button { opacity: 1; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; animation-duration: 0s !important; }
+    }
+
+    .no-animations *, .no-animations *::before, .no-animations *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Conversations">
+      <div class="brand-wrap">
+        <button class="brand" id="brand" aria-label="Open GatesAI menu">GatesAI<span class="brand-dot">.</span></button>
+        <div class="coachmark" id="coachmark">Settings &amp; menu live here</div>
+      </div>
+
+      <button class="new-chat" type="button" aria-label="Begin a new conversation">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <span>Begin a new conversation</span>
+      </button>
+
+      <div class="side-label">Conversations</div>
+      <nav class="thread-list" aria-label="Conversation list">
+        <button class="thread" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 4h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-5l-4.5 3v-3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span class="thread-title">Welcome tour</span>
+          <span class="pin">Pinned</span>
+        </button>
+        <button class="thread active" type="button" aria-current="page">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 4h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H9l-5 3 1.5-4.2A3 3 0 0 1 4 14V7a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="1.5"/></svg>
+          <span class="thread-title">New conversation</span>
+        </button>
+      </nav>
+
+      <div class="side-spacer"></div>
+      <button class="runtime" type="button" aria-label="Workspace ready. Check runtime again">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>workspace ready</span>
+      </button>
+    </aside>
+
+    <button class="scrim" id="scrim" type="button" aria-label="Close sidebar"></button>
+
+    <main class="workspace">
+      <header class="mobile-bar">
+        <button class="icon-button" id="sidebarOpen" type="button" aria-label="Open sidebar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+        <div class="mobile-title">New conversation</div>
+        <button class="icon-button" type="button" aria-label="Begin a new conversation"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+        <button class="icon-button" type="button" aria-label="Copy conversation link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.5 14.5 14.5 9m-7.2 8.7-1 1a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0m7.4-4.4 1-1a3.5 3.5 0 1 1 5 5l-3 3a3.5 3.5 0 0 1-5 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      </header>
+
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" title="Switch theme">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="margin:auto"><path d="M12 3a9 9 0 1 0 9 9c0-.3 0-.6-.1-.9A7 7 0 0 1 12.9 3H12Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </button>
+
+      <div class="chat-column">
+        <section class="first-boot" aria-labelledby="pageTitle">
+          <div class="hero">
+            <p class="eyebrow">Local-first AI workspace</p>
+            <h1 id="pageTitle">GatesAI Chat</h1>
+            <p class="lede">Chat locally on your own machine, run tools over your files, and bring frontier cloud models when you choose.</p>
+
+            <section class="start-group" aria-labelledby="startHeading">
+              <h2 class="start-heading" id="startHeading">Where should this conversation run?</h2>
+              <div class="choices" role="group" aria-label="Choose how to start chatting">
+                <button class="choice" id="localChoice" type="button" aria-pressed="true" aria-controls="localDetail">
+                  <span class="choice-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="5" y="6" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M9 20h6M12 17v3M9 10h.01M12 10h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  </span>
+                  <span><span class="choice-title">On this machine</span><span class="choice-meta">qwen2.5:7b detected · private by default</span></span>
+                </button>
+                <button class="choice" id="cloudChoice" type="button" aria-pressed="false" aria-controls="cloudDetail">
+                  <span class="choice-icon" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7.5 18h9a4.5 4.5 0 0 0 .4-9A6 6 0 0 0 5.5 11 3.5 3.5 0 0 0 7.5 18Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                  </span>
+                  <span><span class="choice-title">With a cloud model</span><span class="choice-meta">OpenRouter · your key, your choice</span></span>
+                </button>
+              </div>
+
+              <div class="detail" id="localDetail">
+                <div class="detail-inner">
+                  <div class="detail-content">
+                    <div>
+                      <div class="kicker">Local</div>
+                      <h3 class="detail-title">Start with local models</h3>
+                      <p class="detail-copy">Ollama detected - 2 models ready. qwen2.5:7b is selected for this chat, and GatesAI will not switch providers unless you choose another model.</p>
+                    </div>
+                    <div class="local-actions">
+                      <button class="primary" id="continueLocal" type="button">Continue with qwen2.5:7b</button>
+                      <button class="text-action" type="button">Open Local settings</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail cloud-detail" id="cloudDetail" hidden>
+                <div class="detail-inner">
+                  <div class="detail-content">
+                    <div>
+                      <div class="kicker">Cloud</div>
+                      <h3 class="detail-title">Bring cloud models</h3>
+                      <p class="detail-copy">Choose OpenRouter when you want a cloud model. Free and paid routes both use your own API key.</p>
+                    </div>
+                    <form class="key-form" id="keyForm">
+                      <label for="apiKey" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">OpenRouter API key</label>
+                      <input class="key-input" id="apiKey" type="password" autocomplete="off" placeholder="Paste your OpenRouter API key...">
+                      <button class="primary" id="connectButton" type="submit" disabled>Connect</button>
+                      <p class="key-help">Get a key → <a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">openrouter.ai/keys</a></p>
+                      <p class="status-message" id="cloudStatus" role="status" aria-live="polite"></p>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <div class="browse-row">
+                <span>Nothing here locks you in. You can change models later.</span>
+                <button class="text-action" id="lookAround" type="button">Just look around</button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <div class="composer-shell">
+          <div class="composer" id="composer">
+            <div class="compose-main">
+              <button class="icon-button" type="button" aria-label="Attach files">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m8.5 12.5 6.9-6.9a3 3 0 0 1 4.2 4.2l-9.2 9.1a5 5 0 0 1-7.1-7L12 3.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              </button>
+              <textarea id="prompt" rows="1" aria-label="Message" placeholder="Ask your first question..."></textarea>
+              <button class="icon-button send" id="sendButton" type="button" aria-label="Send message" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 12 6-6 6 6M12 6v12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="compose-meta">
+              <button class="model-button" type="button" aria-label="Choose model, currently qwen2.5:7b"><span class="model-dot" aria-hidden="true"></span><span id="modelName">qwen2.5:7b</span><span aria-hidden="true">⌄</span></button>
+              <button class="skill-button" type="button" aria-label="Choose workspace skill" title="Workspace skill">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.5 4.5A3.5 3.5 0 0 0 6 8v1a3 3 0 0 0 0 6v1a3.5 3.5 0 0 0 6 2 3.5 3.5 0 0 0 6-2v-1a3 3 0 0 0 0-6V8a3.5 3.5 0 0 0-6-2 3.5 3.5 0 0 0-2.5-1.5Z" stroke="currentColor" stroke-width="1.4"/><path d="M12 6v12M8 10h4M12 14h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span aria-hidden="true">⌄</span>
+              </button>
+              <button class="context-button" type="button" aria-label="Context mode, micro tools">micro tools <span aria-hidden="true">⌄</span></button>
+              <div class="meter" aria-label="Context usage: 0 of 32 thousand tokens"><div class="meter-fill"></div></div>
+              <span class="token-count">0 / 32k</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const localChoice = document.querySelector('#localChoice');
+    const cloudChoice = document.querySelector('#cloudChoice');
+    const localDetail = document.querySelector('#localDetail');
+    const cloudDetail = document.querySelector('#cloudDetail');
+    const apiKey = document.querySelector('#apiKey');
+    const keyForm = document.querySelector('#keyForm');
+    const connectButton = document.querySelector('#connectButton');
+    const cloudStatus = document.querySelector('#cloudStatus');
+    const prompt = document.querySelector('#prompt');
+    const sendButton = document.querySelector('#sendButton');
+    const firstBoot = document.querySelector('.first-boot');
+
+    function choose(mode) {
+      const local = mode === 'local';
+      localChoice.setAttribute('aria-pressed', String(local));
+      cloudChoice.setAttribute('aria-pressed', String(!local));
+      localDetail.hidden = !local;
+      cloudDetail.hidden = local;
+      if (!local) window.setTimeout(() => apiKey.focus(), 180);
+    }
+
+    localChoice.addEventListener('click', () => choose('local'));
+    cloudChoice.addEventListener('click', () => choose('cloud'));
+
+    apiKey.addEventListener('input', () => { connectButton.disabled = apiKey.value.trim().length === 0; });
+    apiKey.addEventListener('paste', (event) => {
+      const pasted = event.clipboardData.getData('text').trim();
+      if (!pasted) return;
+      event.preventDefault();
+      apiKey.value = pasted;
+      connectButton.disabled = false;
+      window.setTimeout(() => keyForm.requestSubmit(), 0);
+    });
+
+    keyForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (!apiKey.value.trim() || connectButton.disabled) return;
+      connectButton.disabled = true;
+      connectButton.textContent = 'Checking...';
+      cloudStatus.textContent = 'Checking OpenRouter...';
+      window.setTimeout(() => {
+        connectButton.textContent = 'Connected';
+        cloudStatus.textContent = 'Key works - 327 models available.';
+        apiKey.value = '••••••••••••••••';
+        apiKey.readOnly = true;
+        document.querySelector('#modelName').textContent = 'Gemini 3 Flash';
+        prompt.placeholder = 'Ask your first question...';
+        prompt.focus();
+      }, 800);
+    });
+
+    function dismissSetup(message) {
+      const startGroup = document.querySelector('.start-group');
+      startGroup.innerHTML = `<p role="status" style="margin:0;color:var(--text-dim);font-family:var(--serif);font-size:16px;font-style:italic">${message}</p>`;
+      prompt.focus();
+    }
+
+    document.querySelector('#continueLocal').addEventListener('click', () => dismissSetup('Ollama detected - 2 models ready.'));
+    document.querySelector('#lookAround').addEventListener('click', () => dismissSetup('A blank thread is waiting; connect a cloud or local model when you are ready.'));
+
+    prompt.addEventListener('input', () => {
+      prompt.style.height = 'auto';
+      prompt.style.height = `${Math.min(prompt.scrollHeight, 200)}px`;
+      sendButton.disabled = prompt.value.trim().length === 0;
+    });
+
+    document.querySelector('#themeToggle').addEventListener('click', (event) => {
+      const root = document.documentElement;
+      const light = root.dataset.theme !== 'light';
+      root.dataset.theme = light ? 'light' : 'dark';
+      event.currentTarget.setAttribute('aria-label', `Switch to ${light ? 'dark' : 'light'} theme`);
+    });
+
+    const sidebar = document.querySelector('#sidebar');
+    const scrim = document.querySelector('#scrim');
+    function toggleSidebar(open) {
+      sidebar.classList.toggle('open', open);
+      scrim.classList.toggle('open', open);
+    }
+    document.querySelector('#sidebarOpen').addEventListener('click', () => toggleSidebar(true));
+    scrim.addEventListener('click', () => toggleSidebar(false));
+
+    const coachmark = document.querySelector('#coachmark');
+    document.querySelector('#brand').addEventListener('click', () => coachmark.classList.add('hidden'));
+    window.setTimeout(() => coachmark.classList.add('hidden'), 9000);
+
+    firstBoot.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') toggleSidebar(false);
+    });
+  </script>
+</body>
+</html>
+<!-- Direction: clean-slate — minimal single-question onboarding, progressive reveal. Model: Codex GPT-5 (smart). -->
