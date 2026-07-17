@@ -3,7 +3,7 @@
 Local-first desktop AI workspace: React 19 + TypeScript + MobX + Vite in a
 Tauri 2 (Rust) shell, with a companion Go bridge sidecar from the sibling repo
 `../gatesai-bridge`. A browser-only "Web Lite" build ships to GitHub Pages.
-Current version 4.5.0; branch `master`; releases publish to the separate
+Current version 4.6.1 (published 2026-07-14); branch `master`; releases publish to the separate
 public repo `Calculator5329/GatesAI-Chat-releases`. The primary development
 checkout is `~/projects/ai/gatesai-chat` on CachyOS Linux.
 

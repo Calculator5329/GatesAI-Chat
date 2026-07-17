@@ -11,9 +11,9 @@
   a **separate product**: a business website with a chatbot. Don't conflate.
 - **License intent (Ethan's words): "I will be open source but if you take
   my code, so do you."** That is *copyleft* — Apache-2.0 does NOT do that
-  (it's permissive). **GPL-3.0 matches the stated intent** and is the
-  working recommendation; confirm before first outside contribution (cheap
-  to change until then).
+  (it's permissive). **RATIFIED 2026-07-16 (Ethan, audit review): the license
+  is GPL-3.0.** Replace any AGPL-3.0/Apache references in docs/templates with
+  GPL-3.0 and add the LICENSE file before first outside contribution.
 
 ## What it is
 
