@@ -139,7 +139,7 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
         <span className="html-artifact-preview__frame">
           {state.status === 'ready' && view === 'preview' ? (
             <iframe
-              title={`Preview of ${name}`}
+              title={`Preview of ${label || name}`}
               src={previewDocument?.url}
               sandbox={HTML_ARTIFACT_IFRAME_SANDBOX}
               loading="lazy"
