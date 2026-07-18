@@ -89,7 +89,7 @@ export function resolveQueryLimits(
   requestedLimit?: number,
   projection?: DatabasePluginSearchDescriptor,
 ): DatabasePluginQueryLimits {
-  const candidates = [DATABASE_PLUGIN_BOUNDS.maxResults]
+  const candidates: number[] = [DATABASE_PLUGIN_BOUNDS.maxResults]
   if (typeof dataset.maxResults === 'number') candidates.push(dataset.maxResults)
   if (projection && typeof projection.maxResults === 'number') candidates.push(projection.maxResults)
   if (typeof requestedLimit === 'number' && Number.isFinite(requestedLimit) && requestedLimit > 0) {

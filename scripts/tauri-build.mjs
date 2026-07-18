@@ -9,8 +9,12 @@ if (process.platform === 'linux' && env.NO_STRIP === undefined) {
   env.NO_STRIP = '1';
 }
 
+// On Windows npx is npx.cmd, which spawnSync cannot exec without a shell —
+// without this the build dies silently with a null status.
 const result = spawnSync('npx', ['tauri', 'build', ...process.argv.slice(2)], {
   stdio: 'inherit',
   env,
+  shell: process.platform === 'win32',
 });
+if (result.error) console.error('tauri build failed to spawn:', result.error);
 process.exit(result.status ?? 1);
