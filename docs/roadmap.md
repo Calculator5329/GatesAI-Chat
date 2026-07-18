@@ -169,6 +169,9 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       movable/collapsible/persisted) + panel registry; first panels: file
       viewer (md/html/json/txt), simple code editor (CodeMirror ADR), basic
       file explorer, media viewer. Web Lite feature-gated.
+      *(2026-07-18, lane `w-1-right-dock-panel-framework`; plan landed at
+      `docs/plans/unblock-w-1-right-dock-panel-framework-dockstore-20260718/`,
+      implementation dispatch pending.)*
       *(Slices 1+2 shipped 2026-07-12: DockStore + persisted shell + panel
       registry, FileViewerPanel + MediaViewerPanel, palette/gallery entry
       points, Web Lite + mobile gating — see the changelog entry. The basic
@@ -707,7 +710,10 @@ not by itself imply acceptance of every proposed implementation detail.
       (instruction-source boundary); rare + rate-limited + easy to mute; opt-in,
       off by default; fully local. Its own wave when picked.
 - [ ] Duel mode: two models side-by-side or cross-reviewing
-- [ ] Canvas/whiteboard artifact type for planning sessions
+- [ ] Canvas/whiteboard artifact type for planning sessions *(2026-07-18,
+      lane `canvas-whiteboard-artifact`; plan landed at
+      `docs/plans/unblock-canvas-whiteboard-artifact-type-for-plan-20260718/`;
+      implementation dispatch pending)*
 - [x] In-app `ollama pull` with progress for missing local models *(done 2026-07-16, codex lane: streamed /api/pull progress UI with cancel/failure/already-installed handling, explicit user action only, Web Lite explainer degradation; service + component tests)*
 - [ ] Record the self-improvement demo (app edits itself, rebuilds, asks to
       update) once the loop closes
@@ -720,6 +726,13 @@ not by itself imply acceptance of every proposed implementation detail.
 ## Later
 - [ ] Multi-window / split-thread layouts
 - [ ] Extend `inspect_file` to source-code structure (`py`, `js`, `ts`, `go`)
+      *(2026-07-18, lane `extend-inspect-file-to-source-code`; plan landed at
+      `docs/plans/unblock-extend-inspect-file-to-source-code-struc-20260718/`;
+      implementation dispatch pending.)*
 - [ ] Extend `inspect_file` to document formats (`pdf`, `docx`, `xlsx`)
+      *(2026-07-18, lane `extend-inspect-file-to-document-formats`;
+      plan landed at
+      `docs/plans/unblock-extend-inspect-file-to-document-formats--20260718/`;
+      implementation dispatch pending.)*
 - [ ] Release pipeline: publish the macOS .dmg (+sig) as a stable public asset alongside win/linux — v4.6.1 shipped win+linux only (2026-07-14)
 - [ ] Adopt headless `@shadcn/react/message-scroller` (MIT, unstyled) to replace hand-rolled chat scroll logic — owns streamed-reply anchoring, thread restore, jump-to-message (we already patched one scroll-follow bug, LF-4). Keep GatesAI's own styles; also mirror shadcn's Marker slot pattern for tool-activity/streaming rows. Ref: https://ui.shadcn.com/docs/changelog/2026-06-chat-components (Ethan design-input packet, 2026-07-14)

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-18 — Unblock plan lane handoffs
+
+- Recorded four unblock-plan lanes in the roadmap and queued implementation
+  dispatches: `w-1-right-dock-panel-framework`,
+  `extend-inspect-file-to-source-code`,
+  `extend-inspect-file-to-document-formats`, and
+  `canvas-whiteboard-artifact` (all dated 2026-07-18). See:
+  - `docs/plans/unblock-w-1-right-dock-panel-framework-dockstore-20260718/`
+  - `docs/plans/unblock-extend-inspect-file-to-source-code-struc-20260718/`
+  - `docs/plans/unblock-extend-inspect-file-to-document-formats--20260718/`
+  - `docs/plans/unblock-canvas-whiteboard-artifact-type-for-plan-20260718/`
+
 ## 2026-07-18 — Wave-D harvest close-out (session:fable-visions-loop-20260718)
 
 - Landed w1-gatesai-sidebar-dates (last unlanded Wave-D lane): 20-row sidebar
