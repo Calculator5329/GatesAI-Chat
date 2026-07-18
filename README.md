@@ -9,6 +9,14 @@
 [![MobX](https://img.shields.io/badge/MobX-6-ff9955?style=flat-square&logo=mobx&logoColor=white)](https://mobx.js.org/)
 [![Tests](https://img.shields.io/badge/tests-997%20unit%20%2B%2020%20e2e-3fb950?style=flat-square)](#quality-gates)
 
+<!--
+  Demo GIF placeholder. The recording needs a human on a desktop machine —
+  follow the exact click-by-click capture script in scripts/demo-capture.md
+  (spawn a background agent → Task center → rendered HTML artifact), convert
+  to docs/media/demo.gif under 10 MB, and commit it at that path.
+-->
+![GatesAI Chat demo: the assistant spawns a background agent, the Task center shows it running to completion with cost, and an HTML artifact renders live in the right dock](docs/media/demo.gif)
+
 > **Live demo:** [calculator5329.github.io/GatesAI-Chat](https://calculator5329.github.io/GatesAI-Chat/)
 > — the browser **Web Lite** build. The full UI is interactive; chatting uses your own OpenRouter
 > API key (entered in the Models menu and kept only in your browser). Desktop features that need the

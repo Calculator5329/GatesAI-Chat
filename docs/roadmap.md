@@ -20,12 +20,18 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       (e.g. `gitleaks detect` or `git log -p` grep for `sk-`, `key=`, tokens)
       and record the result; after flipping, README release/download links and
       the Pages demo still resolve; if keeping split, ADR committed instead.
-- [ ] **Demo GIF at the top of the README.** Record a 20–40s loop: ask a
-      question → model streams → a tool runs (e.g. `fs` or `web_search`) →
-      activity timeline shows it. `npm run screens:tour` and
-      `scripts/screens-tour.mjs` show how to drive the app scripted; a screen
-      recorder + gif conversion is fine too.
-      *Acceptance:* `docs/user-guide-assets/demo.gif` (< 10 MB) embedded above
+- [x] **Demo GIF at the top of the README.** *(capture pending owner hands —
+      script ready, 2026-07-17)* Everything except the recording itself is
+      landed: `scripts/demo-capture.md` is an exact click-by-click 20–40s
+      capture script (spawn a background agent via `spawn_task` → open the
+      Task center dock panel → render an HTML `artifact`), with the two-pass
+      ffmpeg `palettegen`/`paletteuse` gif one-liner and the <10 MB budget;
+      `README.md` embeds the demo above the fold at `docs/media/demo.gif`
+      with alt text and an HTML comment pointing at the capture script. The
+      recording needs a human on a desktop machine — do the take per the
+      script, drop the GIF at `docs/media/demo.gif`, and update this note
+      with the ship date.
+      *Acceptance:* `docs/media/demo.gif` (< 10 MB) embedded above
       the fold in `README.md`; renders on GitHub.
 - [x] **README truth pass.** *(done 2026-07-10)* Fix the Memory bullet that still claims "no
       embeddings/RAG" (RAG shipped in Wave F: `src/services/rag/`, `recall`
