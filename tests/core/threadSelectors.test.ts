@@ -13,6 +13,8 @@ import {
 } from '../../src/core/threadSelectors';
 import type { Thread } from '../../src/core/types';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 describe('thread usage selectors', () => {
   it('aggregates usage across multiple threads and models', () => {
     const threads = [
@@ -143,26 +145,23 @@ describe('groupThreadsByDate', () => {
   // whole-day offset from a mid-day reference point).
   const now = Date.UTC(2026, 5, 15, 12);
 
-  it('uses local midnight, week, and month boundaries for the five buckets', () => {
-    const localNow = new Date(2026, 5, 17, 12).getTime(); // Wednesday
+  it('buckets recent threads into Today / Yesterday / Previous 7 / Previous 30 in order', () => {
     const groups = groupThreadsByDate([
-      datedThread('today', new Date(2026, 5, 17, 0).getTime()),
-      datedThread('yesterday', new Date(2026, 5, 16, 0).getTime()),
-      datedThread('week', new Date(2026, 5, 15, 0).getTime()),
-      datedThread('month', new Date(2026, 5, 1, 0).getTime()),
-      datedThread('older', new Date(2026, 4, 31, 23, 59, 59, 999).getTime()),
-    ], localNow);
+      datedThread('today', now),
+      datedThread('yesterday', now - DAY_MS),
+      datedThread('week', now - 4 * DAY_MS),
+      datedThread('month', now - 20 * DAY_MS),
+    ], now);
 
     expect(groups.map(g => [g.label, g.threads.map(t => t.id)])).toEqual([
       ['Today', ['today']],
       ['Yesterday', ['yesterday']],
-      ['This Week', ['week']],
-      ['This Month', ['month']],
-      ['Older', ['older']],
+      ['Previous 7 days', ['week']],
+      ['Previous 30 days', ['month']],
     ]);
   });
 
-  it('puts dates before this month into one Older bucket', () => {
+  it('groups anything older than 30 days by calendar month, newest month first', () => {
     const groups = groupThreadsByDate([
       datedThread('mar-a', Date.UTC(2026, 2, 20, 12)),
       datedThread('mar-b', Date.UTC(2026, 2, 5, 12)),
@@ -171,21 +170,21 @@ describe('groupThreadsByDate', () => {
     ], now);
 
     expect(groups.map(g => [g.label, g.key, g.threads.map(t => t.id)])).toEqual([
-      ['Older', 'older', ['mar-a', 'mar-b', 'jan', 'dec']],
+      ['March 2026', 'm-2026-02', ['mar-a', 'mar-b']],
+      ['January 2026', 'm-2026-00', ['jan']],
+      ['December 2025', 'm-2025-11', ['dec']],
     ]);
   });
 
-  it('sorts newest-first within a bucket and is stable for equal timestamps', () => {
+  it('preserves the caller-supplied order within a bucket', () => {
     const groups = groupThreadsByDate([
+      datedThread('newer', now - 1000),
       datedThread('older', now - 2000),
-      datedThread('tie-a', now - 1000),
-      datedThread('newer', now - 500),
-      datedThread('tie-b', now - 1000),
     ], now);
 
     expect(groups).toHaveLength(1);
     expect(groups[0].label).toBe('Today');
-    expect(groups[0].threads.map(t => t.id)).toEqual(['newer', 'tie-a', 'tie-b', 'older']);
+    expect(groups[0].threads.map(t => t.id)).toEqual(['newer', 'older']);
   });
 
   it('omits empty buckets and returns [] for no threads', () => {

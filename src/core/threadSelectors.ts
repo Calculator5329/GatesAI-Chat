@@ -257,7 +257,13 @@ export function groupMessagesByDate(
 export function groupThreadsByDate(
   threads: readonly Thread[],
   now: number = Date.now(),
+  limit?: number,
 ): ThreadDateGroup[] {
+  // Sidebar history cap (w1): callers pass the newest-first thread list, so
+  // slicing keeps the most recent rows and drops only deep history.
+  if (limit !== undefined && limit >= 0 && threads.length > limit) {
+    threads = threads.slice(0, limit);
+  }
   const today = startOfLocalDay(now);
   const yesterday = today - DAY_MS;
   const last7 = today - 7 * DAY_MS;

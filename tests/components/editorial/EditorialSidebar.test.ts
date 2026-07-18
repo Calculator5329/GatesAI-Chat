@@ -225,8 +225,8 @@ describe('EditorialSidebar history list', () => {
     const text = rendered.textContent ?? '';
     const today = text.indexOf('Today');
     const yesterday = text.indexOf('Yesterday');
-    const week = text.indexOf('This Week');
-    const month = text.indexOf('This Month');
+    const week = text.indexOf('Previous 7 days');
+    const month = text.indexOf('Previous 30 days');
     expect(today).toBeGreaterThanOrEqual(0);
     expect(yesterday).toBeGreaterThan(today);
     expect(week).toBeGreaterThan(yesterday);
