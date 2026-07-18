@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-18 — Wave-D harvest close-out (session:fable-visions-loop-20260718)
+
+- Landed w1-gatesai-sidebar-dates (last unlanded Wave-D lane): 20-row sidebar
+  history cap via `groupThreadsByDate(..., limit)`; merged-branch tests
+  reconciled to master's Previous-7/30-day bucketing (LF-5 semantics kept).
+  Other 9 Wave-D lanes verified semantically present on master (per-lane
+  file:line proofs in .orc run codex-harvest-stack-wave-d-v2 final message).
+- Merged release/v4.7.0 back into master (version bump + changelog).
+- CI 184/184 files / 1388 tests + tsc green. Known pre-existing e2e failure
+  (artifactContract palette→dock iframe, fails identically on pre-merge
+  master) filed in roadmap.
+
 ## 2026-07-18 — v4.7.0
 
 - Release rollup since v4.6.1: local-first first-boot (LF-4), plugins
