@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>GatesAI — every model, your machine</title>
+<style>
+  /* ---- editorial ink palette · GatesAI amber ---- */
+  :root {
+    --ink: #0b0a08;
+    --pit: #100f0c;
+    --plate: #151310;
+    --plate2: #1c1915;
+    --line: #262218;
+    --line2: #3a3426;
+    --bone: #ece7da;
+    --fog: #948c78;
+    --dim: #5f594a;
+    --amber: #e8a948;
+    --amber-dim: rgba(232, 169, 72, 0.5);
+    --mono: "IBM Plex Mono", ui-monospace, "JetBrains Mono", monospace;
+    --serif: "Instrument Serif", ui-serif, Georgia, serif;
+    --sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--ink); color: var(--bone);
+    font-family: var(--sans); font-size: 15px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  ::selection { background: var(--amber); color: var(--ink); }
+  a { color: inherit; }
+  .mono { font-family: var(--mono); }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px); }
+
+  /* film grain */
+  .grain {
+    position: fixed; inset: -100%; pointer-events: none; z-index: 90; opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: jitter 0.95s steps(4) infinite;
+  }
+  @keyframes jitter {
+    0% { transform: translate(0,0); } 25% { transform: translate(-1%,0.8%); }
+    50% { transform: translate(0.8%,-1%); } 75% { transform: translate(-0.5%,-0.4%); }
+  }
+
+  /* blueprint grid backdrop for hero */
+  .blueprint {
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    background-position: center top;
+  }
+
+  /* ---- nav ---- */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    background: color-mix(in srgb, var(--ink) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .brand { font-family: var(--mono); font-size: 13px; letter-spacing: 0.22em; font-weight: 600; text-decoration: none; }
+  .brand b { color: var(--amber); font-weight: 600; }
+  .navlinks { display: flex; gap: 26px; align-items: center; }
+  .navlinks a {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    color: var(--fog); text-decoration: none; transition: color 0.25s;
+  }
+  .navlinks a:hover { color: var(--amber); }
+  .navlinks .cta {
+    color: var(--ink); background: var(--amber); padding: 9px 16px;
+    transition: background 0.25s;
+  }
+  .navlinks .cta:hover { background: var(--bone); color: var(--ink); }
+
+  /* ---- hero ---- */
+  .hero { padding: 148px 0 72px; position: relative; overflow: hidden; }
+  .hero-glow {
+    position: absolute; pointer-events: none; border-radius: 50%;
+    top: -18%; right: -12%; width: 58vw; height: 58vw;
+    background: radial-gradient(closest-side, rgba(232,169,72,0.06), transparent);
+  }
+  .hero-grid { display: grid; gap: 56px; align-items: center; }
+  @media (min-width: 1000px) { .hero-grid { grid-template-columns: 6fr 6fr; } }
+  .kicker {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.26em; color: var(--fog);
+  }
+  .pulse-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--amber);
+    box-shadow: 0 0 12px 2px var(--amber-dim); animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+  h1 {
+    padding-top: 26px;
+    font-size: clamp(3rem, 7.4vw, 6.2rem); line-height: 0.94;
+    font-weight: 500; letter-spacing: -0.035em;
+  }
+  h1 .serif { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--amber); }
+  .hero p.lede { max-width: 540px; padding-top: 26px; color: var(--fog); }
+  .hero p.lede b { color: var(--bone); font-weight: 500; }
+  .hero p.lede .u { border-bottom: 1px dashed var(--amber-dim); color: var(--bone); }
+  .cta-row { display: flex; flex-wrap: wrap; gap: 14px; padding-top: 34px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.16em; font-weight: 600;
+    padding: 15px 26px; transition: all 0.25s;
+  }
+  .btn.primary { background: var(--amber); color: var(--ink); }
+  .btn.primary:hover { background: var(--bone); }
+  .btn.primary .arr { transition: transform 0.25s; }
+  .btn.primary:hover .arr { transform: translateX(4px); }
+  .btn.ghost { border: 1px solid var(--line2); color: var(--bone); font-weight: 400; }
+  .btn.ghost:hover { border-color: var(--amber-dim); color: var(--amber); }
+  .fineprint { padding-top: 20px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--dim); }
+
+  /* ---- app window mock ---- */
+  .window-stack { position: relative; }
+  .sheet {
+    position: absolute; inset: 0; border: 1px solid var(--line); background: var(--pit);
+  }
+  .sheet.s1 { transform: translate(12px, 16px) rotate(1.3deg); }
+  .sheet.s2 { transform: translate(-8px, 8px) rotate(-1deg); background: var(--plate); opacity: 0.65; }
+  .window {
+    position: relative; border: 1px solid var(--line2); background: var(--plate);
+    box-shadow: 0 40px 80px -22px rgba(0,0,0,0.8);
+  }
+  .live-tag {
+    position: absolute; top: -12px; left: 22px; z-index: 2;
+    border: 1px solid var(--amber-dim); background: var(--ink); color: var(--amber);
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.25em; padding: 4px 8px;
+  }
+  .titlebar {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 40px; border-bottom: 1px solid var(--line); padding: 0 16px;
+  }
+  .titlebar .dots { display: flex; gap: 7px; }
+  .titlebar .dots span { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--line2); }
+  .titlebar .dots span:last-child { background: var(--amber); border-color: var(--amber); opacity: 0.85; }
+  .titlebar .tname { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--fog); }
+  .titlebar .tkey { font-family: var(--mono); font-size: 10px; color: var(--dim); }
+  .app-body { display: grid; }
+  @media (min-width: 720px) { .app-body { grid-template-columns: 172px 1fr; } }
+  .side { border-right: 1px solid var(--line); display: none; }
+  @media (min-width: 720px) { .side { display: block; } }
+  .side-h {
+    display: flex; justify-content: space-between; padding: 14px 14px 10px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.3em; color: var(--dim);
+  }
+  .side ul { list-style: none; padding: 0 8px 14px; display: grid; gap: 3px; }
+  .side li { display: flex; gap: 8px; align-items: flex-start; padding: 7px 8px; }
+  .side li.on { background: var(--plate2); outline: 1px solid var(--line2); }
+  .m-dot { margin-top: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--line2); flex-shrink: 0; }
+  .side li.on .m-dot { background: var(--amber); box-shadow: 0 0 8px 1px var(--amber-dim); }
+  .m-name { font-family: var(--mono); font-size: 10.5px; color: var(--fog); display: block; }
+  .side li.on .m-name { color: var(--bone); }
+  .m-note { font-family: var(--mono); font-size: 9px; color: var(--dim); display: block; }
+  .side-f {
+    border-top: 1px solid var(--line); padding: 12px 14px;
+    font-family: var(--mono); font-size: 9px; line-height: 1.7; color: var(--dim);
+  }
+  .transcript {
+    height: 280px; padding: 18px; display: flex; flex-direction: column;
+    justify-content: flex-end; gap: 11px; overflow: hidden; position: relative;
+  }
+  .transcript::before {
+    content: ""; position: absolute; inset: 0 0 auto; height: 42px; z-index: 1;
+    background: linear-gradient(var(--plate), transparent);
+  }
+  .msg { font-family: var(--mono); font-size: 12px; line-height: 1.65; }
+  .msg .who-u { color: var(--fog); }
+  .msg .who-a { color: var(--amber); }
+  .msg .txt { color: rgba(236,231,218,0.9); }
+  .caret {
+    display: inline-block; width: 7px; height: 13px; margin-left: 2px;
+    transform: translateY(2px); background: var(--amber-dim);
+    animation: caret 1.05s step-end infinite;
+  }
+  @keyframes caret { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+  .inbar {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--line); padding: 11px 18px;
+    font-family: var(--mono); font-size: 11px; color: var(--fog);
+  }
+  .inbar .hint { color: var(--dim); font-size: 10px; }
+  .statusbar {
+    display: flex; justify-content: space-between; align-items: center; height: 30px;
+    border-top: 1px solid var(--line); background: var(--pit); padding: 0 14px;
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; color: var(--dim);
+  }
+  .statusbar .amber { color: var(--amber); }
+
+  /* ---- stat ledger ---- */
+  .ledger { margin-top: 78px; display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid var(--line); }
+  @media (min-width: 820px) { .ledger { grid-template-columns: repeat(4, 1fr); } }
+  .ledger .cell { padding: 26px 24px; border-left: 1px solid var(--line); transition: background 0.3s; }
+  .ledger .cell:first-child { border-left: 0; }
+  @media (max-width: 819px) { .ledger .cell:nth-child(3) { border-left: 0; } .ledger .cell:nth-child(n+3) { border-top: 1px solid var(--line); } }
+  .ledger .cell:hover { background: var(--plate); }
+  .ledger .v { font-size: clamp(2rem, 3.6vw, 3rem); font-weight: 500; letter-spacing: -0.02em; transition: color 0.3s; }
+  .ledger .cell:hover .v { color: var(--amber); }
+  .ledger .l { padding-top: 10px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.18em; line-height: 1.7; color: var(--fog); }
+
+  /* ---- marquee ---- */
+  .marquee-band { border-block: 1px solid var(--line); margin-top: 90px; padding: 14px 0; overflow: hidden; }
+  .marquee { display: flex; gap: 44px; width: max-content; animation: marq 42s linear infinite; }
+  @keyframes marq { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .marquee span { font-family: var(--mono); font-size: 11px; letter-spacing: 0.26em; color: var(--dim); white-space: nowrap; }
+  .marquee span b { color: var(--fog); font-weight: 400; }
+
+  /* ---- sections ---- */
+  section.block { padding: 96px 0 20px; }
+  .sec-kicker { font-family: var(--mono); font-size: 11px; letter-spacing: 0.3em; color: var(--amber); }
+  h2.sec-title {
+    padding-top: 16px; font-size: clamp(1.9rem, 3.6vw, 3rem);
+    font-weight: 500; letter-spacing: -0.03em; line-height: 1.05; max-width: 720px;
+  }
+  h2.sec-title .serif { font-family: var(--serif); font-style: italic; font-weight: 400; color: var(--amber); }
+  .sec-sub { max-width: 560px; padding-top: 18px; color: var(--fog); }
+
+  .cap-grid { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 48px; }
+  @media (min-width: 760px) { .cap-grid { grid-template-columns: repeat(3, 1fr); } }
+  .cap { background: var(--ink); padding: 28px 26px 32px; position: relative; overflow: hidden; transition: background 0.3s; }
+  .cap:hover { background: var(--pit); }
+  .cap .idx { font-family: var(--mono); font-size: 10px; letter-spacing: 0.25em; color: var(--dim); }
+  .cap h3 { padding-top: 14px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .cap p { padding-top: 10px; font-size: 13.5px; color: var(--fog); }
+  .cap .tools { padding-top: 14px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .cap .tools span {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em;
+    border: 1px solid var(--line2); color: var(--fog); padding: 3px 7px;
+  }
+  .cap::after {
+    content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 0;
+    background: var(--amber); transition: width 0.45s cubic-bezier(0.22,1,0.36,1);
+  }
+  .cap:hover::after { width: 100%; }
+
+  /* runtime ledger table */
+  .rt-table { margin-top: 48px; border: 1px solid var(--line); overflow-x: auto; }
+  .rt-table table { width: 100%; border-collapse: collapse; min-width: 560px; }
+  .rt-table th {
+    text-align: left; font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em;
+    color: var(--dim); font-weight: 400; padding: 14px 20px; border-bottom: 1px solid var(--line2);
+  }
+  .rt-table th.amber { color: var(--amber); }
+  .rt-table td { padding: 11px 20px; border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--fog); }
+  .rt-table tr:last-child td { border-bottom: 0; }
+  .rt-table td:first-child { color: var(--bone); }
+  .rt-table .yes { color: var(--amber); font-family: var(--mono); }
+  .rt-table .no { color: var(--dim); font-family: var(--mono); }
+  .rt-table tbody tr { transition: background 0.2s; }
+  .rt-table tbody tr:hover { background: var(--pit); }
+
+  /* ---- download ---- */
+  .dl-band { margin-top: 110px; border-top: 1px solid var(--line); padding: 90px 0 40px; position: relative; }
+  .dl-grid { display: grid; gap: 48px; }
+  @media (min-width: 940px) { .dl-grid { grid-template-columns: 7fr 5fr; } }
+  .dl-cards { display: grid; gap: 14px; padding-top: 44px; }
+  @media (min-width: 640px) { .dl-cards { grid-template-columns: 1fr 1fr; } }
+  .dl-card {
+    border: 1px solid var(--line2); padding: 26px 24px; text-decoration: none;
+    display: block; transition: all 0.3s; position: relative;
+  }
+  .dl-card:hover { border-color: var(--amber-dim); background: var(--pit); }
+  .dl-card .t { font-family: var(--mono); font-size: 12px; letter-spacing: 0.2em; font-weight: 600; }
+  .dl-card .d { padding-top: 8px; font-size: 13px; color: var(--fog); }
+  .dl-card .go {
+    position: absolute; top: 22px; right: 22px; color: var(--dim);
+    font-family: var(--mono); transition: color 0.3s, transform 0.3s;
+  }
+  .dl-card:hover .go { color: var(--amber); transform: translate(2px,-2px); }
+  .dl-card.lite { border-color: var(--amber-dim); }
+  .dl-card.lite .t { color: var(--amber); }
+  .checklist { list-style: none; padding: 44px 0 0; display: grid; gap: 13px; }
+  .checklist li { display: flex; gap: 12px; font-size: 13.5px; color: var(--fog); }
+  .checklist li::before { content: "▸"; color: var(--amber); font-family: var(--mono); }
+  .checklist li b { color: var(--bone); font-weight: 500; }
+
+  /* footer */
+  footer { border-top: 1px solid var(--line); margin-top: 60px; }
+  footer .wrap {
+    display: flex; flex-wrap: wrap; gap: 18px; justify-content: space-between;
+    padding-top: 26px; padding-bottom: 30px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--dim);
+  }
+  footer a { color: var(--fog); text-decoration: none; }
+  footer a:hover { color: var(--amber); }
+
+  /* reveal on scroll */
+  .rv { opacity: 0; transform: translateY(26px); transition: opacity 0.9s cubic-bezier(0.22,1,0.36,1), transform 0.9s cubic-bezier(0.22,1,0.36,1); }
+  .rv.in { opacity: 1; transform: none; }
+  .rv.d1 { transition-delay: 0.08s; } .rv.d2 { transition-delay: 0.16s; } .rv.d3 { transition-delay: 0.24s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, .rv, .marquee, .grain, .pulse-dot, .caret { animation: none !important; transition: none !important; }
+    .rv { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top">GATES<b>AI</b></a>
+    <div class="navlinks">
+      <a href="#agentic">AGENTIC</a>
+      <a href="#capabilities">CAPABILITIES</a>
+      <a href="#runtimes">RUNTIMES</a>
+      <a class="cta" href="#get">GET GATESAI</a>
+    </div>
+  </div>
+</nav>
+
+<header id="top" class="hero blueprint">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="kicker rv"><span class="pulse-dot"></span>LOCAL-FIRST AI WORKSPACE — v4.6.1</div>
+        <h1 class="rv d1">EVERY MODEL.<br>YOUR <span class="serif">machine.</span></h1>
+        <p class="lede rv d2">
+          A desktop AI workspace that speaks <b>every cloud model</b> through OpenRouter
+          and <b>every local one</b> through Ollama — with real tools: files, terminal,
+          Python, git, image generation. Agents that schedule themselves and work in the
+          background. <span class="u">Keys live in your OS keychain, chats live on your disk.</span>
+        </p>
+        <div class="cta-row rv d3">
+          <a class="btn primary" href="#get">DOWNLOAD — FREE <span class="arr">→</span></a>
+          <a class="btn ghost" href="https://calculator5329.github.io/GatesAI-Chat/">TRY WEB LITE <span>↗</span></a>
+        </div>
+        <p class="fineprint rv d3">TAURI 2 · WINDOWS / LINUX — 995 TESTS GREEN ON EVERY RELEASE</p>
+      </div>
+
+      <div class="window-stack rv d2">
+        <div class="sheet s1" aria-hidden="true"></div>
+        <div class="sheet s2" aria-hidden="true"></div>
+        <div class="window">
+          <span class="live-tag">● LIVE — LOCAL INFERENCE</span>
+          <div class="titlebar">
+            <span class="dots"><span></span><span></span><span></span></span>
+            <span class="tname">morning-brief.thread — gatesai</span>
+            <span class="tkey">⌘N</span>
+          </div>
+          <div class="app-body">
+            <aside class="side">
+              <div class="side-h">MODELS <span>+</span></div>
+              <ul>
+                <li class="on"><span class="m-dot"></span><span><span class="m-name">llama3.1:8b</span><span class="m-note">ollama · local</span></span></li>
+                <li><span class="m-dot"></span><span><span class="m-name">claude-sonnet-5</span><span class="m-note">openrouter · api</span></span></li>
+                <li><span class="m-dot"></span><span><span class="m-name">gpt-4o-mini</span><span class="m-note">openrouter · api</span></span></li>
+                <li><span class="m-dot"></span><span><span class="m-name">flux.1 [dev]</span><span class="m-note">comfyui · img</span></span></li>
+                <li><span class="m-dot"></span><span><span class="m-name">qwen2.5-coder</span><span class="m-note">ollama · local</span></span></li>
+              </ul>
+              <div class="side-f">bridge · online<br>keychain · locked</div>
+            </aside>
+            <div>
+              <div class="transcript" id="transcript"></div>
+              <div class="inbar"><span>attach · paste · /commands</span><span class="hint">↵ to send</span></div>
+              <div class="statusbar">
+                <span>llama3.1:8b · <span class="amber" id="st-state">IDLE</span></span>
+                <span><span id="st-toks">—</span> tok/s · bridge online</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ledger rv">
+      <div class="cell"><div class="v" data-count="2">2</div><div class="l">RUNTIMES — DESKTOP + WEB LITE, SAME UI</div></div>
+      <div class="cell"><div class="v" data-count="20">20+</div><div class="l">BUILT-IN TOOLS — FILES TO PYTHON TO GIT</div></div>
+      <div class="cell"><div class="v" data-count="995">995</div><div class="l">TESTS GREEN BEFORE ANY RELEASE SHIPS</div></div>
+      <div class="cell"><div class="v">0</div><div class="l">KEYS EVER SENT ANYWHERE — OS KEYCHAIN ONLY</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="marquee-band" aria-hidden="true">
+  <div class="marquee">
+    <span>OPENROUTER <b>ANY CLOUD MODEL</b></span><span>OLLAMA <b>ANY LOCAL MODEL</b></span>
+    <span>COMFYUI <b>IMAGE GEN</b></span><span>MCP <b>SERVERS · HTTP + STDIO</b></span>
+    <span>BRAVE <b>WEB SEARCH</b></span><span>RAG <b>SEMANTIC RECALL</b></span>
+    <span>SQLITE <b>QUERY</b></span><span>PYTHON <b>INLINE</b></span><span>GIT <b>NATIVE</b></span>
+    <span>OPENROUTER <b>ANY CLOUD MODEL</b></span><span>OLLAMA <b>ANY LOCAL MODEL</b></span>
+    <span>COMFYUI <b>IMAGE GEN</b></span><span>MCP <b>SERVERS · HTTP + STDIO</b></span>
+    <span>BRAVE <b>WEB SEARCH</b></span><span>RAG <b>SEMANTIC RECALL</b></span>
+    <span>SQLITE <b>QUERY</b></span><span>PYTHON <b>INLINE</b></span><span>GIT <b>NATIVE</b></span>
+  </div>
+</div>
+
+<section id="agentic" class="block">
+  <div class="wrap">
+    <div class="sec-kicker rv">01 — AGENTIC PLATFORM</div>
+    <h2 class="sec-title rv d1">Assistants that <span class="serif">keep working</span> after you close the tab.</h2>
+    <p class="sec-sub rv d2">Not a chat box — a workspace where the assistant spawns background
+    agents, schedules its own follow-ups, and improves from outcomes.</p>
+    <div class="cap-grid rv d2">
+      <div class="cap">
+        <div class="idx">/ SPAWN</div>
+        <h3>Background agents</h3>
+        <p>Hand off a task mid-conversation. It runs in its own thread with its own tools and reports back when done.</p>
+        <div class="tools"><span>spawn_task</span><span>thread</span></div>
+      </div>
+      <div class="cap">
+        <div class="idx">/ SCHEDULE</div>
+        <h3>Self-scheduling</h3>
+        <p>The assistant sets its own timers — morning digests, follow-up checks, recurring jobs — with wake caps it respects.</p>
+        <div class="tools"><span>schedules</span></div>
+      </div>
+      <div class="cap">
+        <div class="idx">/ IMPROVE</div>
+        <h3>Outcome memory</h3>
+        <p>Task outcomes feed back into how it works: what succeeded, what failed, what you corrected. It compounds.</p>
+        <div class="tools"><span>memory</span><span>recall</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="capabilities" class="block">
+  <div class="wrap">
+    <div class="sec-kicker rv">02 — REAL TOOLS</div>
+    <h2 class="sec-title rv d1">A model with <span class="serif">hands.</span></h2>
+    <p class="sec-sub rv d2">On desktop, the Go bridge gives every model real capability on your
+    machine — allowlisted, auditable, yours.</p>
+    <div class="cap-grid rv d2">
+      <div class="cap">
+        <div class="idx">/ WORKSPACE</div>
+        <h3>Files &amp; artifacts</h3>
+        <p>Read, write, search and organize workspace files; produce HTML artifacts and inspect structured data.</p>
+        <div class="tools"><span>fs</span><span>artifact</span><span>inspect_file</span></div>
+      </div>
+      <div class="cap">
+        <div class="idx">/ EXECUTE</div>
+        <h3>Terminal · Python · SQL</h3>
+        <p>Allowlisted shell commands, inline Python, SQLite queries, native git — the loop closes on your box.</p>
+        <div class="tools"><span>terminal</span><span>python_inline</span><span>sqlite_query</span><span>git</span></div>
+      </div>
+      <div class="cap">
+        <div class="idx">/ CREATE</div>
+        <h3>Local image generation</h3>
+        <p>ComfyUI integration renders images on your GPU; describe_image reads them back. No upload, no queue.</p>
+        <div class="tools"><span>comfyui</span><span>describe_image</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="runtimes" class="block">
+  <div class="wrap">
+    <div class="sec-kicker rv">03 — TWO RUNTIMES, HONEST GATING</div>
+    <h2 class="sec-title rv d1">Try it in the browser. <span class="serif">Live</span> in the desktop.</h2>
+    <p class="sec-sub rv d2">Web Lite is the real UI in your browser — cloud chat, notes, schedules,
+    background agents. The desktop build adds the bridge: your filesystem, your terminal, your GPU.
+    Features gate cleanly; nothing half-works.</p>
+    <div class="rt-table rv d2">
+      <table>
+        <thead><tr><th>CAPABILITY</th><th class="amber">WEB LITE — FREE, NO INSTALL</th><th>DESKTOP</th></tr></thead>
+        <tbody>
+          <tr><td>Cloud models via OpenRouter</td><td class="yes">●</td><td class="yes">●</td></tr>
+          <tr><td>Notes · memory · schedules · background agents</td><td class="yes">●</td><td class="yes">●</td></tr>
+          <tr><td>Web search + semantic recall</td><td class="yes">●</td><td class="yes">●</td></tr>
+          <tr><td>MCP servers</td><td class="yes">● http</td><td class="yes">● http + stdio</td></tr>
+          <tr><td>Local models via Ollama</td><td class="no">—</td><td class="yes">●</td></tr>
+          <tr><td>Files · terminal · Python · git · SQLite</td><td class="no">—</td><td class="yes">●</td></tr>
+          <tr><td>Local image generation (ComfyUI)</td><td class="no">—</td><td class="yes">●</td></tr>
+          <tr><td>Secrets in OS keychain</td><td class="no">browser storage</td><td class="yes">●</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="get" class="dl-band">
+  <div class="wrap">
+    <div class="dl-grid">
+      <div>
+        <div class="sec-kicker rv">04 — GET GATESAI</div>
+        <h2 class="sec-title rv d1">Thirty seconds to <span class="serif">first token.</span></h2>
+        <div class="dl-cards rv d2">
+          <a class="dl-card lite" href="https://calculator5329.github.io/GatesAI-Chat/">
+            <span class="go">↗</span>
+            <div class="t">OPEN WEB LITE</div>
+            <div class="d">Runs now, in this browser. Bring an OpenRouter key and chat with any cloud model.</div>
+          </a>
+          <a class="dl-card" href="https://github.com/Calculator5329/GatesAI-Chat-releases/releases/latest">
+            <span class="go">↗</span>
+            <div class="t">DOWNLOAD DESKTOP</div>
+            <div class="d">Latest release — Windows &amp; Linux builds, Tauri 2 shell + Go bridge.</div>
+          </a>
+        </div>
+      </div>
+      <div>
+        <ul class="checklist rv d2">
+          <li><b>Local-first by architecture:</b> threads mirror to plain files on your disk you can read without the app.</li>
+          <li><b>Keys stay put:</b> OS keychain on desktop; never proxied through anyone's server.</li>
+          <li><b>Honest engineering:</b> 995 unit tests, 20 end-to-end tests, typecheck and lint green on every push.</li>
+          <li><b>Open development:</b> the releases repo is public — read the changelog, verify the builds.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>GATESAI · LOCAL-FIRST AI WORKSPACE</span>
+    <span>
+      <a href="https://calculator5329.github.io/GatesAI-Chat/">WEB LITE</a> ·
+      <a href="https://github.com/Calculator5329/GatesAI-Chat-releases/releases/latest">RELEASES</a>
+    </span>
+    <span>V4.6.1 — BUILT ON A DESK, NOT A FARM</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // scroll reveal
+  var obs = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add("in"); obs.unobserve(e.target); } });
+  }, { rootMargin: "0px 0px -8% 0px" });
+  document.querySelectorAll(".rv").forEach(function (el) { obs.observe(el); });
+
+  // live transcript loop
+  var EX = [
+    { q: "summarize what my agents did overnight", a: "3 tasks finished: the research agent compiled 14 sources into notes/ai-market.md, the schedule ran your 7am digest, and the code agent's branch passed all tests." },
+    { q: "spawn an agent to reorganize my notes folder", a: "spawned · task #47 running in background — grouping 82 notes by topic, will report here when done. you can keep chatting." },
+    { q: "switch this thread to the local model", a: "done — routed to llama3.1:8b via ollama. context carried over, nothing left your machine." }
+  ];
+  var host = document.getElementById("transcript");
+  var stState = document.getElementById("st-state");
+  var stToks = document.getElementById("st-toks");
+  if (host && !reduced) {
+    var s = { ex: 0, phase: 0, c: 0, msgs: [] };
+    setInterval(function () {
+      var pair = EX[s.ex % EX.length], q = pair.q, a = pair.a;
+      if (s.phase === 0) {
+        s.c += 1;
+        upsert("u", q.slice(0, s.c));
+        stState.textContent = "IDLE"; stToks.textContent = "—";
+        if (s.c >= q.length + 10) { s.phase = 1; s.c = 0; }
+      } else if (s.phase === 1) {
+        s.c += 3;
+        upsert("a", a.slice(0, s.c));
+        stState.textContent = "STREAMING";
+        stToks.textContent = (31 + Math.random() * 12).toFixed(1);
+        if (s.c >= a.length + 12) { s.phase = 2; s.c = 0; }
+      } else {
+        s.c += 1; stState.textContent = "IDLE"; stToks.textContent = "—";
+        if (s.c > 110) { s.ex += 1; s.phase = 0; s.c = 0; s.msgs = s.msgs.slice(-4); }
+      }
+      render();
+    }, 32);
+  } else if (host) {
+    // reduced motion: render one static exchange
+    s = { msgs: [ { r: "u", t: EX[0].q }, { r: "a", t: EX[0].a } ] };
+    render();
+  }
+  function upsert(role, text) {
+    var last = s.msgs[s.msgs.length - 1];
+    if (last && last.r === role) last.t = text;
+    else s.msgs.push({ r: role, t: text });
+  }
+  function render() {
+    host.innerHTML = s.msgs.map(function (m, i) {
+      var who = m.r === "u" ? '<span class="who-u">› you&nbsp;&nbsp;</span>' : '<span class="who-a">◆ gatesai&nbsp;&nbsp;</span>';
+      var caret = (!reduced && i === s.msgs.length - 1) ? '<span class="caret"></span>' : "";
+      return '<div class="msg">' + who + '<span class="txt">' + esc(m.t) + caret + "</span></div>";
+    }).join("");
+  }
+  function esc(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+  // count-up stats
+  if (!reduced) {
+    var cObs = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        cObs.unobserve(e.target);
+        var el = e.target, target = parseInt(el.dataset.count, 10), suffix = el.textContent.replace(/[0-9]/g, "");
+        var t0 = null;
+        function step(ts) {
+          if (!t0) t0 = ts;
+          var p = Math.min((ts - t0) / 900, 1);
+          el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))) + suffix;
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+    }, { threshold: 0.6 });
+    document.querySelectorAll("[data-count]").forEach(function (el) { cObs.observe(el); });
+  }
+})();
+</script>
+</body>
+</html>
