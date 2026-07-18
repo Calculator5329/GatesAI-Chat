@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-07-18 — Typecheck fix (plugins bounds literals)
+
+- `tsc -b` was red on master: `as const` bounds made `str()`'s default `max`
+  and policy's `candidates` array infer literal types (`128`/`50`), rejecting
+  every explicit override. Annotated both as `number`. First verified green on
+  both Linux and the new Geordi Windows worker (1388 tests pass there).
+
 ## 2026-07-16 — Local-first first-boot (LF-4)
 
 - The first-boot hero now leads with the local path: detected Ollama models

@@ -36,7 +36,7 @@ function asRecord(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-function str(record: Record<string, unknown>, key: string, label: string, max = DATABASE_PLUGIN_BOUNDS.maxIdentifierLength): string {
+function str(record: Record<string, unknown>, key: string, label: string, max: number = DATABASE_PLUGIN_BOUNDS.maxIdentifierLength): string {
   const value = record[key]
   if (typeof value !== 'string' || value.length === 0) bad('invalid_manifest', `${label}.${key} must be a non-empty string.`)
   if ((value as string).length > max) bad('invalid_manifest', `${label}.${key} exceeds ${max} characters.`)
