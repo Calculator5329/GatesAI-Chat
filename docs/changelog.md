@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-18 — v4.7.0
+
+- Release rollup since v4.6.1: local-first first-boot (LF-4), plugins
+  bounds/typecheck fix, Windows build-script spawn fix, artifact preview
+  iframe titled by display label (e2e green again). First release verified
+  by the Geordi Windows worker before tagging (full CI + native Tauri
+  build).
+
 ## 2026-07-18 — Typecheck fix (plugins bounds literals)
 
 - `tsc -b` was red on master: `as const` bounds made `str()`'s default `max`
