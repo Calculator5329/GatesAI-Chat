@@ -38,7 +38,6 @@ describe('headless core', () => {
     const core = bootHeadlessCore();
     expect(core.store.runtime).toBe('headless');
     expect(core.store.chat).toBeDefined();
-    expect(core.store.schedules).toBeDefined();
     expect(core.store.rag).toBeDefined();
     expect(core.store.bridge.isOnline).toBe(false);
     expect(() => core.dispose()).not.toThrow();

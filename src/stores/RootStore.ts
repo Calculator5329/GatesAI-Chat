@@ -14,7 +14,6 @@ import { OllamaStore } from './OllamaStore';
 import { UserProfileStore } from './UserProfileStore';
 import { SummaryStore } from './SummaryStore';
 import { NotesStore } from './NotesStore';
-import { SchedulesStore } from './SchedulesStore';
 import { BridgeStore } from './BridgeStore';
 import { ExecStreamStore } from './ExecStreamStore';
 import { UpdateStore } from './UpdateStore';
@@ -65,7 +64,6 @@ export class RootStore {
   readonly ollama: OllamaStore;
   readonly summary: SummaryStore;
   readonly notes: NotesStore;
-  readonly schedules: SchedulesStore;
   readonly bridge: BridgeStore;
   readonly updates: UpdateStore;
   readonly execStream: ExecStreamStore;
@@ -126,7 +124,6 @@ export class RootStore {
     seedWelcomeTourOnFirstRun(this.chat, this.whatsNew);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
-    this.schedules = new SchedulesStore(this.chat);
     this.rag = new RagStore({
       getSources: () => ({
         threads: this.chat.threads,
@@ -166,7 +163,6 @@ export class RootStore {
     // wiring stays one-way (tools reach back through ChatStore's context).
     this.chat.setToolStoresProvider(() => ({
       notes: this.notes,
-      schedules: this.schedules,
       summary: this.summary,
       bridge: this.bridge,
       execStream: this.execStream,
@@ -304,7 +300,6 @@ export class RootStore {
     }
 
     this.summary.start();
-    this.schedules.start();
     this.rag.start();
     if (this.runtime !== 'headless') {
       this.disposers.push(installMultiTabStorageListener());
@@ -338,7 +333,6 @@ export class RootStore {
   dispose(): void {
     while (this.disposers.length > 0) this.disposers.pop()?.();
     this.summary.stop();
-    this.schedules.dispose();
     this.rag.dispose();
     this.bridge.stop();
     this.providers.dispose();

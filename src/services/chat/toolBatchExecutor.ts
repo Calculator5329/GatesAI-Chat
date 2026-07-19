@@ -11,7 +11,7 @@ import { isToolFailureContent, logToolCallFailure, safeJsonPreview } from './too
 import { formatInterruptedToolBatchSummary, safeStableJson } from './turnFormatting';
 import { smokeRenderHtmlArtifact } from '../artifacts/smokeRender';
 
-export type ToolStoreContext = Pick<ToolContext, 'notes' | 'schedules' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search' | 'rag' | 'sourceWorkspace' | 'offlineLibrary' | 'artifacts' | 'artifactSurface'>;
+export type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search' | 'rag' | 'sourceWorkspace' | 'offlineLibrary' | 'artifacts' | 'artifactSurface'>;
 
 export interface ToolBatchDeps {
   profile: ToolContext['profile'];
@@ -293,7 +293,6 @@ async function executeOneToolCall(
     profile: deps.profile,
     chat: deps.chat,
     notes: extras.notes,
-    schedules: extras.schedules,
     summary: extras.summary,
     bridge: extras.bridge,
     execStream: extras.execStream,

@@ -24,7 +24,6 @@ import type { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
 import type { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import type { RagStore } from '../services/rag/RagStore';
 import type { SkillsStore } from './SkillsStore';
-import type { SchedulesStore } from './SchedulesStore';
 import type { WhatsNewStore } from './WhatsNewStore';
 import type { UpdateStore } from './UpdateStore';
 import type { OfflineLibraryStore } from './OfflineLibraryStore';
@@ -120,11 +119,6 @@ export function useSourceWorkspaceStore(): SourceWorkspaceStore {
 export function useSkillsStore(): SkillsStore {
   return useRootStore().skills;
 }
-
-export function useSchedulesStore(): SchedulesStore {
-  return useRootStore().schedules;
-}
-
 export function useRagStore(): RagStore {
   return useRootStore().rag;
 }
