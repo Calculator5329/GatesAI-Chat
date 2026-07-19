@@ -259,6 +259,32 @@ describe('OpenRouterProvider', () => {
 });
 
 describe('OpenAiCompatProvider custom endpoint', () => {
+  it('keeps the complete composed system prompt as the first OpenAI message', async () => {
+    let body: unknown;
+    vi.stubGlobal('fetch', vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body));
+      return okSseResponse();
+    }));
+    const composed = 'Safety/tool scaffold.\n\nUser-configured instructions:\nBe concise.';
+    const provider = new OpenAiCompatProvider({
+      id: 'openai-compat',
+      name: 'Custom',
+      baseUrl: 'http://localhost:1234/v1',
+      requiresApiKey: false,
+    });
+
+    await drain(provider.stream({
+      modelId: 'local-model',
+      systemPrompt: composed,
+      messages: [{ role: 'user', content: 'hi' }],
+    }, new AbortController().signal));
+
+    expect((body as { messages: unknown[] }).messages).toEqual([
+      { role: 'system', content: composed },
+      { role: 'user', content: 'hi' },
+    ]);
+  });
+
   it('streams through the normalized custom URL with optional authorization', async () => {
     let body: unknown;
     const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {

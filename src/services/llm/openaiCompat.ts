@@ -268,9 +268,9 @@ function isProviderStrictSchemaSafe(schema: ToolDef['parameters']): boolean {
  * Assistant messages with `toolCalls` get the `tool_calls` field; `tool`
  * messages map to `{ role: 'tool', tool_call_id, name, content }`.
  */
-function buildOpenAiMessages(req: LlmRequest): unknown[] {
+export function buildOpenAiMessages(req: LlmRequest): unknown[] {
   const out: unknown[] = [];
-  if (req.systemPrompt) out.push({ role: 'system', content: req.systemPrompt });
+  if (req.systemPrompt?.trim()) out.push({ role: 'system', content: req.systemPrompt });
   for (const m of req.messages) {
     out.push(toOpenAiMessage(m));
   }

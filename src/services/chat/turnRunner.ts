@@ -68,6 +68,7 @@ import {
   buildAgentTaskSystemPrompt,
   clampAgentTaskMaxRounds,
 } from './agentTasks';
+import { appendUserSystemPrompt } from './userSystemPrompt';
 
 export type ChatThinkingEffort = Extract<ThinkingEffort, 'low' | 'medium' | 'high'>;
 export const DEFAULT_OPENROUTER_THINKING_EFFORT: ChatThinkingEffort = 'low';
@@ -101,7 +102,8 @@ export interface TurnRouter {
 }
 
 export interface TurnProfile extends ProfileFacade {
-  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; semanticContext?: string }): string | undefined;
+  defaultSystemPrompt: string;
+  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; semanticContext?: string; userSystemPrompt?: string }): string | undefined;
 }
 
 export interface TurnHost {
@@ -136,6 +138,7 @@ export interface TurnRunnerDeps {
   getRecentSummaries(): string[];
   getSemanticContext?(userText: string): string | Promise<string>;
   getActiveSkill?(threadId: string): WorkspaceSkill | undefined;
+  getUserSystemPrompt?(threadId: string): string;
   roundExecutor?: StreamingRoundExecutor;
 }
 
@@ -155,6 +158,7 @@ export class TurnRunner {
   private readonly getRecentSummaries: () => string[];
   private readonly getSemanticContext: (userText: string) => string | Promise<string>;
   private readonly getActiveSkill: (threadId: string) => WorkspaceSkill | undefined;
+  private readonly getUserSystemPrompt: (threadId: string) => string;
   private readonly roundExecutor: StreamingRoundExecutor;
 
   constructor(deps: TurnRunnerDeps) {
@@ -168,6 +172,7 @@ export class TurnRunner {
     this.getRecentSummaries = deps.getRecentSummaries;
     this.getSemanticContext = deps.getSemanticContext ?? (() => '');
     this.getActiveSkill = deps.getActiveSkill ?? (() => undefined);
+    this.getUserSystemPrompt = deps.getUserSystemPrompt ?? (() => this.profile.defaultSystemPrompt);
     this.roundExecutor = deps.roundExecutor ?? new StreamingRoundExecutor({ retryPolicy: transientProviderRetryPolicy });
   }
 
@@ -500,15 +505,19 @@ export class TurnRunner {
     const model = this.registry.findById(thread.modelId);
     const mode = effectiveContextMode(thread, model);
     const activeSkill = this.getActiveSkill(thread.id);
+    const userSystemPrompt = this.getUserSystemPrompt(thread.id);
     const systemPrompt = thread.agentTask
-      ? buildAgentTaskSystemPrompt(thread.agentTaskSystemPrompt)
-      : systemPromptForContextMode(mode, () =>
-          this.profile.composeSystemPrompt({
+      ? appendUserSystemPrompt(buildAgentTaskSystemPrompt(thread.agentTaskSystemPrompt), userSystemPrompt)
+      : systemPromptForContextMode(
+          mode,
+          () => this.profile.composeSystemPrompt({
             runtimeContext: buildRuntimeContext({ bridge, sourceWorkspace: extras?.sourceWorkspace?.runtimeSnapshot }),
             threadContext: mode === 'full' ? thread.threadContext : undefined,
             recentSummaries: mode === 'full' ? recentSummaries : [],
             semanticContext: mode === 'full' ? semanticContext : undefined,
-          })
+            userSystemPrompt,
+          }),
+          userSystemPrompt,
         );
     const runningAgentTasks = countRunningAgentTasks(this.chat.threads);
     const tools = toolsForContextMode({

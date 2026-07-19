@@ -50,6 +50,25 @@ describe('OllamaProvider — request shape', () => {
     vi.unstubAllGlobals();
   });
 
+  it('keeps the complete composed system prompt as the first native message', async () => {
+    const { fetchMock, getBody } = captureRequest();
+    vi.stubGlobal('fetch', fetchMock);
+    const provider = new OllamaProvider({ baseUrl: 'http://h:1' });
+    const composed = 'Safety/tool scaffold.\n\nUser-configured instructions:\nBe concise.';
+
+    for await (const _ of provider.stream({
+      modelId: 'm',
+      systemPrompt: composed,
+      messages: [{ role: 'user', content: 'hi' }],
+    }, new AbortController().signal)) { /* drain */ }
+
+    expect(getBody().messages).toEqual([
+      { role: 'system', content: composed },
+      { role: 'user', content: 'hi' },
+    ]);
+    vi.unstubAllGlobals();
+  });
+
   it('passes Authorization header only when apiKey is set', async () => {
     const { fetchMock } = captureRequest();
     vi.stubGlobal('fetch', fetchMock);

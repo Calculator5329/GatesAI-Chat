@@ -1907,6 +1907,26 @@ describe('ChatStore', () => {
     expect((mock.calls[0].tools ?? []).length).toBeGreaterThan(0);
   });
 
+  it('persists the global prompt and per-thread override, then falls back when cleared', () => {
+    const { chat, profile, providers, registry } = setup();
+    const threadId = chat.activeThreadId!;
+    profile.setDefaultSystemPrompt('Global response preferences.');
+    chat.setThreadSystemPrompt(threadId, 'Thread-specific response preferences.');
+
+    expect(chat.systemPromptForThread(threadId)).toBe('Thread-specific response preferences.');
+    chat.dispose();
+
+    const reloadedProfile = new UserProfileStore();
+    const reloaded = trackChat(new ChatStore(providers, registry, reloadedProfile));
+    expect(reloadedProfile.defaultSystemPrompt).toBe('Global response preferences.');
+    expect(reloaded.systemPromptOverrideByThread[threadId]).toBe('Thread-specific response preferences.');
+    expect(reloaded.systemPromptForThread(threadId)).toBe('Thread-specific response preferences.');
+
+    reloaded.setThreadSystemPrompt(threadId, '   ');
+    expect(reloaded.systemPromptOverrideByThread[threadId]).toBeUndefined();
+    expect(reloaded.systemPromptForThread(threadId)).toBe('Global response preferences.');
+  });
+
   it('can send local Ollama turns as a bare current prompt with no tools or system prompt', async () => {
     const { chat, mock, registry } = setup([
       { type: 'text', delta: 'ok' },

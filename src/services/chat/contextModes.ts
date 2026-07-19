@@ -9,6 +9,7 @@ import { toolRegistry } from '../tools/registry';
 import { isHeadless, isWebLite } from '../../core/runtime';
 import { messageText } from '../../core/messageParts';
 import { localModelContextProfile } from '../../core/localModelMeta';
+import { appendUserSystemPrompt } from './userSystemPrompt';
 
 export type ChatContextMode = NonNullable<Thread['contextMode']>;
 
@@ -75,9 +76,16 @@ export function effectiveContextMode(thread: Thread, model: Model | undefined): 
   return thread.contextMode ?? 'full';
 }
 
-export function systemPromptForContextMode(mode: ChatContextMode, normalPrompt: () => string | undefined): string | undefined {
-  if (mode === 'bare') return undefined;
-  if (mode === 'micro') return MICRO_LOCAL_SYSTEM_PROMPT;
+export function systemPromptForContextMode(
+  mode: ChatContextMode,
+  normalPrompt: () => string | undefined,
+  userSystemPrompt?: string,
+): string | undefined {
+  // Bare mode still omits app context when there are no user instructions.
+  // When configured, the boundary text is the only system scaffold and makes
+  // explicit that user preferences cannot grant tools or remove safety limits.
+  if (mode === 'bare') return appendUserSystemPrompt(undefined, userSystemPrompt);
+  if (mode === 'micro') return appendUserSystemPrompt(MICRO_LOCAL_SYSTEM_PROMPT, userSystemPrompt);
   return normalPrompt();
 }
 

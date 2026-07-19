@@ -22,7 +22,7 @@ export interface OllamaProviderOptions {
   toolsEnabled?: boolean;
 }
 
-interface OllamaWireMessage {
+export interface OllamaWireMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   images?: string[];
@@ -99,7 +99,7 @@ export class OllamaProvider implements LlmProvider {
 
     const body = {
       model: req.modelId,
-      messages: this.buildMessages(req.messages, req.systemPrompt),
+      messages: buildOllamaMessages(req.messages, req.systemPrompt),
       stream: true,
       keep_alive: '5m',
       ...(req.responseFormat ? { format: req.responseFormat.type === 'json_object' ? 'json' : req.responseFormat.schema } : {}),
@@ -137,25 +137,6 @@ export class OllamaProvider implements LlmProvider {
     }
 
     yield* this.parseNdjson(response.body, signal, req.modelId);
-  }
-
-  private buildMessages(messages: LlmMessage[], systemPrompt: string | undefined): OllamaWireMessage[] {
-    const out: OllamaWireMessage[] = [];
-    if (systemPrompt && systemPrompt.trim()) out.push({ role: 'system', content: systemPrompt });
-    for (const m of messages) {
-      const wire: OllamaWireMessage = { role: m.role, content: m.content };
-      if (m.role === 'user' && m.images && m.images.length) {
-        wire.images = m.images.map(img => img.base64);
-      }
-      if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length) {
-        wire.tool_calls = m.toolCalls.map(c => ({
-          id: c.id,
-          function: { name: c.name, arguments: c.arguments },
-        }));
-      }
-      out.push(wire);
-    }
-    return out;
   }
 
   private async *parseNdjson(body: ReadableStream<Uint8Array>, signal: AbortSignal, modelId: string): AsyncIterable<LlmChunk> {
@@ -223,6 +204,29 @@ export class OllamaProvider implements LlmProvider {
       ...normalizeToolCallArguments(fn?.arguments, 'Ollama returned tool arguments that were not a JSON object.'),
     };
   }
+}
+
+/** Build the native Ollama message list with the composed system prompt first. */
+export function buildOllamaMessages(
+  messages: LlmMessage[],
+  systemPrompt: string | undefined,
+): OllamaWireMessage[] {
+  const out: OllamaWireMessage[] = [];
+  if (systemPrompt?.trim()) out.push({ role: 'system', content: systemPrompt });
+  for (const m of messages) {
+    const wire: OllamaWireMessage = { role: m.role, content: m.content };
+    if (m.role === 'user' && m.images?.length) {
+      wire.images = m.images.map(img => img.base64);
+    }
+    if (m.role === 'assistant' && m.toolCalls?.length) {
+      wire.tool_calls = m.toolCalls.map(c => ({
+        id: c.id,
+        function: { name: c.name, arguments: c.arguments },
+      }));
+    }
+    out.push(wire);
+  }
+  return out;
 }
 
 function parseOllamaStreamFrame(value: unknown): OllamaStreamFrame {
