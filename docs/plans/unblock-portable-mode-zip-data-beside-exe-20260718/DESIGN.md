@@ -24,6 +24,10 @@ not written beside the EXE, copied into the ZIP, or included in JSON exports. A
 portable folder moved to another Windows account or machine therefore requires
 the user to enter provider keys again. This is the only app-data portability
 exception and preserves the repository’s existing secret-storage safety rule.
+Because the installed and portable builds use the same `gatesai-chat` keyring
+service name, they intentionally see the same provider credentials when run by
+the same Windows account; deleting or replacing a key in either build affects
+the other.
 
 ## User-visible contract
 
@@ -120,6 +124,9 @@ Add `src-tauri/src/portable.rs` with a small, pure path/mode model:
 
 - Resolve `std::env::current_exe()` and its parent; never use the process working
   directory.
+- Interpret the marker only in Windows desktop builds. Linux, macOS, and mobile
+  builds remain installed mode even if a file with that name is present beside
+  their executable.
 - A missing sibling `portable.flag` means installed mode. A regular file whose
   trimmed contents equal `gatesai-portable-v1` means portable mode. If the path
   exists but is not a regular file or has any other content, fail startup with a
@@ -130,8 +137,9 @@ Add `src-tauri/src/portable.rs` with a small, pure path/mode model:
 - Installed mode retains `app.path().app_local_data_dir()` and the default WebView
   directory.
 - Create/validate the portable directories in Tauri setup. On error, use the
-  already-registered dialog plugin to show a blocking native message, then exit
-  setup without spawning a bridge or opening the main window.
+  already-registered dialog plugin to show a native error, then exit from the
+  dialog callback without spawning a bridge or opening the main window. Do not
+  call `blocking_show` from Tauri's main setup thread.
 - Expose the mode as managed Rust state so source-workspace and launcher code use
   one decision rather than probing the marker independently.
 
@@ -146,15 +154,22 @@ Tauri’s JSON `dataDirectory` accepts only a path relative to LocalAppData, so 
 cannot implement this contract. Pinned Tauri `2.10.3` exposes the absolute-path
 `WebviewWindowBuilder::data_directory(PathBuf)` API.
 
-At startup:
+At startup, before handing the generated context to `Builder::run`:
 
-1. Generate the normal Tauri context.
-2. In portable mode, clone the `main` `WindowConfig` and set its context entry’s
-   `create` field to `false` so Tauri does not create the default LocalAppData
-   WebView before setup.
-3. During setup, validate/create `data/`, then build the cloned main window with
+1. Detect the marker exactly once and retain either installed mode, portable
+   paths, or the startup error. Generate the normal Tauri context and clone its
+   `main` `WindowConfig`.
+2. For portable mode **or any marker/path-detection error**, set the generated
+   context entry’s `create` field to `false`. Tauri creates configured windows
+   before its setup hook, so this is required to prevent both a transient
+   LocalAppData WebView and an installed-mode fallback on invalid input.
+3. Installed mode passes the otherwise unchanged context to Tauri and keeps the
+   config-created main window. For a detection error, setup shows the native
+   error and exits without creating a window or starting the bridge.
+4. In portable mode, setup validates/creates `data/`, then builds the cloned
+   main window with
    `WebviewWindowBuilder::from_config(...).data_directory(data/webview)`.
-4. Add a safely JSON-serialized initialization script that defines:
+5. Add a safely JSON-serialized initialization script that defines:
 
    ```ts
    window.__GATESAI_DESKTOP_RUNTIME__ = {
@@ -166,7 +181,7 @@ At startup:
 
    Serialize the object with `serde_json`; never interpolate an unescaped path
    into JavaScript.
-5. Installed mode continues using the unchanged config-created main window and
+6. Installed mode continues using the unchanged config-created main window and
    frontend defaults (`portable: false`, port `7331`).
 
 This redirects both localStorage and IndexedDB, covering the app snapshot and
@@ -327,7 +342,8 @@ All items are required:
       a malformed marker or unwritable portable root shows a native error and
       does not fall back to LocalAppData.
 - [ ] API keys are absent from the extracted tree and must be re-entered after
-      moving to a different Windows account/machine.
+      moving to a different Windows account/machine; installed and portable
+      copies on one account share the existing OS-keyring entries as documented.
 - [ ] `npm run ci`, `npm run test:e2e`, Rust tests, and bridge Go tests pass.
 - [ ] README, architecture/tech spec, release checklist, and both changelogs
       describe the shipped behavior accurately.
