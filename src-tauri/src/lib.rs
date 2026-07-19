@@ -9,7 +9,6 @@ mod brave_search;
 mod desktop;
 mod fetch_page;
 mod local_runtime;
-mod offline_library;
 mod secrets;
 mod webkit_dmabuf;
 
@@ -68,7 +67,6 @@ pub fn run() {
     .invoke_handler(tauri::generate_handler![
       desktop::set_global_shortcut,
       desktop::global_shortcut_state,
-      desktop::knowledge_shortcut_state,
       desktop::set_close_to_tray,
       open_path,
       brave_search::brave_llm_context,
@@ -85,8 +83,6 @@ pub fn run() {
       local_runtime::pick_directory,
       local_runtime::pick_file,
       local_runtime::runtime_candidate_paths,
-      offline_library::offline_library_read,
-      offline_library::offline_library_search,
     ])
     .manage(desktop::DesktopState::default())
     .manage(BridgeChild(Mutex::new(None)))

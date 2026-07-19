@@ -24,8 +24,6 @@ import type { RagStore } from '../services/rag/RagStore';
 import type { SkillsStore } from './SkillsStore';
 import type { WhatsNewStore } from './WhatsNewStore';
 import type { UpdateStore } from './UpdateStore';
-import type { OfflineLibraryStore } from './OfflineLibraryStore';
-
 const StoreContext = createContext<RootStore | null>(null);
 
 export function StoreProvider({ store, children }: { store: RootStore; children: ReactNode }) {
@@ -118,10 +116,6 @@ export function useWhatsNewStore(): WhatsNewStore {
 
 export function useUpdateStore(): UpdateStore {
   return useRootStore().updates;
-}
-
-export function useOfflineLibraryStore(): OfflineLibraryStore {
-  return useRootStore().offlineLibrary;
 }
 
 export interface EditorialStores {

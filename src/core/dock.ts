@@ -3,7 +3,7 @@
 // components; kept dependency-free per core/ layer rules.
 
 /** Panel kinds the dock can host in v1 (Slice 1+2: read-only viewers). */
-export type DockPanelKind = 'file-viewer' | 'file-explorer' | 'media-viewer' | 'html-artifact' | 'offline-library' | 'task-center';
+export type DockPanelKind = 'file-viewer' | 'file-explorer' | 'media-viewer' | 'html-artifact' | 'task-center';
 
 export interface DockPanelRef {
   kind: DockPanelKind;
@@ -53,7 +53,6 @@ export function isDockPanelKind(value: unknown): value is DockPanelKind {
     || value === 'file-explorer'
     || value === 'media-viewer'
     || value === 'html-artifact'
-    || value === 'offline-library'
     || value === 'task-center';
 }
 

@@ -528,7 +528,6 @@ export class TurnRunner {
       imageGenAvailable: isImageGenerationAvailable(extras),
       webSearchAvailable: extras?.search?.braveReady ?? false,
       semanticRecallAvailable: extras?.rag?.active ?? false,
-      offlineLibraryAvailable: extras?.offlineLibrary?.available ?? false,
       spawnTaskAvailable: !thread.agentTask && runningAgentTasks < MAX_CONCURRENT_AGENT_TASKS,
       spawnTaskRunningCount: runningAgentTasks,
       spawnTaskMaxConcurrent: MAX_CONCURRENT_AGENT_TASKS,

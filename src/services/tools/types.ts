@@ -4,18 +4,6 @@
 import type { LlmMessage, ToolDef } from '../../core/llm';
 import type { Note } from '../../core/notes';
 import type { Thread, ToolResultArtifact } from '../../core/types';
-import type {
-  OfflineLibraryDatabases,
-  OfflineLibraryKnowledgeArena,
-  OfflineLibraryProfile,
-  OfflineLibraryProfiles,
-  OfflineLibraryPublicSchema,
-  OfflineLibraryResult,
-  OfflineLibrarySearchRequest,
-  OfflineLibrarySearchResponse,
-  OfflineLibrarySources,
-} from '../../core/offlineLibrary';
-
 /**
  * Runtime context passed to every tool. Add fields here as tools need them
  * (e.g. an HTTP client, a fetcher for `web_search`). Keep this surface
@@ -155,17 +143,6 @@ export interface RagFacade {
   recall(query: string, k?: number): Promise<string>;
 }
 
-export interface OfflineLibraryFacade {
-  readonly available: boolean;
-  readonly documentProfile?: OfflineLibraryProfile | null;
-  search(request: OfflineLibrarySearchRequest): Promise<OfflineLibraryResult<OfflineLibrarySearchResponse>>;
-  getSources(): Promise<OfflineLibraryResult<OfflineLibrarySources>>;
-  getDatabases(): Promise<OfflineLibraryResult<OfflineLibraryDatabases>>;
-  getPublicSchema(alias: string): Promise<OfflineLibraryResult<OfflineLibraryPublicSchema>>;
-  getProfiles(): Promise<OfflineLibraryResult<OfflineLibraryProfiles>>;
-  getKnowledgeArena(): Promise<OfflineLibraryResult<OfflineLibraryKnowledgeArena>>;
-}
-
 export interface ArtifactValidationFacade {
   smokeRender(html: string, options?: { signal?: AbortSignal }): Promise<{
     ok: boolean;
@@ -193,7 +170,6 @@ export interface ToolContext {
   execStream?: ExecStreamFacade;
   search?: SearchFacade;
   rag?: RagFacade;
-  offlineLibrary?: OfflineLibraryFacade;
   artifactValidation?: ArtifactValidationFacade;
   artifacts?: ArtifactRegistryFacade;
   artifactSurface?: ArtifactSurfaceFacade;
@@ -205,7 +181,7 @@ export interface ToolContext {
   signal?: AbortSignal;
 }
 
-export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision' | 'web' | 'knowledge' | 'diagnostics' | 'mcp';
+export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision' | 'web' | 'diagnostics' | 'mcp';
 
 export interface ToolResultPolicy {
   /** Default max chars returned to the model before compaction. */

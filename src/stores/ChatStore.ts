@@ -507,7 +507,6 @@ export class ChatStore {
       imageGenAvailable: isImageGenerationAvailable(extras),
       webSearchAvailable: extras?.search?.braveReady ?? false,
       semanticRecallAvailable: extras?.rag?.active ?? false,
-      offlineLibraryAvailable: extras?.offlineLibrary?.available ?? false,
       spawnTaskAvailable: !thread.agentTask && this.runningAgentTaskCount() < MAX_CONCURRENT_AGENT_TASKS,
       spawnTaskRunningCount: this.runningAgentTaskCount(),
       spawnTaskMaxConcurrent: MAX_CONCURRENT_AGENT_TASKS,

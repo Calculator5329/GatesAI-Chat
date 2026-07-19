@@ -11,7 +11,7 @@ import { isToolFailureContent, logToolCallFailure, safeJsonPreview } from './too
 import { formatInterruptedToolBatchSummary, safeStableJson } from './turnFormatting';
 import { smokeRenderHtmlArtifact } from '../artifacts/smokeRender';
 
-export type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search' | 'rag' | 'offlineLibrary' | 'artifacts' | 'artifactSurface'>;
+export type ToolStoreContext = Pick<ToolContext, 'notes' | 'summary' | 'bridge' | 'execStream' | 'imageGen' | 'imageJobs' | 'localRuntime' | 'search' | 'rag' | 'artifacts' | 'artifactSurface'>;
 
 export interface ToolBatchDeps {
   profile: ToolContext['profile'];

@@ -8,7 +8,6 @@ import { Icons } from '../ui/icons';
 import { FileViewerPanel } from './FileViewerPanel';
 import { FileExplorerPanel } from './FileExplorerPanel';
 import { MediaViewerPanel } from './MediaViewerPanel';
-import { OfflineLibraryPanel } from './OfflineLibraryPanel';
 import { HtmlArtifactPanel } from './HtmlArtifactPanel';
 import { TaskCenterPanel } from './TaskCenterPanel';
 
@@ -54,13 +53,6 @@ const PANELS: Record<DockPanelKind, DockPanelDefinition> = {
     icon: () => <Icons.FileText />,
     Component: HtmlArtifactPanel,
     requiresBridge: true,
-  },
-  'offline-library': {
-    kind: 'offline-library',
-    title: 'Knowledge benchmarks',
-    icon: () => <Icons.Brain />,
-    Component: OfflineLibraryPanel,
-    requiresBridge: false,
   },
   'task-center': {
     kind: 'task-center',
