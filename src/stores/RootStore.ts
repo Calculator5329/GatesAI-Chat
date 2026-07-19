@@ -29,6 +29,7 @@ import { RagStore } from '../services/rag/RagStore';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 import { configureLogSink, logger } from '../services/diagnostics/logger';
 import { installMultiTabStorageListener } from '../services/storage/persistenceProvider';
+import { purgeRetiredLocalSlots } from '../services/persistence/retiredSlots';
 import { WebLocksLeaderElection } from '../services/storage/webLocksLeaderElection';
 import { toolRegistry } from '../services/tools/registry';
 import { runtimeMode, type GatesRuntimeMode } from '../core/runtime';
@@ -165,6 +166,7 @@ export class RootStore {
   boot(): void {
     if (this.booted) return;
     this.booted = true;
+    purgeRetiredLocalSlots();
     void this.hydrateSecretsAtBoot();
 
     let attemptedOpenRouterCatalogHydrationForKey: string | null = null;
