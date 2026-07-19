@@ -4,8 +4,8 @@ import type { ActivityItem, AssistantMessage, ChatSnapshot, Message, StreamActiv
 import type { LlmRequest } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { resolveBackgroundModelId, resolveDefaultModelId } from '../core/defaultModel';
-import { formatAttachmentFooter, splitAttachmentFooter, toMessageAttachmentRef } from '../core/attachments';
-import { appendMessageText, messageText, setMessageText, userMessageParts } from '../core/messageParts';
+import { splitAttachmentFooter } from '../core/attachments';
+import { appendMessageText, messageText } from '../core/messageParts';
 import {
   branchThreadFrom,
   createEmptyThread,
@@ -32,9 +32,7 @@ import { CURRENT_CHAT_SCHEMA_VERSION } from '../services/persistence/migrations'
 import { setMultiTabWriteHandler } from '../services/storage/persistenceProvider';
 import type { LeaderElectionState, WebLocksLeaderElection } from '../services/storage/webLocksLeaderElection';
 import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, estimateTokens, type TokenUsage } from '../core/tokens';
-import { StreamingTextBuffer } from '../services/streaming/StreamingTextBuffer';
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
-import { logEvent } from '../services/diagnostics/chatLog';
 import { logger } from '../services/diagnostics/logger';
 import type { UndoService } from '../services/undo/UndoService';
 import { createWorkspaceChatPersistence } from '../services/workspaceChatPersistence';
@@ -56,22 +54,21 @@ import {
 import { buildActivitiesForMessage } from '../services/chat/activityProjection';
 import { normalizeProviderErrorMessage } from '../services/chat/turnFormatting';
 import {
-  type StreamingRoundActivityUpdate,
-} from '../services/chat/streamingRoundExecutor';
-import {
-  AGENT_TASK_MAX_TOOL_ROUNDS,
   TurnRunner,
   isImageGenerationAvailable,
   type ChatThinkingEffort,
   type TurnHost,
 } from '../services/chat/turnRunner';
 import {
-  AGENT_TASK_SLOT_RETRY_MS,
   MAX_CONCURRENT_AGENT_TASKS,
-  clampAgentTaskMaxRounds,
-  clampAgentTaskStartDelayMinutes,
-  normalizeAgentTaskSystemPromptBody,
 } from '../services/chat/agentTasks';
+import {
+  ChatTurnEngine,
+  type ChatTurnAttachment,
+} from '../services/chat/chatTurnEngine';
+import {
+  AgentTaskLifecycle,
+} from '../services/chat/agentTaskLifecycle';
 import {
   AutoNamer,
   type AutoNameHost,
@@ -110,9 +107,7 @@ function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
-const AGENT_TASK_SUMMARY_LIMIT = 2000;
-
-/** Observable chat state facade; turn, thread, and naming control flow live in services/core helpers. */
+/** Observable chat state facade; turn/agent control flow lives in ChatTurnEngine + AgentTaskLifecycle. */
 export class ChatStore {
   threads: Thread[] = [];
   activeThreadId: string | null = null;
@@ -134,16 +129,15 @@ export class ChatStore {
   private readonly providers: ProviderStore;
   private readonly registry: ModelRegistry;
   private readonly profile: UserProfileStore;
-  private readonly controllersByThread = new Map<string, AbortController>();
   private readonly autoNamer: AutoNamer;
   private readonly turnRunner: TurnRunner;
-  private readonly textBuffer = new StreamingTextBuffer();
+  private readonly turnEngine: ChatTurnEngine;
+  private readonly agentTasks: AgentTaskLifecycle;
   private readonly persistence: ChatPersistenceCoordinator;
   private readonly leaderElection: WebLocksLeaderElection | null;
   private stopLeaderElectionSubscription: (() => void) | null = null;
   private stopUserSystemPromptPersistence: (() => void) | null = null;
   private readonly hydrationByThread = new Map<string, Promise<Thread | null>>();
-  private readonly agentTaskStartTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private workspacePersistenceHydrating = false;
   private recentSummariesProvider: (() => string[]) | null = null;
   private semanticContextProvider: ((userText: string) => string | Promise<string>) | null = null;
@@ -188,6 +182,13 @@ export class ChatStore {
       getActiveSkill: threadId => this.activeSkillProvider?.(threadId),
       getUserSystemPrompt: threadId => this.systemPromptForThread(threadId),
     });
+    this.turnEngine = new ChatTurnEngine({
+      host: this.createTurnEngineHost(),
+      turnRunner: this.turnRunner,
+    });
+    this.agentTasks = new AgentTaskLifecycle({
+      host: this.createAgentTaskHost(),
+    });
     const snapshot = loadSnapshot();
     if (snapshot) {
       this.applySnapshot(snapshot);
@@ -217,20 +218,19 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'stopUserSystemPromptPersistence' | 'hydrationByThread' | 'agentTaskStartTimers' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled' | 'undoService'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'autoNamer' | 'turnRunner' | 'turnEngine' | 'agentTasks' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'stopUserSystemPromptPersistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled' | 'undoService'>(this, {
       providers: false,
       registry: false,
       profile: false,
-      controllersByThread: false,
       autoNamer: false,
       turnRunner: false,
-      textBuffer: false,
+      turnEngine: false,
+      agentTasks: false,
       persistence: false,
       leaderElection: false,
       stopLeaderElectionSubscription: false,
       stopUserSystemPromptPersistence: false,
       hydrationByThread: false,
-      agentTaskStartTimers: false,
       workspacePersistenceHydrating: false,
       recentSummariesProvider: false,
       semanticContextProvider: false,
@@ -269,17 +269,17 @@ export class ChatStore {
           this.streamingByThread[threadId] = message.id;
         });
       },
-      ownsTurn: (threadId, messageId) => this.ownsStreamingTurn(threadId, messageId),
-      queueTextChunk: (threadId, messageId, chunk) => this.queueTextChunk(threadId, messageId, chunk),
-      flushText: messageId => this.textBuffer.flush(messageId),
-      cancelText: messageId => this.textBuffer.cancel(messageId),
+      ownsTurn: (threadId, messageId) => this.turnEngine.ownsStreamingTurn(threadId, messageId),
+      queueTextChunk: (threadId, messageId, chunk) => this.turnEngine.queueTextChunk(threadId, messageId, chunk),
+      flushText: messageId => this.turnEngine.flushText(messageId),
+      cancelText: messageId => this.turnEngine.cancelText(messageId),
       clearStreamingState: (threadId, messageId) => {
-        runInAction(() => this.clearStreamingState(threadId, messageId));
+        runInAction(() => this.turnEngine.clearStreamingState(threadId, messageId));
       },
       applyRoundActivityUpdate: (threadId, messageId, update) =>
-        this.applyRoundActivityUpdate(threadId, messageId, update),
+        this.turnEngine.applyRoundActivityUpdate(threadId, messageId, update),
       markStreamActivityPhase: (threadId, messageId, phase) =>
-        this.markStreamActivityPhase(threadId, messageId, phase),
+        this.turnEngine.markStreamActivityPhase(threadId, messageId, phase),
       updateAssistantMessage: (threadId, messageId, updater, options) => {
         let updated: AssistantMessage | undefined;
         runInAction(() => {
@@ -325,9 +325,63 @@ export class ChatStore {
     };
   }
 
+
+  private createTurnEngineHost() {
+    return {
+      runInAction: (fn: () => void) => runInAction(fn),
+      newMessageId: () => newId('m'),
+      ensureThreadModel: (threadId: string | null) => this.ensureThreadModel(threadId),
+      findMessage: (threadId: string, messageId: string) => this.findMessage(threadId, messageId),
+      appendMessage: (threadId: string, message: Message) => this.appendMessage(threadId, message),
+      setActiveThreadId: (threadId: string) => { this.activeThreadId = threadId; },
+      setThreadLastError: (threadId: string, message: string | null) => this.setThreadLastError(threadId, message),
+      getStreamingMessageId: (threadId: string) => this.streamingByThread[threadId],
+      setStreamingMessageId: (threadId: string, messageId: string | undefined) => {
+        if (messageId === undefined) delete this.streamingByThread[threadId];
+        else this.streamingByThread[threadId] = messageId;
+      },
+      getStreamActivity: (threadId: string) => this.streamActivityByThread[threadId],
+      setStreamActivity: (threadId: string, activity: StreamActivity | undefined) => {
+        if (activity === undefined) delete this.streamActivityByThread[threadId];
+        else this.streamActivityByThread[threadId] = activity;
+      },
+      appendChunk: (threadId: string, messageId: string, chunk: string) => this.appendChunk(threadId, messageId, chunk),
+    };
+  }
+
+  private createAgentTaskHost() {
+    return {
+      runInAction: (fn: () => void) => runInAction(fn),
+      newThreadId: () => newId('t'),
+      newMessageId: () => newId('m'),
+      findThread: (threadId: string) => this.findThread(threadId),
+      ensureThreadModel: (threadId: string | null) => this.ensureThreadModel(threadId),
+      resolveAgentTaskModelId: (inputModelId: string | undefined, origin: Thread) =>
+        this.resolveAgentTaskModelId(inputModelId, origin),
+      runningAgentTaskCount: () => this.runningAgentTaskCount(),
+      unshiftThread: (thread: Thread) => { this.threads.unshift(thread); },
+      schedulePersist: () => this.schedulePersistSnapshot(this.snapshot),
+      interruptThread: (threadId: string) => this.turnEngine.interruptThread(threadId),
+      clearStreamingState: (threadId: string) => this.turnEngine.clearStreamingState(threadId),
+      setController: (threadId: string, controller: AbortController) => this.turnEngine.setController(threadId, controller),
+      getController: (threadId: string) => this.turnEngine.getController(threadId),
+      setThreadLastError: (threadId: string, message: string | null) => this.setThreadLastError(threadId, message),
+      appendActivityEventToThread: (threadId: string, event: ActivityItem) =>
+        this.appendActivityEventToThread(threadId, event),
+      runTurn: (
+        threadId: string,
+        signal: AbortSignal,
+        isReplacingInterruptedReply: boolean,
+        options?: { maxToolRounds?: number },
+      ) => this.turnEngine.runTurn(threadId, signal, isReplacingInterruptedReply, options),
+      getThreads: () => this.threads,
+    };
+  }
+
   dispose(): void {
-    this.abortAllStreams();
-    this.clearAgentTaskStartTimers();
+    this.turnEngine.abortAllStreams();
+    this.streamingByThread = {};
+    this.agentTasks.clearAllTimers();
     this.stopLeaderElectionSubscription?.();
     this.stopLeaderElectionSubscription = null;
     this.stopUserSystemPromptPersistence?.();
@@ -620,118 +674,17 @@ export class ChatStore {
     },
     originThreadId: string,
   ): { ok: boolean; message: string; threadId?: string } {
-    const origin = this.ensureThreadModel(originThreadId);
-    if (!origin || origin.deletedAt != null) {
-      return { ok: false, message: 'Unable to start background task: origin thread is unavailable.' };
-    }
-    if (origin.agentTask) {
-      return { ok: false, message: 'Unable to start background task: agent tasks cannot spawn nested tasks.' };
-    }
-
-    const now = Date.now();
-    const title = normalizeAgentTaskTitle(input.title);
-    const instructions = input.instructions.trim();
-    const modelId = this.resolveAgentTaskModelId(input.model, origin);
-    if (!modelId) {
-      return { ok: false, message: 'Unable to start background task: no local or cloud chat model is available.' };
-    }
-    const maxRounds = clampAgentTaskMaxRounds(input.max_rounds);
-    const systemPrompt = normalizeAgentTaskSystemPromptBody(input.system_prompt);
-    const delayMinutes = clampAgentTaskStartDelayMinutes(input.start_delay_minutes);
-    const scheduledStartAt = delayMinutes > 0 ? now + Math.round(delayMinutes * 60_000) : undefined;
-    if (!scheduledStartAt && this.runningAgentTaskCount() >= MAX_CONCURRENT_AGENT_TASKS) {
-      return {
-        ok: false,
-        message: `Unable to start background task: all ${MAX_CONCURRENT_AGENT_TASKS} background task slots are in use.`,
-      };
-    }
-    const thread: Thread = {
-      id: newId('t'),
-      title: `Agent: ${title}`,
-      subtitle: '',
-      createdAt: now,
-      updatedAt: now,
-      pinned: false,
-      modelId,
-      messages: [{
-        id: newId('m'),
-        role: 'user',
-        content: instructions,
-        createdAt: now,
-      }],
-      agentTask: true,
-      agentTaskOriginThreadId: origin.id,
-      agentTaskStatus: scheduledStartAt ? 'scheduled' : 'running',
-      ...(scheduledStartAt ? { agentTaskScheduledStartAt: scheduledStartAt } : {}),
-      ...(systemPrompt ? { agentTaskSystemPrompt: systemPrompt } : {}),
-      agentTaskMaxRounds: maxRounds,
-      autoNamed: true,
-    };
-    this.threads.unshift(thread);
-    this.schedulePersistSnapshot(this.snapshot);
-    if (scheduledStartAt) {
-      this.armScheduledAgentTask(thread.id, scheduledStartAt - now);
-      return {
-        ok: true,
-        message: `Task '${title}' scheduled to start at ${new Date(scheduledStartAt).toISOString()}.`,
-        threadId: thread.id,
-      };
-    }
-    this.startAgentTaskTurn(thread.id);
-    return {
-      ok: true,
-      message: `Task '${title}' started in background.`,
-      threadId: thread.id,
-    };
+    return this.agentTasks.spawn(input, originThreadId);
   }
 
   /** Cancel a scheduled or running background-agent task from shared task UI. */
   cancelAgentTask(threadId: string): boolean {
-    const thread = this.findThread(threadId);
-    if (
-      !thread
-      || thread.deletedAt != null
-      || thread.agentTask !== true
-      || (thread.agentTaskStatus !== 'scheduled' && thread.agentTaskStatus !== 'running')
-    ) return false;
-    const originThreadId = thread.agentTaskOriginThreadId;
-    if (!originThreadId) return false;
-    const title = displayAgentTaskTitle(thread.title);
-    this.cancelScheduledAgentTask(threadId);
-    this.interruptThread(threadId);
-    this.finalizeAgentTask(threadId, originThreadId, title, 'interrupted');
-    return true;
+    return this.agentTasks.cancel(threadId);
   }
 
   /** Retry a failed/interrupted agent task in its existing linked thread. */
   retryAgentTask(threadId: string): boolean {
-    const thread = this.findThread(threadId);
-    if (
-      !thread
-      || thread.deletedAt != null
-      || thread.agentTask !== true
-      || (thread.agentTaskStatus !== 'error' && thread.agentTaskStatus !== 'interrupted')
-      || this.runningAgentTaskCount() >= MAX_CONCURRENT_AGENT_TASKS
-    ) return false;
-    const initialPrompt = thread.messages.find(message => message.role === 'user');
-    if (!initialPrompt) return false;
-    runInAction(() => {
-      thread.messages = [initialPrompt];
-      thread.updatedAt = Date.now();
-      delete this.lastErrorByThread[thread.id];
-      const origin = this.findThread(thread.agentTaskOriginThreadId ?? '');
-      if (origin) {
-        for (const message of origin.messages) {
-          if (message.role !== 'assistant' || !message.activityEvents) continue;
-          message.activityEvents = message.activityEvents.filter(event =>
-            event.kind !== 'agent-task' || event.linkThreadId !== thread.id
-          );
-        }
-      }
-    });
-    this.startAgentTaskTurn(thread.id);
-    this.schedulePersistSnapshot(this.snapshot);
-    return true;
+    return this.agentTasks.retry(threadId);
   }
 
   setThreadModel(threadId: string, modelId: string): void {
@@ -870,8 +823,9 @@ export class ChatStore {
     const previousThreads = deepClone(this.threads);
     const previousActiveThreadId = this.activeThreadId;
     const previousErrors = { ...this.lastErrorByThread };
-    this.abortAllStreams();
-    this.clearAgentTaskStartTimers();
+    this.turnEngine.abortAllStreams();
+    this.streamingByThread = {};
+    this.agentTasks.clearAllTimers();
     const thread = createEmptyThread(newId('t'), Date.now(), this.defaultModelId);
     this.threads = [thread];
     this.activeThreadId = thread.id;
@@ -879,14 +833,14 @@ export class ChatStore {
     this.undoService?.register({
       label: 'Delete all threads',
       undo: () => runInAction(() => {
-        this.clearAgentTaskStartTimers();
+        this.agentTasks.clearAllTimers();
         this.threads = deepClone(previousThreads);
         this.activeThreadId = normalizeActiveThreadId(this.threads, previousActiveThreadId);
         this.lastErrorByThread = { ...previousErrors };
         for (const restored of this.threads) {
           if (restored.agentTaskStatus !== 'scheduled' || restored.deletedAt != null) continue;
           const dueAt = restored.agentTaskScheduledStartAt ?? Date.now();
-          this.armScheduledAgentTask(restored.id, Math.max(0, dueAt - Date.now()));
+          this.agentTasks.armScheduled(restored.id, Math.max(0, dueAt - Date.now()));
         }
         this.schedulePersistSnapshot(this.snapshot);
       }),
@@ -894,21 +848,15 @@ export class ChatStore {
   }
 
   applyImportedSnapshot(snapshot: ChatSnapshot): void {
-    this.abortAllStreams();
-    this.clearAgentTaskStartTimers();
+    this.turnEngine.abortAllStreams();
+    this.streamingByThread = {};
+    this.agentTasks.clearAllTimers();
     this.applySnapshot(snapshot);
     this.streamActivityByThread = {};
     this.lastErrorByThread = {};
     this.persistenceConflict = null;
     this.resumePersistenceIfLeader();
     this.schedulePersistSnapshot(this.snapshot);
-  }
-
-  private abortAllStreams(): void {
-    for (const controller of this.controllersByThread.values()) controller.abort();
-    this.controllersByThread.clear();
-    this.textBuffer.cancelAll();
-    this.streamingByThread = {};
   }
 
   clearThreadMemory(): void {
@@ -928,17 +876,17 @@ export class ChatStore {
     const thread = this.findThread(threadId);
     if (!thread || thread.deletedAt != null) return;
     const previousActiveThreadId = this.activeThreadId;
-    if (thread.agentTaskStatus === 'scheduled') this.cancelScheduledAgentTask(threadId);
+    if (thread.agentTaskStatus === 'scheduled') this.agentTasks.cancelScheduled(threadId);
     if (this.isThreadStreaming(threadId)) {
-      this.interruptThread(threadId);
+      this.turnEngine.interruptThread(threadId);
     } else {
-      const controller = this.controllersByThread.get(threadId);
+      const controller = this.turnEngine.getController(threadId);
       if (controller) {
         controller.abort();
-        this.controllersByThread.delete(threadId);
+        this.turnEngine.clearStreamingState(threadId);
+      } else {
+        delete this.streamingByThread[threadId];
       }
-      this.textBuffer.cancel(threadId);
-      delete this.streamingByThread[threadId];
     }
     runInAction(() => {
       const now = Date.now();
@@ -969,7 +917,7 @@ export class ChatStore {
           this.activeThreadId = normalizeActiveThreadId(this.threads, previousActiveThreadId);
           if (previousThread.agentTaskStatus === 'scheduled') {
             const dueAt = previousThread.agentTaskScheduledStartAt ?? Date.now();
-            this.armScheduledAgentTask(previousThread.id, Math.max(0, dueAt - Date.now()));
+            this.agentTasks.armScheduled(previousThread.id, Math.max(0, dueAt - Date.now()));
           }
           this.schedulePersistSnapshot(this.snapshot);
         }),
@@ -1090,46 +1038,15 @@ export class ChatStore {
   private sendMessageToHydratedThread(
     threadId: string,
     trimmed: string,
-    attachments: { id?: string; filename: string; path: string; size: number; mime: string }[] = [],
+    attachments: ChatTurnAttachment[] = [],
   ): void {
-    const thread = this.ensureThreadModel(threadId);
-    if (!thread || thread.readOnly || thread.archived || (!trimmed && attachments.length === 0)) return;
-    const isReplacingInterruptedReply = this.isThreadStreaming(thread.id);
-    if (this.isThreadStreaming(thread.id)) {
-      this.interruptThread(thread.id);
-    }
-
-    this.setThreadLastError(thread.id, null);
-
-    const attachmentFooter = formatAttachmentFooter(attachments);
-    const refs = attachments.map(toMessageAttachmentRef);
-
-    const userMessage: Message = {
-      id: newId('m'),
-      role: 'user',
-      parts: userMessageParts((trimmed + attachmentFooter).trim() || '(see attachments)', refs),
-      createdAt: Date.now(),
-    };
-    this.appendMessage(thread.id, userMessage);
-
-    const targetThreadId = thread.id;
-    const controller = new AbortController();
-    this.controllersByThread.set(targetThreadId, controller);
-
-    this.runTurn(targetThreadId, controller.signal, isReplacingInterruptedReply)
-      .catch(err => runInAction(() => {
-        logger.error('chat', 'runTurn failed', { threadId: targetThreadId, err });
-        this.setThreadLastError(targetThreadId, (err as Error).message);
-        if (this.controllersByThread.get(targetThreadId) === controller) {
-          this.clearStreamingState(targetThreadId);
-        }
-      }));
+    this.turnEngine.sendMessageToHydratedThread(threadId, trimmed, attachments);
   }
 
   private async sendMessageAfterHydration(
     threadId: string,
     text: string,
-    attachments: { id?: string; filename: string; path: string; size: number; mime: string }[] = [],
+    attachments: ChatTurnAttachment[] = [],
   ): Promise<void> {
     const thread = await this.hydrateThread(threadId);
     if (!thread || thread.deletedAt != null || thread.readOnly) return;
@@ -1142,103 +1059,11 @@ export class ChatStore {
   }
 
   private startTurn(threadId: string, isReplacingInterruptedReply = false): void {
-    const thread = this.ensureThreadModel(threadId);
-    if (!thread || thread.messages.length === 0) return;
-    if (this.isThreadStreaming(thread.id)) this.interruptThread(thread.id);
-    this.activeThreadId = thread.id;
-    this.setThreadLastError(thread.id, null);
-    const controller = new AbortController();
-    this.controllersByThread.set(thread.id, controller);
-    this.runTurn(thread.id, controller.signal, isReplacingInterruptedReply)
-      .catch(err => runInAction(() => {
-        logger.error('chat', 'runTurn failed', { threadId: thread.id, err });
-        this.setThreadLastError(thread.id, (err as Error).message);
-        if (this.controllersByThread.get(thread.id) === controller) {
-          this.clearStreamingState(thread.id);
-        }
-      }));
+    this.turnEngine.startTurn(threadId, isReplacingInterruptedReply);
   }
 
   stopStreaming(): void {
-    if (!this.activeThreadId) return;
-    if (!this.isThreadStreaming(this.activeThreadId)) return;
-    this.interruptThread(this.activeThreadId);
-  }
-
-  private interruptThread(threadId: string): void {
-    const messageId = this.streamingByThread[threadId];
-    const controller = this.controllersByThread.get(threadId);
-    if (controller) controller.abort();
-
-    if (messageId) {
-      this.textBuffer.flush(messageId);
-      const message = this.findMessage(threadId, messageId);
-      if (message && message.role === 'assistant') {
-        const partial = messageText(message).trim();
-        setMessageText(message, partial ? `${messageText(message)}\n\n*[interrupted]*` : '*[no response]*');
-      }
-    }
-    this.clearStreamingState(threadId);
-  }
-
-  private clearStreamingState(threadId: string, expectedMessageId?: string): void {
-    if (expectedMessageId && this.streamingByThread[threadId] !== expectedMessageId) return;
-    delete this.streamingByThread[threadId];
-    delete this.streamActivityByThread[threadId];
-    this.controllersByThread.delete(threadId);
-  }
-
-  private ownsStreamingTurn(threadId: string, messageId: string): boolean {
-    return this.streamingByThread[threadId] === messageId;
-  }
-
-  private applyRoundActivityUpdate(threadId: string, messageId: string, update: StreamingRoundActivityUpdate): void {
-    if (!this.ownsStreamingTurn(threadId, messageId)) return;
-    if (update.phase === 'stalled') {
-      logEvent(threadId, 'round.streamStalled', {
-        messageId,
-        idleSeconds: update.idleSeconds,
-        providerId: update.providerId,
-        providerModelId: update.providerModelId,
-        round: update.round,
-      });
-    }
-    runInAction(() => {
-      const existing = this.streamActivityByThread[threadId];
-      if (update.phase === 'connecting') {
-        this.streamActivityByThread[threadId] = {
-          messageId,
-          phase: 'connecting',
-          startedAt: existing?.startedAt ?? update.at,
-          lastProviderAt: update.at,
-          round: update.round,
-          providerId: update.providerId,
-          providerModelId: update.providerModelId,
-        };
-        return;
-      }
-      if (!existing || existing.messageId !== messageId || existing.phase === 'stalled') return;
-      this.streamActivityByThread[threadId] = {
-        ...existing,
-        phase: update.phase,
-        lastProviderAt: update.phase === 'stalled' ? existing.lastProviderAt : update.at,
-        stallReason: update.phase === 'stalled' ? update.stallReason : undefined,
-      };
-    });
-  }
-
-  private markStreamActivityPhase(threadId: string, messageId: string, phase: StreamActivity['phase']): void {
-    if (!this.ownsStreamingTurn(threadId, messageId)) return;
-    runInAction(() => {
-      const existing = this.streamActivityByThread[threadId];
-      if (!existing || existing.messageId !== messageId || existing.phase === 'stalled') return;
-      this.streamActivityByThread[threadId] = {
-        ...existing,
-        phase,
-        lastProviderAt: Date.now(),
-        stallReason: undefined,
-      };
-    });
+    this.turnEngine.stopStreaming(this.activeThreadId);
   }
 
   private hydrateThread(threadId: string): Promise<Thread | null> {
@@ -1303,133 +1128,12 @@ export class ChatStore {
     return thread;
   }
 
-  private startAgentTaskTurn(threadId: string): void {
-    const thread = this.ensureThreadModel(threadId);
-    if (!thread || !thread.agentTask || thread.messages.length === 0) return;
-    const originThreadId = thread.agentTaskOriginThreadId;
-    if (!originThreadId) return;
-    const title = displayAgentTaskTitle(thread.title);
-    this.cancelScheduledAgentTask(thread.id);
-    thread.agentTaskStatus = 'running';
-    delete thread.agentTaskScheduledStartAt;
-    thread.updatedAt = Date.now();
-    const controller = new AbortController();
-    this.controllersByThread.set(thread.id, controller);
-    this.runTurn(thread.id, controller.signal, false, {
-      maxToolRounds: clampAgentTaskMaxRounds(thread.agentTaskMaxRounds ?? AGENT_TASK_MAX_TOOL_ROUNDS),
-    })
-      .then(() => {
-        this.finalizeAgentTask(thread.id, originThreadId, title, controller.signal.aborted ? 'interrupted' : 'done');
-      })
-      .catch(err => runInAction(() => {
-        logger.error('chat', 'agent task run failed', { threadId: thread.id, err });
-        this.setThreadLastError(thread.id, (err as Error).message);
-        if (this.controllersByThread.get(thread.id) === controller) {
-          this.clearStreamingState(thread.id);
-        }
-        this.finalizeAgentTask(thread.id, originThreadId, title, 'error', (err as Error).message);
-      }));
-  }
-
-  private armScheduledAgentTask(threadId: string, delayMs: number): void {
-    this.cancelScheduledAgentTask(threadId);
-    const timer = setTimeout(() => {
-      this.agentTaskStartTimers.delete(threadId);
-      runInAction(() => this.tryStartScheduledAgentTask(threadId));
-    }, Math.max(0, delayMs));
-    this.agentTaskStartTimers.set(threadId, timer);
-  }
-
-  private cancelScheduledAgentTask(threadId: string): void {
-    const timer = this.agentTaskStartTimers.get(threadId);
-    if (timer) clearTimeout(timer);
-    this.agentTaskStartTimers.delete(threadId);
-  }
-
-  private clearAgentTaskStartTimers(): void {
-    for (const timer of this.agentTaskStartTimers.values()) clearTimeout(timer);
-    this.agentTaskStartTimers.clear();
-  }
-
-  private tryStartScheduledAgentTask(threadId: string): void {
-    const thread = this.findThread(threadId);
-    if (!thread || thread.deletedAt != null || thread.agentTask !== true || thread.agentTaskStatus !== 'scheduled') return;
-    const dueAt = thread.agentTaskScheduledStartAt ?? Date.now();
-    const remainingMs = dueAt - Date.now();
-    if (remainingMs > 0) {
-      this.armScheduledAgentTask(thread.id, remainingMs);
-      return;
-    }
-    if (this.runningAgentTaskCount() >= MAX_CONCURRENT_AGENT_TASKS) {
-      this.armScheduledAgentTask(thread.id, AGENT_TASK_SLOT_RETRY_MS);
-      return;
-    }
-    this.startAgentTaskTurn(thread.id);
-    this.schedulePersistSnapshot(this.snapshot);
-  }
-
-  private startDueScheduledAgentTasks(): void {
-    let started = false;
-    for (const thread of this.threads) {
-      if (thread.agentTask !== true || thread.agentTaskStatus !== 'scheduled' || thread.deletedAt != null) continue;
-      const dueAt = thread.agentTaskScheduledStartAt ?? Date.now();
-      if (dueAt <= Date.now() && this.runningAgentTaskCount() < MAX_CONCURRENT_AGENT_TASKS) {
-        this.startAgentTaskTurn(thread.id);
-        started = true;
-      }
-    }
-    if (started) this.schedulePersistSnapshot(this.snapshot);
-  }
-
-  private finalizeAgentTask(
-    threadId: string,
-    originThreadId: string,
-    title: string,
-    status: NonNullable<Thread['agentTaskStatus']>,
-    errorMessage?: string,
-  ): void {
-    runInAction(() => {
-      const thread = this.findThread(threadId);
-      if (
-        !thread
-        || thread.agentTask !== true
-        || (thread.agentTaskStatus !== 'running' && thread.agentTaskStatus !== 'scheduled')
-      ) return;
-      thread.agentTaskStatus = status;
-      thread.updatedAt = Date.now();
-      const summary = summarizeAgentTaskThread(thread, status, errorMessage);
-      this.appendActivityEventToThread(originThreadId, {
-        id: `agent-task-${threadId}-${Date.now()}`,
-        kind: 'agent-task',
-        state: status === 'error' ? 'failed' : status === 'interrupted' ? 'cancelled' : 'done',
-        verb: `Background task '${title}' finished`,
-        target: 'see thread',
-        summary,
-        detail: summary ? { type: 'markdown', content: summary } : undefined,
-        startedAt: thread.createdAt,
-        finishedAt: Date.now(),
-        linkThreadId: threadId,
-      });
-      this.schedulePersistSnapshot(this.snapshot);
-      this.startDueScheduledAgentTasks();
-    });
-  }
-
-  private async runTurn(
-    threadId: string,
-    signal: AbortSignal,
-    isReplacingInterruptedReply = false,
-    options: { maxToolRounds?: number } = {},
-  ): Promise<void> {
-    await this.turnRunner.run(threadId, signal, { isReplacingInterruptedReply, maxToolRounds: options.maxToolRounds });
-  }
-
   private findThread(id: string): Thread | undefined {
     return this.threads.find(t => t.id === id);
   }
 
   private applySnapshot(snapshot: ChatSnapshot): void {
-    this.clearAgentTaskStartTimers();
+    this.agentTasks.clearAllTimers();
     this.threads = snapshot.threads.map(thread =>
       this.registry.findById(thread.modelId)
         ? thread
@@ -1441,7 +1145,7 @@ export class ChatStore {
       this.threads = [thread];
       this.activeThreadId = thread.id;
     }
-    this.reconcileAgentTasksOnBoot();
+    this.agentTasks.reconcileOnBoot();
   }
 
   private schedulePersistSnapshot(snapshot: ChatSnapshot): void {
@@ -1488,49 +1192,9 @@ export class ChatStore {
     }
   }
 
-  private reconcileAgentTasksOnBoot(): void {
-    for (const thread of this.threads) {
-      if (thread.agentTask !== true) continue;
-      if (thread.agentTaskStatus === 'scheduled') {
-        const dueAt = thread.agentTaskScheduledStartAt ?? Date.now();
-        this.armScheduledAgentTask(thread.id, Math.max(0, dueAt - Date.now()));
-        continue;
-      }
-      if (thread.agentTaskStatus !== 'running') continue;
-      thread.agentTaskStatus = 'interrupted';
-      thread.updatedAt = Date.now();
-      const lastAssistant = findLastAssistant(thread);
-      if (lastAssistant) {
-        const partial = messageText(lastAssistant).trim();
-        setMessageText(lastAssistant, partial ? `${messageText(lastAssistant)}\n\n*[interrupted]*` : '*[no response - background task interrupted]*');
-      }
-      if (thread.agentTaskOriginThreadId) {
-        this.appendActivityEventToThread(thread.agentTaskOriginThreadId, {
-          id: `agent-task-${thread.id}-boot-interrupted`,
-          kind: 'agent-task',
-          state: 'cancelled',
-          verb: `Background task '${displayAgentTaskTitle(thread.title)}' finished`,
-          target: 'see thread',
-          summary: 'Interrupted because the app closed or reloaded while the task was running.',
-          detail: { type: 'markdown', content: 'Interrupted because the app closed or reloaded while the task was running.' },
-          startedAt: thread.createdAt,
-          finishedAt: Date.now(),
-          linkThreadId: thread.id,
-        });
-      }
-    }
-  }
-
   private appendChunk(threadId: string, messageId: string, chunk: string): void {
     const message = this.findMessage(threadId, messageId);
     if (message) appendMessageText(message, chunk);
-  }
-
-  private queueTextChunk(threadId: string, messageId: string, chunk: string): void {
-    this.textBuffer.enqueue(messageId, chunk, text => {
-      if (!this.ownsStreamingTurn(threadId, messageId)) return;
-      runInAction(() => this.appendChunk(threadId, messageId, text));
-    });
   }
 
   clearLastError(): void {
@@ -1568,8 +1232,9 @@ export class ChatStore {
       // Stop any in-flight stream first: the thread list is about to be replaced
       // wholesale, and an abandoned turn would otherwise keep mutating (and
       // re-saving) state that no longer matches what's on disk.
-      this.abortAllStreams();
-      this.clearAgentTaskStartTimers();
+      this.turnEngine.abortAllStreams();
+    this.streamingByThread = {};
+      this.agentTasks.clearAllTimers();
       if (snapshot) {
         logger.info('persistence', 'Reloaded chat from localStorage after multi-tab conflict');
         this.applySnapshot(snapshot);
@@ -1653,35 +1318,3 @@ function deepClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function normalizeAgentTaskTitle(title: string): string {
-  return title.replace(/\s+/g, ' ').trim().slice(0, 80) || 'Background task';
-}
-
-function displayAgentTaskTitle(title: string): string {
-  return title.startsWith('Agent: ') ? title.slice('Agent: '.length) : title;
-}
-
-function findLastAssistant(thread: Thread): AssistantMessage | undefined {
-  for (let index = thread.messages.length - 1; index >= 0; index -= 1) {
-    const message = thread.messages[index];
-    if (message.role === 'assistant') return message;
-  }
-  return undefined;
-}
-
-function summarizeAgentTaskThread(
-  thread: Thread,
-  status: NonNullable<Thread['agentTaskStatus']>,
-  errorMessage?: string,
-): string {
-  const assistant = findLastAssistant(thread);
-  let summary = (assistant ? messageText(assistant).trim() : '') || errorMessage || 'Background task finished without a final summary.';
-  if (status === 'interrupted') summary = summary.includes('interrupted') ? summary : `${summary}\n\n[interrupted]`;
-  if (status === 'error' && errorMessage && !summary.includes(errorMessage)) summary = `${summary}\n\n${errorMessage}`;
-  if (summary.includes(`Stopped after ${AGENT_TASK_MAX_TOOL_ROUNDS} tool rounds`)) {
-    summary = `[capped]\n${summary}`;
-  }
-  return summary.length > AGENT_TASK_SUMMARY_LIMIT
-    ? `${summary.slice(0, AGENT_TASK_SUMMARY_LIMIT).trimEnd()}\n\n[summary truncated]`
-    : summary;
-}

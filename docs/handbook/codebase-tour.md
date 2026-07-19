@@ -256,6 +256,7 @@ Workspace System
   owns local files and git
 ```
 
-The biggest cleanup target is `ChatStore`: keep it as the state owner, but move
-the detailed turn orchestration into a `ChatTurnEngine` after reliability bugs
-are fixed.
+`ChatStore` remains the MobX state owner. Turn streaming control flow lives in
+`services/chat/chatTurnEngine.ts` (`ChatTurnEngine`); background agent-task
+lifecycle lives in `services/chat/agentTaskLifecycle.ts`. `TurnRunner` still
+owns the LLM/tool round loop.

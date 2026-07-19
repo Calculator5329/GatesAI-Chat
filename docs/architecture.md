@@ -187,7 +187,7 @@ and auxiliary stores, then one-way providers are injected into `ChatStore`.
 | `OllamaStore` | Ollama catalog, API key, tool-call setting, pull/delete state. | `src/stores/OllamaStore.ts`, `src/services/llm/ollamaCatalog.ts`, `src/services/llm/ollamaPull.ts` | Reads `LocalRuntimeStore` base URL/status; writes dynamic Ollama models to the registry. |
 | `ProviderStore` | Provider configs and the live `LlmRouter`. | `src/stores/ProviderStore.ts`, `src/services/providerStorage.ts`, `src/services/llm/router.ts` | Config reactions update provider instances; chat resolves each thread model through the router. |
 | `OpenRouterStore` | OpenRouter live catalog cache and refresh state. | `src/stores/OpenRouterStore.ts`, `src/services/llm/openrouterCatalog.ts` | Fetches models when a key is available; pushes dynamic OpenRouter models into the registry. |
-| `ChatStore` | Thread/message state, persistence host, turn lifecycle, agent tasks. | `src/stores/ChatStore.ts`, `src/services/chat/turnRunner.ts` | UI appends user messages; `TurnRunner` writes one assistant message through the `TurnHost` facade. |
+| `ChatStore` | Thread/message state and persistence host; delegates turn/agent control flow. | `src/stores/ChatStore.ts`, `src/services/chat/chatTurnEngine.ts`, `src/services/chat/agentTaskLifecycle.ts`, `src/services/chat/turnRunner.ts` | UI calls store actions; `ChatTurnEngine` owns send/interrupt/streaming bookkeeping; `AgentTaskLifecycle` owns spawn/cancel/retry timers; `TurnRunner` writes one assistant message through the `TurnHost` facade. |
 | `SummaryStore` | Cross-thread one-line summaries. | `src/stores/SummaryStore.ts` | Runs in the background and provides recent summaries to chat prompts through a one-way provider. |
 | `NotesStore` | Durable notes used by the `notes` tool. | `src/stores/NotesStore.ts`, `src/services/notesStorage.ts` | Tool calls mutate/search notes; UI lists them through store state. |
 | `RagStore` | Embeddings index, vector recall, semantic context injection. | `src/services/rag/RagStore.ts`, `src/services/rag/indexer.ts`, `src/services/rag/vectorStore.ts` | Indexes chat/notes/facts when Ollama embeddings are available; `TurnRunner` asks it for semantic context and the `recall` tool queries it. |
@@ -213,7 +213,8 @@ That keeps the store graph acyclic and lets tests inject narrow facades.
 
 Purpose: turn a user message into one durable assistant message, even when the
 model performs many model/tool round trips. Key modules are
-`src/stores/ChatStore.ts`, `src/services/chat/turnRunner.ts`,
+`src/stores/ChatStore.ts`, `src/services/chat/chatTurnEngine.ts`,
+`src/services/chat/turnRunner.ts`,
 `src/services/chat/streamingRoundExecutor.ts`,
 `src/services/chat/toolBatchExecutor.ts`, `src/services/chat/contextModes.ts`,
 `src/services/chat/activityProjection.ts`, `src/services/llm/router.ts`, and
@@ -221,11 +222,13 @@ provider adapters under `src/services/llm/`.
 
 Data flow:
 
-1. The UI calls `ChatStore.sendMessage()`. `ChatStore` appends the user message,
-   owns the `AbortController`, and calls its private `runTurn()`.
-2. `ChatStore` delegates the turn to `TurnRunner` through a `TurnHost` facade.
-   The facade is the only way the runner mutates MobX state: append assistant,
-   queue text, flush/cancel text, update activity, set errors, and auto-name.
+1. The UI calls `ChatStore.sendMessage()`. The store hydrates if needed, then
+   `ChatTurnEngine` appends the user message, owns the `AbortController` /
+   text buffer, and starts the turn.
+2. `ChatTurnEngine` delegates the LLM/tool loop to `TurnRunner` through a
+   `TurnHost` facade. The facade is the only way the runner mutates MobX state:
+   append assistant, queue text, flush/cancel text, update activity, set errors,
+   and auto-name.
 3. `TurnRunner` creates one assistant message, builds the request from context
    mode, recent summaries, semantic context, active skill instructions, runtime
    context, attachments, and selected tools.
@@ -728,7 +731,8 @@ Honest list for anyone picking the project up cold:
   pre-requisite for deeper features (see roadmap backlog).
 - **Large components.** `EditorialComposer` (~840 lines) still awaits its
   planned split; roadmap "Wave D" contains partially-superseded entries
-  (TurnRunner and streamCore extraction are in fact done).
+  (`ChatTurnEngine`, `AgentTaskLifecycle`, `TurnRunner`, and `streamCore`
+  extractions are done).
 - **Local scratch output.** Root debug/Vite logs and agent task leftovers are
   ignored explicitly; keep generated diagnostics out of commits.
 - **Test-count badges rot.** The README badge (995 unit + 20 e2e) is updated

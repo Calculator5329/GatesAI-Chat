@@ -33,22 +33,19 @@ these are the strategic bets.
 - **Rationale:** Adding a tool is already "one file plus one registry line"
   (`src/services/tools/registry.ts`), and Skills packs already load prompt
   packs with tool allowlists from `/workspace/.gatesai/skills`. Extending that
-  to *tool* packs (declarative manifest + sandboxed execution via the existing
-  bridge/MCP paths) creates an ecosystem story without inventing a runtime.
-- **First step:** Write `docs/plans/` design: what a pack manifest declares,
-  how it maps onto existing MCP-stdio (safest: packs ARE local MCP servers
-  with a curated gallery + one-click install) vs native registry tools.
+  to *tool* packs (declarative manifest + sandboxed execution via the bridge)
+  creates an ecosystem story without inventing a runtime.
+- **First step:** Write `docs/plans/` design: what a pack manifest declares and
+  whether packs map to native registry tools or a future parked MCP-stdio path.
 
-### 3. MCP *server* mode (expose GatesAI tools to other agents)
+### 3. MCP *server* mode (expose GatesAI tools to other agents) — parked
 - **Impact: High · Effort: Med**
-- **Rationale:** The app is already an MCP client (HTTP + stdio). Inverting it
-  — a loopback MCP server exposing `fs`/`terminal`/`recall`/`image_generate`
-  under the same jail and allowlists — makes GatesAI the *workspace hub* that
-  Claude Code, Cursor, or any MCP client can drive. Composes with the bridge's
-  existing security model instead of adding a new one.
-- **First step:** Prototype a stdio MCP server entry in the Go bridge repo is
-  out of scope here; in-repo, spec which registry tools are safe to expose and
-  the consent UX (per-tool toggles in the MCP menu section).
+- **Status (2026-07-19):** MCP client support was parked in the depth-over-breadth
+  de-scope. This idea stays as a future inversion (GatesAI as a loopback MCP
+  server) once the core tool UX is top-tier again; do not treat the app as an
+  MCP client today.
+- **First step when unparked:** Spec which registry tools are safe to expose and
+  the consent UX; implement in `../gatesai-bridge`, not as a half-wired client.
 
 ### 4. Cowork mode (already designed — see roadmap Moonshots)
 - **Impact: High · Effort: High**
@@ -60,17 +57,14 @@ these are the strategic bets.
 - **First step:** Rust `notify`-based watcher command in `src-tauri/` behind a
   feature flag + a `SuggestionsStore` with the rate-limit rules; UI chip last.
 
-### 5. Native Anthropic + OpenAI providers (first-class multi-model)
-- **Impact: Med-High · Effort: Low-Med**
-- **Rationale:** Today cloud = OpenRouter (plus generic OpenAI-compatible
-  endpoints). Direct Anthropic/OpenAI keys remove the middleman for users who
-  already have them, and the provider contract (`core/llm.ts`, adapters in
-  `services/llm/`, shared `streamCore.ts`) was built exactly for this.
-  Anthropic needs a small adapter (different wire format); OpenAI mostly
-  reuses `openaiCompat.ts`.
-- **First step:** Add an `AnthropicProvider` implementing `LlmProvider.stream`
-  with tool-call normalization into `LlmChunk`, plus catalog + secretStorage
-  slot, mirroring how `OpenAiCompatEndpointStore` registers models.
+### 5. Native Anthropic + OpenAI providers — intentionally out of floor
+- **Impact: Med · Effort: Med**
+- **Status (2026-07-19):** Routing floor is OpenRouter + Ollama (+ ComfyUI for
+  image). Direct Anthropic/OpenAI adapters and the custom OpenAI-compatible
+  endpoint were removed on purpose; new cloud models arrive as OpenRouter
+  routes, not new first-party adapters.
+- **Revisit only if:** OpenRouter cannot carry a capability users need, and
+  the product principle still allows a second cloud key path.
 
 ### 6. Headless core / CLI mode
 - **Impact: Med-High · Effort: Med**

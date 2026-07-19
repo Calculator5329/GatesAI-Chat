@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-19 — ChatStore extraction + remaining foundation leftovers
+
+- **ChatTurnEngine:** moved send/start/interrupt/streaming bookkeeping out of
+  `ChatStore` into `src/services/chat/chatTurnEngine.ts`. The store stays the
+  MobX state owner; abort controllers and the text buffer live on the engine.
+- **AgentTaskLifecycle:** moved spawn/cancel/retry, schedule timers, boot
+  reconcile, and finalize/summary helpers into
+  `src/services/chat/agentTaskLifecycle.ts`.
+- **Docs leftovers:** updated `docs/IDEAS.md` (MCP parked; direct providers out
+  of routing floor), handbook codebase tour, and architecture turn-pipeline
+  wording to match the new modules.
+- `ChatStore.ts` ~1687 → ~1318 lines. Focused unit tests for both new modules;
+  existing ChatStore / agent-task suites remain the integration coverage.
+
 ## 2026-07-19 — Foundation sweep (architecture pass after the de-scope)
 
 Full-repo audit for refactoring/centralization opportunities before resuming

@@ -36,6 +36,8 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       on boot *(2026-07-19)*
 - [x] Repair the screens tours for the 3-tab menu and regenerate all
       screenshot galleries; sweep stale docs *(2026-07-19)*
+- [x] Extract `ChatTurnEngine` + `AgentTaskLifecycle` from `ChatStore`; finish
+      remaining docs leftovers in IDEAS/handbook/architecture *(2026-07-19)*
 
 ### Next up (priority order)
 
