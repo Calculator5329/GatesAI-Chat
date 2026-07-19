@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-07-19 — Depth-over-breadth de-scope pass
+
+Aggressively narrowed the product to what it should do exceedingly well.
+Routing now centers on three destinations only: **OpenRouter** (cloud LLM +
+image), **Ollama** (local LLM), and **ComfyUI** (local image). Archived
+subsystems are recoverable from git history.
+
+- **Deleted** the unused `.gatesdb` database plugins layer (dead code floor).
+- **Moved** the OpenRouter model-compatibility suite out of the app into
+  `scripts/model-compat/` (to become an auto-runner over a curated model set;
+  no longer shipped in the bundle).
+- **Archived** the legacy recurring Schedules feature (store, tool,
+  `core/schedules`, storage, wiring, tests).
+- **Archived** the source workspace + source-build runner (TS stores/services/
+  tools + `src-tauri` `source_workspace.rs` / `source_build.rs` and commands).
+- **Archived** MCP (managed code providers): store, services, `mcp_stdio.rs`,
+  tools, and E2E seed.
+- **Archived** the Offline knowledge Library, including `offline_library.rs`,
+  its dock panel, tool, and storage. The **Super+G** global shortcut now simply
+  summons/toggles the window (a personal OS-level convenience) instead of
+  opening a local knowledge chat.
+- **Removed** the user-configurable custom OpenAI-compatible endpoint provider:
+  its store, dynamic catalog probe, `'openai-compat'` provider id, secret slot,
+  and token/usage/model-picker special cases. The shared `OpenAiCompatProvider`
+  transport stays — OpenRouter still extends it for OpenAI wire format.
+- **Persistence:** added a one-time boot purge of retired localStorage slots
+  (`gatesai.mcp.v1`, `gatesai.offlineLibrary.v1`, `gatesai.schedules.v1/v2`);
+  the provider-config parser already drops the legacy `openai-compat` config.
+  Chat snapshot schema is unchanged, so `CURRENT_CHAT_SCHEMA_VERSION` stays 3.
+- CI green (156 files / 1223 tests + typecheck + lint), `cargo test` green
+  (25 passed); e2e 25/26 — the one failure is the pre-existing
+  `artifactContract` palette→dock iframe test (verified failing identically on
+  pre-session baseline `3659518`).
+
 ## 2026-07-19 — Settings trim: 7 tabs → 3
 
 - Cut the GatesMenu to three tabs (Settings / Models / Agent) to restore the

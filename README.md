@@ -34,12 +34,12 @@
 A local-first AI chat workspace for Windows and Linux (with a browser "Web Lite" mode), built as a
 React 19 + TypeScript single-page app wrapped in a Tauri 2 desktop shell. It pairs a
 provider-agnostic LLM client with a sandboxed local **bridge** process so the assistant can
-read and write real files, run allowlisted shell commands, query data, connect to MCP tool
-servers, and generate images, while app state and workspace data stay on your machine.
+read and write real files, run allowlisted shell commands, query data, and generate images,
+while app state and workspace data stay on your machine.
 
 The core promises: **fast** (instant-feeling streaming, no jank), **simple** (one desktop
-installer and no GatesAI account), **your models** (OpenRouter, local Ollama, or a custom
-OpenAI-compatible endpoint, switchable mid-conversation and offline-capable with local
+installer and no GatesAI account), **your models** (OpenRouter or local Ollama, switchable
+mid-conversation and offline-capable with local
 models), and **your data** (app state stays on your device; requests go only to the model
 provider you select; desktop API keys use the OS credential store; files live in a workspace
 folder you own).
@@ -79,11 +79,10 @@ it points you to the matching download above).
 - **Durable autosave** — every conversation is throttled-saved to `localStorage`, survives quota
   limits via emergency compaction, and (on desktop) mirrors to a readable
   `/workspace/chat-history` HTML/Markdown library.
-- **Agent tooling** — a built-in registry with `memory`, `recall`, `notes`, `schedules`,
+- **Agent tooling** — a built-in registry with `memory`, `recall`, `notes`,
   `thread`, `chat_history`, `spawn_task`, `web_search` (Brave), `fetch_page`, `fs`,
   `terminal`, `inspect_file`, `python_inline`, `sqlite_query`, `query_script`, `git`,
-  `image_generate`, `describe_image`, `artifact`, `workspace`, `source_workspace`,
-  `source_build`, `time`, and `logs`, plus tools from connected MCP servers.
+  `image_generate`, `describe_image`, `artifact`, `workspace`, `time`, and `logs`.
 - **Self-diagnosis** — central `services/diagnostics/logger` (ring buffer + console +
   bridge JSONL) and a `logs` tool so the assistant can read recent app logs.
 - **Companion bridge** (`../gatesai-bridge`, Go) — owns a `~/GatesAI/workspace/` folder behind a
@@ -114,7 +113,7 @@ UI (components/, app/)
       ▼
 Stores (MobX object models)
       ▼
-Services (persistence, llm/, chat/, tools/, image/, bridge, mcp/, rag/, router)
+Services (persistence, llm/, chat/, tools/, image/, bridge, rag/, router)
       ▼
 Core (types, theme, models, providers, runtime, llm contract)
 ```
@@ -213,7 +212,7 @@ src/
   app/          composition root
   components/   ui/ (primitives) · editorial/ (chat) · menu/ (settings) · media/ (shared image UI)
   stores/       MobX stores (Chat, Provider, Bridge, ImageJob, ... )
-  services/     llm/, chat/, tools/, image/, bridge/, mcp/, rag/, persistence/, storage/, and integrations
+  services/     llm/, chat/, tools/, image/, bridge/, rag/, persistence/, storage/, and integrations
   core/         types, models, providers, theme, runtime
 tests/          Vitest suite (kept out of the app build)
 docs/           handbook, architecture, tech spec, roadmap, changelog, audits, plans

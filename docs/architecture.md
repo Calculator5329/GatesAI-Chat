@@ -3,12 +3,11 @@
 ## What this is
 
 GatesAI Chat is a local-first desktop AI workspace: a chat app where you bring
-your own models (OpenRouter in the cloud, Ollama or any OpenAI-compatible
-endpoint locally) and the assistant can actually *do* things on your machine —
-read/write files in a jailed workspace, run allowlisted shell/Python/SQLite/git
-commands, search and fetch the web, generate images through ComfyUI, recall
-past conversations through a local RAG index, and even edit and rebuild its own
-source through a controlled self-improvement loop. Everything stays on the
+your own models (OpenRouter in the cloud, Ollama locally) and the assistant can
+actually *do* things on your machine — read/write files in a jailed workspace,
+run allowlisted shell/Python/SQLite/git commands, search and fetch the web,
+generate images through ComfyUI, and recall past conversations through a local
+RAG index. Everything stays on the
 user's device: API keys in the OS credential store, history in localStorage
 with an IndexedDB archive, files in a workspace folder the user owns.
 
@@ -18,8 +17,8 @@ import rules. The same React app runs as a Tauri 2 desktop app (Rust host) and
 as a browser-only **Web Lite** build (deployed to GitHub Pages); desktop-only
 features are gated through runtime checks, the Tauri command layer, or the
 local bridge. Local OS capability comes from two places: Rust commands inside
-`src-tauri/` (secrets, web fetch, MCP stdio, local runtime management, source
-workspace) and a **companion Go bridge** that lives in the sibling repository
+`src-tauri/` (secrets, web fetch, local runtime management) and a **companion
+Go bridge** that lives in the sibling repository
 `../gatesai-bridge` and is bundled as a Tauri sidecar. The bridge owns the
 `~/GatesAI/workspace/` folder behind a path jail and command allowlist and is
 reached over a single loopback WebSocket.
@@ -36,10 +35,10 @@ UI (components/, app/)
 Stores (MobX object models)
         |
         v
-Services (persistence, llm/, chat/, tools/, image/, bridge, mcp/, rag/, sourceWorkspace)
+Services (persistence, llm/, chat/, tools/, image/, bridge, rag/)
         |
         v
-Core (types, theme, models, tokens, schedules, providers, runtime)
+Core (types, theme, models, tokens, providers, runtime)
 ```
 
 ## Commands quick reference
@@ -112,8 +111,6 @@ src/
     RouterStore.ts                # observable URL hash
     ModelRegistry.ts              # curated + dynamic model catalog
     OpenRouterStore.ts            # live OpenRouter model catalog
-    OpenRouterCompatibilityStore.ts # compatibility runner/report state
-    OpenAiCompatEndpointStore.ts  # user-configured OpenAI-compatible endpoint probe/catalog
     OllamaStore.ts                # Ollama auth, tool setting, catalog, pulls/deletes
     LocalRuntimeStore.ts          # Ollama/ComfyUI process config, probing, auto-detect
     ImageGenStore.ts              # image backend selection and credentials
@@ -122,26 +119,20 @@ src/
     UserProfileStore.ts           # bio, durable facts, base system prompt
     SummaryStore.ts               # lazy cross-thread summaries
     NotesStore.ts                 # durable notes
-    SchedulesStore.ts             # recurring automation loop
-    McpStore.ts                   # MCP server configs, clients, status, remote tools
     SkillsStore.ts                # workspace skills loaded through the bridge
     BridgeStore.ts                # bridge health, WebSocket client, workspace helpers
     ExecStreamStore.ts            # live terminal tails
-    SourceWorkspaceStore.ts       # source-workspace review/build facade
     context.tsx                   # React context + use*Store hooks
   services/
     chat/                         # TurnRunner, StreamingRoundExecutor, context modes, tool batches
     llm/                          # providers, router, SSE/NDJSON helpers, streamCore helpers
     tools/                        # model-callable tool implementations and registry
     bridge/                       # app-side bridge client, attachments, previews, guide installers
-    mcp/                          # HTTP and stdio MCP clients/transports/storage
     rag/                          # embeddings, indexer, vector store, RagStore
     image/                        # image backend dispatch, ComfyUI client/progress/workflows
     local/                        # local runtime storage/service/auto-detect
-    persistence/                  # chat schema migrations + IndexedDB thread archive
+    persistence/                  # chat schema migrations, retired-slot purge, IndexedDB thread archive
     storage/                      # localStorage slot facades
-    sourceWorkspace.ts            # Tauri source workspace commands
-    sourceBuild.ts                # Tauri source build commands
     secretStorage.ts              # Tauri keychain/localStorage secret abstraction
   core/
     types.ts                      # domain interfaces
@@ -149,14 +140,12 @@ src/
     models.ts                     # curated Model catalog + DEFAULT_MODEL_ID
     modelCapabilities.ts          # tool/vision capability helpers
     threadSelectors.ts            # spend, usage, thread search selectors
-    schedules.ts                  # schedule cadence math
     tokens.ts usage.ts            # token/cost accounting
     runtime.ts                    # desktop vs Web Lite detection
 
 src-tauri/src/
   lib.rs                          # Tauri setup, sidecar launch, command registration
-  brave_search.rs fetch_page.rs secrets.rs local_runtime.rs
-  mcp_stdio.rs source_workspace.rs source_build.rs http_health.rs
+  brave_search.rs fetch_page.rs secrets.rs local_runtime.rs http_health.rs
 
 tests/                            # Vitest + jsdom, plus Playwright e2e under tests/e2e/
 ```
@@ -189,27 +178,21 @@ and auxiliary stores, then one-way providers are injected into `ChatStore`.
 
 | Store | Purpose | Key modules | Data flow |
 | --- | --- | --- | --- |
-| `ModelRegistry` | Single catalog of curated and dynamic models. | `src/stores/ModelRegistry.ts`, `src/core/models.ts` | OpenRouter, Ollama, and OpenAI-compatible endpoint stores push dynamic provider catalogs into it; chat/model UI reads from it. |
+| `ModelRegistry` | Single catalog of curated and dynamic models. | `src/stores/ModelRegistry.ts`, `src/core/models.ts` | OpenRouter and Ollama stores push dynamic provider catalogs into it; chat/model UI reads from it. |
 | `UserProfileStore` | User bio, durable facts, and base system prompt sections. | `src/stores/UserProfileStore.ts`, `src/services/profileStorage.ts` | Tools mutate facts; `TurnRunner` reads composed prompt text through the profile facade. |
 | `UiStore` | Drafts, view prefs, palette state, onboarding flags, local data usage facade. | `src/stores/UiStore.ts`, `src/services/uiPrefsStorage.ts`, `src/services/storage/webLiteLocalData.ts` | Components mutate UI state; persistence slots store durable prefs. |
 | `RouterStore` | Observable hash route. | `src/stores/RouterStore.ts`, `src/services/router.ts` | `RootStore.bindRouterToChat()` syncs `#/thread/<id>` with `ChatStore.activeThreadId` and keeps menu routes explicit. |
 | `LocalRuntimeStore` | Local Ollama/ComfyUI paths, managed process state, base URLs, vision model. | `src/stores/LocalRuntimeStore.ts`, `src/services/local/localRuntimeService.ts` | Tauri commands start/probe runtimes; Ollama/Image stores read base URLs and readiness. |
-| `OfflineLibraryStore` | Explicit addon enablement, manifest compatibility, health, and declared read permissions. | `src/stores/OfflineLibraryStore.ts`, `src/services/offlineLibrary/`, `src/services/storage/offlineLibraryStorage.ts` | Starts disabled; desktop enablement discovers the fixed host through Tauri, while Web Lite exposes a stable unavailable state without transport. |
 | `SearchStore` | Brave API key and web-search facade. | `src/stores/SearchStore.ts`, `src/services/searchStorage.ts`, `src/services/search/braveClient.ts` | `web_search` calls through this store; secrets hydrate at boot. |
-| `McpStore` | User-configured MCP servers, connection state, dynamic tool inventory. | `src/stores/McpStore.ts`, `src/services/mcp/client.ts`, `src/services/mcp/stdioTransport.ts` | Configs load from `gatesai.mcp.v1`; secrets hydrate; connected tools become registry tools through a dynamic provider. |
 | `OllamaStore` | Ollama catalog, API key, tool-call setting, pull/delete state. | `src/stores/OllamaStore.ts`, `src/services/llm/ollamaCatalog.ts`, `src/services/llm/ollamaPull.ts` | Reads `LocalRuntimeStore` base URL/status; writes dynamic Ollama models to the registry. |
 | `ProviderStore` | Provider configs and the live `LlmRouter`. | `src/stores/ProviderStore.ts`, `src/services/providerStorage.ts`, `src/services/llm/router.ts` | Config reactions update provider instances; chat resolves each thread model through the router. |
 | `OpenRouterStore` | OpenRouter live catalog cache and refresh state. | `src/stores/OpenRouterStore.ts`, `src/services/llm/openrouterCatalog.ts` | Fetches models when a key is available; pushes dynamic OpenRouter models into the registry. |
-| `OpenAiCompatEndpointStore` | User-provided OpenAI-compatible endpoint probe and catalog. | `src/stores/OpenAiCompatEndpointStore.ts`, `src/services/llm/openaiCompatCatalog.ts` | Validates base URL, fetches `/models`, marks provider available, registers dynamic models. |
 | `ChatStore` | Thread/message state, persistence host, turn lifecycle, agent tasks. | `src/stores/ChatStore.ts`, `src/services/chat/turnRunner.ts` | UI appends user messages; `TurnRunner` writes one assistant message through the `TurnHost` facade. |
 | `SummaryStore` | Cross-thread one-line summaries. | `src/stores/SummaryStore.ts` | Runs in the background and provides recent summaries to chat prompts through a one-way provider. |
 | `NotesStore` | Durable notes used by the `notes` tool. | `src/stores/NotesStore.ts`, `src/services/notesStorage.ts` | Tool calls mutate/search notes; UI lists them through store state. |
-| `SchedulesStore` | Recurring schedule definitions and app-open scheduler loop. | `src/stores/SchedulesStore.ts`, `src/core/schedules.ts` | Every 30s it starts due schedules by calling `ChatStore.spawnTask()`. |
 | `RagStore` | Embeddings index, vector recall, semantic context injection. | `src/services/rag/RagStore.ts`, `src/services/rag/indexer.ts`, `src/services/rag/vectorStore.ts` | Indexes chat/notes/facts when Ollama embeddings are available; `TurnRunner` asks it for semantic context and the `recall` tool queries it. |
 | `BridgeStore` | Desktop bridge health, WebSocket client, workspace helpers. | `src/stores/BridgeStore.ts`, `src/services/bridge/client.ts`, `src/services/bridge/health.ts` | Polls `/health`, opens `ws://127.0.0.1:7331/ws`, exposes a request facade to tools and workspace services. |
 | `SkillsStore` | Workspace skill list and active skill metadata. | `src/stores/SkillsStore.ts`, `src/services/skills/skillsService.ts` | Loads skill files from `/workspace/.gatesai/skills`; selected skill instructions/tool allowlists feed turns. |
-| `OpenRouterCompatibilityStore` | Model compatibility run/report state. | `src/stores/OpenRouterCompatibilityStore.ts`, `src/services/compat/openRouterCompatibility.ts` | Uses provider/router/bridge to run probes and write reports under workspace artifacts. |
-| `SourceWorkspaceStore` | Desktop source-workspace review and source build facade. | `src/stores/SourceWorkspaceStore.ts`, `src/services/sourceWorkspace.ts`, `src/services/sourceBuild.ts` | UI and tools call Tauri commands through the store; runtime snapshot is injected into prompts. |
 | `ExecStreamStore` | Live terminal output tails. | `src/stores/ExecStreamStore.ts` | `terminal` streams bridge event chunks into it; activity rows render the live tail. |
 | `ImageGenStore` | Image backend credentials/settings. | `src/stores/ImageGenStore.ts`, `src/services/imageGenStorage.ts` | Converts UI settings into backend config for `image_generate` and `ImageJobStore`. |
 | `ImageJobStore` | Image queue, active job, completed history, gallery data. | `src/stores/ImageJobStore.ts`, `src/services/image/imageBackend.ts`, `src/services/image/comfyClient.ts` | `image_generate` enqueues; the runner dispatches to ComfyUI/OpenRouter image APIs and writes final files through the bridge. |
@@ -220,7 +203,7 @@ and auxiliary stores, then one-way providers are injected into `ChatStore`.
 - `setRecentSummariesProvider()` reads `SummaryStore.recentSummariesExcluding()`.
 - `setSemanticContextProvider()` reads `RagStore.semanticContextForUserText()`.
 - `setActiveSkillProvider()` maps the thread's `skillId` to a `SkillsStore` record.
-- `setToolStoresProvider()` returns notes, schedules, summary, bridge, exec stream, image, local runtime, search, RAG, and source workspace facades for tool execution.
+- `setToolStoresProvider()` returns notes, summary, bridge, exec stream, image, local runtime, search, and RAG facades for tool execution.
 
 The wiring is intentionally one-way. `ChatStore` does not import those stores;
 it only calls provider functions when building a request or executing tools.
@@ -293,7 +276,7 @@ Purpose: expose model-callable local capabilities with validation, runtime
 gating, activity metadata, and deterministic string results. Key modules are
 `src/services/tools/registry.ts`, `src/services/tools/types.ts`, individual
 tool files under `src/services/tools/`, `src/services/chat/contextModes.ts`,
-`src/services/chat/toolBatchExecutor.ts`, and `src/services/mcp/toolIntegration.ts`.
+and `src/services/chat/toolBatchExecutor.ts`.
 
 Every tool implements `Tool`: a model-visible `ToolDef`, optional metadata
 (`category`, risk, side-effect/read-only predicates, validation, result policy),
@@ -303,22 +286,17 @@ string `content`; optional `summary` and `artifacts` are UI side channels.
 Availability is gated in layers:
 
 - Web Lite vs desktop: `src/core/runtime.ts` and `contextModes.ts` hide
-  desktop-only tools such as source workspace/build and bridge-backed file
-  tools when unavailable.
+  desktop-only tools (bridge-backed file tools) when unavailable.
 - Bridge state: `BridgeStore.isOnline` and `requireBridge()` gate workspace,
   filesystem, terminal, Python, SQLite, git, inspect, artifact, attachment,
   and image file writes.
 - Local/runtime state: image generation appears only when bridge is online and
   either OpenRouter image credentials or ComfyUI readiness exists. `recall`
   appears only when RAG is active. `web_search` appears only with a Brave key.
-  Offline Library knowledge tools appear only when the addon is explicitly
-  enabled, compatible, and healthy.
 - Provider/model state: context mode hides tools if the model lacks tool
   support; Ollama defaults to `micro` mode with a smaller tool set.
 - Skill allowlists: an active skill can restrict tools; `thread` is always
   allowed so the model can work with the active thread.
-- MCP dynamic tools: connected MCP servers contribute `mcp_<server>_<tool>`
-  tools through `toolRegistry.registerDynamicProvider()`.
 
 Context modes in `contextModes.ts` select prompt/messages/tools:
 
@@ -327,29 +305,14 @@ Context modes in `contextModes.ts` select prompt/messages/tools:
 - `system-tools`: latest user message with normal system/tools.
 - `bare`: latest user message only and no tools.
 - `micro`: default for Ollama; minimal local system prompt, latest user message,
-  a small filesystem schema when relevant, web search/recall when available,
-  source tools on desktop, and MCP tools.
+  a small filesystem schema when relevant, and web search/recall when available.
 
-Static tool list generated from `src/services/tools/registry.ts` on this
-refresh: 28 tools:
+Static tool list generated from `src/services/tools/registry.ts`:
 
-`memory`, `recall`, `time`, `logs`, `notes`, `schedules`, `thread`,
-`chat_history`, `workspace`, `source_workspace`, `source_build`, `fs`,
-`inspect_file`, `artifact`, `terminal`, `python_inline`, `sqlite_query`,
-`query_script`, `git`, `image_generate`, `describe_image`, `web_search`,
-`fetch_page`, `spawn_task`.
-
-The additional read-only knowledge tools are `library_search`,
-`library_sources`, `public_database_schema`, and `knowledge_benchmarks`.
-They project bounded public metadata rather than passing host responses
-through wholesale: searches retain exact evidence URIs while excluding local
-paths/full content, public schemas exclude rows, and benchmark output excludes
-raw answers and labels trust measurements as proxies rather than factual
-hallucination rates.
-
-Dynamic MCP tools are additional and are named by
-`src/services/mcp/toolIntegration.ts` as `mcp_<server-label>_<remote-tool>`,
-truncated to 64 characters with numeric suffixes for collisions.
+`memory`, `recall`, `time`, `logs`, `notes`, `thread`, `chat_history`,
+`workspace`, `fs`, `inspect_file`, `artifact`, `terminal`, `python_inline`,
+`sqlite_query`, `query_script`, `git`, `image_generate`, `describe_image`,
+`web_search`, `fetch_page`, `spawn_task`.
 
 ## Persistence
 
@@ -394,10 +357,12 @@ Secrets:
   `secret_delete` on desktop. Web Lite falls back to localStorage-backed
   fields.
 - On desktop boot, `RootStore.hydrateSecretsAtBoot()` migrates known secrets
-  from localStorage into the keychain and then starts provider/search/MCP/Ollama
+  from localStorage into the keychain and then starts provider/search/Ollama
   persistence reactions.
-- Known secrets are OpenRouter API key, OpenAI-compatible API key, Brave API
-  key, Ollama API key, and MCP HTTP header / stdio env values.
+- Known secrets are OpenRouter API key, Brave API key, and Ollama API key.
+- `RootStore.boot()` also runs `purgeRetiredLocalSlots()`
+  (`src/services/persistence/retiredSlots.ts`), a one-time cleanup of
+  localStorage keys owned by removed features.
 
 Feature storage slots:
 
@@ -408,16 +373,13 @@ Feature storage slots:
 | `gatesai.providers.v1` | Provider config and Web Lite provider keys |
 | `gatesai.profile.v1` | User profile/facts |
 | `gatesai.notes.v1` | Notes |
-| `gatesai.schedules.v1` | Schedules |
 | `gatesai.uiprefs.v1` | UI preferences |
 | `gatesai.openrouter.catalog.v1` | OpenRouter catalog cache |
 | `gatesai.ollama.v1` | Ollama config/catalog and Web Lite key fallback |
 | `gatesai.local.v1` | Local runtime settings |
-| `gatesai.offlineLibrary.v1` | Offline Library explicit enablement only; no secret or host override |
 | `gatesai.imagegen.v1` | Image backend settings |
 | `gatesai.imagejobs.v1` | Image job history plus interrupted recovery state |
 | `gatesai.search.v1` | Brave config and Web Lite key fallback |
-| `gatesai.mcp.v1` | MCP server configs with secret values redacted |
 | `gatesai.rag.settings.v1` | RAG enabled/model/settings |
 | `gatesai.rag.watermarks.v1` | RAG indexing watermarks |
 | IndexedDB RAG chunk store | Vector chunks from `services/rag/vectorStore.ts` |
@@ -436,9 +398,9 @@ browser build functional. Key modules are `src/stores/LocalRuntimeStore.ts`,
 `src/services/llm/ollamaCatalog.ts`, `src/services/llm/ollamaPull.ts`,
 `src/stores/ImageGenStore.ts`, `src/stores/ImageJobStore.ts`,
 `src/services/image/imageBackend.ts`, `src/services/image/comfyClient.ts`,
-`src/services/image/openrouterImageClient.ts`,
-`src/stores/OpenAiCompatEndpointStore.ts`, and
-`src/services/llm/openaiCompat.ts`.
+`src/services/image/openrouterImageClient.ts`, and
+`src/services/llm/openaiCompat.ts` (the shared OpenAI-compatible transport
+that `OpenRouterProvider` extends).
 
 Ollama:
 
@@ -469,15 +431,6 @@ RAG:
 - `TurnRunner` injects semantic context for full-context turns, and the
   `recall` tool exposes explicit vector recall.
 
-OpenAI-compatible endpoint:
-
-- `OpenAiCompatEndpointStore` lets the user provide a `/v1`-style base URL,
-  optional key, and label. HTTP remote endpoints are blocked unless local;
-  remote endpoints must use HTTPS.
-- A successful `/models` probe marks the provider available and registers
-  dynamic `openai-compat` models. `LlmRouter` routes those models through
-  `OpenAiCompatProvider`.
-
 Cloud providers:
 
 - OpenRouter uses `OpenRouterProvider`, the OpenAI-compatible streaming adapter,
@@ -485,47 +438,18 @@ Cloud providers:
 - `LocalImageProvider` is synthetic so local image models fit the catalog, but
   `TurnRunner` short-circuits before streaming.
 
-## MCP
+Routing is intentionally limited to three destinations: OpenRouter (cloud LLM +
+image), Ollama (local LLM), and ComfyUI (local image, via `LocalImageProvider`).
+There is no user-configurable custom OpenAI-compatible endpoint provider; the
+shared `OpenAiCompatProvider` transport exists only as the base that
+`OpenRouterProvider` extends.
 
-Purpose: let users attach external tool servers while keeping remote tools
-namespaced and user-configured. Key modules are `src/stores/McpStore.ts`,
-`src/services/mcp/client.ts`, `src/services/mcp/stdioTransport.ts`,
-`src/services/mcp/mcpStorage.ts`, `src/services/mcp/toolIntegration.ts`, and
-`src-tauri/src/mcp_stdio.rs`.
-
-Data flow:
-
-1. MCP server configs load from `gatesai.mcp.v1`; header/env secret values are
-   redacted in the slot and hydrated from `secretStorage`.
-2. HTTP servers use JSON-RPC over POST with `Accept: application/json,
-   text/event-stream`, `Mcp-Session-Id` tracking, and protocol version
-   `2025-03-26`.
-3. Stdio servers are desktop-only. `McpStdioTransport` starts a user-configured
-   command through Tauri commands, listens to `mcp-stdio-message`,
-   `mcp-stdio-stderr`, and `mcp-stdio-exit`, and writes JSON-RPC lines back
-   through `mcp_stdio_send`.
-4. The client initializes, sends `notifications/initialized`, lists tools
-   (paging through cursors), and calls `tools/call`.
-5. Connected tools are exposed to the model as `mcp_<server>_<tool>` and routed
-   back to `McpStore.callTool()`.
-
-Security model:
-
-- MCP servers are configured by the user in the app. The app does not discover
-  arbitrary local commands.
-- Stdio config validation rejects empty commands, NUL bytes, invalid env names,
-  and `cmd /c` / `cmd /k`.
-- HTTP header values and stdio env values are stored as secrets when possible.
-- MCP tool results are truncated at 32,000 chars before entering the model
-  transcript.
-
-## Agent tasks and schedules
+## Agent tasks
 
 Purpose: run scoped non-interactive work in separate agent threads, either
-immediately, after a delay, or on a recurring schedule. Key modules are
-`src/services/tools/spawnTask.ts`, `src/services/chat/agentTasks.ts`,
-`src/stores/ChatStore.ts`, `src/stores/SchedulesStore.ts`, and
-`src/core/schedules.ts`.
+immediately or after a delay. Key modules are
+`src/services/tools/spawnTask.ts`, `src/services/chat/agentTasks.ts`, and
+`src/stores/ChatStore.ts`.
 
 `spawn_task` v2 semantics:
 
@@ -545,40 +469,6 @@ immediately, after a delay, or on a recurring schedule. Key modules are
 - On boot, scheduled tasks are re-armed and previously running tasks are marked
   interrupted.
 
-`SchedulesStore` owns recurring schedules:
-
-- Schedules persist in `gatesai.schedules.v1`.
-- The app-open scheduler ticks every 30s, calculates due runs with
-  `core/schedules.ts`, and starts due work through `ChatStore.spawnTask()`.
-- `catchUp` controls whether missed runs fire immediately on boot or skip to
-  the next future run.
-- Manual `runNow()` uses the same spawn path and task slot checks.
-
-## Source workspace and self-improvement loop
-
-Purpose: give the desktop app a controlled source snapshot, review UI, and
-build/test/package runner without exposing arbitrary app source paths in Web
-Lite. Key modules are `src/stores/SourceWorkspaceStore.ts`,
-`src/services/sourceWorkspace.ts`, `src/services/sourceBuild.ts`,
-`src/services/tools/sourceWorkspace.ts`, `src/services/tools/sourceBuild.ts`,
-`src/components/menu/sections/Workspace.tsx`,
-`src-tauri/src/source_workspace.rs`, and `src-tauri/src/source_build.rs`.
-
-Data flow:
-
-1. `scripts/create-source-snapshot.mjs` prepares bundled source data for builds.
-2. Desktop Tauri commands report whether a source workspace is available,
-   prepared, stale, and where the workspace/source roots are.
-3. The Workspace menu can prepare/open the source workspace, list changed files,
-   show diffs through `services/diff/lineDiff.ts`, revert files, and run build
-   commands (`install`, `test`, `build`, `package`).
-4. Model tools `source_workspace` and `source_build` call the same Tauri-backed
-   services, so assistant-driven source edits and the human review UI share one
-   command surface.
-5. `SourceWorkspaceStore.runtimeSnapshot` is injected into prompt runtime
-   context so the model can see prepared/change/build status without reading UI
-   state.
-
 ## Rust layer
 
 Purpose: provide desktop-only OS integration while the React app stays portable.
@@ -596,10 +486,6 @@ Generated from the `tauri::generate_handler!` registration in
 | `fetch_page.rs` | `fetch_page` |
 | `secrets.rs` | `secret_set`, `secret_get`, `secret_delete` |
 | `local_runtime.rs` | `spawn_runtime`, `stop_runtime`, `runtime_status`, `probe_http`, `ollama_tags`, `path_exists`, `pick_directory`, `pick_file`, `runtime_candidate_paths` |
-| `mcp_stdio.rs` | `mcp_stdio_start`, `mcp_stdio_send`, `mcp_stdio_stop`, `mcp_stdio_status` |
-| `offline_library.rs` | `offline_library_read`, `offline_library_search` |
-| `source_workspace.rs` | `source_workspace_status`, `source_workspace_prepare`, `source_workspace_open`, `source_workspace_list`, `source_workspace_read`, `source_workspace_write`, `source_workspace_stat`, `source_workspace_search`, `source_changed_files`, `source_revert_file` |
-| `source_build.rs` | `source_build_status`, `source_build_start`, `source_build_clear` |
 
 Other Rust modules:
 
@@ -607,54 +493,13 @@ Other Rust modules:
   spawning the bridge sidecar.
 - `main.rs` delegates to `lib::run()`.
 
-### Offline Library plugin boundary
+### Global summon shortcut
 
-The optional Offline Library addon uses a dedicated Tauri module rather than
-the Go workspace bridge, browser networking, or the general `fetch_page`
-command. The Rust side owns the fixed base URL
-`http://127.0.0.1:8892/api/v1` and exposes only typed read/search
-operations declared by the validated plugin manifest. It accepts no arbitrary
-URL, route, method, SQL, or filesystem path; redirects are rejected and JSON
-responses are capped at 1,000,000 bytes. Web Lite never invokes this boundary
-and reports the addon as desktop-only. Exact evidence URIs are preserved
-across the consumer. See
-`docs/adr/2026-07-12-offline-library-plugin.md` for the threat model, lifecycle,
-version policy, and rejected alternatives. Frontend access is isolated in
-`src/services/offlineLibrary/`; it returns explicit typed success/error states
-and does not invoke Tauri at all in Web Lite.
-The completed cross-repository acceptance record, including live trusted-
-backend and controlled offline-degradation evidence, is in
-`docs/acceptance/offline-library-2026-07-12.md`.
-
-Desktop registers a second fixed global shortcut, `Super+G`, independently of
-the configurable summon chord. Its dedicated event always shows and focuses
-the window. The frontend accepts it only when Offline Library is explicitly
-enabled/healthy and Ollama is connected, selects an installed tool-capable
-local profile model, and creates a fresh `Offline knowledge` thread with a
-local-evidence/citation policy. Missing prerequisites navigate to their visible
-Settings or Local recovery surface; a cloud model is never selected as a
-fallback. Shortcut registration availability is reported in Settings.
-The tool registry receives only a narrow read facade from `RootStore`, and the
-four model-callable operations are absent unless lifecycle state is healthy.
-Lifecycle discovery also loads the host's versioned task-aware profiles. The
-store keeps the host's public-schema and document recommendations distinct,
-persists an optional user override, and supplies the effective document
-retrieval strategy to `library_search`. Settings shows the recommendation's
-model, retrieval strategy, sample size, confidence interval, grounding proxy,
-latency, and leading limitation. Applying a profile to the active chat is an
-explicit user action and is available only when that exact Ollama tag is
-installed; missing models never trigger a remote fallback.
-The `offline-library` right-dock panel is bridge-independent but desktop-only
-with the dock shell. It reads the lifecycle store's sanitized source and
-Knowledge Arena summaries, supports model/setup filtering over published
-aggregate cells, and displays disaggregated score, confidence, source-hit,
-expected-term, citation-grounding, retrieval-latency, generation-latency, and
-error context. Citation metrics stay labeled as grounding proxies, and the
-panel never renders raw answers or evidence passages.
-The Markdown renderer applies the normal URL sanitizer to all links while
-explicitly preserving exact `kiwix://`, `library://`, `man:`, and `db://`
-citation schemes; chat snapshot and data export/import retain those strings
-without rewriting them.
+Desktop registers a single configurable global summon shortcut (default
+`Ctrl+Shift+Space`, settable in Desktop settings — e.g. `Super+G`).
+`handle_global_shortcut` toggles window visibility via `toggle_summon`, which
+shows and focuses the window or hides it if already focused. There is no longer
+a separate feature-specific global shortcut.
 
 ## Bridge and workspace
 
@@ -760,7 +605,7 @@ by `gatesai.debug.chatLog`.
 
 Common scopes include `chat`, `persistence`, `security`, `bridge`,
 `image-jobs`, `summary`, `models`, `llm`, `local-runtime`, `attachments`,
-`search`, `tools`, `mcp`, `rag`, and `skills`.
+`search`, `tools`, `rag`, and `skills`.
 
 ## Security model (consolidated)
 
@@ -786,30 +631,18 @@ the Brave API with the user's key.
 
 **Secrets.** On desktop, API keys live in the OS credential store via the
 `keyring` crate (Tauri commands `secret_set`/`secret_get`/`secret_delete`);
-Web Lite falls back to localStorage. Known secrets: OpenRouter key,
-OpenAI-compatible key, Brave key, Ollama key, MCP header/env values. Secrets
-are redacted from the persisted MCP config slot and excluded from JSON
-export/import. Never write keys into docs, tests, or fixtures.
-
-**MCP containment.** Servers are user-configured only — the app never
-discovers local commands. Stdio config validation rejects empty commands, NUL
-bytes, invalid env names, and `cmd /c` / `cmd /k`. Remote tool results are
-truncated at 32,000 chars before entering the transcript. Remote tools are
-namespaced `mcp_<server>_<tool>`.
+Web Lite falls back to localStorage. Known secrets: OpenRouter key, Brave key,
+and Ollama key. Secrets are excluded from JSON export/import. Never write keys
+into docs, tests, or fixtures.
 
 **Turn/tool discipline.** Tool batches validate before executing, serialize
 side-effecting calls, cap tool rounds (16 normal / 6 default for agent tasks),
 and stop repeated writes to the same path after three prior side-effect calls.
-Agent tasks cannot spawn nested tasks. OpenAI-compatible custom endpoints must
-be HTTPS unless local.
+Agent tasks cannot spawn nested tasks.
 
 **Web Lite degradation.** The browser build disables every bridge/Tauri-backed
 capability rather than proxying it through a server; there is no server
 component at all.
-
-The Offline Library addon follows the same rule: only the dedicated desktop
-Tauri boundary may contact its fixed loopback service. Browser code—including
-Web Lite—never fetches the service directly.
 
 ## Testing
 
@@ -830,10 +663,10 @@ Test layers:
 
 - Unit/service/store tests live under `tests/core`, `tests/services`, and
   `tests/stores`. They cover turn runner/executor behavior, persistence
-  migrations and archive tier, tools, MCP, RAG, local runtimes, image jobs,
-  provider adapters, source workspace, schedules, usage, and secret storage.
+  migrations and archive tier, tools, RAG, local runtimes, image jobs,
+  provider adapters, usage, and secret storage.
 - Component tests under `tests/components` cover the editorial surface, menu
-  sections, source review UI, image job cards, command palette, and ranking.
+  sections, image job cards, command palette, and ranking.
 - E2E tests under `tests/e2e` run mocked desktop and Web Lite flows, including
   bridge behavior, multi-tab persistence, screens tour, and degraded Web Lite
   surfaces.
@@ -849,11 +682,8 @@ Guard-rail suites worth knowing:
   `tests/services/chat/turnRunner.test.ts` cover retry/stall/tool-loop turn
   semantics.
 - `tests/services/persistence.test.ts` covers schema migration, corruption
-  quarantine, compaction, and archive behavior.
-- `tests/services/mcp/client.test.ts`, `tests/services/mcp/stdioTransport.test.ts`,
-  `tests/services/mcp/toolIntegration.test.ts`, and
-  `tests/stores/McpStore.test.ts` cover MCP
-  protocol, storage, stdio transport, and namespacing.
+  quarantine, compaction, and archive behavior;
+  `tests/services/persistence/retiredSlots.test.ts` covers retired-slot purge.
 - `tests/e2e/web-lite.spec.ts` verifies bridge-only features degrade in the
   browser build.
 

@@ -1,5 +1,56 @@
 # Roadmap
 
+## Narrowed scope — depth over breadth (2026-07-19)
+
+**Principle:** a fast, beautiful, local-first chat workspace that does a small
+set of things exceedingly well — bring-your-own-model chat (OpenRouter + local
+Ollama), real workspace tools through the bridge, image gen via ComfyUI, and
+well-managed memory — rather than a feature checklist.
+
+**Routing floor:** three destinations only — OpenRouter (cloud LLM + image),
+Ollama (local LLM), ComfyUI (local image). No custom OpenAI-compatible endpoint.
+
+De-scope pass complete this session (archived to git history; recover a feature
+by restoring its files + one registry line):
+
+- [x] Delete `.gatesdb` database plugins layer *(2026-07-19)*
+- [x] Move OpenRouter model-compat suite to `scripts/model-compat/` *(2026-07-19)*
+- [x] Archive Schedules, Source workspace + build runner *(2026-07-19)*
+- [x] Archive MCP and the Offline knowledge Library *(2026-07-19)*
+- [x] Remove custom OpenAI-compatible endpoint provider *(2026-07-19)*
+- [x] Repurpose the global summon shortcut (configurable, e.g. `Super+G`) *(2026-07-19)*
+- [x] Purge retired localStorage slots on boot *(2026-07-19)*
+
+### Next up (priority order)
+
+- [ ] **Semantic memory / RAG — build it right.** Keep and elevate; manage
+      memory carefully (what gets indexed, recall quality, transparency, user
+      control). This is a headline capability, not a checkbox.
+- [ ] **Search: basic + deep research.** Center on one provider (Brave for now;
+      pick one that is easy to set up, has a free tier, and scales to the most
+      users). Ship basic web search plus a deep-research flow; do not try to
+      support every search API.
+- [ ] **Model-compat auto-runner.** `scripts/model-compat/` should auto-run and
+      keep a large curated set green: every Claude since Sonnet 4, every Gemini
+      since 2.0, every OpenAI since GPT-5, plus recent Meta, Cursor, Grok, Kimi
+      K2, GLM, Nemotron, and DeepSeek models.
+- [ ] **Database / library layer, redone with taste.** Re-introduce later as a
+      first-class, well-designed integration (the reason the old plugins layer
+      and Offline Library were removed).
+
+### Parked (re-add excellently later, with documented value)
+
+- **Schedules** — recurring automation. Value: unattended periodic agent runs
+  (digests, monitors). Re-add on the v2 agent-task foundation, not the legacy
+  30s app-open loop.
+- **Source workspace + build runner** — in-app self-improvement loop. Value:
+  the app editing/rebuilding itself under review. Heavy; revisit deliberately.
+- **MCP (managed code providers)** — external tool servers. Value: connect
+  third-party tool ecosystems (HTTP + stdio) as namespaced `mcp_*` tools
+  without bespoke integrations. Re-add once the core tool UX is top-tier.
+- **Web Lite** — frozen as a marketing demo; degrades gracefully, not a
+  development target.
+
 ## Handoff plan — Now / Next / Later (2026-07-05)
 
 Current focus: **open-source / product readiness**. The app itself is deep

@@ -8,19 +8,15 @@ capability needs to be available.
 Web Lite runs in the browser without the desktop bridge or Tauri commands.
 
 - Chat with configured cloud models through OpenRouter.
-- Chat with a configured OpenAI-compatible HTTPS endpoint after it passes the
-  model probe.
 - Remember profile facts with `memory`.
 - Manage conversation metadata with `thread`.
 - Search and read bounded conversation history with `chat_history`.
 - Read app logs from the in-memory log ring with `logs`.
 - Work with notes through `notes`.
-- Create and run schedules while the app is open with `schedules`.
 - Start background agent tasks with `spawn_task` when a connected model is
   available.
 - Use Brave web search with `web_search` after a Brave API key is configured.
 - Use semantic recall with `recall` after local RAG is active.
-- Use connected HTTP MCP server tools.
 - View usage totals derived from saved message usage.
 
 Browser storage is local to that browser profile. API keys are stored in browser
@@ -43,10 +39,7 @@ to be online.
 - Generate images with local ComfyUI.
 - Describe uploaded/workspace images with `describe_image`.
 - Fetch a web page through the desktop `fetch_page` proxy.
-- Use source-workspace review and build tools: `source_workspace` and
-  `source_build`.
-- Use local-command MCP servers over stdio.
-- Store provider/search/MCP/Ollama secrets in the OS keychain.
+- Store provider/search/Ollama secrets in the OS keychain.
 - Mirror chat state into `/workspace/.gatesai/chat/` and readable
   `/workspace/chat-history/`.
 
@@ -73,12 +66,9 @@ Static tools currently registered by the app:
 - `time`: answer current date/time questions.
 - `logs`: read recent app diagnostics.
 - `notes`: create, update, delete, list, and search notes.
-- `schedules`: create, list, remove, and run recurring background schedules.
 - `thread`: rename/select threads and set thread context.
 - `chat_history`: bounded recent/search/read access to conversation history.
 - `workspace`: report workspace/bridge status.
-- `source_workspace`: prepare, list, read, write, search, review, and revert the app source workspace.
-- `source_build`: run source install/test/build/package commands.
 - `fs`: read and write files inside the bridge workspace.
 - `inspect_file`: inspect files and artifact folders with safer summaries.
 - `artifact`: create user-facing workspace artifacts, especially HTML.
@@ -93,17 +83,12 @@ Static tools currently registered by the app:
 - `fetch_page`: fetch and extract a specific web page.
 - `spawn_task`: start a separate background agent thread.
 
-MCP tools are added dynamically when a configured MCP server is connected. They
-appear as names like `mcp_server_tool` and run through that server's own
-contract.
-
 ## Honest Gates
 
-- No bridge means no workspace filesystem, shell, artifacts, attachments, source
-  workspace, or local image file writes.
+- No bridge means no workspace filesystem, shell, artifacts, attachments, or
+  local image file writes.
 - No provider key or local model means chat cannot send.
 - No Brave key means `web_search` is hidden.
 - No ComfyUI or OpenRouter image credential means `image_generate` is hidden.
 - No active RAG index means `recall` is hidden.
-- No desktop app means stdio MCP and Tauri source/local-runtime commands are
-  unavailable.
+- No desktop app means Tauri local-runtime commands are unavailable.

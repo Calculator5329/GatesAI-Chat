@@ -412,8 +412,8 @@ Every tool registers itself with `toolRegistry` at module-load time. Each
 tool also carries internal metadata for category, read-only/side-effect
 classification, result policy, and safe concurrency decisions. The registry
 selects a conservative `ToolDef[]` per provider round via
-`toolDefsForTurn(...)`: `memory`, `thread`, `chat_history`, `logs`, and the
-source-workspace controls are always available;
+`toolDefsForTurn(...)`: `memory`, `thread`, `chat_history`, and `logs` are
+always available;
 bridge tools (`workspace`, `fs`, `inspect_file`, `terminal`, `python_inline`,
 `sqlite_query`, `query_script`, `git`) are included when the bridge is online
 or the turn mentions files, attachments, code, commands, Git, tests/builds,
