@@ -1479,7 +1479,7 @@
   box-sizing: border-box;
   min-width: 0;
   overflow: visible;
-  transition: border-color var(--motion-fast);
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
 }
 /* The app-level drop target is intentionally visual-only: window listeners
    handle files once, while the overlay leaves pointer/drag events untouched. */
@@ -1507,9 +1507,15 @@
   border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
   box-shadow: 0 0 0 3px var(--focus-ring-glow);
 }
+/* Keyboard focus: a soft accent glow rather than a loud hard outline. A faint
+   1px accent hairline keeps a crisp, WCAG-legible boundary; the wide diffuse
+   ring + downward bloom read as a gentle halo that stays clearly visible. */
 .composer-row:has(.composer-textarea:focus-visible) {
-  border-color: color-mix(in srgb, var(--accent) 68%, var(--border));
-  box-shadow: 0 0 0 2px var(--focus-ring), 0 0 0 5px var(--focus-ring-glow);
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 34%, transparent),
+    0 0 0 6px var(--focus-ring-glow),
+    0 3px 18px color-mix(in srgb, var(--accent) 13%, transparent);
 }
 .composer-row:has(.composer-textarea:focus:not(:placeholder-shown)) {
   border-color: color-mix(in srgb, var(--accent) 62%, var(--border));
