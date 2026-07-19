@@ -1,13 +1,14 @@
 // Context-mode wiring for a chat turn: which system prompt, wire messages,
 // and tool defs go out for 'full' / 'system-tools' / 'bare' / 'micro' modes.
 // Stateless — called by ChatStore when assembling an LlmRequest.
-import type { Message, Thread } from '../../core/types';
+import type { Message, Model, Thread } from '../../core/types';
 import type { ToolDef } from '../../core/llm';
 import { splitAttachmentFooter } from '../../core/attachments';
 import { flattenForWire } from '../llm/wireFormat';
 import { toolRegistry } from '../tools/registry';
 import { isHeadless, isWebLite } from '../../core/runtime';
 import { messageText } from '../../core/messageParts';
+import { localModelContextProfile } from '../../core/localModelMeta';
 
 export type ChatContextMode = NonNullable<Thread['contextMode']>;
 
@@ -68,9 +69,10 @@ export function latestUserPromptBody(thread: Thread): string {
   return '';
 }
 
-export function effectiveContextMode(thread: Thread, model: { providerId: string } | undefined): ChatContextMode {
-  if (model?.providerId !== 'ollama') return 'full';
-  return thread.contextMode ?? 'micro';
+export function effectiveContextMode(thread: Thread, model: Model | undefined): ChatContextMode {
+  if (!model || model.providerId !== 'ollama') return 'full';
+  if (localModelContextProfile(model) === 'slim') return thread.contextMode === 'bare' ? 'bare' : 'micro';
+  return thread.contextMode ?? 'full';
 }
 
 export function systemPromptForContextMode(mode: ChatContextMode, normalPrompt: () => string | undefined): string | undefined {

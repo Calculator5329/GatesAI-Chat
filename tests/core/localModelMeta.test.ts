@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { localModelContextLength, localModelMetaFor } from '../../src/core/localModelMeta';
+import {
+  localModelContextLength,
+  localModelContextProfile,
+  localModelMetaFor,
+  SMALL_LOCAL_CONTEXT_TOKENS,
+} from '../../src/core/localModelMeta';
 import type { Model } from '../../src/core/types';
 
 function model(providerModelId: string, patch: Partial<Model> = {}): Model {
@@ -35,5 +40,17 @@ describe('localModelMetaFor', () => {
 
     expect(meta?.family).toBe('llava');
     expect(meta?.capabilities).toContain('vision');
+  });
+
+  it('uses a slim context profile for local models below the small-context threshold', () => {
+    const meta = model('small-local', { contextLength: SMALL_LOCAL_CONTEXT_TOKENS - 1 });
+
+    expect(localModelContextProfile(meta)).toBe('slim');
+  });
+
+  it('uses full context profile for local models at or above the threshold', () => {
+    const meta = model('large-local', { contextLength: SMALL_LOCAL_CONTEXT_TOKENS });
+
+    expect(localModelContextProfile(meta)).toBe('full');
   });
 });

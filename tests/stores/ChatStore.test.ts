@@ -24,6 +24,7 @@ import { installMultiTabStorageListener } from '../../src/services/storage/persi
 import { WebLocksLeaderElection, type WebLockRequestOptions, type WebLocksApi } from '../../src/services/storage/webLocksLeaderElection';
 import { messageAttachments, messageText, messageToolCalls, messageToolResults } from '../../src/core/messageParts';
 import { UndoService } from '../../src/services/undo/UndoService';
+import { SMALL_LOCAL_CONTEXT_TOKENS } from '../../src/core/localModelMeta';
 
 const activeChats: ChatStore[] = [];
 
@@ -1841,6 +1842,7 @@ describe('ChatStore', () => {
         vendor: 'Ollama',
         providerId: 'ollama',
         providerModelId: 'gemma2',
+        contextLength: SMALL_LOCAL_CONTEXT_TOKENS * 2,
         supportsTools: false,
       },
       {
@@ -1849,6 +1851,7 @@ describe('ChatStore', () => {
         vendor: 'Ollama',
         providerId: 'ollama',
         providerModelId: 'llama3.1',
+        contextLength: SMALL_LOCAL_CONTEXT_TOKENS * 2,
         // supportsTools undefined => allow tools (positive control)
       },
     ]);
@@ -1865,6 +1868,8 @@ describe('ChatStore', () => {
 
     // Positive control: a normal model still receives tools.
     const withToolsId = chat.createThread();
+    chat.selectThread(withToolsId);
+    chat.setThreadContextMode(withToolsId, 'system-tools');
     chat.setThreadModel(withToolsId, 'ollama-llama3.1');
     chat.sendMessage('create an html file');
     await flush(20);
@@ -1962,7 +1967,7 @@ describe('ChatStore', () => {
     expect(mock.calls[0].maxTokens).toBe(512);
   });
 
-  it('defaults local Ollama turns to micro mode when no context mode was selected', async () => {
+  it('defaults local Ollama small-context turns to micro mode when no context mode was selected', async () => {
     const { chat, mock, registry } = setup([
       { type: 'text', delta: 'ok' },
       { type: 'done', finishReason: 'stop' },
@@ -1973,6 +1978,7 @@ describe('ChatStore', () => {
       vendor: 'Ollama',
       providerId: 'ollama',
       providerModelId: 'default-micro',
+      contextLength: SMALL_LOCAL_CONTEXT_TOKENS - 1,
     }]);
     chat.setToolStoresProvider(() => ({ bridge: onlineBridge() }));
     chat.setThreadModel(chat.activeThreadId!, 'ollama-default-micro');
@@ -1985,6 +1991,33 @@ describe('ChatStore', () => {
     expect(mock.calls[0].systemPrompt).toContain('Minimal local mode.');
     expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['source_workspace', 'source_build', 'fs']);
     expect(mock.calls[0].maxTokens).toBe(512);
+  });
+
+  it('defaults local Ollama large-context turns to full mode when no context mode was selected', async () => {
+    const { chat, mock, registry } = setup([
+      { type: 'text', delta: 'ok' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-default-full',
+      name: 'Default Full (Ollama)',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'default-full',
+      contextLength: SMALL_LOCAL_CONTEXT_TOKENS * 2,
+    }]);
+    chat.setToolStoresProvider(() => ({ bridge: onlineBridge() }));
+    chat.setThreadModel(chat.activeThreadId!, 'ollama-default-full');
+    chat.setThreadContextMode(chat.activeThreadId!, 'full');
+
+    chat.sendMessage('create an html file');
+    await flush(20);
+
+    expect(mock.calls).toHaveLength(1);
+    expect(mock.calls[0].messages).toEqual([{ role: 'user', content: 'create an html file' }]);
+    expect(mock.calls[0].systemPrompt).toBeDefined();
+    expect(mock.calls[0].systemPrompt).not.toContain('Minimal local mode.');
+    expect(mock.calls[0].maxTokens).toBeUndefined();
   });
 
   it('rescues Ollama pseudo fs.write prose into a real tool call', async () => {
