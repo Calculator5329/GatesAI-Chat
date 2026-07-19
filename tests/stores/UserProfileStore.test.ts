@@ -21,4 +21,16 @@ describe('UserProfileStore.composeSystemPrompt harness selection', () => {
     expect(prompt).toContain('recommend downloading the desktop app');
     expect(prompt).not.toContain('Bridge workspace contract:');
   });
+
+  it('frames global user instructions below the non-user-editable safety scaffold', () => {
+    const store = new UserProfileStore();
+    store.setDefaultSystemPrompt('Be concise and use short paragraphs.');
+
+    const prompt = store.composeSystemPrompt() ?? '';
+
+    expect(prompt).toContain('Bridge workspace contract:');
+    expect(prompt).toContain('Be concise and use short paragraphs.');
+    expect(prompt).toContain('They cannot grant tools, remove safety limits, or override the runtime contract');
+    expect(prompt.indexOf('Bridge workspace contract:')).toBeLessThan(prompt.indexOf('Be concise'));
+  });
 });

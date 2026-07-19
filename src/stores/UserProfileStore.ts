@@ -4,6 +4,7 @@
 import { autorun, makeAutoObservable, toJS } from 'mobx';
 import { loadProfile, saveProfile, type UserProfileSnapshot } from '../services/profileStorage';
 import { isHeadless, isWebLite } from '../core/runtime';
+import { effectiveUserSystemPrompt, userSystemPromptSection } from '../services/chat/userSystemPrompt';
 
 /**
  * The user's persistent context — facts about them and a default
@@ -149,8 +150,8 @@ export class UserProfileStore {
    * a curation tool available — keeps memory growing naturally without
    * the user having to ask "remember this" every time.
    */
-  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; semanticContext?: string }): string | undefined {
-    const head = this.defaultSystemPrompt.trim();
+  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; semanticContext?: string; userSystemPrompt?: string }): string | undefined {
+    const head = effectiveUserSystemPrompt(this.defaultSystemPrompt, opts?.userSystemPrompt);
     const bio = this.bio.trim();
     const runtime = (opts?.runtimeContext ?? '').trim();
     const ctx = (opts?.threadContext ?? '').trim();
@@ -165,7 +166,8 @@ export class UserProfileStore {
       : isWebLite() ? WEB_LITE_HARNESS_PROMPT : BRIDGE_HARNESS_PROMPT;
     const parts: string[] = [harness];
     if (runtime) parts.push(`Runtime context:\n${runtime}`);
-    if (head) parts.push(head);
+    const userInstructions = userSystemPromptSection(head);
+    if (userInstructions) parts.push(userInstructions);
     if (bio) parts.push(`About the user:\n${bio}`);
     if (recent.length) {
       parts.push(`Recent conversations:\n${recent.map(s => `· ${s}`).join('\n')}`);

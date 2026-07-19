@@ -1,5 +1,5 @@
 // Observable ChatStore state facade for app runtime, RootStore, and React hooks.
-import { makeAutoObservable, runInAction } from 'mobx';
+import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { ActivityItem, AssistantMessage, ChatSnapshot, Message, StreamActivity, Thread } from '../core/types';
 import type { LlmRequest } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
@@ -89,6 +89,12 @@ import { appendArtifactContractPrompt } from '../services/prompts/artifactContra
 import type { BridgeClientFacade } from '../services/tools/types';
 import type { CompletedJob } from '../services/image/jobs/types';
 import { createWelcomeTourThread, WELCOME_TOUR_THREAD_ID } from '../tourThread';
+import {
+  CURRENT_USER_SYSTEM_PROMPT_SCHEMA_VERSION,
+  effectiveUserSystemPrompt,
+  loadUserSystemPromptSettings,
+  saveUserSystemPromptSettings,
+} from '../services/chat/userSystemPrompt';
 
 export type { ChatContextMode } from '../services/chat/contextModes';
 export { PROVIDER_STREAM_INITIAL_STALL_MS, PROVIDER_STREAM_STALL_MS } from '../services/chat/streamingRoundExecutor';
@@ -122,6 +128,8 @@ export class ChatStore {
   compactionNotice: string | null = null;
   /** Archived thread ids currently loading their full message history. */
   hydratingThreadIds: Record<string, boolean> = {};
+  /** Optional user instruction text that replaces the global default for a thread. */
+  systemPromptOverrideByThread: Record<string, string> = {};
 
   private readonly providers: ProviderStore;
   private readonly registry: ModelRegistry;
@@ -133,6 +141,7 @@ export class ChatStore {
   private readonly persistence: ChatPersistenceCoordinator;
   private readonly leaderElection: WebLocksLeaderElection | null;
   private stopLeaderElectionSubscription: (() => void) | null = null;
+  private stopUserSystemPromptPersistence: (() => void) | null = null;
   private readonly hydrationByThread = new Map<string, Promise<Thread | null>>();
   private readonly agentTaskStartTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private workspacePersistenceHydrating = false;
@@ -157,6 +166,11 @@ export class ChatStore {
     this.isAutoNamingEnabled = isAutoNamingEnabled;
     this.leaderElection = leaderElection;
     this.undoService = undoService;
+    const promptSettings = loadUserSystemPromptSettings(this.profile.defaultSystemPrompt);
+    this.systemPromptOverrideByThread = promptSettings.threadOverrides;
+    if (this.profile.defaultSystemPrompt !== promptSettings.globalDefault) {
+      this.profile.setDefaultSystemPrompt(promptSettings.globalDefault);
+    }
     this.autoNamer = new AutoNamer({
       host: this.createAutoNameHost(),
       router: this.providers.router,
@@ -172,6 +186,7 @@ export class ChatStore {
       getRecentSummaries: () => this.recentSummariesProvider?.() ?? [],
       getSemanticContext: userText => this.semanticContextProvider?.(userText) ?? '',
       getActiveSkill: threadId => this.activeSkillProvider?.(threadId),
+      getUserSystemPrompt: threadId => this.systemPromptForThread(threadId),
     });
     const snapshot = loadSnapshot();
     if (snapshot) {
@@ -202,7 +217,7 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'hydrationByThread' | 'agentTaskStartTimers' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled' | 'undoService'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'controllersByThread' | 'autoNamer' | 'turnRunner' | 'textBuffer' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'stopUserSystemPromptPersistence' | 'hydrationByThread' | 'agentTaskStartTimers' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled' | 'undoService'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -213,6 +228,7 @@ export class ChatStore {
       persistence: false,
       leaderElection: false,
       stopLeaderElectionSubscription: false,
+      stopUserSystemPromptPersistence: false,
       hydrationByThread: false,
       agentTaskStartTimers: false,
       workspacePersistenceHydrating: false,
@@ -232,6 +248,13 @@ export class ChatStore {
       this.stopLeaderElectionSubscription = this.leaderElection.subscribe(state => this.applyLeaderElectionState(state));
     }
     this.persistence.start();
+    this.stopUserSystemPromptPersistence = autorun(() => {
+      saveUserSystemPromptSettings({
+        schemaVersion: CURRENT_USER_SYSTEM_PROMPT_SCHEMA_VERSION,
+        globalDefault: this.profile.defaultSystemPrompt,
+        threadOverrides: { ...this.systemPromptOverrideByThread },
+      });
+    });
     if (this.activeThread?.archived) {
       void this.hydrateThread(this.activeThread.id);
     }
@@ -307,6 +330,8 @@ export class ChatStore {
     this.clearAgentTaskStartTimers();
     this.stopLeaderElectionSubscription?.();
     this.stopLeaderElectionSubscription = null;
+    this.stopUserSystemPromptPersistence?.();
+    this.stopUserSystemPromptPersistence = null;
     this.persistence.dispose();
   }
 
@@ -489,14 +514,21 @@ export class ChatStore {
       toolAllowlist: this.activeSkillProvider?.(thread.id)?.tools,
     });
     const activeSkill = this.activeSkillProvider?.(thread.id);
+    const userSystemPrompt = this.systemPromptForThread(thread.id);
     const systemPrompt = appendArtifactContractPrompt(
-      appendSkillInstructionsToSystemPrompt(systemPromptForContextMode(mode, () =>
-        this.profile.composeSystemPrompt({
-          runtimeContext: buildRuntimeContext({ bridge }),
-          threadContext: mode === 'full' ? thread.threadContext : undefined,
-          recentSummaries: mode === 'full' ? this.recentSummariesProvider?.() ?? [] : [],
-        })
-      ), activeSkill),
+      appendSkillInstructionsToSystemPrompt(
+        systemPromptForContextMode(
+          mode,
+          () => this.profile.composeSystemPrompt({
+            runtimeContext: buildRuntimeContext({ bridge }),
+            threadContext: mode === 'full' ? thread.threadContext : undefined,
+            recentSummaries: mode === 'full' ? this.recentSummariesProvider?.() ?? [] : [],
+            userSystemPrompt,
+          }),
+          userSystemPrompt,
+        ),
+        activeSkill,
+      ),
       tools,
     );
     const baseUsed = estimateLlmPayloadTokens({
@@ -721,6 +753,24 @@ export class ChatStore {
 
   setThreadContextMode(threadId: string, mode: ChatContextMode): void {
     this.updateThread(threadId, () => ({ contextMode: mode }));
+  }
+
+  /** Set or clear a per-thread replacement for the global user instructions. */
+  setThreadSystemPrompt(threadId: string, prompt: string | undefined): void {
+    const thread = this.findThread(threadId);
+    if (!thread || thread.readOnly) return;
+    if (prompt?.trim()) {
+      this.systemPromptOverrideByThread[threadId] = prompt;
+    } else {
+      delete this.systemPromptOverrideByThread[threadId];
+    }
+  }
+
+  systemPromptForThread(threadId: string): string {
+    return effectiveUserSystemPrompt(
+      this.profile.defaultSystemPrompt,
+      this.systemPromptOverrideByThread[threadId],
+    );
   }
 
   setThreadThinkingEffort(threadId: string, effort: ChatThinkingEffort): void {

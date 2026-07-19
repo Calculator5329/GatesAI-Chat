@@ -22,6 +22,7 @@ function thread(): Thread {
     createdAt: 1,
     updatedAt: 1,
     pinned: false,
+    modelId: 'ollama-test',
     messages: [{ id: 'message-id', role: 'user', content: 'test', createdAt: 2 }],
   };
 }
