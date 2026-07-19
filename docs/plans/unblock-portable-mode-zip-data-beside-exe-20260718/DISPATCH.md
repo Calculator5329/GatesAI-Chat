@@ -63,7 +63,8 @@ marker, port, data layout, secret, update, or packaging policies.
   Linux/macOS packages, installed storage, or `latest.json` Windows updater
   target.
 - **depends on:** Task 1 merged to the bridge ref used by the build. Also
-  reconcile the active opt-in-updater task before editing updater files.
+  re-read the live updater implementation before editing so its installed-mode
+  policy and dynamic-import boundary remain intact.
 - **owns:**
   - `src-tauri/src/portable.rs` (new)
   - `src-tauri/src/lib.rs`
@@ -74,7 +75,8 @@ marker, port, data layout, secret, update, or packaging policies.
   - `src/stores/BridgeStore.ts`
   - `scripts/stage-windows-portable.mjs` (new)
   - `tests/core/runtime.test.ts` (new)
-  - `tests/services/portableBundle.test.ts` (new)
+  - `tests/scripts/stage-windows-portable.test.ts` (new)
+  - `tests/services/bridge/health.test.ts` (new)
   - `tests/services/updates/appUpdater.test.ts` (new)
   - `tests/stores/BridgeStore.test.ts`
   - `.github/workflows/release.yml`
@@ -102,6 +104,8 @@ marker, port, data layout, secret, update, or packaging policies.
 - **acceptance:** every checkbox in `DESIGN.md` passes, including first launch,
   relaunch, move-folder, installed/portable coexistence, conflicting portable
   root fail-closed, updater no-op, credential exclusion, exact ZIP structure,
-  and docs truth. Unit tests must assert zero WebSocket/workspace requests on a
-  root mismatch and exact marker/staging behavior. The ZIP remains outside
-  `latest.json`; the installed NSIS updater regression tests remain green.
+  and docs truth. Unit tests must assert that malformed marker handling creates
+  no main window or bridge child, that a root mismatch makes zero
+  WebSocket/workspace requests, and that marker/staging behavior is exact. The
+  ZIP remains outside `latest.json`; the installed NSIS updater regression tests
+  remain green.

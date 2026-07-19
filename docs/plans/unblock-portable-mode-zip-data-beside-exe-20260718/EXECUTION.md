@@ -73,10 +73,14 @@ workspace.
 ## Step 2 — route portable app state and isolate the bridge
 
 1. Add the pure Rust portable-mode/path model and tests in
-   `src-tauri/src/portable.rs`.
+   `src-tauri/src/portable.rs`. Marker activation is Windows-only.
 2. Refactor `src-tauri/src/lib.rs` startup:
    - detect the exact versioned marker once;
-   - suppress Tauri’s config-created main window only in portable mode;
+   - before `Builder::run`, suppress Tauri’s config-created main window in
+     portable mode and on any detection error (configured windows are created
+     before setup);
+   - on a malformed marker or path error, show an asynchronous native error and
+     exit from its callback without creating a window or spawning the bridge;
    - create/validate portable roots;
    - create the main WebView with absolute `data/webview` and the safely
      serialized desktop-runtime initialization object;
@@ -145,6 +149,8 @@ Stop and report instead of improvising if:
 - Portable and installed instances can observe the same WebView profile or
   bridge workspace in any smoke case.
 - A workspace-root mismatch can still reach WebSocket negotiation or an RPC.
+- A malformed marker or failed `current_exe`/root derivation can create the
+  config-defined main window before the native error is handled.
 - The ZIP needs any file not enumerated in `DESIGN.md`, or staging would include
   a pre-existing `data/` directory.
 - The source has drifted such that the updater no longer uses
