@@ -78,7 +78,6 @@ interface SeedState {
   activeThreadId?: string;
   profile?: { bio: string; defaultSystemPrompt: string };
   imageJobs?: unknown[];
-  mcpServers?: unknown[];
   ragSettings?: { autoInject: boolean; embeddingModel: string };
 }
 
@@ -293,7 +292,6 @@ async function writeStorageSeed(page: Page, seed: SeedState): Promise<void> {
     }
     if (state.profile) localStorage.setItem('gatesai.profile.v1', JSON.stringify(state.profile));
     if (state.imageJobs) localStorage.setItem('gatesai.imagejobs.v1', JSON.stringify({ history: state.imageJobs }));
-    if (state.mcpServers) localStorage.setItem('gatesai.mcp.v1', JSON.stringify(state.mcpServers));
     if (state.ragSettings) localStorage.setItem('gatesai.rag.settings.v1', JSON.stringify(state.ragSettings));
   }, seed);
 }
@@ -441,13 +439,6 @@ function baseSeed(activeThreadId: string): SeedState {
       costUsd: 0.08,
       createdAt: now - 2_400_000,
       completedAt: now - 2_350_000,
-    }],
-    mcpServers: [{
-      id: 'mcp-design-review',
-      label: 'Design review',
-      url: 'https://mcp.example.test/sse',
-      headers: { Authorization: '' },
-      enabled: false,
     }],
     ragSettings: { autoInject: true, embeddingModel: 'nomic-embed-text' },
   };

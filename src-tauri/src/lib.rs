@@ -9,7 +9,6 @@ mod brave_search;
 mod desktop;
 mod fetch_page;
 mod local_runtime;
-mod mcp_stdio;
 mod offline_library;
 mod secrets;
 mod webkit_dmabuf;
@@ -37,8 +36,6 @@ fn cleanup_children(app: &tauri::AppHandle) {
   }
   let runtime_state = app.state::<local_runtime::LocalRuntimeState>();
   local_runtime::kill_all(&runtime_state);
-  let mcp_stdio_state = app.state::<mcp_stdio::McpStdioState>();
-  mcp_stdio::kill_all(&mcp_stdio_state);
 }
 
 /// Open a filesystem path with the OS default handler (browser for .html,
@@ -88,17 +85,12 @@ pub fn run() {
       local_runtime::pick_directory,
       local_runtime::pick_file,
       local_runtime::runtime_candidate_paths,
-      mcp_stdio::mcp_stdio_start,
-      mcp_stdio::mcp_stdio_send,
-      mcp_stdio::mcp_stdio_stop,
-      mcp_stdio::mcp_stdio_status,
       offline_library::offline_library_read,
       offline_library::offline_library_search,
     ])
     .manage(desktop::DesktopState::default())
     .manage(BridgeChild(Mutex::new(None)))
     .manage(local_runtime::LocalRuntimeState::default())
-    .manage(mcp_stdio::McpStdioState::default())
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

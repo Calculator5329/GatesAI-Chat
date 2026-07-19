@@ -19,7 +19,6 @@ import type { TaskStore } from './TaskStore';
 import type { OllamaStore } from './OllamaStore';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
 import type { SearchStore } from './SearchStore';
-import type { McpStore } from './McpStore';
 import type { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
 import type { RagStore } from '../services/rag/RagStore';
 import type { SkillsStore } from './SkillsStore';
@@ -101,10 +100,6 @@ export function useLocalRuntimeStore(): LocalRuntimeStore {
 
 export function useSearchStore(): SearchStore {
   return useRootStore().search;
-}
-
-export function useMcpStore(): McpStore {
-  return useRootStore().mcp;
 }
 
 export function useOpenAiCompatEndpointStore(): OpenAiCompatEndpointStore {
