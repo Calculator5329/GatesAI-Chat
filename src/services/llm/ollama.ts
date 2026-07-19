@@ -5,6 +5,7 @@ import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ToolCall,
 import { ensureOk } from './sse';
 import { finiteNumber, isRecord, normalizeFinishReason, normalizeToolCallArguments, readUtf8Lines, type StreamFinishReason } from './streamCore';
 import { logger } from '../diagnostics/logger';
+import { resolveModelFormatProfile } from './modelFormatProfiles';
 
 /**
  * Default base URL for a local Ollama daemon. Single source of truth — used
@@ -83,7 +84,19 @@ export class OllamaProvider implements LlmProvider {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (this.apiKey) headers.Authorization = `Bearer ${this.apiKey}`;
 
-    const useTools = this.toolsEnabled && req.tools && req.tools.length > 0;
+    const format = resolveModelFormatProfile(req.modelId);
+    const useTools = this.toolsEnabled && req.tools && req.tools.length > 0 && !format.ollama?.disableTools;
+    const options: Record<string, unknown> = {};
+    if (typeof req.temperature === 'number') {
+      options.temperature = req.temperature;
+    }
+    if (format.ollama?.numCtx != null) {
+      options.num_ctx = format.ollama.numCtx;
+    }
+    if (format.ollama?.stop?.length) {
+      options.stop = format.ollama.stop;
+    }
+
     const body = {
       model: req.modelId,
       messages: this.buildMessages(req.messages, req.systemPrompt),
@@ -91,7 +104,7 @@ export class OllamaProvider implements LlmProvider {
       keep_alive: '5m',
       ...(req.responseFormat ? { format: req.responseFormat.type === 'json_object' ? 'json' : req.responseFormat.schema } : {}),
       ...(useTools ? { tools: req.tools!.map(toOllamaTool) } : {}),
-      ...(typeof req.temperature === 'number' ? { options: { temperature: req.temperature } } : {}),
+      ...(Object.keys(options).length ? { options } : {}),
     };
 
     let response: Response;

@@ -22,6 +22,7 @@ describe('OpenRouter compatibility harness', () => {
 
   it('centralizes model-specific OpenRouter body extras', () => {
     expect(resolveModelFormatProfile('google/gemini-3-flash').id).toBe('gemini-3-reasoning-budget');
+    expect(resolveModelFormatProfile('qwen2.5:7b').id).toBe('qwen-ollama-chat');
     expect(openAiCompatBodyExtras({
       modelId: 'google/gemini-3-flash',
       messages: [],
