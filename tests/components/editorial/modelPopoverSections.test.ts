@@ -12,7 +12,6 @@ function compute(opts: {
   favoriteIds?: readonly string[];
   registry?: ModelRegistry;
   ollamaOnline?: boolean;
-  openAiCompatAvailable?: boolean;
   defaultModelId?: string;
 } = {}) {
   const registry = opts.registry ?? new ModelRegistry();
@@ -29,7 +28,6 @@ function compute(opts: {
         webLite: false,
         ollamaOnline: opts.ollamaOnline ?? false,
         comfyReady: false,
-        openAiCompatAvailable: opts.openAiCompatAvailable,
       },
     },
     opts.favoriteIds ?? [],
@@ -112,28 +110,5 @@ describe('computeModelSections', () => {
       models: [expect.objectContaining({ id: 'ollama-qwen2.5-coder:14b' })],
     });
     expect(result.displaySections.map(section => section.title)).toContain('Local');
-  });
-
-  it('includes custom OpenAI-compatible endpoint models in Local after probe success', () => {
-    const registry = new ModelRegistry();
-    registry.setDynamicForProvider('openai-compat', [{
-      id: 'oc-local-model',
-      name: 'local-model',
-      vendor: 'LM Studio',
-      providerId: 'openai-compat',
-      providerModelId: 'local-model',
-      dynamic: true,
-      supportsTools: true,
-    }]);
-
-    const result = compute({
-      registry,
-      source: 'local',
-      openAiCompatAvailable: true,
-    });
-
-    expect(result.sourceTabs).toEqual(['auto', 'cloud', 'local']);
-    expect(result.effectiveSource).toBe('local');
-    expect(result.flat.map(model => model.id)).toContain('oc-local-model');
   });
 });

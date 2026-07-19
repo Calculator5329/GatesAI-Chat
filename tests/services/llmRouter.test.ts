@@ -91,49 +91,4 @@ describe('LlmRouter', () => {
     expect(provider.id).toBe('openrouter');
     expect(providerModelId).toBe('test/cool-model');
   });
-
-  it('routes probed custom OpenAI-compatible models through the custom provider', () => {
-    const r = reg();
-    r.setDynamicForProvider('openai-compat', [{
-      id: 'oc-local-model',
-      name: 'local-model',
-      vendor: 'Custom',
-      providerId: 'openai-compat',
-      providerModelId: 'local-model',
-      dynamic: true,
-    }]);
-    const router = new LlmRouter(r, {
-      'openai-compat': {
-        baseUrl: 'http://localhost:1234/v1',
-        available: true,
-      },
-    });
-
-    const { provider, providerModelId } = router.resolve('oc-local-model');
-
-    expect(provider.id).toBe('openai-compat');
-    expect(providerModelId).toBe('local-model');
-    expect(router.canRoute()).toBe(true);
-  });
-
-  it('does not route custom OpenAI-compatible models after a failed probe', () => {
-    const r = reg();
-    r.setDynamicForProvider('openai-compat', [{
-      id: 'oc-local-model',
-      name: 'local-model',
-      vendor: 'Custom',
-      providerId: 'openai-compat',
-      providerModelId: 'local-model',
-      dynamic: true,
-    }]);
-    const router = new LlmRouter(r, {
-      'openai-compat': {
-        baseUrl: 'http://localhost:1234/v1',
-        available: false,
-      },
-    });
-
-    expect(router.canRoute()).toBe(false);
-    expect(() => router.resolve('oc-local-model')).toThrow(NoProviderConfiguredError);
-  });
 });

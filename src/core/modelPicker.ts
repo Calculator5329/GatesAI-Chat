@@ -194,7 +194,7 @@ export function buildPickerSections(args: {
 function sourceMatches(model: Model, source: SourceFilter): boolean {
   if (source === 'auto') return true;
   if (source === 'cloud') return model.providerId === 'openrouter';
-  if (source === 'local') return model.providerId === 'ollama' || model.providerId === 'openai-compat';
+  if (source === 'local') return model.providerId === 'ollama';
   return model.providerId === 'local-image';
 }
 
@@ -309,7 +309,6 @@ export function bestForLine(model: Model, meta: ModelMeta | null): string {
     const tools = model.supportsTools === false ? 'tools off' : 'tools ready';
     return `${meta?.tag ?? 'private local chat'}; ${tools}`;
   }
-  if (model.providerId === 'openai-compat') return `OpenAI-compatible endpoint - ${model.providerModelId}`;
   if (meta?.tag) return meta.tag;
   if (model.providerId === 'local-image') return 'local ComfyUI image generation';
   return describeDynamic(model);
@@ -323,7 +322,7 @@ export function badgesForModel(model: Model): ModelBadge[] {
   const meta = metaFor(model);
   const badges: ModelBadge[] = [];
   if (model.id === AUTO_MODEL.id) badges.push({ label: 'AUTO', tone: 'accent' });
-  else if (model.providerId === 'ollama' || model.providerId === 'openai-compat') {
+  else if (model.providerId === 'ollama') {
     badges.push({ label: 'LOCAL', title: 'Local endpoint; no cloud token cost' });
   }
   else if (model.providerId === 'local-image') badges.push({ label: 'IMAGE' });
@@ -336,10 +335,6 @@ export function badgesForModel(model: Model): ModelBadge[] {
     if (meta?.capabilities.includes('fast')) badges.push({ label: 'fast', title: 'Fast' });
     const ctx = formatContext(localModelContextLength(model));
     if (ctx) badges.push({ label: ctx, title: 'Context window' });
-  } else if (model.providerId === 'openai-compat') {
-    badges.push({ label: 'online', tone: 'accent' });
-    badges.push({ label: model.vendor, title: 'Custom endpoint label' });
-    if (model.supportsTools !== false) badges.push({ label: 'tools', icon: 'tools', title: 'Tools assumed supported' });
   } else if (model.providerId === 'local-image') {
     badges.push({ label: 'online', tone: 'accent' });
   } else {

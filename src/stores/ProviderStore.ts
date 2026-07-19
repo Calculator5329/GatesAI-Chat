@@ -5,7 +5,6 @@ import { autorun, makeAutoObservable, reaction, toJS } from 'mobx';
 import type { ProviderConfig, ProviderConfigs, ProviderId } from '../core/llm';
 import { LlmRouter } from '../services/llm/router';
 import { loadProviderConfigs, saveProviderConfigs } from '../services/providerStorage';
-import { normalizeOpenAiCompatBaseUrl } from '../services/llm/openaiCompatCatalog';
 import { deleteSecret, SECRET_NAMES, setSecret, usesTauriSecretBackend } from '../services/secretStorage';
 import { logger } from '../services/diagnostics/logger';
 import type { ModelRegistry } from './ModelRegistry';
@@ -73,11 +72,9 @@ export class ProviderStore {
     this.secretPersistenceDisposer = reaction(
       () => ({
         openrouter: this.configs.openrouter?.apiKey ?? '',
-        openAiCompat: this.configs['openai-compat']?.apiKey ?? '',
       }),
       keys => {
         persistSecretValue(SECRET_NAMES.openrouterApiKey, keys.openrouter, 'OpenRouter API key');
-        persistSecretValue(SECRET_NAMES.openAiCompatApiKey, keys.openAiCompat, 'custom endpoint API key');
       },
       { fireImmediately: false },
     );
@@ -94,10 +91,6 @@ export class ProviderStore {
 
   hydrateOpenRouterKey(apiKey: string | null | undefined): void {
     this.setKey('openrouter', apiKey ?? '');
-  }
-
-  hydrateOpenAiCompatKey(apiKey: string | null | undefined): void {
-    this.setKey('openai-compat', apiKey ?? '');
   }
 
   get effectiveConfigs(): ProviderConfigs {
@@ -124,9 +117,7 @@ export class ProviderStore {
   }
 
   setBaseUrl(id: ProviderId, baseUrl: string): void {
-    const trimmed = id === 'openai-compat'
-      ? normalizeOpenAiCompatBaseUrl(baseUrl)
-      : baseUrl.trim();
+    const trimmed = baseUrl.trim();
     const current = this.configs[id] ?? {};
     if (!trimmed) {
       const { baseUrl: _, ...rest } = current;
@@ -202,12 +193,6 @@ function providerConfigsForLocalPersistence(configs: ProviderConfigs, stripSecre
     const { apiKey: _, ...rest } = openrouter;
     if (Object.keys(rest).length > 0) next.openrouter = rest;
     else delete next.openrouter;
-  }
-  const openAiCompat = next['openai-compat'];
-  if (openAiCompat?.apiKey) {
-    const { apiKey: _, ...rest } = openAiCompat;
-    if (Object.keys(rest).length > 0) next['openai-compat'] = rest;
-    else delete next['openai-compat'];
   }
   return next;
 }

@@ -32,10 +32,6 @@ describe('availableSources', () => {
   it('never offers local or image in web-lite, even with backends reporting ready', () => {
     expect(availableSources(webLiteAllOn)).toEqual(['auto', 'cloud']);
   });
-
-  it('offers local in web-lite when a custom OpenAI-compatible endpoint is available', () => {
-    expect(availableSources({ ...webLiteAllOn, openAiCompatAvailable: true })).toEqual(['auto', 'cloud', 'local']);
-  });
 });
 
 describe('isProviderAvailable / isModelAvailable', () => {
@@ -56,15 +52,8 @@ describe('isProviderAvailable / isModelAvailable', () => {
     expect(isProviderAvailable('local-image', webLiteAllOn)).toBe(false);
   });
 
-  it('gates custom OpenAI-compatible endpoints on the last successful probe', () => {
-    expect(isProviderAvailable('openai-compat', desktopAllOff)).toBe(false);
-    expect(isProviderAvailable('openai-compat', { ...desktopAllOff, openAiCompatAvailable: true })).toBe(true);
-    expect(isProviderAvailable('openai-compat', { ...webLiteAllOn, openAiCompatAvailable: true })).toBe(true);
-  });
-
   it('reads provider off the model', () => {
     expect(isModelAvailable({ providerId: 'ollama' }, desktopAllOn)).toBe(true);
-    expect(isModelAvailable({ providerId: 'openai-compat' }, { ...desktopAllOff, openAiCompatAvailable: true })).toBe(true);
     expect(isModelAvailable({ providerId: 'local-image' }, desktopAllOff)).toBe(false);
   });
 });

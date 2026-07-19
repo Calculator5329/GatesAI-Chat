@@ -80,8 +80,7 @@ function sameSelectorArgs(previous: SelectorArgs, next: SelectorArgs): boolean {
     && previousFilters.recentIds === nextFilters.recentIds
     && previousFilters.runtime.webLite === nextFilters.runtime.webLite
     && previousFilters.runtime.ollamaOnline === nextFilters.runtime.ollamaOnline
-    && previousFilters.runtime.comfyReady === nextFilters.runtime.comfyReady
-    && previousFilters.runtime.openAiCompatAvailable === nextFilters.runtime.openAiCompatAvailable;
+    && previousFilters.runtime.comfyReady === nextFilters.runtime.comfyReady;
 }
 
 function computeModelSectionsFromArgs(args: SelectorArgs): ComputedModelSections {

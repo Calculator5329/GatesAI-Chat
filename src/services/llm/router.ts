@@ -6,8 +6,6 @@ import type { Model } from '../../core/types';
 import { OpenRouterProvider } from './openrouter';
 import { OllamaProvider, DEFAULT_OLLAMA_BASE_URL } from './ollama';
 import { LocalImageProvider } from './localImage';
-import { OpenAiCompatProvider } from './openaiCompat';
-import { DEFAULT_OPENAI_COMPAT_LABEL, normalizeOpenAiCompatBaseUrl } from './openaiCompatCatalog';
 
 /**
  * Thrown by `LlmRouter.resolve` when no provider is ready to handle the
@@ -28,14 +26,6 @@ export class NoProviderConfiguredError extends Error {
 export function buildProviders(configs: ProviderConfigs): Record<ProviderId, LlmProvider> {
   return {
     openrouter: new OpenRouterProvider(configs.openrouter?.apiKey),
-    'openai-compat': new OpenAiCompatProvider({
-      id: 'openai-compat',
-      name: configs['openai-compat']?.label?.trim() || DEFAULT_OPENAI_COMPAT_LABEL,
-      baseUrl: normalizeOpenAiCompatBaseUrl(configs['openai-compat']?.baseUrl ?? ''),
-      apiKey: configs['openai-compat']?.apiKey,
-      available: configs['openai-compat']?.available === true,
-      requiresApiKey: false,
-    }),
     ollama:     new OllamaProvider({
       baseUrl: configs.ollama?.baseUrl ?? DEFAULT_OLLAMA_BASE_URL,
       apiKey: configs.ollama?.apiKey,
@@ -76,10 +66,6 @@ export class LlmRouter {
     for (const [id, provider] of Object.entries(this.providers)) {
       if (id === 'ollama') {
         if (provider.ready() && this.registry.all.some(m => m.providerId === 'ollama')) return true;
-        continue;
-      }
-      if (id === 'openai-compat') {
-        if (provider.ready() && this.registry.all.some(m => m.providerId === 'openai-compat')) return true;
         continue;
       }
       if (provider.ready()) return true;

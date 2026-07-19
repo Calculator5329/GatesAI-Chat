@@ -267,7 +267,7 @@ describe('OpenAiCompatProvider custom endpoint', () => {
     }));
     const composed = 'Safety/tool scaffold.\n\nUser-configured instructions:\nBe concise.';
     const provider = new OpenAiCompatProvider({
-      id: 'openai-compat',
+      id: 'openrouter',
       name: 'Custom',
       baseUrl: 'http://localhost:1234/v1',
       requiresApiKey: false,
@@ -294,7 +294,7 @@ describe('OpenAiCompatProvider custom endpoint', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const provider = new OpenAiCompatProvider({
-      id: 'openai-compat',
+      id: 'openrouter',
       name: 'Custom',
       baseUrl: 'http://localhost:1234/v1',
       apiKey: 'sk-local',

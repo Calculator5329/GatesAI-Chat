@@ -41,23 +41,6 @@ describe('ProviderStore', () => {
     expect(b.getConfig('openrouter').apiKey).toBe('sk-or-test');
   });
 
-  it('persists custom endpoint config and normalizes its base URL', async () => {
-    const a = make();
-    a.setBaseUrl('openai-compat', 'http://localhost:1234/');
-    a.setLabel('openai-compat', 'LM Studio');
-    a.setAvailable('openai-compat', true);
-    a.setKey('openai-compat', 'sk-local');
-    await flush(2);
-
-    const b = make();
-    expect(b.getConfig('openai-compat')).toEqual({
-      baseUrl: 'http://localhost:1234/v1',
-      label: 'LM Studio',
-      available: true,
-      apiKey: 'sk-local',
-    });
-  });
-
   it('strips retired direct-provider configs from legacy storage', () => {
     localStorage.setItem('gatesai.providers.v1', JSON.stringify({
       openrouter: { apiKey: 'sk-or' },
@@ -91,24 +74,24 @@ describe('ProviderStore', () => {
     expect(store.hasUsableProvider).toBe(false);
   });
 
-  it('hasUsableProvider reacts to custom endpoint probe availability', async () => {
+  it('reacts to Ollama runtime availability', async () => {
     const registry = new ModelRegistry();
-    registry.setDynamicForProvider('openai-compat', [{
-      id: 'oc-local-model',
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-local-model',
       name: 'local-model',
-      vendor: 'Custom',
-      providerId: 'openai-compat',
+      vendor: 'Ollama',
+      providerId: 'ollama',
       providerModelId: 'local-model',
       dynamic: true,
     }]);
     const store = new ProviderStore(registry);
-    store.setBaseUrl('openai-compat', 'http://localhost:1234');
+    store.setBaseUrl('ollama', 'http://localhost:11434');
     await flush(2);
     expect(store.hasUsableProvider).toBe(false);
-    store.setAvailable('openai-compat', true);
+    store.setAvailable('ollama', true);
     await flush(2);
     expect(store.hasUsableProvider).toBe(true);
-    store.setAvailable('openai-compat', false);
+    store.setAvailable('ollama', false);
     await flush(2);
     expect(store.hasUsableProvider).toBe(false);
   });

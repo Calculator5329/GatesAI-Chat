@@ -113,10 +113,8 @@ function hasUsagePayload(usage: LlmUsage): boolean {
 
 function isLocalModel(model: Model | undefined, usage: LlmUsage): boolean {
   return usage.providerId === 'ollama'
-    || usage.providerId === 'openai-compat'
     || usage.providerId === 'local-image'
     || model?.providerId === 'ollama'
-    || model?.providerId === 'openai-compat'
     || model?.providerId === 'local-image';
 }
 

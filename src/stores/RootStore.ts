@@ -22,7 +22,6 @@ import { ImageJobStore } from './ImageJobStore';
 import { TaskStore } from './TaskStore';
 import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { SearchStore } from './SearchStore';
-import { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
 import { SkillsStore } from './SkillsStore';
 import { WhatsNewStore } from './WhatsNewStore';
 import { seedWelcomeTourOnFirstRun } from '../tourThread';
@@ -67,7 +66,6 @@ export class RootStore {
   readonly tasks: TaskStore;
   readonly localRuntime: LocalRuntimeStore;
   readonly search: SearchStore;
-  readonly openAiCompatEndpoint: OpenAiCompatEndpointStore;
   readonly skills: SkillsStore;
   readonly rag: RagStore;
   readonly whatsNew: WhatsNewStore;
@@ -101,7 +99,6 @@ export class RootStore {
       },
     }), { autoPersist: false });
     this.openrouter = new OpenRouterStore(this.registry, () => this.providers.getConfig('openrouter').apiKey);
-    this.openAiCompatEndpoint = new OpenAiCompatEndpointStore(this.registry, this.providers);
     this.chatLeaderElection = new WebLocksLeaderElection();
     this.chat = new ChatStore(
       this.providers,
@@ -389,15 +386,13 @@ export class RootStore {
     if (!migration.ok) return;
 
     try {
-      const [openrouterKey, openAiCompatKey, braveKey, ollamaKey] = await Promise.all([
+      const [openrouterKey, braveKey, ollamaKey] = await Promise.all([
         getSecret(SECRET_NAMES.openrouterApiKey),
-        getSecret(SECRET_NAMES.openAiCompatApiKey),
         getSecret(SECRET_NAMES.braveApiKey),
         getSecret(SECRET_NAMES.ollamaApiKey),
       ]);
       if (!this.booted) return;
       this.providers.hydrateOpenRouterKey(openrouterKey);
-      this.providers.hydrateOpenAiCompatKey(openAiCompatKey);
       this.search.hydrateBraveKey(braveKey);
       this.ollama.hydrateApiKey(ollamaKey);
     } catch (err) {

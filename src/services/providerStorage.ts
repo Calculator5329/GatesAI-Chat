@@ -4,7 +4,6 @@
 import type { ProviderConfigs } from '../core/llm';
 import { jsonSlot } from './storage/jsonSlot';
 import { browserLocalStorage, type KeyValuePersistence, type PersistenceProvider } from './storage/persistenceProvider';
-import { normalizeOpenAiCompatBaseUrl } from './llm/openaiCompatCatalog';
 
 /**
  * Owns the provider-credentials slot. The parser is the migration boundary
@@ -29,8 +28,6 @@ export function createProviderConfigsPersistence(
     const next: ProviderConfigs = {};
     const openrouterKey = extractOpenRouterKey(raw);
     if (openrouterKey) next.openrouter = { apiKey: openrouterKey };
-    const openAiCompat = extractOpenAiCompatConfig(raw);
-    if (openAiCompat) next['openai-compat'] = openAiCompat;
     return next;
   }, storage);
 }
@@ -59,23 +56,4 @@ function extractOpenRouterKey(parsed: unknown): string | undefined {
     if (typeof value === 'string' && value.trim()) return value.trim();
   }
   return undefined;
-}
-
-function extractOpenAiCompatConfig(parsed: unknown): ProviderConfigs['openai-compat'] | undefined {
-  if (!parsed || typeof parsed !== 'object') return undefined;
-  const obj = parsed as Record<string, unknown>;
-  const nested = obj['openai-compat'] ?? obj.openaiCompat ?? obj.openAiCompat;
-  if (!nested || typeof nested !== 'object' || Array.isArray(nested)) return undefined;
-  const source = nested as Record<string, unknown>;
-  const baseUrl = typeof source.baseUrl === 'string' ? normalizeOpenAiCompatBaseUrl(source.baseUrl) : '';
-  const apiKey = typeof source.apiKey === 'string' && source.apiKey.trim() ? source.apiKey.trim() : undefined;
-  const label = typeof source.label === 'string' && source.label.trim() ? source.label.trim() : undefined;
-  const available = typeof source.available === 'boolean' ? source.available : undefined;
-  if (!baseUrl && !apiKey && !label && available === undefined) return undefined;
-  return {
-    ...(baseUrl ? { baseUrl } : {}),
-    ...(apiKey ? { apiKey } : {}),
-    ...(label ? { label } : {}),
-    ...(available !== undefined ? { available } : {}),
-  };
 }
