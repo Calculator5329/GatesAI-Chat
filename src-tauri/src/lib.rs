@@ -12,8 +12,6 @@ mod local_runtime;
 mod mcp_stdio;
 mod offline_library;
 mod secrets;
-mod source_build;
-mod source_workspace;
 mod webkit_dmabuf;
 
 use http_health::probe_health;
@@ -96,25 +94,11 @@ pub fn run() {
       mcp_stdio::mcp_stdio_status,
       offline_library::offline_library_read,
       offline_library::offline_library_search,
-      source_workspace::source_workspace_status,
-      source_workspace::source_workspace_prepare,
-      source_workspace::source_workspace_open,
-      source_workspace::source_workspace_list,
-      source_workspace::source_workspace_read,
-      source_workspace::source_workspace_write,
-      source_workspace::source_workspace_stat,
-      source_workspace::source_workspace_search,
-      source_workspace::source_changed_files,
-      source_workspace::source_revert_file,
-      source_build::source_build_status,
-      source_build::source_build_start,
-      source_build::source_build_clear,
     ])
     .manage(desktop::DesktopState::default())
     .manage(BridgeChild(Mutex::new(None)))
     .manage(local_runtime::LocalRuntimeState::default())
     .manage(mcp_stdio::McpStdioState::default())
-    .manage(source_build::SourceBuildState::default())
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

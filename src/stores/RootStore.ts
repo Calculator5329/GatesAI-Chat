@@ -24,7 +24,6 @@ import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { SearchStore } from './SearchStore';
 import { McpStore } from './McpStore';
 import { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
-import { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import { SkillsStore } from './SkillsStore';
 import { WhatsNewStore } from './WhatsNewStore';
 import { OfflineLibraryStore } from './OfflineLibraryStore';
@@ -74,7 +73,6 @@ export class RootStore {
   readonly search: SearchStore;
   readonly mcp: McpStore;
   readonly openAiCompatEndpoint: OpenAiCompatEndpointStore;
-  readonly sourceWorkspace: SourceWorkspaceStore;
   readonly skills: SkillsStore;
   readonly rag: RagStore;
   readonly whatsNew: WhatsNewStore;
@@ -139,7 +137,6 @@ export class RootStore {
     this.bridge = new BridgeStore();
     this.artifacts = new ArtifactStore(this.bridge);
     this.skills = new SkillsStore(this.bridge, () => toolRegistry.list().map(tool => tool.def.name));
-    this.sourceWorkspace = new SourceWorkspaceStore();
     this.updates = new UpdateStore();
     this.execStream = new ExecStreamStore();
     this.imageGen = new ImageGenStore(this.localRuntime, () => this.providers.getConfig('openrouter').apiKey);
@@ -171,7 +168,6 @@ export class RootStore {
       localRuntime: this.localRuntime,
       search: this.search,
       rag: this.rag,
-      sourceWorkspace: this.sourceWorkspace,
       artifacts: this.artifacts,
       artifactSurface: this.dock,
       offlineLibrary: {

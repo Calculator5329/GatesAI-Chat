@@ -1012,24 +1012,14 @@ describe('tool registry harness selection', () => {
       .toContain('`content` is required for artifact action "create_html_artifact"');
   });
 
-  it('keeps ordinary chat turns on the small always-on tool set plus source controls', () => {
+  it('keeps ordinary chat turns on the small always-on tool set', () => {
     const names = toolRegistry.toolDefsForTurn({
       userText: 'tell me a story',
       bridgeOnline: false,
-    }).map(t => t.name);
-
-    expect(names).toEqual(['memory', 'logs', 'thread', 'chat_history', 'source_workspace', 'source_build']);
-    expect(names).not.toContain('time');
-  });
-
-  it('hides desktop source controls when the runtime is Web Lite', () => {
-    const names = toolRegistry.toolDefsForTurn({
-      userText: 'tell me a story',
-      bridgeOnline: false,
-      desktopRuntime: false,
     }).map(t => t.name);
 
     expect(names).toEqual(['memory', 'logs', 'thread', 'chat_history']);
+    expect(names).not.toContain('time');
   });
 
   it('includes workspace tools for attachment and code turns', () => {

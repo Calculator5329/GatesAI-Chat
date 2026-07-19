@@ -1983,7 +1983,7 @@ describe('ChatStore', () => {
     expect(mock.calls[0].messages).toEqual([{ role: 'user', content: 'create an html file' }]);
     expect(mock.calls[0].systemPrompt).toContain('Minimal local mode.');
     expect(mock.calls[0].systemPrompt).not.toContain('remembered context');
-    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['source_workspace', 'source_build', 'fs']);
+    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['fs']);
     expect(mock.calls[0].maxTokens).toBe(512);
   });
 
@@ -2009,7 +2009,7 @@ describe('ChatStore', () => {
     expect(mock.calls).toHaveLength(1);
     expect(mock.calls[0].messages).toEqual([{ role: 'user', content: 'create an html file' }]);
     expect(mock.calls[0].systemPrompt).toContain('Minimal local mode.');
-    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['source_workspace', 'source_build', 'fs']);
+    expect(mock.calls[0].tools?.map(tool => tool.name)).toEqual(['fs']);
     expect(mock.calls[0].maxTokens).toBe(512);
   });
 

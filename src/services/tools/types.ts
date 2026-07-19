@@ -166,21 +166,6 @@ export interface OfflineLibraryFacade {
   getKnowledgeArena(): Promise<OfflineLibraryResult<OfflineLibraryKnowledgeArena>>;
 }
 
-export interface SourceWorkspaceFacade {
-  readonly runtimeSnapshot?: {
-    prepared: boolean;
-    changedFileCount?: number;
-    latestChangeAtUnix?: number;
-    lastBuildStatus?: 'idle' | 'running' | 'succeeded' | 'failed' | 'interrupted';
-    lastBuildFinishedAtUnix?: number;
-    lastBuildStartedAtUnix?: number;
-    lastTestStatus?: 'idle' | 'running' | 'succeeded' | 'failed' | 'interrupted';
-    lastTestFinishedAtUnix?: number;
-    lastTestStartedAtUnix?: number;
-  } | null;
-  refreshRuntimeContext?(): Promise<void>;
-}
-
 export interface ArtifactValidationFacade {
   smokeRender(html: string, options?: { signal?: AbortSignal }): Promise<{
     ok: boolean;
@@ -208,7 +193,6 @@ export interface ToolContext {
   execStream?: ExecStreamFacade;
   search?: SearchFacade;
   rag?: RagFacade;
-  sourceWorkspace?: SourceWorkspaceFacade;
   offlineLibrary?: OfflineLibraryFacade;
   artifactValidation?: ArtifactValidationFacade;
   artifacts?: ArtifactRegistryFacade;
@@ -221,7 +205,7 @@ export interface ToolContext {
   signal?: AbortSignal;
 }
 
-export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'source' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision' | 'web' | 'knowledge' | 'diagnostics' | 'mcp';
+export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision' | 'web' | 'knowledge' | 'diagnostics' | 'mcp';
 
 export interface ToolResultPolicy {
   /** Default max chars returned to the model before compaction. */

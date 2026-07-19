@@ -25,8 +25,6 @@ import { describeImageTool } from './describeImage';
 import { webSearchTool } from './webSearch';
 import { fetchPageTool } from './fetchPage';
 import { artifactTool } from './artifact';
-import { sourceWorkspaceTool } from './sourceWorkspace';
-import { sourceBuildTool } from './sourceBuild';
 import { spawnTaskDescription, spawnTaskTool } from './spawnTask';
 import {
   knowledgeBenchmarksTool,
@@ -117,10 +115,6 @@ export class ToolRegistry {
       'logs',
     ]);
     if (ctx.spawnTaskAvailable) selected.add('spawn_task');
-    if (ctx.desktopRuntime !== false) {
-      selected.add('source_workspace');
-      selected.add('source_build');
-    }
     const bridgeRelevant = ctx.bridgeOnline;
     const notesRelevant = /\b(note|notes|plan|plans|document|documents|doc|docs|memory|remember|search|list|read|write)\b/.test(text);
     const imageGenRelevant = /\b(draw|drawing|paint|render|generate|make|create|design|illustrate|picture|image|photo|artwork|poster|logo|illustration|visual|scene|portrait|landscape|background|wallpaper)\b.*\b(image|picture|photo|art|artwork|drawing|poster|logo|illustration|scene|portrait|landscape|background|wallpaper)\b|\b(image[-_ ]?gen|imagegen|flux|stable ?diffusion|dall[-_ ]?e|midjourney|background|wallpaper)\b/i.test(text);
@@ -482,8 +476,6 @@ toolRegistry.register(notesTool);
 toolRegistry.register(threadTool);
 toolRegistry.register(chatHistoryTool);
 toolRegistry.register(workspaceTool);
-toolRegistry.register(sourceWorkspaceTool);
-toolRegistry.register(sourceBuildTool);
 toolRegistry.register(fsTool);
 toolRegistry.register(inspectFileTool);
 toolRegistry.register(artifactTool);

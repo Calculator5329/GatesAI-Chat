@@ -113,11 +113,7 @@ export function toolsForContextMode(args: {
   if (args.mode === 'micro') {
     const tools: ToolDef[] = [];
     if (!isWebLite() && !isHeadless()) {
-      const sourceWorkspace = toolRegistry.get('source_workspace')?.def;
-      const sourceBuild = toolRegistry.get('source_build')?.def;
       const fetchPage = toolRegistry.get('fetch_page')?.def;
-      if (sourceWorkspace) tools.push(sourceWorkspace);
-      if (sourceBuild) tools.push(sourceBuild);
       if (fetchPage && (args.webSearchAvailable || isFetchPageRelevant(args.userText))) tools.push(fetchPage);
     }
     if (args.toolAllowlist) {
