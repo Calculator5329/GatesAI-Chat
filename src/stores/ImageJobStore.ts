@@ -26,6 +26,7 @@ import {
   loadImageJobsSnapshot,
   saveImageJobsSnapshot,
 } from '../services/imageJobsStorage';
+import { isRecord } from '../core/guards';
 
 const HISTORY_LIMIT = 200;
 const RESTARTED_JOB_ERROR = 'The app restarted before this image render completed. Retry the job to run it again.';
@@ -506,9 +507,6 @@ async function loadComfyWorkflow(
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function defaultFilenameStem(backend: ImageBackendId): string {
   const prefix = backendFilePrefix(backend);

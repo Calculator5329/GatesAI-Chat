@@ -28,8 +28,7 @@ published from the private source repository to the public
       `workflow_dispatch` is useful for build validation, but its artifacts are
       not published as a release because publish steps require a tag ref.
 - [ ] Confirm the workflow checked out the intended bridge ref, built both
-      bridge sidecars, created the source snapshot, and completed the Tauri
-      NSIS and AppImage builds.
+      bridge sidecars, and completed the Tauri NSIS and AppImage builds.
 
 ## Verify published assets
 

@@ -14,6 +14,7 @@ import { PROTECTED_CHAT_HISTORY_DENIAL, denyProtectedChatHistoryPath } from './p
 import { requireBridge } from './requireBridge';
 import type { Tool } from './types';
 import type { FsReadResp } from '../../core/workspace';
+import { isRecord } from '../../core/guards';
 
 const IMAGE_GENERATE_BRIDGE_OFFLINE = 'Error: bridge is offline. Start the gatesai-bridge companion process and try again.';
 
@@ -397,9 +398,6 @@ function parseBatchPromptDefaults(value: unknown): BatchPromptDefaults {
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function estimatedImageDuration(backend: ImageBackendId): string {
   return backend === 'openrouter-image'

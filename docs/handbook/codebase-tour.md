@@ -253,7 +253,7 @@ Artifact System
   owns generated files and previews
 
 Workspace System
-  owns local files, source workspace, git, and future rebuild flows
+  owns local files and git
 ```
 
 The biggest cleanup target is `ChatStore`: keep it as the state owner, but move

@@ -12,7 +12,6 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "source:snapshot": "node scripts/create-source-snapshot.mjs",
     "build": "tsc -b && vite build",
     "build:web": "tsc -b && vite build --mode web-lite",
     "analyze": "vite build --mode analyze --sourcemap",
@@ -28,7 +27,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "npm run source:snapshot && node scripts/tauri-build.mjs"
+    "tauri:build": "node scripts/tauri-build.mjs"
   },
   "dependencies": {
     "@tauri-apps/plugin-process": "^2.3.1",

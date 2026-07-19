@@ -2,6 +2,7 @@
 // Called before shape parsing so legacy values can be normalized without
 // teaching every parser branch about every historical spelling.
 
+import { isRecord } from '../../core/guards';
 export const CURRENT_CHAT_SCHEMA_VERSION = 3;
 
 export interface RawChatSnapshotMigration {
@@ -145,6 +146,3 @@ function readSchemaVersion(value: unknown): number {
     : 1;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}

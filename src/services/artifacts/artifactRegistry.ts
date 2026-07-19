@@ -12,6 +12,7 @@ import {
 } from '../../core/htmlArtifacts';
 import type { FsListResp, FsReadResp } from '../../core/workspace';
 import type { BridgeClientFacade } from '../tools/types';
+import { isRecord } from '../../core/guards';
 
 export async function loadHtmlArtifactIndex(
   client: BridgeClientFacade,
@@ -130,9 +131,6 @@ function parseRecord(value: unknown): HtmlArtifactRecord {
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function safeIso(mtime: number): string {
   const value = new Date(mtime);

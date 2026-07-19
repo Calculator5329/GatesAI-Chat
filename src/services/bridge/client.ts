@@ -16,6 +16,7 @@
  *    /health), not here. This class stays single-purpose.
  */
 
+import { isRecord } from '../../core/guards';
 const REQUEST_ID_VERSION = '1';
 export const BRIDGE_PROTOCOL_VERSION = 2;
 export const LEGACY_BRIDGE_PROTOCOL_VERSION = 0;
@@ -337,6 +338,3 @@ function parseErrorPayload(value: unknown): ErrorPayload | undefined {
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}

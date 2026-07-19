@@ -12,8 +12,6 @@ export interface OpenAiCompatOptions {
   name: string;
   baseUrl: string;
   apiKey?: string;
-  requiresApiKey?: boolean;
-  available?: boolean;
   /** Extra headers (e.g. OpenRouter wants HTTP-Referer / X-Title). */
   extraHeaders?: Record<string, string>;
 }
@@ -41,16 +39,14 @@ interface OpenRouterUsage {
 
 /**
  * Streams a chat completion from an OpenAI-compatible `/chat/completions`
- * endpoint. Used by OpenAI, Groq, OpenRouter, and local servers (Ollama,
- * LM Studio, vLLM, llama.cpp).
+ * endpoint. Base class for `OpenRouterProvider` (the only OpenAI-wire
+ * provider in the app; Ollama speaks its native NDJSON API instead).
  */
 export class OpenAiCompatProvider implements LlmProvider {
   readonly id: ProviderId;
   readonly name: string;
   private readonly baseUrl: string;
   private readonly apiKey?: string;
-  private readonly requiresApiKey: boolean;
-  private readonly available: boolean;
   private readonly extraHeaders: Record<string, string>;
 
   constructor(opts: OpenAiCompatOptions) {
@@ -58,13 +54,11 @@ export class OpenAiCompatProvider implements LlmProvider {
     this.name = opts.name;
     this.baseUrl = opts.baseUrl.replace(/\/+$/, '');
     this.apiKey = opts.apiKey;
-    this.requiresApiKey = opts.requiresApiKey ?? true;
-    this.available = opts.available !== false;
     this.extraHeaders = opts.extraHeaders ?? {};
   }
 
   ready(): boolean {
-    return Boolean(this.baseUrl) && this.available && (!this.requiresApiKey || Boolean(this.apiKey));
+    return Boolean(this.baseUrl) && Boolean(this.apiKey);
   }
 
   async *stream(req: LlmRequest, signal: AbortSignal): AsyncIterable<LlmChunk> {

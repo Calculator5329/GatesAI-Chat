@@ -97,10 +97,6 @@ jobs:
               ./cmd/gatesai-bridge
           )
 
-      - name: Snapshot source bundle
-        working-directory: chat
-        run: npm run source:snapshot
-
       - name: Build unsigned Tauri app and DMG
         working-directory: chat
         env:
@@ -176,10 +172,6 @@ jobs:
               -o "../chat/src-tauri/binaries/gatesai-bridge-x86_64-pc-windows-msvc.exe" \
               ./cmd/gatesai-bridge
           )
-
-      - name: Snapshot source bundle
-        working-directory: chat
-        run: npm run source:snapshot
 
       - name: Build Tauri NSIS installer
         working-directory: chat
@@ -313,10 +305,6 @@ jobs:
         env:
           GATESAI_BRIDGE_REPO: ${{ github.workspace }}/gatesai-bridge
         run: bash scripts/prepare-linux-sidecar.sh
-
-      - name: Snapshot source bundle
-        working-directory: chat
-        run: npm run source:snapshot
 
       - name: Build Tauri AppImage
         working-directory: chat

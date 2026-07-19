@@ -109,7 +109,7 @@ async function captureDesktopTour(page: Page, testInfo: TestInfo): Promise<void>
   await resetStorage(page, { onboardingDismissed: false });
   await gotoApp(page, '/');
   await forceFirstRunState(page);
-  await expect(page.getByText('Use cloud models')).toBeVisible();
+  await expect(page.getByText('Bring cloud models')).toBeVisible();
   await shot(page, outDir, index++, 'first-run-onboarding');
 
   await resetStorage(page, baseSeed('active'));
@@ -136,21 +136,11 @@ async function captureDesktopTour(page: Page, testInfo: TestInfo): Promise<void>
   await expect(page.locator('.model-popover')).toBeVisible();
   await shot(page, outDir, index++, 'model-popover');
 
-  for (const section of ['agent', 'models', 'local', 'workspace', 'gallery', 'usage', 'settings']) {
+  for (const section of ['agent', 'models', 'settings']) {
     await resetStorage(page, baseSeed('active'));
     await gotoApp(page, `/#/menu/${section}`);
     await expect(page.locator('.gates-menu__body')).toBeVisible();
     await shot(page, outDir, index++, `menu-${section}`);
-    if (section === 'agent') {
-      await page.getByText('MCP', { exact: true }).scrollIntoViewIfNeeded();
-      await page.waitForTimeout(100);
-      await shot(page, outDir, index++, 'menu-agent-mcp-skills');
-      await page.getByText(/Workspace skills/).scrollIntoViewIfNeeded();
-      await page.getByRole('button', { name: 'Refresh' }).last().click();
-      await expect(page.getByText(/Workspace skills.*2/)).toBeVisible();
-      await page.waitForTimeout(100);
-      await shot(page, outDir, index++, 'menu-agent-skills-list');
-    }
   }
 
   await resetStorage(page, baseSeed('agent-task'));
@@ -164,7 +154,7 @@ async function captureDesktopTour(page: Page, testInfo: TestInfo): Promise<void>
   await resetStorage(page, { onboardingDismissed: false });
   await gotoApp(page, '/');
   await forceFirstRunState(page);
-  await expect(page.getByText('Use cloud models')).toBeVisible();
+  await expect(page.getByText('Bring cloud models')).toBeVisible();
   await shot(page, outDir, index++, 'mobile-first-run');
 
   await resetStorage(page, baseSeed('active'));
@@ -181,7 +171,7 @@ async function captureWebLiteTour(page: Page, testInfo: TestInfo): Promise<void>
   await resetStorage(page, { onboardingDismissed: false });
   await gotoApp(page, '/');
   await forceFirstRunState(page);
-  await expect(page.getByText('OpenRouter requires a key')).toBeVisible();
+  await expect(page.getByText('Bring cloud models')).toBeVisible();
   await shot(page, outDir, index++, 'first-run-openrouter-onboarding');
 
   await resetStorage(page, baseSeed('active'));
@@ -205,7 +195,7 @@ async function captureWebLiteTour(page: Page, testInfo: TestInfo): Promise<void>
   await resetStorage(page, { onboardingDismissed: false });
   await gotoApp(page, '/');
   await forceFirstRunState(page);
-  await expect(page.getByText('OpenRouter requires a key')).toBeVisible();
+  await expect(page.getByText('Bring cloud models')).toBeVisible();
   await shot(page, outDir, index++, 'mobile-first-run');
 
   await resetStorage(page, baseSeed('active'));
@@ -223,7 +213,7 @@ async function captureLocalOnlyTour(page: Page): Promise<void> {
   await gotoApp(page, '/');
   await forceFirstRunState(page);
   await forceOllamaOnline(page, { keepOnboarding: true });
-  await expect(page.getByRole('button', { name: /Use qwen2\.5:7b/ })).toBeVisible();
+  await expect(page.getByRole('button', {  name: /Continue with qwen2\.5:7b/ })).toBeVisible();
   await shot(page, outDir, index++, 'first-run-local-online');
 
   await resetStorage(page, localOnlySeed('local-active'));

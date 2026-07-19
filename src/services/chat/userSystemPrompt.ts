@@ -3,6 +3,7 @@
 // Invariant: user text is always framed below the app's runtime/safety contract.
 import { logger } from '../diagnostics/logger';
 import { browserLocalStorage, type KeyValuePersistence } from '../storage/persistenceProvider';
+import { isRecord } from '../../core/guards';
 
 export const USER_SYSTEM_PROMPT_STORAGE_KEY = 'gatesai.user-system-prompts.v1';
 export const CURRENT_USER_SYSTEM_PROMPT_SCHEMA_VERSION = 1;
@@ -106,6 +107,3 @@ function stringValue(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}

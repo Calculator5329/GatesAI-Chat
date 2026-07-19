@@ -12,6 +12,7 @@ import {
 import { buildFinalFlux2KleinWorkflow } from './workflows/finalFlux2Klein';
 import { logger } from '../diagnostics/logger';
 import { buildSdxlLightningQuickWorkflow } from './workflows/sdxlLightning';
+import { isRecord } from '../../core/guards';
 
 /**
  * Client for ComfyUI's `/prompt` API. ComfyUI runs arbitrary node
@@ -273,9 +274,6 @@ function parseHistoryOutputImage(value: unknown): HistoryOutputImage | null {
   return filename && type ? { filename, subfolder, type } : null;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 /**
  * Recursively walk the workflow template and substitute token

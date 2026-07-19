@@ -2,7 +2,7 @@
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { JsonSchema, ToolCall, ToolDef } from '../../core/llm';
-import type { Tool, ToolCategory, ToolContext, ToolExecuteResult, ToolOutcome, ToolValidationIssue } from './types';
+import type { Tool, ToolContext, ToolExecuteResult, ToolOutcome, ToolValidationIssue } from './types';
 import { defaultToolUi, summarizeToolResult } from './activityDisplay';
 import { logger } from '../diagnostics/logger';
 import { memoryTool } from './memory';
@@ -90,10 +90,6 @@ export class ToolRegistry {
     return [...this.tools.values(), ...this.dynamicTools()];
   }
 
-  toolDefsByCategory(category: ToolCategory): ToolDef[] {
-    return this.list().filter(tool => tool.meta?.category === category).map(tool => tool.def);
-  }
-
   /** The shape providers want — array of `ToolDef`. Empty when no tools registered. */
   toolDefs(): ToolDef[] {
     return this.list().map(t => t.def);
@@ -134,10 +130,6 @@ export class ToolRegistry {
       selected.add('fs');
       selected.add('describe_image');
     }
-    for (const tool of this.list()) {
-      if (tool.meta?.category === 'mcp') selected.add(tool.def.name);
-    }
-
     const out = this.filterToolDefsForAllowlist(
       this.list().filter(t => selected.has(t.def.name)).map(t => t.def),
       ctx.toolAllowlist,

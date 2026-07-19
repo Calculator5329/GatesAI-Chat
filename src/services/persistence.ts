@@ -21,6 +21,7 @@ import {
   createIndexedDbThreadArchiveStore,
   type ThreadArchiveStore,
 } from './persistence/idb';
+import { isRecord } from '../core/guards';
 
 const STORAGE_KEY = 'gatesai.state.v1';
 const CORRUPT_STORAGE_KEY_PREFIX = `${STORAGE_KEY}.corrupt`;
@@ -896,9 +897,6 @@ function parseCostSource(value: unknown): LlmUsage['costSource'] {
   return value === 'provider' || value === 'pricing' || value === 'free' || value === 'local' ? value : undefined;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function stringField(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;

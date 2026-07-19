@@ -1,4 +1,4 @@
-import { mkdir, readdir, rm } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { mockBridgeOnline, mockOllama, mockOpenRouter } from '../tests/e2e/fixtures/harness';
@@ -10,6 +10,9 @@ const THEME = process.env.SCREENS_TOUR_THEME ?? 'dark';
 const DESKTOP = { width: 1280, height: 800 };
 const MOBILE = { width: 390, height: 844 };
 const MODEL_ID = 'or-gemini-3-flash';
+// What's New opens whenever the stored version differs from the app version,
+// so seed the real current version instead of a pin that rots on every bump.
+const { version: APP_VERSION } = JSON.parse(await readFile(path.resolve(process.cwd(), 'package.json'), 'utf8'));
 
 test('captures every source-audited screen, panel, and modal', async ({ page }) => {
   await prepareOutput();
@@ -50,17 +53,9 @@ test('captures every source-audited screen, panel, and modal', async ({ page }) 
   await capture(page, 'screen-sidebar-mobile-open.png');
   await page.setViewportSize(DESKTOP);
 
-  for (const section of ['settings', 'usage', 'agent', 'models', 'local', 'workspace', 'gallery']) {
+  for (const section of ['settings', 'agent', 'models']) {
     await openState(page, baseSeed(), `/#/menu/${section}`);
-    if (section === 'local') {
-      // KNOWN GAP (local-first audit finding LF-1): the Local section throws
-      // "Cannot read local runtime status outside the GatesAI desktop app"
-      // in Web Lite instead of degrading gracefully. Capture the degraded
-      // state as evidence; assertion restored when LF-1 is fixed.
-      await page.waitForTimeout(500);
-    } else {
-      await expect(page.locator('.gates-menu__body')).toBeVisible();
-    }
+    await expect(page.locator('.gates-menu__body')).toBeVisible();
     await capture(page, `screen-menu-${section}.png`);
   }
 
@@ -81,11 +76,6 @@ test('captures every source-audited screen, panel, and modal', async ({ page }) 
   await page.locator('.composer-skill-label').click();
   await expect(page.getByRole('listbox', { name: 'Workspace skills' })).toBeVisible();
   await capture(page, 'screen-picker-skill.png');
-
-  await openState(page, baseSeed(), '/#/menu/gallery');
-  await page.getByRole('button', { name: 'Local-first audit cover image' }).first().click();
-  await expect(page.getByRole('dialog', { name: 'Image viewer' })).toBeVisible();
-  await capture(page, 'screen-modal-gallery-lightbox.png');
 
   await openState(page, baseSeed(), '/#/thread/audit');
   const artifact = page.locator('.html-artifact-preview').first();
@@ -136,7 +126,7 @@ async function openState(page, seed, route) {
       animationsEnabled: false,
     }));
     localStorage.setItem('gatesai.whatsNew.v1', JSON.stringify({
-      lastSeenVersion: state.lastSeenVersion ?? '4.5.0',
+      lastSeenVersion: state.lastSeenVersion ?? state.appVersion,
       tourThreadSeeded: true,
     }));
     if (state.readyProvider !== false) {
@@ -150,7 +140,7 @@ async function openState(page, seed, route) {
     }
     if (state.imageJobs) localStorage.setItem('gatesai.imagejobs.v1', JSON.stringify({ history: state.imageJobs }));
     if (state.profile) localStorage.setItem('gatesai.profile.v1', JSON.stringify(state.profile));
-  }, { state: seed, theme: THEME });
+  }, { state: { appVersion: APP_VERSION, ...seed }, theme: THEME });
   await page.goto(route);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addStyleTag({ content: `

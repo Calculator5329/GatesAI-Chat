@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-07-19 — Foundation sweep (architecture pass after the de-scope)
+
+Full-repo audit for refactoring/centralization opportunities before resuming
+roadmap work; everything found was either fixed or recorded on the roadmap.
+
+- **Installer weight:** stopped bundling the 31 MB `resources/source/` snapshot
+  (the removed source-workspace feature was its only consumer). Deleted
+  `scripts/create-source-snapshot.mjs`, its test, the `source:snapshot` npm
+  script, the `tauri.conf.json` resources entry, and the three release-workflow
+  snapshot steps.
+- **Dead scaffolding:** removed the dormant agentic AP-2/3/4 cluster —
+  `core/{agentSchedules,agentOutcomes,subAgentPolicy,agentTaskPolicy}.ts` and
+  `services/tasks/{subAgents,scheduleLedger,outcomeLedger,agentTaskSpec,budgets}.ts`
+  (~3.4k lines + 9 test files). It was imported only by its own tests; the live
+  TaskStore keeps only `services/tasks/types.ts`. Design docs stay authoritative.
+- **Centralization:** new `core/guards.ts` owns `isRecord` (previously 13
+  identical private copies across services/stores).
+- **Leftovers:** dropped the dead `mcp` tool category and its two selection
+  paths, the unused `toolDefsByCategory` registry helper, the orphaned
+  `WebLiteNotice` component, and the never-set `requiresApiKey`/`available`
+  options on `OpenAiCompatProvider`. Boot cleanup now also deletes the retired
+  `openai-compat.api-key` keychain secret.
+- **Screens tooling:** repaired both screenshot tours for the 3-tab menu
+  (retired-route redirect assertions replace the old 7-tab walkthrough; the
+  What's New seed now tracks the real app version instead of a rotting pin)
+  and regenerated all galleries (`docs/screens/*`, `docs/audits/screens-2026-07`).
+- **Docs:** swept stale references (source snapshot, MCP, schedules, offline
+  library) from architecture/release-checklist/handbook/bridge-protocol/VISION/
+  todo; rewrote `docs/todo.md`'s provider matrix to the OpenRouter+Ollama floor.
+- Verified: `npm run ci` green (147 files / 1109 tests + typecheck + lint),
+  screens tours green.
+
 ## 2026-07-19 — Depth-over-breadth de-scope pass
 
 Aggressively narrowed the product to what it should do exceedingly well.

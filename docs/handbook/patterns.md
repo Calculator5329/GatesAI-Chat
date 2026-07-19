@@ -23,13 +23,13 @@ This keeps the dependency graph acyclic and makes every cross-store edge visible
 
 ## Availability gating, one mechanism
 A tool/model/feature that can't work right now is HIDDEN, not disabled: Web Lite hides bridge
-tools, offline Ollama hides local models, a disconnected MCP server withdraws its tools,
-skills' allowlists filter advertised tools. All of it flows through the registry's gating and
+tools, offline Ollama hides local models, skills' allowlists filter advertised tools.
+All of it flows through the registry's gating and
 `core/modelPickerAvailability` — never add a second filtering path.
 
 ## Pure core, testable everything
 Decision logic lives in `core/` as pure functions (`threadOps`, `defaultModel`,
-`modelPopoverSections`, `schedules` due-time math, `usage` cost math, `lineDiff`). Stores call
+`modelPopoverSections`, `usage` cost math, `lineDiff`). Stores call
 them inside actions. This is why 900+ unit tests run in seconds with no mocking heroics.
 
 ## Storage slots + migrations

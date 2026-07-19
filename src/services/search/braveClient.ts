@@ -4,6 +4,7 @@
 import type { BraveSearchRequest, BraveSearchSource } from './types';
 import { invoke } from '@tauri-apps/api/core';
 import { isTauri } from '../../core/runtime';
+import { isRecord } from '../../core/guards';
 
 const ENDPOINT = 'https://api.search.brave.com/res/v1/llm/context';
 const DEFAULT_COUNT = 10;
@@ -142,9 +143,6 @@ function parseSources(json: unknown): BraveSearchSource[] {
     .filter((source): source is BraveSearchSource => source !== null);
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function firstText(...values: unknown[]): string {
   for (const value of values) {

@@ -7,62 +7,23 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 ## Offline Library plugin
 
-> Activated by Ethan on 2026-07-12. Execution and acceptance live in the
-> `Offline Library plugin consumer` item in `docs/roadmap.md`; this section is
-> the durable capability checklist.
-
-- [x] Accept the dedicated desktop proxy ADR and pin a sanitized, matching
-      `local.offline-library` 1.3 consumer fixture with static contract tests.
-- [x] Consume the validated `local.offline-library` manifest and matching
-      OpenAPI version through a trusted desktop backend boundary.
-- [x] Typed read-only client: health, sources, cited search, public schemas,
-      task-aware profiles, and Knowledge Arena summaries.
-- [x] Explicit addon enable/disable, health, permissions, offline, version-
-      mismatch, and unavailable-host states.
-- [x] Read-only model tools with bounded inputs/outputs and exact citation URI
-      preservation through rendering, persistence, and export.
-- [x] Task-aware local model/retrieval selection with visible user override;
-      never infer a universal winner from the small public-schema arm.
-- [x] Model × retrieval-setup benchmark view with confidence intervals,
-      component metrics, trust proxies, latency, sample size, and errors.
-- [x] Web Lite desktop-only explanation with no loopback request attempt.
-- [x] Security tests for fixed host/port/path allowlisting, redirects, response
-      bounds, private/restricted aliases, and mutation absence.
-- [x] Full CI, E2E, applicable Rust tests, sanitized fixture parity, and a live
-      desktop smoke against the local host.
-- [ ] Separately review any management action, private confirmation token,
-      database row query, or labeled semantic hallucination evaluation.
+> **Archived 2026-07-19** in the depth-over-breadth de-scope. The shipped
+> implementation lives at git tag `archive/pre-descope-2026-07-19`; a future
+> library/database layer will be rebuilt with better taste rather than
+> restored from this checklist.
 
 ---
 
 ## LLM providers
 
-### v1 (this refactor)
+> **Routing floor (2026-07-19):** every LLM call goes through OpenRouter or
+> local Ollama; image generation goes through ComfyUI. Direct provider
+> adapters (Anthropic/OpenAI/Google/Groq) and the custom OpenAI-compatible
+> endpoint were removed — new model access means new OpenRouter routes, not
+> new adapters.
+
 - [x] OpenRouter (with live model catalog)
-- [x] Anthropic (Claude)
-- [x] OpenAI (GPT-4/5, o-series)
-- [x] Google (Gemini)
-- [x] Groq (fast Llama / Mixtral inference)
-- [x] Local OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, llama.cpp server)
-
-### Future providers
-
-> Backlog / aspirational — not scheduled (truth pass 2026-07-10)
-
-- [ ] Mistral (direct API)
-- [ ] Cohere (Command R+)
-- [ ] xAI (Grok)
-- [ ] DeepSeek
-- [ ] Perplexity (Sonar)
-- [ ] Together AI
-- [ ] Fireworks
-- [ ] Replicate
-- [ ] Hugging Face Inference API
-- [ ] AWS Bedrock
-- [ ] Azure OpenAI
-- [ ] Google Vertex AI (enterprise Gemini)
-- [ ] Cerebras (fast inference)
-- [ ] SambaNova
+- [x] Ollama (native NDJSON API, local)
 - [ ] OpenRouter custom routes / fallbacks per model
 
 ### Provider features
@@ -137,6 +98,12 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [ ] Inline attachment previews (image thumbnails, PDF first-page peek)
 - [x] Per-thread rename UX in the sidebar (right-click → rename) *(done 2026-07-10, burndown w7)*
 - [ ] Persistent `Thread.naming` flag (so closing the tab mid-name doesn't strand a thread on the fallback "first 40 chars" title forever)
+- [ ] Upgrade the "working/thinking" indicator to a Codex-style status line —
+      shimmer/animated "Working" label with live elapsed timer and
+      "esc to interrupt" hint, like the brainless "Codex Working" shadcn
+      component (https://brainless.swerdlow.dev/r/codex-working.json, prompt
+      doc: https://brainless.swerdlow.dev/llms/codex-working.txt). Adapt the
+      look, don't add shadcn as a dependency.
 - [ ] Voice input (Web Speech API)
 - [ ] Multi-window / split-thread layouts
 - [ ] Mobile / responsive layout pass
@@ -181,10 +148,10 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 ## Wired-up menu sections
 
-The menu currently shows good-looking placeholder UI. Make these real:
-- [ ] **Profile** — actual user identity (post-auth)
+> **Superseded 2026-07 trim:** the menu is now three tabs — Settings, Models,
+> Agent. Retired tabs (Profile, Usage, API, Appearance, Local, Workspace,
+> Gallery) either merged into the survivors or were removed; legacy deep links
+> redirect in `src/services/router.ts`.
+
 - [ ] **Agent** — system prompt, default model, temperature persisted
 - [ ] **Settings** — language, timezone, retention all wired
-- [x] **Usage** — real cost numbers from provider responses *(verified already-done, 2026-07-10 truth pass — normalized per-message usage + live Usage section, `src/components/menu/sections/Usage.tsx`)*
-- [x] **API** — connect / rotate / remove keys; OpenRouter card shows live catalog refresh + count + last-refreshed timestamp
-- [x] **Appearance** — see UI/UX section above *(superseded — tab retired)*

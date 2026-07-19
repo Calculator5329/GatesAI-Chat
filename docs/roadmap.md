@@ -21,6 +21,22 @@ by restoring its files + one registry line):
 - [x] Repurpose the global summon shortcut (configurable, e.g. `Super+G`) *(2026-07-19)*
 - [x] Purge retired localStorage slots on boot *(2026-07-19)*
 
+Foundation sweep (same day, follow-up pass before new roadmap work):
+
+- [x] Stop bundling the 31 MB source snapshot in installers; delete the
+      snapshot script and its release-workflow steps *(2026-07-19)*
+- [x] Remove the dormant AP-2/AP-3/AP-4 scaffolding cluster (~3.4k lines:
+      `core/agentSchedules|agentOutcomes|subAgentPolicy|agentTaskPolicy`,
+      `services/tasks/{subAgents,scheduleLedger,outcomeLedger,agentTaskSpec,budgets}`)
+      — it was imported only by its own tests; the design docs remain the
+      source of truth for a future clean implementation *(2026-07-19)*
+- [x] Centralize `isRecord` into `core/guards.ts` (was 13 copies) *(2026-07-19)*
+- [x] Drop the dead `mcp` tool category, unused `WebLiteNotice`, unused
+      provider options; retire the old `openai-compat.api-key` keychain secret
+      on boot *(2026-07-19)*
+- [x] Repair the screens tours for the 3-tab menu and regenerate all
+      screenshot galleries; sweep stale docs *(2026-07-19)*
+
 ### Next up (priority order)
 
 - [ ] **Semantic memory / RAG — build it right.** Keep and elevate; manage
@@ -453,6 +469,12 @@ Design and phased single-session lane boundaries:
 [`docs/plans/07-16-agentic-platform-design.md`](plans/07-16-agentic-platform-design.md).
 These are open Stories in the mandated Vision; unchecked workflow state does
 not by itself imply acceptance of every proposed implementation detail.
+
+> **2026-07-19 note:** the partially built AP-2/AP-3/AP-4 domain scaffolding
+> (schedule/outcome ledgers, sub-agent tree, policy modules) was removed in the
+> foundation sweep — it was never wired into the app. The stories below remain
+> valid as designs; a future implementation starts clean from the plan docs
+> (or `archive/pre-descope-2026-07-19` for reference).
 
 - [ ] **AP-1 — Downloadable database plugins.** Ship versioned, data-only
       knowledge/database bundles that users can inspect, explicitly install

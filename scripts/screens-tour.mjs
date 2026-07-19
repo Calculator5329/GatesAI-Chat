@@ -13,13 +13,9 @@ const { version: appVersion } = JSON.parse(await readFile(path.join(root, 'packa
 const themeArg = process.argv.find(arg => arg === '--light' || arg.startsWith('--theme='));
 const forcedTheme = themeArg === '--light' ? 'light' : themeArg?.slice('--theme='.length);
 const SETTINGS_SURFACES = [
-  { route: 'settings', label: 'Settings', marker: 'Settings' },
-  { route: 'usage', label: 'Usage', marker: 'LLM usage - cloud spend and local tokens' },
+  { route: 'settings', label: 'Settings', marker: 'Conversations' },
+  { route: 'models', label: 'Models', marker: 'OpenRouter key' },
   { route: 'agent', label: 'Agent', marker: 'Instructions' },
-  { route: 'models', label: 'Models', marker: 'Cloud model access' },
-  { route: 'local', label: 'Local', marker: 'Custom endpoint (OpenAI-compatible)' },
-  { route: 'workspace', label: 'Workspace', marker: 'Workspace root' },
-  { route: 'gallery', label: 'Gallery', marker: 'Gallery' },
 ];
 const SETTINGS_VIEWPORTS = [
   { width: 1280, height: 800 },
@@ -124,8 +120,8 @@ async function assertSettingsSurfaces(auditProcess) {
             await assertSettingsLayout(page, checkpoint);
           }
         }
-        checkpoint = `${runtime.name} internal routes`;
-        await assertInternalSettingsRoutes(page, runtime.baseUrl);
+        checkpoint = `${runtime.name} retired routes`;
+        await assertRetiredRouteRedirects(page, runtime.baseUrl);
         if (errors.length) throw new Error(errors.join('; '));
       } finally {
         await page.close();
@@ -184,10 +180,7 @@ async function openSettingsSurface(page, runtime, surface) {
     throw new Error(`${runtime.name} ${surface.route}: expected ${expectedHash}, got ${new URL(page.url()).hash}`);
   }
 
-  const marker = surface.route === 'workspace' && runtime.name === 'web-lite'
-    ? 'Desktop-only workspace capabilities'
-    : surface.marker;
-  await body.getByText(marker, { exact: false }).first().waitFor();
+  await body.getByText(surface.marker, { exact: false }).first().waitFor();
 
   if (runtime.name === 'web-lite') {
     await assertWebLiteDegradation(page, surface.route);
@@ -201,46 +194,36 @@ async function openSettingsSurface(page, runtime, surface) {
 }
 
 async function assertWebLiteDegradation(page, route) {
-  if (route === 'settings') {
-    await page.getByText('Your data is saved in this browser', { exact: true }).waitFor();
-    if (await page.locator('.settings-desktop').count()) {
-      throw new Error('Web Lite settings rendered desktop-only controls');
-    }
-    return;
-  }
-  const expectedNotices = {
-    local: 'managed runtime controls are desktop-only',
-    workspace: "local /workspace bridge isn't available",
-    gallery: 'artifact gallery are desktop-only',
-  };
-  const notice = expectedNotices[route];
-  if (!notice) return;
-  await page.getByRole('note').filter({ hasText: notice }).waitFor();
-  if (route === 'local' && await page.getByText('Runtimes', { exact: true }).count()) {
-    throw new Error('Web Lite Local rendered managed-runtime controls');
+  if (route !== 'settings') return;
+  // Web Lite hides the desktop-only block instead of rendering a dead card.
+  if (await page.locator('.settings-desktop').count()) {
+    throw new Error('Web Lite settings rendered desktop-only controls');
   }
 }
 
-async function assertInternalSettingsRoutes(page, baseUrl) {
-  const transitions = [
-    { from: 'settings', selector: '.settings-apikey-card', button: 'Manage key', to: 'models' },
-    { from: 'settings', selector: '.settings-help-line', button: 'Models', to: 'models' },
-    { from: 'settings', selector: '.settings-help-line', button: 'Local', to: 'local' },
-    { from: 'models', selector: '.gates-menu__body', button: 'Open Local', to: 'local' },
+// Retired menu deep links resolve at parse time (the hash keeps the legacy
+// name) but must render a live tab instead of a dead screen.
+async function assertRetiredRouteRedirects(page, baseUrl) {
+  const redirects = [
+    { from: 'local', to: 'models' },
+    { from: 'usage', to: 'settings' },
+    { from: 'workspace', to: 'settings' },
+    { from: 'gallery', to: 'settings' },
   ];
-  for (const transition of transitions) {
-    await page.goto(`${baseUrl}/#/menu/${transition.from}`);
-    const control = page.locator(transition.selector).getByRole('button', { name: transition.button, exact: true });
-    await control.waitFor();
-    await control.click();
-    await page.waitForFunction(expected => window.location.hash === expected, `#/menu/${transition.to}`);
+  for (const redirect of redirects) {
+    await page.goto(`${baseUrl}/#/menu/${redirect.from}`);
     const active = page.locator('.gates-menu__tabs').getByRole('button', {
-      name: SETTINGS_SURFACES.find(surface => surface.route === transition.to).label,
+      name: SETTINGS_SURFACES.find(surface => surface.route === redirect.to).label,
       exact: true,
     });
-    if (await active.getAttribute('data-active') !== 'true') {
-      throw new Error(`${transition.from} -> ${transition.to}: destination tab is not active`);
-    }
+    await active.waitFor();
+    await page.waitForFunction(
+      selectorLabel => {
+        const tabs = document.querySelectorAll('.gates-menu__tabs button');
+        return [...tabs].some(tab => tab.textContent?.trim() === selectorLabel && tab.getAttribute('data-active') === 'true');
+      },
+      SETTINGS_SURFACES.find(surface => surface.route === redirect.to).label,
+    );
   }
 }
 

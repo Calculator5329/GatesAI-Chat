@@ -4,8 +4,7 @@
 
 GatesAI Chat is a local-first AI workbench. It feels like a calm chat canvas,
 but underneath it can use cloud models, local models, image generation, files,
-terminal actions, web search, artifacts, MCP tool servers, and a controlled
-workspace.
+terminal actions, web search, artifacts, and a controlled workspace.
 
 The simplest mental model:
 
@@ -25,8 +24,8 @@ ChatGPT-style conversation
 2. **Easy and nice to use.** The surface reads like ChatGPT: type, send, read.
    Good UI/UX beats feature count. Power is progressive — hidden until wanted.
 3. **Agentic depth on your machine.** Claude Code / Codex-style capabilities —
-   files, terminal, git, SQLite, artifacts, image generation, MCP servers —
-   scoped to a workspace the user owns and can inspect.
+   files, terminal, git, SQLite, artifacts, image generation — scoped to a
+   workspace the user owns and can inspect.
 4. **Any model, your choice.** Any OpenRouter model, any local Ollama model.
    Switch mid-conversation. No model lock-in, no separate subscription.
 5. **Offline-capable and local-only data.** With local models the app works

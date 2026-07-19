@@ -258,7 +258,7 @@ describe('OpenRouterProvider', () => {
   });
 });
 
-describe('OpenAiCompatProvider custom endpoint', () => {
+describe('OpenAiCompatProvider transport', () => {
   it('keeps the complete composed system prompt as the first OpenAI message', async () => {
     let body: unknown;
     vi.stubGlobal('fetch', vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
@@ -270,7 +270,6 @@ describe('OpenAiCompatProvider custom endpoint', () => {
       id: 'openrouter',
       name: 'Custom',
       baseUrl: 'http://localhost:1234/v1',
-      requiresApiKey: false,
     });
 
     await drain(provider.stream({
@@ -298,8 +297,6 @@ describe('OpenAiCompatProvider custom endpoint', () => {
       name: 'Custom',
       baseUrl: 'http://localhost:1234/v1',
       apiKey: 'sk-local',
-      requiresApiKey: false,
-      available: true,
     });
 
     await drain(provider.stream({

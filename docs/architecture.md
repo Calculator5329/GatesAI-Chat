@@ -69,7 +69,7 @@ Build:
 
 ```powershell
 npm run build               # web bundle (tsc -b + vite build)
-npm run tauri:build         # source snapshot + NSIS desktop installer (bundles the bridge)
+npm run tauri:build         # NSIS desktop installer (bundles the bridge)
 # Linux AppImage: bash scripts/prepare-linux-sidecar.sh && npx tauri build --bundles appimage
 ```
 

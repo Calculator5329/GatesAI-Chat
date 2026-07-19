@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { purgeRetiredLocalSlots, RETIRED_LOCAL_SLOTS } from '../../../src/services/persistence/retiredSlots';
+import { purgeRetiredLocalSlots, RETIRED_LOCAL_SLOTS, RETIRED_SECRET_NAMES } from '../../../src/services/persistence/retiredSlots';
 
 describe('purgeRetiredLocalSlots', () => {
   beforeEach(() => {
@@ -25,5 +25,9 @@ describe('purgeRetiredLocalSlots', () => {
   it('is idempotent and safe when nothing is present', () => {
     expect(() => purgeRetiredLocalSlots()).not.toThrow();
     expect(() => purgeRetiredLocalSlots()).not.toThrow();
+  });
+
+  it('lists the removed custom-endpoint secret for retirement', () => {
+    expect(RETIRED_SECRET_NAMES).toContain('openai-compat.api-key');
   });
 });

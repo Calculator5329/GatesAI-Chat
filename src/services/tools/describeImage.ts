@@ -4,6 +4,7 @@
 import type { Tool } from './types';
 import { PROTECTED_CHAT_HISTORY_DENIAL, denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
 import { requireBridge } from './requireBridge';
+import { isRecord } from '../../core/guards';
 
 const DESCRIBE_IMAGE_BRIDGE_OFFLINE = 'Error: bridge is offline, so GatesAI cannot read the image file.';
 
@@ -71,6 +72,3 @@ function parseVisionResponse(value: unknown): { message?: { content?: string }; 
   };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}

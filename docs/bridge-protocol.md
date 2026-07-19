@@ -271,8 +271,8 @@ Operation details that affect interoperability:
   for compatibility.
 
 MCP JSON-RPC methods such as `initialize`, `tools/list`, and `tools/call` are
-not bridge operations. HTTP MCP uses fetch; stdio MCP uses Tauri commands, as
-described in [`docs/architecture.md`](architecture.md).
+not bridge operations. (MCP client support was parked in the 2026-07-19
+de-scope; if it returns it will run over fetch/Tauri commands, not the bridge.)
 
 ## Client timeouts and disconnects
 

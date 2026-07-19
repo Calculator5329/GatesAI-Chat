@@ -4,6 +4,7 @@
 import type { CompletedJob, ImageJob } from './image/jobs/types';
 import { isImageBackendId } from './image/types';
 import { jsonSlot } from './storage/jsonSlot';
+import { isRecord } from '../core/guards';
 
 export const IMAGE_JOBS_KEY = 'gatesai.imagejobs.v1';
 
@@ -92,9 +93,6 @@ function parseProgress(value: unknown): ImageJob['progress'] {
   return progressValue !== undefined && max !== undefined ? { value: progressValue, max } : undefined;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function stringField(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;

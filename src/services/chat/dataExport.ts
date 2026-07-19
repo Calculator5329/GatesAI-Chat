@@ -5,6 +5,7 @@ import type { UserProfileSnapshot } from '../profileStorage';
 import { parseChatSnapshotValue, prepareChatSnapshotForSave } from '../persistence';
 import { CURRENT_CHAT_SCHEMA_VERSION } from '../persistence/migrations';
 import { DEFAULT_UI_PREFS, type UiPrefsSnapshot } from '../uiPrefsStorage';
+import { isRecord } from '../../core/guards';
 
 export const DATA_EXPORT_FORMAT = 'gatesai-chat-export';
 export const DATA_EXPORT_FORMAT_VERSION = 1;
@@ -389,9 +390,6 @@ function numberField(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;

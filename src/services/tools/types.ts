@@ -181,7 +181,7 @@ export interface ToolContext {
   signal?: AbortSignal;
 }
 
-export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision' | 'web' | 'diagnostics' | 'mcp';
+export type ToolCategory = 'memory' | 'workspace' | 'filesystem' | 'shell' | 'git' | 'thread' | 'notes' | 'time' | 'vision' | 'web' | 'diagnostics';
 
 export interface ToolResultPolicy {
   /** Default max chars returned to the model before compaction. */

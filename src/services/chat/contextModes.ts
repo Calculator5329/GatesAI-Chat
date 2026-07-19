@@ -124,7 +124,6 @@ export function toolsForContextMode(args: {
     if (webSearch) tools.push(webSearch);
     const recall = args.semanticRecallAvailable ? toolRegistry.get('recall')?.def : undefined;
     if (recall) tools.push(recall);
-    tools.push(...toolRegistry.toolDefsByCategory('mcp'));
     const filtered = toolRegistry.filterToolDefsForAllowlist(tools, args.toolAllowlist);
     return filtered.length > 0 ? filtered : undefined;
   }

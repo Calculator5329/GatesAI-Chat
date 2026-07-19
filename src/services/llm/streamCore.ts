@@ -1,5 +1,7 @@
 import type { LlmChunk, ToolCall } from '../../core/llm';
 import { parseJsonObject } from './json';
+import { isRecord } from '../../core/guards';
+export { isRecord };
 
 /*
  * Duplication map before this extraction:
@@ -75,9 +77,6 @@ export function normalizeToolCallArguments(
   return { arguments: {}, argumentsError: invalidMessage, rawArguments: previewValue(raw) };
 }
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 export function finiteNumber(value: unknown, min = Number.NEGATIVE_INFINITY): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= min ? value : undefined;

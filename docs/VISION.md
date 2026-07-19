@@ -58,7 +58,8 @@ now. No other API providers.
 
 ## Plugins (future direction, not now)
 
-- Downloadable datasets (pairs with the Offline Library).
+- Downloadable datasets (pairs with the Offline Library, archived 2026-07-19 —
+  tag `archive/pre-descope-2026-07-19`).
 - agent-orchestrator as a plugin once it's in a more mature state.
 - Databases as plugins.
 - **Method plugins** — discipline-not-knowledge scaffolds (plan/execute/judge loops) that make cheap OpenRouter/local models punch above their weight (cf. fable-method plugin results, 2026-07-14). On-brand: "pick any model, make the free ones good."

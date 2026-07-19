@@ -42,7 +42,6 @@ src-tauri/target/
 src-tauri/gen/
 src-tauri/binaries/gatesai-bridge-*
 !src-tauri/binaries/.gitkeep
-src-tauri/resources/source/
 
 # Local release-staging output (zipped installer + DIRECTIONS bundle)
 release/
