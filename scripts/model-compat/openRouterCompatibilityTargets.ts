@@ -1,4 +1,4 @@
-import type { Model } from '../../core/types';
+import type { Model } from '../../src/core/types';
 
 export type OpenRouterCompatibilityMode = 'curated' | 'sample' | 'all';
 

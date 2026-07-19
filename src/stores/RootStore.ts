@@ -24,7 +24,6 @@ import { TaskStore } from './TaskStore';
 import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { SearchStore } from './SearchStore';
 import { McpStore } from './McpStore';
-import { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
 import { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import { SkillsStore } from './SkillsStore';
@@ -76,7 +75,6 @@ export class RootStore {
   readonly localRuntime: LocalRuntimeStore;
   readonly search: SearchStore;
   readonly mcp: McpStore;
-  readonly openrouterCompatibility: OpenRouterCompatibilityStore;
   readonly openAiCompatEndpoint: OpenAiCompatEndpointStore;
   readonly sourceWorkspace: SourceWorkspaceStore;
   readonly skills: SkillsStore;
@@ -144,7 +142,6 @@ export class RootStore {
     this.bridge = new BridgeStore();
     this.artifacts = new ArtifactStore(this.bridge);
     this.skills = new SkillsStore(this.bridge, () => toolRegistry.list().map(tool => tool.def.name));
-    this.openrouterCompatibility = new OpenRouterCompatibilityStore(this.providers, this.registry, this.bridge);
     this.sourceWorkspace = new SourceWorkspaceStore();
     this.updates = new UpdateStore();
     this.execStream = new ExecStreamStore();

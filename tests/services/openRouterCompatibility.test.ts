@@ -5,7 +5,7 @@ import type { Model } from '../../src/core/types';
 import {
   runOpenRouterCompatibility,
   selectOpenRouterCompatibilityTargets,
-} from '../../src/services/compat/openRouterCompatibility';
+} from '../../scripts/model-compat/openRouterCompatibility';
 import { openAiCompatBodyExtras, resolveModelFormatProfile } from '../../src/services/llm/modelFormatProfiles';
 
 const MODELS: Model[] = [

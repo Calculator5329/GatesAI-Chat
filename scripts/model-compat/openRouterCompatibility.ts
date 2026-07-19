@@ -1,11 +1,11 @@
 // Runs OpenRouter compatibility checks against representative models and tool/image paths.
 // Called by OpenRouterCompatibilityStore and API settings UI; depends on provider configs, LLM clients, and target fixtures.
 // Invariant: checks report structured outcomes and must not persist provider state themselves.
-import type { LlmProvider, LlmUsage, ToolCall, ToolDef } from '../../core/llm';
-import type { Model } from '../../core/types';
-import type { LlmRouter } from '../llm/router';
-import { resolveModelFormatProfile } from '../llm/modelFormatProfiles';
-import type { BridgeClientFacade } from '../tools/types';
+import type { LlmProvider, LlmUsage, ToolCall, ToolDef } from '../../src/core/llm';
+import type { Model } from '../../src/core/types';
+import type { LlmRouter } from '../../src/services/llm/router';
+import { resolveModelFormatProfile } from '../../src/services/llm/modelFormatProfiles';
+import type { BridgeClientFacade } from '../../src/services/tools/types';
 import {
   selectOpenRouterCompatibilityTargets,
   type OpenRouterCompatibilityMode,

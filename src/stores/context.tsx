@@ -20,7 +20,6 @@ import type { OllamaStore } from './OllamaStore';
 import type { LocalRuntimeStore } from './LocalRuntimeStore';
 import type { SearchStore } from './SearchStore';
 import type { McpStore } from './McpStore';
-import type { OpenRouterCompatibilityStore } from './OpenRouterCompatibilityStore';
 import type { OpenAiCompatEndpointStore } from './OpenAiCompatEndpointStore';
 import type { SourceWorkspaceStore } from './SourceWorkspaceStore';
 import type { RagStore } from '../services/rag/RagStore';
@@ -108,10 +107,6 @@ export function useSearchStore(): SearchStore {
 
 export function useMcpStore(): McpStore {
   return useRootStore().mcp;
-}
-
-export function useOpenRouterCompatibilityStore(): OpenRouterCompatibilityStore {
-  return useRootStore().openrouterCompatibility;
 }
 
 export function useOpenAiCompatEndpointStore(): OpenAiCompatEndpointStore {
