@@ -9,6 +9,11 @@ export interface ModelFormatProfile {
   match: RegExp;
   notes: string[];
   maxTokens?: number;
+  ollama?: {
+    numCtx?: number;
+    stop?: string[];
+    disableTools?: boolean;
+  };
   openAiCompat?: {
     reasoningBudgetRatio?: number;
     minReasoningTokens?: number;
@@ -24,6 +29,20 @@ export const MODEL_FORMAT_PROFILES: ModelFormatProfile[] = [
       'Does not cap normal chat output; explicit caller budgets still win for summaries and tests.',
       'Keeps Gemini on the shared OpenRouter reasoning path so thinking effort can be controlled per thread.',
     ],
+  },
+  {
+    id: 'qwen-ollama-chat',
+    label: 'Qwen local chat template profile',
+    match: /^qwen2\.5|^qwen[\w.-]*coder/i,
+    notes: [
+      'Qwen local chat models use an ImStart-style template and historically require explicit stop handling and fixed context for stable local sessions.',
+      'Disable tool schema forwarding until models explicitly advertise stable tool support.',
+    ],
+    ollama: {
+      numCtx: 32_768,
+      stop: ['<|im_end|>'],
+      disableTools: true,
+    },
   },
 ];
 

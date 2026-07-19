@@ -6,6 +6,7 @@ interface CapturedOllamaBody {
   stream?: boolean;
   messages?: Array<{ role: string; content: string; images?: string[] }>;
   tools?: unknown;
+  options?: { temperature?: number; num_ctx?: number; stop?: string[] };
   format?: unknown;
 }
 
@@ -97,7 +98,7 @@ describe('OllamaProvider — request shape', () => {
       parameters: { type: 'object' as const, properties: {}, required: [] },
     }];
     const iter = provider.stream(
-      { modelId: 'qwen2.5', messages: [{ role: 'user', content: 'x' }], tools },
+      { modelId: 'm', messages: [{ role: 'user', content: 'x' }], tools },
       new AbortController().signal,
     );
     for await (const _ of iter) { /* */ }
@@ -107,6 +108,32 @@ describe('OllamaProvider — request shape', () => {
       type: 'function',
       function: { name: 'get_time', description: 'Returns the current time', parameters: { type: 'object', properties: {}, required: [] } },
     }]);
+    vi.unstubAllGlobals();
+  });
+
+  it('applies Qwen-specific request shaping (num_ctx + stop, disables tools)', async () => {
+    const { fetchMock, getBody } = captureRequest();
+    vi.stubGlobal('fetch', fetchMock);
+    const provider = new OllamaProvider({ baseUrl: 'http://h:1' });
+
+    const tools = [{
+      name: 'get_time',
+      description: 'Returns the current time',
+      parameters: { type: 'object' as const, properties: {}, required: [] },
+    }];
+    const iter = provider.stream(
+      {
+        modelId: 'qwen2.5:7b',
+        messages: [{ role: 'user', content: 'x' }],
+        tools,
+      },
+      new AbortController().signal,
+    );
+    for await (const _ of iter) { /* */ }
+
+    const body = getBody();
+    expect(body.options).toMatchObject({ num_ctx: 32_768, stop: ['<|im_end|>'] });
+    expect(body).not.toHaveProperty('tools');
     vi.unstubAllGlobals();
   });
 
