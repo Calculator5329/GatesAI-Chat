@@ -6,6 +6,7 @@ import { toolRegistry } from '../tools/registry';
 import { isToolFailureContent } from './toolFailureLog';
 import type { ToolContext } from '../tools/types';
 import { messageText, messageToolCalls, messageToolResults } from '../../core/messageParts';
+import { providerStreamVerb } from './statusCopy';
 
 type ActivityExtras = Pick<ToolContext, 'imageJobs' | 'execStream'>;
 
@@ -87,7 +88,7 @@ export function buildActivitiesForMessage(args: {
       id: `${message.id}:provider-stream`,
       kind: 'thinking',
       state: stalled ? 'failed' : 'running',
-      verb: providerStreamVerb(streamActivity.phase, message.preTokenLabel),
+      verb: providerStreamVerb(streamActivity.phase, message.preTokenLabel, streamActivity.providerId, streamActivity.providerModelId),
       summary: stalled ? streamActivity.stallReason : undefined,
       startedAt: streamActivity.lastProviderAt,
       finishedAt: stalled ? Date.now() : undefined,
@@ -104,15 +105,6 @@ export function buildActivitiesForMessage(args: {
   }
 
   return items;
-}
-
-function providerStreamVerb(phase: StreamActivity['phase'], label: AssistantMessage['preTokenLabel']): string {
-  if (phase === 'stalled') return 'Provider stalled';
-  if (phase === 'connecting') return 'Waiting for provider';
-  if (label === 'responding') return 'Responding';
-  if (label === 'compacting') return 'Compacting';
-  if (label === 'generating') return 'Generating';
-  return 'Streaming';
 }
 
 function stateForToolResult(result: ToolResult, artifactStatus?: string): ActivityItem['state'] {

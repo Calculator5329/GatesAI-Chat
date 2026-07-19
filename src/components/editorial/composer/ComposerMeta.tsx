@@ -16,6 +16,7 @@ import { tokens } from '../../../core/styleTokens';
 import { ACCENT_DOT_STYLE, LOCAL_CONTEXT_SELECT_STYLE, META_ROW_STYLE, MODEL_LABEL_STYLE, SEP_STYLE } from './composerStyles';
 import { ContextMeter } from './ContextMeter';
 import { SkillPopover } from './SkillPopover';
+import { streamFooterLabelForActivity } from '../../../services/chat/statusCopy';
 // Lazy: the picker is a large surface (sections/badges/filter logic) that most
 // sessions never open before first paint; splitting it trims the main chunk.
 const ModelPopover = lazy(() => import('../ModelPopover'));
@@ -193,18 +194,8 @@ export function ComposerMeta({
         textAlign: 'right',
         whiteSpace: 'nowrap',
       }}>
-        {streaming ? (hasText ? 'Enter to interrupt' : streamFooterLabel(streamActivity)) : ''}
+        {streaming ? (hasText ? 'Enter to interrupt' : streamFooterLabelForActivity(streamActivity)) : ''}
       </span>
     </div>
   );
-}
-
-function streamFooterLabel(activity: StreamActivity | undefined): string {
-  switch (activity?.phase) {
-    case 'connecting': return 'waiting for provider...';
-    case 'stalled': return 'provider stalled';
-    case 'tooling': return 'running tools...';
-    case 'streaming': return 'streaming...';
-    default: return 'streaming...';
-  }
 }
