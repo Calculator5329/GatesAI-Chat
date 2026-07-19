@@ -9,6 +9,7 @@ import type { CompletedJob, ImageJob } from '../../stores/ImageJobStore';
 import { Lightbox } from '../media/Lightbox';
 import { useImageDataUrl } from '../media/useImageDataUrl';
 import { tokens } from '../../core/styleTokens';
+import { imageRunningCopy } from '../../services/chat/statusCopy';
 
 interface ImageJobCardProps {
   jobId: string;
@@ -114,17 +115,22 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
   const value = job.progress?.value ?? 0;
   const max = job.progress?.max ?? 100;
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
-  const backendLabel = job.backend === 'local-comfy' ? 'ComfyUI' : 'OpenRouter';
   const elapsedSeconds = job.startedAt ? Math.max(0, Math.floor((Date.now() - job.startedAt) / 1000)) : 0;
-  const remote = job.backend === 'openrouter-image';
-  const waitingOnProvider = remote && pct >= 92;
-  if (waitingOnProvider) {
+  const labels = imageRunningCopy({
+    backend: job.backend,
+    pct,
+    elapsedSeconds,
+    completed: job.results.length,
+    total: job.count,
+  });
+
+  if (labels.waitingForProvider) {
     return (
       <div style={{ ...rectBase, position: 'relative' }}>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontSize: 12 }}>
-          <span>Waiting on provider...</span>
-          <span style={{ marginTop: 4 }}>{backendLabel} remote render - {elapsedSeconds}s elapsed</span>
-          {job.count > 1 && <span style={{ marginTop: 4 }}>{job.results.length} / {job.count} done</span>}
+          <span>{labels.statusLine}</span>
+          <span style={{ marginTop: 4 }}>{labels.detailLine}</span>
+          {labels.progressLine && <span style={{ marginTop: 4 }}>{labels.progressLine}</span>}
         </div>
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--border)' }}>
           <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: `width ${tokens.motion.fade}` }} />
@@ -143,9 +149,9 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
   return (
     <div style={{ ...rectBase, position: 'relative' }}>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontSize: 12 }}>
-        <span>{remote ? 'waiting on' : 'generating'} · {pct}% · {backendLabel}</span>
-        {remote && <span style={{ marginTop: 4 }}>remote render · {elapsedSeconds}s elapsed</span>}
-        {job.count > 1 && <span style={{ marginTop: 4 }}>{job.results.length} / {job.count} done</span>}
+        <span>{labels.statusLine}</span>
+        {labels.detailLine && <span style={{ marginTop: 4 }}>{labels.detailLine}</span>}
+        {labels.progressLine && <span style={{ marginTop: 4 }}>{labels.progressLine}</span>}
       </div>
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--border)' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: `width ${tokens.motion.fade}` }} />
