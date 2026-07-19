@@ -319,7 +319,7 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
   const buttonLabel = checking ? 'Checking...' : 'Check again';
   const starter = 'llama3.2:3b';
   const starterState = ollama.pulls.get(starter);
-  const openLocalSettings = () => router.goMenu('local');
+  const openLocalSettings = () => router.goMenu('models');
 
   return (
     <section className="editorial-onboarding__card" data-onboarding-path="local">

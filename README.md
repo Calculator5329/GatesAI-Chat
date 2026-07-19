@@ -89,7 +89,7 @@ it points you to the matching download above).
 - **Companion bridge** (`../gatesai-bridge`, Go) — owns a `~/GatesAI/workspace/` folder behind a
   path jail and command allowlist, exposed over a single loopback WebSocket.
 - **Local image generation** — background image-job queue driving ComfyUI (FLUX.2 Klein / SDXL
-  Lightning) with live progress, a Gallery, and a lightbox.
+  Lightning) with live progress rendered inline in the chat.
 - **Memory and semantic recall** — durable user facts and lazy cross-thread summaries, plus
   a local RAG index over chats, notes, and facts using Ollama embeddings and IndexedDB vectors.
   Relevant snippets can be injected automatically or retrieved with the `recall` tool.
@@ -100,10 +100,6 @@ it points you to the matching download above).
 | Chat | Model picker |
 | --- | --- |
 | ![Chat home](docs/user-guide-assets/chat-home.png) | ![Model picker](docs/user-guide-assets/model-picker.png) |
-
-| Gallery | Workspace |
-| --- | --- |
-| ![Image gallery](docs/user-guide-assets/gallery.png) | ![Workspace bridge](docs/user-guide-assets/workspace.png) |
 
 | Agent memory | Provider catalog |
 | --- | --- |

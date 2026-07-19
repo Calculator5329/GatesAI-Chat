@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-07-19 — Settings trim: 7 tabs → 3
+
+- Cut the GatesMenu to three tabs (Settings / Models / Agent) to restore the
+  narrow-scope feel; retired Usage, Local, Workspace, and Gallery sections
+  (legacy `#/menu/*` hashes redirect: local→models, usage/workspace/gallery→settings).
+- Settings now holds only Theme, Conversations, Desktop (summon/tray),
+  Export & import, and a 3-action danger zone (threads, memories, provider keys).
+- Models = OpenRouter provider card + a minimal Ollama card (status, base URL,
+  refresh). Removed compat test suite, Brave Search, and cloud-image cards from
+  the menu (stores/services untouched — features still work, only config UI cut).
+- Agent = Instructions + Memory. Removed semantic memory, schedules, MCP,
+  skills, recent conversations, and capabilities blocks from the menu UI.
+- Deleted orphaned `McpSettings.tsx` / `OllamaPullStatus.tsx`; moved pure
+  `statusCopy` helpers from services/chat to core to fix the pre-existing
+  UI→services lint violations.
+- All persisted state (`gatesai.*` slots) is preserved; re-adding a trimmed
+  section later is a registry + component restore from git history.
+- CI green (183 files / 1384 tests + typecheck + lint); e2e 25/26 — the one
+  failure is the artifactContract palette→dock iframe test already filed as
+  pre-existing on master (verified failing identically on stashed HEAD).
+
 ## 2026-07-18 — Unblock plan lane handoffs
 
 - Recorded four unblock-plan lanes in the roadmap and queued implementation

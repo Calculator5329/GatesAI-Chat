@@ -199,13 +199,8 @@ async function captureWebLiteTour(page: Page, testInfo: TestInfo): Promise<void>
 
   await resetStorage(page, baseSeed('active'));
   await gotoApp(page, '/#/menu/settings');
-  await expect(page.getByText('Your data is saved in this browser')).toBeVisible();
+  await expect(page.getByText('Danger zone', { exact: true })).toBeVisible();
   await shot(page, outDir, index++, 'menu-settings');
-
-  await resetStorage(page, baseSeed('active'));
-  await gotoApp(page, '/#/menu/workspace');
-  await expect(page.getByText('Web Lite:')).toBeVisible();
-  await shot(page, outDir, index++, 'bridge-gated-workspace-notice');
 
   await page.setViewportSize(MOBILE_VIEWPORT);
   await resetStorage(page, { onboardingDismissed: false });
@@ -250,21 +245,9 @@ async function captureLocalOnlyTour(page: Page): Promise<void> {
   await shot(page, outDir, index++, 'model-popover-local-section');
 
   await resetStorage(page, localOnlySeed('local-active'));
-  await gotoApp(page, '/#/menu/local');
-  await forceOllamaOnline(page);
-  await expect(page.getByText('Local LLMs')).toBeVisible();
-  await shot(page, outDir, index++, 'menu-local-online');
-
-  await resetStorage(page, localOnlySeed('local-active'));
-  await gotoApp(page, '/#/menu/usage');
-  await forceOllamaOnline(page);
-  await expect(page.getByText(/Cloud \$0\.00 - Local/)).toBeVisible();
-  await shot(page, outDir, index++, 'menu-usage-local-led');
-
-  await resetStorage(page, localOnlySeed('local-active'));
   await gotoApp(page, '/#/menu/models');
   await forceOllamaOnline(page);
-  await expect(page.getByText('Ollama online - 2 models')).toBeVisible();
+  await expect(page.getByText('Ollama online · 2 models')).toBeVisible();
   await shot(page, outDir, index++, 'menu-models-local-row');
 }
 

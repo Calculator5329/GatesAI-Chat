@@ -23,12 +23,12 @@ test.describe('web lite (no bridge)', () => {
     await expect(page.locator('.md-body', { hasText: 'Mock reply from the assistant.' })).toBeVisible();
   });
 
-  test('surfaces web lite notices on bridge-dependent sections', async ({ page }) => {
+  test('redirects retired menu hashes to their new homes', async ({ page }) => {
     await page.goto('/#/menu/gallery');
-    await expect(page.getByText('Web Lite:')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
 
-    await page.goto('/#/menu/settings');
-    await expect(page.getByText('Your data is saved in this browser')).toBeVisible();
+    await page.goto('/#/menu/local');
+    await expect(page.getByRole('heading', { name: 'Models' })).toBeVisible();
   });
 });
 

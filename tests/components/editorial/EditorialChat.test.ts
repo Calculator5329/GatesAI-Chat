@@ -174,7 +174,7 @@ describe('EditorialChat empty state (Batch C)', () => {
       .find(button => button.textContent === 'Open Local settings') as HTMLButtonElement | undefined;
     act(() => openLocal?.click());
 
-    expect(store.router.menuSection).toBe('local');
+    expect(store.router.menuSection).toBe('models');
   });
 
   it('does not treat the bundled read-only tour as prior user chat', () => {

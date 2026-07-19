@@ -9,7 +9,7 @@ import type { CompletedJob, ImageJob } from '../../stores/ImageJobStore';
 import { Lightbox } from '../media/Lightbox';
 import { useImageDataUrl } from '../media/useImageDataUrl';
 import { tokens } from '../../core/styleTokens';
-import { imageRunningCopy } from '../../services/chat/statusCopy';
+import { imageRunningCopy } from '../../core/statusCopy';
 
 interface ImageJobCardProps {
   jobId: string;

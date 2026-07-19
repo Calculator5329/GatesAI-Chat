@@ -1,6 +1,8 @@
-import type { StreamActivity } from '../../core/types';
-import type { ImageBackendId } from '../image/types';
-import { isLocalImageBackend } from '../image/types';
+import type { StreamActivity } from './types';
+
+// Mirrors services/image/types ImageBackendId; core cannot import services,
+// and the literal union keeps callers assignment-compatible in both directions.
+export type ImageBackendCopyId = 'local-comfy' | 'openrouter-image';
 
 export interface ImageJobRunningLabelParts {
   statusLine: string;
@@ -63,14 +65,14 @@ export function providerStreamVerb(
 }
 
 export function imageRunningCopy(args: {
-  backend: ImageBackendId;
+  backend: ImageBackendCopyId;
   pct: number;
   elapsedSeconds: number;
   completed: number;
   total: number;
 }): ImageJobRunningLabelParts {
   const backendLabel = args.backend === 'local-comfy' ? 'ComfyUI' : 'OpenRouter';
-  const isRemote = !isLocalImageBackend(args.backend);
+  const isRemote = args.backend !== 'local-comfy';
   if (isRemote && args.pct >= 92) {
     return {
       statusLine: 'Waiting on provider...',

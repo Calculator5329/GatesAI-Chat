@@ -115,9 +115,8 @@ export const CommandPalette = observer(function CommandPalette() {
         router.goThread(id);
       }),
       menuItem('settings', 'Open settings', 'Settings', ['preferences menu'], router.goMenu),
-      menuItem('models', 'Open models', 'Models', ['model api key openrouter'], router.goMenu),
-      menuItem('workspace', 'Open workspace', 'Workspace', ['files source bridge'], router.goMenu),
-      menuItem('gallery', 'Open gallery', 'Gallery', ['images artifacts'], router.goMenu),
+      menuItem('models', 'Open models', 'Models', ['model api key openrouter local ollama'], router.goMenu),
+      menuItem('agent', 'Open agent', 'Agent', ['instructions memory system prompt'], router.goMenu),
       actionItem('toggle-fullscreen', 'Toggle fullscreen', 'F11 — use the whole screen', ['fullscreen full screen f11 window maximize'], () => {
         ui.toggleFullscreen();
       }),

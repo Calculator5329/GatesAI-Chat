@@ -102,7 +102,7 @@ src/
     ui/                           # design-system primitives
     media/                        # shared image UI and workspace/hosted image loader
     editorial/                    # chat surface, activity stream, composer, sidebar
-    menu/                         # GatesMenu sections: agent/models/local/workspace/gallery/usage/settings
+    menu/                         # GatesMenu sections: settings/models/agent (trimmed 2026-07-19)
     palette/                      # command palette and ranking helpers
   stores/
     RootStore.ts                  # composes and wires the store graph

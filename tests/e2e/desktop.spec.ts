@@ -28,9 +28,9 @@ test.describe('desktop (mocked bridge + LLM)', () => {
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
     await expect(page.getByText('Danger zone', { exact: true })).toBeVisible();
 
-    await page.locator('.gates-menu__tabs button', { hasText: 'Gallery' }).click();
-    await expect(page).toHaveURL(/#\/menu\/gallery/);
-    await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible();
+    await page.locator('.gates-menu__tabs button', { hasText: 'Agent' }).click();
+    await expect(page).toHaveURL(/#\/menu\/agent/);
+    await expect(page.getByRole('heading', { name: 'Agent' })).toBeVisible();
 
     await page.locator('.gates-menu__tabs button', { hasText: 'Models' }).click();
     await expect(page).toHaveURL(/#\/menu\/models/);

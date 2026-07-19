@@ -148,7 +148,7 @@ describe('useDesktopAmbient', () => {
     expect(createThread).not.toHaveBeenCalled();
   });
 
-  it('routes a healthy addon to Local when no tool-capable Ollama model exists', () => {
+  it('routes a healthy addon to Models when no tool-capable Ollama model exists', () => {
     const ui = new MockUi();
     const router = new MockRouter();
     const createThread = vi.fn();
@@ -164,7 +164,7 @@ describe('useDesktopAmbient', () => {
     renderHarness(store);
     act(() => window.dispatchEvent(new CustomEvent(DESKTOP_KNOWLEDGE_DOM_EVENT)));
 
-    expect(router.goMenu).toHaveBeenCalledWith('local');
+    expect(router.goMenu).toHaveBeenCalledWith('models');
     expect(createThread).not.toHaveBeenCalled();
   });
 

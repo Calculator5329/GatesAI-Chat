@@ -16,7 +16,7 @@ import { tokens } from '../../../core/styleTokens';
 import { ACCENT_DOT_STYLE, LOCAL_CONTEXT_SELECT_STYLE, META_ROW_STYLE, MODEL_LABEL_STYLE, SEP_STYLE } from './composerStyles';
 import { ContextMeter } from './ContextMeter';
 import { SkillPopover } from './SkillPopover';
-import { streamFooterLabelForActivity } from '../../../services/chat/statusCopy';
+import { streamFooterLabelForActivity } from '../../../core/statusCopy';
 // Lazy: the picker is a large surface (sections/badges/filter logic) that most
 // sessions never open before first paint; splitting it trims the main chunk.
 const ModelPopover = lazy(() => import('../ModelPopover'));

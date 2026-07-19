@@ -36,7 +36,7 @@ export function useDesktopAmbient(root: RootStore, target: Window = window): voi
       }
       if (!root.providers.isConnected('ollama')) {
         root.ui.markMenuHintSeen();
-        root.router.goMenu('local');
+        root.router.goMenu('models');
         return;
       }
       const suggested = [
@@ -51,7 +51,7 @@ export function useDesktopAmbient(root: RootStore, target: Window = window): voi
         ?? localModels.find(candidate => candidate.supportsTools !== false);
       if (!model) {
         root.ui.markMenuHintSeen();
-        root.router.goMenu('local');
+        root.router.goMenu('models');
         return;
       }
       const id = root.chat.createThread();

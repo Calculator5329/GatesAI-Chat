@@ -1,12 +1,10 @@
 // Bridge-dependent UI flows, exercised with a faked online bridge: attachment
-// upload, the gallery rendering image bytes, and a Settings danger-zone action.
+// upload and a Settings danger-zone action.
 import { test, expect } from '@playwright/test';
 import {
-  makeCompletedImageJob,
   makeThread,
   mockBridgeOnline,
   mockOpenRouter,
-  seedImageJobs,
   seedReadyProvider,
   seedThreads,
 } from './fixtures/harness';
@@ -30,31 +28,6 @@ test.describe('bridge-backed flows (faked online bridge)', () => {
     });
 
     await expect(page.getByText('note.txt')).toBeVisible();
-  });
-
-  test('renders gallery thumbnails and lightbox from seeded image bytes', async ({ page }) => {
-    await seedImageJobs(page, [
-      makeCompletedImageJob('job-1', 'a calm editorial landscape', [
-        '/workspace/artifacts/images/api/test-1.png',
-      ]),
-    ]);
-    await page.goto('/#/menu/gallery');
-
-    await expect(page.getByRole('heading', { name: 'Gallery' })).toBeVisible();
-    const thumbnail = page.locator('.gallery-grid img');
-    await expect(thumbnail).toBeVisible({ timeout: 15_000 });
-    await expect(thumbnail).toHaveAttribute('src', /^data:image\/svg\+xml;base64,/);
-    await expect.poll(() => thumbnail.evaluate(img => ({
-      width: (img as HTMLImageElement).naturalWidth,
-      height: (img as HTMLImageElement).naturalHeight,
-    }))).toEqual({ width: 64, height: 64 });
-
-    await thumbnail.click();
-    const lightbox = page.getByRole('dialog', { name: 'Image viewer' });
-    await expect(lightbox).toBeVisible();
-    const fullSize = lightbox.locator('img');
-    await expect(fullSize).toBeVisible();
-    await expect(fullSize).toHaveAttribute('src', /^data:image\/svg\+xml;base64,/);
   });
 
   test('clears all threads from the danger zone', async ({ page }) => {

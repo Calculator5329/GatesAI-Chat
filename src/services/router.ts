@@ -4,11 +4,16 @@
 import type { MenuSectionKey } from '../core/types';
 
 const DEFAULT_MENU_SECTION: MenuSectionKey = 'settings';
-const MENU_SECTIONS: MenuSectionKey[] = ['agent', 'models', 'local', 'workspace', 'gallery', 'settings', 'usage'];
+const MENU_SECTIONS: MenuSectionKey[] = ['agent', 'models', 'settings'];
 const LEGACY_MENU_SECTIONS: Record<string, MenuSectionKey> = {
   profile: 'agent',
   api: 'models',
   appearance: 'settings',
+  // Retired tabs from the 7-tab menu (2026-07 trim): route to the nearest home.
+  local: 'models',
+  usage: 'settings',
+  workspace: 'settings',
+  gallery: 'settings',
 };
 
 export type Route =

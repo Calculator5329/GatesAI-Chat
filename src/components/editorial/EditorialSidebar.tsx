@@ -16,11 +16,7 @@ const HISTORY_ROW_LIMIT = 20;
 const MENU_LABELS: Record<MenuSectionKey, string> = {
   agent: 'Agent',
   models: 'Models',
-  local: 'Local',
-  workspace: 'Workspace',
-  gallery: 'Gallery',
   settings: 'Settings',
-  usage: 'Usage',
 };
 
 function scheduledAgentTaskLabel(thread: Thread): string {

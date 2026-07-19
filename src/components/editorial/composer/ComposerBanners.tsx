@@ -60,7 +60,7 @@ export const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
       <button
         type="button"
         className="editorial-banner-action"
-        onClick={() => router.goMenu('local')}
+        onClick={() => router.goMenu('models')}
         style={{
           padding: '4px 10px',
           border: '1px solid var(--border)',
@@ -118,7 +118,7 @@ export const LocalImageBanner = observer(function LocalImageBanner() {
       <button
         type="button"
         className="editorial-banner-action"
-        onClick={() => router.goMenu('local')}
+        onClick={() => router.goMenu('models')}
         style={{
           padding: '4px 10px',
           border: '1px solid var(--border)',

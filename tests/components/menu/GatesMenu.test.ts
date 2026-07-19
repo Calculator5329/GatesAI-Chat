@@ -49,51 +49,20 @@ function buildStore(section: MenuSectionKey = 'settings'): { store: RootStore; r
     openrouter,
     ui,
     imageGen,
-    openrouterCompatibility: {
-      running: false,
-      progress: '',
-      completed: 0,
-      total: 0,
-      lastRun: null,
-      lastError: null,
-      logLines: [],
-      openRouterReady: false,
-      workspaceReady: false,
-      curatedCount: 0,
-      sampleCount: 0,
-      allCount: 0,
-      start: async () => {},
-      cancel: () => {},
-    },
-    search: {
-      braveReady: false,
-      braveApiKey: '',
-      setBraveKey: () => {},
-      clearBraveKey: () => {},
-    },
     chat,
     notes: { notes: [], clear: () => {} },
     imageJobs: { history: [], clearHistory: () => {} },
-    ollama: { config: { apiKey: '' }, count: 0, setKey: () => {}, clearCatalog: () => {} },
+    ollama: { config: { apiKey: '' }, count: 0, fetching: false, lastError: null, setKey: () => {}, clearCatalog: () => {}, refresh: async () => {} },
     localRuntime: {
       runtimes: {
         ollama: { status: 'stopped', installPath: '', managed: true, baseUrl: 'http://127.0.0.1:11434', logs: [] },
         comfyui: { status: 'stopped', installPath: '', managed: true, baseUrl: 'http://127.0.0.1:8188', logs: [] },
       },
+      ollamaBaseUrl: 'http://127.0.0.1:11434',
+      setBaseUrl: () => {},
       resetConfig: () => {},
     },
     bridge: { isOnline: false, client: { request: async () => ({}) } },
-    offlineLibrary: {
-      enabled: false,
-      available: true,
-      phase: 'disabled',
-      statusLabel: 'Disabled',
-      declaredPermissions: [],
-      error: null,
-      setEnabled: async () => {},
-      refresh: async () => {},
-    },
-    skills: { skills: [], count: 0, loading: false, refresh: async () => {} },
   } as unknown as RootStore;
   builtStores.push(store);
   return { store, router };
@@ -131,12 +100,6 @@ async function preloadApiSection(): Promise<void> {
   });
 }
 
-async function preloadUsageSection(): Promise<void> {
-  await act(async () => {
-    await import('../../../src/components/menu/sections/Usage');
-  });
-}
-
 afterEach(() => {
   if (root) act(() => root?.unmount());
   root = null;
@@ -151,7 +114,7 @@ describe('GatesMenu tab strip', () => {
     const rendered = renderMenu(store);
     await flushLazySections();
 
-    for (const label of ['Agent', 'Models', 'Local', 'Workspace', 'Gallery', 'Settings', 'Usage']) {
+    for (const label of ['Settings', 'Models', 'Agent']) {
       const tab = findTab(rendered, label);
       expect(tab?.hasAttribute('disabled')).toBe(false);
       expect(tab?.style.cursor).toBe('pointer');
@@ -161,126 +124,43 @@ describe('GatesMenu tab strip', () => {
     expect(router.menuSection).toBe('models');
   });
 
-  it('removes retired and renamed top-level tabs', async () => {
+  it('removes retired top-level tabs', async () => {
     const { store } = buildStore('settings');
     const rendered = renderMenu(store);
     await flushLazySections();
 
-    expect(findTab(rendered, 'Profile')).toBeNull();
-    expect(findTab(rendered, 'API')).toBeNull();
+    for (const label of ['Profile', 'API', 'Appearance', 'Usage', 'Local', 'Workspace', 'Gallery']) {
+      expect(findTab(rendered, label)).toBeNull();
+    }
   });
 
-  it('renders the real Usage section from message usage', async () => {
-    await preloadUsageSection();
-    const { store } = buildStore('usage');
-    (store.chat as unknown as { threads: unknown[] }).threads = [{
-      id: 't1',
-      title: 'Usage thread',
-      subtitle: '',
-      pinned: false,
-      modelId: 'or-gemini-3-flash',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      messages: [{
-        id: 'a1',
-        role: 'assistant',
-        content: 'done',
-        createdAt: Date.now(),
-        model: 'or-gemini-3-flash',
-        usage: [{
-          providerId: 'openrouter',
-          modelId: 'google/gemini-3-flash',
-          promptTokens: 100,
-          completionTokens: 20,
-          totalTokens: 120,
-          costUsd: 0.0042,
-          costSource: 'provider',
-        }],
-      }],
-    }];
-    const rendered = renderMenu(store);
-    await flushLazySections();
-
-    expect(rendered.textContent).toContain('Usage');
-    expect(rendered.textContent).toContain('$0.0042');
-    expect(rendered.textContent).toContain('Gemini 3 Flash');
-  });
-
-  it('renders local-led Usage with local cost rows', async () => {
-    await preloadUsageSection();
-    const { store } = buildStore('usage');
-    (store.chat as unknown as { threads: unknown[] }).threads = [{
-      id: 't-local',
-      title: 'Local usage thread',
-      subtitle: '',
-      pinned: false,
-      modelId: 'ollama-qwen2.5:7b',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      messages: [{
-        id: 'a-local',
-        role: 'assistant',
-        content: 'done',
-        createdAt: Date.now(),
-        model: 'ollama-qwen2.5:7b',
-        usage: [{
-          providerId: 'ollama',
-          modelId: 'qwen2.5:7b',
-          promptTokens: 90,
-          completionTokens: 30,
-          totalTokens: 120,
-          costUsd: 0,
-          costSource: 'local',
-        }],
-      }],
-    }];
-    const rendered = renderMenu(store);
-    await flushLazySections();
-
-    expect(rendered.textContent).toContain('Cloud $0.00 - Local 120 tokens (free)');
-    expect(rendered.textContent).toContain('Requests');
-    expect(rendered.textContent).toContain('local');
-    expect(rendered.textContent).not.toContain('$0.00local');
-  });
-
-  it('does not render the retired Appearance tab', async () => {
-    const { store } = buildStore('settings');
-    const rendered = renderMenu(store);
-    await flushLazySections();
-
-    expect(findTab(rendered, 'Appearance')).toBeNull();
-  });
-
-  it('renders only the OpenRouter model access surface', async () => {
+  it('renders only the OpenRouter and local-model surfaces under Models', async () => {
     await preloadApiSection();
     const { store } = buildStore('models');
     const rendered = renderMenu(store);
     await flushLazySections();
 
     expect(rendered.textContent).toContain('Models');
-    expect(rendered.textContent).toContain('Cloud model access');
     expect(rendered.textContent).toContain('OpenRouter');
     expect(rendered.textContent).toContain('Local models');
     expect(rendered.textContent).toContain('Ollama not running');
-    expect(rendered.textContent).not.toContain('Routing');
+    expect(rendered.textContent).not.toContain('Brave Search');
+    expect(rendered.textContent).not.toContain('Compatibility test suite');
     expect(rendered.textContent).not.toContain('Coming soon');
     expect(rendered.textContent).not.toContain('Anthropic');
-    expect(rendered.textContent).not.toContain('OpenAI');
   });
 
-  it('renders the Models menu local row as online and links to Local', async () => {
+  it('shows the local catalog as online with a model count', async () => {
     await preloadApiSection();
-    const { store, router } = buildStore('models');
+    const { store } = buildStore('models');
     (store.localRuntime as unknown as { runtimes: { ollama: { status: string } } }).runtimes.ollama.status = 'online';
     (store.ollama as unknown as { count: number }).count = 2;
     const rendered = renderMenu(store);
     await flushLazySections();
 
-    expect(rendered.textContent).toContain('Ollama online - 2 models');
-    const button = Array.from(rendered.querySelectorAll('button'))
-      .find(item => item.textContent === 'Open Local') as HTMLButtonElement | undefined;
-    act(() => button?.click());
-
-    expect(router.menuSection).toBe('local');
+    expect(rendered.textContent).toContain('Ollama online · 2 models');
+    const refresh = Array.from(rendered.querySelectorAll('button'))
+      .find(item => item.textContent === 'Refresh models');
+    expect(refresh).toBeDefined();
   });
 });

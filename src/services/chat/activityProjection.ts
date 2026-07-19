@@ -6,7 +6,7 @@ import { toolRegistry } from '../tools/registry';
 import { isToolFailureContent } from './toolFailureLog';
 import type { ToolContext } from '../tools/types';
 import { messageText, messageToolCalls, messageToolResults } from '../../core/messageParts';
-import { providerStreamVerb } from './statusCopy';
+import { providerStreamVerb } from '../../core/statusCopy';
 
 type ActivityExtras = Pick<ToolContext, 'imageJobs' | 'execStream'>;
 

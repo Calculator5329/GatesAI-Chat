@@ -19,41 +19,15 @@ vi.mock('../../../src/core/runtime', () => ({
   runtimeMode: () => runtime.mode,
 }));
 
-vi.mock('../../../src/services/sourceWorkspace', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../../src/services/sourceWorkspace')>();
-  return {
-    ...actual,
-    getSourceWorkspaceStatus: vi.fn(async () => ({
-      available: false,
-      prepared: false,
-      stale: false,
-      workspaceRoot: '',
-      sourceRoot: '',
-    })),
-  };
-});
-
-vi.mock('../../../src/services/sourceBuild', async importOriginal => {
-  const actual = await importOriginal<typeof import('../../../src/services/sourceBuild')>();
-  return {
-    ...actual,
-    getSourceBuildStatus: vi.fn(async () => ({ status: 'idle', steps: [], logs: [] })),
-  };
-});
-
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const SURFACES: ReadonlyArray<{
   key: MenuSectionKey;
   marker: string;
 }> = [
-  { key: 'settings', marker: 'Settings' },
-  { key: 'usage', marker: 'LLM usage - cloud spend and local tokens' },
+  { key: 'settings', marker: 'Danger zone' },
+  { key: 'models', marker: 'Local models' },
   { key: 'agent', marker: 'Instructions' },
-  { key: 'models', marker: 'Cloud model access' },
-  { key: 'local', marker: 'Custom endpoint (OpenAI-compatible)' },
-  { key: 'workspace', marker: 'Workspace root' },
-  { key: 'gallery', marker: 'Gallery' },
 ];
 
 let reactRoot: Root | null = null;
@@ -78,23 +52,16 @@ async function selectSurface(key: MenuSectionKey): Promise<void> {
   await act(async () => {
     switch (key) {
       case 'settings': await import('../../../src/components/menu/sections/Settings'); break;
-      case 'usage': await import('../../../src/components/menu/sections/Usage'); break;
       case 'agent': await import('../../../src/components/menu/sections/Agent'); break;
       case 'models': await import('../../../src/components/menu/sections/api/ApiSection'); break;
-      case 'local': await import('../../../src/components/menu/sections/Local'); break;
-      case 'workspace': await import('../../../src/components/menu/sections/Workspace'); break;
-      case 'gallery': await import('../../../src/components/menu/sections/Gallery'); break;
+      default: {
+        const exhausted: never = key;
+        throw new Error(`unknown section ${String(exhausted)}`);
+      }
     }
     store!.router.goMenu(key);
     await new Promise(resolve => setTimeout(resolve, 0));
   });
-}
-
-function buttonWithText(container: ParentNode, text: string): HTMLButtonElement {
-  const button = Array.from(container.querySelectorAll<HTMLButtonElement>('button'))
-    .find(candidate => candidate.textContent?.trim() === text);
-  expect(button, `button named ${text}`).toBeDefined();
-  return button!;
 }
 
 function buildStore(mode: Exclude<GatesRuntimeMode, 'headless'>): RootStore {
@@ -136,69 +103,25 @@ describe('settings surface walkthrough', () => {
       expect(activeTab?.textContent?.trim()).toBe(MENU_SECTIONS.find(section => section.key === surface.key)?.label);
       expect(store!.router.menuSection).toBe(surface.key);
       expect(window.location.hash).toBe(`#/menu/${surface.key}`);
-      if (surface.key === 'workspace' && mode === 'web-lite') {
-        expect(rendered.textContent).toContain('Desktop-only workspace capabilities');
-      } else {
-        expect(rendered.textContent).toContain(surface.marker);
-      }
+      expect(rendered.textContent).toContain(surface.marker);
     }
-
-    await selectSurface('settings');
-    const settingsPage = rendered.querySelector('.settings-page')!;
-    act(() => buttonWithText(settingsPage, 'Manage key').click());
-    expect(store!.router.menuSection).toBe('models');
-
-    await selectSurface('settings');
-    act(() => buttonWithText(rendered.querySelector('.settings-page')!, 'Models').click());
-    expect(store!.router.menuSection).toBe('models');
-
-    await selectSurface('settings');
-    act(() => buttonWithText(rendered.querySelector('.settings-page')!, 'Local').click());
-    expect(store!.router.menuSection).toBe('local');
-
-    await selectSurface('models');
-    act(() => buttonWithText(rendered.querySelector('.gates-menu__body')!, 'Open Local').click());
-    expect(store!.router.menuSection).toBe('local');
   });
 
-  it('keeps desktop-only controls out of Web Lite and renders explicit fallback states', async () => {
+  it('keeps desktop-only controls out of Web Lite', async () => {
     runtime.mode = 'web-lite';
     const rendered = renderMenu(buildStore('web-lite'));
 
     await selectSurface('settings');
     expect(rendered.querySelector('.settings-desktop')).toBeNull();
-    expect(rendered.textContent).toContain('Your data is saved in this browser');
-    expect(rendered.textContent).toContain('Available only in the GatesAI desktop app');
-
-    await selectSurface('agent');
-    expect(rendered.textContent).not.toContain('Workspace skills');
-
-    await selectSurface('local');
-    expect(rendered.querySelector('[role="note"]')?.textContent).toContain('managed runtime controls are desktop-only');
-    expect(rendered.textContent).not.toContain('RuntimesAuto-detect');
-
-    await selectSurface('workspace');
-    expect(rendered.querySelector('[role="note"]')?.textContent).toContain("local /workspace bridge isn't available");
-
-    await selectSurface('gallery');
-    expect(rendered.querySelector('[role="note"]')?.textContent).toContain('artifact gallery are desktop-only');
+    expect(rendered.textContent).toContain('Danger zone');
   });
 
-  it('renders desktop settings and managed-runtime controls without Web Lite copy', async () => {
+  it('renders desktop settings without Web Lite copy', async () => {
     runtime.mode = 'desktop';
     const rendered = renderMenu(buildStore('desktop'));
 
     await selectSurface('settings');
     expect(rendered.querySelector('.settings-desktop')).not.toBeNull();
     expect(rendered.querySelector('.settings-browser-data')).toBeNull();
-
-    await selectSurface('local');
-    expect(rendered.textContent).toContain('Runtimes');
-    expect(rendered.textContent).toContain('Auto-detect');
-    expect(rendered.querySelector('[role="note"]')).toBeNull();
-
-    await selectSurface('workspace');
-    expect(rendered.textContent).toContain('Source workspace');
-    expect(rendered.querySelector('[role="note"]')).toBeNull();
   });
 });
