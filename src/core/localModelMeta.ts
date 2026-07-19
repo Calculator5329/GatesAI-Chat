@@ -12,6 +12,10 @@ export interface LocalModelMeta {
   costLabel: 'LOCAL';
 }
 
+export type LocalModelContextProfile = 'full' | 'slim';
+
+export const SMALL_LOCAL_CONTEXT_TOKENS = 8_000;
+
 interface LocalFamilyMeta {
   family: string;
   match: RegExp;
@@ -56,6 +60,12 @@ export function localModelMetaFor(model: Model): LocalModelMeta | null {
 
 export function localModelContextLength(model: Model): number | undefined {
   return model.contextLength ?? model.contextWindow ?? localModelMetaFor(model)?.contextLength;
+}
+
+export function localModelContextProfile(model: Model): LocalModelContextProfile {
+  if (model.providerId !== 'ollama') return 'full';
+  const contextLength = localModelContextLength(model);
+  return contextLength != null && contextLength < SMALL_LOCAL_CONTEXT_TOKENS ? 'slim' : 'full';
 }
 
 function capabilitiesForLocalModel(
