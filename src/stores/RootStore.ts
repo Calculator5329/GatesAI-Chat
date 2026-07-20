@@ -24,6 +24,7 @@ import { LocalRuntimeStore } from './LocalRuntimeStore';
 import { SearchStore } from './SearchStore';
 import { SkillsStore } from './SkillsStore';
 import { WhatsNewStore } from './WhatsNewStore';
+import { LibraryStore } from './LibraryStore';
 import { seedWelcomeTourOnFirstRun } from '../tourThread';
 import { RagStore } from '../services/rag/RagStore';
 import { RagSourceRepository } from '../services/rag/sourceRepository';
@@ -71,6 +72,7 @@ export class RootStore {
   readonly search: SearchStore;
   readonly skills: SkillsStore;
   readonly rag: RagStore;
+  readonly library: LibraryStore;
   readonly whatsNew: WhatsNewStore;
   private booted = false;
   readonly runtime: GatesRuntimeMode;
@@ -114,10 +116,14 @@ export class RootStore {
     seedWelcomeTourOnFirstRun(this.chat, this.whatsNew);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
+    this.bridge = new BridgeStore();
+    let ragStore: RagStore | null = null;
+    this.library = new LibraryStore(this.bridge, { onChanged: () => ragStore?.scheduleIndex() });
     const getRagSources = () => ({
         threads: this.chat.threads,
         notes: this.notes.notes,
         facts: this.profile.facts,
+        library: [...this.library.documents.values()],
       });
     this.rag = new RagStore({
       getSources: getRagSources,
@@ -131,7 +137,7 @@ export class RootStore {
       getOllamaApiKey: () => this.ollama.config.apiKey,
       isStreaming: () => this.chat.threads.some(thread => this.chat.isThreadStreaming(thread.id)),
     });
-    this.bridge = new BridgeStore();
+    ragStore = this.rag;
     this.artifacts = new ArtifactStore(this.bridge);
     this.skills = new SkillsStore(this.bridge, () => toolRegistry.list().map(tool => tool.def.name));
     this.updates = new UpdateStore();
@@ -165,6 +171,7 @@ export class RootStore {
       localRuntime: this.localRuntime,
       search: this.search,
       rag: this.rag,
+      library: this.library,
       artifacts: this.artifacts,
       artifactSurface: this.dock,
     }));
@@ -255,6 +262,14 @@ export class RootStore {
       void this.artifacts.refresh()
         .then(() => { attemptedArtifactRoot = workspaceRoot; })
         .finally(() => { artifactRefreshInFlight = false; });
+    }));
+
+    let attemptedLibraryRoot: string | undefined;
+    this.disposers.push(autorun(() => {
+      if (this.runtime !== 'desktop' || !this.bridge.isOnline || !this.bridge.workspaceRoot) return;
+      if (attemptedLibraryRoot === this.bridge.workspaceRoot) return;
+      attemptedLibraryRoot = this.bridge.workspaceRoot;
+      void this.library.refreshAll();
     }));
 
     const deliveredBridgeActivityIds = new Set<string>();

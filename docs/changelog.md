@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-19 — Approved local knowledge library
+
+- Added a quiet Knowledge library section under Agent → Memory where desktop
+  users can approve text/Markdown/structured-text documents and SQLite files
+  from the jailed workspace, inspect load state, refresh sources, and disable
+  or re-enable them without destructive removal.
+- Approved documents now join the existing local hybrid RAG index with visible
+  Library provenance and the same per-source controls. Registered databases
+  contribute public schema definitions only; bounded row reads remain an
+  explicit, separate `sqlite_query` action.
+- Added a read-only `library` tool for source inventory, library-only semantic
+  search, and database-schema inspection; source registrations participate in
+  data export/import while file contents stay in the workspace.
+- Added path-jail, size-limit, read-only SQLite, persistence, import, indexing,
+  tool, registry, and Agent UI coverage. Web Lite remains honest and inert.
+
 ## 2026-07-19 — Automated curated-model compatibility
 
 - Added a policy-driven OpenRouter catalog audit that automatically discovers

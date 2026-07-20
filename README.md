@@ -7,7 +7,7 @@
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app/)
 [![Vite](https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/)
 [![MobX](https://img.shields.io/badge/MobX-6-ff9955?style=flat-square&logo=mobx&logoColor=white)](https://mobx.js.org/)
-[![Tests](https://img.shields.io/badge/tests-997%20unit%20%2B%2020%20e2e-3fb950?style=flat-square)](#quality-gates)
+[![Tests](https://img.shields.io/badge/tests-1174%20unit%20%2B%2028%20e2e-3fb950?style=flat-square)](#quality-gates)
 
 <!--
   Demo GIF placeholder. The recording needs a human on a desktop machine —
@@ -79,7 +79,7 @@ it points you to the matching download above).
 - **Durable autosave** — every conversation is throttled-saved to `localStorage`, survives quota
   limits via emergency compaction, and (on desktop) mirrors to a readable
   `/workspace/chat-history` HTML/Markdown library.
-- **Agent tooling** — a built-in registry with `memory`, `recall`, `notes`,
+- **Agent tooling** — a built-in registry with `memory`, `recall`, `library`, `notes`,
   `thread`, `chat_history`, `spawn_task`, `web_search` (Brave), `fetch_page`, `fs`,
   `terminal`, `inspect_file`, `python_inline`, `sqlite_query`, `query_script`, `git`,
   `image_generate`, `describe_image`, `artifact`, `workspace`, `time`, and `logs`.
@@ -90,7 +90,9 @@ it points you to the matching download above).
 - **Local image generation** — background image-job queue driving ComfyUI (FLUX.2 Klein / SDXL
   Lightning) with live progress rendered inline in the chat.
 - **Memory and semantic recall** — durable user facts and lazy cross-thread summaries, plus
-  a local RAG index over chats, notes, and facts using Ollama embeddings and IndexedDB vectors.
+  a local RAG index over chats, notes, facts, and explicitly approved workspace documents
+  using Ollama embeddings and IndexedDB vectors. SQLite library sources expose schema only;
+  row reads stay bounded and read-only.
   Relevant snippets can be supplied automatically or retrieved with the `recall` tool; answers
   expose their exact source excerpts, and Agent → Memory controls what may be indexed and recalled.
 - **Brave web research** — ordinary chat can use compact live-web grounding, while the
@@ -165,7 +167,7 @@ go run ./cmd/gatesai-bridge
 ## Quality gates
 
 ```powershell
-npm run test       # Vitest unit/component suite (1,165 tests)
+npm run test       # Vitest unit/component suite (1,174 tests)
 npm run typecheck  # tsc project build + test project typecheck
 npm run lint       # ESLint (includes the architecture-boundary import rules)
 npm run test:watch # Vitest in watch mode

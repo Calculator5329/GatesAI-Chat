@@ -126,7 +126,7 @@ export interface AssistantMessage {
 
 export interface RetrievalTraceItem {
   reference: string;
-  sourceType: 'message' | 'note' | 'memory';
+  sourceType: 'message' | 'note' | 'memory' | 'library';
   sourceId: string;
   threadId?: string;
   role?: 'user' | 'assistant';

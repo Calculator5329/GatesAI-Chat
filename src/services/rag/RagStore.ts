@@ -19,7 +19,7 @@ import {
 export interface RagSettings {
   autoInject: boolean;
   embeddingModel: string;
-  sourceTypes: Record<'message' | 'note' | 'memory', boolean>;
+  sourceTypes: Record<'message' | 'note' | 'memory' | 'library', boolean>;
   excludedSources: string[];
 }
 
@@ -313,16 +313,26 @@ export class RagStore {
     return formatStructuredRecallResults(results);
   }
 
+  async recallLibrary(query: string, k = 6): Promise<string> {
+    const results = await this.retrieve({
+      query,
+      purpose: 'explicit_recall',
+      limit: k,
+      sourcePolicy: { sourceTypes: ['library'] },
+    });
+    return formatStructuredRecallResults(results);
+  }
+
   async retrieve(request: RagRetrievalRequest): Promise<RagRetrievalResult[]> {
     if (!this.active) return [];
     return retrieveHybrid({
       request: {
         ...request,
         sourcePolicy: {
-          sourceTypes: (Object.entries(this.settings.sourceTypes)
+          sourceTypes: request.sourcePolicy?.sourceTypes ?? (Object.entries(this.settings.sourceTypes)
             .filter(([, enabled]) => enabled)
-            .map(([sourceType]) => sourceType)) as Array<'message' | 'note' | 'memory'>,
-          excludedReferences: this.settings.excludedSources,
+            .map(([sourceType]) => sourceType)) as Array<'message' | 'note' | 'memory' | 'library'>,
+          excludedReferences: [...this.settings.excludedSources, ...(request.sourcePolicy?.excludedReferences ?? [])],
         },
       },
       model: this.embeddingModel,
@@ -410,6 +420,7 @@ function loadSettings(storage: Storage | undefined): RagSettings {
         message: parsed.sourceTypes?.message !== false,
         note: parsed.sourceTypes?.note !== false,
         memory: parsed.sourceTypes?.memory !== false,
+        library: parsed.sourceTypes?.library !== false,
       },
       excludedSources: Array.isArray(parsed.excludedSources)
         ? [...new Set(parsed.excludedSources.filter(item => typeof item === 'string' && item.trim()).map(item => item.trim()))]
@@ -424,7 +435,7 @@ function defaultSettings(): RagSettings {
   return {
     autoInject: true,
     embeddingModel: DEFAULT_RAG_EMBEDDING_MODEL,
-    sourceTypes: { message: true, note: true, memory: true },
+    sourceTypes: { message: true, note: true, memory: true, library: true },
     excludedSources: [],
   };
 }
@@ -442,7 +453,8 @@ function sourceDigest(snapshot: RagSourceSnapshot): string {
     thread.messages.map(message => `${message.id}:${message.createdAt}:${messageText(message).length}`).join(','),
   ].join('|')).join(';');
   const noteBits = snapshot.notes.map(note => `${note.id}:${note.updatedAt}:${note.title.length}:${note.body.length}`).join(';');
-  return `${threadBits}\n${noteBits}\n${snapshot.facts.join('\n')}`;
+  const libraryBits = (snapshot.library ?? []).map(item => `${item.id}:${item.updatedAt}:${item.text.length}`).join(';');
+  return `${threadBits}\n${noteBits}\n${snapshot.facts.join('\n')}\n${libraryBits}`;
 }
 
 function filterSourceSnapshot(snapshot: RagSourceSnapshot, settings: RagSettings): RagSourceSnapshot {
@@ -456,6 +468,9 @@ function filterSourceSnapshot(snapshot: RagSourceSnapshot, settings: RagSettings
       : [],
     facts: settings.sourceTypes.memory
       ? snapshot.facts.filter(fact => !excluded.has(`memory:memory-${contentHash(normalizeFactIdentity(fact))}`))
+      : [],
+    library: settings.sourceTypes.library
+      ? (snapshot.library ?? []).filter(item => !excluded.has(`library:${item.id}`))
       : [],
   };
 }

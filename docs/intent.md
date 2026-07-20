@@ -16,3 +16,12 @@ Selected 2026-07-19: Option 2 from
 Design-review correction: future interaction choices should be demonstrated as
 genuinely different working/code-derived options in a single switchable review
 surface. Static mockups are secondary when Ethan needs to compare behavior.
+
+## Local knowledge library
+
+Selected 2026-07-19: rebuild the library as a small native capability, not a
+plugin platform. A user explicitly approves workspace files under Agent →
+Memory. Documents participate in local semantic recall; SQLite sources expose
+schema only, with bounded row queries remaining a separate deliberate tool.
+Registrations are portable, but contents remain in the workspace. Disable and
+re-enable are the normal lifecycle—there is no destructive remove action.

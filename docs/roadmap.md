@@ -62,9 +62,14 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       reported as an explicit boundary rather than a false pass: its in-house
       models are not OpenRouter-addressable, and adding a Cursor provider would
       violate the three-route product floor.
-- [ ] **Database / library layer, redone with taste.** Re-introduce later as a
-      first-class, well-designed integration (the reason the old plugins layer
-      and Offline Library were removed).
+- [x] **Database / library layer, redone with taste.** *(done 2026-07-19 —
+      shipped a first-class Agent → Memory knowledge library for explicitly
+      approved workspace documents and SQLite databases; documents join local
+      semantic recall, databases expose schema only, row access stays in the
+      existing bounded read-only SQLite tool, and every source can be disabled
+      and re-enabled without destructive removal)* This is intentionally a
+      small local capability, not a restoration of the old plugin host or
+      Offline Library service.
 
 ### Parked (re-add excellently later, with documented value)
 

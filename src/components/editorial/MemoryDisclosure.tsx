@@ -70,6 +70,8 @@ export function MemoryDisclosure({
               <button type="button" onClick={() => onOpenThread(selected.threadId!)}>Open source</button>
             ) : selected.sourceType === 'message' ? (
               <button type="button" disabled>Source unavailable</button>
+            ) : selected.sourceType === 'library' ? (
+              <button type="button" onClick={onOpenManager}>Open Library</button>
             ) : (
               <button type="button" onClick={onOpenManager}>Open in Memory</button>
             )}
@@ -114,6 +116,7 @@ function sourceLabel(item: RetrievalTraceItem): string {
 function sourceTypeLabel(sourceType: RetrievalTraceItem['sourceType']): string {
   if (sourceType === 'message') return 'Conversation';
   if (sourceType === 'note') return 'Note';
+  if (sourceType === 'library') return 'Library';
   return 'Saved fact';
 }
 

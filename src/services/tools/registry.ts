@@ -16,6 +16,7 @@ import { fsTool } from './fs';
 import { terminalTool } from './terminal';
 import { pythonInlineTool } from './pythonInline';
 import { sqliteQueryTool } from './sqliteQuery';
+import { libraryTool } from './library';
 import { queryScriptTool } from './queryScript';
 import { gitTool } from './git';
 import { workspaceTool } from './workspace';
@@ -125,6 +126,7 @@ export class ToolRegistry {
     if (ctx.webSearchAvailable) selected.add('web_search');
     if (ctx.desktopRuntime !== false && (ctx.webSearchAvailable || isFetchPageRelevant(text))) selected.add('fetch_page');
     if (ctx.semanticRecallAvailable) selected.add('recall');
+    if (ctx.bridgeOnline && /\b(library|source|sources|database|dataset|reference|knowledge base)\b/.test(text)) selected.add('library');
     if (ctx.bridgeOnline && ctx.imageGenAvailable && imageGenRelevant) selected.add('image_generate');
     if (ctx.bridgeOnline && imageVisionRelevant) {
       selected.add('workspace');
@@ -487,6 +489,7 @@ function safeInlineJson(value: unknown): string {
 export const toolRegistry = new ToolRegistry();
 toolRegistry.register(memoryTool);
 toolRegistry.register(recallTool);
+toolRegistry.register(libraryTool);
 toolRegistry.register(timeTool);
 toolRegistry.register(logsTool);
 toolRegistry.register(notesTool);

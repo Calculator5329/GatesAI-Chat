@@ -14,6 +14,17 @@
   management under Agent → Memory. Keep details progressive and the ordinary
   chat canvas quiet.
 
+## Local library
+
+- Treat the knowledge library as part of memory, not a new top-level
+  destination. One compact source list should be enough.
+- Ask for explicit file approval, show the real workspace path and load state,
+  and make disable/re-enable reversible. Do not revive marketplace, plugin,
+  daemon, or dashboard furniture around a local indexing feature.
+- Documents may join recall. Databases should reveal schema first; keep row
+  access a separate bounded read-only action so “add to library” never implies
+  “send all my data to the model.”
+
 ## Tool activity
 
 - Lead with the goal in plain English: “Checking the project tests,” not raw

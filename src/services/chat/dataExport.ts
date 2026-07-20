@@ -6,6 +6,8 @@ import { parseChatSnapshotValue, prepareChatSnapshotForSave } from '../persisten
 import { CURRENT_CHAT_SCHEMA_VERSION } from '../persistence/migrations';
 import { DEFAULT_UI_PREFS, type UiPrefsSnapshot } from '../uiPrefsStorage';
 import { isRecord } from '../../core/guards';
+import { normalizeLibraryPath, sourceKindForPath } from '../library/librarySourceService';
+import type { LibrarySnapshot } from '../library/types';
 
 export const DATA_EXPORT_FORMAT = 'gatesai-chat-export';
 export const DATA_EXPORT_FORMAT_VERSION = 1;
@@ -17,6 +19,7 @@ export interface GatesAiChatExportData extends ChatSnapshot {
   profile: UserProfileSnapshot;
   notes: NotesSnapshot;
   uiPrefs: UiPrefsSnapshot;
+  library: LibrarySnapshot;
 }
 
 export interface GatesAiChatExportEnvelope {
@@ -35,6 +38,8 @@ export interface DataImportResult {
   memoriesSkipped: number;
   notesImported: number;
   notesSkipped: number;
+  librarySourcesImported: number;
+  librarySourcesSkipped: number;
 }
 
 export interface DataExportStores {
@@ -55,6 +60,11 @@ export interface DataExportStores {
   ui: {
     prefsSnapshot: UiPrefsSnapshot;
     applyImportedPrefs(snapshot: UiPrefsSnapshot): void;
+  };
+  library: {
+    snapshot: LibrarySnapshot;
+    applyImportedSnapshot(snapshot: LibrarySnapshot): void;
+    mergeImportedSnapshot(snapshot: LibrarySnapshot): { imported: number; skipped: number };
   };
 }
 
@@ -90,6 +100,7 @@ export function createDataExportEnvelope(
     profile: cloneJson(stores.profile.snapshot),
     notes: cloneJson(stores.notes.snapshot),
     uiPrefs: cloneJson(stores.ui.prefsSnapshot),
+    library: cloneJson(stores.library.snapshot),
   }) as GatesAiChatExportData;
 
   return {
@@ -154,6 +165,7 @@ export function applyDataImport(
     stores.profile.applyImportedProfile(data.profile);
     stores.notes.applyImportedNotes(data.notes);
     stores.ui.applyImportedPrefs(data.uiPrefs);
+    stores.library.applyImportedSnapshot(data.library);
     return {
       mode,
       threadsImported: data.threads.length,
@@ -162,6 +174,8 @@ export function applyDataImport(
       memoriesSkipped: 0,
       notesImported: data.notes.notes.length,
       notesSkipped: 0,
+      librarySourcesImported: data.library.sources.length,
+      librarySourcesSkipped: 0,
     };
   }
 
@@ -170,6 +184,7 @@ export function applyDataImport(
   const memoryMerge = stores.profile.mergeImportedProfile(data.profile);
   const notesMerge = stores.notes.mergeImportedNotes(data.notes);
   stores.ui.applyImportedPrefs(data.uiPrefs);
+  const libraryMerge = stores.library.mergeImportedSnapshot(data.library);
   return {
     mode,
     threadsImported: chatMerge.imported,
@@ -178,6 +193,8 @@ export function applyDataImport(
     memoriesSkipped: memoryMerge.skipped,
     notesImported: notesMerge.imported,
     notesSkipped: notesMerge.skipped,
+    librarySourcesImported: libraryMerge.imported,
+    librarySourcesSkipped: libraryMerge.skipped,
   };
 }
 
@@ -188,6 +205,8 @@ export function formatDataImportResult(result: DataImportResult): string {
   if (result.memoriesSkipped > 0) parts.push(`${plural(result.memoriesSkipped, 'memory')} skipped`);
   if (result.notesImported > 0) parts.push(`${plural(result.notesImported, 'note')}`);
   if (result.notesSkipped > 0) parts.push(`${plural(result.notesSkipped, 'note')} skipped`);
+  if (result.librarySourcesImported > 0) parts.push(`${plural(result.librarySourcesImported, 'library source')}`);
+  if (result.librarySourcesSkipped > 0) parts.push(`${plural(result.librarySourcesSkipped, 'library source')} skipped`);
   return `${parts.join(', ')}.`;
 }
 
@@ -221,7 +240,30 @@ function parseExportData(value: unknown): GatesAiChatExportData {
     profile: parseProfileSnapshot(value.profile),
     notes: parseNotesSnapshot(value.notes),
     uiPrefs: parseUiPrefsSnapshot(value.uiPrefs),
+    library: parseLibrarySnapshot(value.library),
   };
+}
+
+function parseLibrarySnapshot(value: unknown): LibrarySnapshot {
+  if (!isRecord(value) || !Array.isArray(value.sources)) return { sources: [] };
+  const sources: LibrarySnapshot['sources'] = [];
+  for (const item of value.sources) {
+    if (!isRecord(item) || typeof item.path !== 'string') continue;
+    try {
+      const path = normalizeLibraryPath(item.path);
+      sources.push({
+        id: typeof item.id === 'string' && item.id.trim() ? item.id : `imported-${sources.length + 1}`,
+        path,
+        title: typeof item.title === 'string' && item.title.trim() ? item.title.trim() : path.split('/').pop() ?? path,
+        kind: sourceKindForPath(path),
+        enabled: item.enabled !== false,
+        addedAt: typeof item.addedAt === 'number' && Number.isFinite(item.addedAt) ? item.addedAt : Date.now(),
+      });
+    } catch {
+      // Ignore unsupported or escaping paths from older/untrusted exports.
+    }
+  }
+  return { sources };
 }
 
 function parseProfileSnapshot(value: unknown): UserProfileSnapshot {

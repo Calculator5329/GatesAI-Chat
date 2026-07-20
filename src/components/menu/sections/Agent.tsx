@@ -165,12 +165,63 @@ const MemorySection = observer(function MemorySection() {
         </div>
       )}
 
+      <KnowledgeLibrarySection />
       <SemanticRecallSection />
     </div>
   );
 });
 
-type SemanticSourceType = 'message' | 'note' | 'memory';
+const KnowledgeLibrarySection = observer(function KnowledgeLibrarySection() {
+  const { library, bridge } = useRootStore();
+  if (isWebLite()) {
+    return (
+      <div style={semanticBlockStyle}>
+        <div style={subsectionTitleStyle}>Knowledge library</div>
+        <div style={detailStyle}>Local documents and databases are available in the desktop app.</div>
+      </div>
+    );
+  }
+  return (
+    <div style={semanticBlockStyle}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+        <div>
+          <div style={subsectionTitleStyle}>Knowledge library</div>
+          <div style={detailStyle}>
+            Approve workspace documents for recall. SQLite sources expose schema only until you ask for a bounded read-only query.
+          </div>
+        </div>
+        <Button disabled={!bridge.isOnline} onClick={() => void library.pickAndAdd()}>Add source</Button>
+      </div>
+      <div style={statusRowStyle}>
+        <span style={{ color: bridge.isOnline ? 'var(--accent)' : 'var(--danger)' }}>{bridge.isOnline ? 'Local workspace ready' : 'Bridge offline'}</span>
+        <span>{library.readyCount}/{library.activeSources.length} ready</span>
+        {library.sources.length > 0 && <button type="button" style={quietButtonStyle} disabled={library.refreshing || !bridge.isOnline} onClick={() => void library.refreshAll()}>{library.refreshing ? 'Refreshing…' : 'Refresh'}</button>}
+      </div>
+      {library.lastError && <div style={{ ...detailStyle, color: 'var(--danger)', marginTop: 8 }}>{library.lastError}</div>}
+      {library.sources.length === 0 ? (
+        <div style={{ ...emptyBoxStyle, marginTop: 12, marginBottom: 0 }}>
+          No sources yet. Add text, Markdown, structured text, or SQLite files from the current workspace.
+        </div>
+      ) : (
+        <div style={{ marginTop: 10, borderTop: '1px solid var(--border)' }}>
+          {library.sources.map(source => (
+            <div key={source.id} style={{ ...sourceGroupRowStyle, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ minWidth: 0 }}>
+                <div title={source.path} style={sourceItemLabelStyle}>{source.title}</div>
+                <div style={detailStyle}>
+                  {source.kind === 'database' ? 'SQLite schema' : 'Document'} · {source.status}{source.error ? ` · ${source.error}` : ''}
+                </div>
+              </div>
+              <Toggle on={source.enabled} onChange={value => library.setEnabled(source.id, value)} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+});
+
+type SemanticSourceType = 'message' | 'note' | 'memory' | 'library';
 type PreviewItem = {
   reference: string;
   sourceType: SemanticSourceType;
@@ -180,7 +231,7 @@ type PreviewItem = {
 
 const SemanticRecallSection = observer(function SemanticRecallSection() {
   const root = useRootStore();
-  const { rag, chat, notes, profile, ollama } = root;
+  const { rag, chat, notes, profile, ollama, library } = root;
   const [expandedType, setExpandedType] = useState<SemanticSourceType | null>(null);
   const [sourceQuery, setSourceQuery] = useState('');
   const [previewQuery, setPreviewQuery] = useState('');
@@ -204,6 +255,7 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
     { type: 'message' as const, label: 'Conversations', items: threads.map(thread => ({ reference: `thread:${thread.id}`, label: thread.title || 'New conversation', detail: formatDate(thread.updatedAt) })) },
     { type: 'note' as const, label: 'Notes', items: notes.sortedByRecency.map(note => ({ reference: `note:${note.id}`, label: note.title || 'Untitled', detail: formatDate(note.updatedAt) })) },
     { type: 'memory' as const, label: 'Saved facts', items: profile.facts.map(fact => ({ reference: rag.factSourceReference(fact), label: fact, detail: 'Always-on fact' })) },
+    { type: 'library' as const, label: 'Library', items: library.sources.map(source => ({ reference: `library:${source.id}`, label: source.title, detail: `${source.kind} · ${source.status}` })) },
   ];
   const status = semanticStatus(rag);
   const pullState = ollama.pulls.get(rag.embeddingModel);
@@ -236,7 +288,7 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
         <div>
           <div style={subsectionTitleStyle}>Semantic recall</div>
-          <div style={detailStyle}>Finds relevant context in conversations, notes, and facts. Text and vectors stay local.</div>
+          <div style={detailStyle}>Finds relevant context in conversations, notes, facts, and approved library sources. Text and vectors stay local.</div>
         </div>
         <Toggle on={rag.settings.autoInject} onChange={value => rag.setAutoInject(value)} disabled={!rag.servingCompleteGeneration} />
       </div>
@@ -344,7 +396,7 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
           style={{ ...quietButtonStyle, color: 'var(--text-faint)' }}
           disabled={rag.indexing || rag.indexedChunkCount === 0}
           onClick={() => {
-            if (window.confirm('Clear the derived semantic index? Your conversations, notes, and facts stay intact. Recall will remain unavailable until the index is rebuilt.')) void rag.clearIndex();
+            if (window.confirm('Clear the derived semantic index? Your conversations, notes, facts, and library files stay intact. Recall will remain unavailable until the index is rebuilt.')) void rag.clearIndex();
           }}
         >Clear derived index</button>
       </div>
@@ -365,6 +417,7 @@ function semanticStatus(rag: ReturnType<typeof useRootStore>['rag']): { label: s
 function previewSourceLabel(sourceType: SemanticSourceType): string {
   if (sourceType === 'message') return 'Conversation';
   if (sourceType === 'note') return 'Note';
+  if (sourceType === 'library') return 'Library';
   return 'Saved fact';
 }
 

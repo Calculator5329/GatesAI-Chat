@@ -35,6 +35,6 @@ export class RagSourceRepository {
         if (!thread.archived || thread.messages.length > 0) return thread;
         return archivedById.get(thread.id) ?? thread;
       });
-    return { threads, notes: current.notes, facts: current.facts };
+    return { threads, notes: current.notes, facts: current.facts, ...(current.library ? { library: current.library } : {}) };
   }
 }

@@ -151,6 +151,11 @@ const TOOL_UI: Record<string, ToolActivityUi> = {
     target: workspaceTarget,
     summary: result => summarizeToolResult('sqlite_query', result),
   },
+  library: {
+    verb: () => 'Searching the local library',
+    target: args => typeof args.query === 'string' ? args.query : typeof args.source_id === 'string' ? args.source_id : 'approved sources',
+    summary: result => summarizeToolResult('library', result),
+  },
   query_script: {
     verb: () => 'Preparing script',
     target: args => stringArg(args, 'topic'),

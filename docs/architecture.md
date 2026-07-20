@@ -6,8 +6,8 @@ GatesAI Chat is a local-first desktop AI workspace: a chat app where you bring
 your own models (OpenRouter in the cloud, Ollama locally) and the assistant can
 actually *do* things on your machine — read/write files in a jailed workspace,
 run allowlisted shell/Python/SQLite/git commands, search and fetch the web,
-generate images through ComfyUI, and recall past conversations through a local
-RAG index. Everything stays on the
+generate images through ComfyUI, and recall past conversations plus approved
+workspace documents through a local RAG index. Everything stays on the
 user's device: API keys in the OS credential store, history in localStorage
 with an IndexedDB archive, files in a workspace folder the user owns.
 
@@ -24,9 +24,9 @@ Go bridge** that lives in the sibling repository
 reached over a single loopback WebSocket.
 
 Stack: React 19 · TypeScript (strict) · Vite 8 · MobX 6 · Tauri 2 (Rust) ·
-Go bridge (separate repo) · Vitest (995 unit/component tests) + Playwright
-(20 e2e tests) · ESLint 9 with architecture-boundary rules. Verified against
-the tree at v4.5.0, 2026-07-05.
+Go bridge (separate repo) · Vitest (1,174 unit/component tests) + Playwright
+(28 e2e tests) · ESLint 9 with architecture-boundary rules. Verified against
+the tree at v4.7.0, 2026-07-19.
 
 ```
 UI (components/, app/)
@@ -60,7 +60,7 @@ Verify (the gates CI enforces — run before committing):
 
 ```powershell
 npm run ci                  # npm test + npm run typecheck + npm run lint
-npm run test:e2e            # Playwright: desktop-mocked + web-lite projects (20 tests)
+npm run test:e2e            # Playwright: desktop-mocked + web-lite projects (28 tests)
 cargo test --manifest-path src-tauri/Cargo.toml   # Rust command layer
 npm run model-compat:catalog # Free OpenRouter catalog-policy audit
 npm run test:models         # OPTIONAL capped live OpenRouter probes (needs API key)
@@ -95,7 +95,7 @@ untrusted evidence, while the actual bounded excerpts arrive in a separate
 synthetic user-role message immediately before the live query. The assistant
 message records an optional schema-v4 retrieval trace before streaming starts,
 including the exact supplied excerpts and stable provenance but never vectors
-or hidden full bodies. RAG settings v2 apply conversation/note/fact source-type
+or hidden full bodies. RAG settings v2 apply conversation/note/fact/library source-type
 controls and stable per-source exclusions both when building the derived index
 and when retrieving from the current generation.
 
@@ -224,7 +224,8 @@ and auxiliary stores, then one-way providers are injected into `ChatStore`.
 | `ChatStore` | Thread/message state and persistence host; delegates turn/agent control flow. | `src/stores/ChatStore.ts`, `src/services/chat/chatTurnEngine.ts`, `src/services/chat/agentTaskLifecycle.ts`, `src/services/chat/turnRunner.ts` | UI calls store actions; `ChatTurnEngine` owns send/interrupt/streaming bookkeeping; `AgentTaskLifecycle` owns spawn/cancel/retry timers; `TurnRunner` writes one assistant message through the `TurnHost` facade. |
 | `SummaryStore` | Cross-thread one-line summaries. | `src/stores/SummaryStore.ts` | Runs in the background and provides recent summaries to chat prompts through a one-way provider. |
 | `NotesStore` | Durable notes used by the `notes` tool. | `src/stores/NotesStore.ts`, `src/services/notesStorage.ts` | Tool calls mutate/search notes; UI lists them through store state. |
-| `RagStore` | Embeddings index, vector recall, semantic context injection. | `src/services/rag/RagStore.ts`, `src/services/rag/indexer.ts`, `src/services/rag/vectorStore.ts` | Indexes chat/notes/facts when Ollama embeddings are available; `TurnRunner` asks it for semantic context and the `recall` tool queries it. |
+| `LibraryStore` | Registry and in-memory content for explicitly approved workspace sources. | `src/stores/LibraryStore.ts`, `src/services/library/` | Persists source registrations only; loads bounded documents or SQLite schema through the jailed bridge; feeds ready sources into RAG. |
+| `RagStore` | Embeddings index, vector recall, semantic context injection. | `src/services/rag/RagStore.ts`, `src/services/rag/indexer.ts`, `src/services/rag/vectorStore.ts` | Indexes chat/notes/facts/approved library documents when Ollama embeddings are available; `TurnRunner`, `recall`, and library search query it. |
 | `BridgeStore` | Desktop bridge health, WebSocket client, workspace helpers. | `src/stores/BridgeStore.ts`, `src/services/bridge/client.ts`, `src/services/bridge/health.ts` | Polls `/health`, opens `ws://127.0.0.1:7331/ws`, exposes a request facade to tools and workspace services. |
 | `SkillsStore` | Workspace skill list and active skill metadata. | `src/stores/SkillsStore.ts`, `src/services/skills/skillsService.ts` | Loads skill files from `/workspace/.gatesai/skills`; selected skill instructions/tool allowlists feed turns. |
 | `ExecStreamStore` | Live terminal output tails. | `src/stores/ExecStreamStore.ts` | `terminal` streams bridge event chunks into it; activity rows render the live tail. |
@@ -237,7 +238,7 @@ and auxiliary stores, then one-way providers are injected into `ChatStore`.
 - `setRecentSummariesProvider()` reads `SummaryStore.recentSummariesExcluding()`.
 - `setSemanticContextProvider()` reads `RagStore.semanticContextForUserText()`.
 - `setActiveSkillProvider()` maps the thread's `skillId` to a `SkillsStore` record.
-- `setToolStoresProvider()` returns notes, summary, bridge, exec stream, image, local runtime, search, and RAG facades for tool execution.
+- `setToolStoresProvider()` returns notes, summary, bridge, exec stream, image, local runtime, search, RAG, and library facades for tool execution.
 
 The wiring is intentionally one-way. `ChatStore` does not import those stores;
 it only calls provider functions when building a request or executing tools.
@@ -329,7 +330,9 @@ Availability is gated in layers:
   and image file writes.
 - Local/runtime state: image generation appears only when bridge is online and
   either OpenRouter image credentials or ComfyUI readiness exists. `recall`
-  appears only when RAG is active. `web_search` appears only with a Brave key.
+  appears only when RAG is active. The read-only `library` inventory/schema
+  actions require the bridge; its semantic search additionally requires RAG.
+  `web_search` appears only with a Brave key.
 - Provider/model state: context mode hides tools if the model lacks tool
   support; Ollama defaults to `micro` mode with a smaller tool set.
 - Skill allowlists: an active skill can restrict tools; `thread` is always
@@ -410,6 +413,7 @@ Feature storage slots:
 | `gatesai.providers.v1` | Provider config and Web Lite provider keys |
 | `gatesai.profile.v1` | User profile/facts |
 | `gatesai.notes.v1` | Notes |
+| `gatesai.library.v1` | Approved library source registrations (never file contents) |
 | `gatesai.uiprefs.v1` | UI preferences |
 | `gatesai.openrouter.catalog.v1` | OpenRouter catalog cache |
 | `gatesai.ollama.v1` | Ollama config/catalog and Web Lite key fallback |
@@ -461,8 +465,13 @@ ComfyUI image jobs:
 
 RAG:
 
-- `RagStore` reads chat threads, notes, and profile facts from RootStore
-  providers. It requires Ollama availability and a configured embeddings model.
+- `LibraryStore` accepts only supported files selected from the active jailed
+  workspace. Text-like documents are bounded to 2 MB. SQLite is opened with
+  URI `mode=ro` and only `sqlite_master` schema definitions are loaded; rows
+  remain behind the existing bounded read-only `sqlite_query` tool.
+- `RagStore` reads chat threads, notes, profile facts, and enabled ready library
+  documents from RootStore providers. It requires Ollama availability and a
+  configured embeddings model.
 - `indexer.ts` builds atomic generations; `vectorStore.ts` persists derived
   chunks and generation manifests in IndexedDB.
 - `TurnRunner` supplies bounded historical excerpts as a separate untrusted
@@ -470,7 +479,9 @@ RAG:
   the exact bounded retrieval trace used for the visible source disclosure.
 - Agent → Memory owns automatic recall, source-type/per-source controls,
   status, preview, embedding-model install, and derived-index maintenance. The
-  `recall` tool exposes the same production hybrid retrieval pipeline.
+  `recall` tool exposes the same production hybrid retrieval pipeline. The
+  `library` tool can list sources, retrieve only library chunks, or return a
+  registered database's in-memory schema.
 
 Search and deep research:
 

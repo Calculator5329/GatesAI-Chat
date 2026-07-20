@@ -1,4 +1,4 @@
-export type RagSourceType = 'message' | 'note' | 'memory';
+export type RagSourceType = 'message' | 'note' | 'memory' | 'library';
 
 export interface RagChunk {
   id: string;

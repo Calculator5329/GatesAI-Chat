@@ -124,6 +124,31 @@ describe('RagIndexer', () => {
     const second = collectRagSources({ threads: [], notes: [], facts: ['Beta fact', 'Alpha fact'] });
     expect(first.map(source => source.sourceId).sort()).toEqual(second.map(source => source.sourceId).sort());
   });
+
+  it('indexes approved library documents with visible title and path provenance', () => {
+    const sources = collectRagSources({
+      threads: [],
+      notes: [],
+      facts: [],
+      library: [{
+        id: 'reference',
+        path: '/workspace/notes/reference.md',
+        title: 'Release reference',
+        kind: 'document',
+        text: 'The launch owner is Rowan.',
+        updatedAt: 123,
+      }],
+    });
+
+    expect(sources).toEqual([expect.objectContaining({
+      sourceType: 'library',
+      sourceId: 'reference',
+      sourceTitle: 'Release reference',
+      updatedAt: 123,
+    })]);
+    expect(sources[0].embeddingText).toContain('/workspace/notes/reference.md');
+    expect(sources[0].text).toContain('The launch owner is Rowan.');
+  });
 });
 
 class MemoryWatermarks implements RagWatermarkStore {

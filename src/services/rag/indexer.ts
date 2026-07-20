@@ -1,5 +1,6 @@
 import type { Thread } from '../../core/types';
 import type { Note } from '../../core/notes';
+import type { LibraryDocument } from '../library/types';
 import type { RagEmbedder } from './embeddings';
 import {
   RAG_CHUNK_POLICY_VERSION,
@@ -26,6 +27,7 @@ export interface RagSourceSnapshot {
   threads: Thread[];
   notes: Note[];
   facts: string[];
+  library?: LibraryDocument[];
 }
 
 export interface RagWatermark {
@@ -254,6 +256,18 @@ export function collectRagSources(snapshot: RagSourceSnapshot): RagSource[] {
       updatedAt: contentHash(text).split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0),
     });
   });
+  for (const document of snapshot.library ?? []) {
+    const text = document.text.trim();
+    if (!text) continue;
+    sources.push({
+      sourceType: 'library',
+      sourceId: document.id,
+      text,
+      embeddingText: [`Library source: ${document.title}`, `Path: ${document.path}`, text].join('\n'),
+      updatedAt: document.updatedAt,
+      sourceTitle: document.title,
+    });
+  }
   return sources;
 }
 

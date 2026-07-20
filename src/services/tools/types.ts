@@ -71,6 +71,7 @@ export interface BridgeFacade {
 import type { ImageBackendId, ImageBackendSnapshot, LocalComfyMode } from '../image/types';
 import type { CompletedJob, ImageJob } from '../image/jobs/types';
 import type { BraveFreshness, BraveSearchDepth, BraveSearchQueryResult } from '../search/types';
+import type { LibraryDocument, LibrarySource } from '../library/types';
 export type { ImageBackendId, ImageBackendSnapshot, LocalComfyMode };
 
 export interface ImageGenFacade {
@@ -142,6 +143,13 @@ export interface SearchFacade {
 export interface RagFacade {
   readonly active: boolean;
   recall(query: string, k?: number): Promise<string>;
+  recallLibrary?(query: string, k?: number): Promise<string>;
+}
+
+export interface LibraryFacade {
+  readonly sources: LibrarySource[];
+  readonly readyCount: number;
+  readonly documents: Map<string, LibraryDocument>;
 }
 
 export interface ArtifactValidationFacade {
@@ -171,6 +179,7 @@ export interface ToolContext {
   execStream?: ExecStreamFacade;
   search?: SearchFacade;
   rag?: RagFacade;
+  library?: LibraryFacade;
   artifactValidation?: ArtifactValidationFacade;
   artifacts?: ArtifactRegistryFacade;
   artifactSurface?: ArtifactSurfaceFacade;

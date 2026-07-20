@@ -55,6 +55,7 @@ describe('chat data export/import', () => {
     expect(target.profile.facts).toEqual(['Likes TypeScript', 'Uses GatesAI']);
     expect(target.profile.defaultSystemPrompt).toBe('Be concise.');
     expect(target.notes.notes.map(note => note.title)).toEqual(['Planning note', 'Research note']);
+    expect(target.library.sources.map(source => source.path)).toEqual(['/workspace/notes/reference.md']);
     expect(target.ui.theme).toBe('light');
 
     const persisted = JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}') as ChatSnapshot;
@@ -111,6 +112,14 @@ describe('chat data export/import', () => {
         updatedAt: 1,
       }],
     });
+    target.library.applyImportedSnapshot({ sources: [{
+      id: 'existing-reference',
+      path: '/workspace/notes/reference.md',
+      title: 'Existing reference',
+      kind: 'document',
+      enabled: true,
+      addedAt: 1,
+    }] });
 
     const result = importDataFromJson(target, raw, 'merge');
 
@@ -121,6 +130,8 @@ describe('chat data export/import', () => {
       memoriesSkipped: 1,
       notesImported: 1,
       notesSkipped: 1,
+      librarySourcesImported: 0,
+      librarySourcesSkipped: 1,
     });
     expect(target.chat.threads.map(thread => thread.title)).toEqual([
       'Existing alpha wins',
@@ -250,6 +261,14 @@ function seedRoot(
       },
     ],
   });
+  root.library.applyImportedSnapshot({ sources: [{
+    id: 'library-reference',
+    path: '/workspace/notes/reference.md',
+    title: 'Reference notes',
+    kind: 'document',
+    enabled: true,
+    addedAt: 104,
+  }] });
   root.ui.applyImportedPrefs({ ...DEFAULT_UI_PREFS, animationsEnabled: false, theme: 'light' });
 }
 
@@ -295,6 +314,7 @@ function captureState(root: RootStore): string {
     chat: root.chat.snapshot,
     profile: root.profile.snapshot,
     notes: root.notes.snapshot,
+    library: root.library.snapshot,
     ui: root.ui.prefsSnapshot,
   });
 }

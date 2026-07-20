@@ -34,7 +34,7 @@ function renderAgent(webLite = false) {
   const profile = new UserProfileStore();
   profile.addFact('Prefers concise updates');
   rag = new RagStore({
-    getSources: () => ({ threads: [], notes: [], facts: profile.facts }),
+    getSources: () => ({ threads: [], notes: [], facts: profile.facts, library: [] }),
     getOllamaOnline: () => true,
     getOllamaTagNames: () => ['nomic-embed-text:latest'],
     getOllamaBaseUrl: () => 'http://ollama.test',
@@ -62,6 +62,17 @@ function renderAgent(webLite = false) {
       startPull: vi.fn(async () => true),
       cancelPull: vi.fn(),
     },
+    bridge: { isOnline: true },
+    library: {
+      sources: [],
+      activeSources: [],
+      readyCount: 0,
+      refreshing: false,
+      lastError: null,
+      pickAndAdd: vi.fn(async () => true),
+      refreshAll: vi.fn(async () => undefined),
+      setEnabled: vi.fn(),
+    },
   } as unknown as RootStore;
 
   host = document.createElement('div');
@@ -82,7 +93,7 @@ describe('Agent semantic-memory management', () => {
     expect(rendered.host.textContent).toContain('Notes');
 
     const switches = Array.from(rendered.host.querySelectorAll<HTMLButtonElement>('[role="switch"]'));
-    expect(switches).toHaveLength(4);
+    expect(switches).toHaveLength(5);
     act(() => switches[1].click());
     expect(rag!.settings.sourceTypes.message).toBe(false);
 
@@ -97,6 +108,7 @@ describe('Agent semantic-memory management', () => {
 
   it('keeps Web Lite honest and hides unusable Ollama controls', () => {
     const rendered = renderAgent(true);
+    expect(rendered.host.textContent).toContain('Local documents and databases are available in the desktop app');
     expect(rendered.host.textContent).toContain('needs the desktop app and a local Ollama embedding model');
     expect(rendered.host.textContent).not.toContain('Try recall');
     expect(rendered.host.querySelectorAll('[role="switch"]')).toHaveLength(0);

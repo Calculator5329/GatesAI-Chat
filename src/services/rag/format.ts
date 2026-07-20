@@ -60,6 +60,7 @@ function sourceLabel(result: RagSearchResult, sources: RagFormatSources): string
     const note = sources.notes.find(item => item.id === chunk.sourceId);
     return note?.title?.trim() ? `note: ${note.title.trim()}` : 'note';
   }
+  if (chunk.sourceType === 'library') return `library: ${chunk.sourceTitle?.trim() || chunk.sourceId}`;
   return 'memory';
 }
 

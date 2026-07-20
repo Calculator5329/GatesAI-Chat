@@ -1056,6 +1056,16 @@ describe('tool registry harness selection', () => {
     expect(available).toContain('recall');
   });
 
+  it('exposes library listing and schema inspection on desktop without requiring embeddings', () => {
+    const names = toolRegistry.toolDefsForTurn({
+      userText: 'list my registered database sources',
+      bridgeOnline: true,
+      semanticRecallAvailable: false,
+    }).map(t => t.name);
+
+    expect(names).toContain('library');
+  });
+
   it('only exposes image generation when an image backend is available', () => {
     const unavailable = toolRegistry.toolDefsForTurn({
       userText: 'generate an image of a glass greenhouse',
