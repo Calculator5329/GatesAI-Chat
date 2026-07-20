@@ -4,6 +4,7 @@ import { DEFAULT_RAG_EMBEDDING_MODEL, OllamaEmbeddingClient, type RagEmbedder } 
 import { formatRecallResults, formatSemanticContextBlock } from './format';
 import { RagIndexer, type RagSourceSnapshot } from './indexer';
 import { RagVectorStore, type RagSearchResult } from './vectorStore';
+import type { RagSourceRepository } from './sourceRepository';
 import { logger } from '../diagnostics/logger';
 import { messageText } from '../../core/messageParts';
 
@@ -21,10 +22,12 @@ export interface RagStoreDeps {
   isStreaming(): boolean;
   embedder?: RagEmbedder;
   vectorStore?: RagVectorStore;
+  sourceRepository?: RagSourceRepository;
   storage?: Storage;
 }
 
 export type RagStatus = 'active' | 'ollama_offline' | 'model_missing';
+export type RagIndexPhase = 'idle' | 'scanning' | 'embedding' | 'committing' | 'paused' | 'failed' | 'empty';
 
 export const RAG_SETTINGS_STORAGE_KEY = 'gatesai.rag.settings.v1';
 export const RAG_INDEX_DEBOUNCE_MS = 5_000;
@@ -37,6 +40,15 @@ export class RagStore {
   indexedChunkCount = 0;
   indexing = false;
   lastIndexedAt: number | null = null;
+  phase: RagIndexPhase = 'idle';
+  sourcesCompleted = 0;
+  sourcesTotal = 0;
+  chunksCompleted = 0;
+  chunksTotal = 0;
+  activeGenerationAt: number | null = null;
+  activeGenerationModel: string | null = null;
+  lastError: { code: string; message: string } | null = null;
+  servingCompleteGeneration = false;
 
   private readonly getSources: () => RagSourceSnapshot;
   private readonly getOllamaOnline: () => boolean;
@@ -48,6 +60,7 @@ export class RagStore {
   private readonly indexer: RagIndexer;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private disposers: Array<() => void> = [];
+  private abortController: AbortController | null = null;
 
   constructor(deps: RagStoreDeps) {
     this.getSources = deps.getSources;
@@ -64,10 +77,17 @@ export class RagStore {
     this.indexer = new RagIndexer({
       vectorStore: this.vectorStore,
       embedder: this.embedder,
-      getSources: this.getSources,
+      getSources: () => deps.sourceRepository?.load() ?? this.getSources(),
       getModel: () => this.embeddingModel,
       getActive: () => this.active,
       isStreaming: this.isStreaming,
+      onProgress: progress => runInAction(() => {
+        this.phase = progress.phase;
+        this.sourcesCompleted = progress.sourcesCompleted;
+        this.sourcesTotal = progress.sourcesTotal;
+        this.chunksCompleted = progress.chunksCompleted;
+        this.chunksTotal = progress.chunksTotal;
+      }),
     });
 
     makeAutoObservable<this,
@@ -81,6 +101,7 @@ export class RagStore {
       | 'indexer'
       | 'timer'
       | 'disposers'
+      | 'abortController'
     >(this, {
       getSources: false,
       getOllamaOnline: false,
@@ -92,6 +113,7 @@ export class RagStore {
       indexer: false,
       timer: false,
       disposers: false,
+      abortController: false,
     });
 
     this.disposers.push(autorun(() => saveSettings(toJS(this.settings), this.storage)));
@@ -121,15 +143,22 @@ export class RagStore {
         digest: sourceDigest(this.getSources()),
       }),
       state => {
-        if (state.active && !state.streaming) this.scheduleIndex();
+        if (state.streaming) {
+          this.abortController?.abort();
+          if (this.indexing) this.phase = 'paused';
+        } else if (state.active) {
+          this.scheduleIndex();
+        }
       },
       { fireImmediately: true },
     ));
     void this.refreshCount();
+    void this.refreshManifest();
   }
 
   dispose(): void {
     this.clearTimer();
+    this.abortController?.abort();
     while (this.disposers.length > 0) this.disposers.pop()?.();
   }
 
@@ -152,26 +181,61 @@ export class RagStore {
 
   async runIndexOnce(): Promise<void> {
     if (!this.active || this.isStreaming()) return;
-    runInAction(() => { this.indexing = true; });
+    this.abortController?.abort();
+    const controller = new AbortController();
+    this.abortController = controller;
+    runInAction(() => {
+      this.indexing = true;
+      this.phase = 'scanning';
+      this.lastError = null;
+    });
     try {
-      await this.indexer.tick();
+      await this.indexer.tick(controller.signal);
       await this.refreshCount();
-      runInAction(() => { this.lastIndexedAt = Date.now(); });
+      await this.refreshManifest();
+      runInAction(() => {
+        this.lastIndexedAt = Date.now();
+        this.phase = this.indexedChunkCount > 0 ? 'idle' : 'empty';
+      });
     } catch (err) {
-      logger.warn('rag', 'indexing skipped after failure', { err });
+      const aborted = controller.signal.aborted || (err instanceof DOMException && err.name === 'AbortError');
+      runInAction(() => {
+        this.phase = aborted ? 'paused' : 'failed';
+        if (!aborted) this.lastError = { code: 'index_failed', message: err instanceof Error ? err.message : String(err) };
+      });
+      logger.warn('rag', aborted ? 'indexing paused' : 'indexing failed', { code: aborted ? 'aborted' : 'index_failed' });
     } finally {
+      if (this.abortController === controller) this.abortController = null;
       runInAction(() => { this.indexing = false; });
     }
   }
 
   async rebuildIndex(): Promise<void> {
     if (!this.active || this.isStreaming()) return;
-    runInAction(() => { this.indexing = true; });
+    this.abortController?.abort();
+    const controller = new AbortController();
+    this.abortController = controller;
+    runInAction(() => {
+      this.indexing = true;
+      this.phase = 'scanning';
+      this.lastError = null;
+    });
     try {
-      await this.indexer.rebuild();
+      await this.indexer.rebuild(controller.signal);
       await this.refreshCount();
-      runInAction(() => { this.lastIndexedAt = Date.now(); });
+      await this.refreshManifest();
+      runInAction(() => {
+        this.lastIndexedAt = Date.now();
+        this.phase = this.indexedChunkCount > 0 ? 'idle' : 'empty';
+      });
+    } catch (err) {
+      const aborted = controller.signal.aborted || (err instanceof DOMException && err.name === 'AbortError');
+      runInAction(() => {
+        this.phase = aborted ? 'paused' : 'failed';
+        if (!aborted) this.lastError = { code: 'rebuild_failed', message: err instanceof Error ? err.message : String(err) };
+      });
     } finally {
+      if (this.abortController === controller) this.abortController = null;
       runInAction(() => { this.indexing = false; });
     }
   }
@@ -180,6 +244,12 @@ export class RagStore {
     await this.vectorStore.clear();
     this.indexer.clearWatermarks();
     await this.refreshCount();
+    runInAction(() => {
+      this.phase = 'empty';
+      this.servingCompleteGeneration = false;
+      this.activeGenerationAt = null;
+      this.activeGenerationModel = null;
+    });
   }
 
   async search(query: string, k = 6): Promise<RagSearchResult[]> {
@@ -209,6 +279,15 @@ export class RagStore {
   private async refreshCount(): Promise<void> {
     const count = await this.vectorStore.count(this.embeddingModel).catch(() => 0);
     runInAction(() => { this.indexedChunkCount = count; });
+  }
+
+  private async refreshManifest(): Promise<void> {
+    const manifest = await this.vectorStore.activeManifest().catch(() => null);
+    runInAction(() => {
+      this.servingCompleteGeneration = Boolean(manifest);
+      this.activeGenerationAt = manifest?.completedAt ?? null;
+      this.activeGenerationModel = manifest?.embeddingModel ?? null;
+    });
   }
 
   private clearTimer(): void {

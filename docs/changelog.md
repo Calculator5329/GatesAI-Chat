@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-19 — Complete, atomic semantic indexing
+
+- Archived conversation stubs now resolve through a bounded source repository,
+  keeping all retained chats recallable without loading them into `ChatStore`.
+- RAG vectors now use validated v2 generation manifests, content-stable source
+  identities, cross-source embedding batches, atomic activation, and observable
+  pause/failure/progress state. A chat start cancels indexing while preserving
+  the last complete generation.
+
 ## 2026-07-19 — Semantic-memory evaluation contract
 
 - Added the v2 trust/quality ADR, a frozen 40-case synthetic corpus, and a

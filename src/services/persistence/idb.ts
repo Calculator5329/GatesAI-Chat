@@ -7,6 +7,7 @@ export const THREAD_ARCHIVE_STORE_NAME = 'threads';
 
 export interface ThreadArchiveStore {
   getThread(id: string): Promise<Thread | null>;
+  listThreads(): Promise<Thread[]>;
   putThread(thread: Thread): Promise<void>;
   deleteThread(id: string): Promise<void>;
 }
@@ -30,6 +31,15 @@ export function createIndexedDbThreadArchiveStore(
           .objectStore(THREAD_ARCHIVE_STORE_NAME)
           .get(id),
       ).then(thread => thread ?? null);
+    },
+
+    async listThreads(): Promise<Thread[]> {
+      const database = await db();
+      return requestToPromise<Thread[]>(
+        database.transaction(THREAD_ARCHIVE_STORE_NAME, 'readonly')
+          .objectStore(THREAD_ARCHIVE_STORE_NAME)
+          .getAll(),
+      );
     },
 
     async putThread(thread: Thread): Promise<void> {

@@ -15,6 +15,7 @@
 - **Depends on**: `plans/001-measure-semantic-memory.md`
 - **Category**: bug / performance / architecture
 - **Planned at**: commit `dee51c2`, 2026-07-19
+- **Completed**: 2026-07-19
 
 ## Why this matters
 
@@ -230,15 +231,15 @@ top-of-file changelog entry; do not close the semantic-memory roadmap epic yet.
 
 ## Done criteria
 
-- [ ] Hot plus archived retained threads are present exactly once in the source corpus.
-- [ ] Deleted sources are absent and restore/undo re-adds them.
-- [ ] Rebuild failure/cancellation never removes the last complete active index.
-- [ ] Embedding requests are cross-source batched and cancellable on chat start.
-- [ ] Vector dimensions and index policy/model metadata are exact and versioned.
-- [ ] Index progress, paused state, active generation, and last error are observable.
-- [ ] `npm run ci` and `npm run test:e2e` pass.
-- [ ] No files outside scope are modified.
-- [ ] No files outside scope (plus leased bookkeeping) are modified.
+- [x] Hot plus archived retained threads are present exactly once in the source corpus.
+- [x] Deleted sources are absent and restore/undo re-adds them.
+- [x] Rebuild failure/cancellation never removes the last complete active index.
+- [x] Embedding requests are cross-source batched and cancellable on chat start.
+- [x] Vector dimensions and index policy/model metadata are exact and versioned.
+- [x] Index progress, paused state, active generation, and last error are observable.
+- [ ] `npm run ci` and `npm run test:e2e` pass (deferred to final integrated gate).
+- [x] No files outside scope are modified.
+- [x] No files outside scope (plus leased bookkeeping) are modified.
 
 ## STOP conditions
 

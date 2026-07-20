@@ -572,6 +572,9 @@ function memoryThreadArchiveStore(
     async getThread(id: string): Promise<Thread | null> {
       return threads.get(id) ?? null;
     },
+    async listThreads(): Promise<Thread[]> {
+      return [...threads.values()];
+    },
     async putThread(thread: Thread): Promise<void> {
       if (options.failPutFor?.has(thread.id)) throw new Error(`failed put ${thread.id}`);
       threads.set(thread.id, JSON.parse(JSON.stringify(thread)) as Thread);

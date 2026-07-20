@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Thread } from '../../../src/core/types';
 import { DEFAULT_MODEL_ID } from '../../../src/core/models';
-import { chunkText, RagIndexer, type RagWatermark, type RagWatermarkStore } from '../../../src/services/rag/indexer';
+import { chunkText, collectRagSources, RagIndexer, type RagWatermark, type RagWatermarkStore } from '../../../src/services/rag/indexer';
 import { RagVectorStore } from '../../../src/services/rag/vectorStore';
 import { FakeEmbedder, MemoryRagPersistence } from './helpers';
 
@@ -45,7 +45,8 @@ describe('RagIndexer', () => {
     expect(first.indexed).toBe(2);
     expect(second.indexed).toBe(0);
     expect(second.skipped).toBe(2);
-    expect(embedder.calls).toHaveLength(2);
+    expect(embedder.calls).toHaveLength(1);
+    expect(embedder.calls[0]).toHaveLength(2);
     expect(await persistence.count()).toBe(2);
   });
 
@@ -74,6 +75,54 @@ describe('RagIndexer', () => {
 
     expect(result.purged).toBeGreaterThan(0);
     expect(await persistence.count()).toBe(0);
+  });
+
+  it('batches one hundred sources into one indexer embedding request', async () => {
+    const embedder = new FakeEmbedder();
+    const indexer = new RagIndexer({
+      vectorStore: new RagVectorStore(new MemoryRagPersistence()),
+      embedder,
+      getSources: () => ({
+        threads: Array.from({ length: 100 }, (_, index) => thread(`t${index}`, `m${index}`, `alpha ${index}`)),
+        notes: [],
+        facts: [],
+      }),
+      getModel: () => 'model-a',
+      getActive: () => true,
+      isStreaming: () => false,
+      watermarkStore: new MemoryWatermarks(),
+    });
+    await indexer.tick();
+    expect(embedder.calls).toHaveLength(1);
+    expect(embedder.calls[0]).toHaveLength(100);
+  });
+
+  it('preserves the active generation when a replacement embedding fails', async () => {
+    const persistence = new MemoryRagPersistence();
+    let content = 'alpha first';
+    const embedder = new FakeEmbedder();
+    const indexer = new RagIndexer({
+      vectorStore: new RagVectorStore(persistence),
+      embedder,
+      getSources: () => ({ threads: [thread('t1', 'm1', content)], notes: [], facts: [] }),
+      getModel: () => 'model-a',
+      getActive: () => true,
+      isStreaming: () => false,
+      watermarkStore: new MemoryWatermarks(),
+    });
+    await indexer.tick();
+    const activeId = persistence.manifest?.generationId;
+    content = 'beta replacement';
+    embedder.embed = async () => { throw new Error('embedding failed'); };
+    await expect(indexer.tick()).rejects.toThrow('embedding failed');
+    expect(persistence.manifest?.generationId).toBe(activeId);
+    expect([...persistence.chunks.values()][0]?.text).toBe('alpha first');
+  });
+
+  it('uses content-derived fact identities across reorderings', () => {
+    const first = collectRagSources({ threads: [], notes: [], facts: ['Alpha fact', 'Beta fact'] });
+    const second = collectRagSources({ threads: [], notes: [], facts: ['Beta fact', 'Alpha fact'] });
+    expect(first.map(source => source.sourceId).sort()).toEqual(second.map(source => source.sourceId).sort());
   });
 });
 

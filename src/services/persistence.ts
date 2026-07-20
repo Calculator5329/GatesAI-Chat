@@ -366,6 +366,18 @@ export async function loadArchivedThread(threadId: string): Promise<Thread | nul
   }
 }
 
+/** Enumerate retained archive records without hydrating them into ChatStore. */
+export async function listArchivedThreads(): Promise<Thread[]> {
+  const store = getThreadArchiveStore();
+  if (!store) return [];
+  try {
+    return await store.listThreads();
+  } catch (err) {
+    logIdbUnavailable('IndexedDB thread archive enumeration failed.', err);
+    return [];
+  }
+}
+
 function quarantineUnreadableSnapshot(storage: KeyValuePersistence, raw: string, reason: string): void {
   snapshotLoadError = `${reason} A recovery copy was saved in localStorage.`;
   try {

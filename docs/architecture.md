@@ -71,6 +71,14 @@ Semantic memory is governed by
 Its publication-safe corpus and metric tests run offline in CI; the `rag:eval`
 command is an explicit local Ollama gate and never downloads a model.
 
+The RAG source repository joins current threads with only the archived records
+represented by live stubs, so retained conversations stay recallable without
+opening or hydrating them into the chat store. Indexing builds a complete v2
+generation off to the side, batches embeddings across sources, validates exact
+vector dimensions, then atomically activates the manifest and cleans the old
+derived generation. Streaming chat aborts an in-flight build; the last complete
+generation remains available until indexing resumes after the quiet window.
+
 Build:
 
 ```powershell

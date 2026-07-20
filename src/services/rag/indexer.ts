@@ -1,7 +1,13 @@
 import type { Thread } from '../../core/types';
 import type { Note } from '../../core/notes';
 import type { RagEmbedder } from './embeddings';
-import type { RagChunk, RagSourceType } from './vectorStore';
+import {
+  RAG_CHUNK_POLICY_VERSION,
+  RAG_INDEX_SCHEMA_VERSION,
+  type RagChunk,
+  type RagIndexManifest,
+  type RagSourceType,
+} from './vectorStore';
 import type { RagVectorStore } from './vectorStore';
 import { messageText } from '../../core/messageParts';
 
@@ -11,6 +17,8 @@ export interface RagSource {
   threadId?: string;
   text: string;
   updatedAt: number;
+  role?: 'user' | 'assistant';
+  sourceTitle?: string;
 }
 
 export interface RagSourceSnapshot {
@@ -34,11 +42,20 @@ export interface RagWatermarkStore {
 export interface RagIndexerDeps {
   vectorStore: RagVectorStore;
   embedder: RagEmbedder;
-  getSources(): RagSourceSnapshot;
+  getSources(): RagSourceSnapshot | Promise<RagSourceSnapshot>;
   getModel(): string;
   getActive(): boolean;
   isStreaming(): boolean;
   watermarkStore?: RagWatermarkStore;
+  onProgress?(progress: RagIndexerProgress): void;
+}
+
+export interface RagIndexerProgress {
+  phase: 'scanning' | 'embedding' | 'committing';
+  sourcesCompleted: number;
+  sourcesTotal: number;
+  chunksCompleted: number;
+  chunksTotal: number;
 }
 
 export const RAG_WATERMARK_STORAGE_KEY = 'gatesai.rag.watermarks.v1';
@@ -46,11 +63,12 @@ export const RAG_WATERMARK_STORAGE_KEY = 'gatesai.rag.watermarks.v1';
 export class RagIndexer {
   private readonly vectorStore: RagVectorStore;
   private readonly embedder: RagEmbedder;
-  private readonly getSources: () => RagSourceSnapshot;
+  private readonly getSources: () => RagSourceSnapshot | Promise<RagSourceSnapshot>;
   private readonly getModel: () => string;
   private readonly getActive: () => boolean;
   private readonly isStreaming: () => boolean;
   private readonly watermarks: RagWatermarkStore;
+  private readonly onProgress?: (progress: RagIndexerProgress) => void;
   private inFlight = false;
 
   constructor(deps: RagIndexerDeps) {
@@ -61,6 +79,7 @@ export class RagIndexer {
     this.getActive = deps.getActive;
     this.isStreaming = deps.isStreaming;
     this.watermarks = deps.watermarkStore ?? createLocalStorageRagWatermarkStore();
+    this.onProgress = deps.onProgress;
   }
 
   async tick(signal?: AbortSignal): Promise<{ indexed: number; skipped: number; purged: number }> {
@@ -68,93 +87,111 @@ export class RagIndexer {
     this.inFlight = true;
     try {
       const model = this.getModel();
-      const snapshot = this.getSources();
+      const snapshot = await this.getSources();
       const sources = collectRagSources(snapshot);
       const liveKeys = new Set(sources.map(sourceKey));
       const watermarks = this.watermarks.load();
-      let purged = await this.purgeDeletedSources(watermarks, liveKeys, snapshot.threads);
+      this.report('scanning', 0, sources.length, 0, 0);
       let skipped = 0;
-      let indexed = 0;
-
-      for (const source of sources) {
-        if (signal?.aborted || !this.getActive() || this.isStreaming()) break;
-        const key = sourceKey(source);
+      const unchanged = sources.every(source => {
+        const existing = watermarks[sourceKey(source)];
         const hash = contentHash(source.text);
-        const existing = watermarks[key];
-        if (existing && existing.hash === hash && existing.model === model && existing.updatedAt === source.updatedAt) {
+        if (existing?.hash === hash && existing.model === model && existing.updatedAt === source.updatedAt) {
           skipped += 1;
-          continue;
+          return true;
         }
-        await this.vectorStore.deleteBySource(source.sourceType, source.sourceId);
-        const pieces = chunkText(source.text);
-        if (pieces.length > 0) {
-          const vectors = await this.embedder.embed(pieces, model, signal);
-          const chunks: RagChunk[] = pieces.map((text, index) => ({
-            id: `${source.sourceType}:${source.sourceId}:${model}:${index}`,
-            sourceType: source.sourceType,
-            sourceId: source.sourceId,
-            ...(source.threadId ? { threadId: source.threadId } : {}),
-            text,
-            vector: vectors[index],
-            updatedAt: source.updatedAt,
-            model,
-          }));
-          await this.vectorStore.putMany(chunks);
-          indexed += chunks.length;
-        }
-        watermarks[key] = { hash, updatedAt: source.updatedAt, model };
-        this.watermarks.save(watermarks);
-      }
-
-      purged += await this.purgeMissingWatermarks(watermarks, liveKeys);
-      return { indexed, skipped, purged };
+        return false;
+      }) && Object.keys(watermarks).every(key => liveKeys.has(key));
+      if (unchanged && await this.vectorStore.activeManifest()) return { indexed: 0, skipped, purged: 0 };
+      return await this.buildGeneration(sources, model, watermarks, signal);
     } finally {
       this.inFlight = false;
     }
   }
 
-  async rebuild(): Promise<void> {
-    await this.vectorStore.clear();
-    this.watermarks.clear();
-    await this.tick();
+  async rebuild(signal?: AbortSignal): Promise<void> {
+    if (this.inFlight || !this.getActive() || this.isStreaming()) return;
+    this.inFlight = true;
+    try {
+      const model = this.getModel();
+      const snapshot = await this.getSources();
+      await this.buildGeneration(collectRagSources(snapshot), model, {}, signal);
+    } finally {
+      this.inFlight = false;
+    }
   }
 
   clearWatermarks(): void {
     this.watermarks.clear();
   }
 
-  private async purgeDeletedSources(
-    watermarks: Record<string, RagWatermark>,
-    liveKeys: Set<string>,
-    threads: Thread[],
-  ): Promise<number> {
-    let purged = 0;
-    for (const thread of threads) {
-      if (thread.deletedAt == null) continue;
-      await this.vectorStore.deleteByThread(thread.id);
-      for (const key of Object.keys(watermarks)) {
-        if (key.startsWith(`message:${thread.id}:`)) {
-          delete watermarks[key];
-          purged += 1;
-        }
-      }
-    }
-    purged += await this.purgeMissingWatermarks(watermarks, liveKeys);
-    if (purged > 0) this.watermarks.save(watermarks);
-    return purged;
+  private async buildGeneration(
+    sources: RagSource[],
+    model: string,
+    previousWatermarks: Record<string, RagWatermark>,
+    signal?: AbortSignal,
+  ): Promise<{ indexed: number; skipped: number; purged: number }> {
+    throwIfPaused(signal, this.getActive, this.isStreaming);
+    const startedAt = Date.now();
+    const generationId = `${startedAt.toString(36)}-${contentHash(sources.map(sourceKey).join('|'))}`;
+    const prepared = sources.flatMap(source => {
+      const fingerprint = contentHash(source.text);
+      return chunkText(source.text).map((text, chunkOrdinal) => ({ source, text, chunkOrdinal, fingerprint }));
+    });
+    this.report('embedding', 0, sources.length, 0, prepared.length);
+    const vectors = await this.embedder.embed(prepared.map(item => item.text), model, signal);
+    throwIfPaused(signal, this.getActive, this.isStreaming);
+    if (vectors.length !== prepared.length) throw new Error('RAG embedding count mismatch.');
+    const vectorDimensions = vectors[0]?.length ?? 0;
+    if (prepared.length > 0 && vectorDimensions === 0) throw new Error('RAG embedding vector is empty.');
+    if (vectors.some(vector => vector.length !== vectorDimensions)) throw new Error('RAG embedding dimensions are inconsistent.');
+    const chunks: RagChunk[] = prepared.map((item, index) => ({
+      id: `${generationId}:${item.source.sourceType}:${item.source.sourceId}:${item.fingerprint}:${item.chunkOrdinal}`,
+      generationId,
+      sourceType: item.source.sourceType,
+      sourceId: item.source.sourceId,
+      ...(item.source.threadId ? { threadId: item.source.threadId } : {}),
+      ...(item.source.role ? { role: item.source.role } : {}),
+      ...(item.source.sourceTitle ? { sourceTitle: item.source.sourceTitle } : {}),
+      text: item.text,
+      vector: vectors[index],
+      updatedAt: item.source.updatedAt,
+      model,
+      chunkOrdinal: item.chunkOrdinal,
+      fingerprint: item.fingerprint,
+    }));
+    this.report('committing', sources.length, sources.length, chunks.length, chunks.length);
+    const manifest: RagIndexManifest = {
+      schemaVersion: RAG_INDEX_SCHEMA_VERSION,
+      generationId,
+      embeddingModel: model,
+      vectorDimensions,
+      chunkPolicyVersion: RAG_CHUNK_POLICY_VERSION,
+      startedAt,
+      completedAt: Date.now(),
+      sourceCount: sources.length,
+      chunkCount: chunks.length,
+    };
+    await this.vectorStore.replaceGeneration(manifest, chunks);
+    const nextWatermarks: Record<string, RagWatermark> = {};
+    for (const source of sources) nextWatermarks[sourceKey(source)] = {
+      hash: contentHash(source.text),
+      updatedAt: source.updatedAt,
+      model,
+    };
+    this.watermarks.save(nextWatermarks);
+    const purged = Object.keys(previousWatermarks).filter(key => !(key in nextWatermarks)).length;
+    return { indexed: chunks.length, skipped: 0, purged };
   }
 
-  private async purgeMissingWatermarks(watermarks: Record<string, RagWatermark>, liveKeys: Set<string>): Promise<number> {
-    let purged = 0;
-    for (const key of Object.keys(watermarks)) {
-      if (liveKeys.has(key)) continue;
-      const parsed = parseSourceKey(key);
-      if (parsed) await this.vectorStore.deleteBySource(parsed.sourceType, parsed.sourceId);
-      delete watermarks[key];
-      purged += 1;
-    }
-    if (purged > 0) this.watermarks.save(watermarks);
-    return purged;
+  private report(
+    phase: RagIndexerProgress['phase'],
+    sourcesCompleted: number,
+    sourcesTotal: number,
+    chunksCompleted: number,
+    chunksTotal: number,
+  ): void {
+    this.onProgress?.({ phase, sourcesCompleted, sourcesTotal, chunksCompleted, chunksTotal });
   }
 }
 
@@ -171,6 +208,8 @@ export function collectRagSources(snapshot: RagSourceSnapshot): RagSource[] {
         threadId: thread.id,
         text,
         updatedAt: message.createdAt,
+        role: message.role === 'assistant' ? 'assistant' : 'user',
+        sourceTitle: thread.title,
       });
     }
   }
@@ -182,14 +221,15 @@ export function collectRagSources(snapshot: RagSourceSnapshot): RagSource[] {
       sourceId: note.id,
       text,
       updatedAt: note.updatedAt,
+      sourceTitle: note.title,
     });
   }
-  snapshot.facts.forEach((fact, index) => {
+  snapshot.facts.forEach(fact => {
     const text = fact.trim();
     if (!text) return;
     sources.push({
       sourceType: 'memory',
-      sourceId: `memory-${index}`,
+      sourceId: `memory-${contentHash(text.toLowerCase().replace(/\s+/g, ' '))}`,
       text,
       updatedAt: contentHash(text).split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0),
     });
@@ -262,19 +302,19 @@ function sourceKey(source: RagSource): string {
     : `${source.sourceType}:${source.sourceId}`;
 }
 
-function parseSourceKey(key: string): { sourceType: RagSourceType; sourceId: string } | null {
-  const parts = key.split(':');
-  const sourceType = parts[0] as RagSourceType;
-  if (sourceType !== 'message' && sourceType !== 'note' && sourceType !== 'memory') return null;
-  const sourceId = sourceType === 'message' ? parts[2] : parts[1];
-  return sourceId ? { sourceType, sourceId } : null;
-}
-
-function contentHash(text: string): string {
+export function contentHash(text: string): string {
   let hash = 2166136261;
   for (let i = 0; i < text.length; i += 1) {
     hash ^= text.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0).toString(36);
+}
+
+function throwIfPaused(
+  signal: AbortSignal | undefined,
+  getActive: () => boolean,
+  isStreaming: () => boolean,
+): void {
+  if (signal?.aborted || !getActive() || isStreaming()) throw new DOMException('RAG indexing paused.', 'AbortError');
 }

@@ -1,8 +1,9 @@
 import type { RagEmbedder } from '../../../src/services/rag/embeddings';
-import type { RagChunkPersistence, StoredRagChunk } from '../../../src/services/rag/vectorStore';
+import type { RagChunkPersistence, RagIndexManifest, StoredRagChunk } from '../../../src/services/rag/vectorStore';
 
 export class MemoryRagPersistence implements RagChunkPersistence {
   readonly chunks = new Map<string, StoredRagChunk>();
+  manifest: RagIndexManifest | null = null;
 
   async all(): Promise<StoredRagChunk[]> {
     return [...this.chunks.values()];
@@ -18,10 +19,21 @@ export class MemoryRagPersistence implements RagChunkPersistence {
 
   async clear(): Promise<void> {
     this.chunks.clear();
+    this.manifest = null;
   }
 
   async count(): Promise<number> {
     return this.chunks.size;
+  }
+
+  async getActiveManifest(): Promise<RagIndexManifest | null> {
+    return this.manifest;
+  }
+
+  async replaceGeneration(manifest: RagIndexManifest, chunks: StoredRagChunk[]): Promise<void> {
+    this.chunks.clear();
+    chunks.forEach(chunk => this.chunks.set(chunk.id, chunk));
+    this.manifest = manifest;
   }
 }
 

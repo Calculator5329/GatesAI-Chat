@@ -26,6 +26,8 @@ import { SkillsStore } from './SkillsStore';
 import { WhatsNewStore } from './WhatsNewStore';
 import { seedWelcomeTourOnFirstRun } from '../tourThread';
 import { RagStore } from '../services/rag/RagStore';
+import { RagSourceRepository } from '../services/rag/sourceRepository';
+import { listArchivedThreads } from '../services/persistence';
 import { configureChatLog } from '../services/diagnostics/chatLog';
 import { configureLogSink, logger } from '../services/diagnostics/logger';
 import { installMultiTabStorageListener } from '../services/storage/persistenceProvider';
@@ -112,11 +114,16 @@ export class RootStore {
     seedWelcomeTourOnFirstRun(this.chat, this.whatsNew);
     this.summary = new SummaryStore(this.chat, this.providers, this.registry);
     this.notes = new NotesStore();
-    this.rag = new RagStore({
-      getSources: () => ({
+    const getRagSources = () => ({
         threads: this.chat.threads,
         notes: this.notes.notes,
         facts: this.profile.facts,
+      });
+    this.rag = new RagStore({
+      getSources: getRagSources,
+      sourceRepository: new RagSourceRepository({
+        getCurrent: getRagSources,
+        listArchivedThreads,
       }),
       getOllamaOnline: () => this.ollama.online,
       getOllamaTagNames: () => this.ollama.tagNames,

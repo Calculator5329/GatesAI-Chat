@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { RagVectorStore } from '../../../src/services/rag/vectorStore';
+import {
+  RAG_CHUNK_POLICY_VERSION,
+  RAG_INDEX_SCHEMA_VERSION,
+  RagVectorStore,
+  type RagIndexManifest,
+} from '../../../src/services/rag/vectorStore';
 import { MemoryRagPersistence, vectorForText } from './helpers';
 
 describe('RagVectorStore', () => {
@@ -72,7 +77,48 @@ describe('RagVectorStore', () => {
     await store.search(vectorForText('beta'), 'model-a', 1);
     expect(allSpy.count).toBe(2);
   });
+
+  it('activates complete generations atomically and rejects dimension drift', async () => {
+    const persistence = new MemoryRagPersistence();
+    const store = new RagVectorStore(persistence);
+    const manifest = generation('g1', 3, 1);
+    await store.replaceGeneration(manifest, [{
+      id: 'g1:a', generationId: 'g1', sourceType: 'note', sourceId: 'a', text: 'alpha',
+      vector: vectorForText('alpha'), updatedAt: 1, model: 'model-a',
+    }]);
+    expect((await store.activeManifest())?.generationId).toBe('g1');
+    expect(await store.search(new Float32Array([1, 0]), 'model-a', 5)).toEqual([]);
+    await expect(store.replaceGeneration(generation('bad', 2, 1), [{
+      id: 'bad:a', generationId: 'bad', sourceType: 'note', sourceId: 'a', text: 'alpha',
+      vector: vectorForText('alpha'), updatedAt: 1, model: 'model-a',
+    }])).rejects.toThrow('dimension mismatch');
+    expect((await store.activeManifest())?.generationId).toBe('g1');
+  });
+
+  it('serves legacy v1 chunks when no manifest exists', async () => {
+    const persistence = new MemoryRagPersistence();
+    await persistence.putMany([{
+      id: 'legacy', sourceType: 'note', sourceId: 'old', text: 'alpha',
+      vector: vectorForText('alpha').buffer as ArrayBuffer, updatedAt: 1, model: 'model-a',
+    }]);
+    const store = new RagVectorStore(persistence);
+    expect((await store.search(vectorForText('alpha'), 'model-a', 1))[0]?.chunk.id).toBe('legacy');
+  });
 });
+
+function generation(generationId: string, vectorDimensions: number, chunkCount: number): RagIndexManifest {
+  return {
+    schemaVersion: RAG_INDEX_SCHEMA_VERSION,
+    generationId,
+    embeddingModel: 'model-a',
+    vectorDimensions,
+    chunkPolicyVersion: RAG_CHUNK_POLICY_VERSION,
+    startedAt: 1,
+    completedAt: 2,
+    sourceCount: 1,
+    chunkCount,
+  };
+}
 
 function viSpyAll(persistence: MemoryRagPersistence): { count: number } {
   const state = { count: 0 };
