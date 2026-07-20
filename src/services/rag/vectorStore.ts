@@ -120,6 +120,15 @@ export class RagVectorStore {
     return (await this.loadAll()).filter(chunk => chunk.model === model).length;
   }
 
+  async activeChunks(model: string): Promise<RagChunk[]> {
+    const manifest = await this.activeManifest();
+    return (await this.loadAll()).filter(chunk => (
+      chunk.model === model
+      && (!manifest || chunk.generationId === manifest.generationId)
+      && (!manifest || chunk.vector.length === manifest.vectorDimensions)
+    ));
+  }
+
   async search(query: Float32Array, model: string, k: number): Promise<RagSearchResult[]> {
     const manifest = await this.activeManifest();
     if (manifest && (manifest.embeddingModel !== model || query.length !== manifest.vectorDimensions)) return [];

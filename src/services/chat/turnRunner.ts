@@ -136,7 +136,7 @@ export interface TurnRunnerDeps {
   createId(prefix: string): string;
   getToolStores(): ToolStoreContext | undefined;
   getRecentSummaries(): string[];
-  getSemanticContext?(userText: string): string | Promise<string>;
+  getSemanticContext?(userText: string, threadId: string): string | Promise<string>;
   getActiveSkill?(threadId: string): WorkspaceSkill | undefined;
   getUserSystemPrompt?(threadId: string): string;
   roundExecutor?: StreamingRoundExecutor;
@@ -156,7 +156,7 @@ export class TurnRunner {
   private readonly createId: (prefix: string) => string;
   private readonly getToolStores: () => ToolStoreContext | undefined;
   private readonly getRecentSummaries: () => string[];
-  private readonly getSemanticContext: (userText: string) => string | Promise<string>;
+  private readonly getSemanticContext: (userText: string, threadId: string) => string | Promise<string>;
   private readonly getActiveSkill: (threadId: string) => WorkspaceSkill | undefined;
   private readonly getUserSystemPrompt: (threadId: string) => string;
   private readonly roundExecutor: StreamingRoundExecutor;
@@ -210,7 +210,7 @@ export class TurnRunner {
     }
 
     let outputLimitRetries = 0;
-    const semanticContextValue = this.getSemanticContext(latestUserMessageContent(thread));
+    const semanticContextValue = this.getSemanticContext(latestUserMessageContent(thread), threadId);
     const semanticContext = typeof semanticContextValue === 'string'
       ? semanticContextValue
       : await resolveSemanticContext(semanticContextValue, threadId);

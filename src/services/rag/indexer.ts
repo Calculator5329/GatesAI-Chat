@@ -16,6 +16,7 @@ export interface RagSource {
   sourceId: string;
   threadId?: string;
   text: string;
+  embeddingText?: string;
   updatedAt: number;
   role?: 'user' | 'assistant';
   sourceTitle?: string;
@@ -95,7 +96,7 @@ export class RagIndexer {
       let skipped = 0;
       const unchanged = sources.every(source => {
         const existing = watermarks[sourceKey(source)];
-        const hash = contentHash(source.text);
+      const hash = contentHash(source.embeddingText ?? source.text);
         if (existing?.hash === hash && existing.model === model && existing.updatedAt === source.updatedAt) {
           skipped += 1;
           return true;
@@ -135,11 +136,18 @@ export class RagIndexer {
     const startedAt = Date.now();
     const generationId = `${startedAt.toString(36)}-${contentHash(sources.map(sourceKey).join('|'))}`;
     const prepared = sources.flatMap(source => {
-      const fingerprint = contentHash(source.text);
-      return chunkText(source.text).map((text, chunkOrdinal) => ({ source, text, chunkOrdinal, fingerprint }));
+      const fingerprint = contentHash(source.embeddingText ?? source.text);
+      const displayPieces = chunkText(source.text);
+      return displayPieces.map((text, chunkOrdinal) => ({
+        source,
+        text,
+        embeddingText: boundedEmbeddingText(source.embeddingText ?? text, text),
+        chunkOrdinal,
+        fingerprint,
+      }));
     });
     this.report('embedding', 0, sources.length, 0, prepared.length);
-    const vectors = await this.embedder.embed(prepared.map(item => item.text), model, signal);
+    const vectors = await this.embedder.embed(prepared.map(item => item.embeddingText), model, signal);
     throwIfPaused(signal, this.getActive, this.isStreaming);
     if (vectors.length !== prepared.length) throw new Error('RAG embedding count mismatch.');
     const vectorDimensions = vectors[0]?.length ?? 0;
@@ -175,7 +183,7 @@ export class RagIndexer {
     await this.vectorStore.replaceGeneration(manifest, chunks);
     const nextWatermarks: Record<string, RagWatermark> = {};
     for (const source of sources) nextWatermarks[sourceKey(source)] = {
-      hash: contentHash(source.text),
+      hash: contentHash(source.embeddingText ?? source.text),
       updatedAt: source.updatedAt,
       model,
     };
@@ -199,16 +207,28 @@ export function collectRagSources(snapshot: RagSourceSnapshot): RagSource[] {
   const sources: RagSource[] = [];
   for (const thread of snapshot.threads) {
     if (thread.deletedAt != null) continue;
-    for (const message of thread.messages) {
+    for (let index = 0; index < thread.messages.length; index += 1) {
+      const message = thread.messages[index];
       const text = messageText(message).trim();
       if (!text) continue;
+      const previous = index > 0 ? messageText(thread.messages[index - 1]).trim() : '';
+      const next = index + 1 < thread.messages.length ? messageText(thread.messages[index + 1]).trim() : '';
+      const adjacent = message.role === 'user'
+        ? (thread.messages[index + 1]?.role === 'assistant' ? next : previous)
+        : (thread.messages[index - 1]?.role === 'user' ? previous : next);
+      const role = message.role === 'assistant' ? 'assistant' : 'user';
       sources.push({
         sourceType: 'message',
         sourceId: message.id,
         threadId: thread.id,
         text,
+        embeddingText: [
+          thread.title?.trim() ? `Thread: ${thread.title.trim()}` : '',
+          adjacent ? `${role === 'user' ? 'Following assistant' : 'Previous user'}: ${adjacent.slice(0, 900)}` : '',
+          `${role === 'user' ? 'User' : 'Assistant'}: ${text}`,
+        ].filter(Boolean).join('\n'),
         updatedAt: message.createdAt,
-        role: message.role === 'assistant' ? 'assistant' : 'user',
+        role,
         sourceTitle: thread.title,
       });
     }
@@ -235,6 +255,12 @@ export function collectRagSources(snapshot: RagSourceSnapshot): RagSource[] {
     });
   });
   return sources;
+}
+
+function boundedEmbeddingText(context: string, display: string): string {
+  if (context.length <= 2_400) return context;
+  const room = Math.max(0, 2_400 - display.length - 2);
+  return `${context.slice(0, room)}\n${display}`.slice(-2_400);
 }
 
 export function chunkText(text: string): string[] {

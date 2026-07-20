@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-19 — Evaluated hybrid semantic recall
+
+- Added dependency-free BM25, identifier-preserving tokens, lexical-weighted
+  rank fusion, source diversity, active-thread/source-policy filtering, stable
+  provenance, and conservative no-match/adversarial handling.
+- On the frozen 40-case local `nomic-embed-text` gate, the selected policy
+  reached 94.6% Recall@5, 0.909 MRR@5, 100% exact-ID and durable-fact Recall@5,
+  zero false injections/forbidden hits, and 19.7 ms p95 at 10,000 chunks.
+
 ## 2026-07-19 — Complete, atomic semantic indexing
 
 - Archived conversation stubs now resolve through a bounded source repository,

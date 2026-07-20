@@ -9,6 +9,8 @@ import {
   type StoredRagChunk,
 } from '../../src/services/rag/vectorStore.ts';
 import { evaluateRankings, percentile, type EvaluationCase, type RankedCase } from './metrics.ts';
+import { lexicalSearch } from '../../src/services/rag/lexical.ts';
+import { rankHybrid } from '../../src/services/rag/retrieval.ts';
 
 interface CorpusSource {
   sourceId: string;
@@ -58,29 +60,98 @@ const chunks: RagChunk[] = activeSources.map((source, index) => ({
   vector: sourceVectors[index],
   updatedAt: Date.parse(source.timestamp),
   model,
+  ...(source.role ? { role: source.role } : {}),
+  ...(source.title ? { sourceTitle: source.title } : {}),
 }));
 await store.putMany(chunks);
 const indexDurationMs = performance.now() - indexStart;
 
 const queryEmbeddingMs: number[] = [];
 const rankingMs: number[] = [];
-const rankings: RankedCase[] = [];
+const caseDiagnostics: Array<{
+  caseId: string;
+  denseTopScore: number;
+  lexicalTopScore: number;
+  selectedSourceIds: string[];
+}> = [];
+const ablations: Record<string, RankedCase[]> = {
+  dense: [],
+  lexical: [],
+  fusion: [],
+  'fusion+diversity': [],
+  selected: [],
+};
 for (const testCase of corpus.cases) {
   const queryStart = performance.now();
   const [queryVector] = await embedder.embed([testCase.query], model);
   queryEmbeddingMs.push(performance.now() - queryStart);
   const rankStart = performance.now();
-  const raw = await store.search(queryVector, model, 5);
+  const dense = await store.search(queryVector, model, 5);
+  const lexical = lexicalSearch(testCase.query, await store.activeChunks(model), 5);
+  const request = { query: testCase.query, purpose: 'explicit_recall' as const, limit: 5 };
+  const fusion = await rankHybrid({ request, model, queryVector, vectorStore: store, diversify: false, calibrate: false });
+  const diverse = await rankHybrid({ request, model, queryVector, vectorStore: store, diversify: true, calibrate: false });
+  const selected = await rankHybrid({
+    request: {
+      ...request,
+      purpose: testCase.automaticRecallShouldBeEmpty ? 'automatic_context' : 'explicit_recall',
+    },
+    model,
+    queryVector,
+    vectorStore: store,
+  });
   rankingMs.push(performance.now() - rankStart);
-  rankings.push({
-    testCase,
-    rankedSourceIds: testCase.automaticRecallShouldBeEmpty
-      ? raw.filter(result => result.score >= 0.55).map(result => result.chunk.sourceId)
-      : raw.map(result => result.chunk.sourceId),
+  ablations.dense.push({ testCase, rankedSourceIds: dense.map(result => result.chunk.sourceId) });
+  ablations.lexical.push({ testCase, rankedSourceIds: lexical.map(result => result.chunk.sourceId) });
+  ablations.fusion.push({ testCase, rankedSourceIds: fusion.map(result => result.sourceId) });
+  ablations['fusion+diversity'].push({ testCase, rankedSourceIds: diverse.map(result => result.sourceId) });
+  ablations.selected.push({ testCase, rankedSourceIds: selected.map(result => result.sourceId) });
+  caseDiagnostics.push({
+    caseId: testCase.caseId,
+    denseTopScore: dense[0]?.score ?? 0,
+    lexicalTopScore: lexical[0]?.score ?? 0,
+    selectedSourceIds: selected.map(result => result.sourceId),
   });
 }
 
+const rankings = ablations.selected;
 const metrics = evaluateRankings(rankings);
+const ablationMetrics = Object.fromEntries(Object.entries(ablations)
+  .map(([name, values]) => [name, evaluateRankings(values)]));
+const failedCases = rankings.flatMap(item => {
+  const top = item.rankedSourceIds.slice(0, 5);
+  const missing = item.testCase.relevantSourceIds.filter(id => !top.includes(id));
+  const forbidden = top.filter(id => item.testCase.forbiddenSourceIds.includes(id));
+  const falseInjection = item.testCase.automaticRecallShouldBeEmpty && top.length > 0;
+  return missing.length > 0 || forbidden.length > 0 || falseInjection
+    ? [{ caseId: item.testCase.caseId, missing, forbidden, falseInjection }]
+    : [];
+});
+const exactIdentifierRecallAt5 = evaluateRankings(rankings.filter(item => item.testCase.category === 'exact-identifier')).recallAt5;
+const factIds = new Set(corpus.sources.filter(source => source.sourceType === 'memory').map(source => source.sourceId));
+const durableFactRecallAt5 = evaluateRankings(rankings.filter(item => item.testCase.relevantSourceIds.some(id => factIds.has(id)))).recallAt5;
+
+const scaleStore = new RagVectorStore(new MemoryPersistence());
+await scaleStore.putMany(Array.from({ length: 10_000 }, (_, index) => ({
+  id: `scale:${index}`,
+  sourceType: 'note' as const,
+  sourceId: `scale-${index}`,
+  text: `Synthetic scale document ${index} identifier SCALE-${index}`,
+  vector: sourceVectors[index % sourceVectors.length],
+  updatedAt: index,
+  model,
+})));
+const scaleRankingMs: number[] = [];
+for (let index = 0; index < 20; index += 1) {
+  const started = performance.now();
+  await rankHybrid({
+    request: { query: `SCALE-${index * 337}`, purpose: 'explicit_recall', limit: 5 },
+    model,
+    queryVector: sourceVectors[index % sourceVectors.length],
+    vectorStore: scaleStore,
+  });
+  scaleRankingMs.push(performance.now() - started);
+}
 const byCategory = Object.fromEntries([...new Set(corpus.cases.map(item => item.category))].map(category => {
   const subset = rankings.filter(item => item.testCase.category === category);
   return [category, evaluateRankings(subset)];
@@ -91,13 +162,18 @@ const report = {
   corpusVersion: corpus.version,
   caseCount: corpus.cases.length,
   metrics,
+  gateMetrics: { exactIdentifierRecallAt5, durableFactRecallAt5 },
+  ablations: ablationMetrics,
   byCategory,
+  caseDiagnostics,
+  failedCases,
   latencyMs: {
     index: indexDurationMs,
     queryEmbeddingP50: percentile(queryEmbeddingMs, 0.5),
     queryEmbeddingP95: percentile(queryEmbeddingMs, 0.95),
     rankingP50: percentile(rankingMs, 0.5),
     rankingP95: percentile(rankingMs, 0.95),
+    scale10kRankingP95: percentile(scaleRankingMs, 0.95),
   },
 };
 
@@ -121,5 +197,11 @@ function parseArgs(values: string[]): { model?: string; baseUrl?: string; out?: 
 
 function renderMarkdown(report: typeof report): string {
   const pct = (value: number): string => `${(value * 100).toFixed(1)}%`;
-  return `# Semantic memory evaluation\n\n- Generated: ${report.generatedAt}\n- Model: \`${report.model}\`\n- Corpus: v${report.corpusVersion}, ${report.caseCount} cases\n- Runtime: local Ollama (base URL redacted)\n\n## Quality\n\n| Metric | Result |\n|---|---:|\n| Recall@1 | ${pct(report.metrics.recallAt1)} |\n| Recall@3 | ${pct(report.metrics.recallAt3)} |\n| Recall@5 | ${pct(report.metrics.recallAt5)} |\n| MRR@5 | ${report.metrics.mrrAt5.toFixed(3)} |\n| nDCG@5 | ${report.metrics.ndcgAt5.toFixed(3)} |\n| No-match false-injection | ${pct(report.metrics.falseInjectionRate)} |\n| Forbidden violations | ${report.metrics.forbiddenViolations} |\n| Duplicate-source rate@5 | ${pct(report.metrics.duplicateSourceRateAt5)} |\n\n## Latency\n\n| Stage | p50 | p95 |\n|---|---:|---:|\n| Query embedding | ${report.latencyMs.queryEmbeddingP50.toFixed(1)} ms | ${report.latencyMs.queryEmbeddingP95.toFixed(1)} ms |\n| Local ranking | ${report.latencyMs.rankingP50.toFixed(1)} ms | ${report.latencyMs.rankingP95.toFixed(1)} ms |\n\nIndex duration: ${report.latencyMs.index.toFixed(1)} ms.\n`;
+  const ablationRows = Object.entries(report.ablations).map(([name, value]) => (
+    `| ${name} | ${pct(value.recallAt5)} | ${value.mrrAt5.toFixed(3)} | ${pct(value.falseInjectionRate)} | ${value.forbiddenViolations} |`
+  )).join('\n');
+  const failureRows = report.failedCases.length === 0
+    ? '- None.'
+    : report.failedCases.map(item => `- ${item.caseId}: missing [${item.missing.join(', ')}], forbidden [${item.forbidden.join(', ')}], false injection ${item.falseInjection}.`).join('\n');
+  return `# Semantic memory evaluation\n\n- Generated: ${report.generatedAt}\n- Model: \`${report.model}\`\n- Corpus: v${report.corpusVersion}, ${report.caseCount} cases\n- Runtime: local Ollama (base URL redacted)\n\n## Quality\n\n| Metric | Result |\n|---|---:|\n| Recall@1 | ${pct(report.metrics.recallAt1)} |\n| Recall@3 | ${pct(report.metrics.recallAt3)} |\n| Recall@5 | ${pct(report.metrics.recallAt5)} |\n| MRR@5 | ${report.metrics.mrrAt5.toFixed(3)} |\n| nDCG@5 | ${report.metrics.ndcgAt5.toFixed(3)} |\n| Exact-identifier Recall@5 | ${pct(report.gateMetrics.exactIdentifierRecallAt5)} |\n| Durable-fact Recall@5 | ${pct(report.gateMetrics.durableFactRecallAt5)} |\n| No-match false-injection | ${pct(report.metrics.falseInjectionRate)} |\n| Forbidden violations | ${report.metrics.forbiddenViolations} |\n| Duplicate-source rate@5 | ${pct(report.metrics.duplicateSourceRateAt5)} |\n\n## Ablations\n\n| Configuration | Recall@5 | MRR@5 | False injection | Forbidden |\n|---|---:|---:|---:|---:|\n${ablationRows}\n\nSelected policy: lexical-weighted reciprocal-rank fusion, source diversity, and conservative no-match calibration.\n\n## Failed cases\n\n${failureRows}\n\n## Latency\n\n| Stage | p50 | p95 |\n|---|---:|---:|\n| Query embedding | ${report.latencyMs.queryEmbeddingP50.toFixed(1)} ms | ${report.latencyMs.queryEmbeddingP95.toFixed(1)} ms |\n| Local ranking | ${report.latencyMs.rankingP50.toFixed(1)} ms | ${report.latencyMs.rankingP95.toFixed(1)} ms |\n| Local ranking, 10,000 chunks | — | ${report.latencyMs.scale10kRankingP95.toFixed(1)} ms |\n\nIndex duration: ${report.latencyMs.index.toFixed(1)} ms.\n`;
 }

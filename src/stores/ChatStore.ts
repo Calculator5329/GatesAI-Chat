@@ -140,7 +140,7 @@ export class ChatStore {
   private readonly hydrationByThread = new Map<string, Promise<Thread | null>>();
   private workspacePersistenceHydrating = false;
   private recentSummariesProvider: (() => string[]) | null = null;
-  private semanticContextProvider: ((userText: string) => string | Promise<string>) | null = null;
+  private semanticContextProvider: ((userText: string, threadId: string) => string | Promise<string>) | null = null;
   private toolStoresProvider: (() => ToolStoreContext) | null = null;
   private activeSkillProvider: ((threadId: string) => WorkspaceSkill | undefined) | null = null;
   private readonly isAutoNamingEnabled: () => boolean;
@@ -178,7 +178,7 @@ export class ChatStore {
       createId: newId,
       getToolStores: () => this.toolStoresProvider?.(),
       getRecentSummaries: () => this.recentSummariesProvider?.() ?? [],
-      getSemanticContext: userText => this.semanticContextProvider?.(userText) ?? '',
+      getSemanticContext: (userText, threadId) => this.semanticContextProvider?.(userText, threadId) ?? '',
       getActiveSkill: threadId => this.activeSkillProvider?.(threadId),
       getUserSystemPrompt: threadId => this.systemPromptForThread(threadId),
     });
@@ -737,7 +737,7 @@ export class ChatStore {
     this.recentSummariesProvider = fn;
   }
 
-  setSemanticContextProvider(fn: (userText: string) => string | Promise<string>): void {
+  setSemanticContextProvider(fn: (userText: string, threadId: string) => string | Promise<string>): void {
     this.semanticContextProvider = fn;
   }
 
@@ -1317,4 +1317,3 @@ function normalizeProviderErrorForBanner(message: string): string {
 function deepClone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
-

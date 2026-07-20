@@ -1,12 +1,13 @@
 /* eslint-disable no-restricted-imports -- Task-local MobX store lives with the RAG service module. */
 import { autorun, makeAutoObservable, reaction, runInAction, toJS } from 'mobx';
 import { DEFAULT_RAG_EMBEDDING_MODEL, OllamaEmbeddingClient, type RagEmbedder } from './embeddings';
-import { formatRecallResults, formatSemanticContextBlock } from './format';
+import { formatStructuredRecallResults, formatSemanticContextBlock } from './format';
 import { RagIndexer, type RagSourceSnapshot } from './indexer';
 import { RagVectorStore, type RagSearchResult } from './vectorStore';
 import type { RagSourceRepository } from './sourceRepository';
 import { logger } from '../diagnostics/logger';
 import { messageText } from '../../core/messageParts';
+import { retrieveHybrid, type RagRetrievalRequest, type RagRetrievalResult } from './retrieval';
 
 export interface RagSettings {
   autoInject: boolean;
@@ -31,7 +32,6 @@ export type RagIndexPhase = 'idle' | 'scanning' | 'embedding' | 'committing' | '
 
 export const RAG_SETTINGS_STORAGE_KEY = 'gatesai.rag.settings.v1';
 export const RAG_INDEX_DEBOUNCE_MS = 5_000;
-export const RAG_INJECTION_THRESHOLD = 0.55;
 export const RAG_INJECTION_LIMIT = 3;
 export const RAG_INJECTION_MAX_CHARS = 2_000;
 
@@ -262,18 +262,38 @@ export class RagStore {
   }
 
   async recall(query: string, k = 6): Promise<string> {
-    const results = await this.search(query, k);
-    const sources = this.getSources();
-    return formatRecallResults(results, { threads: sources.threads, notes: sources.notes });
+    const results = await this.retrieve({
+      query,
+      purpose: 'explicit_recall',
+      limit: k,
+    });
+    return formatStructuredRecallResults(results);
   }
 
-  async semanticContextForUserText(text: string): Promise<string> {
+  async retrieve(request: RagRetrievalRequest): Promise<RagRetrievalResult[]> {
+    if (!this.active) return [];
+    return retrieveHybrid({
+      request,
+      model: this.embeddingModel,
+      embedder: this.embedder,
+      vectorStore: this.vectorStore,
+    });
+  }
+
+  async semanticContextForUserText(text: string, activeThreadId?: string): Promise<string> {
     if (!this.active || !this.settings.autoInject) return '';
-    const results = (await this.search(text, RAG_INJECTION_LIMIT))
-      .filter(result => result.score >= RAG_INJECTION_THRESHOLD)
-      .slice(0, RAG_INJECTION_LIMIT);
+    const results = await this.retrieve({
+      query: text,
+      purpose: 'automatic_context',
+      activeThreadId,
+      limit: RAG_INJECTION_LIMIT,
+    });
     const sources = this.getSources();
-    return formatSemanticContextBlock(results, { threads: sources.threads, notes: sources.notes }, RAG_INJECTION_MAX_CHARS);
+    return formatSemanticContextBlock(
+      results.map(result => ({ chunk: result.chunk, score: result.fusedScore })),
+      { threads: sources.threads, notes: sources.notes },
+      RAG_INJECTION_MAX_CHARS,
+    );
   }
 
   private async refreshCount(): Promise<void> {

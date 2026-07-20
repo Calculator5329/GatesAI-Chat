@@ -20,7 +20,7 @@
     "test": "vitest run --config vitest.config.ts --configLoader runner",
     "test:watch": "vitest",
     "test:models": "vitest run --config vitest.live.config.ts",
-    "rag:eval": "node --experimental-strip-types scripts/rag-eval/cli.ts",
+    "rag:eval": "vite-node --root scripts/rag-eval scripts/rag-eval/cli.ts --",
     "test:e2e": "playwright test",
     "screenshots": "node scripts/screenshots.mjs",
     "screens:tour": "node scripts/screens-tour.mjs",

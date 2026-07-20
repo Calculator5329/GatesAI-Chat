@@ -79,6 +79,15 @@ vector dimensions, then atomically activates the manifest and cleans the old
 derived generation. Streaming chat aborts an in-flight build; the last complete
 generation remains available until indexing resumes after the quiet window.
 
+Retrieval scans the same active generation with normalized dense vectors and a
+dependency-free BM25 index. Lexical results give extra weight to exact compound
+identifiers, then lexical and dense ranks are fused, source-diversified, and
+filtered by active-thread/source policy. Automatic context uses a conservative
+measured abstention rule and rejects instruction-like historical assistant text;
+explicit recall retains stable source references, roles, dates, and exact
+display excerpts. The frozen ablation and 10,000-chunk latency evidence lives in
+[`docs/audits/semantic-memory-v2-retrieval-report.md`](audits/semantic-memory-v2-retrieval-report.md).
+
 Build:
 
 ```powershell

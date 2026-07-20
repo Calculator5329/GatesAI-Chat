@@ -18,6 +18,7 @@
 - **Depends on**: `plans/001-measure-semantic-memory.md`, `plans/002-rebuild-index-lifecycle.md`
 - **Category**: performance / correctness
 - **Planned at**: commit `dee51c2`, 2026-07-19
+- **Completed**: 2026-07-19
 
 ## Why this matters
 
@@ -228,14 +229,14 @@ epic until 004 ships the user contract.
 
 ## Done criteria
 
-- [ ] Same active corpus/generation powers dense and lexical retrieval.
-- [ ] Automatic recall excludes active thread and all excluded/deleted sources.
-- [ ] Structured results retain author role and all ranking/provenance fields.
-- [ ] Hybrid + diversification/no-match policy is selected by a dated ablation.
-- [ ] All ADR quality/safety targets pass, or the plan stops with honest evidence.
-- [ ] No cloud/LLM ranking stage or new dependency was introduced silently.
-- [ ] `npm run ci` and `npm run test:e2e` pass.
-- [ ] No files outside scope are modified.
+- [x] Same active corpus/generation powers dense and lexical retrieval.
+- [x] Automatic recall excludes active thread and all excluded/deleted sources.
+- [x] Structured results retain author role and all ranking/provenance fields.
+- [x] Hybrid + diversification/no-match policy is selected by a dated ablation.
+- [x] All ADR quality/safety targets pass, or the plan stops with honest evidence.
+- [x] No cloud/LLM ranking stage or new dependency was introduced silently.
+- [ ] `npm run ci` and `npm run test:e2e` pass (deferred to final integrated gate).
+- [x] No files outside scope are modified.
 
 ## STOP conditions
 

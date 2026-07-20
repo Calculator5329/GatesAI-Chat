@@ -1,6 +1,7 @@
 import type { Note } from '../../core/notes';
 import type { Thread } from '../../core/types';
 import type { RagSearchResult } from './vectorStore';
+import type { RagRetrievalResult } from './retrieval';
 
 export interface RagFormatSources {
   threads: Thread[];
@@ -15,6 +16,18 @@ export function formatRecallResults(results: RagSearchResult[], sources: RagForm
     return [
       `${label} (${date}, score ${result.score.toFixed(2)})`,
       `> ${snippet(result.chunk.text)}`,
+    ].join('\n');
+  }).join('\n\n');
+}
+
+export function formatStructuredRecallResults(results: RagRetrievalResult[]): string {
+  if (results.length === 0) return 'No semantic memory matches.';
+  return results.map(result => {
+    const role = result.role ? `, ${result.role}` : '';
+    const title = result.sourceTitle?.trim() || result.threadId || result.sourceId;
+    return [
+      `${result.sourceType}: ${title}${role} (${new Date(result.updatedAt).toISOString()}) [${result.reference}]`,
+      `> ${snippet(result.text)}`,
     ].join('\n');
   }).join('\n\n');
 }

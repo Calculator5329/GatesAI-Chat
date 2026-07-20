@@ -150,7 +150,7 @@ export class RootStore {
     this.chat.setRecentSummariesProvider(() =>
       this.summary.recentSummariesExcluding(this.chat.activeThreadId)
     );
-    this.chat.setSemanticContextProvider(userText => this.rag.semanticContextForUserText(userText));
+    this.chat.setSemanticContextProvider((userText, threadId) => this.rag.semanticContextForUserText(userText, threadId));
     this.chat.setActiveSkillProvider(threadId => this.skills.findById(this.chat.threads.find(t => t.id === threadId)?.skillId));
 
     // Auxiliary stores tools need at execution time. Lazy getter so the

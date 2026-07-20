@@ -18,7 +18,7 @@
 - **Depends on**: none
 - **Category**: tests / direction
 - **Planned at**: commit `dee51c2`, 2026-07-19
-- **Completed**: 2026-07-19; offline gate complete, live Ollama baseline blocked by sandbox loopback policy
+- **Completed**: 2026-07-19; live local baseline completed during plan 003 calibration
 
 ## Why this matters
 
