@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Model, Thread } from '../../../src/core/types';
 import { SMALL_LOCAL_CONTEXT_TOKENS } from '../../../src/core/localModelMeta';
-import { effectiveContextMode } from '../../../src/services/chat/contextModes';
+import { effectiveContextMode, toolsForContextMode } from '../../../src/services/chat/contextModes';
 
 function localModel(providerModelId: string, patch: Partial<Model> = {}): Model {
   return {
@@ -46,5 +46,16 @@ describe('effectiveContextMode', () => {
     const largeModel = localModel('large', { contextLength: SMALL_LOCAL_CONTEXT_TOKENS });
 
     expect(effectiveContextMode(thread(), largeModel)).toBe('full');
+  });
+
+  it('includes display_text on the compact micro-mode filesystem schema', () => {
+    const tools = toolsForContextMode({
+      mode: 'micro',
+      toolsAllowed: true,
+      userText: 'read the project file',
+      bridgeOnline: true,
+    });
+
+    expect(tools?.find(tool => tool.name === 'fs')?.parameters.properties?.display_text).toBeDefined();
   });
 });

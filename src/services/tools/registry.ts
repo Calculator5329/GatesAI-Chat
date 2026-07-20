@@ -3,7 +3,7 @@
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { JsonSchema, ToolCall, ToolDef } from '../../core/llm';
 import type { Tool, ToolContext, ToolExecuteResult, ToolOutcome, ToolValidationIssue } from './types';
-import { defaultToolUi, summarizeToolResult } from './activityDisplay';
+import { defaultToolUi, summarizeToolResult, TOOL_DISPLAY_TEXT_ARGUMENT } from './activityDisplay';
 import { logger } from '../diagnostics/logger';
 import { memoryTool } from './memory';
 import { recallTool } from './recall';
@@ -69,9 +69,10 @@ export class ToolRegistry {
   private readonly dynamicProviders = new Set<() => Tool[]>();
 
   register(tool: Tool): void {
+    const normalizedTool = withDisplayTextToolDef(tool);
     this.tools.set(tool.def.name, {
-      ...tool,
-      ui: tool.ui ?? defaultToolUi(tool.def.name),
+      ...normalizedTool,
+      ui: normalizedTool.ui ?? defaultToolUi(normalizedTool.def.name),
     });
   }
 
@@ -210,7 +211,7 @@ export class ToolRegistry {
       retryable: true,
     }));
     try {
-      const out = await tool.execute(args, ctx);
+      const out = await tool.execute(withoutDisplayText(args), ctx);
       return normalizeToolOutput(name, out);
     } catch (err) {
       logger.error('tools', 'Tool execution threw', { toolName: name, err });
@@ -235,14 +236,48 @@ export class ToolRegistry {
     const out: Tool[] = [];
     for (const provider of this.dynamicProviders) {
       for (const tool of provider()) {
+        const normalizedTool = withDisplayTextToolDef(tool);
         out.push({
-          ...tool,
-          ui: tool.ui ?? defaultToolUi(tool.def.name),
+          ...normalizedTool,
+          ui: normalizedTool.ui ?? defaultToolUi(normalizedTool.def.name),
         });
       }
     }
     return out;
   }
+}
+
+const TOOL_DISPLAY_TEXT_SCHEMA: JsonSchema = {
+  type: 'string',
+  description: 'Short plain-English present-progress phrase explaining the goal of this step to the user, for example "Checking the project tests". Describe intent, not raw commands or implementation syntax.',
+  minLength: 3,
+  maxLength: 120,
+};
+
+/** Add the shared user-facing activity phrase to an object-shaped tool schema. */
+export function withDisplayTextToolDef<T extends Pick<Tool, 'def'>>(tool: T): T {
+  const parameters = tool.def.parameters;
+  if (parameters.type !== undefined && parameters.type !== 'object') return tool;
+  return {
+    ...tool,
+    def: {
+      ...tool.def,
+      parameters: {
+        ...parameters,
+        type: parameters.type ?? 'object',
+        properties: {
+          ...parameters.properties,
+          [TOOL_DISPLAY_TEXT_ARGUMENT]: TOOL_DISPLAY_TEXT_SCHEMA,
+        },
+      },
+    },
+  };
+}
+
+function withoutDisplayText(args: Record<string, unknown>): Record<string, unknown> {
+  if (!(TOOL_DISPLAY_TEXT_ARGUMENT in args)) return args;
+  const { [TOOL_DISPLAY_TEXT_ARGUMENT]: _displayText, ...executionArgs } = args;
+  return executionArgs;
 }
 
 function validationFailure(toolName: string, issue: ToolValidationIssue): ToolValidationResult {

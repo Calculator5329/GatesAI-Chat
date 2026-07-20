@@ -7,6 +7,7 @@ import { isToolFailureContent } from './toolFailureLog';
 import type { ToolContext } from '../tools/types';
 import { messageText, messageToolCalls, messageToolResults } from '../../core/messageParts';
 import { providerStreamVerb } from '../../core/statusCopy';
+import { toolDisplayText } from '../tools/activityDisplay';
 
 type ActivityExtras = Pick<ToolContext, 'imageJobs' | 'execStream'>;
 
@@ -56,12 +57,13 @@ export function buildActivitiesForMessage(args: {
         }) ?? result.summary)
       : undefined;
     const runningExec = !result && call.name === 'terminal' ? runningExecForCall(extras?.execStream?.jobs, ownerThreadId, call.id) : null;
+    const displayText = toolDisplayText(call.arguments);
     items.push({
       id: `${call.id}:${callIndex}`,
       kind: imageJob ? 'image-job' : 'tool',
       state,
-      verb: tool?.ui?.verb(call.arguments) ?? 'Using',
-      target: tool?.ui?.target?.(call.arguments),
+      verb: displayText ?? tool?.ui?.verb(call.arguments) ?? 'Using',
+      target: displayText ? undefined : tool?.ui?.target?.(call.arguments),
       summary,
       detail: runningExec
         ? {
@@ -76,7 +78,7 @@ export function buildActivitiesForMessage(args: {
       startedAt: message.createdAt,
       finishedAt: result?.ranAt,
       toolCallId: call.id,
-      groupKey: imageJob ? undefined : `tool:${call.name}`,
+      groupKey: imageJob || displayText ? undefined : `tool:${call.name}`,
     });
   }
 

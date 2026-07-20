@@ -3,6 +3,22 @@
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
 import type { ToolActivityUi, ToolExecuteResult } from './types';
 
+export const TOOL_DISPLAY_TEXT_ARGUMENT = 'display_text';
+const MAX_TOOL_DISPLAY_TEXT_CHARS = 120;
+
+/** Bounded plain text authored by the model for the user-facing activity row. */
+export function toolDisplayText(args: Record<string, unknown>): string | undefined {
+  const value = args[TOOL_DISPLAY_TEXT_ARGUMENT];
+  if (typeof value !== 'string') return undefined;
+  const printable = Array.from(value, character => {
+    const code = character.charCodeAt(0);
+    return code < 32 || code === 127 ? ' ' : character;
+  }).join('');
+  const oneLine = printable.replace(/\s+/g, ' ').trim();
+  if (!oneLine) return undefined;
+  return compactText(oneLine, MAX_TOOL_DISPLAY_TEXT_CHARS);
+}
+
 export function defaultToolUi(name: string): ToolActivityUi {
   const ui = TOOL_UI[name];
   return ui ?? {

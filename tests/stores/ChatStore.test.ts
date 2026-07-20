@@ -400,7 +400,7 @@ describe('ChatStore', () => {
       preTokenLabel: 'thinking' as const,
       workNotes: ['I will inspect the file first.'],
       toolCalls: [
-        { id: 'tc-1', name: 'fs', arguments: { action: 'read', path: '/workspace/notes/plan.md' } },
+        { id: 'tc-1', name: 'fs', arguments: { action: 'read', path: '/workspace/notes/plan.md', display_text: 'Checking the saved implementation plan' } },
         { id: 'tc-2', name: 'web_search', arguments: { queries: ['React 19 release notes'] } },
       ],
       toolResults: [{
@@ -417,13 +417,13 @@ describe('ChatStore', () => {
 
     expect(activities.map(item => [item.kind, item.state, item.verb, item.target])).toEqual([
       ['thinking', 'done', 'Thinking', undefined],
-      ['tool', 'done', 'Reading', 'plan.md'],
+      ['tool', 'done', 'Checking the saved implementation plan', undefined],
       ['tool', 'running', 'Searching', 'React 19 release notes'],
       ['thinking', 'running', 'Thinking', undefined],
     ]);
     expect(activities[0].detail?.content).toContain('inspect the file');
     expect(activities[1].summary).toBe('Read plan.md');
-    expect(activities[1].groupKey).toBe('tool:fs');
+    expect(activities[1].groupKey).toBeUndefined();
     expect(activities[2].groupKey).toBe('tool:web_search');
   });
 

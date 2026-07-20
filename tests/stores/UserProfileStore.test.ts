@@ -10,6 +10,7 @@ describe('UserProfileStore.composeSystemPrompt harness selection', () => {
     const store = new UserProfileStore();
     const prompt = store.composeSystemPrompt() ?? '';
     expect(prompt).toContain('Bridge workspace contract:');
+    expect(prompt).toContain('Include `display_text` in each tool call');
     expect(prompt).not.toContain('Web Lite');
   });
 

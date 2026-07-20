@@ -5,7 +5,7 @@ import type { Message, Model, Thread } from '../../core/types';
 import type { ToolDef } from '../../core/llm';
 import { splitAttachmentFooter } from '../../core/attachments';
 import { flattenForWire } from '../llm/wireFormat';
-import { toolRegistry } from '../tools/registry';
+import { toolRegistry, withDisplayTextToolDef } from '../tools/registry';
 import { isHeadless, isWebLite } from '../../core/runtime';
 import { messageText } from '../../core/messageParts';
 import { localModelContextProfile } from '../../core/localModelMeta';
@@ -23,7 +23,7 @@ const MICRO_LOCAL_SYSTEM_PROMPT = [
   'After a successful write, stop calling tools and summarize the saved path.',
 ].join('\n');
 
-const MICRO_FS_TOOL_DEF: ToolDef = {
+const MICRO_FS_TOOL_DEF: ToolDef = withDisplayTextToolDef({ def: {
   name: 'fs',
   description: 'Read/write/list/search files in /workspace. For edits call fs with JSON, e.g. {"action":"write","path":"/workspace/artifacts/reports/out.html","content":"..."}',
   parameters: {
@@ -42,7 +42,7 @@ const MICRO_FS_TOOL_DEF: ToolDef = {
     additionalProperties: false,
   },
   strict: true,
-};
+} }).def;
 
 const IMAGE_GEN_ADDENDUM = 'When you call image_generate, treat the tool result as queued, not successful. Tell the user the render is queued, name the backend if useful, and set expectation that it may take roughly a minute. Do not say the image was generated, completed, or successful just because the tool returned. The inline image-job card is the source of truth for pending, success, failure, cancellation, and failure reason; the app will post a completion follow-up when the job finishes.';
 

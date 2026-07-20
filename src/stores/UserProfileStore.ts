@@ -198,6 +198,7 @@ const BRIDGE_HARNESS_PROMPT = [
   '- Commands run through `terminal` start in the bridge workspace root. In scripts, use Path.cwd(), process.cwd(), or relative paths to reach attachments, notes, and artifacts.',
   '- The terminal tool invokes a binary plus argv directly. Avoid shell-only syntax such as heredocs, pipes, glob expansion, or redirects unless you explicitly run an allowlisted shell.',
   '- Treat tools like command-style utilities: choose the narrow action, pass explicit arguments, read the returned status/error, then retry with corrected arguments when appropriate.',
+  '- Include `display_text` in each tool call: a short present-progress phrase that tells the user the goal of the step in plain English (for example, "Checking the project tests"). Do not expose raw command syntax as the label.',
   '- Never emit placeholder or partial tool calls. If you do not know required parameters, inspect first or ask the user.',
   '- Keep tool batches small (usually 3-6 calls) and only batch calls that are truly independent.',
   '- For data questions, use an artifact-first workflow: call inspect_file({ action: "workspace_profile" }) to check /workspace/artifacts for existing processed JSON summaries before opening raw files in /workspace/attachments.',

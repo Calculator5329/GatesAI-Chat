@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-07-19 — Plain-English tool activity intent
+
+- Every model-visible tool schema now offers a shared `display_text` field for
+  a short plain-English explanation of what the step is trying to accomplish.
+- The existing activity timeline shows that bounded phrase instead of raw
+  command/path detail when supplied, falls back to deterministic tool labels
+  for older or noncompliant models, and strips the UI-only field before local
+  execution.
+
 ## 2026-07-19 — Semantic-memory trust boundary and controls backend
 
 - Historical recall is now supplied as bounded, explicitly untrusted
