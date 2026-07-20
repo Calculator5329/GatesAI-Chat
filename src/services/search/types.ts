@@ -1,9 +1,11 @@
 export type BraveFreshness = 'pd' | 'pw' | 'pm' | 'py';
+export type BraveSearchDepth = 'standard' | 'deep';
 
 export interface BraveSearchOptions {
   freshness?: BraveFreshness;
   country?: string;
   searchLang?: string;
+  depth?: BraveSearchDepth;
 }
 
 export interface BraveSearchSource {
@@ -24,4 +26,3 @@ export interface BraveSearchRequest extends BraveSearchOptions {
   query: string;
   signal?: AbortSignal;
 }
-

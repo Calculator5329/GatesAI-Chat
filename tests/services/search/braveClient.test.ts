@@ -18,7 +18,9 @@ describe('BraveSearchClient', () => {
       expect(url).toContain('https://api.search.brave.com/res/v1/llm/context?');
       expect(url).toContain('q=react+19');
       expect(url).toContain('count=10');
+      expect(url).toContain('maximum_number_of_urls=10');
       expect(url).toContain('maximum_number_of_tokens=4096');
+      expect(url).toContain('maximum_number_of_tokens_per_url=2048');
       expect(url).toContain('context_threshold_mode=balanced');
       expect(url).toContain('country=GB');
       expect(url).toContain('search_lang=en');
@@ -39,6 +41,19 @@ describe('BraveSearchClient', () => {
     expect(sources).toEqual([
       { title: 'React 19', url: 'https://react.dev/blog', text: 'React 19 details.' },
     ]);
+  });
+
+  it('uses the larger official context budget for deep research', async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      expect(url).toContain('count=50');
+      expect(url).toContain('maximum_number_of_urls=30');
+      expect(url).toContain('maximum_number_of_tokens=16384');
+      expect(url).toContain('maximum_number_of_tokens_per_url=4096');
+      return new Response(JSON.stringify({ grounding: { generic: [] } }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const client = new BraveSearchClient({ fetchImpl });
+
+    await client.searchContext('brv-test', { query: 'complex topic', depth: 'deep' });
   });
 
   it('returns an empty source list for empty grounding', async () => {
@@ -81,6 +96,7 @@ describe('BraveSearchClient', () => {
         query: 'react 19',
         country: 'GB',
         searchLang: 'en',
+        depth: 'standard',
       });
       return {
         grounding: {

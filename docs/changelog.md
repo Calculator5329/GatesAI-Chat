@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-19 — Brave search and visible deep research
+
+- Restored Brave Search setup to Models with one clear explanation of quick
+  web answers versus background research; desktop keys continue to use the OS
+  credential store and Web Lite keys stay in browser storage.
+- Added standard/deep Brave budgets. Normal `web_search` stays compact, while
+  deep research can request up to 50 candidates, 30 URLs, 16,384 context
+  tokens, and a 30-second provider timeout.
+- The composer now launches a ten-round, citation-first Research task with
+  explicit primary-source, conflict, uncertainty, and no-fabricated-source
+  rules. Runs select a connected tool-capable model and use the existing linked
+  Task Center flow for progress, cancel, retry, and result navigation.
+- Added focused client/store/tool/prompt/UI/Rust coverage and verified the
+  production composer and Models layouts in a real Chromium session.
+
 ## 2026-07-19 — Transparent, controllable semantic memory
 
 - Shipped Ethan's Option 2 interaction: compact source chips beneath recalled

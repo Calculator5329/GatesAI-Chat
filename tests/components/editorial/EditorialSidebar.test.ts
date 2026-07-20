@@ -42,6 +42,8 @@ function buildStore(): RootStore {
   // W-5's UpdatePill reads updates.visible from the sidebar; a hidden stub
   // keeps these presentation tests focused on the history list.
   const updates = { visible: false } as RootStore['updates'];
+  const search = { braveReady: false } as RootStore['search'];
+  const dock = { available: false, openPanel: () => {} } as unknown as RootStore['dock'];
 
   return {
     registry,
@@ -56,6 +58,8 @@ function buildStore(): RootStore {
     imageJobs,
     skills,
     updates,
+    search,
+    dock,
   } as RootStore;
 }
 

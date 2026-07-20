@@ -7,9 +7,8 @@ import { isTauri } from '../../core/runtime';
 import { isRecord } from '../../core/guards';
 
 const ENDPOINT = 'https://api.search.brave.com/res/v1/llm/context';
-const DEFAULT_COUNT = 10;
-const DEFAULT_MAX_TOKENS = 4096;
-const DEFAULT_TIMEOUT_MS = 8000;
+const STANDARD_TIMEOUT_MS = 15_000;
+const DEEP_TIMEOUT_MS = 30_000;
 
 type TauriInvoke = <T>(cmd: string, args?: Record<string, unknown>) => Promise<T>;
 
@@ -38,13 +37,13 @@ interface BraveLlmContextResponse {
 
 export class BraveSearchClient {
   private readonly fetchImpl: typeof fetch;
-  private readonly timeoutMs: number;
+  private readonly timeoutMs: number | undefined;
   private readonly tauriInvoke: TauriInvoke;
   private readonly useTauri: boolean;
 
   constructor(opts: BraveClientOptions = {}) {
     this.fetchImpl = opts.fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
-    this.timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.timeoutMs = opts.timeoutMs;
     this.tauriInvoke = opts.tauriInvoke ?? invoke;
     this.useTauri = opts.useTauri ?? (!opts.fetchImpl && isTauri());
   }
@@ -53,7 +52,10 @@ export class BraveSearchClient {
     if (this.useTauri) return this.searchContextViaTauri(apiKey, req);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    const timeout = setTimeout(
+      () => controller.abort(),
+      this.timeoutMs ?? (req.depth === 'deep' ? DEEP_TIMEOUT_MS : STANDARD_TIMEOUT_MS),
+    );
     const onAbort = () => controller.abort();
     req.signal?.addEventListener('abort', onAbort, { once: true });
     try {
@@ -94,6 +96,7 @@ export class BraveSearchClient {
         freshness: req.freshness,
         country: normalizeCountry(req.country),
         searchLang: normalizeSearchLang(req.searchLang),
+        depth: req.depth ?? 'standard',
       }), req.signal);
       return parseSources(json);
     } catch (err) {
@@ -117,16 +120,31 @@ export class BraveSearchError extends Error {
 }
 
 function buildBraveUrl(req: BraveSearchRequest): string {
+  const profile = searchProfile(req.depth);
   const params = new URLSearchParams({
     q: req.query,
-    count: String(DEFAULT_COUNT),
-    maximum_number_of_tokens: String(DEFAULT_MAX_TOKENS),
+    count: String(profile.count),
+    maximum_number_of_urls: String(profile.maxUrls),
+    maximum_number_of_tokens: String(profile.maxTokens),
+    maximum_number_of_tokens_per_url: String(profile.maxTokensPerUrl),
     context_threshold_mode: 'balanced',
     country: normalizeCountry(req.country),
     search_lang: normalizeSearchLang(req.searchLang),
   });
   if (req.freshness) params.set('freshness', req.freshness);
   return `${ENDPOINT}?${params.toString()}`;
+}
+
+function searchProfile(depth: BraveSearchRequest['depth']): {
+  count: number;
+  maxUrls: number;
+  maxTokens: number;
+  maxTokensPerUrl: number;
+} {
+  if (depth === 'deep') {
+    return { count: 50, maxUrls: 30, maxTokens: 16_384, maxTokensPerUrl: 4_096 };
+  }
+  return { count: 10, maxUrls: 10, maxTokens: 4_096, maxTokensPerUrl: 2_048 };
 }
 
 function parseSources(json: unknown): BraveSearchSource[] {

@@ -63,6 +63,23 @@ describe('SearchStore', () => {
     expect(calls).toBe(1);
   });
 
+  it('keeps standard and deep research results in separate cache entries', async () => {
+    let calls = 0;
+    const client = {
+      searchContext: async (_apiKey: string, req: { query: string }) => {
+        calls += 1;
+        return [{ title: req.query, url: 'https://example.com', text: 'cached' }];
+      },
+    };
+    const store = new SearchStore(client);
+    store.setBraveKey('brv-test');
+
+    await store.searchBraveContext({ queries: ['same topic'], depth: 'standard' });
+    await store.searchBraveContext({ queries: ['same topic'], depth: 'deep' });
+
+    expect(calls).toBe(2);
+  });
+
   it('returns per-query failures without failing the whole batch', async () => {
     const client = {
       searchContext: async (_apiKey: string, req: { query: string }) => {
@@ -87,4 +104,3 @@ function fakeClient() {
     ],
   };
 }
-

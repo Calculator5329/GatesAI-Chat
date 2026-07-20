@@ -888,6 +888,59 @@ describe('ChatStore', () => {
     expect(withoutSearch.mock.calls[0].tools?.some(t => t.name === 'web_search')).toBe(false);
   });
 
+  it('starts deep research as a ten-round linked background task', async () => {
+    const { chat, providers } = setup([
+      { type: 'text', delta: 'Research complete.' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    providers.setKey('openrouter', 'sk-test');
+    chat.setToolStoresProvider(() => ({
+      search: {
+        braveReady: true,
+        searchBraveContext: async () => [],
+      },
+    }) as unknown as Pick<ToolContext, 'search'>);
+    const originId = chat.activeThreadId!;
+
+    const result = chat.startDeepResearch('Compare A and B', originId);
+    expect(result.ok).toBe(true);
+    expect(result.threadId).toBeTruthy();
+    const task = chat.threads.find(thread => thread.id === result.threadId);
+    expect(task).toMatchObject({
+      agentTask: true,
+      agentTaskOriginThreadId: originId,
+      agentTaskMaxRounds: 10,
+      title: 'Agent: Research: Compare A and B',
+    });
+    expect(task?.agentTaskSystemPrompt).toContain('depth "deep"');
+    expect(task?.messages[0].content).toContain('Research this question thoroughly');
+    await flush(20);
+  });
+
+  it('refuses deep research when Brave Search is not configured', () => {
+    const { chat } = setup();
+    expect(chat.startDeepResearch('Compare A and B', chat.activeThreadId!)).toMatchObject({
+      ok: false,
+      message: expect.stringContaining('Brave Search key'),
+    });
+  });
+
+  it('routes deep research away from a model that cannot call tools', () => {
+    const { chat, providers, registry } = setup();
+    providers.setKey('openrouter', 'sk-test');
+    chat.setThreadModel(chat.activeThreadId!, 'or-nemotron-3.5-content-safety');
+    chat.setToolStoresProvider(() => ({
+      search: { braveReady: true, searchBraveContext: async () => [] },
+    }) as unknown as Pick<ToolContext, 'search'>);
+
+    const result = chat.startDeepResearch('Compare A and B', chat.activeThreadId!);
+    const task = chat.threads.find(thread => thread.id === result.threadId);
+
+    expect(result.ok).toBe(true);
+    expect(task?.modelId).not.toBe('or-nemotron-3.5-content-safety');
+    expect(registry.findById(task?.modelId)?.supportsTools).not.toBe(false);
+  });
+
   it('createThread inserts a new thread at the top and selects it', () => {
     const { chat } = setup();
     const before = chat.threads.length;

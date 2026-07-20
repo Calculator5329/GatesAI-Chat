@@ -45,6 +45,10 @@ interface ComposerMetaProps {
   streaming: boolean;
   hasText: boolean;
   streamActivity: StreamActivity | undefined;
+  researchDisabled: boolean;
+  researchConfigured: boolean;
+  researchRouteReady: boolean;
+  onResearch: () => void;
 }
 
 export function ComposerMeta({
@@ -71,7 +75,18 @@ export function ComposerMeta({
   streaming,
   hasText,
   streamActivity,
+  researchDisabled,
+  researchConfigured,
+  researchRouteReady,
+  onResearch,
 }: ComposerMetaProps) {
+  const researchTitle = researchDisabled
+    ? 'Write a research question first'
+    : !researchConfigured
+      ? 'Add a Brave Search key in Models'
+      : !researchRouteReady
+        ? 'Connect a chat model before starting research'
+        : 'Research this question in the background';
   return (
     <div className="editorial-composer__meta" style={META_ROW_STYLE}>
       <div style={{ position: 'relative' }}>
@@ -136,6 +151,29 @@ export function ComposerMeta({
             />
           )}
         </div>
+      )}
+      {activeThread && activeThread.agentTask !== true && (
+        <button
+          type="button"
+          className="composer-research-label"
+          onClick={onResearch}
+          disabled={researchDisabled}
+          title={researchTitle}
+          aria-label="Start deep research"
+          style={{
+            ...MODEL_LABEL_STYLE,
+            border: 'none',
+            background: 'transparent',
+            font: 'inherit',
+            color: researchConfigured ? 'var(--accent)' : 'var(--text-faint)',
+            cursor: researchDisabled ? 'default' : 'pointer',
+            opacity: researchDisabled ? 0.55 : 1,
+            flex: 'none',
+          }}
+        >
+          <Icons.Search />
+          <span>Research</span>
+        </button>
       )}
       {/* Local context / thinking controls stay tucked away until the
           composer is hovered or focused, then slide out (see .composer-reveal

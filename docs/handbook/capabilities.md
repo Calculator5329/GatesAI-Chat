@@ -16,6 +16,8 @@ Web Lite runs in the browser without the desktop bridge or Tauri commands.
 - Start background agent tasks with `spawn_task` when a connected model is
   available.
 - Use Brave web search with `web_search` after a Brave API key is configured.
+- Start citation-first deep research from the composer. It runs as a linked
+  background task with visible progress, cancel, retry, and result navigation.
 - View usage totals derived from saved message usage.
 
 Browser storage is local to that browser profile. API keys are stored in browser
@@ -92,6 +94,8 @@ Static tools currently registered by the app:
   local image file writes.
 - No provider key or local model means chat cannot send.
 - No Brave key means `web_search` is hidden.
+- The composer Research action also needs a Brave key and a connected chat
+  model; without the key it routes to Models without discarding the draft.
 - No ComfyUI or OpenRouter image credential means `image_generate` is hidden.
 - No active RAG index means `recall` is hidden.
 - Web Lite keeps always-supplied saved facts but does not expose semantic-index

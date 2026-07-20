@@ -70,7 +70,7 @@ export interface BridgeFacade {
 
 import type { ImageBackendId, ImageBackendSnapshot, LocalComfyMode } from '../image/types';
 import type { CompletedJob, ImageJob } from '../image/jobs/types';
-import type { BraveFreshness, BraveSearchQueryResult } from '../search/types';
+import type { BraveFreshness, BraveSearchDepth, BraveSearchQueryResult } from '../search/types';
 export type { ImageBackendId, ImageBackendSnapshot, LocalComfyMode };
 
 export interface ImageGenFacade {
@@ -134,6 +134,7 @@ export interface SearchFacade {
     freshness?: BraveFreshness;
     country?: string;
     searchLang?: string;
+    depth?: BraveSearchDepth;
     signal?: AbortSignal;
   }): Promise<BraveSearchQueryResult[]>;
 }

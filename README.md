@@ -93,6 +93,9 @@ it points you to the matching download above).
   a local RAG index over chats, notes, and facts using Ollama embeddings and IndexedDB vectors.
   Relevant snippets can be supplied automatically or retrieved with the `recall` tool; answers
   expose their exact source excerpts, and Agent → Memory controls what may be indexed and recalled.
+- **Brave web research** — ordinary chat can use compact live-web grounding, while the
+  composer’s **Research** action starts a visible background investigation with broader searches,
+  source-integrity rules, progress, cancellation, retry, and a linked result thread.
 - **Multimodal input** — drop images into the composer; vision-capable models receive the pixels.
 
 ## Screenshots

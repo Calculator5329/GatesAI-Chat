@@ -1,7 +1,7 @@
 // Defines the webSearch tool contract, validation, execution, or display formatting.
 // Called by ChatStore tool rounds via the registry; depends on ToolContext facades and bridge/store services.
 // Invariant: tools validate inputs first and return deterministic, user-readable results.
-import type { BraveFreshness, BraveSearchQueryResult } from '../search/types';
+import type { BraveFreshness, BraveSearchDepth, BraveSearchQueryResult } from '../search/types';
 import type { Tool, ToolValidationIssue } from './types';
 
 const MAX_QUERIES = 6;
@@ -39,6 +39,11 @@ export const webSearchTool: Tool = {
           type: 'string',
           description: 'Two-letter search language. Defaults to en.',
         },
+        depth: {
+          type: 'string',
+          enum: ['standard', 'deep'],
+          description: 'Context budget. Use standard for quick answers and deep for a planned multi-source investigation.',
+        },
       },
       required: ['queries'],
       additionalProperties: false,
@@ -68,6 +73,7 @@ export const webSearchTool: Tool = {
       freshness: freshnessArg(args.freshness),
       country: stringArg(args.country) ?? 'US',
       searchLang: stringArg(args.search_lang) ?? 'en',
+      depth: depthArg(args.depth),
       signal: ctx.signal,
     });
     return {
@@ -167,6 +173,10 @@ function stringArg(value: unknown): string | undefined {
 
 function freshnessArg(value: unknown): BraveFreshness | undefined {
   return typeof value === 'string' && FRESHNESS.includes(value) ? value as BraveFreshness : undefined;
+}
+
+function depthArg(value: unknown): BraveSearchDepth {
+  return value === 'deep' ? 'deep' : 'standard';
 }
 
 function truncate(value: string, max: number): string {

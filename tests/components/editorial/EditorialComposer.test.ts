@@ -14,6 +14,8 @@ import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
 import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
 import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { SkillsStore } from '../../../src/stores/SkillsStore';
+import { SearchStore } from '../../../src/stores/SearchStore';
+import { DockStore } from '../../../src/stores/DockStore';
 import { EditorialComposer } from '../../../src/components/editorial/EditorialComposer';
 import type { RootStore } from '../../../src/stores/RootStore';
 import { clearAppStorage } from '../../helpers/storage';
@@ -37,6 +39,9 @@ function buildStore(): RootStore {
   const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
   const imageJobs = new ImageJobStore();
   const skills = new SkillsStore(bridge, () => ['thread']);
+  const search = new SearchStore(undefined, { autoPersist: false, useKeychainSecrets: false });
+  const dock = new DockStore({ runtime: 'desktop' });
+  chat.setToolStoresProvider(() => ({ search }));
   return {
     registry,
     providers,
@@ -49,6 +54,8 @@ function buildStore(): RootStore {
     localRuntime,
     imageJobs,
     skills,
+    search,
+    dock,
   } as RootStore;
 }
 
@@ -104,12 +111,51 @@ afterEach(() => {
   store?.router.destroy();
   store?.chat.dispose();
   store?.ui.dispose();
+  store?.search.dispose();
+  store?.dock.dispose();
   store = null;
   vi.unstubAllEnvs();
   clearAppStorage();
 });
 
 describe('EditorialComposer API-key banner', () => {
+  it('keeps the question and opens Models when Research needs a Brave key', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    const rendered = render(store);
+    act(() => store!.ui.setDraft('Compare the two approaches'));
+
+    const research = rendered.querySelector('button[aria-label="Start deep research"]') as HTMLButtonElement;
+    expect(research.disabled).toBe(false);
+    act(() => research.click());
+
+    expect(store.router.menuSection).toBe('models');
+    expect(store.ui.draft).toBe('Compare the two approaches');
+  });
+
+  it('launches configured research as a visible background task and clears the draft', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    store.search.setBraveKey('brv-test');
+    const start = vi.spyOn(store.chat, 'startDeepResearch').mockReturnValue({
+      ok: true,
+      message: "Task 'Research' started in background.",
+      threadId: 'research-1',
+    });
+    const rendered = render(store);
+    act(() => store!.ui.setDraft('What should we build next?'));
+
+    act(() => {
+      (rendered.querySelector('button[aria-label="Start deep research"]') as HTMLButtonElement).click();
+    });
+
+    expect(start).toHaveBeenCalledWith('What should we build next?', store.chat.activeThreadId);
+    expect(store.ui.draft).toBe('');
+    expect(store.dock.cells[0]?.kind).toBe('task-center');
+    expect(rendered.textContent).toContain("Task 'Research' started in background.");
+    expect(rendered.textContent).toContain('Open research');
+  });
+
   it('shows the API-key banner and disables send when no provider is configured', () => {
     store = buildStore();
     store.ui.setOnboardingDismissed(true);

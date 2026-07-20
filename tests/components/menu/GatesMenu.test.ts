@@ -63,6 +63,7 @@ function buildStore(section: MenuSectionKey = 'settings'): { store: RootStore; r
       resetConfig: () => {},
     },
     bridge: { isOnline: false, client: { request: async () => ({}) } },
+    search: { braveReady: false, braveApiKey: '', setBraveKey: () => {}, clearBraveKey: () => {} },
   } as unknown as RootStore;
   builtStores.push(store);
   return { store, router };
@@ -134,7 +135,7 @@ describe('GatesMenu tab strip', () => {
     }
   });
 
-  it('renders only the OpenRouter and local-model surfaces under Models', async () => {
+  it('renders model and Brave Search setup under Models', async () => {
     await preloadApiSection();
     const { store } = buildStore('models');
     const rendered = renderMenu(store);
@@ -144,7 +145,8 @@ describe('GatesMenu tab strip', () => {
     expect(rendered.textContent).toContain('OpenRouter');
     expect(rendered.textContent).toContain('Local models');
     expect(rendered.textContent).toContain('Ollama not running');
-    expect(rendered.textContent).not.toContain('Brave Search');
+    expect(rendered.textContent).toContain('Web search');
+    expect(rendered.textContent).toContain('Brave grounding');
     expect(rendered.textContent).not.toContain('Compatibility test suite');
     expect(rendered.textContent).not.toContain('Coming soon');
     expect(rendered.textContent).not.toContain('Anthropic');

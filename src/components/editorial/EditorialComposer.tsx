@@ -6,7 +6,7 @@
 // Invariant: persisted chat state stays in stores; this surface is presentation only.
 import { useCallback, useRef, useState, type ChangeEvent, type ClipboardEvent, type KeyboardEvent, type RefObject } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useEditorial } from '../../stores/context';
+import { useDockStore, useEditorial, useSearchStore } from '../../stores/context';
 import { normalizeOpenRouterThinkingEffort, type ChatContextMode, type ChatThinkingEffort } from '../../stores/ChatStore';
 import { isWebLite } from '../../core/runtime';
 import { AttachmentTray } from './composer/AttachmentTray';
@@ -23,9 +23,12 @@ interface ComposerProps {
 }
 
 export const EditorialComposer = observer(function EditorialComposer({ textareaRef }: ComposerProps) {
-  const { chat, ui, bridge, registry, providers, localRuntime, skills } = useEditorial();
+  const { chat, ui, router, bridge, registry, providers, localRuntime, skills } = useEditorial();
+  const search = useSearchStore();
+  const dock = useDockStore();
   const [modelOpen, setModelOpen] = useState(false);
   const [skillOpen, setSkillOpen] = useState(false);
+  const [researchNotice, setResearchNotice] = useState<{ message: string; threadId?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeThread = chat.activeThread;
@@ -113,6 +116,21 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     chat.stopStreaming();
   };
 
+  const onResearch = () => {
+    if (readOnly || streaming || !hasText || !activeThreadId || activeThread?.agentTask) return;
+    if (!search.braveReady) {
+      router.goMenu('models');
+      return;
+    }
+    cancelPendingFlush();
+    const result = chat.startDeepResearch(value, activeThreadId);
+    setResearchNotice({ message: result.message, threadId: result.ok ? result.threadId : undefined });
+    if (!result.ok) return;
+    cancelRecall();
+    resetDraftAfterSend();
+    dock.openPanel('task-center');
+  };
+
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (readOnly) return;
     if (e.target.files) void ui.uploadFiles(e.target.files, bridge);
@@ -196,6 +214,14 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
             onDismiss={() => chat.dismissCompactionNotice()}
           />
         )}
+        {researchNotice && (
+          <NoticeBanner
+            message={researchNotice.message}
+            actionLabel={researchNotice.threadId ? 'Open research' : undefined}
+            onAction={researchNotice.threadId ? () => router.goThread(researchNotice.threadId ?? null) : undefined}
+            onDismiss={() => setResearchNotice(null)}
+          />
+        )}
         {chat.lastError && (
           <div className="chat-error-banner" role="status">
             <span>{chat.lastError}</span>
@@ -253,6 +279,10 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           streaming={streaming}
           hasText={hasText}
           streamActivity={streamActivity}
+          researchDisabled={readOnly || streaming || !hasText || !activeThread || activeThread.agentTask === true}
+          researchConfigured={search.braveReady}
+          researchRouteReady={routeReady}
+          onResearch={onResearch}
         />
       </div>
     </div>

@@ -47,10 +47,12 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       source chips, and reversible Agent → Memory source controls)* Keep and elevate; manage
       memory carefully (what gets indexed, recall quality, transparency, user
       control). This is a headline capability, not a checkbox.
-- [ ] **Search: basic + deep research.** Center on one provider (Brave for now;
-      pick one that is easy to set up, has a free tier, and scales to the most
-      users). Ship basic web search plus a deep-research flow; do not try to
-      support every search API.
+- [x] **Search: basic + deep research.** *(done 2026-07-19 — restored concise
+      Brave setup under Models, kept normal `web_search` compact, added an
+      official large-context deep budget, and shipped a first-class Research
+      composer action backed by visible/cancellable/retryable linked agent
+      tasks with primary-source and citation-integrity instructions)* Center on
+      one provider (Brave for now); do not try to support every search API.
 - [ ] **Model-compat auto-runner.** `scripts/model-compat/` should auto-run and
       keep a large curated set green: every Claude since Sonnet 4, every Gemini
       since 2.0, every OpenAI since GPT-5, plus recent Meta, Cursor, Grok, Kimi

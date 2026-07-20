@@ -8,8 +8,9 @@ import {
   useLocalRuntimeStore,
   useOllamaStore,
   useProviderStore,
+  useSearchStore,
 } from '../../../../stores/context';
-import { Button, Card, Input, Pill } from '../../../ui';
+import { Button, Card, Input, Pill, SecretKeyField } from '../../../ui';
 import { ProviderCard, OPENROUTER_PROVIDER_INFO } from './ProviderCard';
 import { ProviderAvatar } from './ProviderAvatar';
 
@@ -19,12 +20,12 @@ export const ApiSection = observer(function ApiSection() {
   return (
     <>
       <h1 style={tokens.h1}>Models</h1>
-      <div style={tokens.kicker}>OpenRouter key · local models</div>
+      <div style={tokens.kicker}>OpenRouter · Ollama · Brave search</div>
 
       <Card style={{ padding: '14px 18px', marginBottom: 28, background: 'var(--success-card-bg)', borderColor: 'var(--success-card-border)' }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
           Cloud chat uses your own OpenRouter key; local chat uses Ollama on this
-          computer. Keys are stored in the OS credential store on desktop and{' '}
+          computer; web answers and research use Brave Search. Keys are stored in the OS credential store on desktop and{' '}
           <code style={tokens.mono}>localStorage</code> in the browser, and used
           only as the required request header for each provider.
         </div>
@@ -32,7 +33,36 @@ export const ApiSection = observer(function ApiSection() {
 
       <ProviderCard info={OPENROUTER_PROVIDER_INFO} providers={providers} />
       <LocalModelsCard />
+      <SearchCard />
     </>
+  );
+});
+
+const SearchCard = observer(function SearchCard() {
+  const search = useSearchStore();
+  return (
+    <Card style={{ marginBottom: 12 }}>
+      <div style={cardHeaderStyle}>
+        <ProviderAvatar name="Brave" />
+        <div style={{ flex: 1 }}>
+          <div style={cardTitleStyle}>Web search</div>
+          <div style={cardDescStyle}>Brave grounding for quick answers and background deep research</div>
+        </div>
+        {search.braveReady ? <Pill>● Connected</Pill> : <Pill tone="muted">Not connected</Pill>}
+      </div>
+      <div style={localPanelStyle}>
+        <SecretKeyField
+          value={search.braveApiKey}
+          onSet={key => search.setBraveKey(key)}
+          onClear={() => search.clearBraveKey()}
+          placeholder="Paste your Brave Search API key…"
+          getKeyUrl={search.braveReady ? undefined : 'https://api.search.brave.com/app/keys'}
+        />
+        <div style={hintStyle}>
+          Quick answers use a compact search budget. Research runs broader multi-pass searches in a visible background task.
+        </div>
+      </div>
+    </Card>
   );
 });
 

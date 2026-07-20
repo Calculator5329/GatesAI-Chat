@@ -216,7 +216,7 @@ and auxiliary stores, then one-way providers are injected into `ChatStore`.
 | `UiStore` | Drafts, view prefs, palette state, onboarding flags, local data usage facade. | `src/stores/UiStore.ts`, `src/services/uiPrefsStorage.ts`, `src/services/storage/webLiteLocalData.ts` | Components mutate UI state; persistence slots store durable prefs. |
 | `RouterStore` | Observable hash route. | `src/stores/RouterStore.ts`, `src/services/router.ts` | `RootStore.bindRouterToChat()` syncs `#/thread/<id>` with `ChatStore.activeThreadId` and keeps menu routes explicit. |
 | `LocalRuntimeStore` | Local Ollama/ComfyUI paths, managed process state, base URLs, vision model. | `src/stores/LocalRuntimeStore.ts`, `src/services/local/localRuntimeService.ts` | Tauri commands start/probe runtimes; Ollama/Image stores read base URLs and readiness. |
-| `SearchStore` | Brave API key and web-search facade. | `src/stores/SearchStore.ts`, `src/services/searchStorage.ts`, `src/services/search/braveClient.ts` | `web_search` calls through this store; secrets hydrate at boot. |
+| `SearchStore` | Brave API key and standard/deep web-search facade. | `src/stores/SearchStore.ts`, `src/services/searchStorage.ts`, `src/services/search/braveClient.ts` | `web_search` calls through this store with a depth-specific cache/budget; secrets hydrate at boot. |
 | `OllamaStore` | Ollama catalog, API key, tool-call setting, pull/delete state. | `src/stores/OllamaStore.ts`, `src/services/llm/ollamaCatalog.ts`, `src/services/llm/ollamaPull.ts` | Reads `LocalRuntimeStore` base URL/status; writes dynamic Ollama models to the registry. |
 | `ProviderStore` | Provider configs and the live `LlmRouter`. | `src/stores/ProviderStore.ts`, `src/services/providerStorage.ts`, `src/services/llm/router.ts` | Config reactions update provider instances; chat resolves each thread model through the router. |
 | `OpenRouterStore` | OpenRouter live catalog cache and refresh state. | `src/stores/OpenRouterStore.ts`, `src/services/llm/openrouterCatalog.ts` | Fetches models when a key is available; pushes dynamic OpenRouter models into the registry. |
@@ -471,6 +471,21 @@ RAG:
   status, preview, embedding-model install, and derived-index maintenance. The
   `recall` tool exposes the same production hybrid retrieval pipeline.
 
+Search and deep research:
+
+- `web_search` uses Brave's LLM Context endpoint. Standard calls keep a compact
+  10-result/4,096-token budget; `depth: "deep"` expands to 50 candidates, 30
+  URLs, 16,384 context tokens, and a 30-second timeout.
+- The composer Research action calls `ChatStore.startDeepResearch()`, whose
+  stable prompt contract lives in `services/chat/deepResearch.ts`.
+- Research uses the ordinary `AgentTaskLifecycle` rather than a hidden bespoke
+  runner: the linked thread, Task Center progress, cancel, retry, completion
+  event, and ten-round ceiling all remain shared. The launcher selects the
+  first connected tool-capable model from the origin/background/default route
+  so a non-tool chat model cannot start an ungrounded research run.
+- Its system prompt requires multi-pass deep searches, primary sources,
+  inline links from tool-returned URLs, and explicit conflicts/coverage limits.
+
 Cloud providers:
 
 - OpenRouter uses `OpenRouterProvider`, the OpenAI-compatible streaming adapter,
@@ -488,8 +503,8 @@ shared `OpenAiCompatProvider` transport exists only as the base that
 
 Purpose: run scoped non-interactive work in separate agent threads, either
 immediately or after a delay. Key modules are
-`src/services/tools/spawnTask.ts`, `src/services/chat/agentTasks.ts`, and
-`src/stores/ChatStore.ts`.
+`src/services/tools/spawnTask.ts`, `src/services/chat/agentTasks.ts`,
+`src/services/chat/agentTaskLifecycle.ts`, and `src/stores/ChatStore.ts`.
 
 `spawn_task` v2 semantics:
 
@@ -497,14 +512,14 @@ immediately or after a delay. Key modules are
   the task instructions as its first user message, and a link back to the
   origin thread.
 - Agent tasks cannot spawn nested tasks.
-- Up to 3 agent-task slots can run concurrently. A task with
+- Up to 2 agent-task slots can run concurrently. A task with
   `start_delay_minutes` is created immediately with `agentTaskStatus:
   "scheduled"` and does not consume a running slot until it starts.
 - `max_rounds` clamps to 1..10 and defaults to 6. `system_prompt` replaces the
   default task body but keeps the non-interactive background-task prefix and is
   capped at 4,000 chars.
 - If all slots are full when a scheduled task is due, it retries every 60s.
-- On completion/error/interruption, `ChatStore.finalizeAgentTask()` appends an
+- On completion/error/interruption, `AgentTaskLifecycle` appends an
   `agent-task` activity event to the origin thread with a summary and link.
 - On boot, scheduled tasks are re-armed and previously running tasks are marked
   interrupted.

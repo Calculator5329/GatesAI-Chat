@@ -93,6 +93,12 @@ import {
   loadUserSystemPromptSettings,
   saveUserSystemPromptSettings,
 } from '../services/chat/userSystemPrompt';
+import {
+  buildDeepResearchInstructions,
+  DEEP_RESEARCH_MAX_ROUNDS,
+  DEEP_RESEARCH_SYSTEM_PROMPT,
+  deepResearchTitle,
+} from '../services/chat/deepResearch';
 
 export type { ChatContextMode } from '../services/chat/contextModes';
 export { PROVIDER_STREAM_INITIAL_STALL_MS, PROVIDER_STREAM_STALL_MS } from '../services/chat/streamingRoundExecutor';
@@ -678,6 +684,29 @@ export class ChatStore {
     return this.agentTasks.spawn(input, originThreadId);
   }
 
+  /** Launch a citation-first Brave research run through the normal background task UI. */
+  startDeepResearch(
+    question: string,
+    originThreadId: string,
+  ): { ok: boolean; message: string; threadId?: string } {
+    const trimmed = question.trim();
+    if (!trimmed) return { ok: false, message: 'Write a research question first.' };
+    if (!this.toolStoresProvider?.()?.search?.braveReady) {
+      return { ok: false, message: 'Add a Brave Search key in Models before starting deep research.' };
+    }
+    const researchModelId = this.resolveDeepResearchModelId(originThreadId);
+    if (!researchModelId) {
+      return { ok: false, message: 'Connect a tool-capable chat model before starting deep research.' };
+    }
+    return this.agentTasks.spawn({
+      title: deepResearchTitle(trimmed),
+      instructions: buildDeepResearchInstructions(trimmed),
+      model: researchModelId,
+      system_prompt: DEEP_RESEARCH_SYSTEM_PROMPT,
+      max_rounds: DEEP_RESEARCH_MAX_ROUNDS,
+    }, originThreadId);
+  }
+
   /** Cancel a scheduled or running background-agent task from shared task UI. */
   cancelAgentTask(threadId: string): boolean {
     return this.agentTasks.cancel(threadId);
@@ -702,6 +731,18 @@ export class ChatStore {
     const fallbackId = this.backgroundModelId ?? this.defaultModelId;
     const fallback = this.registry.findById(fallbackId);
     return fallback && this.providers.isConnected(fallback.providerId) ? fallback.id : null;
+  }
+
+  private resolveDeepResearchModelId(originThreadId: string): string | null {
+    const origin = this.findThread(originThreadId);
+    if (!origin || origin.deletedAt != null || origin.agentTask) return null;
+    const candidates = [origin.modelId, this.backgroundModelId, this.defaultModelId]
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+    for (const id of [...new Set(candidates)]) {
+      const model = this.registry.findById(id);
+      if (model && model.supportsTools !== false && this.providers.isConnected(model.providerId)) return model.id;
+    }
+    return null;
   }
 
   setThreadContextMode(threadId: string, mode: ChatContextMode): void {

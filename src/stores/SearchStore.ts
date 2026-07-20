@@ -4,7 +4,7 @@
 import { autorun, makeAutoObservable, reaction, toJS } from 'mobx';
 import { BraveSearchClient, BraveSearchError } from '../services/search/braveClient';
 import { loadSearchConfig, saveSearchConfig, type SearchPersistedConfig } from '../services/searchStorage';
-import type { BraveFreshness, BraveSearchOptions, BraveSearchQueryResult, BraveSearchSource } from '../services/search/types';
+import type { BraveFreshness, BraveSearchDepth, BraveSearchOptions, BraveSearchQueryResult, BraveSearchSource } from '../services/search/types';
 import { logger } from '../services/diagnostics/logger';
 import { deleteSecret, SECRET_NAMES, setSecret, usesTauriSecretBackend } from '../services/secretStorage';
 
@@ -103,6 +103,7 @@ export class SearchStore {
     freshness?: BraveFreshness;
     country?: string;
     searchLang?: string;
+    depth?: BraveSearchDepth;
     signal?: AbortSignal;
   }): Promise<BraveSearchQueryResult[]> {
     const apiKey = this.config.brave?.apiKey;
@@ -119,6 +120,7 @@ export class SearchStore {
       freshness: input.freshness,
       country: input.country,
       searchLang: input.searchLang,
+      depth: input.depth,
     };
     return Promise.all(input.queries.map(query => this.searchOne(apiKey, query, options, input.signal)));
   }
@@ -139,6 +141,7 @@ export class SearchStore {
         freshness: options.freshness,
         country: options.country,
         searchLang: options.searchLang,
+        depth: options.depth,
         signal,
       });
       this.setCached(key, sources);
@@ -203,5 +206,6 @@ function cacheKey(query: string, options: BraveSearchOptions): string {
     freshness: options.freshness ?? '',
     country: (options.country ?? 'US').trim().toUpperCase(),
     searchLang: (options.searchLang ?? 'en').trim().toLowerCase(),
+    depth: options.depth ?? 'standard',
   });
 }

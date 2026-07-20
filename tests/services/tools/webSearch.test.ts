@@ -14,8 +14,9 @@ describe('web_search tool', () => {
   });
 
   it('de-dupes queries and formats partial failures', async () => {
-    const searchBraveContext = vi.fn(async (input: { queries: string[] }) => {
+    const searchBraveContext = vi.fn(async (input: { queries: string[]; depth?: string }) => {
       expect(input.queries).toEqual(['React 19', 'Vite 8']);
+      expect(input.depth).toBe('deep');
       return [
         {
           query: 'React 19',
@@ -34,6 +35,7 @@ describe('web_search tool', () => {
     const result = await toolRegistry.execute('web_search', {
       queries: [' React 19 ', 'react   19', 'Vite 8'],
       freshness: 'pw',
+      depth: 'deep',
     }, {
       ...baseContext(),
       search: {
