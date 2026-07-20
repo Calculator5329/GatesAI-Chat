@@ -206,6 +206,14 @@ export class RagStore {
     this.scheduleIndex();
   }
 
+  isSourceExcluded(reference: string): boolean {
+    return this.settings.excludedSources.includes(reference);
+  }
+
+  factSourceReference(fact: string): string {
+    return `memory:memory-${contentHash(normalizeFactIdentity(fact))}`;
+  }
+
   scheduleIndex(): void {
     this.clearTimer();
     this.timer = setTimeout(() => {
@@ -447,9 +455,13 @@ function filterSourceSnapshot(snapshot: RagSourceSnapshot, settings: RagSettings
       ? snapshot.notes.filter(note => !excluded.has(`note:${note.id}`))
       : [],
     facts: settings.sourceTypes.memory
-      ? snapshot.facts.filter(fact => !excluded.has(`memory:memory-${contentHash(fact.trim().toLowerCase().replace(/\s+/g, ' '))}`))
+      ? snapshot.facts.filter(fact => !excluded.has(`memory:memory-${contentHash(normalizeFactIdentity(fact))}`))
       : [],
   };
+}
+
+function normalizeFactIdentity(fact: string): string {
+  return fact.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 function formatUntrustedEvidence(items: RetrievalTraceItem[], maxChars: number): string {

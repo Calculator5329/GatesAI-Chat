@@ -18,10 +18,9 @@
 - **Depends on**: `plans/002-rebuild-index-lifecycle.md`, `plans/003-ship-evaluated-hybrid-retrieval.md`
 - **Category**: direction / security / UX
 - **Planned at**: commit `dee51c2`, 2026-07-19
-- **Implementation status**: Backend trust boundary, persisted trace, settings
-  migration, source-type policy, and stable per-source exclusions are complete.
-  Six UI options are durable under `docs/designs/semantic-memory/`; React/UI
-  work is paused at the required Ethan selection gate.
+- **Implementation status**: DONE. Ethan selected Option 2; the compact
+  disclosure, Agent memory manager, controls, Web Lite fallback, tests, and
+  durable browser evidence shipped on 2026-07-19.
 
 ## Why this matters
 
@@ -273,17 +272,17 @@ boundary; review-card command succeeds.
 
 ## Done criteria
 
-- [ ] Ethan selected one of 5–10 visual options and the decision is durable.
+- [x] Ethan selected one of 5–10 visual options and the decision is durable. *(Option 2, 2026-07-19)*
 - [x] Retrieved source text never appears in the system prompt. *(2026-07-19)*
 - [x] Full and micro modes receive bounded user-role evidence; bare receives none. *(2026-07-19)*
-- [x] Every used memory is persisted on the response and inspectable later. *(2026-07-19; UI inspection awaits selection)*
-- [ ] Users can disable automatic recall, source types, and individual sources;
-      exclusions affect the index and are reversible.
-- [ ] Agent → Memory shows honest status/progress/errors and a production recall preview.
-- [ ] Desktop/Web Lite behavior is explicit and tested.
-- [ ] `npm run ci`, `npm run test:e2e`, and `npm run screens:tour` pass.
-- [ ] Roadmap/changelog/docs are updated only after acceptance, and a review card
-      points to durable evidence.
+- [x] Every used memory is persisted on the response and inspectable later. *(2026-07-19)*
+- [x] Users can disable automatic recall, source types, and individual sources;
+      exclusions affect the index and are reversible. *(2026-07-19)*
+- [x] Agent → Memory shows honest status/progress/errors and a production recall preview. *(2026-07-19)*
+- [x] Desktop/Web Lite behavior is explicit and tested. *(2026-07-19)*
+- [x] `npm run ci`, `npm run test:e2e`, and `npm run screens:tour` pass. *(2026-07-19)*
+- [x] Roadmap/changelog/docs are updated after acceptance, with durable review
+      evidence. *(2026-07-19)*
 
 ## STOP conditions
 

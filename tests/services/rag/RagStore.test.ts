@@ -65,6 +65,18 @@ describe('RagStore', () => {
     rag.setSourceType('message', false);
     expect(await rag.recall('alpha', 2)).toBe('No semantic memory matches.');
   });
+
+  it('provides stable fact references for source-level UI controls', () => {
+    const rag = makeRagStore({});
+    const first = rag.factSourceReference('  Prefers   concise Updates ');
+    const second = rag.factSourceReference('prefers concise updates');
+
+    expect(first).toBe(second);
+    expect(first).toMatch(/^memory:memory-/);
+    expect(rag.isSourceExcluded(first)).toBe(false);
+    rag.excludeSource(first);
+    expect(rag.isSourceExcluded(first)).toBe(true);
+  });
 });
 
 function makeRagStore(options: {

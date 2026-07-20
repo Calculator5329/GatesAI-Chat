@@ -41,7 +41,10 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
 
 ### Next up (priority order)
 
-- [ ] **Semantic memory / RAG — build it right.** Keep and elevate; manage
+- [x] **Semantic memory / RAG — build it right.** *(done 2026-07-19 — complete
+      atomic local indexing across retained conversations, evaluated hybrid
+      recall, untrusted evidence boundary, exact response provenance, Option 2
+      source chips, and reversible Agent → Memory source controls)* Keep and elevate; manage
       memory carefully (what gets indexed, recall quality, transparency, user
       control). This is a headline capability, not a checkbox.
 - [ ] **Search: basic + deep research.** Center on one provider (Brave for now;

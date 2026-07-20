@@ -30,6 +30,13 @@ test.describe('web lite (no bridge)', () => {
     await page.goto('/#/menu/local');
     await expect(page.getByRole('heading', { name: 'Models' })).toBeVisible();
   });
+
+  test('explains that semantic recall requires desktop without dead controls', async ({ page }) => {
+    await page.goto('/#/menu/agent');
+
+    await expect(page.getByText('Semantic recall needs the desktop app and a local Ollama embedding model.')).toBeVisible();
+    await expect(page.getByText('Automatic recall')).toHaveCount(0);
+  });
 });
 
 test.describe('web lite without a configured provider', () => {

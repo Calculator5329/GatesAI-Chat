@@ -16,7 +16,6 @@ Web Lite runs in the browser without the desktop bridge or Tauri commands.
 - Start background agent tasks with `spawn_task` when a connected model is
   available.
 - Use Brave web search with `web_search` after a Brave API key is configured.
-- Use semantic recall with `recall` after local RAG is active.
 - View usage totals derived from saved message usage.
 
 Browser storage is local to that browser profile. API keys are stored in browser
@@ -39,6 +38,8 @@ to be online.
 - Generate images with local ComfyUI.
 - Describe uploaded/workspace images with `describe_image`.
 - Fetch a web page through the desktop `fetch_page` proxy.
+- Use semantic recall over retained conversations, notes, and facts after a
+  local Ollama embedding model has built a complete index.
 - Store provider/search/Ollama secrets in the OS keychain.
 - Mirror chat state into `/workspace/.gatesai/chat/` and readable
   `/workspace/chat-history/`.
@@ -53,6 +54,8 @@ attachments, local image output writes, and most desktop tool calls.
 - Ollama tool calling can be toggled in local model settings.
 - Ollama model pulls/deletes require the Ollama runtime to be online.
 - RAG/semantic recall needs Ollama online with an embeddings model available.
+  Agent → Memory shows local status, source controls, preview, and rebuild
+  actions. Recalled answers expose the exact sources supplied to the model.
 - Local image generation needs ComfyUI configured and healthy.
 - OpenRouter image generation needs an OpenRouter key with image access and the
   bridge online so finished images can be written to workspace artifacts.
@@ -91,4 +94,6 @@ Static tools currently registered by the app:
 - No Brave key means `web_search` is hidden.
 - No ComfyUI or OpenRouter image credential means `image_generate` is hidden.
 - No active RAG index means `recall` is hidden.
+- Web Lite keeps always-supplied saved facts but does not expose semantic-index
+  controls that require desktop Ollama.
 - No desktop app means Tauri local-runtime commands are unavailable.

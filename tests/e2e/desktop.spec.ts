@@ -157,6 +157,55 @@ test.describe('desktop (mocked bridge + LLM)', () => {
 
     await expect(page.locator('button.composer-send-control[aria-label="Stop"]')).toBeVisible();
   });
+
+  test('reveals and controls semantic-memory evidence', async ({ page }) => {
+    await seedThreads(page, [makeThread('source', 'Earlier project decision', [
+      { id: 'source-user', role: 'user', content: 'Use the compact source-chip design.', createdAt: 10 },
+    ]), makeThread('active', 'Current planning', [
+      { id: 'active-user', role: 'user', content: 'What did we decide?', createdAt: 20 },
+      {
+        id: 'active-assistant',
+        role: 'assistant',
+        content: 'We chose the compact source-chip design.',
+        createdAt: 21,
+        retrievalTrace: {
+          version: 1,
+          purpose: 'automatic_context',
+          usedAt: 20,
+          model: 'nomic-embed-text',
+          rankingPolicyVersion: 1,
+          items: [{
+            reference: 'message:source-user',
+            sourceType: 'message',
+            sourceId: 'source-user',
+            threadId: 'source',
+            role: 'user',
+            title: 'Earlier project decision',
+            sourceTimestamp: 10,
+            excerpt: 'Use the compact source-chip design.',
+            lexicalRank: 1,
+            denseRank: 2,
+            fusedRank: 1,
+          }],
+        },
+      },
+    ])], 'active');
+    await page.goto('/#/thread/active');
+
+    const chip = page.getByRole('button', { name: 'Conversation · Earlier project decision' });
+    await expect(chip).toBeVisible();
+    await chip.click();
+    await expect(page.getByText('Use the compact source-chip design.', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Why was this used?' }).click();
+    await expect(page.getByText(/Matched both wording and meaning/)).toBeVisible();
+
+    await page.getByRole('button', { name: "Don't use this source" }).click();
+    await page.getByRole('button', { name: 'Exclude', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Undo exclusion' })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('gatesai.rag.settings.v2') ?? '{}').excludedSources)).toEqual(['thread:source']);
+    await page.getByRole('button', { name: 'Undo exclusion' }).click();
+    await expect(page.getByRole('button', { name: "Don't use this source" })).toBeVisible();
+  });
 });
 
 test.describe('desktop without a configured provider', () => {

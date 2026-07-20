@@ -91,7 +91,8 @@ it points you to the matching download above).
   Lightning) with live progress rendered inline in the chat.
 - **Memory and semantic recall** — durable user facts and lazy cross-thread summaries, plus
   a local RAG index over chats, notes, and facts using Ollama embeddings and IndexedDB vectors.
-  Relevant snippets can be injected automatically or retrieved with the `recall` tool.
+  Relevant snippets can be supplied automatically or retrieved with the `recall` tool; answers
+  expose their exact source excerpts, and Agent → Memory controls what may be indexed and recalled.
 - **Multimodal input** — drop images into the composer; vision-capable models receive the pixels.
 
 ## Screenshots

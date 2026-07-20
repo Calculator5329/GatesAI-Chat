@@ -8,7 +8,7 @@ import type { MouseEvent } from 'react';
 import type { AssistantFinishReason, Message } from '../../core/types';
 import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
 import { contentPartsForMessage, messageText } from '../../core/messageParts';
-import { useEditorial } from '../../stores/context';
+import { useEditorial, useRagStore } from '../../stores/context';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
 import { WorkspaceImage } from './WorkspaceImage';
 import {
@@ -18,6 +18,7 @@ import {
 import { MarkdownFallback } from './MarkdownFallback';
 import { Icons } from '../ui/icons';
 import { ActivityStream } from './activity/ActivityStream';
+import { MemoryDisclosure } from './MemoryDisclosure';
 
 const MarkdownChunk = lazy(() => import('./MarkdownChunk').then(m => ({ default: m.MarkdownChunk })));
 
@@ -75,6 +76,7 @@ export const EditorialMessage = observer(function EditorialMessage({
   laterMessageCount = 0,
 }: MessageProps) {
   const { chat, router } = useEditorial();
+  const rag = useRagStore();
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const [editing, setEditing] = useState(false);
   const content = messageText(message);
@@ -106,6 +108,7 @@ export const EditorialMessage = observer(function EditorialMessage({
   const finishNotice = !isUser && message.role === 'assistant'
     ? finishNoticeForReason(message.finishReason)
     : null;
+  const retrievalTrace = !isUser && message.role === 'assistant' ? message.retrievalTrace : undefined;
 
   useEffect(() => {
     if (copyState === 'idle') return;
@@ -346,6 +349,20 @@ export const EditorialMessage = observer(function EditorialMessage({
           </div>
         )}
       </div>
+      {retrievalTrace && (
+        <MemoryDisclosure
+          trace={retrievalTrace}
+          excludedReferences={rag.settings.excludedSources}
+          canOpenThread={threadId => chat.threads.some(thread => thread.id === threadId && thread.deletedAt == null)}
+          onOpenThread={threadId => {
+            if (!chat.selectThread(threadId)) return;
+            router.goThread(threadId);
+          }}
+          onOpenManager={() => router.goMenu('agent')}
+          onExclude={reference => rag.excludeSource(reference)}
+          onInclude={reference => rag.includeSource(reference)}
+        />
+      )}
     </div>
   );
 });

@@ -880,6 +880,117 @@
   font-size: 12px;
 }
 
+.memory-disclosure {
+  margin-top: 14px;
+  font-family: "Geist", sans-serif;
+  font-size: 12px;
+}
+
+.memory-disclosure__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.memory-disclosure__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-wash-05);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.memory-disclosure__chip:hover,
+.memory-disclosure__chip:focus-visible,
+.memory-disclosure__chip[data-selected="true"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--text);
+}
+
+.memory-disclosure__chip svg {
+  width: 14px;
+  height: 14px;
+  color: var(--accent);
+}
+
+.memory-disclosure__chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memory-disclosure__detail {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 0 7px 7px 0;
+  background: var(--surface-wash-05);
+  color: var(--text-dim);
+}
+
+.memory-disclosure__meta,
+.memory-disclosure__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.memory-disclosure__meta {
+  color: var(--text-faint);
+  font-size: 10px;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.memory-disclosure__detail blockquote {
+  margin: 10px 0;
+  padding: 0;
+  border: 0;
+  color: var(--text);
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 13.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.memory-disclosure__why {
+  margin: 8px 0;
+  color: var(--text-faint);
+  line-height: 1.45;
+}
+
+.memory-disclosure__actions button {
+  border: 0;
+  padding: 3px 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+}
+
+.memory-disclosure__actions button:hover:not(:disabled),
+.memory-disclosure__actions button:focus-visible {
+  color: var(--accent);
+}
+
+.memory-disclosure__actions button[data-tone="danger"] {
+  color: var(--danger);
+}
+
+.memory-disclosure__actions button:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+
 .activity-row[data-kind="thinking"] .activity-row__button {
   color: color-mix(in srgb, var(--text-faint) 70%, var(--text));
   font-style: italic;

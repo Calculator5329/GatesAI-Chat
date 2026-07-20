@@ -416,7 +416,7 @@ Feature storage slots:
 | `gatesai.imagegen.v1` | Image backend settings |
 | `gatesai.imagejobs.v1` | Image job history plus interrupted recovery state |
 | `gatesai.search.v1` | Brave config and Web Lite key fallback |
-| `gatesai.rag.settings.v1` | RAG enabled/model/settings |
+| `gatesai.rag.settings.v2` | Validated RAG model, automatic recall, source-type policy, and stable exclusions |
 | `gatesai.rag.watermarks.v1` | RAG indexing watermarks |
 | IndexedDB RAG chunk store | Vector chunks from `services/rag/vectorStore.ts` |
 | `gatesai.modelPicker.source.v1` | Model picker source filter |
@@ -462,10 +462,14 @@ RAG:
 
 - `RagStore` reads chat threads, notes, and profile facts from RootStore
   providers. It requires Ollama availability and a configured embeddings model.
-- `indexer.ts` tracks source watermarks in localStorage; `vectorStore.ts`
-  persists chunks in IndexedDB.
-- `TurnRunner` injects semantic context for full-context turns, and the
-  `recall` tool exposes explicit vector recall.
+- `indexer.ts` builds atomic generations; `vectorStore.ts` persists derived
+  chunks and generation manifests in IndexedDB.
+- `TurnRunner` supplies bounded historical excerpts as a separate untrusted
+  user-role evidence message for full/micro turns. The assistant response keeps
+  the exact bounded retrieval trace used for the visible source disclosure.
+- Agent → Memory owns automatic recall, source-type/per-source controls,
+  status, preview, embedding-model install, and derived-index maintenance. The
+  `recall` tool exposes the same production hybrid retrieval pipeline.
 
 Cloud providers:
 

@@ -1,5 +1,19 @@
 # Product taste — gatesai-chat
 
+## Design comparisons
+
+- When interaction or information architecture is the real question, build
+  genuinely different code-derived options in one switchable preview. Do not
+  present near-identical static mockups as if they were meaningful alternatives.
+- Use image-generation comparisons for broad visual direction; use working
+  comparisons for density, navigation, disclosure, and behavior feedback.
+
+## Semantic memory
+
+- Use Option 2's compact source chips beneath a response and terse source-list
+  management under Agent → Memory. Keep details progressive and the ordinary
+  chat canvas quiet.
+
 ## Tool activity
 
 - Lead with the goal in plain English: “Checking the project tests,” not raw

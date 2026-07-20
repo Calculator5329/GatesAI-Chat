@@ -2,6 +2,7 @@ import { mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { mockBridgeOnline, mockOllama, mockOpenRouter } from './fixtures/harness';
+import type { RetrievalTrace } from '../../src/core/types';
 
 test.skip(!process.env.SCREENS_TOUR, 'Set SCREENS_TOUR=1 or run npm run screens:tour to capture the screen corpus.');
 
@@ -50,6 +51,7 @@ interface TourMessage {
     costUsd: number;
     costSource: 'pricing' | 'local';
   }>;
+  retrievalTrace?: RetrievalTrace;
 }
 
 interface TourThread {
@@ -78,7 +80,12 @@ interface SeedState {
   activeThreadId?: string;
   profile?: { bio: string; defaultSystemPrompt: string };
   imageJobs?: unknown[];
-  ragSettings?: { autoInject: boolean; embeddingModel: string };
+  ragSettings?: {
+    autoInject: boolean;
+    embeddingModel: string;
+    sourceTypes: { message: boolean; note: boolean; memory: boolean };
+    excludedSources: string[];
+  };
 }
 
 test.describe.configure({ mode: 'serial' });
@@ -88,7 +95,7 @@ test('captures the screenshot tour', async ({ page }, testInfo) => {
   if (LIGHT_THEME_TOUR && project !== 'desktop-mocked') return;
   if (project === 'desktop-mocked') {
     await mockOpenRouter(page, { reply: TOUR_REPLY });
-    await mockOllama(page, { reply: LOCAL_TOUR_REPLY, models: [LOCAL_PROVIDER_MODEL_ID, 'llama3.2:3b'] });
+    await mockOllama(page, { reply: LOCAL_TOUR_REPLY, models: [LOCAL_PROVIDER_MODEL_ID, 'llama3.2:3b', 'nomic-embed-text'] });
     await mockBridgeOnline(page, { files: workspaceFiles() });
     await captureDesktopTour(page, testInfo);
     if (!LIGHT_THEME_TOUR) await captureLocalOnlyTour(page);
@@ -126,6 +133,13 @@ async function captureDesktopTour(page: Page, testInfo: TestInfo): Promise<void>
 
   await resetStorage(page, baseSeed('active'));
   await gotoApp(page, '/#/thread/active');
+  await expect(page.locator('.memory-disclosure__chip').first()).toBeVisible();
+  await page.locator('.memory-disclosure__chip').first().click();
+  await expect(page.getByText('Why was this used?')).toBeVisible();
+  await shot(page, outDir, index++, 'chat-memory-disclosure');
+
+  await resetStorage(page, baseSeed('active'));
+  await gotoApp(page, '/#/thread/active');
   await page.keyboard.press('Control+K');
   await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
   await shot(page, outDir, index++, 'command-palette');
@@ -140,6 +154,10 @@ async function captureDesktopTour(page: Page, testInfo: TestInfo): Promise<void>
     await resetStorage(page, baseSeed('active'));
     await gotoApp(page, `/#/menu/${section}`);
     await expect(page.locator('.gates-menu__body')).toBeVisible();
+    if (section === 'agent') {
+      await page.getByRole('button', { name: /Conversations/ }).click();
+      await expect(page.getByPlaceholder('Search conversations')).toBeVisible();
+    }
     await shot(page, outDir, index++, `menu-${section}`);
   }
 
@@ -282,7 +300,7 @@ async function writeStorageSeed(page: Page, seed: SeedState): Promise<void> {
     }
     if (state.profile) localStorage.setItem('gatesai.profile.v1', JSON.stringify(state.profile));
     if (state.imageJobs) localStorage.setItem('gatesai.imagejobs.v1', JSON.stringify({ history: state.imageJobs }));
-    if (state.ragSettings) localStorage.setItem('gatesai.rag.settings.v1', JSON.stringify(state.ragSettings));
+    if (state.ragSettings) localStorage.setItem('gatesai.rag.settings.v2', JSON.stringify(state.ragSettings));
   }, seed);
 }
 
@@ -430,7 +448,7 @@ function baseSeed(activeThreadId: string): SeedState {
       createdAt: now - 2_400_000,
       completedAt: now - 2_350_000,
     }],
-    ragSettings: { autoInject: true, embeddingModel: 'nomic-embed-text' },
+    ragSettings: defaultRagSettings(),
   };
 }
 
@@ -445,7 +463,7 @@ function localOnlySeed(activeThreadId: string): SeedState {
       bio: '- User is auditing local-only Ollama workflows.',
       defaultSystemPrompt: 'Prefer concise local-first answers.',
     },
-    ragSettings: { autoInject: true, embeddingModel: 'nomic-embed-text' },
+    ragSettings: defaultRagSettings(),
   };
 }
 
@@ -499,6 +517,36 @@ function tourThreads(now: number): TourThread[] {
           createdAt: assistantAt,
           model: MODEL_ID,
           usage: [usage('openrouter/google/gemini-3-flash-preview', 1180, 420, 0.0021)],
+          retrievalTrace: {
+            version: 1,
+            purpose: 'automatic_context',
+            usedAt: assistantAt - 1_000,
+            generationId: 'tour-generation',
+            model: 'nomic-embed-text',
+            rankingPolicyVersion: 1,
+            items: [{
+              reference: 'message:tool-user',
+              sourceType: 'message',
+              sourceId: 'tool-user',
+              threadId: 'tool',
+              role: 'user',
+              title: 'Tool activity example',
+              sourceTimestamp: now - 2_780_000,
+              excerpt: 'Run the test suite and summarize the result.',
+              denseRank: 2,
+              lexicalRank: 1,
+              fusedRank: 1,
+            }, {
+              reference: 'note:audit-plan',
+              sourceType: 'note',
+              sourceId: 'audit-plan',
+              title: 'Audit plan',
+              sourceTimestamp: now - 2_000_000,
+              excerpt: 'Review open models first, then inspect each active menu surface.',
+              denseRank: 3,
+              fusedRank: 2,
+            }],
+          },
         },
       ],
     },
@@ -578,6 +626,15 @@ function tourThreads(now: number): TourThread[] {
       ],
     },
   ];
+}
+
+function defaultRagSettings(): NonNullable<SeedState['ragSettings']> {
+  return {
+    autoInject: true,
+    embeddingModel: 'nomic-embed-text',
+    sourceTypes: { message: true, note: true, memory: true },
+    excludedSources: [],
+  };
 }
 
 function usage(modelId: string, promptTokens: number, completionTokens: number, costUsd: number) {

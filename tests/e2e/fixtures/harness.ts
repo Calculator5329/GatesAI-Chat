@@ -2,6 +2,7 @@
 // These let browser specs run the real app deterministically without a live
 // OpenRouter account or a running gatesai-bridge sidecar.
 import type { Page, WebSocketRoute } from '@playwright/test';
+import type { RetrievalTrace } from '../../../src/core/types';
 
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODELS_URL = 'https://openrouter.ai/api/v1/models';
@@ -33,6 +34,7 @@ export interface SeedMessage {
   role: 'user' | 'assistant';
   content: string;
   createdAt: number;
+  retrievalTrace?: RetrievalTrace;
 }
 
 export interface SeedThread {

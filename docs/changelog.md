@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-19 — Transparent, controllable semantic memory
+
+- Shipped Ethan's Option 2 interaction: compact source chips beneath recalled
+  answers expand to the exact supplied excerpt, provenance, source destination,
+  honest ranking explanation, and recoverable source exclusion.
+- Agent → Memory now separates always-supplied saved facts from semantic recall
+  and exposes local index status/progress, automatic recall, source-type and
+  per-source controls, production-pipeline preview, model install/cancel,
+  rebuild, and derived-index clearing.
+- Web Lite shows a concise desktop/Ollama requirement without dead controls;
+  component, store, full CI, Playwright, and desktop/mobile screenshot evidence
+  cover the selected behavior.
+
 ## 2026-07-19 — Plain-English tool activity intent
 
 - Every model-visible tool schema now offers a shared `display_text` field for
