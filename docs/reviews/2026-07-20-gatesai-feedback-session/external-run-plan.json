@@ -1,10 +1,10 @@
 {
   "schemaVersion": "external-run-plan/v1",
-  "planId": "gatesai-owner-feedback-session-external-20260720",
+  "planId": "gatesai-owner-feedback-session-external-20260720-v2",
   "repoPath": "/home/ethan/projects/ai/gatesai-chat",
-  "baseRef": "master",
+  "baseRef": "codex/gatesai-owner-review-base-20260720",
   "baseSha": "57c83a44017ce81b8532c55cc22802924c5e7963",
-  "createdAt": "2026-07-20T04:46:58Z",
+  "createdAt": "2026-07-20T04:49:57Z",
   "provenance": {
     "management": "externally_managed",
     "reason": "The Software Forge provider lane failed its split-plan structure gate and resuming the external provider session was safety-blocked. Complete the already-registered task in the joined local Codex session, then attach exact local Git and verification evidence without transporting more repository context."

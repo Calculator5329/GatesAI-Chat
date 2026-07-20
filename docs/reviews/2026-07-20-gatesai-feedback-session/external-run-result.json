@@ -1,8 +1,8 @@
 {
   "schemaVersion": "external-run-result/v1",
-  "planId": "gatesai-owner-feedback-session-external-20260720",
-  "planDigest": "sha256:2f942cfaa36c0992b73f408e9fe38d03427f9909b3b0e1a1fc1a16b9a897f0eb",
-  "completedAt": "2026-07-20T04:47:57Z",
+  "planId": "gatesai-owner-feedback-session-external-20260720-v2",
+  "planDigest": "sha256:7acfde807577a712543409fe2230ef349f16447f6d4c3029c568ee918604538f",
+  "completedAt": "2026-07-20T04:51:23Z",
   "lanes": [
     {
       "id": "local-owner-review-build",

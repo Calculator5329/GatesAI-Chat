@@ -1,8 +1,8 @@
 {
   "schemaVersion": "external-plan-derive/v1",
-  "planId": "gatesai-owner-feedback-session-external-20260720",
-  "baseRef": "master",
-  "createdAt": "2026-07-20T04:46:58Z",
+  "planId": "gatesai-owner-feedback-session-external-20260720-v2",
+  "baseRef": "codex/gatesai-owner-review-base-20260720",
+  "createdAt": "2026-07-20T04:49:57Z",
   "reason": "The Software Forge provider lane failed its split-plan structure gate and resuming the external provider session was safety-blocked. Complete the already-registered task in the joined local Codex session, then attach exact local Git and verification evidence without transporting more repository context.",
   "lanes": [
     {

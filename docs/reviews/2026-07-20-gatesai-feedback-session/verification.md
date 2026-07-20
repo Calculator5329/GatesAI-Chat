@@ -15,7 +15,11 @@ Prepared 2026-07-20 for the GatesAI owner feedback session.
   used Forge's versioned externally-managed plan/result contract to attach Git
   and command evidence without launching or claiming a provider process.
 - External plan digest:
-  `sha256:2f942cfaa36c0992b73f408e9fe38d03427f9909b3b0e1a1fc1a16b9a897f0eb`.
+  `sha256:7acfde807577a712543409fe2230ef349f16447f6d4c3029c568ee918604538f`.
+- The first attachment also failed closed because its signed base used the
+  movable `master` name, which advanced on commit. Version 2 pins the original
+  commit through `codex/gatesai-owner-review-base-20260720`; no history was
+  rewritten and the superseded cancelled record remains visible as friction.
 
 This failure is intentionally preserved as part of the dogfood session. The
 review system should make a failed planner understandable without making the
