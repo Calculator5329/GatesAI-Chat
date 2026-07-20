@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-07-19 — Semantic-memory trust boundary and controls backend
+
+- Historical recall is now supplied as bounded, explicitly untrusted
+  user-role evidence instead of being promoted into the system prompt; bare
+  context mode receives no semantic recall.
+- Assistant replies persist a compact schema-v4 retrieval trace with the exact
+  supplied excerpts, stable provenance, generation/model, and ranking fields.
+- RAG settings v2 add validated source-type policies and recoverable stable
+  per-source exclusions that affect both indexing and retrieval.
+- The visible disclosure and Agent → Memory manager remain intentionally
+  paused until the required selection from six durable UI options.
+
 ## 2026-07-19 — Evaluated hybrid semantic recall
 
 - Added dependency-free BM25, identifier-preserving tokens, lexical-weighted

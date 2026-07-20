@@ -120,6 +120,32 @@ export interface AssistantMessage {
    * connectivity transitions observed while this assistant turn was active.
    */
   activityEvents?: ActivityItem[];
+  /** Exact, bounded local-memory evidence supplied for this response. */
+  retrievalTrace?: RetrievalTrace;
+}
+
+export interface RetrievalTraceItem {
+  reference: string;
+  sourceType: 'message' | 'note' | 'memory';
+  sourceId: string;
+  threadId?: string;
+  role?: 'user' | 'assistant';
+  title?: string;
+  sourceTimestamp: number;
+  excerpt: string;
+  denseRank?: number;
+  lexicalRank?: number;
+  fusedRank: number;
+}
+
+export interface RetrievalTrace {
+  version: 1;
+  purpose: 'automatic_context';
+  usedAt: number;
+  generationId?: string;
+  model: string;
+  rankingPolicyVersion: 1;
+  items: RetrievalTraceItem[];
 }
 
 /**

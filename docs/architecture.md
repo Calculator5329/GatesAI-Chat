@@ -88,6 +88,16 @@ explicit recall retains stable source references, roles, dates, and exact
 display excerpts. The frozen ablation and 10,000-chunk latency evidence lives in
 [`docs/audits/semantic-memory-v2-retrieval-report.md`](audits/semantic-memory-v2-retrieval-report.md).
 
+Automatic recall crosses an explicit trust boundary in `TurnRunner`: the
+system prompt receives only a fixed instruction saying historical memory is
+untrusted evidence, while the actual bounded excerpts arrive in a separate
+synthetic user-role message immediately before the live query. The assistant
+message records an optional schema-v4 retrieval trace before streaming starts,
+including the exact supplied excerpts and stable provenance but never vectors
+or hidden full bodies. RAG settings v2 apply conversation/note/fact source-type
+controls and stable per-source exclusions both when building the derived index
+and when retrieving from the current generation.
+
 Build:
 
 ```powershell

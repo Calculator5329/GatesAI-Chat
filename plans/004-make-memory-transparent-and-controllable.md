@@ -18,6 +18,10 @@
 - **Depends on**: `plans/002-rebuild-index-lifecycle.md`, `plans/003-ship-evaluated-hybrid-retrieval.md`
 - **Category**: direction / security / UX
 - **Planned at**: commit `dee51c2`, 2026-07-19
+- **Implementation status**: Backend trust boundary, persisted trace, settings
+  migration, source-type policy, and stable per-source exclusions are complete.
+  Six UI options are durable under `docs/designs/semantic-memory/`; React/UI
+  work is paused at the required Ethan selection gate.
 
 ## Why this matters
 
@@ -270,9 +274,9 @@ boundary; review-card command succeeds.
 ## Done criteria
 
 - [ ] Ethan selected one of 5–10 visual options and the decision is durable.
-- [ ] Retrieved source text never appears in the system prompt.
-- [ ] Full and micro modes receive bounded user-role evidence; bare receives none.
-- [ ] Every used memory is persisted on the response and inspectable later.
+- [x] Retrieved source text never appears in the system prompt. *(2026-07-19)*
+- [x] Full and micro modes receive bounded user-role evidence; bare receives none. *(2026-07-19)*
+- [x] Every used memory is persisted on the response and inspectable later. *(2026-07-19; UI inspection awaits selection)*
 - [ ] Users can disable automatic recall, source types, and individual sources;
       exclusions affect the index and are reversible.
 - [ ] Agent → Memory shows honest status/progress/errors and a production recall preview.

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Thread } from '../../../src/core/types';
 import { DEFAULT_MODEL_ID } from '../../../src/core/models';
-import { RagStore } from '../../../src/services/rag/RagStore';
+import { LEGACY_RAG_SETTINGS_STORAGE_KEY, RAG_SETTINGS_STORAGE_KEY, RagStore } from '../../../src/services/rag/RagStore';
 import { RagVectorStore } from '../../../src/services/rag/vectorStore';
 import { FakeEmbedder, MemoryRagPersistence } from './helpers';
 import { clearAppStorage } from '../../helpers/storage';
@@ -20,9 +20,9 @@ describe('RagStore', () => {
     await rag.runIndexOnce();
 
     const block = await rag.semanticContextForUserText('alpha question');
-    expect(block).toContain('Possibly relevant past context');
-    expect(block).toContain('thread: Alpha plan');
-    expect(block).not.toContain('thread: Beta plan');
+    expect(block).toContain('Historical memory evidence');
+    expect(block).toContain('Alpha plan');
+    expect(block).not.toContain('Beta plan');
 
     rag.setAutoInject(false);
     await expect(rag.semanticContextForUserText('alpha question')).resolves.toBe('');
@@ -45,6 +45,25 @@ describe('RagStore', () => {
     expect(makeRagStore({ online: false, tagNames: ['nomic-embed-text:latest'] }).active).toBe(false);
     expect(makeRagStore({ online: true, tagNames: ['llama3.2:latest'] }).status).toBe('model_missing');
     expect(makeRagStore({ online: true, tagNames: ['nomic-embed-text:latest'] }).active).toBe(true);
+  });
+
+  it('migrates v1 settings and applies recoverable source controls', async () => {
+    localStorage.removeItem(RAG_SETTINGS_STORAGE_KEY);
+    localStorage.setItem(LEGACY_RAG_SETTINGS_STORAGE_KEY, JSON.stringify({ autoInject: false, embeddingModel: 'nomic-embed-text' }));
+    const rag = makeRagStore({ threads: [thread('t1', 'Alpha', 'alpha memory')] });
+    expect(rag.settings).toMatchObject({
+      autoInject: false,
+      sourceTypes: { message: true, note: true, memory: true },
+      excludedSources: [],
+    });
+    await rag.runIndexOnce();
+    expect(await rag.recall('alpha', 2)).toContain('Alpha');
+    rag.excludeSource('thread:t1');
+    expect(await rag.recall('alpha', 2)).toBe('No semantic memory matches.');
+    rag.includeSource('thread:t1');
+    expect(await rag.recall('alpha', 2)).toContain('Alpha');
+    rag.setSourceType('message', false);
+    expect(await rag.recall('alpha', 2)).toBe('No semantic memory matches.');
   });
 });
 

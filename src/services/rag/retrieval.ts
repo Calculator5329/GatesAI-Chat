@@ -2,6 +2,7 @@ import type { RagEmbedder } from './embeddings';
 import { lexicalSearch } from './lexical';
 import { tokenizeForRecall } from './lexical';
 import type { RagChunk, RagVectorStore } from './vectorStore';
+import type { RetrievalTrace } from '../../core/types';
 
 export type RagRetrievalPurpose = 'explicit_recall' | 'automatic_context';
 
@@ -35,6 +36,13 @@ export interface RagRetrievalResult {
   fusedScore: number;
   chunk: RagChunk;
 }
+
+export interface RagContextBundle {
+  evidenceMessage: string;
+  trace?: RetrievalTrace;
+}
+
+export const EMPTY_RAG_CONTEXT: RagContextBundle = { evidenceMessage: '' };
 
 export const RAG_CANDIDATE_POOL = 40;
 export const RAG_RRF_K = 60;
@@ -114,7 +122,12 @@ export async function rankHybrid(options: {
 function allowed(chunk: RagChunk, request: RagRetrievalRequest): boolean {
   if (request.purpose === 'automatic_context' && request.activeThreadId && chunk.threadId === request.activeThreadId) return false;
   if (request.sourcePolicy?.sourceTypes && !request.sourcePolicy.sourceTypes.includes(chunk.sourceType)) return false;
-  return !request.sourcePolicy?.excludedReferences?.includes(referenceFor(chunk));
+  const exclusions = request.sourcePolicy?.excludedReferences ?? [];
+  return !exclusions.some(exclusion => (
+    exclusion === referenceFor(chunk)
+    || (chunk.threadId && exclusion === `thread:${chunk.threadId}`)
+    || exclusion === `${chunk.sourceType}:${chunk.sourceId}`
+  ));
 }
 
 function passesAutomaticNoMatch(result: RagRetrievalResult): boolean {

@@ -3,7 +3,7 @@
 // teaching every parser branch about every historical spelling.
 
 import { isRecord } from '../../core/guards';
-export const CURRENT_CHAT_SCHEMA_VERSION = 3;
+export const CURRENT_CHAT_SCHEMA_VERSION = 4;
 
 export interface RawChatSnapshotMigration {
   from: number;
@@ -25,6 +25,11 @@ export const chatSnapshotMigrations: RawChatSnapshotMigration[] = [
     from: 2,
     to: 3,
     migrate: migrateMessagesToContentParts,
+  },
+  {
+    from: 3,
+    to: 4,
+    migrate: snapshot => isRecord(snapshot) ? { ...snapshot, schemaVersion: 4 } : snapshot,
   },
 ];
 
@@ -145,4 +150,3 @@ function readSchemaVersion(value: unknown): number {
     ? value.schemaVersion
     : 1;
 }
-

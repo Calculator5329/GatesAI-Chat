@@ -108,6 +108,40 @@ describe('persistence', () => {
     expect(loadSnapshot()).toMatchObject(snapshot);
   });
 
+  it('round-trips a bounded retrieval trace and drops an invalid trace without dropping the reply', () => {
+    const trace = {
+      version: 1 as const,
+      purpose: 'automatic_context' as const,
+      usedAt: 10,
+      generationId: 'g1',
+      model: 'nomic-embed-text',
+      rankingPolicyVersion: 1 as const,
+      items: [{
+        reference: 'note:n1:f:0', sourceType: 'note' as const, sourceId: 'n1',
+        title: 'Launch note', sourceTimestamp: 9, excerpt: 'April 18',
+        denseRank: 2, lexicalRank: 1, fusedRank: 1,
+      }],
+    };
+    const snapshot: ChatSnapshot = {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
+      threads: [{
+        id: 't1', title: 'trace', subtitle: '', pinned: false, modelId: 'or-gpt-5.4-mini',
+        createdAt: 1, updatedAt: 2,
+        messages: [{ id: 'a1', role: 'assistant', content: 'done', createdAt: 3, retrievalTrace: trace }],
+      }],
+      activeThreadId: 't1',
+    };
+    saveSnapshot(snapshot);
+    expect((loadSnapshot()?.threads[0].messages[0] as { retrievalTrace?: unknown }).retrievalTrace).toEqual(trace);
+
+    const raw = JSON.parse(localStorage.getItem('gatesai.state.v1') ?? '{}') as { threads: Array<{ messages: Array<Record<string, unknown>> }> };
+    raw.threads[0].messages[0].retrievalTrace = { version: 1, purpose: 'automatic_context', items: 'bad' };
+    localStorage.setItem('gatesai.state.v1', JSON.stringify(raw));
+    const loaded = loadSnapshot()?.threads[0].messages[0];
+    expect(loaded?.role).toBe('assistant');
+    expect(loaded?.role === 'assistant' ? loaded.retrievalTrace : undefined).toBeUndefined();
+  });
+
   it('returns null on malformed JSON', () => {
     localStorage.setItem('gatesai.state.v1', '{not json');
     expect(loadSnapshot()).toBeNull();

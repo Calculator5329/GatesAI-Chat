@@ -35,6 +35,7 @@ import { computeUsage, contextWindowFor, estimateLlmPayloadTokens, estimateToken
 import { buildRuntimeContext } from '../services/chat/runtimeContext';
 import { logger } from '../services/diagnostics/logger';
 import type { UndoService } from '../services/undo/UndoService';
+import type { RagContextBundle } from '../services/rag/retrieval';
 import { createWorkspaceChatPersistence } from '../services/workspaceChatPersistence';
 import {
   ChatPersistenceCoordinator,
@@ -140,7 +141,7 @@ export class ChatStore {
   private readonly hydrationByThread = new Map<string, Promise<Thread | null>>();
   private workspacePersistenceHydrating = false;
   private recentSummariesProvider: (() => string[]) | null = null;
-  private semanticContextProvider: ((userText: string, threadId: string) => string | Promise<string>) | null = null;
+  private semanticContextProvider: ((userText: string, threadId: string) => RagContextBundle | string | Promise<RagContextBundle | string>) | null = null;
   private toolStoresProvider: (() => ToolStoreContext) | null = null;
   private activeSkillProvider: ((threadId: string) => WorkspaceSkill | undefined) | null = null;
   private readonly isAutoNamingEnabled: () => boolean;
@@ -737,7 +738,7 @@ export class ChatStore {
     this.recentSummariesProvider = fn;
   }
 
-  setSemanticContextProvider(fn: (userText: string, threadId: string) => string | Promise<string>): void {
+  setSemanticContextProvider(fn: (userText: string, threadId: string) => RagContextBundle | string | Promise<RagContextBundle | string>): void {
     this.semanticContextProvider = fn;
   }
 

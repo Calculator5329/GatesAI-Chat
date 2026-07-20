@@ -7,6 +7,7 @@ import {
   WORKSPACE_CHAT_STATE_PATH,
 } from '../../src/services/workspaceChatPersistence';
 import { assistantMessageParts, userMessageParts } from '../../src/core/messageParts';
+import { CURRENT_CHAT_SCHEMA_VERSION } from '../../src/services/persistence/migrations';
 
 describe('workspace chat persistence', () => {
   it('round-trips a workspace snapshot envelope', async () => {
@@ -189,7 +190,7 @@ describe('workspace chat persistence', () => {
 
 function sampleSnapshot(id: string, title: string): ChatSnapshot {
   return {
-    schemaVersion: 3,
+    schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
     activeThreadId: id,
     threads: [{
       id,

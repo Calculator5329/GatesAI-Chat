@@ -1,7 +1,7 @@
 // Persists or coordinates service-level state for persistence.
 // Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
 // Invariant: services normalize legacy data before handing snapshots back to stores.
-import type { ActivityItem, ChatSnapshot, Message, MessageAttachmentRef, MessageContentPart, ToolResult, ToolResultArtifact, Thread, UserMessage } from '../core/types';
+import type { ActivityItem, ChatSnapshot, Message, MessageAttachmentRef, MessageContentPart, RetrievalTrace, RetrievalTraceItem, ToolResult, ToolResultArtifact, Thread, UserMessage } from '../core/types';
 import type { LlmUsage, ToolCall } from '../core/llm';
 import {
   assistantMessageParts,
@@ -640,6 +640,7 @@ function parseLegacyMessage(value: unknown): LegacyMessage | null {
       usage: parseLlmUsageArray(value.usage),
       finishReason: parseFinishReason(value.finishReason),
       activityEvents: parseActivityItems(value.activityEvents),
+      retrievalTrace: parseRetrievalTrace(value.retrievalTrace),
     };
   }
   if (value.role === 'tool') {
@@ -650,6 +651,50 @@ function parseLegacyMessage(value: unknown): LegacyMessage | null {
     return { id, role: 'tool', content, createdAt, toolCallId, toolName };
   }
   return null;
+}
+
+function parseRetrievalTrace(value: unknown): RetrievalTrace | undefined {
+  if (!isRecord(value) || value.version !== 1 || value.purpose !== 'automatic_context') return undefined;
+  const usedAt = numberField(value.usedAt);
+  const model = stringField(value.model);
+  if (usedAt === undefined || !model || value.rankingPolicyVersion !== 1 || !Array.isArray(value.items)) return undefined;
+  const items = value.items.map(parseRetrievalTraceItem).filter((item): item is RetrievalTraceItem => item !== null);
+  if (items.length !== value.items.length || items.length === 0) return undefined;
+  return {
+    version: 1,
+    purpose: 'automatic_context',
+    usedAt,
+    generationId: stringField(value.generationId),
+    model,
+    rankingPolicyVersion: 1,
+    items,
+  };
+}
+
+function parseRetrievalTraceItem(value: unknown): RetrievalTraceItem | null {
+  if (!isRecord(value)) return null;
+  const reference = stringField(value.reference);
+  const sourceId = stringField(value.sourceId);
+  const sourceTimestamp = numberField(value.sourceTimestamp);
+  const excerpt = stringField(value.excerpt);
+  const fusedRank = numberField(value.fusedRank);
+  const sourceType = value.sourceType;
+  if (!reference || !sourceId || sourceTimestamp === undefined || excerpt === undefined || fusedRank === undefined) return null;
+  if (sourceType !== 'message' && sourceType !== 'note' && sourceType !== 'memory') return null;
+  const role = value.role === 'user' || value.role === 'assistant' ? value.role : undefined;
+  return {
+    reference,
+    sourceType,
+    sourceId,
+    threadId: stringField(value.threadId),
+    role,
+    title: stringField(value.title),
+    sourceTimestamp,
+    excerpt: excerpt.slice(0, 700),
+    denseRank: numberField(value.denseRank),
+    lexicalRank: numberField(value.lexicalRank),
+    fusedRank,
+  };
 }
 
 function parseContentParts(value: unknown): MessageContentPart[] | undefined {
