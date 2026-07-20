@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "external-run-plan/v1",
+  "planId": "gatesai-owner-feedback-session-external-20260720",
+  "repoPath": "/home/ethan/projects/ai/gatesai-chat",
+  "baseRef": "master",
+  "baseSha": "57c83a44017ce81b8532c55cc22802924c5e7963",
+  "createdAt": "2026-07-20T04:46:58Z",
+  "provenance": {
+    "management": "externally_managed",
+    "reason": "The Software Forge provider lane failed its split-plan structure gate and resuming the external provider session was safety-blocked. Complete the already-registered task in the joined local Codex session, then attach exact local Git and verification evidence without transporting more repository context."
+  },
+  "lanes": [
+    {
+      "id": "local-owner-review-build",
+      "taskId": "gatesai-owner-feedback-session-20260720",
+      "instruction": "Build and browser-verify the durable GatesAI owner feedback session inside the interactive session's claimed paths, preserving the failed provider plan run as dogfood evidence.",
+      "owns": [
+        "docs/reviews/2026-07-20-gatesai-feedback-session",
+        "artifacts/gatesai-owner-feedback-session-20260720",
+        "docs/roadmap.md",
+        "docs/changelog.md"
+      ],
+      "verificationCommands": [
+        {
+          "label": "acceptance-1",
+          "command": "test -f docs/reviews/2026-07-20-gatesai-feedback-session/README.md"
+        },
+        {
+          "label": "acceptance-2",
+          "command": "test -f artifacts/gatesai-owner-feedback-session-20260720/artifacts.json"
+        },
+        {
+          "label": "acceptance-3",
+          "command": "grep -q 'review-flow' artifacts/gatesai-owner-feedback-session-20260720/artifacts.json"
+        },
+        {
+          "label": "acceptance-4",
+          "command": "test -f artifacts/gatesai-owner-feedback-session-20260720/guided-missions.html"
+        },
+        {
+          "label": "acceptance-5",
+          "command": "test -f artifacts/gatesai-owner-feedback-session-20260720/evidence-board.html"
+        },
+        {
+          "label": "acceptance-6",
+          "command": "test -f artifacts/gatesai-owner-feedback-session-20260720/speech-first.html"
+        }
+      ]
+    }
+  ]
+}

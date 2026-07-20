@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "path": "guided-missions.html",
+      "kind": "html",
+      "label": "A — Guided missions",
+      "group": "review-flow"
+    },
+    {
+      "path": "evidence-board.html",
+      "kind": "html",
+      "label": "B — Evidence board",
+      "group": "review-flow"
+    },
+    {
+      "path": "speech-first.html",
+      "kind": "html",
+      "label": "C — Speech-first challenge deck",
+      "group": "review-flow"
+    },
+    {
+      "path": "rubric.md",
+      "kind": "md",
+      "label": "Review-loop comparison rubric"
+    }
+  ]
+}

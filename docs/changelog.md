@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-07-20 — Multi-surface owner feedback session
+
+- Added one durable, plain-English runbook covering the recent GatesAI depth
+  pass: agent feel, tool activity, local models and instructions, semantic
+  memory, Brave search and Research, curated-model compatibility, and the local
+  knowledge library.
+- Added three self-contained code-derived review modes with materially different
+  interactions: ordered hands-on missions, an all-at-once evidence board, and a
+  speech-first challenge deck. Each keeps notes in-page only and produces a
+  manual copy/paste transcript without pretending to submit feedback.
+- Registered the three modes as one Forge rich-artifact `review-flow` choice and
+  added a shared rubric for comparing Forge, Comms Deck, Visions, and in-chat
+  review on speed, clarity, trust, taste feedback, and completion effort.
+
 ## 2026-07-19 — Approved local knowledge library
 
 - Added a quiet Knowledge library section under Agent → Memory where desktop

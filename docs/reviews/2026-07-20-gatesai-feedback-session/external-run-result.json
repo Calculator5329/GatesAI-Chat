@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "external-run-result/v1",
+  "planId": "gatesai-owner-feedback-session-external-20260720",
+  "planDigest": "sha256:2f942cfaa36c0992b73f408e9fe38d03427f9909b3b0e1a1fc1a16b9a897f0eb",
+  "completedAt": "2026-07-20T04:47:57Z",
+  "lanes": [
+    {
+      "id": "local-owner-review-build",
+      "status": "succeeded_changed",
+      "branch": "master",
+      "summary": "Built and browser-verified a durable GatesAI owner feedback session with three materially different rich-artifact modes, one shared comparison rubric, an honest multi-surface runbook, and preserved Forge failure evidence.",
+      "changedFiles": [
+        "artifacts/gatesai-owner-feedback-session-20260720/artifacts.json",
+        "artifacts/gatesai-owner-feedback-session-20260720/evidence-board.html",
+        "artifacts/gatesai-owner-feedback-session-20260720/guided-missions.html",
+        "artifacts/gatesai-owner-feedback-session-20260720/rubric.md",
+        "artifacts/gatesai-owner-feedback-session-20260720/speech-first.html",
+        "docs/changelog.md",
+        "docs/roadmap.md",
+        "docs/reviews/2026-07-20-gatesai-feedback-session/README.md",
+        "docs/reviews/2026-07-20-gatesai-feedback-session/external-plan-request.json",
+        "docs/reviews/2026-07-20-gatesai-feedback-session/external-run-plan.json",
+        "docs/reviews/2026-07-20-gatesai-feedback-session/external-run-result.json",
+        "docs/reviews/2026-07-20-gatesai-feedback-session/verification.md"
+      ],
+      "verification": [
+        {
+          "label": "acceptance-1",
+          "command": "test -f docs/reviews/2026-07-20-gatesai-feedback-session/README.md",
+          "status": "passed",
+          "exitCode": 0
+        },
+        {
+          "label": "acceptance-2",
+          "command": "test -f artifacts/gatesai-owner-feedback-session-20260720/artifacts.json",
+          "status": "passed",
+          "exitCode": 0
+        },
+        {
+          "label": "acceptance-3",
+          "command": "grep -q 'review-flow' artifacts/gatesai-owner-feedback-session-20260720/artifacts.json",
+          "status": "passed",
+          "exitCode": 0
+        },
+        {
+          "label": "acceptance-4",
+          "command": "test -f artifacts/gatesai-owner-feedback-session-20260720/guided-missions.html",
+          "status": "passed",
+          "exitCode": 0
+        },
+        {
+          "label": "acceptance-5",
+          "command": "test -f artifacts/gatesai-owner-feedback-session-20260720/evidence-board.html",
+          "status": "passed",
+          "exitCode": 0
+        },
+        {
+          "label": "acceptance-6",
+          "command": "test -f artifacts/gatesai-owner-feedback-session-20260720/speech-first.html",
+          "status": "passed",
+          "exitCode": 0
+        }
+      ]
+    }
+  ]
+}

@@ -41,6 +41,11 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
 
 ### Next up (priority order)
 
+- [x] **Prepare a multi-surface owner feedback session for the depth pass.**
+      *(done 2026-07-20 — one Forge-rich choice now compares guided missions,
+      a code-derived evidence board, and a speech-first challenge deck against
+      the ordinary review packet, Visions structured input, Comms Deck, and
+      in-chat feedback using one shared rubric)*
 - [x] **Semantic memory / RAG — build it right.** *(done 2026-07-19 — complete
       atomic local indexing across retained conversations, evaluated hybrid
       recall, untrusted evidence boundary, exact response provenance, Option 2
