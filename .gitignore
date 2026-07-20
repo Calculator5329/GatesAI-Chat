@@ -66,6 +66,7 @@ blob-report/
 .playwright-mcp/
 /screenshots/
 /output/playwright/
+/artifacts/model-compat/
 
 # Firebase deploy cache
 .firebase/

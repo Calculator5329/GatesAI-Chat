@@ -165,14 +165,21 @@ go run ./cmd/gatesai-bridge
 ## Quality gates
 
 ```powershell
-npm run test       # Vitest unit/component suite (997 tests)
+npm run test       # Vitest unit/component suite (1,165 tests)
 npm run typecheck  # tsc project build + test project typecheck
 npm run lint       # ESLint (includes the architecture-boundary import rules)
 npm run test:watch # Vitest in watch mode
-npm run test:models # Live OpenRouter compatibility (needs API key)
+npm run model-compat:catalog # Free live-catalog policy audit
+npm run test:models # Budget-capped live OpenRouter probes (needs API key)
 npm run ci         # all three, in order
-npm run test:e2e   # Playwright UI suite (20 e2e tests; desktop-mocked + web-lite)
+npm run test:e2e   # Playwright UI suite (28 e2e tests; desktop-mocked + web-lite)
 ```
+
+The scheduled model runner audits OpenRouter's public catalog daily and runs
+the full curated text/tool/continuation smoke weekly when the repository has an
+`OPENROUTER_API_KEY` secret. Live runs default to a $2 preflight/runtime cap;
+use `--family <id>` with `scripts/model-compat/cli.ts` for a focused rerun.
+Reports are written under `artifacts/model-compat/` and uploaded by Actions.
 
 The Playwright suite runs the real app in a browser two ways — a faked-bridge
 desktop build (attachments, image jobs, gallery, settings) and the Web Lite

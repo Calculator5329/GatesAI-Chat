@@ -62,7 +62,8 @@ Verify (the gates CI enforces — run before committing):
 npm run ci                  # npm test + npm run typecheck + npm run lint
 npm run test:e2e            # Playwright: desktop-mocked + web-lite projects (20 tests)
 cargo test --manifest-path src-tauri/Cargo.toml   # Rust command layer
-npm run test:models         # OPTIONAL live OpenRouter compatibility (needs API key)
+npm run model-compat:catalog # Free OpenRouter catalog-policy audit
+npm run test:models         # OPTIONAL capped live OpenRouter probes (needs API key)
 npm run rag:eval -- --model nomic-embed-text  # OPTIONAL local semantic-recall benchmark
 ```
 
@@ -725,8 +726,13 @@ Test layers:
 - E2E tests under `tests/e2e` run mocked desktop and Web Lite flows, including
   bridge behavior, multi-tab persistence, screens tour, and degraded Web Lite
   surfaces.
-- Live integration tests under `tests/integration` and `npm run test:models`
-  are separate from default CI.
+- Model compatibility lives under `scripts/model-compat/`. Its free catalog
+  policy is scheduled daily; a credentialed weekly/manual runner exercises the
+  production OpenRouter streaming adapter with text, supported reasoning,
+  strict-tool, and continuation probes. It estimates cost before starting,
+  uses a $2 default run budget, stops starting new probes when reported spend
+  reaches that budget, and emits JSON + Markdown Actions artifacts. Paid
+  probes remain separate from default CI.
 - Rust tests run with `cargo test --manifest-path src-tauri/Cargo.toml`.
 
 Guard-rail suites worth knowing:

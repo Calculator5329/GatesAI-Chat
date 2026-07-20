@@ -17,7 +17,7 @@ these are the strategic bets.
 - **Rationale:** The differentiator. Almost no local-first chat app can *prove*
   its agent tooling works; this repo already has repeatable infrastructure —
   a mocked-bridge Playwright project, a live model-compat runner
-  (`src/services/compat/openRouterCompatibility.ts` writes reports to
+  (`scripts/model-compat/` writes reports to
   workspace artifacts), and deterministic tools. A harness that runs fixed
   tasks ("summarize this CSV via `inspect_file`", "find X via `fetch_page`",
   "multi-step fs edit") against a model matrix and diffs scores per release

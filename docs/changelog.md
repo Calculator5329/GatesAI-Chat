@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-19 — Automated curated-model compatibility
+
+- Added a policy-driven OpenRouter catalog audit that automatically discovers
+  every active Claude since Sonnet 4, Gemini since 2.0, and OpenAI GPT-5 route,
+  plus the three newest Meta, Grok, Kimi K2, GLM, Nemotron, and DeepSeek routes.
+- Added serial live probes through GatesAI's production OpenRouter adapter for
+  streaming text, supported reasoning, strict tool calls, and tool-result
+  continuation. Runs estimate spend before starting, stop launching new probes
+  when provider-reported spend reaches the explicit USD budget, fail closed
+  without credentials, and write JSON and Markdown evidence.
+- Added daily free catalog and weekly bounded live GitHub Actions runs, manual
+  focused-family reruns, and report artifacts. Cursor Composer remains an
+  explicit reported limitation because Cursor's in-house models are not
+  exposed through GatesAI's three supported routes.
+
 ## 2026-07-19 — Brave search and visible deep research
 
 - Restored Brave Search setup to Models with one clear explanation of quick

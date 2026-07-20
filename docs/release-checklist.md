@@ -10,9 +10,11 @@ published from the private source repository to the public
       `src-tauri/tauri.conf.json`. Confirm the values are identical.
 - [ ] Add the release notes to `docs/changelog.md` and verify user-facing links
       and version references.
-- [ ] Run `npm run ci`, `npm run test:e2e`, and
-      `cargo test --manifest-path src-tauri/Cargo.toml`. Do not run the live,
-      paid `npm run test:models` suite as a routine release gate.
+- [ ] Run `npm run ci`, `npm run test:e2e`,
+      `npm run model-compat:catalog`, and
+      `cargo test --manifest-path src-tauri/Cargo.toml`. Check the latest
+      scheduled model-compat artifact; do not rerun the paid
+      `npm run test:models` suite as a routine release gate.
 - [ ] Merge the release-ready changes to `master`. Confirm the Web Lite deploy
       workflow succeeds, then smoke-test the Pages site at
       `https://calculator5329.github.io/GatesAI-Chat/` (load the app, start a

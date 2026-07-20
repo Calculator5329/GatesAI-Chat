@@ -53,10 +53,15 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       composer action backed by visible/cancellable/retryable linked agent
       tasks with primary-source and citation-integrity instructions)* Center on
       one provider (Brave for now); do not try to support every search API.
-- [ ] **Model-compat auto-runner.** `scripts/model-compat/` should auto-run and
-      keep a large curated set green: every Claude since Sonnet 4, every Gemini
-      since 2.0, every OpenAI since GPT-5, plus recent Meta, Cursor, Grok, Kimi
-      K2, GLM, Nemotron, and DeepSeek models.
+- [x] **Model-compat auto-runner.** *(done 2026-07-19 — daily catalog policy,
+      weekly/manual budget-capped live text/tool/continuation probes, durable
+      JSON + Markdown Actions artifacts, and focused family reruns)* The live
+      OpenRouter catalog now discovers every active Claude since Sonnet 4,
+      Gemini since 2.0, and OpenAI GPT-5 route plus the three newest Meta,
+      Grok, Kimi K2, GLM, Nemotron, and DeepSeek routes. Cursor Composer is
+      reported as an explicit boundary rather than a false pass: its in-house
+      models are not OpenRouter-addressable, and adding a Cursor provider would
+      violate the three-route product floor.
 - [ ] **Database / library layer, redone with taste.** Re-introduce later as a
       first-class, well-designed integration (the reason the old plugins layer
       and Offline Library were removed).

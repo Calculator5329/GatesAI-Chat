@@ -193,7 +193,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['tests/**/*.{ts,tsx}'],
+    files: ['tests/**/*.{ts,tsx}', 'scripts/model-compat/**/*.ts'],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,

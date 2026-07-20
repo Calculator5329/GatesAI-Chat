@@ -1,0 +1,88 @@
+name: Model compatibility
+
+on:
+  schedule:
+    - cron: '17 8 * * *'
+    - cron: '43 8 * * 1'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Run the free catalog audit or the paid live probes
+        required: true
+        default: catalog
+        type: choice
+        options:
+          - catalog
+          - live
+      family:
+        description: Optional family id for a focused live rerun
+        required: false
+        type: string
+      max_cost_usd:
+        description: Live-run budget in USD
+        required: true
+        default: '2'
+        type: string
+
+concurrency:
+  group: model-compat-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  catalog:
+    name: Curated catalog policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Audit the live OpenRouter catalog
+        run: npm run model-compat:catalog
+      - name: Upload catalog report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-compat-catalog
+          path: artifacts/model-compat/
+          retention-days: 30
+
+  live:
+    name: Bounded live model probes
+    if: github.event.schedule == '43 8 * * 1' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      MODEL_COMPAT_FAMILY: ${{ inputs.family }}
+      MODEL_COMPAT_MAX_COST: ${{ inputs.max_cost_usd || '2' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Require the compatibility key
+        run: |
+          if [ -z "$OPENROUTER_API_KEY" ]; then
+            echo "OPENROUTER_API_KEY is not configured; refusing to report a false green live run."
+            exit 1
+          fi
+      - name: Probe the curated routes
+        run: |
+          args=(--mode live --max-cost-usd "$MODEL_COMPAT_MAX_COST")
+          if [ -n "$MODEL_COMPAT_FAMILY" ]; then
+            args+=(--family "$MODEL_COMPAT_FAMILY")
+          fi
+          npx vite-node scripts/model-compat/cli.ts -- "${args[@]}"
+      - name: Upload live report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-compat-live
+          path: artifacts/model-compat/
+          retention-days: 90

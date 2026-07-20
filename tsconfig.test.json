@@ -7,5 +7,5 @@
     "verbatimModuleSyntax": false,
     "erasableSyntaxOnly": false
   },
-  "include": ["tests", "src"]
+  "include": ["tests", "src", "scripts/model-compat"]
 }
