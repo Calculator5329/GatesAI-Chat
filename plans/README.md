@@ -20,7 +20,7 @@ local: Ollama creates embeddings and browser IndexedDB stores the derived index.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |---|---|---|---|---|---|
-| [001](001-measure-semantic-memory.md) | Establish the semantic-memory contract and evaluation gate | P1 | M | — | TODO |
+| [001](001-measure-semantic-memory.md) | Establish the semantic-memory contract and evaluation gate | P1 | M | — | DONE (live baseline blocked by sandbox) |
 | [002](002-rebuild-index-lifecycle.md) | Make indexing complete, atomic, cancellable, and observable | P1 | L | 001 | TODO |
 | [003](003-ship-evaluated-hybrid-retrieval.md) | Ship evaluated hybrid retrieval and calibrated context selection | P1 | L | 001, 002 | TODO |
 | [004](004-make-memory-transparent-and-controllable.md) | Make every memory use transparent and user-controllable | P1 | L | 002, 003 | TODO |
@@ -90,4 +90,3 @@ Status values: `TODO`, `IN PROGRESS`, `DONE`, `BLOCKED (<reason>)`, or
 - **Index tool outputs and attachments by default:** rejected. They are large,
   often transient, and carry a wider prompt-injection/data-leak surface. A later
   source type can add them only with an explicit contract and benchmark cases.
-

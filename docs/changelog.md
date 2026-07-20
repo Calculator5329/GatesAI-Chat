@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-07-19 — Semantic-memory evaluation contract
+
+- Added the v2 trust/quality ADR, a frozen 40-case synthetic corpus, and a
+  dependency-free local evaluation runner with retrieval, safety, duplication,
+  and split latency metrics.
+- The offline metric suite is CI-safe; the live Ollama baseline is recorded as
+  blocked until it can run outside the sandbox with an already-installed model.
+
 ## 2026-07-19 — ChatStore extraction + remaining foundation leftovers
 
 - **ChatTurnEngine:** moved send/start/interrupt/streaming bookkeeping out of

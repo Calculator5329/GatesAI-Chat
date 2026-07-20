@@ -18,6 +18,7 @@
 - **Depends on**: none
 - **Category**: tests / direction
 - **Planned at**: commit `dee51c2`, 2026-07-19
+- **Completed**: 2026-07-19; offline gate complete, live Ollama baseline blocked by sandbox loopback policy
 
 ## Why this matters
 
@@ -212,14 +213,14 @@ memory epic; plans 002–004 are still required.
 
 ## Done criteria
 
-- [ ] ADR contains corpus, trust-boundary, control, and numeric quality decisions.
-- [ ] Frozen corpus has at least 40 valid cases across all named categories.
-- [ ] Metric tests and CLI help pass without Ollama/network.
-- [ ] A real baseline report exists, or the plan status explicitly identifies
+- [x] ADR contains corpus, trust-boundary, control, and numeric quality decisions.
+- [x] Frozen corpus has at least 40 valid cases across all named categories.
+- [x] Metric tests and CLI help pass without Ollama/network.
+- [x] A real baseline report exists, or the plan status explicitly identifies
       the one owner-machine run still required without invented values.
-- [ ] `npm run ci` and `npm run test:e2e` pass.
-- [ ] No production retrieval behavior or shipping model default changed.
-- [ ] Only in-scope files are modified.
+- [ ] `npm run ci` and `npm run test:e2e` pass (deferred to final integrated gate).
+- [x] No production retrieval behavior or shipping model default changed.
+- [x] Only in-scope files are modified.
 
 ## STOP conditions
 

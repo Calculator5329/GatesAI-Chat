@@ -63,7 +63,13 @@ npm run ci                  # npm test + npm run typecheck + npm run lint
 npm run test:e2e            # Playwright: desktop-mocked + web-lite projects (20 tests)
 cargo test --manifest-path src-tauri/Cargo.toml   # Rust command layer
 npm run test:models         # OPTIONAL live OpenRouter compatibility (needs API key)
+npm run rag:eval -- --model nomic-embed-text  # OPTIONAL local semantic-recall benchmark
 ```
+
+Semantic memory is governed by
+[`docs/adr/2026-07-19-semantic-memory-v2.md`](adr/2026-07-19-semantic-memory-v2.md).
+Its publication-safe corpus and metric tests run offline in CI; the `rag:eval`
+command is an explicit local Ollama gate and never downloads a model.
 
 Build:
 
