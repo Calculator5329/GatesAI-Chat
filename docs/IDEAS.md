@@ -183,12 +183,18 @@ these are the strategic bets.
   cost, latency, pass/fail where a verifier exists) → one-click "adopt this
   config" writes the winning preset back. Reuses AO's order-swap judge
   calibration (F15) so pairwise scoring is position-bias-safe.
-- **Home:** GatesAI Chat is the front-runner (it already owns the chat
-  workbench + artifacts dock + eval-harness groundwork in idea #1; a
-  comparison view is a workbench feature, honoring the two-surface rule — no
-  new surfaces). Visions is the fallback home if the arena turns out to be
-  more about orchestrator-config benchmarking than chat answers. Decide at
-  design-doc time, not now.
+- **Home (revised, Ethan 2026-07-20): a LINKED COMPANION, not a feature of
+  this app.** Embedding the arena here is bloat — and its orchestrator-config
+  half would leak workspace-internal delivery tooling into a portfolio-facing
+  product. Instead: a GatesAI-family sibling (working name `gatesai-arena`,
+  alongside chat/bridge/landing) that LINKS in — reuses the bridge protocol +
+  model adapters from this repo, reads agent-orchestrator directly for
+  ForgeBench/benchTracker/lever-compiled configs. Chat stays a clean product;
+  the arena evolves fast without release-checklist gravity. Two-surface-rule
+  note: a product-family member, not a new human↔agent I/O surface — the
+  centralization rule is not violated. Design-doc-time check: if v1 is only
+  "two panes + a score row," a bridge-connected page here is the leaner v0
+  that graduates to its own repo when it earns the overhead.
 - **First step:** design doc (`/design-doc`) covering: the lever→config
   compilation table (which AO settings each lever moves), the run envelope
   (arena runs are real spend — caps + `--max-runtime-minutes` mandatory), and
