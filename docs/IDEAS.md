@@ -156,3 +156,42 @@ these are the strategic bets.
 - **First step:** Evaluate embedding tldraw/excalidraw in the sandboxed
   artifact webview against the existing artifact CSP rules
   (`tests/services/tauriConfig.test.ts` documents what previews may load).
+
+### 16. Comparison Arena — prompts, models, and orchestrator configs side-by-side
+- **Impact: High · Effort: Med-High**
+- **Rationale (Ethan, 2026-07-20):** One surface to *compare answers and run
+  benchmarks* across three axes: system prompts, models, and — when routed
+  through agent-orchestrator — orchestrator rules/settings. Today those
+  comparisons live in scattered places (AO `benchmarks/` runs, model-compat
+  reports, ad-hoc chat re-asks); nothing lets Ethan instigate an A/B/N run and
+  see the answers next to each other with scores. This is also the natural
+  consumer of AO's ForgeBench (F30) and judge-calibration substrate: the
+  arena renders what those already measure.
+- **The interface rule (core design constraint):** orchestrator rules/settings
+  surface as a few **big levers** — e.g. Verification strictness
+  (off / standard / earn-the-dark), Budget posture (thrifty / standard /
+  generous), Autonomy (review-everything / auto-merge-eligible), Model tier
+  routing (fast / balanced / best) — NOT a listing of every knob. Each lever
+  compiles down to a full AO config bundle (routing.json + campaign flags +
+  verification profile). An **Advanced mode** exposes the compiled bundle for
+  per-knob overrides later; v1 ships levers only. Presets are named, saved,
+  and diffable so a benchmark row can say "Standard vs Earn-the-dark" in
+  plain words.
+- **Shape:** pick a task set (single prompt, saved prompt list, or a
+  ForgeBench/benchmark slice) × pick 2–4 configurations (prompt/model/lever
+  preset) → run → side-by-side answer panes + score row (judge verdict,
+  cost, latency, pass/fail where a verifier exists) → one-click "adopt this
+  config" writes the winning preset back. Reuses AO's order-swap judge
+  calibration (F15) so pairwise scoring is position-bias-safe.
+- **Home:** GatesAI Chat is the front-runner (it already owns the chat
+  workbench + artifacts dock + eval-harness groundwork in idea #1; a
+  comparison view is a workbench feature, honoring the two-surface rule — no
+  new surfaces). Visions is the fallback home if the arena turns out to be
+  more about orchestrator-config benchmarking than chat answers. Decide at
+  design-doc time, not now.
+- **First step:** design doc (`/design-doc`) covering: the lever→config
+  compilation table (which AO settings each lever moves), the run envelope
+  (arena runs are real spend — caps + `--max-runtime-minutes` mandatory), and
+  the v1 cut (2 columns, single prompt, manual judge). Groundwork to cite:
+  AO `benchmarks/` + `benchTracker.ts`, model-compat runner here, F15
+  calibration, F30 ForgeBench spec.
