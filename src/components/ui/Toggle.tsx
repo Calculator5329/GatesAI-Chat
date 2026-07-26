@@ -33,9 +33,11 @@ export function Toggle({ on, onChange, disabled }: ToggleProps) {
           display: 'block',
           width: 14, height: 14, borderRadius: '50%',
           background: on ? 'var(--accent-contrast)' : 'var(--toggle-thumb-off)',
-          position: 'absolute', top: 2,
-          left: on ? 16 : 2,
-          transition: `left ${tokens.motion.fast}, background-color ${tokens.motion.fast}`,
+          // Travel on the compositor. `left` was laying out every frame, on the
+          // most-toggled control in the app.
+          position: 'absolute', top: 2, left: 2,
+          transform: on ? 'translateX(14px)' : 'none',
+          transition: `transform ${tokens.motion.fast}, background-color ${tokens.motion.fast}`,
         }}
       />
     </button>

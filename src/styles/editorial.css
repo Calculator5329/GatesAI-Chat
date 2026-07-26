@@ -4,8 +4,17 @@
  */
 
 :root {
-  --motion-fast: 140ms ease;
-  --motion-fade: 160ms ease;
+  /* Duration and easing are separate tokens. They used to be one combined
+     value, which meant any `animation: name var(--motion-fade) ease` site
+     expanded to `160ms ease ease`, failed to parse, and silently fell back
+     to animation-name:none. Four entrance animations and the thread-switch
+     view transition were dead in shipped builds because of it. Keep the
+     combined tokens for `transition:` shorthands, which are unaffected. */
+  --motion-fast-dur: 140ms;
+  --motion-fade-dur: 160ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --motion-fast: var(--motion-fast-dur) var(--motion-ease);
+  --motion-fade: var(--motion-fade-dur) var(--motion-ease);
   --focus-ring: color-mix(in srgb, var(--accent) 56%, transparent);
   --focus-ring-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --interactive-hover: color-mix(in srgb, var(--text) 8%, transparent);
@@ -15,7 +24,7 @@
   --scrollbar-thumb-hover: color-mix(in srgb, var(--border) 62%, var(--accent) 24%);
 }
 
-:where(button, [role="button"], input, textarea, select, a[href]):focus-visible {
+:where(button, [role="button"], input, textarea, select, a[href], [tabindex]:not([tabindex="-1"])):focus-visible {
   outline: 2px solid var(--focus-ring) !important;
   outline-offset: 2px !important;
   box-shadow: 0 0 0 3px var(--focus-ring-glow);
@@ -438,7 +447,7 @@
   contain: layout style paint;
   /* Brief fade-in/slide-up so the optimistic user message and the new
      assistant placeholder both feel like they "arrive" rather than pop. */
-  animation: fadeIn var(--motion-fade) ease both;
+  animation: fadeIn var(--motion-fade-dur) var(--motion-ease) both;
 }
 
 .editorial-message:active {
@@ -490,7 +499,7 @@
   font: 11px "Geist Mono", ui-monospace, monospace;
   cursor: pointer;
   backdrop-filter: blur(10px);
-  animation: fadeIn var(--motion-fade) ease both;
+  animation: fadeIn var(--motion-fade-dur) var(--motion-ease) both;
 }
 .editorial-jump-to-bottom:hover {
   border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
@@ -504,12 +513,23 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
+  position: relative;
   background: var(--accent);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+}
+/* The halo is a pseudo-element scaling on the compositor. It used to animate
+   box-shadow, which repaints every frame, forever, on a control that is
+   on-screen precisely while the user is reading. */
+.editorial-jump-to-bottom__dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
   animation: jumpPillPulse 1.4s ease-out infinite;
 }
 @keyframes jumpPillPulse {
-  60%, 100% { box-shadow: 0 0 0 6px transparent; }
+  0%       { transform: scale(1);   opacity: 0.7; }
+  60%, 100% { transform: scale(2.7); opacity: 0; }
 }
 .message-copy-hint,
 .message-copy-feedback {
@@ -528,7 +548,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   pointer-events: none;
-  animation: fadeIn var(--motion-fade) ease;
+  animation: fadeIn var(--motion-fade-dur) var(--motion-ease);
 }
 .message-copy-feedback {
   color: var(--accent);
@@ -1067,15 +1087,6 @@
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-/* Looping attention pulse so the first-run cue is impossible to miss. */
-@keyframes gatesCoachPulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
-  55%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent); }
-}
-@keyframes gatesBrandDotPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
-  50%      { transform: scale(1.6); box-shadow: 0 0 10px 2px var(--accent-glow); }
-}
 .editorial-sidebar__menu-coach {
   position: relative;
   margin: 2px 16px 14px;
@@ -1090,7 +1101,7 @@
   border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
   border-radius: 9px;
   cursor: pointer;
-  animation: gatesCoachIn var(--motion-fade) ease both;
+  animation: gatesCoachIn var(--motion-fade-dur) var(--motion-ease) both;
 }
 .editorial-sidebar__menu-coach:hover {
   background: color-mix(in srgb, var(--accent) 30%, var(--panel));
@@ -1396,7 +1407,6 @@
 .web-lite-download-cue:focus-within {
   opacity: 1;
   transform: translate(0, 0);
-  animation-play-state: paused;
 }
 
 .undo-toast {

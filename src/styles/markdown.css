@@ -464,11 +464,23 @@
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
   color: var(--text);
 }
+/* The frame only reserves render height when there is something to render.
+   It used to hold clamp(260px, 44vw, 420px) in every state and paint it
+   #ffffff, so a one-line "bridge offline" message punched a full-width white
+   hole into a dark transcript. Mermaid, a few rules up, is the model: tokens
+   for colour, height derived from content. */
 .html-artifact-preview__frame {
   display: block;
+  overflow: hidden;
+  background: var(--panel);
+}
+.html-artifact-preview__frame:has(iframe),
+.html-artifact-preview__frame:has(.html-artifact-preview__source) {
   height: clamp(260px, 44vw, 420px);
   background: #ffffff;
-  overflow: hidden;
+}
+.html-artifact-preview__frame:has(.html-artifact-preview__source) {
+  background: var(--md-code-bg-block);
 }
 .html-artifact-preview__frame iframe {
   width: 100%;
@@ -478,14 +490,21 @@
   pointer-events: none;
 }
 .html-artifact-preview__fallback {
-  height: 100%;
   display: grid;
   place-items: center;
-  padding: 18px;
-  color: #687182;
-  background: #f7f8fb;
+  padding: 22px 18px;
+  color: var(--text-faint);
+  background: var(--inset-bg-strong);
   text-align: center;
   font: 12px "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+.dock-html-artifact .html-artifact-preview__frame:has(iframe) {
+  height: 100%;
+}
+.dock-html-artifact .html-artifact-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 .html-artifact-preview__source {
   display: block;
