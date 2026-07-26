@@ -71,7 +71,10 @@ test.describe('settings walkthrough (persistence)', () => {
     await expect(page.locator('textarea').first()).toHaveValue(written);
   });
 
-  test('desktop-only toggles persist, and are absent on Web Lite', async ({ page }) => {
+  // Only the desktop-mocked project runs this file (playwright.config.ts limits
+  // the web-lite project to web-lite.spec.ts), so the Web Lite half of this
+  // claim lives in that file instead.
+  test('the close-to-tray toggle survives a reload', async ({ page }) => {
     await openSettings(page);
     const tray = page.getByRole('switch', { name: 'Close button hides to tray' });
     await expect(tray).toBeVisible();
@@ -84,6 +87,58 @@ test.describe('settings walkthrough (persistence)', () => {
     await reloadInto(page, 'settings');
     await expect(page.getByRole('switch', { name: 'Close button hides to tray' }))
       .toHaveAttribute('aria-checked', String(after));
+  });
+
+  test('a saved fact survives a reload, and delete removes it for good', async ({ page }) => {
+    const fact = 'Ethan prefers short answers with the verification gap named.';
+    await page.goto('/#/menu/agent');
+    await expect(page.getByRole('heading', { name: 'Agent' })).toBeVisible();
+
+    await page.getByPlaceholder('Add a memory', { exact: false }).fill(fact);
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.getByText(fact)).toBeVisible();
+
+    await reloadInto(page, 'agent');
+    await expect(page.getByText(fact)).toBeVisible();
+
+    // Deleting has to persist too, or a "removed" fact quietly comes back and
+    // keeps being supplied to the model.
+    await page.getByTitle('Delete').first().click();
+    await expect(page.getByText(fact)).toHaveCount(0);
+    await reloadInto(page, 'agent');
+    await expect(page.getByText(fact)).toHaveCount(0);
+  });
+
+  test('the Ollama address survives a reload', async ({ page }) => {
+    const address = 'http://127.0.0.1:11500';
+    await page.goto('/#/menu/models');
+    await expect(page.getByRole('heading', { name: 'Models' })).toBeVisible();
+
+    const field = page.getByPlaceholder('http://127.0.0.1:11434');
+    await expect(field).toBeVisible();
+    await field.fill(address);
+    // Committed on Enter, same as the Refresh models button.
+    await field.press('Enter');
+
+    await reloadInto(page, 'models');
+    await expect(page.getByPlaceholder('http://127.0.0.1:11434')).toHaveValue(address);
+  });
+
+  test('changing a setting never throws in the page', async ({ page }) => {
+    // The theme switcher was broken for as long as it existed because nothing
+    // watched for the uncaught TypeError it threw on every click. A silent
+    // no-op looks identical to a working control from the outside.
+    const errors: string[] = [];
+    page.on('pageerror', error => errors.push(error.message));
+
+    await openSettings(page);
+    for (const name of ['Dark', 'Light', 'System']) {
+      await page.getByRole('button', { name, exact: true }).click();
+    }
+    await page.getByRole('switch', { name: 'Automatic thread titles' }).click();
+    await page.getByRole('switch', { name: 'Close button hides to tray' }).click();
+
+    expect(errors).toEqual([]);
   });
 
   test('every switch on the settings page reports its state to assistive tech', async ({ page }) => {

@@ -69,6 +69,12 @@ changes.
       Dark/Light/System did nothing. Audited every other setter passed as a
       bare prop; `setTheme` was the only hole. Unit test asserts the whole set,
       and was confirmed to fail with the fix reverted.
+      *Extended:* saved facts (add, persist, delete, stay deleted), the Ollama
+      address, and a guard that clicking any setting throws nothing in the
+      page, which is the class of failure the theme bug belonged to. One test
+      title claimed Web Lite coverage the desktop-only project cannot provide;
+      the claim now lives in `web-lite.spec.ts`, where it asserts the
+      desktop-only switches are absent rather than inert. e2e 28 -> 37.
 - [ ] **A. Task center on Web Lite.** *(investigated, deliberately not done)*
       Wiring the unread `requiresBridge` flag turned out to be the wrong fix:
       every dock panel already handles bridge-offline with its own specific
