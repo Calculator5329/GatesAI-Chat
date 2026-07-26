@@ -112,8 +112,8 @@ test.describe('chat interaction polish', () => {
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('const exact = "copied";');
   });
 
-  test('toggles a complete fenced HTML document between source and sandboxed preview', async ({ page }) => {
-    const html = '<!doctype html><html><body><h1>Preview works</h1></body></html>';
+  test('announces a complete fenced HTML document instead of embedding a frame', async ({ page }) => {
+    const html = '<!doctype html><html><title>Handoff works</title><body><h1>Preview works</h1></body></html>';
     await seedThreads(page, [makeThread('html-thread', 'HTML test', [{
       id: 'html-message',
       role: 'assistant',
@@ -123,13 +123,15 @@ test.describe('chat interaction polish', () => {
     await mockOpenRouter(page);
     await page.goto('/');
 
-    await page.getByRole('button', { name: 'Preview', exact: true }).click();
-    const frame = page.locator('.inline-html-preview iframe');
-    await expect(frame).toBeVisible();
-    await expect(frame).toHaveAttribute('sandbox', /allow-scripts/);
-    expect(await frame.getAttribute('sandbox')).not.toContain('allow-same-origin');
-    await page.getByRole('button', { name: 'Source', exact: true }).click();
-    await expect(frame).toHaveCount(0);
+    const card = page.getByTestId('inline-html-document-card');
+    await expect(card).toBeVisible();
+    await expect(card.locator('.html-document-card__name')).toHaveText('Handoff works');
+    await expect(card.getByRole('button', { name: 'Open', exact: true })).toBeVisible();
+    await expect(card.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
+    // The 420px white slab is gone: the transcript embeds no frame at all.
+    await expect(page.locator('.inline-html-preview')).toHaveCount(0);
+    await expect(page.locator('.code-block iframe')).toHaveCount(0);
+    // ...and the source is still right there.
     await expect(page.locator('.code-block code')).toContainText('Preview works');
   });
 });

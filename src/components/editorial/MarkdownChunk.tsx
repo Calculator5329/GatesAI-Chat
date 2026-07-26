@@ -9,12 +9,10 @@ import type { PluggableList } from 'unified';
 import { isWorkspacePath } from '../../core/workspacePaths';
 import type { BridgeStore } from '../../stores/BridgeStore';
 import {
-  downloadHtmlDocument,
   HtmlArtifactPreview,
-  InlineHtmlDocument,
+  InlineHtmlDocumentCard,
   isCompleteHtmlDocument,
   isHtmlWorkspacePath,
-  openHtmlDocument,
 } from './HtmlArtifactPreview';
 import { MermaidDiagram } from './MermaidDiagram';
 import { hasClosedFencedCodeBlock } from './markdownChunks';
@@ -88,7 +86,6 @@ interface CodeBlockProps extends ComponentPropsWithoutRef<'pre'> {
 function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnabled, ...rest }: CodeBlockProps) {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [wrapped, setWrapped] = useState(false);
-  const [htmlView, setHtmlView] = useState<'source' | 'preview'>('source');
   useEffect(() => {
     if (copyState === 'idle') return;
     const timeout = window.setTimeout(() => setCopyState('idle'), 1_400);
@@ -114,11 +111,6 @@ function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnab
     <div className="code-block">
       <div className="code-block__toolbar">
         <span className="code-block__language">{language ?? 'Code'}</span>
-        {htmlDocument && (
-          <button type="button" aria-pressed={htmlView === 'preview'} onClick={() => setHtmlView(view => view === 'source' ? 'preview' : 'source')}>
-            {htmlView === 'source' ? 'Preview' : 'Source'}
-          </button>
-        )}
         <button
           type="button"
           aria-label={lineNumbers ? 'Hide line numbers' : 'Show line numbers'}
@@ -140,14 +132,8 @@ function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnab
         >
           {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Copy failed' : 'Copy'}
         </button>
-        {htmlDocument && (
-          <>
-            <button type="button" onClick={() => openHtmlDocument(text)}>Open</button>
-            <button type="button" onClick={() => downloadHtmlDocument(text)}>Download</button>
-          </>
-        )}
       </div>
-      {htmlDocument && htmlView === 'preview' ? <InlineHtmlDocument html={text} /> : (
+      {htmlDocument && <InlineHtmlDocumentCard html={text} />}
       <div className={`code-block__body${lineNumbers ? ' code-block__body--numbered' : ''}${wrapped ? ' code-block__body--wrapped' : ''}`}>
         {lineNumbers && (
           <span className="code-block__line-numbers" aria-hidden="true">
@@ -156,7 +142,6 @@ function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnab
         )}
         <pre {...rest}>{code}</pre>
       </div>
-      )}
     </div>
   );
 }
@@ -202,7 +187,7 @@ function CodeOrWorkspaceLink({ bridge, className, children, ...rest }: CodeProps
   const text = childrenToString(children).replace(/\n$/, '');
   if (isInline && isWorkspacePath(text)) {
     if (isHtmlWorkspacePath(text)) {
-      return <HtmlArtifactPreview path={text} />;
+      return <HtmlArtifactPreview path={text} variant="inline" />;
     }
     return <WorkspacePathLink path={text} bridge={bridge} />;
   }
@@ -220,7 +205,7 @@ function AnchorOrWorkspaceLink({ bridge, href, children, ...rest }: AnchorProps)
   const target = typeof href === 'string' ? href : '';
   if (target && isWorkspacePath(target)) {
     if (isHtmlWorkspacePath(target)) {
-      return <HtmlArtifactPreview path={target} label={childrenToString(children)} />;
+      return <HtmlArtifactPreview path={target} label={childrenToString(children)} variant="inline" />;
     }
     return <WorkspacePathLink path={target} bridge={bridge} />;
   }

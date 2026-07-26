@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { copyCodeToClipboard, languageLabelFromClassName } from '../../../src/components/editorial/MarkdownChunk';
-import { isCompleteHtmlDocument } from '../../../src/components/editorial/HtmlArtifactPreview';
+import { htmlDocumentTitle, isCompleteHtmlDocument } from '../../../src/components/editorial/HtmlArtifactPreview';
 
 describe('rendered code block helpers', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -15,6 +15,13 @@ describe('rendered code block helpers', () => {
     expect(isCompleteHtmlDocument('<!doctype html><html><body>Ready</body></html>')).toBe(true);
     expect(isCompleteHtmlDocument('<html><body>Still streaming')).toBe(false);
     expect(isCompleteHtmlDocument('<section>HTML fragment</section>')).toBe(false);
+  });
+
+  it('names a fenced HTML document from its title, or not at all', () => {
+    expect(htmlDocumentTitle('<html><title>Quarterly report</title></html>')).toBe('Quarterly report');
+    expect(htmlDocumentTitle('<title lang="en">\n  Spread   out\n</title>')).toBe('Spread out');
+    expect(htmlDocumentTitle('<html><title>   </title></html>')).toBeNull();
+    expect(htmlDocumentTitle('<html><body>No title here</body></html>')).toBeNull();
   });
 
   it('copies the exact code text to the clipboard', async () => {

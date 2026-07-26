@@ -42,7 +42,7 @@ function renderInline(content: string, bridge: BridgeStore | undefined): ReactNo
 
 function renderCode(text: string, bridge: BridgeStore | undefined, key: number): ReactNode {
   if (isWorkspacePath(text)) {
-    if (isHtmlWorkspacePath(text)) return <HtmlArtifactPreview key={`html-code-${key}`} path={text} />;
+    if (isHtmlWorkspacePath(text)) return <HtmlArtifactPreview key={`html-code-${key}`} path={text} variant="inline" />;
     if (bridge) return <WorkspacePathLink key={`workspace-code-${key}`} path={text} bridge={bridge} />;
   }
   return <code key={`code-${key}`}>{text}</code>;
@@ -51,7 +51,7 @@ function renderCode(text: string, bridge: BridgeStore | undefined, key: number):
 function renderLink(label: string, href: string, bridge: BridgeStore | undefined, key: number): ReactNode {
   if (isWorkspacePath(href)) {
     if (isHtmlWorkspacePath(href)) {
-      return <HtmlArtifactPreview key={`html-link-${key}`} path={href} label={label} />;
+      return <HtmlArtifactPreview key={`html-link-${key}`} path={href} label={label} variant="inline" />;
     }
     if (bridge) return <WorkspacePathLink key={`workspace-link-${key}`} path={href} bridge={bridge} />;
   }

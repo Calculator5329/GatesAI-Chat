@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-07-26 — Transcript HTML: announce and hand off, never embed
+
+- Wired the compact `inline` artifact card into the transcript. The `variant`
+  prop existed but no call site passed it, so mentioning a workspace HTML path
+  still built a `clamp(260px, 44vw, 420px)` white wall in a dark thread —
+  visible at the top of `docs/audits/screens-2026-07/screen-chat-tool-activity.png`.
+  All four transcript entry points (`MarkdownChunk` inline code and links,
+  `MarkdownFallback`'s two equivalents) now render the card; the dock keeps the
+  full `panel` variant.
+- The compact card always offers **View** (the full-screen modal — the one
+  surface both runtimes have) and adds **Open in dock** on desktop. Web Lite
+  has no dock, so it gets the modal rather than a button that does nothing.
+  View renders disabled until the read lands, so it can't shift the layout
+  under the reader.
+- Complete fenced HTML documents get the same treatment: the transcript's
+  fixed-height sandboxed frame is replaced by an `.html-document-card` naming
+  the document (from its `<title>`), its line count, and offering Open /
+  Download, with the source still readable below. The Preview/Source toggle is
+  gone — there is no second mode left to toggle to.
+- `InlineHtmlDocument` and its sandbox policy are unchanged and now render only
+  in the dock's file viewer, which already sized them to the cell.
+
 ## 2026-07-20 — Multi-surface owner feedback session
 
 - Added one durable, plain-English runbook covering the recent GatesAI depth

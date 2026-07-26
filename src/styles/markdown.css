@@ -280,8 +280,11 @@
   overflow-x: auto;
 }
 
+/* Only the dock renders this now (see .dock-file-viewer--html, which sizes it
+   to the cell). The transcript hands complete fenced documents to
+   .html-document-card instead of embedding a white slab in a dark thread. */
 .inline-html-preview {
-  height: clamp(260px, 44vw, 420px);
+  height: 100%;
   background: #fff;
 }
 .inline-html-preview iframe {
@@ -405,6 +408,11 @@
   cursor: pointer;
   font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
 }
+/* The inline variant is the whole card — there is no frame under the bar, so
+   the bar must not draw a divider against nothing. */
+.html-artifact-preview[data-variant="inline"] .html-artifact-preview__bar {
+  border-bottom: 0;
+}
 .html-artifact-preview__bar {
   display: flex;
   align-items: center;
@@ -459,10 +467,14 @@
   font: 12px "Geist", ui-sans-serif, system-ui, sans-serif;
   cursor: pointer;
 }
-.html-artifact-preview__open:hover,
+.html-artifact-preview__open:hover:not(:disabled),
 .html-artifact-fullscreen__actions button:hover {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
   color: var(--text);
+}
+.html-artifact-preview__open:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 /* The frame only reserves render height when there is something to render.
    It used to hold clamp(260px, 44vw, 420px) in every state and paint it
@@ -523,6 +535,50 @@
   font: var(--md-code-font-size)/1.6 "Geist Mono", ui-monospace, monospace;
   white-space: pre;
 }
+/* Sits between a code block's toolbar and its source: announces the document
+   and offers the handoff, borrowing the artifact card's eyebrow/name/actions
+   language so both HTML entry points read the same. */
+.html-document-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--md-code-border);
+  background: color-mix(in srgb, var(--md-code-head) 82%, var(--accent) 5%);
+  font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+.html-document-card__meta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.html-document-card__eyebrow {
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.html-document-card__name {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.html-document-card__detail {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.html-document-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .html-artifact-fullscreen {
   position: fixed;
   inset: 0;

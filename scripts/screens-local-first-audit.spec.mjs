@@ -78,11 +78,16 @@ test('captures every source-audited screen, panel, and modal', async ({ page }) 
   await capture(page, 'screen-picker-skill.png');
 
   await openState(page, baseSeed(), '/#/thread/audit');
+  // The transcript card is compact and frameless now; it opens the modal
+  // (Web Lite has no dock) once the artifact read has landed.
   const artifact = page.locator('.html-artifact-preview').first();
   await artifact.scrollIntoViewIfNeeded();
   await expect(artifact).toBeVisible();
-  await expect(artifact.locator('iframe')).toBeVisible({ timeout: 15_000 });
-  await artifact.click();
+  // "View" renders immediately but stays disabled until the artifact read
+  // lands, so wait on enabled rather than on visible.
+  const view = artifact.getByRole('button', { name: 'View', exact: true });
+  await expect(view).toBeEnabled({ timeout: 15_000 });
+  await view.click();
   await expect(page.getByRole('dialog', { name: /HTML artifact audit-report\.html/ })).toBeVisible();
   await capture(page, 'screen-modal-html-artifact.png');
 
