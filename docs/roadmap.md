@@ -445,6 +445,13 @@ composer quieter.
       e2e suite (green in `npm run test:e2e`); a report doc under `docs/audits/`
       listing per-setting verdicts; a checklist of proposed removals/merges
       filed as follow-up items for review.
+      *Partial, 2026-07-26 (`ui/taste-pass-20260726`):* the report exists at
+      `docs/audits/2026-07-26-settings-and-motion.md` with per-area verdicts and
+      a removal proposal, and three dead things were removed. **The Playwright
+      walkthrough is still unwritten and is the more valuable half**, because it
+      catches settings that look wired but do not persist, which reading the
+      source cannot. The six structural proposals need an owner decision on the
+      grouping first.
 
 
 - [x] **Flaky-test sweep.** *(done 2026-07-10)* Run the unit suite 5× and the e2e suite 3× in a

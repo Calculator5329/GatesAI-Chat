@@ -1,5 +1,49 @@
 # Changelog
 
+## 2026-07-26 — v2 UI taste pass: the animations were dead, and the artifact card was a white hole
+
+Branch `ui/taste-pass-20260726`. Not merged.
+
+- **Four entrance animations and the thread-switch view transition had never
+  run in a shipped build.** `editorial.css` baked the easing into
+  `--motion-fast`/`--motion-fade`, so every `animation: fadeIn var(--motion-fade)
+  ease` call site expanded to `160ms ease ease`, failed to parse, and fell back
+  to `animation-name: none`. Duration and easing are now separate tokens.
+  Measured in two running builds: `animationName` went from `none` to `fadeIn`.
+- **The HTML artifact card punched a white hole in a dark transcript.** The
+  frame reserved `clamp(260px, 44vw, 420px)` in *every* state and painted it
+  `#ffffff`, with an `#f7f8fb` fallback panel, none of it tokenised, so a
+  one-line "bridge offline" message occupied the same 420px as a working
+  render. The frame now takes render height only when something is rendering.
+  The transcript form of the card announces the artifact and hands off to the
+  dock, which already auto-opens on creation; previously *every mention* of a
+  workspace HTML path in prose embedded its own frame.
+- **A task you cancelled came back as Failed.** The deliberate-cancel marker
+  lived in an in-memory Set, while `agentTaskStatus` persists `interrupted` for
+  both "the user cancelled me" and "I died". The flag now lives on the thread.
+- **The sidebar foot is a Settings button.** It was a pill narrating "workspace
+  ready" at you permanently in the one always-visible slot in the app. Bridge
+  state survives as the dot, which still force-polls on click. Web Lite keeps
+  its label in words, because that is a permanent runtime mode rather than a
+  transient status.
+- Undo toast enters and leaves instead of popping; the dock animates its
+  collapse (its two render branches are unified so width has something to
+  transition across); the jump-pill halo scales a pseudo-element instead of
+  repainting `box-shadow` forever; the `Toggle` knob travels by `transform`;
+  reduced-motion now reaches view-transition pseudo-elements.
+- Message head rows no longer reserve a 32px band, closing ~19px of dead air
+  between the model name and the first activity row.
+- Deleted branching that could never branch: the `supported`/"Coming soon"
+  machinery, `ProviderCard`'s unreachable base-URL flow left over from the
+  retired openai-compat provider, and a duplicate set of menu-section labels
+  defined in two files in two different orders.
+- `vite.config.ts` honours `GATESAI_WATCH_POLL=1`. Two Electron apps on the dev
+  box hold 99.89% of the inotify watch ceiling between them, so vite dies with
+  ENOSPC; polling is the opt-in escape hatch, off in CI.
+- New: `docs/audits/2026-07-26-settings-and-motion.md` (partially satisfies
+  QA-1) and `docs/plans/2026-07-26-follow-up-while-streaming.md`.
+
+
 ## 2026-07-26 — The screenshot corpus was one surface short, and the copy hint was unreadable
 
 - **LF-9 closed.** `screen-chat-tool-activity.png` was byte-identical to
