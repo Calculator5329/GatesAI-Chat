@@ -1464,8 +1464,19 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  /* Enter and exit rather than pop. `data-shown` is set on the frame after
+     mount and cleared before unmount; see UndoToast.tsx. */
+  opacity: 0;
+  transform: translateX(-50%) translateY(6px);
+  transition: opacity var(--motion-fade-dur) var(--motion-ease),
+              transform var(--motion-fade-dur) var(--motion-ease);
   color: var(--text-dim);
   font: 12px/1.4 "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+.undo-toast[data-shown="true"] {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .undo-toast__message {

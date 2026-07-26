@@ -30,9 +30,16 @@ changes.
       no migration. Four regression tests: two in TaskStore (cancelled vs
       self-interrupted after a reload) and two in persistence (round-trip plus
       an older snapshot).
-- [ ] **C. Motion leftovers from the audit.** The undo toast appears and
-      vanishes with zero motion; the dock collapses and expands with no
-      transition at all (the largest un-animated layout change in the app).
+- [~] **C. Motion leftovers from the audit.** *(toast done; dock deferred)*
+      Undo toast now enters and exits: it mounts un-shown, marks itself shown
+      on the next frame, and stays mounted through a 160ms exit instead of
+      vanishing the instant the timeout fires. Three tests defend it.
+      **Dock collapse is NOT done and is not a CSS fix**: `DockPanel` renders
+      the collapsed rail and the expanded panel as two different branches, so
+      the element unmounts and remounts and there is nothing for a width
+      transition to cross. Animating it means unifying them into one root with
+      a class toggle, which moves `data-testid` around and touches
+      `dock.spec.ts`. Worth doing, but as its own change.
 - [ ] **D. Transition token adoption.** 31 of 49 `transition:` declarations use
       hand-written durations. Six ad-hoc values orbit the two tokens
       (`.15s`, `.18s`, `120ms`, `.2s`, `180ms`, `0.12s`) with no perceptible
