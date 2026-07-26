@@ -300,6 +300,14 @@ export interface Thread {
   agentTaskOriginThreadId?: string;
   /** Persisted lifecycle marker for background task recovery and sidebar grouping. */
   agentTaskStatus?: 'scheduled' | 'running' | 'done' | 'error' | 'interrupted';
+  /**
+   * True when the user cancelled this task rather than it dying on its own.
+   * `agentTaskStatus` records 'interrupted' for both, so without this flag a
+   * task you cancelled deliberately reads back as "Failed" after a reload.
+   * Purely additive and optional: older snapshots simply lack it and read as
+   * not-cancelled, which is exactly the pre-fix behaviour.
+   */
+  agentTaskCancelled?: boolean;
   /** Scheduled epoch time for delayed background tasks. */
   agentTaskScheduledStartAt?: number;
   /** Optional replacement body for the background task system prompt. */

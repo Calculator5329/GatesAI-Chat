@@ -66,6 +66,9 @@ function setup(options: { images?: ImageJob[]; history?: CompletedJob[]; agents?
       const thread = agents.find(candidate => candidate.id === threadId);
       if (!thread) return false;
       thread.agentTaskStatus = 'interrupted';
+      // Mirrors AgentTaskLifecycle.cancel: the deliberate-cancel marker is
+      // written onto the thread so it survives persistence.
+      thread.agentTaskCancelled = true;
       return true;
     }),
     retryAgentTask: vi.fn(() => true),
@@ -145,5 +148,33 @@ describe('TaskStore unified facade', () => {
     expect(store.cancel('agent-running')).toBe(true);
     expect(chat.cancelAgentTask).toHaveBeenCalledWith('agent-running');
     expect(store.tasks.find(task => task.id === 'agent-running')?.status).toBe('cancelled');
+  });
+
+  it('still reads as cancelled after a reload, not as failed', () => {
+    // Regression: the cancelled marker used to live in an in-memory Set on
+    // TaskStore, so a task the user cancelled deliberately came back as
+    // "Failed" on the next launch. This thread is what persistence hands back:
+    // no store instance ever saw the cancel happen.
+    const { store } = setup({
+      agents: [agentThread({
+        id: 'agent-cancelled',
+        agentTaskStatus: 'interrupted',
+        agentTaskCancelled: true,
+      })],
+    });
+
+    const task = store.tasks.find(candidate => candidate.id === 'agent-cancelled');
+    expect(task?.status).toBe('cancelled');
+    expect(task?.error).toBeUndefined();
+  });
+
+  it('still reads a self-interrupted task as failed and retryable', () => {
+    const { store } = setup({
+      agents: [agentThread({ id: 'agent-died', agentTaskStatus: 'interrupted' })],
+    });
+
+    const task = store.tasks.find(candidate => candidate.id === 'agent-died');
+    expect(task?.status).toBe('failed');
+    expect(task?.error).toContain('Retry');
   });
 });

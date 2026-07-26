@@ -23,6 +23,11 @@
   doing nothing.
 - Recorded the taste rules behind this pass and the transcript work in
   `docs/taste.md`, which had nothing about either.
+- Closed the roadmap's pre-existing e2e failure (artifactContract "opens a
+  registry artifact from the palette in the dock", open since 2026-07-18). It
+  no longer reproduces — 3/3 green under `--repeat-each=3` and in every full
+  suite run. Fixed by other work in the interim; cause not bisected, so it is
+  marked to reopen rather than be dismissed as flake if it returns.
 
 ## 2026-07-26 — Transcript HTML: announce and hand off, never embed
 

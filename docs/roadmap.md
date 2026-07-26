@@ -729,7 +729,7 @@ not by itself imply acceptance of every proposed implementation detail.
 > Backlog / aspirational — not scheduled (truth pass 2026-07-10)
 
 ### UI/UX
-- [ ] Fix pre-existing e2e failure: artifactContract.spec.ts "opens a registry artifact from the palette in the dock" — dock-panel iframe [title="Preview of Status board"] never appears (fails identically on pre-merge master 7fbac5c; not a Wave-D regression; found 2026-07-18)
+- [x] Fix pre-existing e2e failure: artifactContract.spec.ts "opens a registry artifact from the palette in the dock" — dock-panel iframe [title="Preview of Status board"] never appears (fails identically on pre-merge master 7fbac5c; not a Wave-D regression; found 2026-07-18) *(no longer reproduces 2026-07-26 — passes 3/3 under `--repeat-each=3`, and in every full `test:e2e` run this session. Fixed somewhere between 07-18 and now by other work; the cause was not bisected, so if it returns, reopen rather than assuming flake.)*
 
 - [x] Light theme + follow-system (`prefers-color-scheme`); "paper" palette *(verified already-done, 2026-07-10 truth pass — Wave I; dark/light/system `ThemeMode` in `src/components/menu/sections/Settings.tsx`)*
 - [x] Sidebar date grouping (Today / Yesterday / Previous 7 days) *(done 2026-07-10, burndown w1 — `groupThreadsByDate` in `src/core/threadSelectors.ts`; sidebar history now splits under Today / Yesterday / Previous 7 days / Previous 30 days / by-month headers)*
