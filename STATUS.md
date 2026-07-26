@@ -22,11 +22,14 @@ changes.
 
 ## Queue
 
-- [ ] **B. Cancelled agent tasks read as Failed after a reload.**
-      `TaskStore.cancelledAgentIds` is an in-memory Set, so the
-      interrupted→cancelled mapping is lost on restart. Needs a persisted home;
-      `TaskStore` is a derived read-only facade, so the flag belongs on the
-      thread snapshot that `ChatStore` already owns.
+- [x] **B. Cancelled agent tasks read as Failed after a reload.** *(done)*
+      Added a persisted `Thread.agentTaskCancelled`, written by
+      `AgentTaskLifecycle.cancel` and cleared on retry; `TaskStore` reads it
+      instead of the in-memory Set. Additive and optional, so old snapshots
+      read as not-cancelled, which is exactly the pre-fix behaviour and needs
+      no migration. Four regression tests: two in TaskStore (cancelled vs
+      self-interrupted after a reload) and two in persistence (round-trip plus
+      an older snapshot).
 - [ ] **C. Motion leftovers from the audit.** The undo toast appears and
       vanishes with zero motion; the dock collapses and expands with no
       transition at all (the largest un-animated layout change in the app).
