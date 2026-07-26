@@ -106,6 +106,28 @@ Add or update tests at the layer affected by your change. Consider both desktop 
 desktop-only behavior must be gated cleanly, and Web Lite must degrade explicitly instead of
 half-working.
 
+### Green is not the same as covered
+
+Three separate defects shipped past a fully green suite on 2026-07-26, all with the same
+shape: a check existed, passed, and could not have failed. Before trusting a gate, confirm
+it can fail.
+
+- **Watch a regression test fail before you keep it.** Revert the fix, run the test, see red,
+  restore. A test you have never seen fail is a guess about what it covers. The
+  `setTheme` binding fix was verified this way; the first version of another test in the same
+  session re-implemented the logic it was meant to check inside the spec, so it would have
+  passed with the component completely broken.
+- **A generic fallback can satisfy an "everything is covered" assertion.** A test asserted
+  that every registered tool had an activity label. It passed while three tools rendered
+  their raw registry names, because `registry.register` falls back to `defaultToolUi`, whose
+  generic branch supplies a label too. Assert the *quality* of the value, not its presence.
+- **Check which Playwright project actually runs your spec.** A test named "... and are absent
+  on Web Lite" lived in a file that `playwright.config.ts` only runs under `desktop-mocked`,
+  so the Web Lite half was never executed. A test title is a claim; make sure something runs it.
+- **Adding a prop is not wiring it.** A component gained a `variant` prop and no call site
+  passed it; typecheck, lint and the full suite stayed green while the old behavior shipped.
+  Exercise the change through the running app, not only through the compiler.
+
 ## Architecture rules
 
 The canonical reference is [`docs/architecture.md`](docs/architecture.md). Dependencies flow

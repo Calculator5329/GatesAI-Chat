@@ -139,6 +139,14 @@ changes.
       **Merge state:** `origin/master` has not moved, so the lane is 18 ahead
       and 0 behind. Merging is a fast-forward with no conflicts.
 
+- [x] **L. Wrote down why three defects shipped past a green suite.** *(done)*
+      All three had the same shape: a check existed, passed, and could not have
+      failed. `CONTRIBUTING.md` gains a "Green is not the same as covered"
+      section covering the four variants seen today: an unverified regression
+      test, a generic fallback satisfying an "everything is covered" assertion,
+      a spec whose Playwright project never ran it, and a prop added but never
+      wired. Compounding work, not code.
+
 ## Blocked on Ethan
 
 - Settings restructure: needs a grouping picked (by object / by frequency /
