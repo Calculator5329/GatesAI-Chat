@@ -352,6 +352,9 @@
 .image-job-card__action,
 .image-job-card__image,
 .image-job-card__grid-tile,
+.quiet-dismiss,
+.update-pill__label.quiet-dismiss,
+.update-pill__dismiss,
 .html-artifact-preview,
 .html-artifact-preview__open,
 .html-artifact-fullscreen__action,
@@ -362,6 +365,12 @@
   transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
 }
 
+/* Dismiss and close affordances that carried cursor:pointer and nothing else,
+   so there was no confirmation they were live until you clicked them. */
+.quiet-dismiss:hover:not(:disabled),
+.quiet-dismiss:focus-visible,
+.update-pill__dismiss:hover:not(:disabled),
+.update-pill__dismiss:focus-visible,
 .bridge-status-pill:hover:not([aria-disabled="true"]),
 .editorial-sidebar__new:hover:not(:disabled),
 .editorial-sidebar__close:hover:not(:disabled),

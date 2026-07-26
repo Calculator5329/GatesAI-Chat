@@ -96,6 +96,15 @@ changes.
       round. **One fork needs Ethan**: queue-then-deliver (recommended, has an
       undo) vs post-now-then-mark-read (calmer, cannot be taken back).
 
+- [x] **H. Hover feedback on dismiss affordances.** *(done)*
+      The motion audit flagged that many inline-styled clickables carry
+      `cursor: pointer` and nothing else. Most turned out to be covered by the
+      big shared selector lists in `editorial.css`; the genuine gaps were the
+      update-pill dismiss, the update-pill label when it is a button, and the
+      What's New close. All three now share one `.quiet-dismiss` class added to
+      the existing transition and hover lists, rather than gaining a fourth,
+      fifth and sixth bespoke rule.
+
 ## Blocked on Ethan
 
 - Settings restructure: needs a grouping picked (by object / by frequency /
