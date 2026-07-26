@@ -35,7 +35,7 @@ const ConversationBlock = observer(function ConversationBlock() {
       <div className="settings-section-title" style={tokens.sectionTitle}>Conversations</div>
       <SettingsRow label="Automatic thread titles" last>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-          <Toggle on={ui.autoNamingEnabled} onChange={ui.setAutoNamingEnabled} />
+          <Toggle label="Automatic thread titles" on={ui.autoNamingEnabled} onChange={ui.setAutoNamingEnabled} />
           <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
             Generate a short title after the first response. Turn this off to keep the current or default title.
           </div>
@@ -74,7 +74,7 @@ const DesktopBlock = observer(function DesktopBlock() {
       <div className="settings-section-title" style={tokens.sectionTitle}>Desktop</div>
       <SettingsRow label="Global summon">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-          <Toggle on={ui.globalSummonEnabled} onChange={ui.setGlobalSummonEnabled} />
+          <Toggle label="Global summon" on={ui.globalSummonEnabled} onChange={ui.setGlobalSummonEnabled} />
           <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
             Show, focus, or hide GatesAI from anywhere.
           </div>
@@ -95,7 +95,7 @@ const DesktopBlock = observer(function DesktopBlock() {
       </SettingsRow>
       <SettingsRow label="Close button hides to tray" last>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-          <Toggle on={ui.closeButtonHidesToTray} onChange={ui.setCloseButtonHidesToTray} />
+          <Toggle label="Close button hides to tray" on={ui.closeButtonHidesToTray} onChange={ui.setCloseButtonHidesToTray} />
           <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
             Quit from the tray menu still exits GatesAI completely.
           </div>

@@ -130,12 +130,53 @@
   color: var(--accent) !important;
 }
 
+/* The whole control, not just its hover state. This used to be inline in
+   Toggle.tsx, which meant the press animation below could never win against
+   the thumb's inline transform. Disabled styling comes from the shared
+   :disabled rule above, so this is the one control that no longer dims to its
+   own hardcoded opacity. */
+.ui-toggle {
+  width: 32px;
+  height: 18px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0;
+  position: relative;
+  cursor: pointer;
+  background: var(--surface-wash-10);
+  transition: background-color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast);
+}
+.ui-toggle[data-on] { background: var(--accent); }
+
+.ui-toggle__thumb {
+  display: block;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--toggle-thumb-off);
+  /* Travel on the compositor. `left` was laying out every frame, on the
+     most-toggled control in the app. */
+  transition: transform var(--motion-fast), background-color var(--motion-fast);
+}
+.ui-toggle[data-on] .ui-toggle__thumb {
+  background: var(--accent-contrast);
+  transform: translateX(14px);
+}
+
 .ui-toggle:hover:not(:disabled) {
   box-shadow: 0 0 0 3px var(--focus-ring-glow);
 }
 
+/* Press feedback has to carry the travel with it — a bare scale() would
+   replace translateX and snap the knob back to the left edge mid-press. */
 .ui-toggle:active:not(:disabled) .ui-toggle__thumb {
   transform: scale(0.92);
+}
+.ui-toggle[data-on]:active:not(:disabled) .ui-toggle__thumb {
+  transform: translateX(14px) scale(0.92);
 }
 
 :where(
@@ -468,7 +509,6 @@
 .editorial-show-earlier:focus-visible {
   color: var(--text-dim);
   border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
-  outline: none;
 }
 .editorial-date-separator {
   display: none;
@@ -1216,7 +1256,6 @@
 .web-lite-download-cue__link:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
   background: color-mix(in srgb, var(--panel) 82%, var(--accent) 9%);
-  outline: none;
 }
 
 .editorial-empty-state__ready {
@@ -1288,7 +1327,6 @@
 .editorial-onboarding__card a:hover,
 .editorial-onboarding__card a:focus-visible {
   text-decoration: underline;
-  outline: none;
 }
 
 .editorial-onboarding__card .editorial-empty-state__primary {

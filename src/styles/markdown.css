@@ -167,10 +167,6 @@
   text-align: inherit;
   border-radius: 4px;
 }
-.md-body .workspace-path-link:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
-  outline-offset: 2px;
-}
 .md-body .workspace-path-link code {
   color: var(--accent);
   background: var(--md-code-bg-inline);
@@ -255,7 +251,6 @@
   color: var(--accent);
   animation: codeCopyConfirm 220ms ease-out;
 }
-.code-block__toolbar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 @keyframes codeCopyConfirm {
   from { transform: scale(0.9); opacity: 0.55; }
   to { transform: scale(1); opacity: 1; }

@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-07-26 — Toggle knob and focus-ring defects
+
+- The toggle's press animation had never once run. `.ui-toggle:active` set a
+  `scale(0.92)` on the thumb, but the thumb's `transform` was an inline style,
+  which beats an ordinary stylesheet rule — and had it applied, a bare
+  `scale()` would have replaced `translateX(14px)` and snapped the knob to the
+  left edge mid-press. Presentation moved out of `Toggle.tsx` into
+  `.ui-toggle`, and the pressed-and-on state composes both transforms.
+- The toggle was the one control in the app that dimmed to its own hardcoded
+  `opacity: 0.5`; it now inherits the shared
+  `--interactive-disabled-opacity: 0.45` like everything else. Measured at
+  0.45 against a running build, along with all four resting/pressed transforms.
+- `Toggle` now requires a `label`, rendered as `aria-label`. All six switches
+  were announcing as unlabeled: the visible label lives in a sibling `<div>`
+  that `SettingsRow` never associated with the control. Making the prop
+  required means the next switch can't repeat it.
+- Removed six dead focus declarations: two rules in `markdown.css` that
+  reinvented the focus ring with their own accent mix and offset, and four
+  `outline: none` lines inside `:focus-visible` rules. All were already
+  overridden by the global `!important` ring — code that read as intent while
+  doing nothing.
+- Recorded the taste rules behind this pass and the transcript work in
+  `docs/taste.md`, which had nothing about either.
+
 ## 2026-07-26 — Transcript HTML: announce and hand off, never embed
 
 - Wired the compact `inline` artifact card into the transcript. The `variant`

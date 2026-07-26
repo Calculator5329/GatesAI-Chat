@@ -293,7 +293,6 @@
 .task-center__task--linked:hover,
 .task-center__task--linked:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-  outline: none;
 }
 .task-center__task-head {
   display: grid;
