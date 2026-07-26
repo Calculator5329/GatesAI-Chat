@@ -59,15 +59,26 @@ changes.
       to let the editorial sidebar import from components/menu.
       The eight unwired `UiPrefsSnapshot` fields are NOT dead:
       `animationsEnabled` drives the animation kill-switch. Left alone.
-- [ ] **A. Task center on Web Lite.** `DockStore.available` is desktop-only,
+- [ ] **A. Task center on Web Lite.** *(investigated, deliberately not done)*
+      Wiring the unread `requiresBridge` flag turned out to be the wrong fix:
+      every dock panel already handles bridge-offline with its own specific
+      notice ("Bridge offline." in FileExplorerPanel, and so on), which is more
+      useful than a generic gate would be. The remaining change is purely a
+      product decision about whether the dock should exist on Web Lite at all,
+      so it stays here rather than being made unilaterally. `DockStore.available` is desktop-only,
       but `task-center` is the one panel with `requiresBridge: false`. This is
       what blocks the agent-tasks move: today the dock version is strictly
       richer but does not exist on Web Lite or mobile, so a straight move would
       delete agent tasks from those runtimes.
-- [ ] **F. Follow-up while streaming.** Design doc first. This is turn-pipeline
-      work in `ChatStore`, not styling: a queue that survives a streaming turn,
-      a delivery point at a safe boundary, a resume path, and reconciliation
-      with in-flight tool calls. Three options are live in the harness.
+- [x] **F. Follow-up while streaming.** *(design done, implementation not started)*
+      `docs/plans/2026-07-26-follow-up-while-streaming.md`. Key finding: sending
+      mid-stream is **already** a hard interrupt today
+      (`chatTurnEngine.ts:90-93`), so this changes a default rather than adding
+      a capability, and the existing interrupt path becomes the double-Enter
+      escape hatch unchanged. The safe delivery point is the gap between
+      provider rounds in `turnRunner.ts:231`, which bounds the wait at one
+      round. **One fork needs Ethan**: queue-then-deliver (recommended, has an
+      undo) vs post-now-then-mark-read (calmer, cannot be taken back).
 
 ## Blocked on Ethan
 
