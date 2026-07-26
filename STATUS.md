@@ -3,8 +3,8 @@
 Branch `ui/taste-pass-20260726`, worktree `.claude/worktrees/taste-pass`.
 Pushed to origin. **Not merged, not deployed.**
 
-Ethan asked (2026-07-26 ~03:55 local) to keep iterating this lane until 07:00
-local, working down the list below. Every item ships only behind the full gate:
+Ethan asked to keep iterating this lane until **21:00 local** on 2026-07-26,
+working down the list below. Every item ships only behind the full gate:
 `npm run ci` + `npm run test:e2e`, and `npm run screens:tour` when a surface
 changes.
 
@@ -40,10 +40,15 @@ changes.
       transition to cross. Animating it means unifying them into one root with
       a class toggle, which moves `data-testid` around and touches
       `dock.spec.ts`. Worth doing, but as its own change.
-- [ ] **D. Transition token adoption.** 31 of 49 `transition:` declarations use
-      hand-written durations. Six ad-hoc values orbit the two tokens
-      (`.15s`, `.18s`, `120ms`, `.2s`, `180ms`, `0.12s`) with no perceptible
-      difference and no upside.
+- [x] **D. Transition token adoption.** *(done, and smaller than the audit said)*
+      The audit's "31 of 49" counted `services/chat/libraryExport.ts`, which
+      generates a standalone HTML document with no access to the app's custom
+      properties, so its `.15s` values are correct as written and were left
+      alone. The genuine in-app offenders were six declarations: three in
+      Lightbox (0.18s x2, 0.12s), one 120ms rule in editorial.css, and the
+      180ms task-center progress bar, which got its own named
+      `--motion-progress` token because a progress bar that snaps reads as a
+      glitch rather than as progress.
 - [ ] **E. Settings dead code.** The `supported`/"Coming soon" badge machinery
       is unused; `ProviderCard`'s `needsBaseUrl` branch is unreachable because
       the only caller passes `false`. (The eight unwired `UiPrefsSnapshot`
@@ -67,10 +72,24 @@ changes.
 
 ## Owner action
 
-`openai-codex-desktop` (pid 980417) is leaking inotify watches, about 1.09M of
-the 2097152 per-user ceiling, which makes vite dev servers die with ENOSPC.
-Workaround in use: `server.watch.usePolling`. Real fix is Ethan restarting that
-app, or raising the ceiling:
+**Two Electron apps have eaten the entire inotify budget**, measured
+2026-07-26 14:50 local by summing `inotify wd:` lines across every `/proc/*/fdinfo`:
+
+| pid | process | watches |
+|---|---|---|
+| 980417 | electron (openai-codex-desktop) | 1,094,804 |
+| 1348783 | cursor | 1,000,030 |
+| | **total** | **2,094,834 of 2,097,152 (99.89%)** |
+
+That leaves 2,318 watches for everything else, so any vite dev server dies with
+`ENOSPC` before it finishes booting, in every lane on this box. It is not one
+leaking app, it is two, and restarting only one may not be enough.
+
+Worked around in-repo: `vite.config.ts` now honours `GATESAI_WATCH_POLL=1`,
+which switches the watcher to polling. Opt-in, off in CI, costs CPU. Run e2e
+with `GATESAI_WATCH_POLL=1 npm run test:e2e` on this machine.
+
+Real fix is restarting those two apps, or raising the ceiling:
 
 ```sh
 # inspect

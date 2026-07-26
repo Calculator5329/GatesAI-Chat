@@ -1,4 +1,5 @@
 import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { mockBridgeOnline, mockOllama, mockOpenRouter } from '../tests/e2e/fixtures/harness';
@@ -33,8 +34,17 @@ test('captures every source-audited screen, panel, and modal', async ({ page }) 
   await expect(page.getByText('Local-first audit planning').first()).toBeVisible();
   await capture(page, 'screen-chat-active.png');
 
+  // The point of this surface is the *expanded* tool detail — the layer taste.md
+  // says raw commands and output live behind. Capturing the thread without
+  // opening it produced a file byte-identical to screen-chat-active.png, so the
+  // corpus advertised a surface it never actually captured (LF-9).
   await openState(page, baseSeed(), '/#/thread/audit');
   await expect(page.getByText('Inspected workspace files')).toBeVisible();
+  const activityRow = page.locator('.activity-row__button').first();
+  await expect(activityRow).toHaveAttribute('aria-expanded', 'false');
+  await activityRow.click();
+  await expect(activityRow).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('.activity-row__detail')).toBeVisible();
   await capture(page, 'screen-chat-tool-activity.png');
 
   await page.getByRole('button', { name: 'Edit and resend' }).first().click();
@@ -106,9 +116,29 @@ test('captures every source-audited screen, panel, and modal', async ({ page }) 
 
   const missing = SCREEN_AUDIT_MANIFEST.filter(item => !captured.has(item.file));
   expect(missing, `Manifest entries without a capture: ${missing.map(item => item.file).join(', ')}`).toEqual([]);
+
+  // Two manifest entries claiming distinct surfaces must not be the same image.
+  // screen-chat-tool-activity.png sat byte-identical to screen-chat-active.png
+  // for weeks (LF-9): the tour "captured" it, the manifest counted it, and
+  // nothing noticed the corpus was one surface short.
+  const duplicates = await findDuplicateCaptures();
+  expect(duplicates, `Captures are byte-identical, so a manifest surface was never really taken: ${duplicates.join('; ')}`).toEqual([]);
 });
 
 const captured = new Set();
+
+/** Groups of captured files that share identical bytes, as "a.png == b.png". */
+async function findDuplicateCaptures() {
+  const byHash = new Map();
+  for (const file of [...captured].sort()) {
+    const bytes = await readFile(path.join(OUT_DIR, file));
+    const hash = createHash('sha256').update(bytes).digest('hex');
+    byHash.set(hash, [...(byHash.get(hash) ?? []), file]);
+  }
+  return [...byHash.values()]
+    .filter(group => group.length > 1)
+    .map(group => group.join(' == '));
+}
 
 async function prepareOutput() {
   await mkdir(OUT_DIR, { recursive: true });

@@ -15,6 +15,10 @@
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);
   --motion-fast: var(--motion-fast-dur) var(--motion-ease);
   --motion-fade: var(--motion-fade-dur) var(--motion-ease);
+  /* Deliberately slower than the interaction tokens: a progress bar that
+     snaps reads as a glitch, not as progress. */
+  --motion-progress-dur: 180ms;
+  --motion-progress: var(--motion-progress-dur) var(--motion-ease);
   --focus-ring: color-mix(in srgb, var(--accent) 56%, transparent);
   --focus-ring-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --interactive-hover: color-mix(in srgb, var(--text) 8%, transparent);
@@ -966,7 +970,7 @@
   background: var(--surface-wash-05);
   color: var(--text-dim);
   cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+  transition: border-color var(--motion-fast), background-color var(--motion-fast), color var(--motion-fast);
 }
 
 .memory-disclosure__chip:hover,

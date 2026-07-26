@@ -325,7 +325,7 @@
 .task-center__task--failed .task-center__status { color: var(--danger); }
 .task-center__task--running .task-center__status { color: var(--accent); }
 .task-center__progress { height: 3px; overflow: hidden; border-radius: 2px; background: var(--border); }
-.task-center__progress i { display: block; height: 100%; background: var(--accent); transition: width 180ms ease; }
+.task-center__progress i { display: block; height: 100%; background: var(--accent); transition: width var(--motion-progress); }
 .task-center__error {
   overflow: hidden;
   color: var(--danger);
