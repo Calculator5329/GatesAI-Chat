@@ -445,6 +445,10 @@ composer quieter.
       e2e suite (green in `npm run test:e2e`); a report doc under `docs/audits/`
       listing per-setting verdicts; a checklist of proposed removals/merges
       filed as follow-up items for review.
+      *Walkthrough landed 2026-07-26:* `tests/e2e/settingsWalkthrough.spec.ts`
+      covers the persisted controls and found on its first run that the theme
+      switcher had never worked (unbound `setTheme`). Extending it to the
+      remaining Agent/Models controls is the obvious next increment.
       *Partial, 2026-07-26 (`ui/taste-pass-20260726`):* the report exists at
       `docs/audits/2026-07-26-settings-and-motion.md` with per-area verdicts and
       a removal proposal, and three dead things were removed. **The Playwright

@@ -40,8 +40,15 @@ Branch `ui/taste-pass-20260726`. Not merged.
 - `vite.config.ts` honours `GATESAI_WATCH_POLL=1`. Two Electron apps on the dev
   box hold 99.89% of the inotify watch ceiling between them, so vite dies with
   ENOSPC; polling is the opt-in escape hatch, off in CI.
-- New: `docs/audits/2026-07-26-settings-and-motion.md` (partially satisfies
-  QA-1) and `docs/plans/2026-07-26-follow-up-while-streaming.md`.
+- **The theme switcher never worked.** `setTheme` was missing from UiStore's
+  `action.bound` list, so Settings passing `ui.setTheme` straight to
+  SegmentedControl's `onChange` invoked it with no receiver: clicking
+  Dark/Light/System threw `Cannot set properties of undefined (setting 'theme')`
+  and changed nothing. Found by the new settings walkthrough on its first run,
+  not by reading the code, which is exactly the gap QA-1 predicted.
+- New: `tests/e2e/settingsWalkthrough.spec.ts` (QA-1's walkthrough half),
+  `docs/audits/2026-07-26-settings-and-motion.md` and
+  `docs/plans/2026-07-26-follow-up-while-streaming.md`.
 
 
 ## 2026-07-26 — The screenshot corpus was one surface short, and the copy hint was unreadable

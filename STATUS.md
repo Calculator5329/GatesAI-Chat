@@ -59,6 +59,16 @@ changes.
       to let the editorial sidebar import from components/menu.
       The eight unwired `UiPrefsSnapshot` fields are NOT dead:
       `animationsEnabled` drives the animation kill-switch. Left alone.
+- [x] **G. QA-1 settings walkthrough.** *(done, and it found a live bug)*
+      `tests/e2e/settingsWalkthrough.spec.ts` drives each persisted setting,
+      changes it, reloads and asserts it survived. First run found that the
+      **theme switcher never worked**: `setTheme` was missing from UiStore's
+      `action.bound` list, so Settings passing `ui.setTheme` straight to
+      SegmentedControl's `onChange` called it with no receiver and it threw
+      `Cannot set properties of undefined (setting 'theme')`. Clicking
+      Dark/Light/System did nothing. Audited every other setter passed as a
+      bare prop; `setTheme` was the only hole. Unit test asserts the whole set,
+      and was confirmed to fail with the fix reverted.
 - [ ] **A. Task center on Web Lite.** *(investigated, deliberately not done)*
       Wiring the unread `requiresBridge` flag turned out to be the wrong fix:
       every dock panel already handles bridge-offline with its own specific
