@@ -49,10 +49,16 @@ changes.
       180ms task-center progress bar, which got its own named
       `--motion-progress` token because a progress bar that snaps reads as a
       glitch rather than as progress.
-- [ ] **E. Settings dead code.** The `supported`/"Coming soon" badge machinery
-      is unused; `ProviderCard`'s `needsBaseUrl` branch is unreachable because
-      the only caller passes `false`. (The eight unwired `UiPrefsSnapshot`
-      fields are NOT dead: `animationsEnabled` drives the kill-switch. Leave.)
+- [x] **E. Settings dead code.** *(done)* Removed the `supported`/"Coming soon"
+      machinery from `menuSectionMeta` and `GatesMenu` (every section is
+      supported, so the disabled-tab styling, the badge and the fallback lookup
+      could never render), and `ProviderCard`'s `needsBaseUrl` branch, a
+      leftover from the retired openai-compat provider. Section labels were
+      also duplicated in two files in two different orders; they now live in
+      `core/menuSections.ts`, because the ESLint layer rule correctly refuses
+      to let the editorial sidebar import from components/menu.
+      The eight unwired `UiPrefsSnapshot` fields are NOT dead:
+      `animationsEnabled` drives the animation kill-switch. Left alone.
 - [ ] **A. Task center on Web Lite.** `DockStore.available` is desktop-only,
       but `task-center` is the one panel with `requiresBridge: false`. This is
       what blocks the agent-tasks move: today the dock version is strictly

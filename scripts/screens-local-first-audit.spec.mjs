@@ -40,11 +40,16 @@ test('captures every source-audited screen, panel, and modal', async ({ page }) 
   // corpus advertised a surface it never actually captured (LF-9).
   await openState(page, baseSeed(), '/#/thread/audit');
   await expect(page.getByText('Inspected workspace files')).toBeVisible();
-  const activityRow = page.locator('.activity-row__button').first();
+  // The tool row specifically — `.activity-row__button` alone picks the
+  // Thinking row, whose detail is prose, not tool output.
+  const activityRow = page.locator('.activity-row[data-kind="tool"] .activity-row__button').first();
   await expect(activityRow).toHaveAttribute('aria-expanded', 'false');
   await activityRow.click();
   await expect(activityRow).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('.activity-row__detail')).toBeVisible();
+  // Park the pointer off-canvas: leaving it over the message column bled a
+  // half-clipped "Ctrl/Cmd + click to copy" tooltip into the capture.
+  await page.mouse.move(0, 0);
   await capture(page, 'screen-chat-tool-activity.png');
 
   await page.getByRole('button', { name: 'Edit and resend' }).first().click();

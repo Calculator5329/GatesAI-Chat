@@ -4,7 +4,8 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
-import type { MenuSectionKey, Thread } from '../../core/types';
+import type { Thread } from '../../core/types';
+import { MENU_SECTION_LABELS } from '../../core/menuSections';
 import { useEditorial } from '../../stores/context';
 import { SidebarSettingsButton } from './SidebarSettingsButton';
 import { UpdatePill } from './UpdatePill';
@@ -13,12 +14,6 @@ import { ThreadTitle } from './ThreadTitle';
 // First-run menu coach: show it briefly, then bow out on its own so it never nags.
 const MENU_HINT_TIMEOUT_MS = 9000;
 const HISTORY_ROW_LIMIT = 20;
-const MENU_LABELS: Record<MenuSectionKey, string> = {
-  agent: 'Agent',
-  models: 'Models',
-  settings: 'Settings',
-};
-
 function scheduledAgentTaskLabel(thread: Thread): string {
   const dueAt = thread.agentTaskScheduledStartAt ?? Date.now();
   const minutes = Math.max(1, Math.ceil((dueAt - Date.now()) / 60_000));
@@ -115,7 +110,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   // State + persistence live in UiStore (no direct storage here).
   const showMenuHint = !ui.menuHintSeen && !onMenu;
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-  const mobileMenuTitle = MENU_LABELS[router.menuSection] ?? 'Menu';
+  const mobileMenuTitle = MENU_SECTION_LABELS[router.menuSection] ?? 'Menu';
   const mobileTitle = onMenu
     ? mobileMenuTitle
     : (chat.activeThread?.title || 'New conversation');
