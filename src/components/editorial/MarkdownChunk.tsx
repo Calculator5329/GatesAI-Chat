@@ -63,6 +63,7 @@ export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge, line
     code: (props: ComponentPropsWithoutRef<'code'>) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
     pre: (props: ComponentPropsWithoutRef<'pre'>) => <CodeBlock {...props} lineNumbers={lineNumbers} onLineNumbersChange={onLineNumbersChange} htmlPreviewEnabled={htmlPreviewEnabled} />,
     a: (props: ComponentPropsWithoutRef<'a'>) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,
+    p: (props: ComponentPropsWithoutRef<'p'>) => <ParagraphWithoutOrphanPunctuation {...props} />,
   }), [bridge, lineNumbers, onLineNumbersChange, htmlPreviewEnabled]);
 
   return (
@@ -176,6 +177,25 @@ function useLazyRehypePlugin(loader: MarkdownPluginLoader, enabled: boolean): Re
   }, [enabled, loader, plugin]);
 
   return plugin;
+}
+
+/**
+ * "Open the report at `/workspace/x.html`." renders the path as a block-level
+ * artifact card, which splits the paragraph and leaves the sentence's full stop
+ * stranded on a line of its own underneath. Markdown has no way to express
+ * "this punctuation belongs to the thing above", so drop a trailing child that
+ * is nothing but punctuation and whitespace. Anything with a word in it stays.
+ */
+export function isOrphanPunctuation(child: unknown): boolean {
+  return typeof child === 'string' && /^[\s.,;:!?)\]]*$/.test(child);
+}
+
+function ParagraphWithoutOrphanPunctuation({ children, ...rest }: ComponentPropsWithoutRef<'p'>) {
+  const kids = Children.toArray(children);
+  const kept = kids.length > 1 && isOrphanPunctuation(kids[kids.length - 1])
+    ? kids.slice(0, -1)
+    : kids;
+  return <p {...rest}>{kept}</p>;
 }
 
 interface CodeProps extends ComponentPropsWithoutRef<'code'> {
