@@ -9,6 +9,18 @@ describe('tool activity display metadata', () => {
     expect(missing.map(tool => tool.def.name)).toEqual([]);
   });
 
+  it('never shows a registered tool to the user by its raw name', () => {
+    // The assertion above cannot catch this: registry.register falls back to
+    // defaultToolUi, whose generic branch returns the verb 'Using' and the raw
+    // tool name as the target, so every tool "has a verb" whether or not anyone
+    // wrote one. recall, spawn_task and logs sat in that branch and rendered as
+    // "Using recall" / "Using spawn task" / "Using logs", which is the raw tool
+    // syntax docs/taste.md rules out.
+    const raw = toolRegistry.list().filter(tool => tool.ui?.verb?.({}) === 'Using');
+
+    expect(raw.map(tool => tool.def.name)).toEqual([]);
+  });
+
   it('adds the shared display_text field to every registered tool schema', () => {
     const missing = toolRegistry.toolDefs().filter(def => !def.parameters.properties?.display_text);
 

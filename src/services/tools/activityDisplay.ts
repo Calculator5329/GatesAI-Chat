@@ -112,6 +112,26 @@ const TOOL_UI: Record<string, ToolActivityUi> = {
     verb: () => 'Checking workspace',
     summary: result => summarizeToolResult('workspace', result),
   },
+  // These three used to fall through to the generic 'Using <tool name>' branch,
+  // which renders the raw registry name at the user. docs/taste.md: "Lead with
+  // the goal in plain English ... not raw tool syntax."
+  recall: {
+    verb: () => 'Searching memory',
+    target: args => stringArg(args, 'query'),
+    summary: result => summarizeToolResult('recall', result),
+  },
+  spawn_task: {
+    verb: args => typeof args.start_delay_minutes === 'number' && args.start_delay_minutes > 0
+      ? 'Scheduling a background task'
+      : 'Starting a background task',
+    target: args => stringArg(args, 'title'),
+    summary: result => summarizeToolResult('spawn_task', result),
+  },
+  logs: {
+    verb: () => 'Reading app logs',
+    target: args => stringArg(args, 'scope'),
+    summary: result => summarizeToolResult('logs', result),
+  },
   fs: {
     verb: args => {
       const action = stringArg(args, 'action');

@@ -105,6 +105,19 @@ changes.
       the existing transition and hover lists, rather than gaining a fourth,
       fifth and sixth bespoke rule.
 
+- [x] **I. Three tools were showing users their raw registry names.** *(done)*
+      `recall`, `spawn_task` and `logs` had no `TOOL_UI` entry, so they fell
+      through `defaultToolUi`'s generic branch and rendered as "Using recall",
+      "Using spawn task" and "Using logs" in the transcript. `docs/taste.md`
+      says the opposite: "Lead with the goal in plain English ... not raw tool
+      syntax." They are now "Searching memory", "Starting/Scheduling a
+      background task" and "Reading app logs", with the query, task title and
+      log scope as targets.
+      The existing test claiming "ambient labels for every registered tool"
+      could not have caught this, because the generic fallback also supplies a
+      verb. Added one that asserts no registered tool resolves to the bare verb
+      'Using', and confirmed it fails when a label is removed.
+
 ## Blocked on Ethan
 
 - Settings restructure: needs a grouping picked (by object / by frequency /
