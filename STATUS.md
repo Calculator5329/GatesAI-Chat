@@ -126,6 +126,19 @@ changes.
       declared. Verified by declaring it and re-measuring: byte-identical. No
       edit made. Written up in the audit doc so it is not re-opened.
 
+- [x] **K. Key fields covered, and the lane verified mergeable.** *(done)*
+      The walkthrough now covers the Brave key: set, persist across a reload,
+      clear, and the clear persists too. Plus an assertion that a set key never
+      appears as plain text in the page, since a key sitting in the DOM leaks
+      into screenshots and the screens-tour corpus. Needed a `search-card`
+      testid, because OpenRouter is already keyed by the fixture and an
+      unscoped "Reveal" matches two buttons. That mismatch looked like a broken
+      Brave key at first; it was my selector, confirmed by reading localStorage.
+      **Flake check before calling this mergeable:** 3 consecutive unit runs
+      (1191 each) and 2 consecutive e2e runs (37 each), all green.
+      **Merge state:** `origin/master` has not moved, so the lane is 18 ahead
+      and 0 behind. Merging is a fast-forward with no conflicts.
+
 ## Blocked on Ethan
 
 - Settings restructure: needs a grouping picked (by object / by frequency /

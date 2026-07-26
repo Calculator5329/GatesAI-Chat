@@ -141,6 +141,50 @@ test.describe('settings walkthrough (persistence)', () => {
     expect(errors).toEqual([]);
   });
 
+  test('the Brave search key sets, persists, and clears', async ({ page }) => {
+    // Key fields are the riskiest thing on this surface: they write through a
+    // separate secret path, and a key that looks saved but is not means silent
+    // failures later, in a place the user has no reason to re-check.
+    await page.goto('/#/menu/models');
+    await expect(page.getByRole('heading', { name: 'Models' })).toBeVisible();
+
+    // Scoped to the Brave card: OpenRouter is already keyed by the fixture, so
+    // an unscoped "Reveal" matches two buttons.
+    const card = page.getByTestId('search-card');
+    const field = card.getByPlaceholder('Paste your Brave Search API key…');
+    await expect(field).toBeVisible();
+    await field.fill('brave-test-key');
+    await field.press('Enter');
+    // Once set, the field is replaced by the Reveal/Remove pair.
+    await expect(card.getByRole('button', { name: 'Reveal' })).toBeVisible();
+
+    await reloadInto(page, 'models');
+    await expect(page.getByTestId('search-card').getByRole('button', { name: 'Reveal' })).toBeVisible();
+    await expect(page.getByTestId('search-card')
+      .getByPlaceholder('Paste your Brave Search API key…')).toHaveCount(0);
+
+    // Clearing has to persist too, or a key the user removed is still on disk.
+    await page.getByTestId('search-card').getByRole('button', { name: 'Remove' }).click();
+    await expect(page.getByTestId('search-card')
+      .getByPlaceholder('Paste your Brave Search API key…')).toBeVisible();
+    await reloadInto(page, 'models');
+    await expect(page.getByTestId('search-card')
+      .getByPlaceholder('Paste your Brave Search API key…')).toBeVisible();
+  });
+
+  test('a set key is never rendered in the page text', async ({ page }) => {
+    await page.goto('/#/menu/models');
+    const card = page.getByTestId('search-card');
+    const field = card.getByPlaceholder('Paste your Brave Search API key…');
+    await field.fill('brave-secret-value');
+    await field.press('Enter');
+    await expect(card.getByRole('button', { name: 'Reveal' })).toBeVisible();
+
+    // Masked until asked for. A key sitting in the DOM as plain text would leak
+    // into screenshots, the screens tour corpus, and any bug report.
+    expect(await page.locator('body').innerText()).not.toContain('brave-secret-value');
+  });
+
   test('every switch on the settings page reports its state to assistive tech', async ({ page }) => {
     await openSettings(page);
     // A switch with no aria-checked is invisible to a screen reader and to this
