@@ -553,13 +553,15 @@
 .message-copy-feedback {
   color: var(--accent);
 }
+/* The head row used to reserve min-height:32px for the action buttons plus a
+   10px margin, which left ~19px of dead air between the model name and the
+   first activity row. The buttons size the row on their own. */
 .message-head-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 32px;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 .message-actions {
   flex: none;
@@ -1700,4 +1702,71 @@
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+/* --- v2 sidebar polish (2026-07-26) --- */
+.editorial-sidebar__new {
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast);
+}
+.editorial-sidebar__new:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  color: var(--text);
+}
+.editorial-sidebar__new:hover:not(:disabled) svg {
+  color: var(--accent);
+}
+.editorial-sidebar__new svg {
+  transition: color var(--motion-fast);
+}
+
+/* The foot of the sidebar is the one always-visible slot; it holds the way in
+   to Settings rather than narrating bridge state at the user permanently.
+   Bridge state survives as the dot, which is the honest part of it. */
+.sidebar-settings-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: calc(100% - 32px);
+  margin: 8px 16px 16px;
+  padding: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font: 12.5px "Geist", ui-sans-serif, system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast), color var(--motion-fast);
+}
+.sidebar-settings-button:hover {
+  background: var(--hover-wash);
+  color: var(--text);
+}
+.sidebar-settings-button__mode {
+  margin-left: auto;
+  font: 10.5px "Geist Mono", ui-monospace, monospace;
+  letter-spacing: 0.02em;
+  color: var(--status-blue-text);
+}
+.sidebar-settings-button__mode + .sidebar-settings-button__dot {
+  margin-left: 0;
+}
+.sidebar-settings-button__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  margin-left: auto;
+  transition: background-color var(--motion-fade);
+}
+.sidebar-settings-button__icon {
+  display: flex;
+  color: var(--text-faint);
+  transition: color var(--motion-fast);
+}
+.sidebar-settings-button:hover .sidebar-settings-button__icon {
+  color: var(--accent);
 }

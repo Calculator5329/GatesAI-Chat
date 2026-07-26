@@ -9,7 +9,7 @@ import {
   HTML_ARTIFACT_IFRAME_SANDBOX,
 } from '../../core/htmlArtifactPolicy';
 import { isHtmlWorkspacePath } from '../../core/workspacePaths';
-import { useEditorial } from '../../stores/context';
+import { useDockStore, useEditorial } from '../../stores/context';
 import type { HtmlArtifactPreviewResult } from '../../stores/BridgeStore';
 
 type HtmlLoadState = { status: 'loading' } | HtmlArtifactPreviewResult;
@@ -57,8 +57,21 @@ export function downloadHtmlDocument(html: string, filename = 'artifact.html'): 
   if (previewDocument.revoke) window.setTimeout(previewDocument.revoke, 0);
 }
 
-export function HtmlArtifactPreview({ path, label }: { path: string; label?: string }) {
+/**
+  * `panel` renders the sandboxed preview and is what the dock uses.
+  * `inline` is the transcript form: it announces the artifact and hands off to
+  * the dock, which already auto-opens on creation and is the surface with room
+  * for it. The transcript used to embed a 420px frame per mention of a
+  * workspace HTML path, which meant naming a file twice built two walls.
+  */
+export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
+  path: string;
+  label?: string;
+  variant?: 'inline' | 'panel';
+}) {
+  const inline = variant === 'inline';
   const { bridge } = useEditorial();
+  const dock = useDockStore();
   const [state, setState] = useState<HtmlLoadState>(() => {
     const cached = bridge.peekHtmlArtifactPreview(path);
     return cached ? { status: 'ready', ...cached } : { status: 'loading' };
@@ -75,12 +88,13 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
   useEffect(() => () => previewDocument?.revoke?.(), [previewDocument]);
 
   useEffect(() => {
+    if (inline) return;
     let cancelled = false;
     void bridge.loadHtmlArtifactPreview(path).then(next => {
       if (!cancelled) setState(next);
     });
     return () => { cancelled = true; };
-  }, [bridge, path]);
+  }, [bridge, path, inline]);
 
   function openOs(event: MouseEvent): void {
     event.stopPropagation();
@@ -98,10 +112,16 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
         className="html-artifact-preview"
         role="button"
         tabIndex={0}
-        title={`Preview ${path}`}
-        onClick={() => { if (state.status === 'ready') setFullscreen(true); }}
+        title={inline ? `Open ${path} in the dock` : `Preview ${path}`}
+        data-variant={variant}
+        onClick={() => {
+          if (inline) { dock.openPath(path); return; }
+          if (state.status === 'ready') setFullscreen(true);
+        }}
         onKeyDown={(event) => {
-          if ((event.key === 'Enter' || event.key === ' ') && state.status === 'ready') {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          if (inline) { event.preventDefault(); dock.openPath(path); return; }
+          if (state.status === 'ready') {
             event.preventDefault();
             setFullscreen(true);
           }
@@ -114,7 +134,16 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
             <code className="html-artifact-preview__path">{path}</code>
           </span>
           <span className="html-artifact-preview__actions">
-            {state.status === 'ready' && (
+            {inline && (
+              <button
+                type="button"
+                className="html-artifact-preview__open"
+                onClick={(event) => runDocumentAction(event, () => dock.openPath(path))}
+              >
+                Open in dock
+              </button>
+            )}
+            {!inline && state.status === 'ready' && (
               <>
                 <button
                   type="button"
@@ -136,7 +165,7 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
             </button>
           </span>
         </span>
-        <span className="html-artifact-preview__frame">
+        {!inline && <span className="html-artifact-preview__frame">
           {state.status === 'ready' && view === 'preview' ? (
             <iframe
               title={`Preview of ${label || name}`}
@@ -151,7 +180,7 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
               {state.status === 'loading' ? 'Loading preview...' : state.reason}
             </span>
           )}
-        </span>
+        </span>}
       </span>
       {fullscreen && state.status === 'ready' && createPortal(
         <HtmlArtifactFullscreen

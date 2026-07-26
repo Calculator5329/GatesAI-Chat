@@ -5,6 +5,10 @@ import { isWebLite } from '../../core/runtime';
 import { tokens } from '../../core/styleTokens';
 
 /**
+ * SUPERSEDED 2026-07-26 by SidebarSettingsButton, which took over the foot of
+ * the sidebar. Kept, not deleted, because removals are an owner decision here;
+ * its dot logic lives on in the new component. Nothing renders this today.
+ *
  * Tiny status indicator at the bottom of the sidebar. Three states:
  *
  *  - online  — green dot + "workspace ready"

@@ -6,7 +6,7 @@ import { observer } from 'mobx-react-lite';
 import { Icons } from '../ui/icons';
 import type { MenuSectionKey, Thread } from '../../core/types';
 import { useEditorial } from '../../stores/context';
-import { BridgeStatusPill } from './BridgeStatusPill';
+import { SidebarSettingsButton } from './SidebarSettingsButton';
 import { UpdatePill } from './UpdatePill';
 import { ThreadTitle } from './ThreadTitle';
 
@@ -371,7 +371,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         )}
       </div>
       <UpdatePill />
-      <BridgeStatusPill />
+      <SidebarSettingsButton />
     </aside>
     </>
   );
