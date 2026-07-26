@@ -48,6 +48,17 @@ Other motion findings, all fixed in the lane:
 - The `prefers-reduced-motion` block was thorough but could not reach
   view-transition pseudo-elements, which `*` does not match.
 
+**Retired by measurement, no change made.** The audit suspected that
+`.editorial-message`'s `content-visibility: auto` with `contain-intrinsic-size:
+0 200px` would make rows jump when they scroll in, since a real row is rarely
+200px. Measured against a seeded thread the rows are 111, 169, 111 and 253px,
+so the estimate is indeed wrong in both directions. But Chrome computes
+`containIntrinsicSize` as `auto 0px auto 200px` **whether or not `auto` is
+declared**: the last-remembered-size behaviour is automatic for
+`content-visibility: auto` elements, so the 200px only applies before a row has
+ever rendered. Declaring `auto` explicitly produced a byte-identical computed
+value. Nothing to fix; recorded so this is not re-investigated.
+
 One motion claim in the original audit was **wrong and is corrected here**: it
 counted 31 of 49 transitions as hand-written. Most of those live in
 `services/chat/libraryExport.ts`, which generates a standalone HTML document
@@ -111,9 +122,26 @@ should remove them individually, not as a group.
 Items 1 to 6 are structural and need an owner decision on the grouping before
 implementation. Item 7 is documentation, not a defect.
 
-## Still open from QA-1
+## QA-1 walkthrough: written, and it paid immediately
 
-The Playwright walkthrough that toggles every control, saves, reloads and
-asserts persistence has **not** been written. This audit was read from source.
-That remains the more valuable half, because it would catch settings that look
-wired but do not persist, which source reading cannot.
+`tests/e2e/settingsWalkthrough.spec.ts` now drives each persisted control,
+changes it, reloads and asserts it survived. This audit was read from source,
+and the walkthrough exists precisely because source reading cannot see whether
+a control actually works.
+
+It found one on its first run. **The theme switcher had never worked**:
+`setTheme` was missing from `UiStore`'s `action.bound` list, so `Settings`
+passing `ui.setTheme` straight to `SegmentedControl`'s `onChange` invoked it
+with no receiver and it threw `Cannot set properties of undefined (setting
+'theme')`. Clicking Dark, Light or System did nothing, silently. Its immediate
+neighbours are bound, which is why the toggles either side worked and the hole
+was invisible to inspection.
+
+Coverage so far: colour mode, automatic thread titles, close-to-tray, the agent
+system prompt, saved facts (including that a delete stays deleted), the Ollama
+address, a guard that no settings click throws in the page, and a Web Lite
+assertion that the desktop-only switches are absent rather than inert.
+
+Still uncovered: the OpenRouter and Brave key fields (they touch secret
+storage), the model catalog actions, and everything under semantic recall,
+whose availability depends on a background index.

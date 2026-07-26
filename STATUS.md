@@ -118,6 +118,14 @@ changes.
       verb. Added one that asserts no registered tool resolves to the bare verb
       'Using', and confirmed it fails when a label is removed.
 
+- [x] **J. Message containment jank.** *(investigated, no change needed)*
+      The audit suspected `contain-intrinsic-size: 0 200px` would cause rows to
+      jump. Real rows measure 111-253px, so the estimate is wrong, but Chrome
+      applies last-remembered-size automatically for `content-visibility: auto`
+      and computes the same `auto 0px auto 200px` whether or not `auto` is
+      declared. Verified by declaring it and re-measuring: byte-identical. No
+      edit made. Written up in the audit doc so it is not re-opened.
+
 ## Blocked on Ethan
 
 - Settings restructure: needs a grouping picked (by object / by frequency /
