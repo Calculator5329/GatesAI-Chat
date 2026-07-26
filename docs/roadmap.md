@@ -334,9 +334,14 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
 - [x] **LF-8: gallery thumbnails/lightbox render black** *(fixed 2026-07-16, codex lane: image-source resolution corrected for desktop+Web Lite, regression tests added; merged after gate pass, full suite 1220/1220)* while captions
       render — image blobs not displayed. May share a root with the
       bridge.spec gallery fix (2026-07-11) — re-capture first. (screen-menu-gallery.png)
-- [ ] **LF-9: tool-activity screen never actually captured** (byte-identical
+- [x] **LF-9: tool-activity screen never actually captured** (byte-identical
       to chat-active) — fix the tour step to expand the activity panel and
-      re-audit that surface.
+      re-audit that surface. *(done 2026-07-26 — the step re-opened the thread
+      and captured it unchanged, so the file matched screen-chat-active.png
+      byte for byte. It now expands the `data-kind="tool"` activity row and
+      asserts the detail is visible, so the capture shows real tool output. The
+      tour also fails now if any two captures share a hash, so a manifest
+      surface can never again be counted without being taken.)*
 - [x] **LF-1: Local menu section breaks in Web Lite.** *(done 2026-07-16, codex lane a13-weblite-local-menu-20260716: Local panel gated on a semantic desktop-capability check in core/runtime.ts, friendly desktop-only explainer in Web Lite, screens-tour asserts explainer + zero console errors; vitest green.)* Found by the screen
       audit 2026-07-11: `/#/menu/local` throws unhandled
       "Cannot read local runtime status outside the GatesAI desktop app"

@@ -579,10 +579,14 @@
 .message-copy-feedback {
   font-family: "Geist Mono", ui-monospace, monospace;
 }
+/* In flow, hugging the action buttons — not absolutely positioned at
+   `top: 20px; right: 0`, which is the exact slot .message-actions occupies.
+   Both only appear on hover/focus-within, so they always appeared together and
+   the hint always rendered clipped behind the buttons: a one-time onboarding
+   affordance that nobody could read. */
 .message-copy-hint {
-  position: absolute;
-  top: 20px;
-  right: 0;
+  flex: none;
+  margin-left: auto;
   padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: 999px;

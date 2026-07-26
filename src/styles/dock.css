@@ -12,6 +12,15 @@
   border-left: 1px solid var(--border);
   background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
   box-sizing: border-box;
+  /* Collapsing used to swap one element for another, so there was nothing for
+     a transition to cross and the largest layout change in the app happened
+     in a single frame. One element now, so width can animate. */
+  transition: width var(--motion-fade), min-width var(--motion-fade);
+}
+
+/* A drag is direct manipulation; easing it just makes it feel laggy. */
+.dock-panel[data-resizing] {
+  transition: none;
 }
 
 .dock-panel--collapsed {

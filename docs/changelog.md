@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-07-26 — The screenshot corpus was one surface short, and the copy hint was unreadable
+
+- **LF-9 closed.** `screen-chat-tool-activity.png` was byte-identical to
+  `screen-chat-active.png` — same sha256 — because the tour step re-opened the
+  same thread and captured it without expanding anything. The corpus advertised
+  17 surfaces and held 16. The step now expands the `data-kind="tool"` activity
+  row (not `.activity-row__button` first, which is the Thinking row) and asserts
+  the detail is visible, so the capture shows actual tool output.
+- The tour now **fails if any two captures share a hash**. LF-9 survived for
+  weeks because "the file exists" and "the manifest lists it" were both true;
+  nothing checked that two entries weren't the same image.
+- **The one-time copy hint was unreadable.** `.message-copy-hint` was absolutely
+  positioned at `top: 20px; right: 0` — the exact slot `.message-actions`
+  occupies. Both appear on hover/focus-within, so they always appeared together
+  and the hint always rendered clipped behind the buttons. It is now in flow,
+  hugging the actions. Verified against a running build: the full
+  "Ctrl/Cmd + click to copy" chip now sits beside the buttons.
+
 ## 2026-07-26 — Toggle knob and focus-ring defects
 
 - The toggle's press animation had never once run. `.ui-toggle:active` set a

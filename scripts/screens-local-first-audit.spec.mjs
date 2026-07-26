@@ -47,9 +47,9 @@ test('captures every source-audited screen, panel, and modal', async ({ page }) 
   await activityRow.click();
   await expect(activityRow).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('.activity-row__detail')).toBeVisible();
-  // Park the pointer off-canvas: leaving it over the message column bled a
-  // half-clipped "Ctrl/Cmd + click to copy" tooltip into the capture.
-  await page.mouse.move(0, 0);
+  // Park the pointer on empty sidebar space, not (0, 0) — the origin sits on
+  // the brand wordmark and lights up its hover state in the capture.
+  await page.mouse.move(135, 420);
   await capture(page, 'screen-chat-tool-activity.png');
 
   await page.getByRole('button', { name: 'Edit and resend' }).first().click();

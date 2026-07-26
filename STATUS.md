@@ -30,16 +30,16 @@ changes.
       no migration. Four regression tests: two in TaskStore (cancelled vs
       self-interrupted after a reload) and two in persistence (round-trip plus
       an older snapshot).
-- [~] **C. Motion leftovers from the audit.** *(toast done; dock deferred)*
+- [x] **C. Motion leftovers from the audit.** *(done)*
       Undo toast now enters and exits: it mounts un-shown, marks itself shown
       on the next frame, and stays mounted through a 160ms exit instead of
       vanishing the instant the timeout fires. Three tests defend it.
-      **Dock collapse is NOT done and is not a CSS fix**: `DockPanel` renders
-      the collapsed rail and the expanded panel as two different branches, so
-      the element unmounts and remounts and there is nothing for a width
-      transition to cross. Animating it means unifying them into one root with
-      a class toggle, which moves `data-testid` around and touches
-      `dock.spec.ts`. Worth doing, but as its own change.
+      **Dock collapse now animates too.** The two render branches are unified
+      into one persistent root, so width can transition between the rail and
+      the panel. The transition is suppressed while the resizer is being
+      dragged, because easing direct manipulation just makes it feel laggy.
+      `data-testid` still switches between `dock-panel` and
+      `dock-collapsed-rail`, so `dock.spec.ts` needed no changes.
 - [x] **D. Transition token adoption.** *(done, and smaller than the audit said)*
       The audit's "31 of 49" counted `services/chat/libraryExport.ts`, which
       generates a standalone HTML document with no access to the app's custom
