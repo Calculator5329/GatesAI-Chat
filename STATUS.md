@@ -156,33 +156,54 @@ changes.
 
 ## Owner action
 
-**Two Electron apps have eaten the entire inotify budget**, measured
-2026-07-26 14:50 local by summing `inotify wd:` lines across every `/proc/*/fdinfo`:
+**Correction, and it is my fault.** The command previously written here,
+`sudo sysctl fs.inotify.max_user_watches=524288`, was a generic default I wrote
+before measuring this machine. Ethan ran it on 2026-07-26 evening, and the real
+ceiling was already **2,097,152**, so it did not raise the limit, it **lowered
+it by 4x**. Do not run that number here.
 
-| pid | process | watches |
-|---|---|---|
-| 980417 | electron (openai-codex-desktop) | 1,094,804 |
-| 1348783 | cursor | 1,000,030 |
-| | **total** | **2,094,834 of 2,097,152 (99.89%)** |
+State right now:
 
-That leaves 2,318 watches for everything else, so any vite dev server dies with
-`ENOSPC` before it finishes booting, in every lane on this box. It is not one
-leaking app, it is two, and restarting only one may not be enough.
+| | value |
+|---|---|
+| live ceiling | 524,288 (from the `sysctl -w`) |
+| watches actually held | 2,097,135 |
+| `openai-codex-desktop` pid 980417 | 1,089,832 |
+| `cursor` pid 1348783 | 1,004,997 |
 
-Worked around in-repo: `vite.config.ts` now honours `GATESAI_WATCH_POLL=1`,
-which switches the watcher to polling. Opt-in, off in CI, costs CPU. Run e2e
-with `GATESAI_WATCH_POLL=1 npm run test:e2e` on this machine.
+Lowering the limit does not revoke watches that already exist, so the two apps
+keep theirs and nothing new can be created. Verified: `fs.watch('/tmp')` still
+fails with `ENOSPC`.
 
-Real fix is restarting those two apps, or raising the ceiling:
+Two side effects worth knowing:
+
+- The new file `/etc/sysctl.d/40-max-user-watches.conf` (524288) **conflicts
+  with the existing `/etc/sysctl.d/60-inotify.conf` (2097152)**. sysctl.d is
+  applied in lexical order and later files win, so after a reboot the ceiling
+  returns to 2,097,152 and the new file has no effect. Live value and persisted
+  intent currently disagree.
+- 524,288 is in fact plenty **once the leakers are gone** — a vite dev server
+  needs a few thousand watches. The ceiling was never the real problem.
+
+**The fix is still to restart the two apps**, not to change the number:
 
 ```sh
-# inspect
-cat /proc/sys/fs/inotify/max_user_watches
-# raise for this boot only
-sudo sysctl fs.inotify.max_user_watches=524288
-# persist
-echo 'fs.inotify.max_user_watches=524288' | sudo tee /etc/sysctl.d/90-inotify.conf
+# check who is holding watches first
+for p in /proc/[0-9]*; do pid=${p#/proc/}; \
+  w=$(grep -c '^inotify wd:' $p/fdinfo/* 2>/dev/null | awk -F: '{s+=$2} END{print s+0}'); \
+  [ "${w:-0}" -gt 10000 ] && echo "$w  pid=$pid  $(tr -d '\0' < $p/comm)"; done | sort -rn
 ```
 
-Agents have no sudo on this box, so this one needs your hands. Success looks
-like a dev server starting without ENOSPC and without the polling workaround.
+Then quit and reopen Codex Desktop and Cursor from their own UIs. Success
+signal: the loop above prints nothing large, and `npm run test:e2e` starts its
+own server without `GATESAI_WATCH_POLL=1`.
+
+Optional tidy-up, since the two files now contradict each other:
+
+```sh
+sudo rm /etc/sysctl.d/40-max-user-watches.conf   # 60-inotify.conf already sets 2097152
+sudo sysctl --system                              # reapply, restoring the live value
+```
+
+Agents have no sudo here, so both need your hands. Interim remains
+`GATESAI_WATCH_POLL=1`, which both GatesAI repos honour.
