@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-07-26 — Cover the persistence coordinator
+
+- `chatPersistenceCoordinator` (230 lines deciding whether your conversations
+  reach disk) had no tests. Twelve now cover the parts where data loss lives:
+  pause/resume suppression (a follower tab that wrote would clobber the
+  leader's state), the serialized workspace save queue, and `trackSnapshotDeep`.
+- The queue tests pin two properties that are easy to regress silently: saves
+  never overlap and intermediate snapshots coalesce to the newest rather than
+  queueing, and a **rejected save clears the in-flight flag** — without that,
+  one dropped bridge connection would end workspace persistence for the rest
+  of the session with no error surfaced.
+- `trackSnapshotDeep` exists only to register MobX dependencies, so when it
+  stops covering a field there is no exception — the autosave just never fires
+  and a conversation vanishes on reload. Tests assert the signature moves on
+  append, streamed growth, rename, pin, summary and context changes.
+- Each assertion was mutation-checked rather than trusted for being green:
+  removing the in-flight reset, and dropping title tracking, each turn the
+  suite red.
+
 ## 2026-07-26 — v2 UI taste pass: the animations were dead, and the artifact card was a white hole
 
 Branch `ui/taste-pass-20260726`. Not merged.

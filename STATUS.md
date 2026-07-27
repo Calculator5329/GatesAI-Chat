@@ -147,6 +147,16 @@ changes.
       a spec whose Playwright project never ran it, and a prop added but never
       wired. Compounding work, not code.
 
+- [x] **J. Cover `chatPersistenceCoordinator`.** *(done)* It was the largest
+      untested file in `src/stores` and the one that decides whether
+      conversations reach disk. Twelve tests: pause/resume, the serialized
+      workspace save queue (no overlapping saves; intermediates coalesce to the
+      newest; a rejected save clears the in-flight flag instead of ending
+      workspace persistence for the session), and `trackSnapshotDeep`, whose
+      failure mode is silent — no exception, the autosave just stops and a
+      conversation is lost on reload. Both key assertions were mutation-checked
+      red before being trusted. `modelPickerSelectors` is still uncovered.
+
 ## Blocked on Ethan
 
 - Settings restructure: needs a grouping picked (by object / by frequency /
