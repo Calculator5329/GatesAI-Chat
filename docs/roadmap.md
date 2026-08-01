@@ -41,6 +41,12 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
 
 ### Next up (priority order)
 
+- [x] **Assistant activity, ChatGPT-style.** *(done 2026-07-31 — the transcript
+      keeps a condensed digest of plain-English step headlines; the full
+      reasoning, tool cards, and terminal tails read in a new Activity dock
+      panel that auto-reveals on a live turn and can be aimed at one step from
+      any digest line. Mobile keeps the inline expandable stream. Visual corpus:
+      `npm run screens:activity` → docs/screens/activity/)*
 - [x] **Prepare a multi-surface owner feedback session for the depth pass.**
       *(done 2026-07-20 — one Forge-rich choice now compares guided missions,
       a code-derived evidence board, and a speech-first challenge deck against
@@ -334,9 +340,11 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
 - [x] **LF-8: gallery thumbnails/lightbox render black** *(fixed 2026-07-16, codex lane: image-source resolution corrected for desktop+Web Lite, regression tests added; merged after gate pass, full suite 1220/1220)* while captions
       render — image blobs not displayed. May share a root with the
       bridge.spec gallery fix (2026-07-11) — re-capture first. (screen-menu-gallery.png)
-- [ ] **LF-9: tool-activity screen never actually captured** (byte-identical
-      to chat-active) — fix the tour step to expand the activity panel and
-      re-audit that surface.
+- [x] **LF-9: tool-activity screen never actually captured** (byte-identical
+      to chat-active) *(done 2026-07-31 — `npm run screens:activity` captures
+      12 distinct activity states from deterministic fixture threads; corpus in
+      docs/screens/activity/)* — fix the tour step to expand the activity panel
+      and re-audit that surface.
 - [x] **LF-1: Local menu section breaks in Web Lite.** *(done 2026-07-16, codex lane a13-weblite-local-menu-20260716: Local panel gated on a semantic desktop-capability check in core/runtime.ts, friendly desktop-only explainer in Web Lite, screens-tour asserts explainer + zero console errors; vitest green.)* Found by the screen
       audit 2026-07-11: `/#/menu/local` throws unhandled
       "Cannot read local runtime status outside the GatesAI desktop app"
@@ -453,11 +461,14 @@ composer quieter.
       job to `.github/workflows/ci.yml` and upload traces on failure (backlog
       item). *Acceptance:* CI green with the new job; a forced failure shows a
       downloadable trace artifact.
-- [ ] [ETHAN] **Signed / trusted release builds.** Investigate Windows code signing
-      (paid cert vs Azure Trusted Signing vs documented-unsigned) and at
-      minimum add a README note about the SmartScreen warning and checksums
-      (`SHA256SUMS` published per release). *Acceptance:* release workflow
-      emits checksums; decision on signing recorded in an ADR under `docs/`.
+- [ ] **Signed / trusted release builds — path chosen.** *(Decided 2026-07-20 on
+      card-FRGRJGAABJE0DVCH9PXYB2G8FS: ship unsigned Windows builds with
+      `SHA256SUMS` now; defer paid signing. [ETHAN] marker dropped 2026-08-01,
+      Ethan-approved — the decision is done, the build work below is not.)*
+      Remaining work: add the README note about the SmartScreen warning and
+      checksums (`SHA256SUMS` published per release). *Acceptance:* release
+      workflow emits checksums; the deferral decision recorded in an ADR under
+      `docs/`.
 - [x] **Release checklist doc.** *(done 2026-07-10)* One page in `docs/`: version bumps
       (`package.json` + `src-tauri/tauri.conf.json`), changelog entry, tag
       push, asset verification, Web Lite check. *Acceptance:* the next release
@@ -758,6 +769,18 @@ not by itself imply acceptance of every proposed implementation detail.
 - [x] Headless core entry (boot RootStore without React) → CLI mode, scripted
       smokes, scheduler runner *(done 2026-07-11)*
 - [ ] Decide deliberately: Go bridge vs folding into a Rust sidecar
+- [ ] **Declarative bridge sandbox policy** *(deep research 2026-07-23 — see
+      IDEAS #19)*: ADR on replacing the hardcoded path-jail + exec-allowlist
+      with a declarative policy file (OpenShell pattern: hot-reloadable network
+      policy, creation-locked filesystem policy). Apache-2.0 → pattern-first,
+      not a casual copy.
+- [ ] **`proxy_localhost` Rust command to retire the ComfyUI CORS workaround**
+      *(deep research 2026-07-23 — see IDEAS #20)*: route localhost calls
+      through Rust (pattern from a same-stack MIT peer), removing the
+      `--enable-cors-header` requirement for ComfyUI/Ollama.
+- [ ] **`LocalBackends` process-lifecycle manager** *(IDEAS #20)*: auto-start +
+      orphan-cleanup for Ollama/ComfyUI/Whisper via Tauri's setup hook; shared
+      groundwork for the voice sidecar (IDEAS #9).
 
 ### Performance
 - [ ] Cold-start budget (<1.5s to interactive): lazy menu sections, idle-time
@@ -769,7 +792,13 @@ not by itself imply acceptance of every proposed implementation detail.
 ### State & data
 - [x] Web Locks API leader election for multi-tab (replace pause-on-conflict) *(done 2026-07-11)*
 - [ ] Generalized undo (command pattern) for destructive ops
-- [ ] Per-thread system-prompt presets (Coding / Writing / Research)
+- [ ] Per-thread system-prompt presets (Coding / Writing / Research) *(UX
+      reference: Cherry Studio's browsable assistant/preset library — AGPL-3.0,
+      borrowable; deep research 2026-07-23)*
+- [ ] **RAG refinement: workspace-isolation + hybrid retrieval** *(deep research
+      2026-07-23 — IDEAS borrow map)*: evaluate AnythingLLM's collection
+      isolation (no cross-contamination) + HNSW+BM25 hybrid retrieval against
+      our current local RAG. AnythingLLM is MIT → retrieval code is copyable.
 
 ### Platforms & compatibility
 - [ ] macOS build (keyring apple-native already enabled; needs signing)
@@ -804,7 +833,32 @@ not by itself imply acceptance of every proposed implementation detail.
       auto-executes; watched-file CONTENTS are never treated as instructions
       (instruction-source boundary); rare + rate-limited + easy to mute; opt-in,
       off by default; fully local. Its own wave when picked.
-- [ ] Duel mode: two models side-by-side or cross-reviewing
+- [ ] Duel mode: two models side-by-side or cross-reviewing *(prior art:
+      Cherry Studio multi-model simultaneous chat — AGPL-3.0, same license, so
+      code is borrowable; deep research 2026-07-23, IDEAS #7)*
+- [ ] **Spatial branching-conversation canvas** *(deep research 2026-07-23 —
+      IDEAS #15)*: merge branching threads + Canvas artifact into one React
+      Flow node graph (branch/merge/modify visually). GitChat is the pattern
+      reference (unlicensed → study only, no code copy).
+- [ ] **Async approval inbox + approve/redirect gate** *(Ethan 2026-07-23, from
+      OpenWorker comparison — see IDEAS #17)*: consequential agent asks
+      (write/send/shell) park in an inbox instead of blocking, turning
+      spawn_task + the Task center into a real async-agent surface; the gate
+      adds edit-before-run "redirect" alongside approve/deny. Highest-value of
+      the OpenWorker borrowings; upgrades a subsystem we already own.
+- [ ] **Deliverables as a first-class object** *(Ethan 2026-07-23 — see
+      IDEAS #18)*: promote a task/turn's output to an openable/shareable
+      workspace file with provenance back to the chat; composition of existing
+      artifact/workspace/libraryExport primitives, framed for our chat-first
+      identity.
+- [ ] **Local-first voice pipeline** *(Ethan 2026-07-23 — see expanded
+      IDEAS #9)*: `STT → LlmProvider → TTS` sidecar (whisper.cpp/Moonshine +
+      Silero VAD + Piper), STT-input-only first; native realtime stays an
+      optional cloud toggle, never v1.
+- [ ] **External-tool add-on via plugin packs / MCP-stdio** *(Ethan 2026-07-23
+      — see IDEAS #2)*: let users add tools without forking, as an opt-in
+      add-on on the sanctioned plugin-pack path — NOT a revival of the
+      de-scoped always-on MCP client.
 - [ ] Canvas/whiteboard artifact type for planning sessions *(2026-07-18,
       lane `canvas-whiteboard-artifact`; plan landed at
       `docs/plans/unblock-canvas-whiteboard-artifact-type-for-plan-20260718/`;
