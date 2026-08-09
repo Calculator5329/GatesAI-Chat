@@ -1590,7 +1590,8 @@
   box-sizing: border-box;
   min-width: 0;
   overflow: visible;
-  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast),
+    background-color var(--motion-fast);
 }
 /* The app-level drop target is intentionally visual-only: window listeners
    handle files once, while the overlay leaves pointer/drag events untouched. */
