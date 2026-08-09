@@ -10,6 +10,7 @@ import { Lightbox } from '../media/Lightbox';
 import { useImageDataUrl } from '../media/useImageDataUrl';
 import { tokens } from '../../core/styleTokens';
 import { imageRunningCopy } from '../../core/statusCopy';
+import { imageJobWaitingCopy } from '../../copy/localStatus';
 
 interface ImageJobCardProps {
   jobId: string;
@@ -128,7 +129,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
     return (
       <div style={{ ...rectBase, position: 'relative' }}>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', fontSize: 12 }}>
-          <span>{labels.statusLine}</span>
+          <span>{imageJobWaitingCopy(job.backend)}</span>
           <span style={{ marginTop: 4 }}>{labels.detailLine}</span>
           {labels.progressLine && <span style={{ marginTop: 4 }}>{labels.progressLine}</span>}
         </div>

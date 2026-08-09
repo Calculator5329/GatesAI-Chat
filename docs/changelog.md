@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-09 — Local model turn status copy
+
+- Added `src/copy/localStatus.ts` and routed local-runtime stall/cold-start
+  messaging through it for Ollama and local runtimes.
+- Updated streaming text-turn stall reasoning to output local-runtime copy for
+  cold-start and mid-stream idle conditions instead of a remote-provider sentence.
+- Updated image job waiting copy in `ImageJobCard` to avoid the old
+  `"Waiting on provider..."` text and use the shared status text path.
+- Added unit coverage for local vs remote stall branches in
+  `tests/services/chat/streamingRoundExecutor.test.ts` and updated the
+  `ImageJobCard` assertion for the new open-image waiting copy.
+
 ## 2026-07-20 — Multi-surface owner feedback session
 
 - Added one durable, plain-English runbook covering the recent GatesAI depth
