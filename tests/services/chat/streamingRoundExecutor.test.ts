@@ -184,6 +184,63 @@ describe('StreamingRoundExecutor', () => {
     expect(phases).toEqual(['connecting', 'stalled']);
   });
 
+  it('uses local-runtime cold-start stall language for ollama', async () => {
+    vi.useFakeTimers();
+    const executor = new StreamingRoundExecutor({ initialStallMs: 5, stallMs: 5 });
+    const promise = executor.execute({
+      request,
+      stream: async function*(_req: LlmRequest, signal: AbortSignal): AsyncIterable<LlmChunk> {
+        await new Promise<void>(resolve => {
+          signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+        if (signal.aborted) {
+          yield { type: 'text', delta: '' };
+        }
+      },
+      signal: new AbortController().signal,
+      round: 0,
+      providerId: 'ollama',
+      providerModelId: 'llama3:8b',
+      callbacks: {},
+    });
+
+    await flush();
+    await vi.advanceTimersByTimeAsync(6);
+    const outcome = await promise;
+
+    expect(outcome.status).toBe('stalled');
+    expect(outcome.status === 'stalled' ? outcome.error : '').not.toContain('provider');
+    expect(outcome.status === 'stalled' ? outcome.error : '').toContain('llama3:8b');
+  });
+
+  it('uses local-runtime mid-stream idle stall language after first token', async () => {
+    vi.useFakeTimers();
+    const executor = new StreamingRoundExecutor({ initialStallMs: 5, stallMs: 5 });
+
+    const promise = executor.execute({
+      request,
+      stream: async function*(_req: LlmRequest, signal: AbortSignal): AsyncIterable<LlmChunk> {
+        yield { type: 'text', delta: 'hello' };
+        await new Promise<void>(resolve => {
+          signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+      },
+      signal: new AbortController().signal,
+      round: 0,
+      providerId: 'ollama',
+      providerModelId: 'llama3:8b',
+      callbacks: {},
+    });
+
+    await flush();
+    await vi.advanceTimersByTimeAsync(6);
+    const outcome = await promise;
+
+    expect(outcome.status).toBe('stalled');
+    expect(outcome.status === 'stalled' ? outcome.error : '').not.toContain('provider');
+    expect(outcome.status === 'stalled' ? outcome.error : '').toContain('local model went quiet');
+  });
+
   it('retries a transient error before the first token per policy', async () => {
     vi.useFakeTimers();
     let calls = 0;

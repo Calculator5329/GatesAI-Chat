@@ -160,8 +160,9 @@ describe('ImageJobCard UI (Batch D)', () => {
     });
 
     const rendered = renderCard(minimalStore(imageJobs, bridge), 'openrouter-waiting');
-    expect(rendered.textContent).toContain('Waiting on provider...');
+    expect(rendered.textContent).toContain('Waiting on OpenRouter image service...');
     expect(rendered.textContent).toContain('OpenRouter remote render');
+    expect(rendered.textContent).not.toContain('Waiting on provider');
   });
 });
 
