@@ -367,8 +367,15 @@ live session on the RTX box running `phi4:latest`. Group focus: make the
 local-first path feel first-class (its own copy, its own knobs) and make the
 composer quieter.
 
-- [ ] **CB-1: Composer focus highlight should be a soft background glow, not
-      a ring.** Today `.composer-row:has(.composer-textarea:focus-visible)`
+- [x] **CB-1: Composer focus highlight should be a soft background glow, not
+      a ring.** (Done 2026-08-09.) Replaced the outer 2px outline + ring glow
+      on `.composer-row:has(.composer-textarea:focus[-visible])` with a
+      background warming: the fill shifts a few percent toward `--accent` and a
+      wide low-alpha inset halo blooms inward — no crisp accent ring. Keyboard
+      `:focus-visible` keeps a real, WCAG-legible affordance (stronger fill
+      warming + firmer accent border), token-derived so it holds in light and
+      dark. See the `/* CB-1 */` marker in `src/styles/editorial.css`.
+      Today `.composer-row:has(.composer-textarea:focus-visible)`
       draws a crisp 2px `--focus-ring` outline + 5px glow
       (`src/styles/editorial.css` ~1519–1530); Ethan finds the ring too loud.
       Replace it with a subtle *background* glow — e.g. shift the composer
