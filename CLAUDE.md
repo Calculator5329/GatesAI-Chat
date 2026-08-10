@@ -87,3 +87,27 @@ A change is done when:
 4. No stray files (logs, scratch output) in the commit; no secrets anywhere.
 5. Commit message says what and why; the working tree you leave behind is
    clean or its state is explicitly reported.
+
+## Per-chat transcripts are debugging context, never proof
+
+Ethan's ruling `doc-authority-packet-20260810`, `q-other-rules: pointer`,
+makes this file the one authority for this repo. The Cursor rules folder is
+meant to point here rather than carry its own copy. As of 2026-08-10 the
+Cursor file still carries the original text: the workspace trust guard
+refuses writes under that folder, treating it as retained transcript
+history, so the conversion is queued rather than forced. This section is the
+authoritative copy; if the two ever disagree, this one wins.
+
+When investigating a bug, a regression, or confusing runtime behavior, read
+the workspace's per-chat agent transcripts before drawing a conclusion.
+
+- Search the transcripts for the visible symptom first: `network error`,
+  `Cannot read properties`, a filename, a tool name.
+- They recover recent screenshots, interrupted tool calls, prior hypotheses,
+  and exact error strings that nothing else kept.
+- **Transcript evidence is context, not proof.** Corroborate with source,
+  terminal output, browser console and network evidence, or a test before
+  claiming a root cause. An agent's account of what happened is narrated,
+  not measured, and the two never render alike.
+- Do not cite subagent transcript ids to the user. To cite a prior parent
+  chat, use the parent transcript citation format from the session context.
