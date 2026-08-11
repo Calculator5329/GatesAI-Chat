@@ -14,6 +14,7 @@ import { OllamaStore } from './OllamaStore';
 import { UserProfileStore } from './UserProfileStore';
 import { SummaryStore } from './SummaryStore';
 import { NotesStore } from './NotesStore';
+import { PromptStore } from './PromptStore';
 import { BridgeStore } from './BridgeStore';
 import { ExecStreamStore } from './ExecStreamStore';
 import { UpdateStore } from './UpdateStore';
@@ -62,6 +63,8 @@ export class RootStore {
   readonly ollama: OllamaStore;
   readonly summary: SummaryStore;
   readonly notes: NotesStore;
+  /** Questions the assistant is currently blocked on. */
+  readonly prompts = new PromptStore();
   readonly bridge: BridgeStore;
   readonly updates: UpdateStore;
   readonly execStream: ExecStreamStore;
@@ -174,6 +177,7 @@ export class RootStore {
       library: this.library,
       artifacts: this.artifacts,
       artifactSurface: this.dock,
+      prompts: this.prompts,
     }));
   }
 

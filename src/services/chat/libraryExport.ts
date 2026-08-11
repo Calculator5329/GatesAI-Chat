@@ -390,6 +390,9 @@ function renderToolArtifactsHtml(artifacts: ToolResultArtifact[]): string {
         detail: artifact.mime,
       });
     }
+    if (artifact.kind === 'diff') {
+      return `<div class="file-ref"><div><b>Edited</b><span>${escapeHtml(artifact.path)} · +${artifact.added} −${artifact.removed}</span></div></div>`;
+    }
     return `<div class="file-ref"><div><b>Image job</b><span>${escapeHtml(artifact.jobId)} · ${artifact.count} expected image${artifact.count === 1 ? '' : 's'}</span></div></div>`;
   }).join('');
   return `<section class="files"><h3>Generated files</h3>${items}</section>`;
@@ -448,6 +451,7 @@ function formatThreadPlainText(thread: Thread): string {
         lines.push('', 'Generated files:');
         lines.push(...artifacts.map(artifact => {
           if (artifact.kind === 'image') return `- ${artifact.path} (${artifact.mime})`;
+          if (artifact.kind === 'diff') return `- edited ${artifact.path} (+${artifact.added} −${artifact.removed})`;
           return `- image job ${artifact.jobId} (${artifact.count} expected image${artifact.count === 1 ? '' : 's'})`;
         }));
       }

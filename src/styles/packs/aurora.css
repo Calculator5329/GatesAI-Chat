@@ -1,0 +1,710 @@
+/*
+ * Aurora UI pack: the card-led presentation of assistant work — loader,
+ * activity chips, trace rows, diff cards, reply footer.
+ * Class names must match the components under src/components/editorial/aurora/.
+ * Invariant: every rule here is scoped to `.aurora-*` (only rendered when the
+ * Aurora pack is active) or to `[data-pack="aurora"]`, so loading this
+ * stylesheet can never change the Classic pack. Prompt cards render in BOTH
+ * packs, so their base rules are pack-neutral and only the skin varies.
+ */
+
+/* ── 01 Loading state ─────────────────────────────────────────────── */
+
+.aurora-loader {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.aurora-loader__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 3px);
+  grid-auto-rows: 3px;
+  gap: 2px;
+}
+.aurora-loader__grid > span {
+  width: 3px;
+  height: 3px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--accent) 70%, transparent);
+  animation: auroraPixel 1200ms ease-in-out infinite;
+}
+.aurora-loader[data-active="false"] .aurora-loader__grid > span {
+  animation: none;
+  opacity: 0.35;
+}
+.aurora-loader__label {
+  color: var(--text-dim);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.aurora-loader__elapsed {
+  color: var(--text-faint);
+  font: 11px "Geist Mono", ui-monospace, monospace;
+  /* Tabular figures so the ticking readout does not jitter the row. */
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes auroraPixel {
+  0%, 100% { opacity: 0.18; }
+  40% { opacity: 1; }
+}
+
+/* ── 05 Chips ─────────────────────────────────────────────────────── */
+
+.aurora-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-wash-2);
+  color: var(--text-dim);
+  font: 11px "Geist Mono", ui-monospace, monospace;
+  white-space: nowrap;
+}
+.aurora-chip--muted {
+  color: var(--text-faint);
+  background: transparent;
+}
+.aurora-chip--add {
+  color: var(--success);
+  border-color: var(--success-pill-border);
+  background: var(--success-pill-bg);
+}
+.aurora-chip--remove {
+  color: var(--danger);
+  border-color: var(--danger-border-subtle);
+  background: var(--danger-bg);
+}
+button.aurora-chip {
+  cursor: pointer;
+}
+button.aurora-chip:disabled {
+  cursor: default;
+  opacity: var(--interactive-disabled-opacity);
+}
+button.aurora-chip:not(:disabled):hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
+}
+
+/* ── 02 Activity header + trace ───────────────────────────────────── */
+
+.aurora-activity {
+  margin: 10px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-wash-1);
+  overflow: hidden;
+}
+.aurora-activity[data-state="running"] {
+  border-color: color-mix(in srgb, var(--accent) 26%, var(--border));
+}
+.aurora-activity[data-state="failed"] {
+  border-color: var(--danger-border-subtle);
+}
+.aurora-activity__chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.aurora-activity__chips:hover {
+  background: var(--hover-wash);
+}
+.aurora-activity__title {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.aurora-activity__chevron {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.aurora-trace {
+  list-style: none;
+  margin: 0;
+  padding: 2px 12px 12px;
+  border-top: 1px solid var(--border);
+}
+.aurora-trace__row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 8px;
+}
+/* The rail is one continuous line drawn per row, so a trace of any length
+   reads as a single thread without a wrapper element. */
+.aurora-trace__rail {
+  position: relative;
+  display: block;
+}
+.aurora-trace__rail::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+.aurora-trace__row:first-child .aurora-trace__rail::before { top: 14px; }
+.aurora-trace__row:last-child .aurora-trace__rail::before { bottom: calc(100% - 14px); }
+.aurora-trace__dot {
+  position: absolute;
+  left: 3px;
+  top: 11px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--panel);
+}
+.aurora-trace__row[data-lane="reasoning"] .aurora-trace__dot { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.aurora-trace__row[data-lane="search"] .aurora-trace__dot { border-color: color-mix(in srgb, var(--warning) 45%, var(--border)); }
+.aurora-trace__row[data-lane="code"] .aurora-trace__dot,
+.aurora-trace__row[data-lane="file"] .aurora-trace__dot { border-color: color-mix(in srgb, var(--text) 30%, var(--border)); }
+.aurora-trace__row[data-state="running"] .aurora-trace__dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.aurora-trace__row[data-state="failed"] .aurora-trace__dot {
+  background: var(--danger);
+  border-color: var(--danger-border);
+}
+.aurora-trace__body {
+  min-width: 0;
+  padding: 3px 0;
+}
+.aurora-trace__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.aurora-trace__head:disabled {
+  cursor: default;
+}
+.aurora-trace__icon {
+  flex: none;
+  display: inline-flex;
+  color: var(--text-faint);
+}
+.aurora-trace__verb {
+  color: var(--text-dim);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.aurora-trace__target {
+  min-width: 0;
+  color: var(--text);
+  font: 11px "Geist Mono", ui-monospace, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aurora-trace__summary {
+  min-width: 0;
+  color: var(--text-faint);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aurora-trace__chevron {
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+.aurora-trace__pulse {
+  display: inline-flex;
+  gap: 3px;
+}
+.aurora-trace__pulse > span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: auroraPixel 1000ms ease-in-out infinite;
+}
+.aurora-trace__pulse > span:nth-child(2) { animation-delay: 140ms; }
+.aurora-trace__pulse > span:nth-child(3) { animation-delay: 280ms; }
+.aurora-trace__images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0;
+}
+.aurora-trace__markdown {
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--inset-bg);
+  font-size: 12px;
+}
+.aurora-trace__terminal {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 8px;
+  padding: 8px 10px;
+  max-height: 320px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--inset-bg-strong);
+  color: var(--text-dim);
+  font: 11px/1.5 "Geist Mono", ui-monospace, monospace;
+  white-space: pre-wrap;
+}
+.aurora-trace__terminal [data-stream="stderr"] {
+  color: var(--danger-soft);
+}
+
+/* ── 11 Diff table ────────────────────────────────────────────────── */
+
+.aurora-diff {
+  margin: 6px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--inset-bg);
+  overflow: hidden;
+}
+.aurora-diff__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.aurora-diff__name {
+  color: var(--text);
+  font: 11px "Geist Mono", ui-monospace, monospace;
+}
+.aurora-diff__path {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-faint);
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* The path truncates from the left: the tail identifies the file. */
+  direction: rtl;
+  text-align: left;
+}
+.aurora-diff__table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 11px/1.55 "Geist Mono", ui-monospace, monospace;
+  table-layout: fixed;
+}
+.aurora-diff__table tr[data-type="added"] { background: var(--success-card-bg); }
+.aurora-diff__table tr[data-type="removed"] { background: var(--danger-bg); }
+.aurora-diff__gutter {
+  width: 38px;
+  padding: 0 6px;
+  color: var(--text-faint);
+  text-align: right;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+.aurora-diff__sign {
+  width: 14px;
+  padding: 0;
+  text-align: center;
+  user-select: none;
+  color: var(--text-faint);
+}
+.aurora-diff__table tr[data-type="added"] .aurora-diff__sign { color: var(--success); }
+.aurora-diff__table tr[data-type="removed"] .aurora-diff__sign { color: var(--danger); }
+.aurora-diff__text {
+  padding: 0 8px 0 2px;
+  color: var(--text-dim);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.aurora-diff__foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-top: 1px solid var(--border);
+}
+.aurora-diff__foot button {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font: 11px "Geist Mono", ui-monospace, monospace;
+  cursor: pointer;
+}
+.aurora-diff__foot button:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
+}
+.aurora-diff__note {
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+/* ── 03 Reply footer: sources + follow-ups ────────────────────────── */
+
+.aurora-reply-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.aurora-sources,
+.aurora-followups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.aurora-source-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-wash-2);
+}
+.aurora-source-chip__kind {
+  color: var(--text-faint);
+  font: 10px "Geist Mono", ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.aurora-source-chip__label {
+  min-width: 0;
+  color: var(--text-dim);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aurora-followup {
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--motion-fast), border-color var(--motion-fast);
+}
+.aurora-followup:hover,
+.aurora-followup:focus-visible {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: var(--interactive-active);
+}
+
+/* ── 17 Code block ────────────────────────────────────────────────── */
+
+.code-block[data-pack="aurora"] .code-block__lines {
+  color: var(--text-faint);
+  font: 10px "Geist Mono", ui-monospace, monospace;
+}
+/* The caret marks the write head while the fence is still open — the same
+   signal the transcript uses for streaming prose. */
+.code-block__caret {
+  display: inline-block;
+  width: 6px;
+  height: 13px;
+  margin: 0 0 -2px 2px;
+  background: var(--accent);
+  animation: auroraCaret 900ms steps(2, start) infinite;
+}
+.code-block[data-streaming] {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+@keyframes auroraCaret {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* ── 06 Task rows ─────────────────────────────────────────────────── */
+
+.task-center[data-pack="aurora"] .task-center__task {
+  border-radius: 10px;
+}
+.task-center__steps {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+}
+.task-center__step {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+}
+.task-center__step[data-state="done"] { background: var(--success); }
+.task-center__step[data-state="current"] {
+  background: var(--accent);
+  animation: auroraPixel 1200ms ease-in-out infinite;
+}
+.task-center__step-label {
+  margin-top: 6px;
+  color: var(--text-faint);
+  font: 10px "Geist Mono", ui-monospace, monospace;
+}
+
+/* ── 18 Fine-tune card ────────────────────────────────────────────── */
+
+.finetune-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 600px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-wash-1);
+}
+.finetune-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.finetune-card__title {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.finetune-card__toggle {
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-faint);
+  font: 11px "Geist Mono", ui-monospace, monospace;
+  cursor: pointer;
+}
+.finetune-card__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.finetune-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.finetune-card__field span {
+  color: var(--text-faint);
+  font: 10px "Geist Mono", ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.finetune-card__field input {
+  width: 88px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--inset-bg);
+  color: var(--text);
+  font: 12px "Geist Mono", ui-monospace, monospace;
+}
+.finetune-card__prompt {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.finetune-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.finetune-card__actions button {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+}
+.finetune-card__actions button:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+/* ── 04 + 09 Prompt cards (rendered in every pack) ────────────────── */
+
+.prompt-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 auto 12px;
+  width: min(720px, 100%);
+}
+.prompt-card {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  animation: fadeIn var(--motion-fade) ease both;
+}
+.prompt-card[data-kind="approval"] {
+  border-color: color-mix(in srgb, var(--warning) 34%, var(--border));
+}
+.prompt-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.prompt-card__kind {
+  color: var(--text-faint);
+  font: 10px "Geist Mono", ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.prompt-card__question {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.prompt-card__context {
+  margin: 6px 0 0;
+  color: var(--text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+/* Grounds stand in for a confidence meter: what the suggestion rests on,
+   stated plainly, because the app cannot measure model confidence. */
+.prompt-card__grounds {
+  margin: 8px 0 0;
+  padding-left: 16px;
+  color: var(--text-faint);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.prompt-card__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.prompt-card__option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--motion-fast), border-color var(--motion-fast);
+}
+.prompt-card__option:hover,
+.prompt-card__option:focus-visible {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+.prompt-card__option[data-primary] {
+  border-color: var(--success-pill-border);
+  background: var(--success-pill-bg);
+  color: var(--text);
+}
+.prompt-card__option-label {
+  font-size: 13px;
+}
+.prompt-card__option-detail {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.prompt-card__free {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.prompt-card__free input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--inset-bg);
+  color: var(--text);
+  font-size: 12px;
+}
+.prompt-card__free button {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+}
+.prompt-card__free button:disabled {
+  opacity: var(--interactive-disabled-opacity);
+  cursor: default;
+}
+.prompt-card__foot {
+  margin-top: 10px;
+}
+.prompt-card__decline {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 11px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.prompt-card__decline:hover {
+  color: var(--text-dim);
+}
+
+/* Classic keeps the same affordances in a quieter frame — no card fill, no
+   colour-coded border, so it reads as part of the transcript. */
+.prompt-cards[data-pack="classic"] .prompt-card {
+  padding: 10px 0 12px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+}
+.prompt-cards[data-pack="classic"] .prompt-card__option {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-loader__grid > span,
+  .aurora-trace__pulse > span,
+  .prompt-card {
+    animation: none;
+  }
+}

@@ -19,7 +19,10 @@ function ImageJobArtifacts({ artifacts }: { artifacts: NonNullable<ActivityItem[
         if (artifact.kind === 'image') {
           return <WorkspaceImage key={`image-${artifact.path}`} path={artifact.path} alt="Generated image" kind="image" />;
         }
-        return <ImageJobCard key={`job-${artifact.jobId}-${index}`} jobId={artifact.jobId} expectedCount={artifact.count} />;
+        if (artifact.kind === 'image-job') {
+          return <ImageJobCard key={`job-${artifact.jobId}-${index}`} jobId={artifact.jobId} expectedCount={artifact.count} />;
+        }
+        return null;
       })}
     </div>
   );

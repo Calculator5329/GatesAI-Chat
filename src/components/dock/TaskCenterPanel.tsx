@@ -2,8 +2,11 @@
 // the task's owning store; this panel only renders and dispatches facade actions.
 import { observer } from 'mobx-react-lite';
 import type { TaskStatus, TaskView } from '../../stores/TaskStore';
-import { useRouterStore, useTaskStore } from '../../stores/context';
+import { useRouterStore, useTaskStore, useUiPack } from '../../stores/context';
 import type { DockPanelProps } from './panelRegistry';
+
+/** Above this, a ladder of ticks stops being readable and a bar wins. */
+const MAX_STEP_TICKS = 12;
 
 const GROUPS: Array<{ title: string; statuses: TaskStatus[] }> = [
   { title: 'Running', statuses: ['running'] },
@@ -14,6 +17,7 @@ const GROUPS: Array<{ title: string; statuses: TaskStatus[] }> = [
 export const TaskCenterPanel = observer(function TaskCenterPanel(_props: DockPanelProps) {
   const tasks = useTaskStore();
   const router = useRouterStore();
+  const pack = useUiPack();
   const ledger = tasks.tasks;
 
   if (ledger.length === 0) {
@@ -26,7 +30,7 @@ export const TaskCenterPanel = observer(function TaskCenterPanel(_props: DockPan
   }
 
   return (
-    <div className="task-center" data-testid="task-center-panel">
+    <div className="task-center" data-pack={pack} data-testid="task-center-panel">
       {GROUPS.map(group => {
         const entries = ledger.filter(task => group.statuses.includes(task.status));
         if (entries.length === 0) return null;
@@ -42,6 +46,7 @@ export const TaskCenterPanel = observer(function TaskCenterPanel(_props: DockPan
                 onOpen={task.threadId ? () => router.goThread(task.threadId ?? null) : undefined}
                 onCancel={() => tasks.cancel(task.id)}
                 onRetry={() => tasks.retry(task.id)}
+                steps={pack === 'aurora'}
               />
             ))}
           </section>
@@ -56,11 +61,14 @@ function TaskRow({
   onOpen,
   onCancel,
   onRetry,
+  steps,
 }: {
   task: TaskView;
   onOpen?: () => void;
   onCancel: () => void;
   onRetry: () => void;
+  /** Aurora renders the progress as discrete steps instead of a bar. */
+  steps: boolean;
 }) {
   const cancellable = task.status === 'pending' || task.status === 'running';
   const retryable = task.status === 'failed' || task.status === 'cancelled';
@@ -96,7 +104,9 @@ function TaskRow({
         )}
         {task.progress?.label && <span>{task.progress.label}</span>}
       </div>
-      {progress != null && (
+      {progress != null && steps && task.progress && task.progress.max <= MAX_STEP_TICKS ? (
+        <TaskSteps value={task.progress.value} max={task.progress.max} label={task.progress.label} title={task.title} />
+      ) : progress != null && (
         <div
           className="task-center__progress"
           role="progressbar"
@@ -120,6 +130,35 @@ function TaskRow({
         </div>
       )}
     </article>
+  );
+}
+
+/**
+ * The step ladder is the task's own progress counter, one tick per unit — an
+ * agent's rounds, a batch's images. It is never shown for a task whose max is
+ * large or unbounded, where a bar reads better and ticks would be noise.
+ */
+function TaskSteps({ value, max, label, title }: { value: number; max: number; label?: string; title: string }) {
+  return (
+    <>
+      <div
+        className="task-center__steps"
+        role="progressbar"
+        aria-label={`${title} progress`}
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-valuenow={value}
+      >
+        {Array.from({ length: max }, (_, index) => (
+          <i
+            key={index}
+            className="task-center__step"
+            data-state={index < value ? 'done' : index === value ? 'current' : 'pending'}
+          />
+        ))}
+      </div>
+      {label && <div className="task-center__step-label">{label}</div>}
+    </>
   );
 }
 

@@ -6,6 +6,7 @@ import { parseChatSnapshotValue, prepareChatSnapshotForSave } from '../persisten
 import { CURRENT_CHAT_SCHEMA_VERSION } from '../persistence/migrations';
 import { DEFAULT_UI_PREFS, type UiPrefsSnapshot } from '../uiPrefsStorage';
 import { isRecord } from '../../core/guards';
+import { coerceUiPack } from '../../core/uiPacks';
 import { normalizeLibraryPath, sourceKindForPath } from '../library/librarySourceService';
 import type { LibrarySnapshot } from '../library/types';
 
@@ -309,6 +310,7 @@ function parseUiPrefsSnapshot(value: unknown): UiPrefsSnapshot {
     codeSize: memberOrDefault(r.codeSize, CODE_SIZES, DEFAULT_UI_PREFS.codeSize),
     bodyFontSizePx: numberOrDefault(r.bodyFontSizePx, DEFAULT_UI_PREFS.bodyFontSizePx),
     readingWidthPx: numberOrDefault(r.readingWidthPx, DEFAULT_UI_PREFS.readingWidthPx),
+    uiPack: coerceUiPack(r.uiPack),
     animationsEnabled: typeof r.animationsEnabled === 'boolean'
       ? r.animationsEnabled
       : DEFAULT_UI_PREFS.animationsEnabled,

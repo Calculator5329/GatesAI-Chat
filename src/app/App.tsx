@@ -59,6 +59,7 @@ export const App = observer(function App() {
     `markdown-density-${ui.markdownDensity}`,
     `code-${ui.codeStyle}`,
     `code-size-${ui.codeSize}`,
+    `pack-${ui.uiPack}`,
     ui.animationsEnabled ? '' : 'no-animations',
   ].filter(Boolean).join(' ');
   const appearanceVars: CSSProperties = {
@@ -96,7 +97,7 @@ export const App = observer(function App() {
 
   return (
     <div style={stageStyle}>
-      <div className={appearanceClassName} style={{ ...themeToCssVars(theme), ...appearanceVars, ...rootStyle, fontFamily: theme.fontUi }}>
+      <div data-ui-pack={ui.uiPack} className={appearanceClassName} style={{ ...themeToCssVars(theme), ...appearanceVars, ...rootStyle, fontFamily: theme.fontUi }}>
         <EditorialSidebar />
         {router.isMenu
           ? (

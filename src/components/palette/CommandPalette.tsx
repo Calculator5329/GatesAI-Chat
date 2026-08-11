@@ -1,13 +1,14 @@
 // Command palette for app actions and thread search.
 // Rendered by App only while UiStore.paletteOpen is true; no closed-state DOM
 // remains, so it cannot intercept sidebar clicks.
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useArtifactStore, useChatStore, useDockStore, useRouterStore, useUiStore } from '../../stores/context';
+import { useArtifactStore, useChatStore, useDockStore, useRouterStore, useUiPack, useUiStore } from '../../stores/context';
 import { Icons } from '../ui/icons';
 import { rankPaletteItems } from './ranking';
 import type { MenuSectionKey, Thread } from '../../core/types';
 import { tokens } from '../../core/styleTokens';
+import { UI_PACKS, uiPackMeta, type UiPackKey } from '../../core/uiPacks';
 
 type PaletteItemKind = 'action' | 'thread';
 
@@ -81,6 +82,15 @@ const EMPTY_STYLE: CSSProperties = {
   font: 'italic 14px "Source Serif 4", Georgia, serif',
 };
 
+const GROUP_HEADING_STYLE: CSSProperties = {
+  padding: '10px 11px 4px',
+  color: 'var(--text-faint)',
+  fontFamily: '"Geist Mono", ui-monospace, monospace',
+  fontSize: 10,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+};
+
 const TYPE_STYLE: CSSProperties = {
   flex: 'none',
   color: 'var(--text-faint)',
@@ -96,6 +106,7 @@ export const CommandPalette = observer(function CommandPalette() {
   const router = useRouterStore();
   const dock = useDockStore();
   const artifactStore = useArtifactStore();
+  const pack = useUiPack();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -120,6 +131,15 @@ export const CommandPalette = observer(function CommandPalette() {
       actionItem('toggle-fullscreen', 'Toggle fullscreen', 'F11 — use the whole screen', ['fullscreen full screen f11 window maximize'], () => {
         ui.toggleFullscreen();
       }),
+      // The before/after switcher, one keystroke away: comparing packs is the
+      // point of having packs, and a settings round trip loses the comparison.
+      actionItem(
+        'cycle-ui-pack',
+        `Switch interface pack — ${uiPackMeta(nextUiPack(ui.uiPack)).name}`,
+        `Currently ${uiPackMeta(ui.uiPack).name}`,
+        ['pack theme interface presentation aurora classic before after switch'],
+        () => ui.setUiPack(nextUiPack(ui.uiPack)),
+      ),
       // Dock entry points are desktop-only: the v1 panels read workspace
       // files through the bridge, which Web Lite doesn't have.
       ...(dockEntryVisible
@@ -148,6 +168,20 @@ export const CommandPalette = observer(function CommandPalette() {
   }, [chat, router, ui, dock, dockEntryVisible, registeredArtifacts]);
 
   const ranked = useMemo(() => rankPaletteItems(items, query).map(entry => entry.item), [items, query]);
+  const aurora = pack === 'aurora';
+  // Aurora groups the ranked list without reordering it: the first row of each
+  // kind gets a heading, so ranking still decides what comes first.
+  const firstIndexOfKind = useMemo(() => {
+    const first: Partial<Record<PaletteItemKind, number>> = {};
+    ranked.forEach((item, index) => {
+      if (first[item.kind] === undefined) first[item.kind] = index;
+    });
+    return first;
+  }, [ranked]);
+  const counts = useMemo(() => ({
+    action: items.filter(item => item.kind === 'action').length,
+    thread: items.filter(item => item.kind === 'thread').length,
+  }), [items]);
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -222,15 +256,24 @@ export const CommandPalette = observer(function CommandPalette() {
           />
         </div>
         <div className="command-palette__list" role="listbox" aria-label="Command results" style={LIST_STYLE}>
-          {ranked.length === 0 && <div style={EMPTY_STYLE}>No matching command or thread.</div>}
+          {ranked.length === 0 && (
+            aurora
+              ? <PaletteEmpty query={query} actionCount={counts.action} threadCount={counts.thread} />
+              : <div style={EMPTY_STYLE}>No matching command or thread.</div>
+          )}
           {ranked.map((item, index) => (
-            <PaletteRow
-              key={item.id}
-              item={item}
-              selected={index === selectedIndex}
-              onHover={() => setSelectedIndex(index)}
-              onRun={() => execute(item)}
-            />
+            <Fragment key={item.id}>
+              {aurora && index === firstIndexOfKind[item.kind] && (
+                <div style={GROUP_HEADING_STYLE}>{item.kind === 'action' ? 'Actions' : 'Conversations'}</div>
+              )}
+              <PaletteRow
+                item={item}
+                selected={index === selectedIndex}
+                query={aurora ? query : ''}
+                onHover={() => setSelectedIndex(index)}
+                onRun={() => execute(item)}
+              />
+            </Fragment>
           ))}
         </div>
       </div>
@@ -238,14 +281,34 @@ export const CommandPalette = observer(function CommandPalette() {
   );
 });
 
+/**
+ * Aurora's empty state: names what was searched instead of only reporting a
+ * miss, so an empty result reads as "nothing here" rather than "search broken".
+ */
+function PaletteEmpty({ query, actionCount, threadCount }: { query: string; actionCount: number; threadCount: number }) {
+  return (
+    <div style={EMPTY_STYLE} data-testid="palette-empty">
+      <div style={{ color: 'var(--text-dim)', fontStyle: 'normal', fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif', fontSize: 13 }}>
+        Nothing matches “{query}”
+      </div>
+      <div style={{ marginTop: 6, fontSize: 12 }}>
+        Searched {actionCount} action{actionCount === 1 ? '' : 's'} and {threadCount} conversation{threadCount === 1 ? '' : 's'}.
+      </div>
+    </div>
+  );
+}
+
 function PaletteRow({
   item,
   selected,
+  query,
   onHover,
   onRun,
 }: {
   item: PaletteItem;
   selected: boolean;
+  /** Non-empty only in Aurora, where the matched span is highlighted. */
+  query: string;
   onHover: () => void;
   onRun: () => void;
 }) {
@@ -291,7 +354,7 @@ function PaletteRow({
           lineHeight: 1.3,
           letterSpacing: 0,
         }}>
-          {item.label}
+          <Highlighted text={item.label} query={query} />
         </span>
         {item.subtitle && (
           <span style={{
@@ -310,6 +373,33 @@ function PaletteRow({
       <span style={TYPE_STYLE}>{item.kind}</span>
     </button>
   );
+}
+
+/**
+ * Marks the matched span of a label. Plain substring matching on purpose: the
+ * ranker is fuzzier than this, so a row can match without a visible highlight,
+ * but a highlight is never shown where the text does not actually match.
+ */
+function Highlighted({ text, query }: { text: string; query: string }) {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return <>{text}</>;
+  const at = text.toLowerCase().indexOf(needle);
+  if (at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}
+      <mark style={{ background: 'transparent', color: 'var(--accent)', fontWeight: 500 }}>
+        {text.slice(at, at + needle.length)}
+      </mark>
+      {text.slice(at + needle.length)}
+    </>
+  );
+}
+
+/** Next pack in registry order, wrapping — the palette's before/after toggle. */
+function nextUiPack(current: UiPackKey): UiPackKey {
+  const index = UI_PACKS.findIndex(pack => pack.key === current);
+  return UI_PACKS[(index + 1) % UI_PACKS.length].key;
 }
 
 function actionItem(id: string, label: string, subtitle: string, keywords: string[], run: () => void): PaletteItem {

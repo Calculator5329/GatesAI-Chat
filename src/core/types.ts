@@ -154,6 +154,16 @@ export interface RetrievalTrace {
  * model-facing `content` string. The `content` remains the
  * authoritative payload for the model; `artifacts` is for the UI.
  */
+/**
+ * One line of a rendered diff. Lives in core so both the diff service that
+ * computes it and the UI that renders it can name the same shape without
+ * crossing a layer boundary.
+ */
+export type DiffRow =
+  | { type: 'context'; text: string; oldLine: number; newLine: number }
+  | { type: 'removed'; text: string; oldLine: number }
+  | { type: 'added'; text: string; newLine: number };
+
 export type ToolResultArtifact =
   | {
       kind: 'image';
@@ -167,6 +177,20 @@ export type ToolResultArtifact =
       jobId: string;
       /** Number of images this job is expected to produce. */
       count: number;
+    }
+  | {
+      /**
+       * A file edit the assistant made, rendered for review. The rows are a
+       * capped preview, not the file: persisted messages must stay small, and
+       * the authoritative content is on disk at `path`.
+       */
+      kind: 'diff';
+      path: string;
+      added: number;
+      removed: number;
+      rows: DiffRow[];
+      /** True when `rows` omits part of the change. */
+      truncated?: boolean;
     };
 
 /**

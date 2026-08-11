@@ -4,6 +4,7 @@
 import type { LlmMessage, ToolDef } from '../../core/llm';
 import type { Note } from '../../core/notes';
 import type { Thread, ToolResultArtifact } from '../../core/types';
+import type { AssistantPromptAnswer, AssistantPromptRequest } from '../../core/prompts';
 /**
  * Runtime context passed to every tool. Add fields here as tools need them
  * (e.g. an HTTP client, a fetcher for `web_search`). Keep this surface
@@ -167,6 +168,13 @@ export interface ArtifactSurfaceFacade {
   openArtifact(id: string, cell?: 0 | 1): void;
 }
 
+export interface PromptsFacade {
+  ask(
+    request: AssistantPromptRequest,
+    meta: { threadId: string; toolCallId?: string; signal?: AbortSignal },
+  ): Promise<AssistantPromptAnswer>;
+}
+
 export interface ToolContext {
   profile: ProfileFacade;
   chat: ChatFacade;
@@ -183,6 +191,8 @@ export interface ToolContext {
   artifactValidation?: ArtifactValidationFacade;
   artifacts?: ArtifactRegistryFacade;
   artifactSurface?: ArtifactSurfaceFacade;
+  /** Present only where a user can actually answer (the chat surface). */
+  prompts?: PromptsFacade;
   /** The thread the tool was called from. Useful for thread-scoped writes. */
   threadId: string;
   /** The provider tool-call id that triggered this execution. */

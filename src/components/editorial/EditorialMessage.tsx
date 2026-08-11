@@ -8,7 +8,7 @@ import type { MouseEvent } from 'react';
 import type { AssistantFinishReason, Message } from '../../core/types';
 import { resolveUserAttachments, type RenderedAttachment } from '../../core/attachments';
 import { contentPartsForMessage, messageText } from '../../core/messageParts';
-import { useEditorial, useRagStore } from '../../stores/context';
+import { useEditorial, useRagStore, useUiPack } from '../../stores/context';
 import { hasActiveTextSelection, shouldCopyMessageFromClick } from './messageCopy';
 import { WorkspaceImage } from './WorkspaceImage';
 import {
@@ -19,6 +19,7 @@ import { MarkdownFallback } from './MarkdownFallback';
 import { Icons } from '../ui/icons';
 import { ActivityStream } from './activity/ActivityStream';
 import { MemoryDisclosure } from './MemoryDisclosure';
+import { AuroraReplyFooter } from './aurora/AuroraReplyFooter';
 
 const MarkdownChunk = lazy(() => import('./MarkdownChunk').then(m => ({ default: m.MarkdownChunk })));
 
@@ -77,6 +78,7 @@ export const EditorialMessage = observer(function EditorialMessage({
 }: MessageProps) {
   const { chat, router } = useEditorial();
   const rag = useRagStore();
+  const pack = useUiPack();
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const [editing, setEditing] = useState(false);
   const content = messageText(message);
@@ -349,6 +351,14 @@ export const EditorialMessage = observer(function EditorialMessage({
           </div>
         )}
       </div>
+      {pack === 'aurora' && !isUser && !streaming && (
+        <AuroraReplyFooter
+          content={content}
+          trace={retrievalTrace}
+          onAsk={actionsDisabled ? undefined : text => chat.sendMessage(text)}
+          onOpenSources={() => router.goMenu('agent')}
+        />
+      )}
       {retrievalTrace && (
         <MemoryDisclosure
           trace={retrievalTrace}

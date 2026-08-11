@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-08-11 — Switchable UI packs and the Aurora pack
+
+- Added `src/core/uiPacks.ts`: the pack registry (`classic`, `aurora`), with
+  `coerceUiPack` so a persisted pack a build no longer ships degrades to
+  Classic instead of rendering nothing.
+- `UiStore.uiPack` persists the choice through `uiPrefsStorage`; `App` stamps
+  `data-ui-pack` and a `pack-*` class on the root. Switch it in Settings or
+  from the command palette (`Switch interface pack`).
+- Aurora renderers under `src/components/editorial/aurora/`: loader with live
+  elapsed, chip-header activity trace, reply footer with source and quoted
+  follow-up chips, diff card, image fine-tune card. Styles in
+  `src/styles/packs/aurora.css`.
+- New assistant-prompt path: `core/prompts.ts` + `stores/PromptStore.ts` +
+  the `ask_user` tool, rendered by `components/editorial/PromptCards.tsx` in
+  both packs. Every prompt is answerable and every exit path settles the
+  waiting tool call exactly once.
+- File edits now carry a reviewable diff: `services/diff/diffArtifact.ts`
+  builds a bounded artifact from the existing line differ, the `fs` tool
+  snapshots the previous revision before a text write, and both packs show
+  the +/− chips.
+- Aurora task rows render bounded progress as a step ladder; the command
+  palette groups results and highlights matches; the code block shows a line
+  count and a caret while the fence is still open.
+- Tests: `uiPacks`, `followUps`, `activitySummary`, `diffArtifact`,
+  `PromptStore`, `askUser`, `PromptCards`, `AuroraActivityStream`, plus UiStore
+  pack coverage. Fixed a date-dependent flake in the sidebar history test
+  (calendar landmarks → day offsets).
+
 ## 2026-08-09 — Local model turn status copy
 
 - Added `src/copy/localStatus.ts` and routed local-runtime stall/cold-start

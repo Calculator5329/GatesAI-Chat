@@ -23,6 +23,8 @@ import type { RagStore } from '../services/rag/RagStore';
 import type { SkillsStore } from './SkillsStore';
 import type { WhatsNewStore } from './WhatsNewStore';
 import type { UpdateStore } from './UpdateStore';
+import { DEFAULT_UI_PACK, type UiPackKey } from '../core/uiPacks';
+import type { PromptStore } from './PromptStore';
 const StoreContext = createContext<RootStore | null>(null);
 
 export function StoreProvider({ store, children }: { store: RootStore; children: ReactNode }) {
@@ -41,6 +43,24 @@ export function useChatStore(): ChatStore {
 
 export function useUiStore(): UiStore {
   return useRootStore().ui;
+}
+
+/**
+ * Active presentation pack. Components branch on this to choose a renderer;
+ * observers re-render when the user switches packs.
+ *
+ * Unlike the store hooks this does NOT throw without a provider: a pack is
+ * presentation with a safe default, so a presentational component rendered
+ * outside the app shell (tests, screenshot harnesses) gets Classic rather than
+ * an exception. The same reasoning covers a partial store without a UiStore.
+ */
+export function useUiPack(): UiPackKey {
+  const store = useContext(StoreContext);
+  return store?.ui?.uiPack ?? DEFAULT_UI_PACK;
+}
+
+export function usePromptStore(): PromptStore {
+  return useRootStore().prompts;
 }
 
 export function useDockStore(): DockStore {

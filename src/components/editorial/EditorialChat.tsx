@@ -14,6 +14,7 @@ import { groupMessagesByDate } from '../../core/threadSelectors';
 import { Icons, SecretKeyField } from '../ui';
 import { EditorialMessage } from './EditorialMessage';
 import { EditorialComposer } from './EditorialComposer';
+import { PromptCards } from './PromptCards';
 import {
   computeVisibleMessageRange,
   edgeRenderedMessageIds,
@@ -806,6 +807,7 @@ export const EditorialChat = observer(function EditorialChat() {
         </button>
       )}
       {isWebLite() && messages.length === 0 && <WebLiteDownloadCue />}
+      <PromptCards threadId={activeThreadId} />
       <EditorialComposer textareaRef={textareaRef} />
     </div>
   );

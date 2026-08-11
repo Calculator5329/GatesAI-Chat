@@ -264,7 +264,11 @@ describe('Tool loop — scripted', () => {
       { type: 'done', finishReason: 'tool_use' },
     ];
     const { chat, mock } = setupScripted(Array.from({ length: 8 }, writeRound));
-    const bridgeRequest = vi.fn(async () => ({ bytes: 17, path: '/workspace/artifacts/cool_game.html' }));
+    const bridgeRequest = vi.fn(async (op: string) => ({
+      bytes: 17,
+      path: '/workspace/artifacts/cool_game.html',
+      op,
+    }));
     chat.setToolStoresProvider(() => ({
       bridge: {
         isOnline: true,
@@ -279,7 +283,10 @@ describe('Tool loop — scripted', () => {
     const assistant = chat.activeThread!.messages.at(-1);
     expect(assistant?.role).toBe('assistant');
     if (assistant?.role !== 'assistant') return;
-    expect(bridgeRequest).toHaveBeenCalledTimes(3);
+    // Each write also snapshots the previous revision (fs.read) so the tool can
+    // attach a reviewable diff; the loop cap counts writes, not bridge calls.
+    const writes = bridgeRequest.mock.calls.filter(([op]) => op === 'fs.write');
+    expect(writes).toHaveLength(3);
     expect(mock.calls.length).toBe(4);
     expect(messageToolCalls(assistant)).toHaveLength(3);
     expect(new Set(messageToolCalls(assistant).map(call => call.id))).toHaveLength(3);

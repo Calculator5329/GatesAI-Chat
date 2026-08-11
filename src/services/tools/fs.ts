@@ -15,7 +15,8 @@ import {
   filterProtectedChatHistoryEntries,
   filterProtectedChatHistoryHits,
 } from './protectedWorkspacePaths';
-import type { Tool } from './types';
+import type { Tool, ToolExecuteResult } from './types';
+import { buildDiffArtifact } from '../diff/diffArtifact';
 
 /**
  * fs — read and write files inside ~/GatesAI/workspace/ via the bridge.
@@ -233,15 +234,56 @@ function readMaxChars(args: Record<string, unknown>): number {
     : 12_000;
 }
 
-async function doWrite(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1], append: boolean): Promise<string> {
+/**
+ * Text writes large enough that reading the previous revision to build a diff
+ * costs more than the review it buys.
+ */
+const DIFF_PREVIEW_MAX_CONTENT_CHARS = 200_000;
+
+async function doWrite(
+  args: Record<string, unknown>,
+  ctx: Parameters<Tool['execute']>[1],
+  append: boolean,
+): Promise<string | ToolExecuteResult> {
   const path = strArg(args, 'path');
   if (!path) return `Error: \`path\` is required for ${append ? 'append' : 'write'}.`;
   if (typeof args.content !== 'string') return `Error: \`content\` is required for ${append ? 'append' : 'write'}.`;
   const encoding = args.encoding === 'base64' ? 'base64' : 'utf8';
+  // Snapshot the previous revision BEFORE overwriting so the UI can show what
+  // changed. Text-only, size-capped, and best-effort: a failure here must
+  // never stop the write the model actually asked for.
+  const before = encoding === 'utf8' && !append && args.content.length <= DIFF_PREVIEW_MAX_CONTENT_CHARS
+    ? await readTextForDiff(path, ctx)
+    : null;
   const resp = await ctx.bridge!.client.request<FsWriteResp>('fs.write', {
     path, content: args.content, encoding, append,
   });
-  return `${append ? 'Appended' : 'Wrote'} ${resp.bytes} bytes to ${resp.path}`;
+  const content = `${append ? 'Appended' : 'Wrote'} ${resp.bytes} bytes to ${resp.path}`;
+  if (before === null) return content;
+  const artifact = buildDiffArtifact(resp.path, before, args.content);
+  if (!artifact || artifact.kind !== 'diff') return content;
+  return {
+    content,
+    summary: `+${artifact.added} −${artifact.removed}`,
+    artifacts: [artifact],
+  };
+}
+
+/**
+ * Previous text of `path`, `''` when the file does not exist yet, or null when
+ * the previous revision is unavailable or not text (no diff to show).
+ */
+async function readTextForDiff(path: string, ctx: Parameters<Tool['execute']>[1]): Promise<string | null> {
+  try {
+    const resp = await ctx.bridge!.client.request<FsReadResp>('fs.read', { path });
+    const decoded = decodeFsRead(resp);
+    return decoded.kind === 'binary' ? null : decoded.text;
+  } catch {
+    // The overwhelmingly common cause is "file does not exist yet", which is a
+    // pure addition. Any other read failure degrades to the same harmless
+    // outcome: a diff against an empty file, or no diff at all.
+    return '';
+  }
 }
 
 async function doList(args: Record<string, unknown>, ctx: Parameters<Tool['execute']>[1]): Promise<string> {

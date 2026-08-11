@@ -11,6 +11,7 @@ import type {
   MarkdownStyleKey,
   ThemeMode,
 } from '../core/types';
+import { coerceUiPack, type UiPackKey } from '../core/uiPacks';
 import { loadUiPrefs, saveUiPrefs, type UiPrefsSnapshot } from '../services/uiPrefsStorage';
 import { loadMenuHintSeen, saveMenuHintSeen } from '../services/storage/uiHintStorage';
 import { logger } from '../services/diagnostics/logger';
@@ -63,6 +64,12 @@ export class UiStore {
   codeLineNumbers = false;
   /** Whether completed first turns may be titled automatically by an LLM. */
   autoNamingEnabled = true;
+  /**
+   * Active presentation pack. Swaps how chat primitives render (loaders,
+   * traces, chips, cards) without touching any store contract, so packs can be
+   * compared side by side and new ones added as pure additions.
+   */
+  uiPack: UiPackKey = 'classic';
   globalShortcutUnavailableReason: string | null = null;
   /** First-run cue: pulse the brand wordmark until the user opens the menu. */
   menuHintSeen = loadMenuHintSeen();
@@ -89,6 +96,7 @@ export class UiStore {
     this.closeButtonHidesToTray = prefs.closeButtonHidesToTray;
     this.codeLineNumbers = prefs.codeLineNumbers;
     this.autoNamingEnabled = prefs.autoNamingEnabled;
+    this.uiPack = prefs.uiPack;
     makeAutoObservable<this, 'boundDraftThreadId' | 'draftByThread' | 'toolOutputOpenByKey' | 'composerFocus' | 'composerFocusPending' | 'disposers'>(this, {
       boundDraftThreadId: false,
       draftByThread: false,
@@ -117,6 +125,7 @@ export class UiStore {
       // MarkdownChunk's memo and remount code blocks mid-interaction).
       setCodeLineNumbers: action.bound,
       setAutoNamingEnabled: action.bound,
+      setUiPack: action.bound,
       setGlobalShortcutStatus: action.bound,
     });
     // Debounce UI-prefs persistence: a slider drag (font size, reading width)
@@ -151,6 +160,7 @@ export class UiStore {
         closeButtonHidesToTray: this.closeButtonHidesToTray,
         codeLineNumbers: this.codeLineNumbers,
         autoNamingEnabled: this.autoNamingEnabled,
+        uiPack: this.uiPack,
       });
       if (pendingTimer) clearTimeout(pendingTimer);
       pendingTimer = setTimeout(flushPrefs, DEBOUNCE_MS);
@@ -196,6 +206,7 @@ export class UiStore {
       closeButtonHidesToTray: this.closeButtonHidesToTray,
       codeLineNumbers: this.codeLineNumbers,
       autoNamingEnabled: this.autoNamingEnabled,
+      uiPack: this.uiPack,
     };
   }
 
@@ -214,6 +225,7 @@ export class UiStore {
     this.closeButtonHidesToTray = snapshot.closeButtonHidesToTray;
     this.codeLineNumbers = snapshot.codeLineNumbers;
     this.autoNamingEnabled = snapshot.autoNamingEnabled;
+    this.uiPack = coerceUiPack(snapshot.uiPack);
   }
 
   /**
@@ -371,6 +383,7 @@ export class UiStore {
   setCloseButtonHidesToTray(value: boolean): void { this.closeButtonHidesToTray = value; }
   setCodeLineNumbers(value: boolean): void { this.codeLineNumbers = value; }
   setAutoNamingEnabled(value: boolean): void { this.autoNamingEnabled = value; }
+  setUiPack(value: UiPackKey): void { this.uiPack = coerceUiPack(value); }
   setGlobalShortcutStatus(reason: string | null): void { this.globalShortcutUnavailableReason = reason; }
 
   /** Record that the user has discovered the menu; suppresses the brand cue. */

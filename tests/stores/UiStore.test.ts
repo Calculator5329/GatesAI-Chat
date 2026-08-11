@@ -81,4 +81,20 @@ describe('UiStore', () => {
     expect(ui.toolOutputOpenState('message-b', 'activity-1')).toBe(false);
     expect(ui.prefsSnapshot).not.toHaveProperty('toolOutputOpenByKey');
   });
+
+  it('switches the UI pack and carries it in the persisted prefs snapshot', () => {
+    const ui = buildUi();
+
+    expect(ui.uiPack).toBe('classic');
+    ui.setUiPack('aurora');
+    expect(ui.uiPack).toBe('aurora');
+    expect(ui.prefsSnapshot.uiPack).toBe('aurora');
+  });
+
+  it('falls back to Classic for a pack this build no longer ships', () => {
+    const ui = buildUi();
+
+    ui.setUiPack('elements' as never);
+    expect(ui.uiPack).toBe('classic');
+  });
 });

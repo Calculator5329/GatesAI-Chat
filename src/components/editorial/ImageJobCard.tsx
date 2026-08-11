@@ -4,13 +4,14 @@
 // abort; missing workspace files surface via `useImageDataUrl` failed state (Batch D).
 import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useEditorial } from '../../stores/context';
+import { useEditorial, useUiPack } from '../../stores/context';
 import type { CompletedJob, ImageJob } from '../../stores/ImageJobStore';
 import { Lightbox } from '../media/Lightbox';
 import { useImageDataUrl } from '../media/useImageDataUrl';
 import { tokens } from '../../core/styleTokens';
 import { imageRunningCopy } from '../../core/statusCopy';
 import { imageJobWaitingCopy } from '../../copy/localStatus';
+import { FineTuneCard } from './aurora/FineTuneCard';
 
 interface ImageJobCardProps {
   jobId: string;
@@ -64,6 +65,7 @@ export function imageFailureAdvice(job: CompletedJob): string {
 export const ImageJobCard = observer(function ImageJobCard({ jobId, expectedCount }: ImageJobCardProps) {
   const { imageJobs: jobs } = useEditorial();
   const job = jobs.findById(jobId);
+  const pack = useUiPack();
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   if (!job) {
@@ -92,6 +94,7 @@ export const ImageJobCard = observer(function ImageJobCard({ jobId, expectedCoun
       {results.length === 1
         ? <BigImage path={results[0]} alt="Generated image" onOpen={() => setLightboxIdx(0)} />
         : <ImageGrid paths={results} onOpen={(i) => setLightboxIdx(i)} />}
+      {pack === 'aurora' && <FineTuneCard job={job} onRerun={input => jobs.enqueue(input)} />}
       {lightboxIdx !== null && (
         <Lightbox
           images={results.map(p => ({ path: p, alt: 'Generated image' }))}

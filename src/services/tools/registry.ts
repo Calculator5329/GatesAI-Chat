@@ -27,6 +27,7 @@ import { webSearchTool } from './webSearch';
 import { fetchPageTool } from './fetchPage';
 import { artifactTool } from './artifact';
 import { spawnTaskDescription, spawnTaskTool } from './spawnTask';
+import { askUserTool } from './askUser';
 
 export interface ToolSelectionContext {
   userText: string;
@@ -494,6 +495,7 @@ toolRegistry.register(timeTool);
 toolRegistry.register(logsTool);
 toolRegistry.register(notesTool);
 toolRegistry.register(threadTool);
+toolRegistry.register(askUserTool);
 toolRegistry.register(chatHistoryTool);
 toolRegistry.register(workspaceTool);
 toolRegistry.register(fsTool);

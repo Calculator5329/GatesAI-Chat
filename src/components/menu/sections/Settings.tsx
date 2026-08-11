@@ -5,6 +5,7 @@ import { useRef, useState, type ChangeEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../core/styleTokens';
 import type { ThemeMode } from '../../../core/types';
+import { UI_PACKS, uiPackMeta, type UiPackKey } from '../../../core/uiPacks';
 import { Button, Input, SegmentedControl, SettingsRow, Toggle } from '../../ui';
 import { useRootStore, useUiStore } from '../../../stores/context';
 import { isWebLite } from '../../../core/runtime';
@@ -20,6 +21,7 @@ export const SettingsSection = observer(function SettingsSection() {
       <div className="settings-page__kicker" style={tokens.kicker}>theme · app data · danger zone</div>
 
       <ThemeBlock />
+      <UiPackBlock />
       <ConversationBlock />
       <DesktopBlock />
       <ExportImportBlock />
@@ -59,6 +61,37 @@ const ThemeBlock = observer(function ThemeBlock() {
           onChange={ui.setTheme}
           labels={{ dark: 'Dark', light: 'Light', system: 'System' }}
         />
+      </SettingsRow>
+    </div>
+  );
+});
+
+const PACK_OPTIONS = UI_PACKS.map(pack => pack.key);
+const PACK_LABELS = Object.fromEntries(UI_PACKS.map(pack => [pack.key, pack.name])) as Record<UiPackKey, string>;
+
+/**
+ * The before/after switcher. Packs are interchangeable presentations of the
+ * same data, so this is a live toggle with no reload and no migration —
+ * adding a future pack means one entry in `core/uiPacks.ts`.
+ */
+const UiPackBlock = observer(function UiPackBlock() {
+  const ui = useUiStore();
+  return (
+    <div className="settings-section settings-ui-pack" style={{ ...tokens.section, marginBottom: 28 }}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Interface pack</div>
+      <SettingsRow label="Presentation" last>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+          <SegmentedControl
+            options={PACK_OPTIONS}
+            value={ui.uiPack}
+            onChange={ui.setUiPack}
+            labels={PACK_LABELS}
+          />
+          <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
+            {uiPackMeta(ui.uiPack).description} Switching is instant and changes presentation only —
+            your threads, settings, and tools are identical in every pack.
+          </div>
+        </div>
       </SettingsRow>
     </div>
   );

@@ -20,6 +20,7 @@ import { appendMessageText, messageText } from '../../../src/core/messageParts';
 import { EditorialChat } from '../../../src/components/editorial/EditorialChat';
 import { flushPendingSnapshot } from '../../../src/services/persistence';
 import type { RootStore } from '../../../src/stores/RootStore';
+import { PromptStore } from '../../../src/stores/PromptStore';
 import type { Message } from '../../../src/core/types';
 import { clearAppStorage } from '../../helpers/storage';
 
@@ -70,6 +71,7 @@ function buildStore(): RootStore {
   const chat = new ChatStore(providers, registry, profile);
   const imageJobs = new ImageJobStore();
   const skills = new SkillsStore(bridge, () => ['thread']);
+  const prompts = new PromptStore();
   return {
     registry,
     providers,
@@ -84,6 +86,7 @@ function buildStore(): RootStore {
     ollama,
     imageJobs,
     skills,
+    prompts,
   } as RootStore;
 }
 

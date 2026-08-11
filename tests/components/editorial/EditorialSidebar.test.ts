@@ -14,6 +14,7 @@ import { ExecStreamStore } from '../../../src/stores/ExecStreamStore';
 import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
 import { ImageJobStore } from '../../../src/stores/ImageJobStore';
 import { SkillsStore } from '../../../src/stores/SkillsStore';
+import { PromptStore } from '../../../src/stores/PromptStore';
 import { EditorialSidebar } from '../../../src/components/editorial/EditorialSidebar';
 import { EditorialChat } from '../../../src/components/editorial/EditorialChat';
 import { flushPendingSnapshot, loadSnapshot } from '../../../src/services/persistence';
@@ -39,6 +40,7 @@ function buildStore(): RootStore {
   const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
   const imageJobs = new ImageJobStore();
   const skills = new SkillsStore(bridge, () => ['thread']);
+  const prompts = new PromptStore();
   // W-5's UpdatePill reads updates.visible from the sidebar; a hidden stub
   // keeps these presentation tests focused on the history list.
   const updates = { visible: false } as RootStore['updates'];
@@ -57,6 +59,7 @@ function buildStore(): RootStore {
     localRuntime,
     imageJobs,
     skills,
+    prompts,
     updates,
     search,
     dock,
@@ -204,12 +207,15 @@ describe('EditorialSidebar history list', () => {
     const now = Date.now();
     const current = new Date(now);
     const todayStart = new Date(current.getFullYear(), current.getMonth(), current.getDate()).getTime();
-    const mondayDate = current.getDate() - ((current.getDay() + 6) % 7);
+    // Day offsets, not calendar landmarks: the buckets are relative windows,
+    // so "this Monday" or "the 1st" put a thread in a different bucket
+    // depending on which day the suite runs.
+    const day = 24 * 60 * 60 * 1000;
     const threads = [
       { id: 'today-1', updatedAt: now },
       { id: 'yesterday-1', updatedAt: todayStart - 1 },
-      { id: 'week-1', updatedAt: new Date(current.getFullYear(), current.getMonth(), mondayDate).getTime() },
-      { id: 'month-1', updatedAt: new Date(current.getFullYear(), current.getMonth(), 1).getTime() },
+      { id: 'week-1', updatedAt: todayStart - 3 * day },
+      { id: 'month-1', updatedAt: todayStart - 14 * day },
     ].map(seed => ({
       id: seed.id,
       title: seed.id,

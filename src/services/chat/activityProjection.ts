@@ -43,6 +43,9 @@ export function buildActivitiesForMessage(args: {
     const tool = toolRegistry.get(call.name);
     const artifacts = result?.artifacts;
     const imageJob = artifacts?.find(artifact => artifact.kind === 'image-job');
+    // A file edit carries its own line delta; surfacing it as stats gives both
+    // packs the +/− chips without either one having to parse tool output.
+    const diff = artifacts?.find(artifact => artifact.kind === 'diff');
     const state = result
       ? stateForToolResult(result, imageJob ? extras?.imageJobs?.findById?.(imageJob.jobId)?.status : undefined)
       : 'running';
@@ -75,6 +78,7 @@ export function buildActivitiesForMessage(args: {
           ? detailForToolResult(call.name, result.content)
           : undefined,
       artifacts,
+      stats: diff?.kind === 'diff' ? { added: diff.added, removed: diff.removed } : undefined,
       startedAt: message.createdAt,
       finishedAt: result?.ranAt,
       toolCallId: call.id,

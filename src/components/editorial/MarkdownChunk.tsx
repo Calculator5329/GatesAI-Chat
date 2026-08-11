@@ -7,6 +7,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import type { PluggableList } from 'unified';
 import { isWorkspacePath } from '../../core/workspacePaths';
+import { useUiPack } from '../../stores/context';
 import type { BridgeStore } from '../../stores/BridgeStore';
 import {
   downloadHtmlDocument,
@@ -63,7 +64,7 @@ export const MarkdownChunk = memo(function MarkdownChunk({ content, bridge, line
   const htmlPreviewEnabled = hasClosedFencedCodeBlock(content);
   const components = useMemo(() => ({
     code: (props: ComponentPropsWithoutRef<'code'>) => <CodeOrWorkspaceLink {...props} bridge={bridge} />,
-    pre: (props: ComponentPropsWithoutRef<'pre'>) => <CodeBlock {...props} lineNumbers={lineNumbers} onLineNumbersChange={onLineNumbersChange} htmlPreviewEnabled={htmlPreviewEnabled} />,
+    pre: (props: ComponentPropsWithoutRef<'pre'>) => <CodeBlock {...props} lineNumbers={lineNumbers} onLineNumbersChange={onLineNumbersChange} htmlPreviewEnabled={htmlPreviewEnabled} fenceOpen={!htmlPreviewEnabled} />,
     a: (props: ComponentPropsWithoutRef<'a'>) => <AnchorOrWorkspaceLink {...props} bridge={bridge} />,
   }), [bridge, lineNumbers, onLineNumbersChange, htmlPreviewEnabled]);
 
@@ -83,9 +84,16 @@ interface CodeBlockProps extends ComponentPropsWithoutRef<'pre'> {
   lineNumbers: boolean;
   onLineNumbersChange: (enabled: boolean) => void;
   htmlPreviewEnabled: boolean;
+  /**
+   * The fence has not been closed yet, i.e. the model is still writing this
+   * block. Derived from the chunk text, not from a timer, so it is true only
+   * while tokens are genuinely still arriving.
+   */
+  fenceOpen: boolean;
 }
 
-function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnabled, ...rest }: CodeBlockProps) {
+function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnabled, fenceOpen, ...rest }: CodeBlockProps) {
+  const pack = useUiPack();
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   const [wrapped, setWrapped] = useState(false);
   const [htmlView, setHtmlView] = useState<'source' | 'preview'>('source');
@@ -110,10 +118,18 @@ function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnab
     && (!normalizedLanguage || normalizedLanguage === 'html' || normalizedLanguage === 'htm')
     && isCompleteHtmlDocument(text);
 
+  const aurora = pack === 'aurora';
+  const streaming = aurora && fenceOpen;
+
   return (
-    <div className="code-block">
+    <div className="code-block" data-pack={pack} data-streaming={streaming || undefined}>
       <div className="code-block__toolbar">
         <span className="code-block__language">{language ?? 'Code'}</span>
+        {aurora && (
+          <span className="code-block__lines" aria-label={`${lineCount} lines`}>
+            {lineCount} {lineCount === 1 ? 'line' : 'lines'}
+          </span>
+        )}
         {htmlDocument && (
           <button type="button" aria-pressed={htmlView === 'preview'} onClick={() => setHtmlView(view => view === 'source' ? 'preview' : 'source')}>
             {htmlView === 'source' ? 'Preview' : 'Source'}
@@ -155,6 +171,7 @@ function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnab
           </span>
         )}
         <pre {...rest}>{code}</pre>
+        {streaming && <span className="code-block__caret" aria-hidden="true" />}
       </div>
       )}
     </div>

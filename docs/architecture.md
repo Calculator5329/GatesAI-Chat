@@ -590,6 +590,44 @@ App flow:
   `workspaceChatPersistence.ts`; model-originated tool calls never set the
   privileged flag.
 
+## UI packs (presentation switch)
+
+A **pack** is one complete presentation of the same data. Packs never change
+what the app knows or does — only how a turn looks.
+
+- `core/uiPacks.ts` is the registry: `UiPackKey`, the `UI_PACKS` list,
+  `DEFAULT_UI_PACK` (`classic`), and `coerceUiPack`, which maps anything
+  unrecognised back to the default. A persisted pack that a later build no
+  longer ships therefore degrades to Classic rather than rendering nothing.
+- `UiStore.uiPack` holds the choice and persists it through
+  `uiPrefsStorage`. `App.tsx` stamps `data-ui-pack` plus a `pack-*` class on
+  the root, so a pack can also be styled purely in CSS.
+- Components read the active pack with `useUiPack()` from `stores/context`.
+  Unlike the other store hooks it does **not** throw without a provider: a pack
+  is presentation with a safe default, so a component rendered outside the app
+  shell gets Classic instead of an exception.
+- Renderers live beside the classic ones — Aurora's are in
+  `components/editorial/aurora/`, its styles in `styles/packs/aurora.css`. A
+  pack switch is a branch at the top of the shared component
+  (`ActivityStream` is the model to copy), never a fork of the store layer.
+
+Adding a pack is a pure addition: one entry in `UI_PACKS`, one stylesheet, and
+renderers for whichever surfaces it changes. Anything it does not implement
+falls through to the classic rendering.
+
+Aurora also introduced two pieces of real machinery that both packs use:
+
+- **Assistant prompts** — `core/prompts.ts`, `stores/PromptStore.ts`, and the
+  `ask_user` tool. The tool blocks the turn until the user answers or declines;
+  `PromptCards` renders the question above the composer in either pack. Every
+  exit path (answer, decline, abort, thread cancel) settles the waiting promise
+  exactly once, and every card offers a decline — an unanswerable card would
+  wedge the turn.
+- **Diff artifacts** — `services/diff/diffArtifact.ts` builds a bounded,
+  changed-regions-only artifact from the existing line differ. The `fs` tool
+  snapshots the previous revision before a text write and attaches it;
+  `activityProjection.ts` promotes its counts to `ActivityItem.stats`.
+
 ## Activity, command palette, and usage
 
 Activity timeline:

@@ -17,6 +17,7 @@ const DEFAULTS = {
   closeButtonHidesToTray: false,
   codeLineNumbers: false,
   autoNamingEnabled: true,
+  uiPack: 'classic',
 } as const;
 
 describe('uiPrefsStorage', () => {
@@ -42,10 +43,12 @@ describe('uiPrefsStorage', () => {
       closeButtonHidesToTray: true,
       codeLineNumbers: true,
       autoNamingEnabled: false,
+      uiPack: 'aurora',
     });
 
     expect(loadUiPrefs()).toEqual({
       ...DEFAULTS,
+      uiPack: 'aurora',
       onboardingDismissed: true,
       theme: 'light',
       globalSummonEnabled: false,

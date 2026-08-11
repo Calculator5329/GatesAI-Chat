@@ -4,6 +4,7 @@
  */
 
 import type { CodeSizeKey, CodeStyleKey, MarkdownDensityKey, MarkdownStyleKey, ThemeMode } from '../core/types';
+import { coerceUiPack, DEFAULT_UI_PACK, type UiPackKey } from '../core/uiPacks';
 import { DEFAULT_GLOBAL_SUMMON_CHORD } from '../core/shortcutChord';
 import { createJsonPersistenceProvider } from './storage/persistenceProvider';
 
@@ -22,6 +23,8 @@ export interface UiPrefsSnapshot {
   closeButtonHidesToTray: boolean;
   codeLineNumbers: boolean;
   autoNamingEnabled: boolean;
+  /** Which interchangeable presentation pack renders chat primitives. */
+  uiPack: UiPackKey;
 }
 
 const KEY = 'gatesai.uiprefs.v1';
@@ -42,6 +45,7 @@ export const DEFAULT_UI_PREFS: UiPrefsSnapshot = {
   closeButtonHidesToTray: false,
   codeLineNumbers: false,
   autoNamingEnabled: true,
+  uiPack: DEFAULT_UI_PACK,
 };
 
 export const uiPrefsPersistence = createJsonPersistenceProvider<UiPrefsSnapshot>({
@@ -69,6 +73,9 @@ export const uiPrefsPersistence = createJsonPersistenceProvider<UiPrefsSnapshot>
       autoNamingEnabled: typeof parsed.autoNamingEnabled === 'boolean'
         ? parsed.autoNamingEnabled
         : DEFAULT_UI_PREFS.autoNamingEnabled,
+      // An unknown pack (downgrade, or a pack we retired) falls back to
+      // classic rather than leaving the shell with no renderer.
+      uiPack: coerceUiPack(parsed.uiPack),
     };
   },
 });
@@ -91,5 +98,6 @@ export function saveUiPrefs(snap: UiPrefsSnapshot): void {
     closeButtonHidesToTray: snap.closeButtonHidesToTray,
     codeLineNumbers: snap.codeLineNumbers,
     autoNamingEnabled: snap.autoNamingEnabled,
+    uiPack: coerceUiPack(snap.uiPack),
   });
 }

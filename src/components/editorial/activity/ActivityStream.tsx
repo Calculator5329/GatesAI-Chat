@@ -1,9 +1,14 @@
+// The pack switch for assistant activity: Classic renders quiet grouped rows,
+// Aurora renders a chip header over a typed trace. Both read the same items.
+import { observer } from 'mobx-react-lite';
 import type { ActivityItem } from '../../../core/types';
+import { useUiPack } from '../../../stores/context';
+import { AuroraActivityStream } from '../aurora/AuroraActivityStream';
 import { ActivityRow } from './ActivityRow';
 import { TimelineGroup } from './TimelineGroup';
 import { groupConsecutive } from './groupConsecutive';
 
-export function ActivityStream({
+export const ActivityStream = observer(function ActivityStream({
   items,
   header,
   messageId,
@@ -14,7 +19,11 @@ export function ActivityStream({
   messageId?: string;
   onOpenThread?: (threadId: string) => void;
 }) {
+  const pack = useUiPack();
   if (items.length === 0 && !header) return null;
+  if (pack === 'aurora') {
+    return <AuroraActivityStream items={items} header={header} messageId={messageId} onOpenThread={onOpenThread} />;
+  }
   const runs = groupConsecutive(items);
   return (
     <div className="activity-stream" aria-label="Assistant activity">
@@ -26,4 +35,4 @@ export function ActivityStream({
       )}
     </div>
   );
-}
+});

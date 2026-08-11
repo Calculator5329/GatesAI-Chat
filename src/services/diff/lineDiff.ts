@@ -1,7 +1,7 @@
-export type LineDiffRow =
-  | { type: 'context'; text: string; oldLine: number; newLine: number }
-  | { type: 'removed'; text: string; oldLine: number }
-  | { type: 'added'; text: string; newLine: number };
+import type { DiffRow } from '../../core/types';
+
+/** @deprecated Prefer {@link DiffRow} from core; kept as the historical name. */
+export type LineDiffRow = DiffRow;
 
 export function diffLines(before: string, after: string): LineDiffRow[] {
   const left = splitLines(before);

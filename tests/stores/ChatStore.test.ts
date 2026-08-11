@@ -2134,7 +2134,7 @@ describe('ChatStore', () => {
     };
     router.resolve = modelId => ({ provider: localProvider, providerModelId: modelId });
     router.canRoute = () => true;
-    const writes: unknown[] = [];
+    const writes: Array<{ op: string; data: unknown }> = [];
     chat.setToolStoresProvider(() => ({
       bridge: {
         isOnline: true,
@@ -2152,7 +2152,9 @@ describe('ChatStore', () => {
     await flush(40);
 
     expect(requests.length).toBeGreaterThanOrEqual(2);
-    expect(writes).toEqual([{
+    // A text write also snapshots the previous revision (fs.read) so it can
+    // attach a reviewable diff; only the write itself is asserted here.
+    expect(writes.filter(entry => entry.op === 'fs.write')).toEqual([{
       op: 'fs.write',
       data: expect.objectContaining({
         path: '/workspace/game.html',

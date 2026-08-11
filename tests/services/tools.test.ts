@@ -14,8 +14,8 @@ import { queryScriptTool } from '../../src/services/tools/queryScript';
 import { gitTool } from '../../src/services/tools/git';
 import { workspaceTool } from '../../src/services/tools/workspace';
 import { toolRegistry } from '../../src/services/tools/registry';
-import type { ToolContext } from '../../src/services/tools/types';
-import type { Thread } from '../../src/core/types';
+import type { ToolContext, ToolExecuteResult } from '../../src/services/tools/types';
+import type { DiffRow, Thread } from '../../src/core/types';
 import { DEFAULT_MODEL_ID } from '../../src/core/models';
 import { clearAppStorage } from '../helpers/storage';
 import { HTML_ARTIFACT_MAX_BYTES } from '../../src/core/htmlArtifactPolicy';
@@ -27,6 +27,14 @@ const NOTES_KEY = 'gatesai.notes.v1';
  * Minimal tool context for unit tests. Each tool only touches a subset of
  * fields, so we cast to satisfy TS without standing up the full graph.
  */
+/** Narrows a tool return to its structured form, failing loudly otherwise. */
+function structured(out: string | ToolExecuteResult | { ok: boolean }): ToolExecuteResult {
+  if (typeof out === 'string' || !('content' in out)) {
+    throw new Error(`expected a structured tool result, got ${JSON.stringify(out)}`);
+  }
+  return out;
+}
+
 function makeCtx(overrides: Partial<ToolContext>): ToolContext {
   return {
     profile: undefined,
@@ -486,8 +494,13 @@ describe('fs tool', () => {
       encoding: 'utf-8',
     }, ctx);
 
-    expect(out).toContain('Wrote 16 bytes');
+    // A text write first snapshots the previous revision so the UI can show a
+    // reviewable diff; the write itself is unchanged.
     expect(requests[0]).toEqual({
+      op: 'fs.read',
+      data: { path: '/workspace/artifacts/reports/game.html' },
+    });
+    expect(requests[1]).toEqual({
       op: 'fs.write',
       data: {
         path: '/workspace/artifacts/reports/game.html',
@@ -496,6 +509,56 @@ describe('fs tool', () => {
         append: false,
       },
     });
+    expect(typeof out === 'string' ? out : structured(out).content).toContain('Wrote 16 bytes');
+  });
+
+  it('attaches a reviewable diff artifact to a text write', async () => {
+    const requests: FakeRequest[] = [];
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        requests,
+        respond: (op: string) => op === 'fs.read'
+          ? { path: '/workspace/notes/plan.md', mime: 'text/markdown', size: 12, encoding: 'utf8', content: 'alpha\nbeta\n' }
+          : { path: '/workspace/notes/plan.md', bytes: 18 },
+      }),
+    });
+
+    const out = await fsTool.execute({
+      action: 'write',
+      path: '/workspace/notes/plan.md',
+      content: 'alpha\ngamma\n',
+    }, ctx);
+
+    if (typeof out === 'string') throw new Error('expected a structured result with a diff artifact');
+    const artifact = structured(out).artifacts?.[0];
+    expect(artifact?.kind).toBe('diff');
+    if (artifact?.kind !== 'diff') throw new Error('expected a diff artifact');
+    expect(artifact.path).toBe('/workspace/notes/plan.md');
+    expect(artifact.added).toBe(1);
+    expect(artifact.removed).toBe(1);
+    expect(artifact.rows.some((row: DiffRow) => row.type === 'added' && row.text === 'gamma')).toBe(true);
+    expect(artifact.rows.some((row: DiffRow) => row.type === 'removed' && row.text === 'beta')).toBe(true);
+  });
+
+  it('appends without a diff artifact and without a pre-read', async () => {
+    const requests: FakeRequest[] = [];
+    const ctx = makeCtx({
+      bridge: fakeBridge({
+        online: true,
+        requests,
+        respond: () => ({ path: '/workspace/notes/log.md', bytes: 4 }),
+      }),
+    });
+
+    const out = await fsTool.execute({
+      action: 'append',
+      path: '/workspace/notes/log.md',
+      content: 'more',
+    }, ctx);
+
+    expect(out).toBe('Appended 4 bytes to /workspace/notes/log.md');
+    expect(requests.map(request => request.op)).toEqual(['fs.write']);
   });
 
   it('list formats entries with kind + size + path', async () => {
