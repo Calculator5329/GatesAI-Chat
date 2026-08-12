@@ -512,7 +512,7 @@ composer quieter.
 - [ ] <!-- workspace:id=work:5b20c8a4-b0f4-51bc-bcd9-a3edc654602c --> Portable mode (zip, data beside exe).
 - [ ] <!-- workspace:id=work:a08c8414-d401-599f-9b5d-4d2a4a908657 --> Agent eval harness — see `docs/IDEAS.md` #1; promotes to Next once the
       open-source track is done.
-- [ ] <!-- workspace:id=work:435c5575-1944-53b1-abff-a59f89b341f9 --> Cowork mode (designed, see Moonshots below) — its own wave when picked.
+- [x] <!-- workspace:id=work:435c5575-1944-53b1-abff-a59f89b341f9 --> <!-- closed 2026-08-12: pointer-only duplicate — the Cowork mode moonshot item work:af244cfb holds the content and stays open --> Cowork mode (designed, see Moonshots below) — its own wave when picked.
 - [x] <!-- workspace:id=work:f53c5e30-1008-53a7-a95e-164b263b3bf1 --> Content-parts message model unification (pre-req for several ideas). *(done 2026-07-11 — schema v3 stores ordered text/tool/image/artifact parts; legacy snapshots migrate on read; selectors preserve old read semantics across wire formatting, RAG, exports, and tests; streaming writes parts incrementally)*
 - [ ] <!-- workspace:id=work:12d246aa-9761-55e7-923f-95d5e69de8aa --> LAN companion / phone access (bridge serves Web Lite with pairing code).
 
@@ -787,7 +787,7 @@ not by itself imply acceptance of every proposed implementation detail.
       `ComposerBanners`, `SkillPopover`, the `useComposerDraft` send/draft pipeline,
       and shared `composerStyles`/`composerAttachments`. Public props unchanged;
       DOM/classes byte-identical so the existing unit+e2e suites stay green)*
-- [ ] <!-- workspace:id=work:a36b5968-8512-5c16-a502-eef6e4a90a09 --> Bridge protocol doc + version handshake (fail loud on mismatch)
+- [x] <!-- workspace:id=work:a36b5968-8512-5c16-a502-eef6e4a90a09 --> <!-- closed 2026-08-12: superseded by landed work — both halves already [x] in this file (version handshake done 2026-07-10, protocol spec done 2026-07-16; docs/bridge-protocol.md exists) --> Bridge protocol doc + version handshake (fail loud on mismatch)
 - [x] <!-- workspace:id=work:4a7c74f1-3d0e-5b4d-abfe-c7083e6884d2 --> Headless core entry (boot RootStore without React) → CLI mode, scripted
       smokes, scheduler runner *(done 2026-07-11)*
 - [ ] <!-- workspace:id=work:cefdd360-33cf-5cb2-880c-28bde875271e --> Decide deliberately: Go bridge vs folding into a Rust sidecar
@@ -823,10 +823,10 @@ not by itself imply acceptance of every proposed implementation detail.
       our current local RAG. AnythingLLM is MIT → retrieval code is copyable.
 
 ### Platforms & compatibility
-- [ ] <!-- workspace:id=work:6add9d9e-c14f-572b-9b98-7d6eb3421199 --> macOS build (keyring apple-native already enabled; needs signing)
-- [ ] <!-- workspace:id=work:1ae784a1-7046-5c20-b91e-9bb18ea88309 --> Opt-in Tauri auto-updater (signed, OFF by default)
-- [ ] <!-- workspace:id=work:97449968-7744-50df-8336-52572d61e987 --> Portable mode (zip, data beside exe)
-- [ ] <!-- workspace:id=work:f312b871-9879-5b58-9d9d-c53af696b2bb --> LAN companion: bridge serves Web Lite on LAN with pairing code (phone
+- [x] <!-- workspace:id=work:6add9d9e-c14f-572b-9b98-7d6eb3421199 --> <!-- closed 2026-08-12: duplicate — the stamped macOS-build item with acceptance criteria (work:9afa188d) stays open; this was the bare restatement --> macOS build (keyring apple-native already enabled; needs signing)
+- [x] <!-- workspace:id=work:1ae784a1-7046-5c20-b91e-9bb18ea88309 --> <!-- closed 2026-08-12: shipped as W-5 auto-updater 2026-07-12 (changelog; roadmap W-5 [x]) --> Opt-in Tauri auto-updater (signed, OFF by default)
+- [x] <!-- workspace:id=work:97449968-7744-50df-8336-52572d61e987 --> <!-- closed 2026-08-12: exact duplicate of the open portable-mode item work:5b20c8a4 --> Portable mode (zip, data beside exe)
+- [x] <!-- workspace:id=work:f312b871-9879-5b58-9d9d-c53af696b2bb --> <!-- closed 2026-08-12: duplicate of the open LAN-companion item work:12d246aa --> LAN companion: bridge serves Web Lite on LAN with pairing code (phone
       access, data never leaves the network)
 
 ### Cloud (strictly opt-in; local-only remains the default)
@@ -842,7 +842,7 @@ not by itself imply acceptance of every proposed implementation detail.
 
 ### Tooling & release
 - [x] <!-- workspace:id=work:b0b0c98a-fe9b-57c1-837f-e9bb7c1fa43c --> Changelog automation from commits *(local script half done 2026-07-16: scripts/generate-changelog.mjs drafts grouped entries from conventional commits, --write inserts a marked DRAFT section; nightly channel deferred until GitHub Actions billing is fixed)*
-- [ ] <!-- workspace:id=work:a4f4a67a-0870-5b88-ba8f-71c9ea94d814 --> Windows e2e job in CI; upload Playwright traces on failure; coverage
+- [x] <!-- workspace:id=work:a4f4a67a-0870-5b88-ba8f-71c9ea94d814 --> <!-- closed 2026-08-12: duplicate of the [x] 'Windows e2e job in CI + Playwright traces (done 2026-07-10)'; ci.yml has the e2e-windows job and trace upload. Only the trailing word 'coverage' was unlanded — re-file a coverage item if still wanted --> Windows e2e job in CI; upload Playwright traces on failure; coverage
 - [ ] <!-- workspace:id=work:9132ce85-9bfd-52c6-b536-861b06a5b9a9 --> Settings-only config profile export
 
 ### Moonshots / new directions
