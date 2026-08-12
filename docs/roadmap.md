@@ -41,7 +41,7 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
 
 ### Next up (priority order)
 
-- [x] **Switchable UI packs, with an AI-native pack ("Aurora").** *(done
+- [x] <!-- workspace:id=work:d76261d4-e89e-53e7-8d76-4d9474394fe9 --> **Switchable UI packs, with an AI-native pack ("Aurora").** *(done
       2026-08-11 — `core/uiPacks.ts` is the registry, `UiStore.uiPack` the
       persisted choice, and `Settings` + the command palette both switch it.
       Aurora reimplements eleven AI-native primitives on real turn data:
@@ -51,7 +51,7 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       grouped palette search, a streaming-aware code block, and an image
       fine-tune card. Adding the next pack is one registry entry plus its
       renderers.)*
-- [ ] **Add an AI SDK Elements pack.** Third entry in `UI_PACKS`, renderers
+- [ ] <!-- workspace:id=work:c5e53088-e5e8-5a9c-8bcb-f9bdc2fafb6c --> **Add an AI SDK Elements pack.** Third entry in `UI_PACKS`, renderers
       under `components/editorial/elements/`, no changes to Classic or Aurora.
 - [x] <!-- workspace:id=work:ef142638-602f-540a-b16a-658154a9df23 --> **Assistant activity, ChatGPT-style.** *(done 2026-07-31 — the transcript
       keeps a condensed digest of plain-English step headlines; the full
