@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-08-13: two checked-off roadmap items whose code is only in a stash
+
+Owner ruling S4 `q-batch-notes` = `notes_and_fix` (`doc-truth-packet-20260812`,
+finding 12). Note only; no code was restored and the stash was not touched.
+
+- `docs/roadmap.md`: annotated the "Assistant activity, ChatGPT-style" item and
+  the "LF-9: tool-activity screen never actually captured" item, both checked off
+  2026-07-31. Measured 2026-08-13 against the working tree and `git log`: none of
+  the files they describe exists and no commit ever added them, and
+  `package.json` has no `screens:activity` script, so the command both entries
+  cite cannot run.
+- The code is intact in git stash `stash@{0}` (`c0f09ac`), whose untracked-files
+  commit `b25e163` holds 22 files and 1,327 insertions: `src/core/activityDigest.ts`,
+  `src/components/dock/ActivityPanel.tsx`,
+  `src/components/editorial/activity/ActivityDigest.tsx` and `useNow.ts`, three
+  test files, two playwright screen scripts, and twelve activity PNGs. The stash
+  was created under an owner-answered ask (inbox `1b7f3dc3`, 2026-08-09) because
+  its contents blocked two merges, so it was not popped, dropped, or applied.
+- An owner decision item was added to the roadmap: restore and re-verify, re-do
+  the work, or un-check both items and drop the feature on the record.
+
 ## 2026-08-13: source repository visibility decided
 
 - `docs/adr/2026-08-13-source-repo-visibility.md`: the source repo stays

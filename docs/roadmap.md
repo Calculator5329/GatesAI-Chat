@@ -59,6 +59,48 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       panel that auto-reveals on a live turn and can be aimed at one step from
       any digest line. Mobile keeps the inline expandable stream. Visual corpus:
       `npm run screens:activity` → docs/screens/activity/)*
+
+      **Note 2026-08-13: this item is checked off and its code is not in the
+      tree.** Owner ruling S4 `q-batch-notes` = `notes_and_fix`
+      (`doc-truth-packet-20260812`, finding 12). Measured 2026-08-13 against the
+      working tree and against `git log`: every file this item and LF-9 further
+      down describe is absent, and no commit ever touched them.
+      `src/core/activityDigest.ts`, `src/components/dock/ActivityPanel.tsx`,
+      `src/components/editorial/activity/ActivityDigest.tsx`,
+      `scripts/screens-activity.spec.mjs` and the whole `docs/screens/activity/`
+      corpus do not exist, and `package.json` has no `screens:activity` script,
+      so the command both entries cite cannot run.
+
+      **Where the code is:** it survives, in full, in this repository's git
+      stash. `git stash list` shows a single entry, `stash@{0}` (`c0f09ac`),
+      labelled "wip-rescue-20260809: owner-approved stash (inbox 1b7f3dc3,
+      answered 2026-08-09), 31 unowned files blocking cb1/cb2 merges". The
+      untracked-files commit of that stash is **`b25e163`**, and it carries 22
+      files and 1,327 insertions: the three source modules above, three test
+      files (`tests/core/activityDigest.test.ts`,
+      `tests/components/dock/ActivityPanel.test.ts`,
+      `tests/components/editorial/ActivityDigest.test.ts`),
+      `src/components/editorial/activity/useNow.ts`, the two playwright screen
+      scripts, and all twelve activity PNGs plus their README. Inspect it
+      read-only with `git show b25e163` or
+      `git show b25e163:src/core/activityDigest.ts`.
+
+      **The stash was not popped, dropped, or applied, and must not be** without
+      a decision: it was created under an owner-answered ask because its
+      contents were blocking two merges, so restoring it re-opens whatever that
+      ask resolved. Nothing in this repository was changed by this note.
+
+      NOT measured: whether the stashed code still builds or passes against the
+      current tree, and whether the work was deliberately abandoned or simply
+      lost when the stash was taken. Neither this file nor the stash label
+      answers that, and an agent cannot.
+
+- [ ] **[ETHAN] Decide the fate of stash `b25e163`, the Activity dock work.**
+      Two roadmap items in this file are checked off for code that exists only
+      in that stash. The options are to restore it and re-verify, to re-do the
+      work fresh, or to un-check both items and drop the feature on the record.
+      Raised under finding 12 on 2026-08-13. The stash stays untouched until a
+      decision, and no agent pops or drops it.
 - [x] <!-- workspace:id=work:bc9ad7d9-a194-5c38-8241-060756af7a9c --> **Prepare a multi-surface owner feedback session for the depth pass.**
       *(done 2026-07-20 — one Forge-rich choice now compares guided missions,
       a code-derived evidence board, and a speech-first challenge deck against
@@ -371,6 +413,15 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       12 distinct activity states from deterministic fixture threads; corpus in
       docs/screens/activity/)* — fix the tour step to expand the activity panel
       and re-audit that surface.
+
+      **Note 2026-08-13** (owner ruling S4 `q-batch-notes` = `notes_and_fix`,
+      `doc-truth-packet-20260812`, finding 12): same defect as the "Assistant
+      activity, ChatGPT-style" item earlier in this file, and the same cause.
+      Measured 2026-08-13: `docs/screens/activity/` does not exist, there is no
+      `screens:activity` script in `package.json`, and no commit ever added
+      either. The 12 captures and the playwright spec are in git stash
+      `b25e163` only. Full detail, and the owner decision this needs, are
+      recorded on that earlier item. The stash was not popped or dropped.
 - [x] <!-- workspace:id=work:fe864a83-6edc-5f8d-8ba9-9801a5110b54 --> **LF-1: Local menu section breaks in Web Lite.** *(done 2026-07-16, codex lane a13-weblite-local-menu-20260716: Local panel gated on a semantic desktop-capability check in core/runtime.ts, friendly desktop-only explainer in Web Lite, screens-tour asserts explainer + zero console errors; vitest green.)* Found by the screen
       audit 2026-07-11: `/#/menu/local` throws unhandled
       "Cannot read local runtime status outside the GatesAI desktop app"
