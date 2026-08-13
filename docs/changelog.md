@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-13: source repository visibility decided
+
+- `docs/adr/2026-08-13-source-repo-visibility.md`: the source repo stays
+  private and the releases repo stays public, per Ethan's D1 ruling on
+  `repo-visibility-packet-20260810`. No code changed.
+- Measured while writing it: the source repo is public today, which the packet
+  did not know. The flip back to private is owner-only and is now an open
+  roadmap item with the exact commands in the ADR.
+
 ## 2026-08-11 — Switchable UI packs and the Aurora pack
 
 - Added `src/core/uiPacks.ts`: the pack registry (`classic`, `aurora`), with

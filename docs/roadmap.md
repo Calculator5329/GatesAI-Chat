@@ -118,7 +118,14 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
 
 ### Now
 
-- [ ] <!-- workspace:id=work:274009eb-38fd-5d86-9b28-120ec04a724e --> [ETHAN] **Decide and execute repo visibility.** The source repo
+- [x] <!-- workspace:id=work:274009eb-38fd-5d86-9b28-120ec04a724e --> [ETHAN] **Decide and execute repo visibility.** *(decided 2026-08-13:
+      Ethan ruled `adr` on `repo-visibility-packet-20260810` D1: "private
+      gates ai chat repo for now, no need to publicize it". Record:
+      `docs/adr/2026-08-13-source-repo-visibility.md`. Measured the same day:
+      the source repo is PUBLIC today (`gh api repos/Calculator5329/GatesAI-Chat`
+      returns `private: false`), so the ruling still needs an owner-only flip;
+      that action is the separate item below. The history secret scan was never
+      run.)* The source repo
       (`Calculator5329/GatesAI-Chat`) is private; releases publish to the
       separate public `GatesAI-Chat-releases` repo (see comment in
       `.github/workflows/release.yml`). Either flip the source repo public or
@@ -127,6 +134,13 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       (e.g. `gitleaks detect` or `git log -p` grep for `sk-`, `key=`, tokens)
       and record the result; after flipping, README release/download links and
       the Pages demo still resolve; if keeping split, ADR committed instead.
+- [ ] [ETHAN] **Execute the D1 ruling: make the source repo private.** The
+      decision is recorded; the flip is owner-only. Exact PowerShell commands,
+      the consequence for the public Web Lite Pages demo, verification and undo
+      are in `docs/adr/2026-08-13-source-repo-visibility.md`.
+      *Acceptance:* `gh repo view Calculator5329/GatesAI-Chat --json visibility`
+      prints `private`, and the Web Lite links in `../gatesai-landing` are
+      re-pointed or removed if the Pages demo went down with it.
 - [x] <!-- workspace:id=work:6c110178-4045-53be-af10-6f9d456ad526 --> **Demo GIF at the top of the README.** *(capture pending owner hands —
       script ready, 2026-07-17)* Everything except the recording itself is
       landed: `scripts/demo-capture.md` is an exact click-by-click 20–40s
