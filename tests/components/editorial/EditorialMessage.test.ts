@@ -59,6 +59,9 @@ function createTestStore(imageJobs = new ImageJobStore()): RootStore {
     ui: new UiStore(),
     execStream,
     imageJobs,
+    // jsdom stands in for Web Lite here: no dock, so the compact artifact
+    // card self-serves through the full-screen modal.
+    dock: { available: false, openPath: vi.fn() },
     bridge: {
       isOnline: true,
       client: {
@@ -345,7 +348,7 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.querySelector('a[href^="/workspace/"]')).toBeNull();
   });
 
-  it('renders markdown links to HTML workspace artifacts as inline previews', async () => {
+  it('renders markdown links to HTML workspace artifacts as compact, frameless cards', async () => {
     const rendered = renderMessage({
       id: 'm-anchor-html',
       role: 'assistant',
@@ -357,9 +360,21 @@ describe('EditorialMessage markdown rendering', () => {
       await flushMicrotasks();
     });
 
-    expect(rendered.querySelector('.html-artifact-preview')).not.toBeNull();
+    const card = rendered.querySelector('.html-artifact-preview');
+    expect(card?.getAttribute('data-variant')).toBe('inline');
     expect(rendered.querySelector('.workspace-path-link')).toBeNull();
-    expect(htmlFromPreviewFrame(rendered.querySelector('iframe'))).toContain('<h1>Artifact</h1>');
+    // The transcript announces and hands off; it embeds no frame.
+    expect(rendered.querySelector('.html-artifact-preview__frame')).toBeNull();
+    expect(rendered.querySelector('iframe')).toBeNull();
+    // Without a dock (Web Lite) the card opens the modal itself.
+    const view = Array.from(card?.querySelectorAll('button') ?? [])
+      .find(button => button.textContent === 'View') as HTMLButtonElement;
+    expect(view).toBeDefined();
+
+    act(() => view.click());
+    const modal = document.querySelector('.html-artifact-fullscreen');
+    expect(modal).not.toBeNull();
+    expect(htmlFromPreviewFrame(modal?.querySelector('iframe') ?? null)).toContain('<h1>Artifact</h1>');
   });
 
   it('renders inline code HTML workspace artifacts as inline previews', async () => {
@@ -409,6 +424,10 @@ describe('EditorialMessage markdown rendering', () => {
     expect(copy.textContent).toBe('Copied');
   });
 
+  // Restored at the taste-pass merge (2026-08-15): the branch's
+  // InlineHtmlDocumentCard replacement for fenced HTML documents was dropped
+  // in favor of master's Aurora Preview/Source toggle (b72a075), so this is
+  // master's test for that behavior.
   it('offers HTML preview only after the document fence closes', async () => {
     const initial = {
       id: 'm-streaming-html',

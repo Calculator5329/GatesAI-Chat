@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => {
         // servers mid-session. Vite ignores node_modules by default but not
         // this tree.
         ignored: ['**/src-tauri/target/**'],
+        // Escape hatch for a machine whose inotify budget is already spent by
+        // other apps, where any watcher at all dies with ENOSPC before the
+        // server finishes booting. Polling costs CPU, so it is opt-in and off
+        // in CI; set GATESAI_WATCH_POLL=1 only when you have to.
+        ...(process.env.GATESAI_WATCH_POLL ? { usePolling: true, interval: 400 } : {}),
       },
     },
     // Web Lite is a build mode, not a deploy-time secret. Keep the runtime

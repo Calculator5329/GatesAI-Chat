@@ -4,8 +4,21 @@
  */
 
 :root {
-  --motion-fast: 140ms ease;
-  --motion-fade: 160ms ease;
+  /* Duration and easing are separate tokens. They used to be one combined
+     value, which meant any `animation: name var(--motion-fade) ease` site
+     expanded to `160ms ease ease`, failed to parse, and silently fell back
+     to animation-name:none. Four entrance animations and the thread-switch
+     view transition were dead in shipped builds because of it. Keep the
+     combined tokens for `transition:` shorthands, which are unaffected. */
+  --motion-fast-dur: 140ms;
+  --motion-fade-dur: 160ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --motion-fast: var(--motion-fast-dur) var(--motion-ease);
+  --motion-fade: var(--motion-fade-dur) var(--motion-ease);
+  /* Deliberately slower than the interaction tokens: a progress bar that
+     snaps reads as a glitch, not as progress. */
+  --motion-progress-dur: 180ms;
+  --motion-progress: var(--motion-progress-dur) var(--motion-ease);
   --focus-ring: color-mix(in srgb, var(--accent) 56%, transparent);
   --focus-ring-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --interactive-hover: color-mix(in srgb, var(--text) 8%, transparent);
@@ -15,7 +28,7 @@
   --scrollbar-thumb-hover: color-mix(in srgb, var(--border) 62%, var(--accent) 24%);
 }
 
-:where(button, [role="button"], input, textarea, select, a[href]):focus-visible {
+:where(button, [role="button"], input, textarea, select, a[href], [tabindex]:not([tabindex="-1"])):focus-visible {
   outline: 2px solid var(--focus-ring) !important;
   outline-offset: 2px !important;
   box-shadow: 0 0 0 3px var(--focus-ring-glow);
@@ -121,12 +134,53 @@
   color: var(--accent) !important;
 }
 
+/* The whole control, not just its hover state. This used to be inline in
+   Toggle.tsx, which meant the press animation below could never win against
+   the thumb's inline transform. Disabled styling comes from the shared
+   :disabled rule above, so this is the one control that no longer dims to its
+   own hardcoded opacity. */
+.ui-toggle {
+  width: 32px;
+  height: 18px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0;
+  position: relative;
+  cursor: pointer;
+  background: var(--surface-wash-10);
+  transition: background-color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast);
+}
+.ui-toggle[data-on] { background: var(--accent); }
+
+.ui-toggle__thumb {
+  display: block;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--toggle-thumb-off);
+  /* Travel on the compositor. `left` was laying out every frame, on the
+     most-toggled control in the app. */
+  transition: transform var(--motion-fast), background-color var(--motion-fast);
+}
+.ui-toggle[data-on] .ui-toggle__thumb {
+  background: var(--accent-contrast);
+  transform: translateX(14px);
+}
+
 .ui-toggle:hover:not(:disabled) {
   box-shadow: 0 0 0 3px var(--focus-ring-glow);
 }
 
+/* Press feedback has to carry the travel with it — a bare scale() would
+   replace translateX and snap the knob back to the left edge mid-press. */
 .ui-toggle:active:not(:disabled) .ui-toggle__thumb {
   transform: scale(0.92);
+}
+.ui-toggle[data-on]:active:not(:disabled) .ui-toggle__thumb {
+  transform: translateX(14px) scale(0.92);
 }
 
 :where(
@@ -298,6 +352,9 @@
 .image-job-card__action,
 .image-job-card__image,
 .image-job-card__grid-tile,
+.quiet-dismiss,
+.update-pill__label.quiet-dismiss,
+.update-pill__dismiss,
 .html-artifact-preview,
 .html-artifact-preview__open,
 .html-artifact-fullscreen__action,
@@ -308,6 +365,12 @@
   transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
 }
 
+/* Dismiss and close affordances that carried cursor:pointer and nothing else,
+   so there was no confirmation they were live until you clicked them. */
+.quiet-dismiss:hover:not(:disabled),
+.quiet-dismiss:focus-visible,
+.update-pill__dismiss:hover:not(:disabled),
+.update-pill__dismiss:focus-visible,
 .bridge-status-pill:hover:not([aria-disabled="true"]),
 .editorial-sidebar__new:hover:not(:disabled),
 .editorial-sidebar__close:hover:not(:disabled),
@@ -438,7 +501,7 @@
   contain: layout style paint;
   /* Brief fade-in/slide-up so the optimistic user message and the new
      assistant placeholder both feel like they "arrive" rather than pop. */
-  animation: fadeIn var(--motion-fade) ease both;
+  animation: fadeIn var(--motion-fade-dur) var(--motion-ease) both;
 }
 
 .editorial-message:active {
@@ -459,7 +522,6 @@
 .editorial-show-earlier:focus-visible {
   color: var(--text-dim);
   border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
-  outline: none;
 }
 .editorial-date-separator {
   display: none;
@@ -490,7 +552,7 @@
   font: 11px "Geist Mono", ui-monospace, monospace;
   cursor: pointer;
   backdrop-filter: blur(10px);
-  animation: fadeIn var(--motion-fade) ease both;
+  animation: fadeIn var(--motion-fade-dur) var(--motion-ease) both;
 }
 .editorial-jump-to-bottom:hover {
   border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
@@ -504,21 +566,36 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
+  position: relative;
   background: var(--accent);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+}
+/* The halo is a pseudo-element scaling on the compositor. It used to animate
+   box-shadow, which repaints every frame, forever, on a control that is
+   on-screen precisely while the user is reading. */
+.editorial-jump-to-bottom__dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
   animation: jumpPillPulse 1.4s ease-out infinite;
 }
 @keyframes jumpPillPulse {
-  60%, 100% { box-shadow: 0 0 0 6px transparent; }
+  0%       { transform: scale(1);   opacity: 0.7; }
+  60%, 100% { transform: scale(2.7); opacity: 0; }
 }
 .message-copy-hint,
 .message-copy-feedback {
   font-family: "Geist Mono", ui-monospace, monospace;
 }
+/* In flow, hugging the action buttons — not absolutely positioned at
+   `top: 20px; right: 0`, which is the exact slot .message-actions occupies.
+   Both only appear on hover/focus-within, so they always appeared together and
+   the hint always rendered clipped behind the buttons: a one-time onboarding
+   affordance that nobody could read. */
 .message-copy-hint {
-  position: absolute;
-  top: 20px;
-  right: 0;
+  flex: none;
+  margin-left: auto;
   padding: 4px 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -528,18 +605,20 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   pointer-events: none;
-  animation: fadeIn var(--motion-fade) ease;
+  animation: fadeIn var(--motion-fade-dur) var(--motion-ease);
 }
 .message-copy-feedback {
   color: var(--accent);
 }
+/* The head row used to reserve min-height:32px for the action buttons plus a
+   10px margin, which left ~19px of dead air between the model name and the
+   first activity row. The buttons size the row on their own. */
 .message-head-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 32px;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 .message-actions {
   flex: none;
@@ -904,7 +983,7 @@
   background: var(--surface-wash-05);
   color: var(--text-dim);
   cursor: pointer;
-  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+  transition: border-color var(--motion-fast), background-color var(--motion-fast), color var(--motion-fast);
 }
 
 .memory-disclosure__chip:hover,
@@ -1067,15 +1146,6 @@
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-/* Looping attention pulse so the first-run cue is impossible to miss. */
-@keyframes gatesCoachPulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
-  55%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 0%, transparent); }
-}
-@keyframes gatesBrandDotPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
-  50%      { transform: scale(1.6); box-shadow: 0 0 10px 2px var(--accent-glow); }
-}
 .editorial-sidebar__menu-coach {
   position: relative;
   margin: 2px 16px 14px;
@@ -1090,7 +1160,7 @@
   border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
   border-radius: 9px;
   cursor: pointer;
-  animation: gatesCoachIn var(--motion-fade) ease both;
+  animation: gatesCoachIn var(--motion-fade-dur) var(--motion-ease) both;
 }
 .editorial-sidebar__menu-coach:hover {
   background: color-mix(in srgb, var(--accent) 30%, var(--panel));
@@ -1203,7 +1273,6 @@
 .web-lite-download-cue__link:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
   background: color-mix(in srgb, var(--panel) 82%, var(--accent) 9%);
-  outline: none;
 }
 
 .editorial-empty-state__ready {
@@ -1275,7 +1344,6 @@
 .editorial-onboarding__card a:hover,
 .editorial-onboarding__card a:focus-visible {
   text-decoration: underline;
-  outline: none;
 }
 
 .editorial-onboarding__card .editorial-empty-state__primary {
@@ -1396,7 +1464,6 @@
 .web-lite-download-cue:focus-within {
   opacity: 1;
   transform: translate(0, 0);
-  animation-play-state: paused;
 }
 
 .undo-toast {
@@ -1414,8 +1481,19 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  /* Enter and exit rather than pop. `data-shown` is set on the frame after
+     mount and cleared before unmount; see UndoToast.tsx. */
+  opacity: 0;
+  transform: translateX(-50%) translateY(6px);
+  transition: opacity var(--motion-fade-dur) var(--motion-ease),
+              transform var(--motion-fade-dur) var(--motion-ease);
   color: var(--text-dim);
   font: 12px/1.4 "Geist", ui-sans-serif, system-ui, sans-serif;
+}
+
+.undo-toast[data-shown="true"] {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .undo-toast__message {
@@ -1695,4 +1773,71 @@
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+/* --- v2 sidebar polish (2026-07-26) --- */
+.editorial-sidebar__new {
+  transition:
+    background-color var(--motion-fast),
+    border-color var(--motion-fast),
+    color var(--motion-fast);
+}
+.editorial-sidebar__new:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  color: var(--text);
+}
+.editorial-sidebar__new:hover:not(:disabled) svg {
+  color: var(--accent);
+}
+.editorial-sidebar__new svg {
+  transition: color var(--motion-fast);
+}
+
+/* The foot of the sidebar is the one always-visible slot; it holds the way in
+   to Settings rather than narrating bridge state at the user permanently.
+   Bridge state survives as the dot, which is the honest part of it. */
+.sidebar-settings-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: calc(100% - 32px);
+  margin: 8px 16px 16px;
+  padding: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font: 12.5px "Geist", ui-sans-serif, system-ui, sans-serif;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--motion-fast), color var(--motion-fast);
+}
+.sidebar-settings-button:hover {
+  background: var(--hover-wash);
+  color: var(--text);
+}
+.sidebar-settings-button__mode {
+  margin-left: auto;
+  font: 10.5px "Geist Mono", ui-monospace, monospace;
+  letter-spacing: 0.02em;
+  color: var(--status-blue-text);
+}
+.sidebar-settings-button__mode + .sidebar-settings-button__dot {
+  margin-left: 0;
+}
+.sidebar-settings-button__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  margin-left: auto;
+  transition: background-color var(--motion-fade);
+}
+.sidebar-settings-button__icon {
+  display: flex;
+  color: var(--text-faint);
+  transition: color var(--motion-fast);
+}
+.sidebar-settings-button:hover .sidebar-settings-button__icon {
+  color: var(--accent);
 }

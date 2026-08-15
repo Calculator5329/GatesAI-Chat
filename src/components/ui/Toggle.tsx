@@ -1,43 +1,33 @@
-import { tokens } from '../../core/styleTokens';
-
 interface ToggleProps {
   on: boolean;
   onChange: (next: boolean) => void;
   disabled?: boolean;
+  /**
+   * Accessible name. Required: a `role="switch"` with no name is announced as
+   * an unlabeled control, and the visible label next to these lives in a
+   * sibling `<div>` that screen readers never associate with the switch.
+   */
+  label: string;
 }
 
-export function Toggle({ on, onChange, disabled }: ToggleProps) {
+/**
+ * Presentation lives in editorial.css (`.ui-toggle`), not inline. Inline
+ * styles beat non-`!important` stylesheet rules, so an inline `transform` on
+ * the thumb silently killed the `:active` press animation written for it.
+ */
+export function Toggle({ on, onChange, disabled, label }: ToggleProps) {
   return (
     <button
       type="button"
       className="ui-toggle"
       role="switch"
       aria-checked={on}
+      aria-label={label}
       disabled={disabled}
       data-on={on || undefined}
       onClick={() => !disabled && onChange(!on)}
-      style={{
-        width: 32, height: 18, borderRadius: 9,
-        border: 0,
-        padding: 0,
-        background: on ? 'var(--accent)' : 'var(--surface-wash-10)',
-        position: 'relative',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        transition: `background-color ${tokens.motion.fast}, opacity ${tokens.motion.fast}, box-shadow ${tokens.motion.fast}`,
-      }}
     >
-      <span
-        className="ui-toggle__thumb"
-        style={{
-          display: 'block',
-          width: 14, height: 14, borderRadius: '50%',
-          background: on ? 'var(--accent-contrast)' : 'var(--toggle-thumb-off)',
-          position: 'absolute', top: 2,
-          left: on ? 16 : 2,
-          transition: `left ${tokens.motion.fast}, background-color ${tokens.motion.fast}`,
-        }}
-      />
+      <span className="ui-toggle__thumb" />
     </button>
   );
 }

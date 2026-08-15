@@ -309,6 +309,7 @@ function createArchivedThreadStub(thread: Thread): Thread {
   if (thread.agentTask !== undefined) stub.agentTask = thread.agentTask;
   if (thread.agentTaskOriginThreadId !== undefined) stub.agentTaskOriginThreadId = thread.agentTaskOriginThreadId;
   if (thread.agentTaskStatus !== undefined) stub.agentTaskStatus = thread.agentTaskStatus;
+  if (thread.agentTaskCancelled !== undefined) stub.agentTaskCancelled = thread.agentTaskCancelled;
   if (thread.agentTaskScheduledStartAt !== undefined) stub.agentTaskScheduledStartAt = thread.agentTaskScheduledStartAt;
   if (thread.agentTaskSystemPrompt !== undefined) stub.agentTaskSystemPrompt = thread.agentTaskSystemPrompt;
   if (thread.agentTaskMaxRounds !== undefined) stub.agentTaskMaxRounds = thread.agentTaskMaxRounds;
@@ -592,6 +593,7 @@ function parseThread(value: unknown): Thread | null {
     agentTask: booleanField(value.agentTask),
     agentTaskOriginThreadId: stringField(value.agentTaskOriginThreadId),
     agentTaskStatus: parseAgentTaskStatus(value.agentTaskStatus),
+    agentTaskCancelled: booleanField(value.agentTaskCancelled),
     agentTaskScheduledStartAt: numberField(value.agentTaskScheduledStartAt),
     agentTaskSystemPrompt: stringField(value.agentTaskSystemPrompt),
     agentTaskMaxRounds: numberField(value.agentTaskMaxRounds),

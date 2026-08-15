@@ -12,6 +12,15 @@
   border-left: 1px solid var(--border);
   background: color-mix(in srgb, var(--panel) 55%, var(--bg) 45%);
   box-sizing: border-box;
+  /* Collapsing used to swap one element for another, so there was nothing for
+     a transition to cross and the largest layout change in the app happened
+     in a single frame. One element now, so width can animate. */
+  transition: width var(--motion-fade), min-width var(--motion-fade);
+}
+
+/* A drag is direct manipulation; easing it just makes it feel laggy. */
+.dock-panel[data-resizing] {
+  transition: none;
 }
 
 .dock-panel--collapsed {
@@ -293,7 +302,6 @@
 .task-center__task--linked:hover,
 .task-center__task--linked:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-  outline: none;
 }
 .task-center__task-head {
   display: grid;
@@ -326,7 +334,7 @@
 .task-center__task--failed .task-center__status { color: var(--danger); }
 .task-center__task--running .task-center__status { color: var(--accent); }
 .task-center__progress { height: 3px; overflow: hidden; border-radius: 2px; background: var(--border); }
-.task-center__progress i { display: block; height: 100%; background: var(--accent); transition: width 180ms ease; }
+.task-center__progress i { display: block; height: 100%; background: var(--accent); transition: width var(--motion-progress); }
 .task-center__error {
   overflow: hidden;
   color: var(--danger);

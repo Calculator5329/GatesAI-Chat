@@ -535,6 +535,17 @@ composer quieter.
       e2e suite (green in `npm run test:e2e`); a report doc under `docs/audits/`
       listing per-setting verdicts; a checklist of proposed removals/merges
       filed as follow-up items for review.
+      *Walkthrough landed 2026-07-26:* `tests/e2e/settingsWalkthrough.spec.ts`
+      covers the persisted controls and found on its first run that the theme
+      switcher had never worked (unbound `setTheme`). Extending it to the
+      remaining Agent/Models controls is the obvious next increment.
+      *Partial, 2026-07-26 (`ui/taste-pass-20260726`):* the report exists at
+      `docs/audits/2026-07-26-settings-and-motion.md` with per-area verdicts and
+      a removal proposal, and three dead things were removed. **The Playwright
+      walkthrough is still unwritten and is the more valuable half**, because it
+      catches settings that look wired but do not persist, which reading the
+      source cannot. The six structural proposals need an owner decision on the
+      grouping first.
 
 
 - [x] <!-- workspace:id=work:ff33c223-f44a-58fd-8055-160a76981d0a --> **Flaky-test sweep.** *(done 2026-07-10)* Run the unit suite 5× and the e2e suite 3× in a
@@ -827,7 +838,7 @@ not by itself imply acceptance of every proposed implementation detail.
 > Backlog / aspirational — not scheduled (truth pass 2026-07-10)
 
 ### UI/UX
-- [ ] <!-- workspace:id=work:b2aef68d-e40b-5c13-b9f2-42bb69277c29 --> Fix pre-existing e2e failure: artifactContract.spec.ts "opens a registry artifact from the palette in the dock" — dock-panel iframe [title="Preview of Status board"] never appears (fails identically on pre-merge master 7fbac5c; not a Wave-D regression; found 2026-07-18)
+- [x] <!-- workspace:id=work:b2aef68d-e40b-5c13-b9f2-42bb69277c29 --> Fix pre-existing e2e failure: artifactContract.spec.ts "opens a registry artifact from the palette in the dock" — dock-panel iframe [title="Preview of Status board"] never appears (fails identically on pre-merge master 7fbac5c; not a Wave-D regression; found 2026-07-18) *(no longer reproduces 2026-07-26 — passes 3/3 under `--repeat-each=3`, and in every full `test:e2e` run that session. Fixed somewhere between 07-18 and then by other work; the cause was not bisected, so if it returns, reopen rather than assuming flake. Note recorded at the taste-pass merge, 2026-08-15.)*
 
 - [x] <!-- workspace:id=work:9683527f-7989-51cf-b8a9-7db1dfe8914c --> Light theme + follow-system (`prefers-color-scheme`); "paper" palette *(verified already-done, 2026-07-10 truth pass — Wave I; dark/light/system `ThemeMode` in `src/components/menu/sections/Settings.tsx`)*
 - [x] <!-- workspace:id=work:2a9701d2-4521-58dc-9d4c-fed23ead2d8d --> Sidebar date grouping (Today / Yesterday / Previous 7 days) *(done 2026-07-10, burndown w1 — `groupThreadsByDate` in `src/core/threadSelectors.ts`; sidebar history now splits under Today / Yesterday / Previous 7 days / Previous 30 days / by-month headers)*

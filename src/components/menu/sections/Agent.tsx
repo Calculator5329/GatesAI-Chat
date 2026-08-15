@@ -212,7 +212,7 @@ const KnowledgeLibrarySection = observer(function KnowledgeLibrarySection() {
                   {source.kind === 'database' ? 'SQLite schema' : 'Document'} · {source.status}{source.error ? ` · ${source.error}` : ''}
                 </div>
               </div>
-              <Toggle on={source.enabled} onChange={value => library.setEnabled(source.id, value)} />
+              <Toggle label={`Use ${source.title} for recall`} on={source.enabled} onChange={value => library.setEnabled(source.id, value)} />
             </div>
           ))}
         </div>
@@ -290,7 +290,7 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
           <div style={subsectionTitleStyle}>Semantic recall</div>
           <div style={detailStyle}>Finds relevant context in conversations, notes, facts, and approved library sources. Text and vectors stay local.</div>
         </div>
-        <Toggle on={rag.settings.autoInject} onChange={value => rag.setAutoInject(value)} disabled={!rag.servingCompleteGeneration} />
+        <Toggle label="Semantic recall" on={rag.settings.autoInject} onChange={value => rag.setAutoInject(value)} disabled={!rag.servingCompleteGeneration} />
       </div>
 
       <div style={statusRowStyle} data-state={rag.phase}>
@@ -335,7 +335,7 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
                   <span style={{ color: 'var(--text-faint)' }}>{group.items.length}{excludedCount ? ` · ${excludedCount} off` : ''}</span>
                   <span aria-hidden="true" style={{ transform: expanded ? 'rotate(180deg)' : undefined }}><Icons.Chevron /></span>
                 </button>
-                <Toggle on={rag.settings.sourceTypes[group.type]} onChange={value => rag.setSourceType(group.type, value)} />
+                <Toggle label={`Include ${group.label} in recall`} on={rag.settings.sourceTypes[group.type]} onChange={value => rag.setSourceType(group.type, value)} />
               </div>
               {expanded && (
                 <div style={sourceListStyle}>

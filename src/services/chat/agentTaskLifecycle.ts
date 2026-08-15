@@ -143,6 +143,10 @@ export class AgentTaskLifecycle {
     if (!originThreadId) return false;
     const title = displayAgentTaskTitle(thread.title);
     this.cancelScheduled(threadId);
+    // Record that this interruption was deliberate before finalizing, so the
+    // Task center can still tell "you cancelled it" from "it died" after a
+    // restart. finalize() only persists 'interrupted' for both.
+    this.host.runInAction(() => { thread.agentTaskCancelled = true; });
     this.host.interruptThread(threadId);
     this.finalize(threadId, originThreadId, title, 'interrupted');
     return true;
@@ -161,6 +165,7 @@ export class AgentTaskLifecycle {
     if (!initialPrompt) return false;
     this.host.runInAction(() => {
       thread.messages = [initialPrompt];
+      thread.agentTaskCancelled = undefined;
       thread.updatedAt = Date.now();
       this.host.setThreadLastError(thread.id, null);
       const origin = this.host.findThread(thread.agentTaskOriginThreadId ?? '');

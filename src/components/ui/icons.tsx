@@ -53,4 +53,5 @@ export const Icons = {
   Image:     () => <Ico d={<><rect x="2" y="3" width="12" height="10" rx="1.3" /><circle cx="6" cy="7" r="1.2" /><path d="M3 12l3-3 2.5 2.5L11 8l2 2" /></>} />,
   Plug:      () => <Ico d={<><path d="M6 2v3M10 2v3" /><rect x="4.5" y="5" width="7" height="4.5" rx="1" /><path d="M8 9.5V12a2 2 0 0 0 2 2h1" /></>} />,
   Wrench:    () => <Ico d={<><path d="M11.5 4a2.5 2.5 0 1 1-3.5 3.5l-5 5a1 1 0 1 1-1.5-1.5l5-5A2.5 2.5 0 0 1 11.5 4z" /></>} />,
+  Gear:      () => <Ico d={<><circle cx="8" cy="8" r="2.1" /><path d="M8 1.8v1.7M8 12.5v1.7M14.2 8h-1.7M3.5 8H1.8M12.4 3.6l-1.2 1.2M4.8 11.2l-1.2 1.2M12.4 12.4l-1.2-1.2M4.8 4.8 3.6 3.6" /></>} />,
 };

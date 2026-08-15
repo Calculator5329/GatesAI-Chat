@@ -9,7 +9,7 @@ import {
   HTML_ARTIFACT_IFRAME_SANDBOX,
 } from '../../core/htmlArtifactPolicy';
 import { isHtmlWorkspacePath } from '../../core/workspacePaths';
-import { useEditorial } from '../../stores/context';
+import { useDockStore, useEditorial } from '../../stores/context';
 import type { HtmlArtifactPreviewResult } from '../../stores/BridgeStore';
 
 type HtmlLoadState = { status: 'loading' } | HtmlArtifactPreviewResult;
@@ -37,6 +37,49 @@ export function isCompleteHtmlDocument(html: string): boolean {
   return /<html(?:\s|>)[\s\S]*<\/html\s*>/i.test(html.trim());
 }
 
+/** The document's `<title>`, or null when it has none worth showing. */
+export function htmlDocumentTitle(html: string): string | null {
+  const match = /<title[^>]*>([\s\S]*?)<\/title\s*>/i.exec(html);
+  const title = match?.[1]?.replace(/\s+/g, ' ').trim();
+  return title || null;
+}
+
+/**
+ * Transcript form of a complete fenced HTML document. Like the workspace
+ * artifact card it announces the document and hands off — the code stays
+ * readable below it and the rendering happens somewhere with room (a new
+ * tab). Embedding the sandboxed frame here meant every fenced document
+ * punched a clamp(260px, 44vw, 420px) white slab into a dark transcript.
+ *
+ * Not the dock: this HTML only exists in the message, and the dock addresses
+ * content by workspace path or artifact id — and is desktop-only, so Web Lite
+ * would be left with nothing.
+ */
+export function InlineHtmlDocumentCard({ html }: { html: string }) {
+  const title = htmlDocumentTitle(html);
+  const lineCount = html.split('\n').length;
+
+  return (
+    <div className="html-document-card" data-testid="inline-html-document-card">
+      <div className="html-document-card__meta">
+        <span className="html-document-card__eyebrow">HTML document</span>
+        <span className="html-document-card__name">{title ?? 'Untitled document'}</span>
+        <span className="html-document-card__detail">
+          {lineCount === 1 ? '1 line' : `${lineCount} lines`} · opens in a new tab
+        </span>
+      </div>
+      <div className="html-document-card__actions">
+        <button type="button" className="html-artifact-preview__open" onClick={() => openHtmlDocument(html)}>
+          Open
+        </button>
+        <button type="button" className="html-artifact-preview__open" onClick={() => downloadHtmlDocument(html)}>
+          Download
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function openHtmlDocument(html: string): void {
   const previewDocument = createPreviewDocumentUrl(html);
   const opened = window.open(previewDocument.url, '_blank', 'noopener,noreferrer');
@@ -57,8 +100,30 @@ export function downloadHtmlDocument(html: string, filename = 'artifact.html'): 
   if (previewDocument.revoke) window.setTimeout(previewDocument.revoke, 0);
 }
 
-export function HtmlArtifactPreview({ path, label }: { path: string; label?: string }) {
+/**
+  * `panel` renders the sandboxed preview and is what the dock uses.
+  * `inline` is the transcript form: it announces the artifact and hands off
+  * rather than embedding a 420px frame per mention of a workspace HTML path,
+  * which meant naming a file twice built two walls.
+  *
+  * The compact card always offers "View" (the full-screen modal), which is
+  * the one surface both runtimes have. On desktop it additionally hands off
+  * to the dock — the persistent surface, which already auto-opens on
+  * creation — and clicking the card body prefers it. Web Lite has no dock
+  * (`DockStore.available` is desktop-only), so there the card is modal-only
+  * rather than growing an "Open in dock" button that does nothing.
+  */
+export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
+  path: string;
+  label?: string;
+  variant?: 'inline' | 'panel';
+}) {
   const { bridge } = useEditorial();
+  const dock = useDockStore();
+  /** Compact chrome: bar only, no embedded frame. */
+  const compact = variant === 'inline';
+  /** Whether the compact card can hand off to the dock, or must self-serve. */
+  const handsOffToDock = compact && dock.available;
   const [state, setState] = useState<HtmlLoadState>(() => {
     const cached = bridge.peekHtmlArtifactPreview(path);
     return cached ? { status: 'ready', ...cached } : { status: 'loading' };
@@ -74,6 +139,9 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
 
   useEffect(() => () => previewDocument?.revoke?.(), [previewDocument]);
 
+  // Every mode needs the HTML in hand: to render a frame, or to open the
+  // modal that "View" offers. Repeated mentions of one path share a single
+  // read through the artifactPreview cache.
   useEffect(() => {
     let cancelled = false;
     void bridge.loadHtmlArtifactPreview(path).then(next => {
@@ -92,19 +160,24 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
     action();
   }
 
+  function activate(): void {
+    if (handsOffToDock) { dock.openPath(path); return; }
+    if (state.status === 'ready') setFullscreen(true);
+  }
+
   return (
     <>
       <span
         className="html-artifact-preview"
         role="button"
         tabIndex={0}
-        title={`Preview ${path}`}
-        onClick={() => { if (state.status === 'ready') setFullscreen(true); }}
+        title={handsOffToDock ? `Open ${path} in the dock` : `Preview ${path}`}
+        data-variant={variant}
+        onClick={activate}
         onKeyDown={(event) => {
-          if ((event.key === 'Enter' || event.key === ' ') && state.status === 'ready') {
-            event.preventDefault();
-            setFullscreen(true);
-          }
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          activate();
         }}
       >
         <span className="html-artifact-preview__bar">
@@ -114,7 +187,29 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
             <code className="html-artifact-preview__path">{path}</code>
           </span>
           <span className="html-artifact-preview__actions">
-            {state.status === 'ready' && (
+            {handsOffToDock && (
+              <button
+                type="button"
+                className="html-artifact-preview__open"
+                onClick={(event) => runDocumentAction(event, () => dock.openPath(path))}
+              >
+                Open in dock
+              </button>
+            )}
+            {/* Always rendered, disabled until the read lands: a button that
+                pops into an otherwise-settled transcript shifts the layout
+                under the reader's cursor. */}
+            {compact && (
+              <button
+                type="button"
+                className="html-artifact-preview__open"
+                disabled={state.status !== 'ready'}
+                onClick={(event) => runDocumentAction(event, () => setFullscreen(true))}
+              >
+                View
+              </button>
+            )}
+            {!compact && state.status === 'ready' && (
               <>
                 <button
                   type="button"
@@ -136,7 +231,7 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
             </button>
           </span>
         </span>
-        <span className="html-artifact-preview__frame">
+        {!compact && <span className="html-artifact-preview__frame">
           {state.status === 'ready' && view === 'preview' ? (
             <iframe
               title={`Preview of ${label || name}`}
@@ -151,7 +246,7 @@ export function HtmlArtifactPreview({ path, label }: { path: string; label?: str
               {state.status === 'loading' ? 'Loading preview...' : state.reason}
             </span>
           )}
-        </span>
+        </span>}
       </span>
       {fullscreen && state.status === 'ready' && createPortal(
         <HtmlArtifactFullscreen

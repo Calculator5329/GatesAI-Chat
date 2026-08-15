@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-15 — Merged ui/taste-pass-20260726 (owner ruling merge-now)
+
+- Merged the July 26 taste-pass branch into master. One deliberate exception:
+  in `src/components/editorial/MarkdownChunk.tsx` the branch's
+  InlineHtmlDocumentCard replacement was dropped in favor of master's newer
+  Aurora design (Preview/Source toggle, b72a075), so the 2026-07-26
+  "Transcript HTML: announce and hand off, never embed" entry below no longer
+  describes the transcript code-block path.
+
 ## 2026-08-13: two checked-off roadmap items whose code is only in a stash
 
 Owner ruling S4 `q-batch-notes` = `notes_and_fix` (`doc-truth-packet-20260812`,
@@ -69,6 +78,144 @@ finding 12). Note only; no code was restored and the stash was not touched.
 - Added unit coverage for local vs remote stall branches in
   `tests/services/chat/streamingRoundExecutor.test.ts` and updated the
   `ImageJobCard` assertion for the new open-image waiting copy.
+## 2026-07-26 — Cover the persistence coordinator
+
+- `chatPersistenceCoordinator` (230 lines deciding whether your conversations
+  reach disk) had no tests. Twelve now cover the parts where data loss lives:
+  pause/resume suppression (a follower tab that wrote would clobber the
+  leader's state), the serialized workspace save queue, and `trackSnapshotDeep`.
+- The queue tests pin two properties that are easy to regress silently: saves
+  never overlap and intermediate snapshots coalesce to the newest rather than
+  queueing, and a **rejected save clears the in-flight flag** — without that,
+  one dropped bridge connection would end workspace persistence for the rest
+  of the session with no error surfaced.
+- `trackSnapshotDeep` exists only to register MobX dependencies, so when it
+  stops covering a field there is no exception — the autosave just never fires
+  and a conversation vanishes on reload. Tests assert the signature moves on
+  append, streamed growth, rename, pin, summary and context changes.
+- Each assertion was mutation-checked rather than trusted for being green:
+  removing the in-flight reset, and dropping title tracking, each turn the
+  suite red.
+
+## 2026-07-26 — v2 UI taste pass: the animations were dead, and the artifact card was a white hole
+
+Branch `ui/taste-pass-20260726`. Not merged.
+
+- **Four entrance animations and the thread-switch view transition had never
+  run in a shipped build.** `editorial.css` baked the easing into
+  `--motion-fast`/`--motion-fade`, so every `animation: fadeIn var(--motion-fade)
+  ease` call site expanded to `160ms ease ease`, failed to parse, and fell back
+  to `animation-name: none`. Duration and easing are now separate tokens.
+  Measured in two running builds: `animationName` went from `none` to `fadeIn`.
+- **The HTML artifact card punched a white hole in a dark transcript.** The
+  frame reserved `clamp(260px, 44vw, 420px)` in *every* state and painted it
+  `#ffffff`, with an `#f7f8fb` fallback panel, none of it tokenised, so a
+  one-line "bridge offline" message occupied the same 420px as a working
+  render. The frame now takes render height only when something is rendering.
+  The transcript form of the card announces the artifact and hands off to the
+  dock, which already auto-opens on creation; previously *every mention* of a
+  workspace HTML path in prose embedded its own frame.
+- **A task you cancelled came back as Failed.** The deliberate-cancel marker
+  lived in an in-memory Set, while `agentTaskStatus` persists `interrupted` for
+  both "the user cancelled me" and "I died". The flag now lives on the thread.
+- **The sidebar foot is a Settings button.** It was a pill narrating "workspace
+  ready" at you permanently in the one always-visible slot in the app. Bridge
+  state survives as the dot, which still force-polls on click. Web Lite keeps
+  its label in words, because that is a permanent runtime mode rather than a
+  transient status.
+- Undo toast enters and leaves instead of popping; the dock animates its
+  collapse (its two render branches are unified so width has something to
+  transition across); the jump-pill halo scales a pseudo-element instead of
+  repainting `box-shadow` forever; the `Toggle` knob travels by `transform`;
+  reduced-motion now reaches view-transition pseudo-elements.
+- Message head rows no longer reserve a 32px band, closing ~19px of dead air
+  between the model name and the first activity row.
+- Deleted branching that could never branch: the `supported`/"Coming soon"
+  machinery, `ProviderCard`'s unreachable base-URL flow left over from the
+  retired openai-compat provider, and a duplicate set of menu-section labels
+  defined in two files in two different orders.
+- `vite.config.ts` honours `GATESAI_WATCH_POLL=1`. Two Electron apps on the dev
+  box hold 99.89% of the inotify watch ceiling between them, so vite dies with
+  ENOSPC; polling is the opt-in escape hatch, off in CI.
+- **The theme switcher never worked.** `setTheme` was missing from UiStore's
+  `action.bound` list, so Settings passing `ui.setTheme` straight to
+  SegmentedControl's `onChange` invoked it with no receiver: clicking
+  Dark/Light/System threw `Cannot set properties of undefined (setting 'theme')`
+  and changed nothing. Found by the new settings walkthrough on its first run,
+  not by reading the code, which is exactly the gap QA-1 predicted.
+- New: `tests/e2e/settingsWalkthrough.spec.ts` (QA-1's walkthrough half),
+  `docs/audits/2026-07-26-settings-and-motion.md` and
+  `docs/plans/2026-07-26-follow-up-while-streaming.md`.
+
+
+## 2026-07-26 — The screenshot corpus was one surface short, and the copy hint was unreadable
+
+- **LF-9 closed.** `screen-chat-tool-activity.png` was byte-identical to
+  `screen-chat-active.png` — same sha256 — because the tour step re-opened the
+  same thread and captured it without expanding anything. The corpus advertised
+  17 surfaces and held 16. The step now expands the `data-kind="tool"` activity
+  row (not `.activity-row__button` first, which is the Thinking row) and asserts
+  the detail is visible, so the capture shows actual tool output.
+- The tour now **fails if any two captures share a hash**. LF-9 survived for
+  weeks because "the file exists" and "the manifest lists it" were both true;
+  nothing checked that two entries weren't the same image.
+- **The one-time copy hint was unreadable.** `.message-copy-hint` was absolutely
+  positioned at `top: 20px; right: 0` — the exact slot `.message-actions`
+  occupies. Both appear on hover/focus-within, so they always appeared together
+  and the hint always rendered clipped behind the buttons. It is now in flow,
+  hugging the actions. Verified against a running build: the full
+  "Ctrl/Cmd + click to copy" chip now sits beside the buttons.
+
+## 2026-07-26 — Toggle knob and focus-ring defects
+
+- The toggle's press animation had never once run. `.ui-toggle:active` set a
+  `scale(0.92)` on the thumb, but the thumb's `transform` was an inline style,
+  which beats an ordinary stylesheet rule — and had it applied, a bare
+  `scale()` would have replaced `translateX(14px)` and snapped the knob to the
+  left edge mid-press. Presentation moved out of `Toggle.tsx` into
+  `.ui-toggle`, and the pressed-and-on state composes both transforms.
+- The toggle was the one control in the app that dimmed to its own hardcoded
+  `opacity: 0.5`; it now inherits the shared
+  `--interactive-disabled-opacity: 0.45` like everything else. Measured at
+  0.45 against a running build, along with all four resting/pressed transforms.
+- `Toggle` now requires a `label`, rendered as `aria-label`. All six switches
+  were announcing as unlabeled: the visible label lives in a sibling `<div>`
+  that `SettingsRow` never associated with the control. Making the prop
+  required means the next switch can't repeat it.
+- Removed six dead focus declarations: two rules in `markdown.css` that
+  reinvented the focus ring with their own accent mix and offset, and four
+  `outline: none` lines inside `:focus-visible` rules. All were already
+  overridden by the global `!important` ring — code that read as intent while
+  doing nothing.
+- Recorded the taste rules behind this pass and the transcript work in
+  `docs/taste.md`, which had nothing about either.
+- Closed the roadmap's pre-existing e2e failure (artifactContract "opens a
+  registry artifact from the palette in the dock", open since 2026-07-18). It
+  no longer reproduces — 3/3 green under `--repeat-each=3` and in every full
+  suite run. Fixed by other work in the interim; cause not bisected, so it is
+  marked to reopen rather than be dismissed as flake if it returns.
+
+## 2026-07-26 — Transcript HTML: announce and hand off, never embed
+
+- Wired the compact `inline` artifact card into the transcript. The `variant`
+  prop existed but no call site passed it, so mentioning a workspace HTML path
+  still built a `clamp(260px, 44vw, 420px)` white wall in a dark thread —
+  visible at the top of `docs/audits/screens-2026-07/screen-chat-tool-activity.png`.
+  All four transcript entry points (`MarkdownChunk` inline code and links,
+  `MarkdownFallback`'s two equivalents) now render the card; the dock keeps the
+  full `panel` variant.
+- The compact card always offers **View** (the full-screen modal — the one
+  surface both runtimes have) and adds **Open in dock** on desktop. Web Lite
+  has no dock, so it gets the modal rather than a button that does nothing.
+  View renders disabled until the read lands, so it can't shift the layout
+  under the reader.
+- Complete fenced HTML documents get the same treatment: the transcript's
+  fixed-height sandboxed frame is replaced by an `.html-document-card` naming
+  the document (from its `<title>`), its line count, and offering Open /
+  Download, with the source still readable below. The Preview/Source toggle is
+  gone — there is no second mode left to toggle to.
+- `InlineHtmlDocument` and its sandbox policy are unchanged and now render only
+  in the dock's file viewer, which already sized them to the cell.
 
 ## 2026-07-20 — Multi-surface owner feedback session
 

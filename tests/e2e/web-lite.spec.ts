@@ -31,6 +31,19 @@ test.describe('web lite (no bridge)', () => {
     await expect(page.getByRole('heading', { name: 'Models' })).toBeVisible();
   });
 
+  test('hides the desktop-only settings rather than showing dead switches', async ({ page }) => {
+    await page.goto('/#/menu/settings');
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+    // Global summon and the tray behaviour are Tauri-only. Shipping them here
+    // as inert switches would be exactly the "half-works" the direction doc
+    // rules out, so they must be absent, not merely disabled.
+    await expect(page.getByRole('switch', { name: 'Global summon' })).toHaveCount(0);
+    await expect(page.getByRole('switch', { name: 'Close button hides to tray' })).toHaveCount(0);
+    // The cross-runtime ones are still here and still work.
+    await expect(page.getByRole('switch', { name: 'Automatic thread titles' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Light', exact: true })).toBeVisible();
+  });
+
   test('explains that semantic recall requires desktop without dead controls', async ({ page }) => {
     await page.goto('/#/menu/agent');
 

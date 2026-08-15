@@ -44,8 +44,8 @@ export const UpdatePill = observer(function UpdatePill() {
     <div className="update-pill" style={S.root} title={title} role="status">
       <span style={{ ...S.dot, background: updates.phase === 'error' ? 'var(--danger-muted)' : 'var(--status-blue)' }} />
       <span
-        className="update-pill__label"
-        style={{ ...S.label, cursor: onClick ? 'pointer' : 'default' }}
+        className={onClick ? 'update-pill__label quiet-dismiss' : 'update-pill__label'}
+        style={{ ...S.label, cursor: onClick ? 'pointer' : 'default', borderRadius: 6 }}
         role={onClick ? 'button' : undefined}
         tabIndex={onClick ? 0 : undefined}
         onClick={onClick ?? undefined}
@@ -59,6 +59,7 @@ export const UpdatePill = observer(function UpdatePill() {
       </span>
       <button
         type="button"
+        className="update-pill__dismiss"
         aria-label="Dismiss update notice"
         style={S.dismiss}
         onClick={() => updates.dismiss()}
@@ -91,5 +92,6 @@ const S: Record<string, CSSProperties> = {
     flex: 'none',
     border: 0, background: 'transparent', padding: '0 2px',
     color: 'var(--text-faint)', cursor: 'pointer', fontSize: 13, lineHeight: 1,
+    borderRadius: 6,
   },
 };

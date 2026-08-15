@@ -76,6 +76,46 @@ describe('persistence', () => {
     expect(loadSnapshot()).toMatchObject(snapshot);
   });
 
+  it('round-trips the deliberate-cancel marker on an agent task', () => {
+    // Without this field an interrupted task cannot tell "the user cancelled
+    // me" from "I died", so a cancelled task reappears as Failed after a
+    // restart. Purely additive: a snapshot without it reads as not-cancelled.
+    const snapshot = {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
+      threads: [{
+        id: 'agent-1', title: 'Agent: Audit menu copy', subtitle: '', pinned: false,
+        modelId: 'or-gpt-5.4-mini',
+        createdAt: 1, updatedAt: 2,
+        messages: [],
+        agentTask: true,
+        agentTaskOriginThreadId: 'origin-1',
+        agentTaskStatus: 'interrupted' as const,
+        agentTaskCancelled: true,
+      }],
+      activeThreadId: 'agent-1',
+    };
+    saveSnapshot(snapshot);
+    expect(loadSnapshot()?.threads[0].agentTaskCancelled).toBe(true);
+  });
+
+  it('reads an older agent-task snapshot as not cancelled', () => {
+    const snapshot = {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
+      threads: [{
+        id: 'agent-old', title: 'Agent: Legacy', subtitle: '', pinned: false,
+        modelId: 'or-gpt-5.4-mini',
+        createdAt: 1, updatedAt: 2,
+        messages: [],
+        agentTask: true,
+        agentTaskOriginThreadId: 'origin-1',
+        agentTaskStatus: 'interrupted' as const,
+      }],
+      activeThreadId: 'agent-old',
+    };
+    saveSnapshot(snapshot);
+    expect(loadSnapshot()?.threads[0].agentTaskCancelled).toBeUndefined();
+  });
+
   it('round-trips assistant message usage records', () => {
     const snapshot = {
       schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,

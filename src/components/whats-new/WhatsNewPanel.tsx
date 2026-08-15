@@ -72,7 +72,8 @@ export const WhatsNewPanel = observer(function WhatsNewPanel() {
             aria-label="Dismiss what’s new"
             title="Dismiss"
             onClick={whatsNew.dismiss}
-            style={{ border: 0, padding: 3, background: 'transparent', color: 'var(--text-faint)', cursor: 'pointer', display: 'flex' }}
+            className="quiet-dismiss"
+            style={{ border: 0, padding: 3, background: 'transparent', color: 'var(--text-faint)', cursor: 'pointer', display: 'flex', borderRadius: 6 }}
           >
             <Icons.Close />
           </button>

@@ -41,7 +41,7 @@ export const ApiSection = observer(function ApiSection() {
 const SearchCard = observer(function SearchCard() {
   const search = useSearchStore();
   return (
-    <Card style={{ marginBottom: 12 }}>
+    <Card style={{ marginBottom: 12 }} data-testid="search-card">
       <div style={cardHeaderStyle}>
         <ProviderAvatar name="Brave" />
         <div style={{ flex: 1 }}>

@@ -121,6 +121,10 @@ export class UiStore {
       setGlobalSummonEnabled: action.bound,
       setGlobalSummonChord: action.bound,
       setCloseButtonHidesToTray: action.bound,
+      // Settings passes this straight to SegmentedControl's onChange. Without
+      // the binding it is called as a bare function, `this` is undefined, and
+      // the theme switcher throws instead of switching.
+      setTheme: action.bound,
       // Bound so UI can pass it as a stable prop (unstable identities break
       // MarkdownChunk's memo and remount code blocks mid-interaction).
       setCodeLineNumbers: action.bound,

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { observer } from 'mobx-react-lite';
 import { useBridgeStore } from '../../stores/context';
+import { tokens } from '../../core/styleTokens';
 import { useImageDataUrl } from './useImageDataUrl';
 
 interface LightboxImage { path: string; alt: string }
@@ -70,7 +71,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1000,
-        transition: 'background 0.18s ease, backdrop-filter 0.18s ease',
+        transition: `background ${tokens.motion.fade}, backdrop-filter ${tokens.motion.fade}`,
       }}
     >
       {/* Close button */}
@@ -129,7 +130,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
           maxHeight: '95vh',
           opacity: visible ? 1 : 0,
           transform: visible ? 'scale(1)' : 'scale(0.97)',
-          transition: 'opacity 0.18s ease, transform 0.18s ease',
+          transition: `opacity ${tokens.motion.fade}, transform ${tokens.motion.fade}`,
         }}
       >
         {/* Image */}
@@ -228,7 +229,7 @@ function navArrow(side: 'left' | 'right'): React.CSSProperties {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1001,
-    transition: 'background 0.12s',
+    transition: `background ${tokens.motion.fast}`,
   };
 }
 

@@ -3,7 +3,7 @@
 // Layout state (cells, ratios, collapsed) lives in DockStore; this component
 // is presentation + pointer plumbing only. Hidden entirely on the mobile
 // shell and on Web Lite (DockStore.available).
-import { useCallback, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { DockPanelRef } from '../../core/dock';
 import { useDockStore, useUiStore } from '../../stores/context';
@@ -14,9 +14,11 @@ export const DockPanel = observer(function DockPanel() {
   const dock = useDockStore();
   const ui = useUiStore();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [resizing, setResizing] = useState(false);
 
   const onResizerPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault();
+    setResizing(true);
     const startX = event.clientX;
     const startRatio = dock.dockRatio;
     // Resize relative to the dock's parent (the app shell row).
@@ -27,6 +29,7 @@ export const DockPanel = observer(function DockPanel() {
       dock.setDockRatio(startRatio + deltaPx / Math.max(1, parentWidth));
     };
     const onUp = (): void => {
+      setResizing(false);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
@@ -53,9 +56,23 @@ export const DockPanel = observer(function DockPanel() {
 
   if (!dock.available || ui.mobileShell || !dock.hasOpenPanels) return null;
 
-  if (dock.collapsed) {
-    return (
-      <div className="dock-panel dock-panel--collapsed" data-testid="dock-collapsed-rail">
+  const collapsed = dock.collapsed;
+  const occupied = dock.cells
+    .map((cell, index) => ({ cell, index: index as 0 | 1 }))
+    .filter((entry): entry is { cell: DockPanelRef; index: 0 | 1 } => entry.cell !== null);
+  const bothOccupied = occupied.length === 2;
+
+  return (
+    <div
+      className={`dock-panel${collapsed ? ' dock-panel--collapsed' : ''}`}
+      data-testid={collapsed ? 'dock-collapsed-rail' : 'dock-panel'}
+      data-collapsed={collapsed || undefined}
+      // Suppressed while dragging the resizer: a transition on width turns a
+      // direct-manipulation drag into a laggy one.
+      data-resizing={resizing || undefined}
+      style={collapsed ? undefined : { width: `${Math.round(dock.dockRatio * 1000) / 10}%` }}
+    >
+      {collapsed ? (
         <button
           type="button"
           className="dock-panel__reopen"
@@ -65,21 +82,8 @@ export const DockPanel = observer(function DockPanel() {
         >
           <span aria-hidden="true"><Icons.Back /></span>
         </button>
-      </div>
-    );
-  }
-
-  const occupied = dock.cells
-    .map((cell, index) => ({ cell, index: index as 0 | 1 }))
-    .filter((entry): entry is { cell: DockPanelRef; index: 0 | 1 } => entry.cell !== null);
-  const bothOccupied = occupied.length === 2;
-
-  return (
-    <div
-      className="dock-panel"
-      data-testid="dock-panel"
-      style={{ width: `${Math.round(dock.dockRatio * 1000) / 10}%` }}
-    >
+      ) : (
+      <>
       <div
         className="dock-panel__resizer"
         role="separator"
@@ -150,6 +154,8 @@ export const DockPanel = observer(function DockPanel() {
           );
         })}
       </div>
+      </>
+      )}
     </div>
   );
 });

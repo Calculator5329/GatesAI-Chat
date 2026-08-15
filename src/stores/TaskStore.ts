@@ -30,8 +30,6 @@ export interface TaskAgentThreadsFacade {
 export class TaskStore {
   private readonly imageJobs: TaskImageJobsFacade;
   private readonly chat: TaskAgentThreadsFacade;
-  private readonly cancelledAgentIds = new Set<string>();
-
   constructor(imageJobs: TaskImageJobsFacade, chat: TaskAgentThreadsFacade) {
     this.imageJobs = imageJobs;
     this.chat = chat;
@@ -72,10 +70,9 @@ export class TaskStore {
       return true;
     }
     if (task.kind === 'agent') {
-      this.cancelledAgentIds.add(taskId);
-      const cancelled = this.chat.cancelAgentTask(taskId);
-      if (!cancelled) this.cancelledAgentIds.delete(taskId);
-      return cancelled;
+      // The cancelled marker is written by the lifecycle service onto the
+      // thread itself, so it survives a reload.
+      return this.chat.cancelAgentTask(taskId);
     }
     return false;
   }
@@ -88,9 +85,7 @@ export class TaskStore {
       return true;
     }
     if (task.kind === 'agent') {
-      const retried = this.chat.retryAgentTask(taskId);
-      if (retried) this.cancelledAgentIds.delete(taskId);
-      return retried;
+      return this.chat.retryAgentTask(taskId);
     }
     return false;
   }
@@ -113,7 +108,7 @@ export class TaskStore {
   }
 
   private agentTask(thread: Thread): TaskView {
-    const status = agentTaskStatus(thread, this.cancelledAgentIds.has(thread.id));
+    const status = agentTaskStatus(thread, thread.agentTaskCancelled === true);
     const activity = this.chat.streamActivityByThread[thread.id];
     const maxRounds = thread.agentTaskMaxRounds ?? DEFAULT_AGENT_TASK_MAX_ROUNDS;
     const round = Math.min(maxRounds, Math.max(1, (activity?.round ?? 0) + 1));
