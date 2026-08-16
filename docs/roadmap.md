@@ -176,13 +176,21 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       (e.g. `gitleaks detect` or `git log -p` grep for `sk-`, `key=`, tokens)
       and record the result; after flipping, README release/download links and
       the Pages demo still resolve; if keeping split, ADR committed instead.
-- [ ] [ETHAN] **Execute the D1 ruling: make the source repo private.** The
+- [x] [ETHAN] **Execute the D1 ruling: make the source repo private.** The
       decision is recorded; the flip is owner-only. Exact PowerShell commands,
       the consequence for the public Web Lite Pages demo, verification and undo
       are in `docs/adr/2026-08-13-source-repo-visibility.md`.
-      *Acceptance:* `gh repo view Calculator5329/GatesAI-Chat --json visibility`
-      prints `private`, and the Web Lite links in `../gatesai-landing` are
-      re-pointed or removed if the Pages demo went down with it.
+      *(superseded 2026-08-16: Ethan answered inbox ask
+      `gatesai-chat-is-public-today-and-your-d1--20260813070` with **"Leave it
+      public and reopen D1 with a new ruling"** — the private flip is
+      cancelled and the repo stays public. This also supersedes the
+      waiting-on-you packet's "keep the split, write it down" recommendation
+      for the visibility card (ask 2426f25f). Follow-up filed below.)*
+- [ ] **Update `docs/adr/2026-08-13-source-repo-visibility.md` for the
+      2026-08-16 leave-it-public ruling** — the ADR records D1 as "private";
+      append the reopened ruling so the ADR and reality agree, and run the
+      full git-history secret scan the original acceptance asked for, since
+      the history is public today and was never scanned.
 - [x] <!-- workspace:id=work:6c110178-4045-53be-af10-6f9d456ad526 --> **Demo GIF at the top of the README.** *(capture pending owner hands —
       script ready, 2026-07-17)* Everything except the recording itself is
       landed: `scripts/demo-capture.md` is an exact click-by-click 20–40s
