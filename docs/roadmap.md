@@ -634,7 +634,14 @@ not by itself imply acceptance of every proposed implementation detail.
       route, wake/overlap/catch-up/spend caps, and honest app-open-only V1
       behavior. See
       [Story AP-3](plans/07-16-agentic-platform-design.md#story-ap-3--self-scheduling-with-visible-wakes).
-- [ ] <!-- workspace:id=work:ff6a7079-a42f-547c-9cf9-5299f99db4db --> **AP-4 — Outcome-driven self-improvement.** Add a local outcome/feedback
+- [x] <!-- workspace:id=work:ff6a7079-a42f-547c-9cf9-5299f99db4db --> CLOSED AS DENIED 2026-08-16 (D7 ruling, archive-harvest packet
+      20260812, executed on Ethan's take-the-recs answer to ask 458a1ace).
+      `planning/decisions/visions-decisions.jsonl` records AP-4 DENIED for
+      this work id at 2026-07-18T22:58:14.465Z, and no later owner decision
+      names or reverses it; the later "valid as designs" prose was an
+      agent-authored sweep, not an owner reversal. Any different
+      self-improvement mechanism needs its own separately scoped owner
+      decision. Original item: **AP-4 — Outcome-driven self-improvement.** Add a local outcome/feedback
       journal and reviewable, scoped memory/prompt/skill proposals that can
       improve future task context with provenance and rollback; do not claim
       client-side weight training or permit hidden prompt, tool, provider,
