@@ -95,7 +95,7 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       lost when the stash was taken. Neither this file nor the stash label
       answers that, and an agent cannot.
 
-- [ ] **[ETHAN] Decide the fate of stash `b25e163`, the Activity dock work.**
+- [ ] <!-- workspace:id=work:2c3e9b16-bc10-583b-a433-f866c027b9ea --> **[ETHAN] Decide the fate of stash `b25e163`, the Activity dock work.**
       Two roadmap items in this file are checked off for code that exists only
       in that stash. The options are to restore it and re-verify, to re-do the
       work fresh, or to un-check both items and drop the feature on the record.
@@ -176,7 +176,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       (e.g. `gitleaks detect` or `git log -p` grep for `sk-`, `key=`, tokens)
       and record the result; after flipping, README release/download links and
       the Pages demo still resolve; if keeping split, ADR committed instead.
-- [x] [ETHAN] **Execute the D1 ruling: make the source repo private.** The
+- [x] <!-- workspace:id=work:6ed40b3a-d44d-574f-9588-8c4ff40aed01 --> [ETHAN] **Execute the D1 ruling: make the source repo private.** The
       decision is recorded; the flip is owner-only. Exact PowerShell commands,
       the consequence for the public Web Lite Pages demo, verification and undo
       are in `docs/adr/2026-08-13-source-repo-visibility.md`.
@@ -186,7 +186,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       cancelled and the repo stays public. This also supersedes the
       waiting-on-you packet's "keep the split, write it down" recommendation
       for the visibility card (ask 2426f25f). Follow-up filed below.)*
-- [ ] **Update `docs/adr/2026-08-13-source-repo-visibility.md` for the
+- [ ] <!-- workspace:id=work:bd17833e-59ce-58fb-a1b6-59568c2f3e05 --> **Update `docs/adr/2026-08-13-source-repo-visibility.md` for the
       2026-08-16 leave-it-public ruling** — the ADR records D1 as "private";
       append the reopened ruling so the ADR and reality agree, and run the
       full git-history secret scan the original acceptance asked for, since
