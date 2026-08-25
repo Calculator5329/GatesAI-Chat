@@ -798,7 +798,6 @@ not by itself imply acceptance of every proposed implementation detail.
       stream-parsing core (openaiCompat/ollama), `useEditorial()` store facade,
       message-list windowing, ModelPopover memo consolidation
       *(done 2026-07-10 — TurnRunner, shared stream core, useEditorial facade, list windowing, ModelPopover memo)*
-- [ ] <!-- workspace:id=work:d44276ce-f85a-54b7-9678-2d2af968dfe7 --> Manually test the foundation surface before rebuilding optional integrations
 - [x] <!-- workspace:id=work:5b9b18c4-45cf-55b0-8d9b-162eb8e595df --> Add basic unit tests around `ChatStore` (send, stream, switch, stop) —
       covered by `tests/stores/ChatStore.test.ts` and the full Vitest suite
 - [x] <!-- workspace:id=work:cabc99db-cf21-5eb7-ab7c-9e518e59e5f4 --> **Audit follow-ups** — see `docs/audits/2026-06-07-comprehensive-audit.md`
@@ -998,3 +997,9 @@ not by itself imply acceptance of every proposed implementation detail.
       implementation dispatch pending.)*
 - [ ] <!-- workspace:id=work:918a0bf6-513c-5397-ac07-5dce20efb539 --> Release pipeline: publish the macOS .dmg (+sig) as a stable public asset alongside win/linux — v4.6.1 shipped win+linux only (2026-07-14)
 - [ ] <!-- workspace:id=work:cfbfe9f5-0430-5f71-b77a-73a25de6a70a --> Adopt headless `@shadcn/react/message-scroller` (MIT, unstyled) to replace hand-rolled chat scroll logic — owns streamed-reply anchoring, thread restore, jump-to-message (we already patched one scroll-follow bug, LF-4). Keep GatesAI's own styles; also mirror shadcn's Marker slot pattern for tool-activity/streaming rows. Ref: https://ui.shadcn.com/docs/changelog/2026-06-chat-components (Ethan design-input packet, 2026-07-14)
+
+## Expired (backlog audit, 2026-08-25)
+
+Ethan's packet reply, planning/reports/backlog-audit-packet-20260825. Reversible: move a line back to its section to revive.
+
+- Manually test the foundation surface before rebuilding optional integrations <!-- workspace:id=work:d44276ce-f85a-54b7-9678-2d2af968dfe7 -->
