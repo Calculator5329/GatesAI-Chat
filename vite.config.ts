@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import { visualizer } from 'rollup-plugin-visualizer'
+import { agentHandles } from 'agent-handles/vite'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -34,6 +35,7 @@ export default defineConfig(({ mode }) => {
       ? { 'import.meta.env.VITE_GATESAI_WEB': JSON.stringify('1') }
       : undefined,
     plugins: [
+      agentHandles(),
       react(),
       babel({ presets: [reactCompilerPreset()] }),
       ...(analyze

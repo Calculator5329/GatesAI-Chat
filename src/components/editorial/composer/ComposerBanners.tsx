@@ -20,7 +20,7 @@ export const ModelsKeyBanner = observer(function ModelsKeyBanner() {
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
     }}>
       <span>Add an OpenRouter key in Models to start chatting.</span>
-      <button
+      <button data-testid="workspace.composer-banners.open-models"
         type="button"
         className="editorial-banner-action"
         onClick={() => router.goMenu('models')}
@@ -57,7 +57,7 @@ export const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
     }}>
       <span>Start Ollama to chat with this local model.</span>
-      <button
+      <button data-testid="workspace.composer-banners.open-local-settings"
         type="button"
         className="editorial-banner-action"
         onClick={() => router.goMenu('models')}
@@ -89,11 +89,11 @@ export function NoticeBanner(props: {
       <span>{props.message}</span>
       <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         {props.actionLabel && props.onAction && (
-          <button type="button" className="editorial-banner-action" onClick={props.onAction} style={{ fontSize: 12, color: 'var(--accent)' }}>
+          <button data-testid="workspace.composer-banners.editorial-banner-action" type="button" className="editorial-banner-action" onClick={props.onAction} style={{ fontSize: 12, color: 'var(--accent)' }}>
             {props.actionLabel}
           </button>
         )}
-        <button type="button" className="editorial-banner-action" onClick={props.onDismiss} aria-label="Dismiss notice">×</button>
+        <button data-testid="workspace.composer-banners.dismiss-notice" type="button" className="editorial-banner-action" onClick={props.onDismiss} aria-label="Dismiss notice">×</button>
       </span>
     </div>
   );
@@ -115,7 +115,7 @@ export const LocalImageBanner = observer(function LocalImageBanner() {
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
     }}>
       <span>Start and connect ComfyUI to use local image generation.</span>
-      <button
+      <button data-testid="workspace.composer-banners.open-local-settings-2"
         type="button"
         className="editorial-banner-action"
         onClick={() => router.goMenu('models')}

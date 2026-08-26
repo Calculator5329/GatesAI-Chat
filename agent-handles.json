@@ -1,0 +1,68 @@
+{
+  "sourceRoot": "src",
+  "registryPath": "testid-registry.json",
+  "journeyManifestPath": "journeys/manifest.json",
+  "ratchetPath": "testid-ratchet.json",
+  "playwrightSpecPath": "tests/e2e/journeys.generated.spec.ts",
+  "adoption": {
+    "journeyVerifyCommand": "npx playwright test tests/e2e/journeys.generated.spec.ts --project=desktop-mocked"
+  },
+  "identityRenames": {
+    "dock-collapsed-rail": "workspace.dock.collapsed-rail",
+    "dock-panel": "workspace.dock.panel",
+    "dock-cell-*": "workspace.dock.cell-*",
+    "dock-file-explorer": "workspace.dock.file-explorer",
+    "dock-file-viewer-notice": "workspace.file-viewer.notice",
+    "dock-file-viewer-markdown": "workspace.file-viewer.markdown",
+    "dock-file-viewer-json": "workspace.file-viewer.json",
+    "dock-file-viewer-html": "workspace.file-viewer.html",
+    "dock-file-viewer-text": "workspace.file-viewer.text",
+    "dock-html-artifact": "workspace.dock.html-artifact",
+    "dock-media-viewer-notice": {
+      "targets": [
+        "workspace.media-viewer.empty",
+        "workspace.media-viewer.image-error",
+        "workspace.media-viewer.image-loading",
+        "workspace.media-viewer.av-error",
+        "workspace.media-viewer.av-loading"
+      ],
+      "reason": "The reused notice selector represented distinct empty, image, and audio/video states."
+    },
+    "dock-media-viewer-image": "workspace.media-viewer.image",
+    "dock-media-viewer-*": "workspace.media-viewer.content-*",
+    "task-center-panel": {
+      "targets": [
+        "workspace.task-center.empty",
+        "workspace.task-center.ledger"
+      ],
+      "reason": "The reused panel selector represented the empty and populated task-center states."
+    },
+    "aurora-diff-card": "workspace.aurora.diff-card",
+    "finetune-card": "workspace.image-job.fine-tune",
+    "inline-html-preview": "workspace.html-preview.inline",
+    "inline-html-document-card": "workspace.html-preview.document-card",
+    "prompt-cards": "workspace.prompt-card.container",
+    "search-card": "settings.models.search-card",
+    "command-palette-backdrop": "app.command-palette.backdrop",
+    "palette-empty": "app.command-palette.empty",
+    "settings.preferences.radio-input": "settings.preferences.import-mode-*",
+    "settings.preferences.delete": "settings.preferences.delete-*",
+    "settings.agent.cancel-edit": "settings.agent.fact-input-*",
+    "settings.agent.save": "settings.agent.fact-save-*",
+    "settings.agent.cancel": "settings.agent.fact-cancel-*",
+    "settings.agent.edit": "settings.agent.fact-edit-*",
+    "settings.agent.delete": "settings.agent.fact-delete-*",
+    "settings.agent.toggle": "settings.agent.library-source-*",
+    "settings.agent.set-source-query": "settings.agent.source-group-*",
+    "settings.agent.toggle-3": "settings.agent.source-type-*",
+    "settings.agent.exclude-source": "settings.agent.source-toggle-*",
+    "workspace.editorial-sidebar.item": "workspace.editorial-sidebar.thread-*",
+    "workspace.editorial-sidebar.rename": "workspace.editorial-sidebar.rename-input-*",
+    "workspace.editorial-sidebar.row-actions": "workspace.editorial-sidebar.row-actions-*",
+    "workspace.editorial-sidebar.rename-2": "workspace.editorial-sidebar.rename-*",
+    "workspace.editorial-sidebar.pin-button": "workspace.editorial-sidebar.pin-*",
+    "workspace.editorial-sidebar.delete": "workspace.editorial-sidebar.delete-*",
+    "workspace.editorial-sidebar.actions-for": "workspace.editorial-sidebar.context-menu-*",
+    "workspace.editorial-sidebar.rename-3": "workspace.editorial-sidebar.context-rename-*"
+  }
+}

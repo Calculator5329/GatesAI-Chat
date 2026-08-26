@@ -54,7 +54,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
   };
 
   const overlay = (
-    <div
+    <div data-testid="app.lightbox.image-viewer"
       role="dialog"
       aria-modal="true"
       aria-label="Image viewer"
@@ -75,7 +75,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
       }}
     >
       {/* Close button */}
-      <button
+      <button data-testid="app.lightbox.close"
         type="button"
         onClick={onClose}
         title="Close"
@@ -102,7 +102,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
 
       {/* Prev/Next arrows */}
       {images.length > 1 && index > 0 && (
-        <button
+        <button data-testid="app.lightbox.previous-image"
           type="button"
           onClick={(e) => { e.stopPropagation(); setIndex(i => Math.max(0, i - 1)); }}
           aria-label="Previous image"
@@ -110,7 +110,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
         >‹</button>
       )}
       {images.length > 1 && index < images.length - 1 && (
-        <button
+        <button data-testid="app.lightbox.next-image"
           type="button"
           onClick={(e) => { e.stopPropagation(); setIndex(i => Math.min(images.length - 1, i + 1)); }}
           aria-label="Next image"
@@ -119,7 +119,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
       )}
 
       {/* Main content */}
-      <div
+      <div data-testid="app.lightbox.div"
         onClick={(e) => e.stopPropagation()}
         style={{
           display: 'flex',
@@ -178,7 +178,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Prompt</div>
-                <textarea
+                <textarea data-testid="app.lightbox.full-prompt"
                   aria-label="Full prompt"
                   readOnly
                   value={prompt}
@@ -186,10 +186,10 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 20, flexShrink: 0 }}>
-                <button type="button" onClick={copyPrompt} style={actionBtn}>
+                <button data-testid="app.lightbox.copy-prompt" type="button" onClick={copyPrompt} style={actionBtn}>
                   {copied ? '✓ Copied' : 'Copy prompt'}
                 </button>
-                <button type="button" onClick={() => { void bridge.openWorkspacePath(current.path); }} style={actionBtn}>
+                <button data-testid="app.lightbox.open-in-os" type="button" onClick={() => { void bridge.openWorkspacePath(current.path); }} style={actionBtn}>
                   Open in OS
                 </button>
               </div>
@@ -197,7 +197,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
           )}
           {!prompt && (
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => { void bridge.openWorkspacePath(current.path); }} style={actionBtn}>
+              <button data-testid="app.lightbox.open-in-os-2" type="button" onClick={() => { void bridge.openWorkspacePath(current.path); }} style={actionBtn}>
                 Open in OS
               </button>
             </div>

@@ -29,7 +29,7 @@ export const GatesMenu = observer(function GatesMenu() {
           const active = router.menuSection === s.key;
           const onSelect = () => router.goMenu(s.key);
           return (
-            <button
+            <button data-testid={`settings.gates-menu.tab-${s.key}`}
               type="button"
               key={s.key}
               className="gates-menu__tab"

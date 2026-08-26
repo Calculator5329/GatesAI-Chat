@@ -30,6 +30,7 @@ export function Button({ variant = 'default', style, className, disabled, ...res
   const classes = ['ui-button', `ui-button--${variant}`, className].filter(Boolean).join(' ');
   return (
     <button
+      data-testid="ui.button.unscoped"
       {...rest}
       className={classes}
       disabled={disabled}

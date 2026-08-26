@@ -194,7 +194,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     <>
     {mobileShell && (
       <header className="editorial-mobile-topbar">
-        <button
+        <button data-testid="workspace.editorial-sidebar.button"
           type="button"
           className={`editorial-mobile-topbar__button${onMenu ? ' editorial-mobile-topbar__back' : ''}`}
           aria-label={onMenu ? 'Back to chat' : 'Open sidebar'}
@@ -215,7 +215,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
             </>
           )}
         </button>
-        <button
+        <button data-testid="workspace.editorial-sidebar.title"
           type="button"
           className="editorial-mobile-topbar__title"
           onClick={() => {
@@ -226,7 +226,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           {mobileTitle}
         </button>
         <div className="editorial-mobile-topbar__actions">
-          <button
+          <button data-testid="workspace.editorial-sidebar.new-conversation"
             type="button"
             className="editorial-mobile-topbar__new"
             aria-label="New conversation"
@@ -238,7 +238,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           >
             <Icons.Edit />
           </button>
-          <button
+          <button data-testid="workspace.editorial-sidebar.copy-link"
             type="button"
             className="editorial-mobile-topbar__share"
             aria-label="Copy link"
@@ -247,7 +247,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           >
             <Icons.Share />
           </button>
-          <button
+          <button data-testid="workspace.editorial-sidebar.open-sidebar"
             type="button"
             className="editorial-mobile-topbar__more"
             aria-label="Open sidebar"
@@ -260,7 +260,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       </header>
     )}
     {mobileShell && mobileOpen && (
-      <button
+      <button data-testid="workspace.editorial-sidebar.close-sidebar"
         type="button"
         className="editorial-sidebar__scrim"
         aria-label="Close sidebar"
@@ -274,7 +274,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       onTouchStart={onMobileTouchStart}
       onTouchEnd={onMobileTouchEnd}
     >
-      <div
+      <div data-testid="workspace.editorial-sidebar.brand"
         className="editorial-sidebar__brand"
         data-hint={showMenuHint && !mobileShell ? 'true' : undefined}
         style={S.head as CSSProperties}
@@ -293,7 +293,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           <div className="editorial-sidebar__brand-dot" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', alignSelf: 'center', marginBottom: 2 }} />
         </div>
         {mobileShell && (
-          <button
+          <button data-testid="workspace.editorial-sidebar.close-sidebar-2"
             type="button"
             className="editorial-sidebar__close"
             aria-label="Close sidebar"
@@ -307,7 +307,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         )}
       </div>
       {showMenuHint && !mobileShell && (
-        <button
+        <button data-testid="workspace.editorial-sidebar.settings-amp-menu-live-here"
           type="button"
           className="editorial-sidebar__menu-coach"
           onClick={() => {
@@ -320,7 +320,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         </button>
       )}
       <div className="editorial-sidebar__action-slot">
-        <button
+        <button data-testid="workspace.editorial-sidebar.begin-a-new-conversation"
           type="button"
           className="editorial-sidebar__new"
           aria-label="Begin a new conversation"
@@ -336,7 +336,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
       </div>
       {mobileShell && (
         <div className="editorial-sidebar__mobile-actions">
-          <button
+          <button data-testid="workspace.editorial-sidebar.menu-and-settings"
             type="button"
             className="editorial-sidebar__mobile-action"
             onClick={() => {
@@ -445,7 +445,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
   };
 
   return (
-    <div
+    <div data-testid={`workspace.editorial-sidebar.thread-${thread.id}`}
       className="editorial-sidebar__item"
       style={(S.item as (a: boolean) => CSSProperties)(active)}
       role="button"
@@ -505,7 +505,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{ ...(S.title as (a: boolean) => CSSProperties)(active), flex: 1, minWidth: 0 }}>
           {editing ? (
-            <input
+            <input data-testid={`workspace.editorial-sidebar.rename-input-${thread.id}`}
               ref={titleInputRef}
               className="editorial-sidebar__rename-input"
               aria-label={`Rename "${thread.title}"`}
@@ -572,7 +572,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
         )}
         {/* Keep the action slot mounted so hover/focus changes never reflow the title. */}
         {!streaming && (
-          <div
+          <div data-testid={`workspace.editorial-sidebar.row-actions-${thread.id}`}
             className="editorial-sidebar__row-actions"
             style={{
               ...(S.rowActions as CSSProperties),
@@ -581,7 +581,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
             }}
             onClick={event => event.stopPropagation()}
           >
-            {!thread.readOnly && <button
+            {!thread.readOnly && <button data-testid={`workspace.editorial-sidebar.rename-${thread.id}`}
               type="button"
               className="editorial-sidebar__rename-button"
               onClick={beginRename}
@@ -592,7 +592,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
             >
               <Icons.Edit />
             </button>}
-            <button
+            <button data-testid={`workspace.editorial-sidebar.pin-${thread.id}`}
               type="button"
               className="editorial-sidebar__pin-button"
               onClick={() => chat.toggleThreadPinned(thread.id)}
@@ -602,7 +602,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
             >
               <Icons.Pin />
             </button>
-            <button
+            <button data-testid={`workspace.editorial-sidebar.delete-${thread.id}`}
               type="button"
               className="editorial-sidebar__delete-button"
               onClick={() => onDelete(thread)}
@@ -616,7 +616,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
         )}
       </div>
       {contextMenu && (
-        <div
+        <div data-testid={`workspace.editorial-sidebar.context-menu-${thread.id}`}
           className="editorial-sidebar__context-menu"
           role="menu"
           aria-label={`Actions for "${thread.title}"`}
@@ -634,7 +634,7 @@ const SidebarThreadRow = observer(function SidebarThreadRow({
           }}
           onClick={event => event.stopPropagation()}
         >
-          <button
+          <button data-testid={`workspace.editorial-sidebar.context-rename-${thread.id}`}
             type="button"
             role="menuitem"
             className="editorial-sidebar__context-menu-item"

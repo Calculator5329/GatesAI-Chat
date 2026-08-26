@@ -48,7 +48,7 @@ export const FileViewerPanel = observer(function FileViewerPanel({ params }: Doc
 
   if (state.status !== 'ready') {
     return (
-      <div className="dock-panel__notice" data-testid="dock-file-viewer-notice">
+      <div className="dock-panel__notice" data-testid="workspace.file-viewer.notice">
         {state.status === 'error' ? state.reason : 'Loading file...'}
       </div>
     );
@@ -57,7 +57,7 @@ export const FileViewerPanel = observer(function FileViewerPanel({ params }: Doc
   const kind = classifyDockFile(path);
   if (kind === 'markdown') {
     return (
-      <div className="dock-file-viewer dock-file-viewer--markdown md-body" data-testid="dock-file-viewer-markdown">
+      <div className="dock-file-viewer dock-file-viewer--markdown md-body" data-testid="workspace.file-viewer.markdown">
         <MarkdownChunk
           content={state.content}
           bridge={bridge}
@@ -69,20 +69,20 @@ export const FileViewerPanel = observer(function FileViewerPanel({ params }: Doc
   }
   if (kind === 'json') {
     return (
-      <div className="dock-file-viewer dock-file-viewer--json" data-testid="dock-file-viewer-json">
+      <div className="dock-file-viewer dock-file-viewer--json" data-testid="workspace.file-viewer.json">
         <JsonView content={state.content} />
       </div>
     );
   }
   if (kind === 'html') {
     return (
-      <div className="dock-file-viewer dock-file-viewer--html" data-testid="dock-file-viewer-html">
+      <div className="dock-file-viewer dock-file-viewer--html" data-testid="workspace.file-viewer.html">
         <InlineHtmlDocument html={state.content} />
       </div>
     );
   }
   return (
-    <div className="dock-file-viewer dock-file-viewer--text" data-testid="dock-file-viewer-text">
+    <div className="dock-file-viewer dock-file-viewer--text" data-testid="workspace.file-viewer.text">
       <pre>{state.content}</pre>
     </div>
   );
@@ -107,7 +107,7 @@ function JsonView({ content }: { content: string }) {
       <div className="dock-json-view">
         {entries.map(([key, value]) => (
           <details key={key} open={entries.length <= 4}>
-            <summary><code>{key}</code></summary>
+            <summary data-testid="workspace.file-viewer-panel.summary"><code>{key}</code></summary>
             <pre>{JSON.stringify(value, null, 2)}</pre>
           </details>
         ))}

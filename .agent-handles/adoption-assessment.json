@@ -1,0 +1,748 @@
+{
+  "schema": "agent-handles/adoption-assessment/v1",
+  "generatedAt": "2026-08-26T02:27:58.557Z",
+  "project": {
+    "packageName": "gatesai-chat",
+    "framework": "react",
+    "vite": {
+      "configured": true,
+      "configPath": "vite.config.ts",
+      "version": "^8.0.9",
+      "major": 8,
+      "wired": false,
+      "supported": true
+    },
+    "packageManager": "npm",
+    "sourceRoots": [
+      "src"
+    ],
+    "sourceFileCount": 66,
+    "routes": [
+      "/workspace"
+    ],
+    "identityVocabulary": {
+      "literalIds": 23,
+      "areas": [
+        [
+          "dock-media-viewer-notice",
+          5
+        ],
+        [
+          "task-center-panel",
+          2
+        ],
+        [
+          "aurora-diff-card",
+          1
+        ],
+        [
+          "command-palette-backdrop",
+          1
+        ],
+        [
+          "dock-file-explorer",
+          1
+        ],
+        [
+          "dock-file-viewer-html",
+          1
+        ],
+        [
+          "dock-file-viewer-json",
+          1
+        ],
+        [
+          "dock-file-viewer-markdown",
+          1
+        ],
+        [
+          "dock-file-viewer-notice",
+          1
+        ],
+        [
+          "dock-file-viewer-text",
+          1
+        ],
+        [
+          "dock-html-artifact",
+          1
+        ],
+        [
+          "dock-media-viewer-image",
+          1
+        ],
+        [
+          "finetune-card",
+          1
+        ],
+        [
+          "inline-html-document-card",
+          1
+        ],
+        [
+          "inline-html-preview",
+          1
+        ],
+        [
+          "palette-empty",
+          1
+        ],
+        [
+          "prompt-cards",
+          1
+        ],
+        [
+          "search-card",
+          1
+        ]
+      ],
+      "components": []
+    },
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc -b && vite build",
+      "build:web": "tsc -b && vite build --mode web-lite",
+      "analyze": "vite build --mode analyze --sourcemap",
+      "lint": "eslint .",
+      "typecheck": "tsc -b && tsc -p tsconfig.test.json --noEmit",
+      "test": "vitest run --config vitest.config.ts --configLoader runner",
+      "test:watch": "vitest",
+      "model-compat:catalog": "vite-node scripts/model-compat/cli.ts -- --mode catalog",
+      "model-compat:live": "vite-node scripts/model-compat/cli.ts -- --mode live --max-cost-usd 2",
+      "test:models": "npm run model-compat:live",
+      "rag:eval": "vite-node --root scripts/rag-eval scripts/rag-eval/cli.ts --",
+      "test:e2e": "playwright test",
+      "screenshots": "node scripts/screenshots.mjs",
+      "screens:tour": "node scripts/screens-tour.mjs",
+      "ci": "npm test && npm run typecheck && npm run lint",
+      "preview": "vite preview",
+      "tauri": "tauri",
+      "tauri:dev": "tauri dev",
+      "tauri:build": "node scripts/tauri-build.mjs"
+    },
+    "dependencies": {
+      "react": "^19.2.5",
+      "playwright": "^1.60.0",
+      "agentHandles": "file:../agent-handles-trials/20260826-retry/agent-handles-0.0.0.tgz"
+    },
+    "currentAgentHandlesState": {
+      "configured": true,
+      "registrySchema": "agent-handles/testid-registry/v3",
+      "ratchetSchema": "agent-handles/ratchet/v2",
+      "adoptionPassCount": 0
+    },
+    "proposedVitePatch": {
+      "file": "vite.config.ts",
+      "import": "import { agentHandles } from \"agent-handles/vite\";",
+      "plugin": "agentHandles(),",
+      "instruction": "Add the import with the other imports, then add agentHandles() to the existing plugins array. Preserve every existing plugin and option."
+    }
+  },
+  "sourceRoot": "src",
+  "identityGrammar": "area.component.element[.qualifier]",
+  "identityVocabulary": {
+    "literalIds": 23,
+    "areas": [
+      [
+        "dock-media-viewer-notice",
+        5
+      ],
+      [
+        "task-center-panel",
+        2
+      ],
+      [
+        "aurora-diff-card",
+        1
+      ],
+      [
+        "command-palette-backdrop",
+        1
+      ],
+      [
+        "dock-file-explorer",
+        1
+      ],
+      [
+        "dock-file-viewer-html",
+        1
+      ],
+      [
+        "dock-file-viewer-json",
+        1
+      ],
+      [
+        "dock-file-viewer-markdown",
+        1
+      ],
+      [
+        "dock-file-viewer-notice",
+        1
+      ],
+      [
+        "dock-file-viewer-text",
+        1
+      ],
+      [
+        "dock-html-artifact",
+        1
+      ],
+      [
+        "dock-media-viewer-image",
+        1
+      ],
+      [
+        "finetune-card",
+        1
+      ],
+      [
+        "inline-html-document-card",
+        1
+      ],
+      [
+        "inline-html-preview",
+        1
+      ],
+      [
+        "palette-empty",
+        1
+      ],
+      [
+        "prompt-cards",
+        1
+      ],
+      [
+        "search-card",
+        1
+      ]
+    ],
+    "components": []
+  },
+  "routes": [
+    "/workspace"
+  ],
+  "sourceRoots": [
+    "src"
+  ],
+  "sourceDigest": "sha256:376e6c211199bb96ff2b7accd1bb386378977f942b18203f45aac1213d206b43",
+  "controlCandidates": {
+    "total": 223,
+    "definite": 195,
+    "reviewRequired": 28,
+    "identified": 0,
+    "unresolved": 223
+  },
+  "invalidIdentities": [
+    {
+      "id": "dock-collapsed-rail",
+      "kind": "literal",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 68,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-collapsed-rail\" at src/components/dock/DockPanel.tsx:68; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-panel",
+      "kind": "literal",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 68,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-panel\" at src/components/dock/DockPanel.tsx:68; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-cell-*",
+      "kind": "pattern",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 102,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-cell-dynamic\" at src/components/dock/DockPanel.tsx:102; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-file-explorer",
+      "kind": "literal",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 89,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-file-explorer\" at src/components/dock/FileExplorerPanel.tsx:89; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-file-viewer-notice",
+      "kind": "literal",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 51,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-file-viewer-notice\" at src/components/dock/FileViewerPanel.tsx:51; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-file-viewer-markdown",
+      "kind": "literal",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 60,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-file-viewer-markdown\" at src/components/dock/FileViewerPanel.tsx:60; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-file-viewer-json",
+      "kind": "literal",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 72,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-file-viewer-json\" at src/components/dock/FileViewerPanel.tsx:72; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-file-viewer-html",
+      "kind": "literal",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 79,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-file-viewer-html\" at src/components/dock/FileViewerPanel.tsx:79; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-file-viewer-text",
+      "kind": "literal",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 85,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-file-viewer-text\" at src/components/dock/FileViewerPanel.tsx:85; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-html-artifact",
+      "kind": "literal",
+      "file": "src/components/dock/HtmlArtifactPanel.tsx",
+      "line": 18,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-html-artifact\" at src/components/dock/HtmlArtifactPanel.tsx:18; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-media-viewer-notice",
+      "kind": "literal",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 14,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-media-viewer-notice\" at src/components/dock/MediaViewerPanel.tsx:14; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-media-viewer-notice",
+      "kind": "literal",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 26,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-media-viewer-notice\" at src/components/dock/MediaViewerPanel.tsx:26; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-media-viewer-notice",
+      "kind": "literal",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 29,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-media-viewer-notice\" at src/components/dock/MediaViewerPanel.tsx:29; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-media-viewer-image",
+      "kind": "literal",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 32,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-media-viewer-image\" at src/components/dock/MediaViewerPanel.tsx:32; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-media-viewer-notice",
+      "kind": "literal",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 60,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-media-viewer-notice\" at src/components/dock/MediaViewerPanel.tsx:60; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-media-viewer-notice",
+      "kind": "literal",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 63,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-media-viewer-notice\" at src/components/dock/MediaViewerPanel.tsx:63; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "dock-media-viewer-*",
+      "kind": "pattern",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 66,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"dock-media-viewer-dynamic\" at src/components/dock/MediaViewerPanel.tsx:66; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "task-center-panel",
+      "kind": "literal",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 25,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"task-center-panel\" at src/components/dock/TaskCenterPanel.tsx:25; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "task-center-panel",
+      "kind": "literal",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 33,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"task-center-panel\" at src/components/dock/TaskCenterPanel.tsx:33; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "aurora-diff-card",
+      "kind": "literal",
+      "file": "src/components/editorial/aurora/DiffCard.tsx",
+      "line": 20,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"aurora-diff-card\" at src/components/editorial/aurora/DiffCard.tsx:20; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "finetune-card",
+      "kind": "literal",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 44,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"finetune-card\" at src/components/editorial/aurora/FineTuneCard.tsx:44; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "inline-html-preview",
+      "kind": "literal",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 26,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"inline-html-preview\" at src/components/editorial/HtmlArtifactPreview.tsx:26; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "inline-html-document-card",
+      "kind": "literal",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 63,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"inline-html-document-card\" at src/components/editorial/HtmlArtifactPreview.tsx:63; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "prompt-cards",
+      "kind": "literal",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 19,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"prompt-cards\" at src/components/editorial/PromptCards.tsx:19; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "search-card",
+      "kind": "literal",
+      "file": "src/components/menu/sections/api/ApiSection.tsx",
+      "line": 44,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"search-card\" at src/components/menu/sections/api/ApiSection.tsx:44; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "command-palette-backdrop",
+      "kind": "literal",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 229,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"command-palette-backdrop\" at src/components/palette/CommandPalette.tsx:229; expected area.component.element with kebab-case segments."
+    },
+    {
+      "id": "palette-empty",
+      "kind": "literal",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 290,
+      "attribute": "data-testid",
+      "reason": "Invalid stable test id \"palette-empty\" at src/components/palette/CommandPalette.tsx:290; expected area.component.element with kebab-case segments."
+    }
+  ],
+  "identityHistory": {
+    "renames": [],
+    "tombstones": []
+  },
+  "configuredWrappers": [
+    "Button",
+    "Input",
+    "Textarea",
+    "Toggle"
+  ],
+  "wrapperCandidates": [
+    "AttachButton",
+    "ComposerInput",
+    "GridTile",
+    "SkillRow"
+  ],
+  "reviewRequired": [
+    {
+      "id": "candidate:06856809e99ebf09",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 87,
+      "element": "div",
+      "evidence": [
+        "handler:onPointerDown"
+      ]
+    },
+    {
+      "id": "candidate:f8652316cd16ec28",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 106,
+      "element": "div",
+      "evidence": [
+        "handler:onPointerDown"
+      ]
+    },
+    {
+      "id": "candidate:c897fe674ea75351",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 80,
+      "element": "article",
+      "evidence": [
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ]
+    },
+    {
+      "id": "candidate:6ea5145af0fbea78",
+      "file": "src/components/editorial/BridgeStatusPill.tsx",
+      "line": 51,
+      "element": "div",
+      "evidence": [
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ]
+    },
+    {
+      "id": "candidate:20fa72c70f84ccc8",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 74,
+      "element": "AttachButton",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:051da806b6368e3f",
+      "file": "src/components/editorial/composer/SkillPopover.tsx",
+      "line": 48,
+      "element": "SkillRow",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:ad6ed8e830da209c",
+      "file": "src/components/editorial/composer/SkillPopover.tsx",
+      "line": 56,
+      "element": "SkillRow",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:aa670016417f9500",
+      "file": "src/components/editorial/EditorialComposer.tsx",
+      "line": 238,
+      "element": "ComposerInput",
+      "evidence": [
+        "handler:onKeyDown"
+      ]
+    },
+    {
+      "id": "candidate:9c20d38c378f3c97",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 191,
+      "element": "div",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:3d9a5205562012c7",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 225,
+      "element": "div",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:6c29291ada8edb4d",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 270,
+      "element": "div",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:26c5a378b22eb01b",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 307,
+      "element": "div",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:609772c70f598469",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 277,
+      "element": "div",
+      "evidence": [
+        "role:button",
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ]
+    },
+    {
+      "id": "candidate:e5600e3f9be0de48",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 448,
+      "element": "div",
+      "evidence": [
+        "role:button",
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ]
+    },
+    {
+      "id": "candidate:1d03a94aff783269",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 575,
+      "element": "div",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:846e1589569e340f",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 619,
+      "element": "div",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:405530ea36bdaa37",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 170,
+      "element": "span",
+      "evidence": [
+        "role:button",
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ]
+    },
+    {
+      "id": "candidate:3fdb1da7f7d72cfe",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 282,
+      "element": "GridTile",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:5d38b206a4783f6d",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 226,
+      "element": "div",
+      "evidence": [
+        "role:option",
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:2e1bd7333d815317",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 386,
+      "element": "div",
+      "evidence": [
+        "handler:onKeyDown"
+      ]
+    },
+    {
+      "id": "candidate:0c8a1b5395761d75",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 71,
+      "element": "form",
+      "evidence": [
+        "handler:onSubmit"
+      ]
+    },
+    {
+      "id": "candidate:194be6858582aef4",
+      "file": "src/components/editorial/SidebarSettingsButton.tsx",
+      "line": 45,
+      "element": "span",
+      "evidence": [
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ]
+    },
+    {
+      "id": "candidate:2ff88ac3bc6ecd0d",
+      "file": "src/components/editorial/UpdatePill.tsx",
+      "line": 46,
+      "element": "span",
+      "evidence": [
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ]
+    },
+    {
+      "id": "candidate:a20b6b158501520b",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 57,
+      "element": "div",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:a0b1c1d9a2e1276a",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 122,
+      "element": "div",
+      "evidence": [
+        "handler:onClick"
+      ]
+    },
+    {
+      "id": "candidate:567d4ff2d1e9c073",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 227,
+      "element": "div",
+      "evidence": [
+        "handler:onClick",
+        "legacy-id:command-palette-backdrop"
+      ]
+    },
+    {
+      "id": "candidate:bde9964b1d1e5842",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 235,
+      "element": "div",
+      "evidence": [
+        "handler:onClick",
+        "handler:onKeyDown"
+      ]
+    },
+    {
+      "id": "candidate:585aa3d5bf5451c8",
+      "file": "src/components/whats-new/WhatsNewPanel.tsx",
+      "line": 50,
+      "element": "div",
+      "evidence": [
+        "handler:onMouseDown"
+      ]
+    }
+  ],
+  "exactCommands": {
+    "scan": "npx agent-handles scan check",
+    "ratchet": "npx agent-handles ratchet check",
+    "verify": "npx agent-handles adopt verify"
+  }
+}

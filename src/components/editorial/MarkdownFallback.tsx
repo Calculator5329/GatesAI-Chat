@@ -55,12 +55,12 @@ function renderLink(label: string, href: string, bridge: BridgeStore | undefined
     }
     if (bridge) return <WorkspacePathLink key={`workspace-link-${key}`} path={href} bridge={bridge} />;
   }
-  return <a key={`link-${key}`} href={href} target="_blank" rel="noreferrer">{label}</a>;
+  return <a data-testid="workspace.markdown-fallback.a" key={`link-${key}`} href={href} target="_blank" rel="noreferrer">{label}</a>;
 }
 
 function WorkspacePathLink({ path, bridge }: { path: string; bridge: BridgeStore }) {
   return (
-    <button
+    <button data-testid="workspace.markdown-fallback.open"
       type="button"
       className="workspace-path-link"
       title={`Open ${path}`}

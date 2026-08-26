@@ -225,7 +225,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
         {chat.lastError && (
           <div className="chat-error-banner" role="status">
             <span>{chat.lastError}</span>
-            <button type="button" onClick={() => chat.clearLastError()} aria-label="Dismiss chat error">×</button>
+            <button data-testid="workspace.editorial-composer.dismiss-chat-error" type="button" onClick={() => chat.clearLastError()} aria-label="Dismiss chat error">×</button>
           </div>
         )}
         <AttachmentTray
@@ -236,6 +236,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           onRemove={id => ui.removeAttachment(id)}
         />
         <ComposerInput
+          testId="workspace.composer.draft"
           textareaRef={textareaRef}
           fileInputRef={fileInputRef}
           value={value}

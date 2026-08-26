@@ -35,11 +35,11 @@ export const OpenRouterCatalogRow = observer(function OpenRouterCatalogRow() {
               : <>Not loaded yet — pull the live list from OpenRouter</>}
           </div>
         </div>
-        <Button onClick={() => { void store.refresh(); }} disabled={fetching}>
+        <Button data-testid="settings.models-open-router-catalog-row.refresh" onClick={() => { void store.refresh(); }} disabled={fetching}>
           {fetching ? 'Refreshing…' : (count > 0 ? 'Refresh' : 'Load models')}
         </Button>
         {count > 0 && !fetching && (
-          <Button variant="danger" onClick={() => store.clearCache()}>Clear</Button>
+          <Button data-testid="settings.models-open-router-catalog-row.clear" variant="danger" onClick={() => store.clearCache()}>Clear</Button>
         )}
       </div>
       {fetchError && (

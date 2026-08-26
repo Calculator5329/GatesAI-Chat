@@ -36,7 +36,7 @@ export function AttachmentTray({
                 title={a.filename}
               >
                 <WorkspaceImage path={a.path} alt={a.filename} kind={a.filename.split('.').pop()?.toUpperCase() || 'IMG'} cacheKey={a.id} />
-                <button
+                <button data-testid="workspace.attachment-tray.remove"
                   type="button"
                   className="composer-attachment-remove"
                   onClick={() => onRemove(a.id)}
@@ -75,7 +75,7 @@ export function AttachmentTray({
               >
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
                 {a.filename}
-                <button
+                <button data-testid="workspace.attachment-tray.remove-2"
                   type="button"
                   className="composer-attachment-remove"
                   onClick={() => onRemove(a.id)}

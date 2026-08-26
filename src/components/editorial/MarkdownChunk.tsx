@@ -132,11 +132,11 @@ function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnab
           </span>
         )}
         {htmlDocument && (
-          <button type="button" aria-pressed={htmlView === 'preview'} onClick={() => setHtmlView(view => view === 'source' ? 'preview' : 'source')}>
+          <button data-testid="workspace.markdown-chunk.set-html-view" type="button" aria-pressed={htmlView === 'preview'} onClick={() => setHtmlView(view => view === 'source' ? 'preview' : 'source')}>
             {htmlView === 'source' ? 'Preview' : 'Source'}
           </button>
         )}
-        <button
+        <button data-testid="workspace.markdown-chunk.lines"
           type="button"
           aria-label={lineNumbers ? 'Hide line numbers' : 'Show line numbers'}
           aria-pressed={lineNumbers}
@@ -144,10 +144,10 @@ function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnab
         >
           Lines
         </button>
-        <button type="button" aria-pressed={wrapped} onClick={() => setWrapped(value => !value)}>
+        <button data-testid="workspace.markdown-chunk.set-wrapped" type="button" aria-pressed={wrapped} onClick={() => setWrapped(value => !value)}>
           {wrapped ? 'Unwrap' : 'Wrap'}
         </button>
-        <button
+        <button data-testid="workspace.markdown-chunk.set-copy-state"
           type="button"
           data-state={copyState}
           onClick={async () => {
@@ -159,8 +159,8 @@ function CodeBlock({ children, lineNumbers, onLineNumbersChange, htmlPreviewEnab
         </button>
         {htmlDocument && (
           <>
-            <button type="button" onClick={() => openHtmlDocument(text)}>Open</button>
-            <button type="button" onClick={() => downloadHtmlDocument(text)}>Download</button>
+            <button data-testid="workspace.markdown-chunk.open" type="button" onClick={() => openHtmlDocument(text)}>Open</button>
+            <button data-testid="workspace.markdown-chunk.download" type="button" onClick={() => downloadHtmlDocument(text)}>Download</button>
           </>
         )}
       </div>
@@ -261,12 +261,12 @@ function AnchorOrWorkspaceLink({ bridge, href, children, ...rest }: AnchorProps)
     }
     return <WorkspacePathLink path={target} bridge={bridge} />;
   }
-  return <a href={href} {...rest} target="_blank" rel="noreferrer">{children}</a>;
+  return <a data-testid="workspace.markdown-chunk.a" href={href} {...rest} target="_blank" rel="noreferrer">{children}</a>;
 }
 
 function WorkspacePathLink({ path, bridge }: { path: string; bridge: BridgeStore }) {
   return (
-    <button
+    <button data-testid="workspace.markdown-chunk.open-2"
       type="button"
       className="workspace-path-link"
       title={`Open ${path}`}

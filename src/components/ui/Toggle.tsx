@@ -1,4 +1,5 @@
 interface ToggleProps {
+  testId?: string;
   on: boolean;
   onChange: (next: boolean) => void;
   disabled?: boolean;
@@ -15,9 +16,10 @@ interface ToggleProps {
  * styles beat non-`!important` stylesheet rules, so an inline `transform` on
  * the thumb silently killed the `:active` press animation written for it.
  */
-export function Toggle({ on, onChange, disabled, label }: ToggleProps) {
+export function Toggle({ testId, on, onChange, disabled, label }: ToggleProps) {
   return (
     <button
+      data-testid={testId ?? 'ui.toggle.unscoped'}
       type="button"
       className="ui-toggle"
       role="switch"

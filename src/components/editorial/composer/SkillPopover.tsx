@@ -46,6 +46,7 @@ export function SkillPopover({
       }}
     >
       <SkillRow
+        testId="workspace.skill-picker.option-none"
         name="No skill"
         description="Use only the global Agent instructions."
         selected={!activeSkillId}
@@ -54,6 +55,7 @@ export function SkillPopover({
       <div style={{ overflowY: 'auto', borderTop: '1px solid var(--border)' }}>
         {skills.map(skill => (
           <SkillRow
+            testId={`workspace.skill-picker.option-${skill.id}`}
             key={skill.id}
             name={skill.name}
             description={skill.description || skill.path}
@@ -93,12 +95,14 @@ export function SkillPopover({
 }
 
 function SkillRow({
+  testId,
   name,
   description,
   selected,
   warnings,
   onClick,
 }: {
+  testId: string;
   name: string;
   description: string;
   selected: boolean;
@@ -107,6 +111,7 @@ function SkillRow({
 }) {
   return (
     <button
+      data-testid={testId ?? 'workspace.skill-picker.option-unscoped'}
       type="button"
       className="skill-popover__row"
       role="option"

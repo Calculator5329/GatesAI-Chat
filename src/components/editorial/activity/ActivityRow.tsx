@@ -102,7 +102,7 @@ function ActivityRowContent({
           generation is not hidden behind a gray activity chip (audit Batch D). */}
       {hasImageJobArtifacts && <ImageJobArtifacts artifacts={imageJobArtifacts} />}
       {(expandable || !hasImageJobArtifacts) && (
-      <button
+      <button data-testid="workspace.activity-activity-row.button"
         type="button"
         aria-label={autoCollapsed ? `${label} · ${lineCount} lines · ${open ? 'Collapse' : 'Expand'} output` : label}
         aria-expanded={open}

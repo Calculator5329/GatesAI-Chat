@@ -57,6 +57,7 @@ export const ProviderCard = observer(function ProviderCard({ info, providers }: 
       }}>
         {info.needsKey && (
           <SecretKeyField
+            identityKey={info.id}
             value={config.apiKey ?? ''}
             onSet={onSetKey}
             onClear={() => providers.remove(info.id)}

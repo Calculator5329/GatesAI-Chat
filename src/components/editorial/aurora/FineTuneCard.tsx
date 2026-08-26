@@ -41,12 +41,12 @@ export function FineTuneCard({
   }
 
   return (
-    <div className="finetune-card" data-testid="finetune-card">
+    <div className="finetune-card" data-testid="workspace.image-job.fine-tune">
       <div className="finetune-card__head">
         <span className="finetune-card__title">
           {job.width}×{job.height} · {job.count} image{job.count === 1 ? '' : 's'} · {job.backend}
         </span>
-        <button
+        <button data-testid="workspace.aurora-fine-tune-card.toggle"
           type="button"
           className="finetune-card__toggle"
           aria-expanded={open}
@@ -65,8 +65,8 @@ export function FineTuneCard({
             <NumberField label="Seed" value={seed} onChange={setSeed} min={0} placeholder="random" />
           </div>
           <div className="finetune-card__actions">
-            <button type="button" onClick={rerun}>Render again</button>
-            <button
+            <button data-testid="workspace.aurora-fine-tune-card.render-again" type="button" onClick={rerun}>Render again</button>
+            <button data-testid="workspace.aurora-fine-tune-card.reset"
               type="button"
               onClick={() => {
                 setCount(String(job.count));
@@ -104,7 +104,7 @@ function NumberField({
   return (
     <label className="finetune-card__field">
       <span>{label}</span>
-      <input
+      <input data-testid="workspace.aurora-fine-tune-card.number-input"
         type="number"
         inputMode="numeric"
         value={value}

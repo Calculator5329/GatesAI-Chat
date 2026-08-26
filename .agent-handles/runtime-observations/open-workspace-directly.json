@@ -1,0 +1,29 @@
+{
+  "schema": "agent-handles/runtime-journey-observation/v1",
+  "measuredAt": "2026-08-26T02:52:16.558Z",
+  "journeyName": "open-workspace-directly",
+  "lastStep": 2,
+  "pageUrl": "http://localhost:5273/workspace#/thread/t-mt9i07nby7zz",
+  "observedTestIds": [
+    "workspace.composer-banners.open-models",
+    "workspace.composer-input.composer-send-control",
+    "workspace.composer-meta.model",
+    "workspace.composer-meta.start-deep-research",
+    "workspace.composer-meta.thinking-effort",
+    "workspace.composer-meta.workspace-skill",
+    "workspace.composer.attach",
+    "workspace.composer.draft",
+    "workspace.editorial-sidebar.begin-a-new-conversation",
+    "workspace.editorial-sidebar.brand",
+    "workspace.editorial-sidebar.delete-t-mt9i07nby7zz",
+    "workspace.editorial-sidebar.pin-t-mt9i07nby7zz",
+    "workspace.editorial-sidebar.rename-t-mt9i07nby7zz",
+    "workspace.editorial-sidebar.settings-amp-menu-live-here",
+    "workspace.editorial-sidebar.thread-t-mt9i07nby7zz",
+    "workspace.sidebar-settings-button.dot",
+    "workspace.sidebar-settings-button.settings-and-menu"
+  ],
+  "unidentified": [],
+  "duplicateTestIds": [],
+  "statement": "17 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+}

@@ -197,11 +197,11 @@ describe('CommandPalette', () => {
     seedThreads(store.chat);
     const rendered = renderPaletteShell(store);
 
-    expect(rendered.querySelector('[data-testid="command-palette-backdrop"]')).toBeNull();
+    expect(rendered.querySelector('[data-testid="app.command-palette.backdrop"]')).toBeNull();
 
     act(() => store!.ui.openPalette());
 
-    let palette = rendered.querySelector('[data-testid="command-palette-backdrop"]');
+    let palette = rendered.querySelector('[data-testid="app.command-palette.backdrop"]');
     expect(palette).not.toBeNull();
     expect(palette?.textContent).toContain('Alpha launch notes');
     expect(palette?.textContent).toContain('Invoice follow-up');
@@ -209,7 +209,7 @@ describe('CommandPalette', () => {
 
     setPaletteQuery(rendered, 'invoice');
 
-    palette = rendered.querySelector('[data-testid="command-palette-backdrop"]');
+    palette = rendered.querySelector('[data-testid="app.command-palette.backdrop"]');
     expect(palette?.textContent).toContain('Invoice follow-up');
     expect(palette?.textContent).not.toContain('Alpha launch notes');
   });
@@ -234,7 +234,7 @@ describe('CommandPalette', () => {
     expect(store.router.threadId).toBe('thread-beta');
     expect(store.chat.activeThreadId).toBe('thread-beta');
     expect(store.ui.paletteOpen).toBe(false);
-    expect(rendered.querySelector('[data-testid="command-palette-backdrop"]')).toBeNull();
+    expect(rendered.querySelector('[data-testid="app.command-palette.backdrop"]')).toBeNull();
   });
 
   it('unmounts the backdrop after close and leaves the sidebar new button clickable', () => {
@@ -245,7 +245,7 @@ describe('CommandPalette', () => {
 
     act(() => store!.ui.openPalette());
 
-    const backdrop = rendered.querySelector<HTMLElement>('[data-testid="command-palette-backdrop"]');
+    const backdrop = rendered.querySelector<HTMLElement>('[data-testid="app.command-palette.backdrop"]');
     expect(backdrop).not.toBeNull();
 
     act(() => {
@@ -253,7 +253,7 @@ describe('CommandPalette', () => {
     });
 
     expect(store.ui.paletteOpen).toBe(false);
-    expect(rendered.querySelector('[data-testid="command-palette-backdrop"]')).toBeNull();
+    expect(rendered.querySelector('[data-testid="app.command-palette.backdrop"]')).toBeNull();
 
     const newConversation = rendered.querySelector<HTMLButtonElement>(
       'button.editorial-sidebar__new[aria-label="Begin a new conversation"]',

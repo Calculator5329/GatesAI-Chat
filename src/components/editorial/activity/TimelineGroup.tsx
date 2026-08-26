@@ -25,7 +25,7 @@ export function TimelineGroup({
 
   return (
     <div className="activity-group activity-row" data-state={aggregateState}>
-      <button
+      <button data-testid="workspace.activity-timeline-group.button"
         type="button"
         aria-label={label}
         aria-expanded={open}

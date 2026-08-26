@@ -1,0 +1,65 @@
+{
+  "schema": "agent-handles/journey/v1",
+  "journeys": [
+    {
+      "name": "open-settings-and-switch-theme",
+      "title": "Open settings and switch the color mode",
+      "description": "Reach Settings through the visible sidebar control and select the Light theme.",
+      "kind": "control-path",
+      "context": { "path": "/workspace" },
+      "steps": [
+        { "action": "click", "testId": "workspace.sidebar-settings-button.settings-and-menu" },
+        { "action": "expect", "testId": "settings.gates-menu.tab-settings", "predicate": "visible" },
+        { "action": "click", "testId": "settings.segmented.option-theme-light" },
+        { "action": "expect", "testId": "settings.preferences.export-json", "predicate": "visible" }
+      ]
+    },
+    {
+      "name": "open-model-provider-settings",
+      "title": "Reach provider configuration from the app menu",
+      "description": "Open the menu, select Models, and verify the web-search provider card renders.",
+      "kind": "control-path",
+      "context": { "path": "/workspace" },
+      "steps": [
+        { "action": "click", "testId": "workspace.sidebar-settings-button.settings-and-menu" },
+        { "action": "expect", "testId": "settings.gates-menu.tab-models", "predicate": "visible" },
+        { "action": "click", "testId": "settings.gates-menu.tab-models" },
+        { "action": "expect", "testId": "settings.models.search-card", "predicate": "contains-text", "value": "Web search" }
+      ]
+    },
+    {
+      "name": "open-agent-memory-settings",
+      "title": "Reach agent instructions and memory settings",
+      "description": "Open the menu, select Agent, and verify the persistent-instructions editor renders.",
+      "kind": "control-path",
+      "context": { "path": "/workspace" },
+      "steps": [
+        { "action": "click", "testId": "workspace.sidebar-settings-button.settings-and-menu" },
+        { "action": "expect", "testId": "settings.gates-menu.tab-agent", "predicate": "visible" },
+        { "action": "click", "testId": "settings.gates-menu.tab-agent" },
+        { "action": "expect", "testId": "settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe", "predicate": "visible" }
+      ]
+    },
+    {
+      "name": "start-a-new-conversation",
+      "title": "Start a fresh conversation",
+      "description": "Use the sidebar control to create a thread and verify the composer is ready.",
+      "kind": "control-path",
+      "context": { "path": "/workspace" },
+      "steps": [
+        { "action": "click", "testId": "workspace.editorial-sidebar.begin-a-new-conversation" },
+        { "action": "expect", "testId": "workspace.composer.draft", "predicate": "visible" }
+      ]
+    },
+    {
+      "name": "open-workspace-directly",
+      "title": "Open the workspace URL directly",
+      "description": "Verify the shareable workspace path loads a usable chat composer without prior navigation.",
+      "kind": "url-path",
+      "steps": [
+        { "action": "navigate", "path": "/workspace" },
+        { "action": "expect", "testId": "workspace.composer.draft", "predicate": "visible" }
+      ]
+    }
+  ]
+}

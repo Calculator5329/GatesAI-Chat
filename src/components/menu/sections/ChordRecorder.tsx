@@ -29,7 +29,7 @@ export function ChordRecorder({ value, onChange, onReset, disabled }: ChordRecor
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <input
+        <input data-testid="settings.chord-recorder.global-summon-shortcut"
           aria-label="Global summon shortcut"
           readOnly
           disabled={disabled}
@@ -54,7 +54,7 @@ export function ChordRecorder({ value, onChange, onReset, disabled }: ChordRecor
             fontSize: 12.5,
           }}
         />
-        <Button type="button" disabled={disabled} onClick={onReset}>Reset</Button>
+        <Button data-testid="settings.chord-recorder.reset" type="button" disabled={disabled} onClick={onReset}>Reset</Button>
       </div>
       {error && <div style={{ fontSize: 11.5, color: 'var(--danger)' }}>{error}</div>}
     </div>

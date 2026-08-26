@@ -123,7 +123,7 @@ test.describe('chat interaction polish', () => {
     await mockOpenRouter(page);
     await page.goto('/');
 
-    const card = page.getByTestId('inline-html-document-card');
+    const card = page.getByTestId('workspace.html-preview.document-card');
     await expect(card).toBeVisible();
     await expect(card.locator('.html-document-card__name')).toHaveText('Handoff works');
     await expect(card.getByRole('button', { name: 'Open', exact: true })).toBeVisible();

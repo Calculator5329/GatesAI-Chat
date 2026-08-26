@@ -48,10 +48,10 @@ test.describe('HTML artifact contract (mocked bridge)', () => {
     await paletteInput.fill('status board');
     await page.locator('.palette-row', { hasText: 'Open artifact: Status board' }).click();
 
-    const dock = page.locator('[data-testid="dock-panel"]');
+    const dock = page.locator('[data-testid="workspace.dock.panel"]');
     await expect(dock).toBeVisible();
     await expect(dock.locator('.dock-cell__title')).toHaveText('HTML artifact');
-    await expect(dock.locator('[data-testid="dock-html-artifact"]')).toBeVisible();
+    await expect(dock.locator('[data-testid="workspace.dock.html-artifact"]')).toBeVisible();
     await expect(dock.locator('iframe[title="Preview of Status board"]')).toBeVisible();
   });
 });

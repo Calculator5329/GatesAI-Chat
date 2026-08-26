@@ -38,7 +38,7 @@ export function MemoryDisclosure({
     <div className="memory-disclosure" aria-label={`${trace.items.length} memories supplied as context`}>
       <div className="memory-disclosure__chips">
         {trace.items.map(item => (
-          <button
+          <button data-testid={`workspace.memory-disclosure.chip-${item.reference}`}
             type="button"
             className="memory-disclosure__chip"
             data-selected={selectedReference === item.reference || undefined}
@@ -67,22 +67,22 @@ export function MemoryDisclosure({
           )}
           <div className="memory-disclosure__actions">
             {selected.threadId && canOpenThread(selected.threadId) ? (
-              <button type="button" onClick={() => onOpenThread(selected.threadId!)}>Open source</button>
+              <button data-testid="workspace.memory-disclosure.open-source" type="button" onClick={() => onOpenThread(selected.threadId!)}>Open source</button>
             ) : selected.sourceType === 'message' ? (
-              <button type="button" disabled>Source unavailable</button>
+              <button data-testid="workspace.memory-disclosure.source-unavailable" type="button" disabled>Source unavailable</button>
             ) : selected.sourceType === 'library' ? (
-              <button type="button" onClick={onOpenManager}>Open Library</button>
+              <button data-testid="workspace.memory-disclosure.open-library" type="button" onClick={onOpenManager}>Open Library</button>
             ) : (
-              <button type="button" onClick={onOpenManager}>Open in Memory</button>
+              <button data-testid="workspace.memory-disclosure.open-in-memory" type="button" onClick={onOpenManager}>Open in Memory</button>
             )}
-            <button type="button" aria-expanded={showWhy} onClick={() => setShowWhy(value => !value)}>Why was this used?</button>
+            <button data-testid="workspace.memory-disclosure.why-was-this-used" type="button" aria-expanded={showWhy} onClick={() => setShowWhy(value => !value)}>Why was this used?</button>
             {selectedExcluded ? (
-              <button type="button" onClick={() => onInclude(selectedExclusion)}>Undo exclusion</button>
+              <button data-testid="workspace.memory-disclosure.undo-exclusion" type="button" onClick={() => onInclude(selectedExclusion)}>Undo exclusion</button>
             ) : confirmingReference === selected.reference ? (
               <>
                 <span>Stop using this source?</span>
-                <button type="button" onClick={() => setConfirmingReference(null)}>Cancel</button>
-                <button
+                <button data-testid="workspace.memory-disclosure.cancel" type="button" onClick={() => setConfirmingReference(null)}>Cancel</button>
+                <button data-testid="workspace.memory-disclosure.exclude"
                   type="button"
                   data-tone="danger"
                   onClick={() => {
@@ -92,7 +92,7 @@ export function MemoryDisclosure({
                 >Exclude</button>
               </>
             ) : (
-              <button type="button" onClick={() => setConfirmingReference(selected.reference)}>Don&apos;t use this source</button>
+              <button data-testid="workspace.memory-disclosure.don-apos-t-use-this-source" type="button" onClick={() => setConfirmingReference(selected.reference)}>Don&apos;t use this source</button>
             )}
           </div>
         </div>

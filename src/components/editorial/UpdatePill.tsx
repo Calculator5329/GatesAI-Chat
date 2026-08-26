@@ -43,7 +43,7 @@ export const UpdatePill = observer(function UpdatePill() {
   return (
     <div className="update-pill" style={S.root} title={title} role="status">
       <span style={{ ...S.dot, background: updates.phase === 'error' ? 'var(--danger-muted)' : 'var(--status-blue)' }} />
-      <span
+      <span data-testid="workspace.update-pill.on-click"
         className={onClick ? 'update-pill__label quiet-dismiss' : 'update-pill__label'}
         style={{ ...S.label, cursor: onClick ? 'pointer' : 'default', borderRadius: 6 }}
         role={onClick ? 'button' : undefined}
@@ -57,7 +57,7 @@ export const UpdatePill = observer(function UpdatePill() {
       >
         {label}
       </span>
-      <button
+      <button data-testid="workspace.update-pill.dismiss-update-notice"
         type="button"
         className="update-pill__dismiss"
         aria-label="Dismiss update notice"

@@ -56,7 +56,7 @@ export function UndoToast() {
         {snapshot.event === 'undone' ? 'Undone' : snapshot.nextLabel}
       </span>
       {snapshot.event === 'registered' && snapshot.canUndo && (
-        <button type="button" className="undo-toast__button" onClick={undoLast}>Undo</button>
+        <button data-testid="workspace.undo-toast.undo" type="button" className="undo-toast__button" onClick={undoLast}>Undo</button>
       )}
     </div>
   );

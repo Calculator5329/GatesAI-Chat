@@ -139,7 +139,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--border)' }}>
           <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: `width ${tokens.motion.fade}` }} />
         </div>
-        <button
+        <button data-testid="workspace.image-job-card.cancel-render"
           type="button"
           className="image-job-card__cancel"
           onClick={onCancel}
@@ -160,7 +160,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--border)' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: `width ${tokens.motion.fade}` }} />
       </div>
-      <button
+      <button data-testid="workspace.image-job-card.cancel-render-2"
         type="button"
         className="image-job-card__cancel"
         onClick={onCancel}
@@ -209,8 +209,8 @@ const FailedCard = observer(function FailedCard({ job, onRetry }: { job: Complet
           {job.error ?? 'Unknown error'}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className="image-job-card__action" onClick={onRetry} style={inlineBtn}>Retry</button>
-          <button type="button" className="image-job-card__action" onClick={copyError} style={inlineBtn}>{copied ? 'Copied' : 'Copy error'}</button>
+          <button data-testid="workspace.image-job-card.retry" type="button" className="image-job-card__action" onClick={onRetry} style={inlineBtn}>Retry</button>
+          <button data-testid="workspace.image-job-card.action" type="button" className="image-job-card__action" onClick={copyError} style={inlineBtn}>{copied ? 'Copied' : 'Copy error'}</button>
         </div>
       </div>
     </div>
@@ -239,7 +239,7 @@ const CancelledCard = observer(function CancelledCard({ job, onRetry }: { job: C
       <div style={{ ...rectBase, padding: 12, color: 'var(--text-faint)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
         <div>Render cancelled</div>
         {job.results.length > 0 && <div style={{ fontSize: 11.5 }}>({job.results.length} of {job.count} completed before cancel)</div>}
-        <div><button type="button" className="image-job-card__action" onClick={onRetry} style={inlineBtn}>Retry</button></div>
+        <div><button data-testid="workspace.image-job-card.retry-2" type="button" className="image-job-card__action" onClick={onRetry} style={inlineBtn}>Retry</button></div>
       </div>
     </div>
   );
@@ -248,7 +248,7 @@ const CancelledCard = observer(function CancelledCard({ job, onRetry }: { job: C
 const BigImage = observer(function BigImage({ path, alt, onOpen }: { path: string; alt: string; onOpen: () => void }) {
   const { src: dataUrl, failed } = useImageDataUrl(path);
   return (
-    <button
+    <button data-testid="workspace.image-job-card.image"
       type="button"
       className="image-job-card__image"
       onClick={onOpen}
@@ -279,15 +279,16 @@ const ImageGrid = observer(function ImageGrid({ paths, onOpen }: { paths: string
   const cols = paths.length <= 4 ? 2 : 3;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 4, maxWidth: 600 }}>
-      {paths.map((p, i) => <GridTile key={`${p}-${i}`} path={p} onClick={() => onOpen(i)} />)}
+      {paths.map((p, i) => <GridTile testId={`workspace.image-job.open-${i}`} key={`${p}-${i}`} path={p} onClick={() => onOpen(i)} />)}
     </div>
   );
 });
 
-const GridTile = observer(function GridTile({ path, onClick }: { path: string; onClick: () => void }) {
+const GridTile = observer(function GridTile({ testId, path, onClick }: { testId: string; path: string; onClick: () => void }) {
   const { src: dataUrl, failed } = useImageDataUrl(path);
   return (
     <button
+      data-testid={testId ?? 'workspace.image-job.open-unscoped'}
       type="button"
       className="image-job-card__grid-tile"
       onClick={onClick}
