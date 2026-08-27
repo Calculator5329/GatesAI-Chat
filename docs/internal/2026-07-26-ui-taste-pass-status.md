@@ -1,4 +1,10 @@
-# STATUS — v2 UI taste-pass lane
+# Archived: STATUS — v2 UI taste-pass lane
+
+> Archived 2026-08-26. This was the repository's root `STATUS.md`. The lane it
+> tracked, `ui/taste-pass-20260726`, merged to `master` on 2026-08-15 (commit
+> `d0d68df`), so it no longer describes live work. It is kept because the item
+> notes and the inotify owner-action record below are the only write-up of
+> either. Root `STATUS.md` is for mid-task handoff state only.
 
 Branch `ui/taste-pass-20260726`, worktree `.claude/worktrees/taste-pass`.
 Pushed to origin. **Not merged, not deployed.**

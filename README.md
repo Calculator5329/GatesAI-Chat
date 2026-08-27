@@ -10,12 +10,13 @@
 [![Tests](https://img.shields.io/badge/tests-1174%20unit%20%2B%2028%20e2e-3fb950?style=flat-square)](#quality-gates)
 
 <!--
-  Demo GIF placeholder. The recording needs a human on a desktop machine —
-  follow the exact click-by-click capture script in scripts/demo-capture.md
-  (spawn a background agent → Task center → rendered HTML artifact), convert
-  to docs/media/demo.gif under 10 MB, and commit it at that path.
+  Still image for now. A demo GIF is still worth recording: it needs a human on
+  a desktop machine, following the click-by-click capture script in
+  scripts/demo-capture.md (spawn a background agent -> Task center -> rendered
+  HTML artifact), converted to docs/media/demo.gif under 10 MB and swapped in
+  below.
 -->
-![GatesAI Chat demo: the assistant spawns a background agent, the Task center shows it running to completion with cost, and an HTML artifact renders live in the right dock](docs/media/demo.gif)
+![GatesAI Chat on the desktop: a chat thread where the assistant runs npm test through the local bridge, with the tool activity timeline, the agent-task sidebar group, and the live token and cost readout](docs/screens/desktop-mocked/03-chat-tool-activity.png)
 
 > **Live demo:** [calculator5329.github.io/GatesAI-Chat](https://calculator5329.github.io/GatesAI-Chat/)
 > — the browser **Web Lite** build. The full UI is interactive; chatting uses your own OpenRouter

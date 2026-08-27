@@ -111,7 +111,7 @@ describe('ChatPersistenceCoordinator — workspace save queue', () => {
   });
 
   it('never runs two saves at once, and coalesces to the newest snapshot', async () => {
-    let current = makeSnapshot();
+    const current = makeSnapshot();
     const workspace = deferredWorkspacePersistence();
     const coordinator = new ChatPersistenceCoordinator(() => current);
     coordinator.attachWorkspacePersistence(workspace.persistence);

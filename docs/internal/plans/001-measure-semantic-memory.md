@@ -3,7 +3,7 @@
 > **Executor instructions**: Follow this plan step by step. Run every
 > verification command and confirm the expected result before moving on. If a
 > STOP condition occurs, report it instead of improvising. When done, update
-> this plan's row in `plans/README.md`.
+> this plan's row in `docs/internal/plans/README.md`.
 >
 > **Drift check (run first)**:
 > `git diff --stat dee51c2..HEAD -- src/services/rag tests/services/rag scripts package.json docs/adr docs/audits`

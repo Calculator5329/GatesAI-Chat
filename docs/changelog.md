@@ -1,5 +1,44 @@
 # Changelog
 
+## 2026-08-26 — Public-repo presentation: real README hero, process docs filed
+
+- `README.md`: the hero image pointed at `docs/media/demo.gif`, which has never
+  been recorded, so the top of the public README rendered a broken image. It now
+  shows `docs/screens/desktop-mocked/03-chat-tool-activity.png`, a curated tour
+  screenshot of a chat turn running `npm test` through the bridge with the tool
+  activity timeline, the agent-task sidebar group, and the token/cost readout.
+  The note that a demo GIF is still worth recording stays as an HTML comment
+  above it, pointing at `scripts/demo-capture.md`. Every other relative link and
+  image in the README was checked and resolves.
+- Process exhaust moved out of the repository root into `docs/internal/`, which
+  gains a README saying what it is: `plans/` (the four semantic-memory
+  implementation plans) to `docs/internal/plans/`,
+  `artifacts/gatesai-owner-feedback-session-20260720/` to
+  `docs/internal/owner-feedback-session-20260720/`, and `STATUS.md` to
+  `docs/internal/2026-07-26-ui-taste-pass-status.md`. That status file described
+  the `ui/taste-pass-20260726` lane, which merged on 2026-08-15 (`d0d68df`), so
+  it held no live WIP; it is archived rather than deleted because the item notes
+  and the inotify owner-action record are the only write-up of either. Links in
+  `docs/reviews/2026-07-20-gatesai-feedback-session/README.md` and the plan
+  cross-references were repointed. `CLAUDE.md` and `AGENTS.md` stay at the root
+  per the workspace one-rules-file-per-repo convention; `.orc/` and
+  `.codex-tasks/` are untracked and were not touched.
+- `docs/screens/README.md`: the `desktop-mocked` table was missing
+  `04-chat-memory-disclosure.png` and so numbered every entry after it one low.
+  Corrected against `tests/e2e/screensTour.spec.ts`; all 22 listed paths now
+  resolve.
+- `tests/stores/chatPersistenceCoordinator.test.ts`: `let current` to `const`.
+  Pre-existing on master from `3e88cfa`, and it was failing `npm run lint`
+  (`prefer-const`), so `npm run ci` was already red before this change.
+- Still red and deliberately not fixed here: `tests/e2e/polish.spec.ts:115`
+  ("announces a complete fenced HTML document instead of embedding a frame")
+  fails on the `desktop-mocked` project. Confirmed pre-existing by stashing this
+  change and re-running it on a clean `master`. It is the test the 2026-08-15
+  merge note predicted: master's Aurora Preview/Source toggle replaced the
+  branch's announce-and-hand-off card, so the assertion describes a design that
+  was ruled against. Deciding which behavior is correct is a product call, not a
+  cleanup. The other 38 e2e tests pass.
+
 ## 2026-08-15 — Merged ui/taste-pass-20260726 (owner ruling merge-now)
 
 - Merged the July 26 taste-pass branch into master. One deliberate exception:

@@ -2,7 +2,7 @@
 
 > **Executor instructions**: Follow this plan step by step and run each gate.
 > Stop on any listed condition; do not improvise around persistence. Update this
-> plan's row in `plans/README.md` when complete.
+> plan's row in `docs/internal/plans/README.md` when complete.
 >
 > **Drift check (run first)**:
 > `git diff --stat dee51c2..HEAD -- src/services/rag src/services/persistence src/stores/RootStore.ts tests/services/rag tests/services/persistence tests/stores/ChatStore.test.ts`
@@ -12,7 +12,7 @@
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: MED
-- **Depends on**: `plans/001-measure-semantic-memory.md`
+- **Depends on**: `docs/internal/plans/001-measure-semantic-memory.md`
 - **Category**: bug / performance / architecture
 - **Planned at**: commit `dee51c2`, 2026-07-19
 - **Completed**: 2026-07-19

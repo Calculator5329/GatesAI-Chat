@@ -26,9 +26,9 @@ Start with the rich Forge packet from Comms Deck (`Super+I`) and choose one of
 the three `review-flow` options. If you are opening the repository directly,
 use one of these files:
 
-1. [A — Guided missions](../../../artifacts/gatesai-owner-feedback-session-20260720/guided-missions.html)
-2. [B — Evidence board](../../../artifacts/gatesai-owner-feedback-session-20260720/evidence-board.html)
-3. [C — Speech-first challenge deck](../../../artifacts/gatesai-owner-feedback-session-20260720/speech-first.html)
+1. [A — Guided missions](../../internal/owner-feedback-session-20260720/guided-missions.html)
+2. [B — Evidence board](../../internal/owner-feedback-session-20260720/evidence-board.html)
+3. [C — Speech-first challenge deck](../../internal/owner-feedback-session-20260720/speech-first.html)
 
 Then spend a short pass in the *other two*. The point is not to repeat a full
 QA run three times; it is to notice which route gets you to high-quality

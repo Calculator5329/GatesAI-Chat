@@ -3,7 +3,7 @@
 > **Executor instructions**: Execute only after plans 001 and 002 are DONE.
 > Compare every ranking change against the frozen corpus. Stop instead of adding
 > an LLM stage or dependency to rescue a weak result without review. Update the
-> status row in `plans/README.md` when complete.
+> status row in `docs/internal/plans/README.md` when complete.
 >
 > **Drift check (run first)**:
 > `git diff --stat dee51c2..HEAD -- src/services/rag src/services/tools/recall.ts scripts/rag-eval tests/services/rag tests/scripts docs/audits`
@@ -15,7 +15,7 @@
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: MED
-- **Depends on**: `plans/001-measure-semantic-memory.md`, `plans/002-rebuild-index-lifecycle.md`
+- **Depends on**: `docs/internal/plans/001-measure-semantic-memory.md`, `docs/internal/plans/002-rebuild-index-lifecycle.md`
 - **Category**: performance / correctness
 - **Planned at**: commit `dee51c2`, 2026-07-19
 - **Completed**: 2026-07-19

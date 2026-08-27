@@ -3,7 +3,7 @@
 > **Executor instructions**: Execute only after plans 002 and 003 are DONE.
 > This plan includes a required visual choice before React implementation.
 > Generate the comparison, obtain Ethan's selection, record it, then build; do
-> not choose a visual direction on his behalf. Update `plans/README.md` when done.
+> not choose a visual direction on his behalf. Update `docs/internal/plans/README.md` when done.
 >
 > **Drift check (run first)**:
 > `git diff --stat dee51c2..HEAD -- src/core/types.ts src/services/chat src/services/rag src/components src/stores src/services/persistence docs/designs docs/intent.md tests`
@@ -15,7 +15,7 @@
 - **Priority**: P1
 - **Effort**: L
 - **Risk**: MED
-- **Depends on**: `plans/002-rebuild-index-lifecycle.md`, `plans/003-ship-evaluated-hybrid-retrieval.md`
+- **Depends on**: `docs/internal/plans/002-rebuild-index-lifecycle.md`, `docs/internal/plans/003-ship-evaluated-hybrid-retrieval.md`
 - **Category**: direction / security / UX
 - **Planned at**: commit `dee51c2`, 2026-07-19
 - **Implementation status**: DONE. Ethan selected Option 2; the compact
