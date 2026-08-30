@@ -9,13 +9,6 @@
 [![MobX](https://img.shields.io/badge/MobX-6-ff9955?style=flat-square&logo=mobx&logoColor=white)](https://mobx.js.org/)
 [![Tests](https://img.shields.io/badge/tests-1174%20unit%20%2B%2028%20e2e-3fb950?style=flat-square)](#quality-gates)
 
-<!--
-  Still image for now. A demo GIF is still worth recording: it needs a human on
-  a desktop machine, following the click-by-click capture script in
-  scripts/demo-capture.md (spawn a background agent -> Task center -> rendered
-  HTML artifact), converted to docs/media/demo.gif under 10 MB and swapped in
-  below.
--->
 ![GatesAI Chat on the desktop: a chat thread where the assistant runs npm test through the local bridge, with the tool activity timeline, the agent-task sidebar group, and the live token and cost readout](docs/screens/desktop-mocked/03-chat-tool-activity.png)
 
 > **Live demo:** [calculator5329.github.io/GatesAI-Chat](https://calculator5329.github.io/GatesAI-Chat/)
