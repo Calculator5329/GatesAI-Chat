@@ -28,7 +28,7 @@ export const AgentSection = observer(function AgentSection() {
           A system prompt sent on every turn. Tells the model how to behave —
           tone, role, format preferences, things to avoid.
         </div>
-        <Textarea
+        <Textarea data-testid="settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe"
           value={profile.defaultSystemPrompt}
           onChange={e => profile.setDefaultSystemPrompt(e.target.value)}
           placeholder="You are a thoughtful collaborator. Answer precisely, prefer simple direct language, and explain tradeoffs before writing code."
@@ -102,7 +102,7 @@ const MemorySection = observer(function MemorySection() {
               >
                 <span style={{ ...tokens.mono, color: 'var(--text-faint)', textAlign: 'right' }}>{i + 1}</span>
                 {isEditing ? (
-                  <Input
+                  <Input data-testid={`settings.agent.fact-input-${i}`}
                     autoFocus
                     value={editText}
                     onChange={e => setEditText(e.target.value)}
@@ -120,13 +120,13 @@ const MemorySection = observer(function MemorySection() {
                 <div style={rowActions}>
                   {isEditing ? (
                     <>
-                      <button type="button" className="menu-icon-button" style={iconBtn} onClick={saveEdit} title="Save">save</button>
-                      <button type="button" className="menu-icon-button" style={iconBtn} onClick={cancelEdit} title="Cancel">cancel</button>
+                      <button data-testid={`settings.agent.fact-save-${i}`} type="button" className="menu-icon-button" style={iconBtn} onClick={saveEdit} title="Save">save</button>
+                      <button data-testid={`settings.agent.fact-cancel-${i}`} type="button" className="menu-icon-button" style={iconBtn} onClick={cancelEdit} title="Cancel">cancel</button>
                     </>
                   ) : (
                     <>
-                      <button type="button" className="menu-icon-button" style={iconBtn} onClick={() => startEdit(i, fact)} title="Edit">edit</button>
-                      <button type="button" className="menu-icon-button" data-tone="danger" style={{ ...iconBtn, color: 'var(--text-faint)' }} onClick={() => profile.removeFactAt(i)} title="Delete">delete</button>
+                      <button data-testid={`settings.agent.fact-edit-${i}`} type="button" className="menu-icon-button" style={iconBtn} onClick={() => startEdit(i, fact)} title="Edit">edit</button>
+                      <button data-testid={`settings.agent.fact-delete-${i}`} type="button" className="menu-icon-button" data-tone="danger" style={{ ...iconBtn, color: 'var(--text-faint)' }} onClick={() => profile.removeFactAt(i)} title="Delete">delete</button>
                     </>
                   )}
                 </div>
@@ -137,19 +137,19 @@ const MemorySection = observer(function MemorySection() {
       )}
 
       <div style={{ display: 'flex', gap: 8 }}>
-        <Input
+        <Input data-testid="settings.agent.add-a-memory-user-prefers-concise-answers"
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') onAdd(); }}
           placeholder='Add a memory · "User prefers concise answers"'
           style={{ flex: 1 }}
         />
-        <Button onClick={onAdd}>Add</Button>
+        <Button data-testid="settings.agent.add" onClick={onAdd}>Add</Button>
       </div>
 
       {facts.length > 0 && (
         <div style={{ marginTop: 12, textAlign: 'right' }}>
-          <button
+          <button data-testid="settings.agent.clear-all"
             type="button"
             className="menu-icon-button"
             data-tone="danger"
@@ -190,12 +190,12 @@ const KnowledgeLibrarySection = observer(function KnowledgeLibrarySection() {
             Approve workspace documents for recall. SQLite sources expose schema only until you ask for a bounded read-only query.
           </div>
         </div>
-        <Button disabled={!bridge.isOnline} onClick={() => void library.pickAndAdd()}>Add source</Button>
+        <Button data-testid="settings.agent.add-source" disabled={!bridge.isOnline} onClick={() => void library.pickAndAdd()}>Add source</Button>
       </div>
       <div style={statusRowStyle}>
         <span style={{ color: bridge.isOnline ? 'var(--accent)' : 'var(--danger)' }}>{bridge.isOnline ? 'Local workspace ready' : 'Bridge offline'}</span>
         <span>{library.readyCount}/{library.activeSources.length} ready</span>
-        {library.sources.length > 0 && <button type="button" style={quietButtonStyle} disabled={library.refreshing || !bridge.isOnline} onClick={() => void library.refreshAll()}>{library.refreshing ? 'Refreshing…' : 'Refresh'}</button>}
+        {library.sources.length > 0 && <button data-testid="settings.agent.refresh-all" type="button" style={quietButtonStyle} disabled={library.refreshing || !bridge.isOnline} onClick={() => void library.refreshAll()}>{library.refreshing ? 'Refreshing…' : 'Refresh'}</button>}
       </div>
       {library.lastError && <div style={{ ...detailStyle, color: 'var(--danger)', marginTop: 8 }}>{library.lastError}</div>}
       {library.sources.length === 0 ? (
@@ -212,7 +212,7 @@ const KnowledgeLibrarySection = observer(function KnowledgeLibrarySection() {
                   {source.kind === 'database' ? 'SQLite schema' : 'Document'} · {source.status}{source.error ? ` · ${source.error}` : ''}
                 </div>
               </div>
-              <Toggle label={`Use ${source.title} for recall`} on={source.enabled} onChange={value => library.setEnabled(source.id, value)} />
+              <Toggle testId={`settings.agent.library-source-${source.id}`} label={`Use ${source.title} for recall`} on={source.enabled} onChange={value => library.setEnabled(source.id, value)} />
             </div>
           ))}
         </div>
@@ -290,7 +290,7 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
           <div style={subsectionTitleStyle}>Semantic recall</div>
           <div style={detailStyle}>Finds relevant context in conversations, notes, facts, and approved library sources. Text and vectors stay local.</div>
         </div>
-        <Toggle label="Semantic recall" on={rag.settings.autoInject} onChange={value => rag.setAutoInject(value)} disabled={!rag.servingCompleteGeneration} />
+        <Toggle testId="settings.agent.toggle-2" label="Semantic recall" on={rag.settings.autoInject} onChange={value => rag.setAutoInject(value)} disabled={!rag.servingCompleteGeneration} />
       </div>
 
       <div style={statusRowStyle} data-state={rag.phase}>
@@ -306,7 +306,7 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
       )}
       {rag.status === 'model_missing' && (
         <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-          <Button onClick={() => pulling ? ollama.cancelPull(rag.embeddingModel) : void ollama.startPull(rag.embeddingModel)}>
+          <Button data-testid="settings.agent.cancel-pull" onClick={() => pulling ? ollama.cancelPull(rag.embeddingModel) : void ollama.startPull(rag.embeddingModel)}>
             {pulling ? 'Cancel install' : `Install ${rag.embeddingModel}`}
           </Button>
           {pullState && <span style={detailStyle}>{pullState.phase}{pulling ? ` · ${Math.round(pullState.percent)}%` : ''}</span>}
@@ -322,7 +322,7 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
           return (
             <div key={group.type} style={{ borderBottom: '1px solid var(--border)' }}>
               <div style={sourceGroupRowStyle}>
-                <button
+                <button data-testid={`settings.agent.source-group-${group.type}`}
                   type="button"
                   aria-expanded={expanded}
                   onClick={() => {
@@ -335,11 +335,11 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
                   <span style={{ color: 'var(--text-faint)' }}>{group.items.length}{excludedCount ? ` · ${excludedCount} off` : ''}</span>
                   <span aria-hidden="true" style={{ transform: expanded ? 'rotate(180deg)' : undefined }}><Icons.Chevron /></span>
                 </button>
-                <Toggle label={`Include ${group.label} in recall`} on={rag.settings.sourceTypes[group.type]} onChange={value => rag.setSourceType(group.type, value)} />
+                <Toggle testId={`settings.agent.source-type-${group.type}`} label={`Include ${group.label} in recall`} on={rag.settings.sourceTypes[group.type]} onChange={value => rag.setSourceType(group.type, value)} />
               </div>
               {expanded && (
                 <div style={sourceListStyle}>
-                  <Input value={sourceQuery} onChange={event => setSourceQuery(event.currentTarget.value)} placeholder={`Search ${group.label.toLowerCase()}`} />
+                  <Input data-testid="settings.agent.search" value={sourceQuery} onChange={event => setSourceQuery(event.currentTarget.value)} placeholder={`Search ${group.label.toLowerCase()}`} />
                   {visibleItems.length === 0 ? (
                     <div style={detailStyle}>No matching sources.</div>
                   ) : visibleItems.slice(0, 60).map(item => {
@@ -350,13 +350,13 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
                           <div title={item.label} style={sourceItemLabelStyle}>{item.label}</div>
                           <div style={detailStyle}>{item.detail}</div>
                         </div>
-                        <button type="button" style={sourceToggleButtonStyle} onClick={() => excluded ? rag.includeSource(item.reference) : rag.excludeSource(item.reference)}>
+                        <button data-testid={`settings.agent.source-toggle-${item.reference}`} type="button" style={sourceToggleButtonStyle} onClick={() => excluded ? rag.includeSource(item.reference) : rag.excludeSource(item.reference)}>
                           {excluded ? 'Include' : 'Exclude'}
                         </button>
                       </div>
                     );
                   })}
-                  {excludedCount > 0 && <button type="button" style={quietButtonStyle} onClick={() => rag.includeAllSources()}>Re-include all excluded sources</button>}
+                  {excludedCount > 0 && <button data-testid="settings.agent.re-include-all-excluded-sources" type="button" style={quietButtonStyle} onClick={() => rag.includeAllSources()}>Re-include all excluded sources</button>}
                 </div>
               )}
             </div>
@@ -367,14 +367,14 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
       <div style={{ marginTop: 16 }}>
         <div style={subsectionTitleStyle}>Try recall</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <Input
+          <Input data-testid="settings.agent.what-should-gates-ai-remember"
             value={previewQuery}
             onChange={event => setPreviewQuery(event.currentTarget.value)}
             onKeyDown={event => { if (event.key === 'Enter') void runPreview(); }}
             placeholder="What should GatesAI remember?"
             style={{ flex: 1 }}
           />
-          <Button onClick={() => void runPreview()} disabled={!previewQuery.trim() || previewing || !rag.active}>{previewing ? 'Searching…' : 'Preview'}</Button>
+          <Button data-testid="settings.agent.run-preview" onClick={() => void runPreview()} disabled={!previewQuery.trim() || previewing || !rag.active}>{previewing ? 'Searching…' : 'Preview'}</Button>
         </div>
         {previewStatus && <div style={{ ...detailStyle, marginTop: 8 }}>{previewStatus}</div>}
         {previewItems.length > 0 && (
@@ -390,8 +390,8 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
-        <button type="button" style={quietButtonStyle} disabled={!rag.active || rag.indexing} onClick={() => void rag.rebuildIndex()}>Rebuild index</button>
-        <button
+        <button data-testid="settings.agent.rebuild-index" type="button" style={quietButtonStyle} disabled={!rag.active || rag.indexing} onClick={() => void rag.rebuildIndex()}>Rebuild index</button>
+        <button data-testid="settings.agent.clear-derived-index"
           type="button"
           style={{ ...quietButtonStyle, color: 'var(--text-faint)' }}
           disabled={rag.indexing || rag.indexedChunkCount === 0}

@@ -48,7 +48,7 @@ export const BridgeStatusPill = observer(function BridgeStatusPill() {
   }
 
   return (
-    <div
+    <div data-testid="workspace.bridge-status-pill.bridge-status-pill"
       className="bridge-status-pill"
       onClick={() => { if (!webLite) void bridge.poll(); }}
       onKeyDown={event => {

@@ -86,9 +86,9 @@ export const FileExplorerPanel = observer(function FileExplorerPanel({ params, c
   };
 
   return (
-    <div className="dock-file-explorer" data-testid="dock-file-explorer">
+    <div className="dock-file-explorer" data-testid="workspace.dock.file-explorer">
       <div className="dock-file-explorer__toolbar">
-        <button
+        <button data-testid="workspace.file-explorer-panel.parent-directory"
           type="button"
           aria-label="Parent directory"
           title="Parent directory"
@@ -104,11 +104,11 @@ export const FileExplorerPanel = observer(function FileExplorerPanel({ params, c
           {crumbs.map((crumb, index) => (
             <span key={crumb.path}>
               {index > 0 && <i aria-hidden="true">/</i>}
-              <button type="button" onClick={() => setPath(crumb.path)}>{crumb.label}</button>
+              <button data-testid="workspace.file-explorer-panel.set-path" type="button" onClick={() => setPath(crumb.path)}>{crumb.label}</button>
             </span>
           ))}
         </div>
-        <button
+        <button data-testid="workspace.file-explorer-panel.refresh-directory"
           type="button"
           aria-label="Refresh directory"
           title="Refresh directory"
@@ -130,7 +130,7 @@ export const FileExplorerPanel = observer(function FileExplorerPanel({ params, c
       {state.status === 'ready' && state.entries.length > 0 && (
         <div className="dock-file-explorer__entries" role="list">
           {state.entries.map(entry => (
-            <button
+            <button data-testid="workspace.file-explorer-panel.entry"
               type="button"
               role="listitem"
               className="dock-file-explorer__entry"

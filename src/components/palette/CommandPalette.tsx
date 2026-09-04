@@ -226,13 +226,13 @@ export const CommandPalette = observer(function CommandPalette() {
   return (
     <div
       className="command-palette__backdrop"
-      data-testid="command-palette-backdrop"
+      data-testid="app.command-palette.backdrop"
       onClick={event => {
         if (event.target === event.currentTarget) ui.closePalette();
       }}
       style={BACKDROP_STYLE}
     >
-      <div
+      <div data-testid="app.command-palette.command-palette"
         className="command-palette"
         role="dialog"
         aria-modal="true"
@@ -245,7 +245,7 @@ export const CommandPalette = observer(function CommandPalette() {
           <span aria-hidden="true" style={{ display: 'flex', color: 'var(--text-faint)' }}>
             <Icons.Search />
           </span>
-          <input
+          <input data-testid="app.command-palette.search-commands-and-threads"
             ref={inputRef}
             value={query}
             onChange={event => setQuery(event.currentTarget.value)}
@@ -287,7 +287,7 @@ export const CommandPalette = observer(function CommandPalette() {
  */
 function PaletteEmpty({ query, actionCount, threadCount }: { query: string; actionCount: number; threadCount: number }) {
   return (
-    <div style={EMPTY_STYLE} data-testid="palette-empty">
+    <div style={EMPTY_STYLE} data-testid="app.command-palette.empty">
       <div style={{ color: 'var(--text-dim)', fontStyle: 'normal', fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif', fontSize: 13 }}>
         Nothing matches “{query}”
       </div>
@@ -329,7 +329,7 @@ function PaletteRow({
     boxSizing: 'border-box',
   };
   return (
-    <button
+    <button data-testid="app.command-palette.palette-row"
       type="button"
       role="option"
       className="palette-row"

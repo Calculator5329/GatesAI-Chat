@@ -41,7 +41,7 @@ export const ApiSection = observer(function ApiSection() {
 const SearchCard = observer(function SearchCard() {
   const search = useSearchStore();
   return (
-    <Card style={{ marginBottom: 12 }} data-testid="search-card">
+    <Card style={{ marginBottom: 12 }} data-testid="settings.models.search-card">
       <div style={cardHeaderStyle}>
         <ProviderAvatar name="Brave" />
         <div style={{ flex: 1 }}>
@@ -52,6 +52,7 @@ const SearchCard = observer(function SearchCard() {
       </div>
       <div style={localPanelStyle}>
         <SecretKeyField
+          identityKey="brave"
           value={search.braveApiKey}
           onSet={key => search.setBraveKey(key)}
           onClear={() => search.clearBraveKey()}
@@ -97,14 +98,14 @@ const LocalModelsCard = observer(function LocalModelsCard() {
 
       <div style={localPanelStyle}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Input
+          <Input data-testid="settings.models-api-section.http-127-0-0-1-11434"
             value={draft}
             onChange={e => setDraft(e.currentTarget.value)}
             onKeyDown={e => { if (e.key === 'Enter') commit(); }}
             placeholder="http://127.0.0.1:11434"
             style={{ flex: 1, minWidth: 220 }}
           />
-          <Button onClick={commit} disabled={ollama.fetching}>
+          <Button data-testid="settings.models-api-section.commit" onClick={commit} disabled={ollama.fetching}>
             {ollama.fetching ? 'Refreshing…' : 'Refresh models'}
           </Button>
         </div>

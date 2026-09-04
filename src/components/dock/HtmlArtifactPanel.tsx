@@ -15,7 +15,7 @@ export const HtmlArtifactPanel = observer(function HtmlArtifactPanel({ params }:
   }
   const record = artifacts.findById(id);
   return (
-    <div className="dock-html-artifact" data-testid="dock-html-artifact">
+    <div className="dock-html-artifact" data-testid="workspace.dock.html-artifact">
       <HtmlArtifactPreview path={htmlArtifactPath(id)} label={record?.title ?? id} />
     </div>
   );

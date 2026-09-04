@@ -127,16 +127,16 @@ const SemanticMemoryNudge = observer(function SemanticMemoryNudge() {
       {ollama.isPulling(model) ? (
         <>
           <span>{state?.phase ?? 'Pulling'} · {Math.round(state?.percent ?? 0)}%</span>
-          <button type="button" className="editorial-empty-state__secondary" onClick={() => ollama.cancelPull(model)}>
+          <button data-testid="workspace.editorial-chat.cancel" type="button" className="editorial-empty-state__secondary" onClick={() => ollama.cancelPull(model)}>
             Cancel
           </button>
         </>
       ) : (
-        <button type="button" className="editorial-empty-state__secondary" onClick={() => { void ollama.startPull(model); }}>
+        <button data-testid="workspace.editorial-chat.pull-nomic-embed-text" type="button" className="editorial-empty-state__secondary" onClick={() => { void ollama.startPull(model); }}>
           Pull nomic-embed-text
         </button>
       )}
-      <button type="button" className="editorial-empty-state__secondary" onClick={() => setDismissed(true)}>
+      <button data-testid="workspace.editorial-chat.dismiss" type="button" className="editorial-empty-state__secondary" onClick={() => setDismissed(true)}>
         Dismiss
       </button>
       {state?.error && <span role="alert" style={{ color: 'var(--danger)' }}>{state.error}</span>}
@@ -262,6 +262,7 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
           Choose OpenRouter when you want a cloud model. Free and paid routes both use your own API key.
         </p>
         <SecretKeyField
+          identityKey="onboarding-openrouter"
           value={providers.getConfig('openrouter').apiKey ?? ''}
           onSet={validateOpenRouterKey}
           onClear={() => providers.remove('openrouter')}
@@ -287,7 +288,7 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
         <p>
           Hide this setup panel and keep the normal empty chat surface. You can connect a provider later.
         </p>
-        <button type="button" className="editorial-empty-state__primary" onClick={dismiss}>
+        <button data-testid="workspace.editorial-chat.look-around" type="button" className="editorial-empty-state__primary" onClick={dismiss}>
           Look around
         </button>
       </section>
@@ -332,14 +333,14 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
             Ollama detected - {formatModelCount(models.length)} ready. {selectedModel?.name ?? 'A local model'}
             {' '}is selected for this chat, and GatesAI will not switch providers unless you choose another model.
           </p>
-          <button type="button" className="editorial-empty-state__primary" onClick={onSelect}>
+          <button data-testid="workspace.editorial-chat.continue-with" type="button" className="editorial-empty-state__primary" onClick={onSelect}>
             Continue with {selectedModel?.name ?? 'local model'}
           </button>
         </>
       ) : online ? (
         <>
           <p>Ollama is running, but no chat models are pulled yet. Add one here and keep the whole conversation on this machine.</p>
-          <button
+          <button data-testid="workspace.editorial-chat.primary"
             type="button"
             className="editorial-empty-state__primary"
             onClick={onStarterPull}
@@ -356,27 +357,27 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
               {starterState.error ? starterState.error : `${starterState.phase} · ${Math.round(starterState.percent)}%`}
             </div>
           )}
-          <button type="button" className="editorial-empty-state__secondary" onClick={openLocalSettings}>
+          <button data-testid="workspace.editorial-chat.open-local-settings" type="button" className="editorial-empty-state__secondary" onClick={openLocalSettings}>
             Open Local settings
           </button>
         </>
       ) : notDetected ? (
         <>
           <p>Run chat and tools on your machine with Ollama - no account or cloud key. Local settings can help you install or connect it.</p>
-          <button type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
+          <button data-testid="workspace.editorial-chat.open-local-settings-2" type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
             Open Local settings
           </button>
-          <button type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
+          <button data-testid="workspace.editorial-chat.secondary" type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
             {buttonLabel}
           </button>
         </>
       ) : (
         <>
           <p>Ollama is configured but not running. Start it from Local settings; GatesAI will not silently fall back to cloud.</p>
-          <button type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
+          <button data-testid="workspace.editorial-chat.open-local-settings-3" type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
             Open Local settings
           </button>
-          <button type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
+          <button data-testid="workspace.editorial-chat.secondary-2" type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
             {buttonLabel}
           </button>
         </>
@@ -441,7 +442,7 @@ function WebLiteDownloadCue() {
       <div className="web-lite-download-cue__copy">
         Want local files, tools, and image generation? Get the desktop app.
       </div>
-      <a
+      <a data-testid="workspace.editorial-chat.link"
         href={rec.url}
         target="_blank"
         rel="noopener noreferrer"
@@ -745,7 +746,7 @@ export const EditorialChat = observer(function EditorialChat() {
           )}
           {!activeThreadHydrating && messages.length === 0 && <ChatEmptyState />}
           {hiddenMessageCount > 0 && (
-            <button
+            <button data-testid="workspace.editorial-chat.show"
               type="button"
               className="editorial-show-earlier"
               onClick={() => {
@@ -794,7 +795,7 @@ export const EditorialChat = observer(function EditorialChat() {
         </div>
       </div>
       {awayFromBottom && (
-        <button
+        <button data-testid="workspace.editorial-chat.editorial-jump-to-bottom"
           type="button"
           className="editorial-jump-to-bottom"
           data-streaming={activeThreadStreaming || undefined}

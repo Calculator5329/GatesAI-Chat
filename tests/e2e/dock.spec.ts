@@ -31,7 +31,7 @@ test.describe('dock (mocked bridge)', () => {
     await paletteInput.fill('dock');
     await page.locator('.palette-row', { hasText: 'Open file in dock' }).click();
 
-    const dock = page.locator('[data-testid="dock-panel"]');
+    const dock = page.locator('[data-testid="workspace.dock.panel"]');
     await expect(dock).toBeVisible();
     await expect(dock.locator('.dock-cell__title')).toHaveText('dock-demo.md');
     await expect(dock.getByRole('heading', { name: 'Dock Demo Heading' })).toBeVisible();
@@ -39,12 +39,12 @@ test.describe('dock (mocked bridge)', () => {
 
     // Collapse to the rail, reopen, then close the panel entirely.
     await dock.getByRole('button', { name: 'Collapse dock' }).click();
-    const rail = page.locator('[data-testid="dock-collapsed-rail"]');
+    const rail = page.locator('[data-testid="workspace.dock.collapsed-rail"]');
     await expect(rail).toBeVisible();
     await rail.getByRole('button', { name: 'Expand dock' }).click();
     await expect(dock).toBeVisible();
     await dock.getByRole('button', { name: 'Close dock-demo.md' }).click();
-    await expect(page.locator('[data-testid="dock-panel"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="workspace.dock.panel"]')).toHaveCount(0);
   });
 
   test('shows an image job running and completing in the task center', async ({ page }) => {
@@ -94,7 +94,7 @@ test.describe('dock (mocked bridge)', () => {
       });
     });
 
-    const taskCenter = page.locator('[data-testid="task-center-panel"]');
+    const taskCenter = page.locator('[data-testid="workspace.task-center.ledger"]');
     await expect(taskCenter.getByText('Moonlit observatory')).toBeVisible();
     await expect(taskCenter.getByText('In progress')).toBeVisible();
     await expect(taskCenter.getByText('Completed')).toBeVisible();

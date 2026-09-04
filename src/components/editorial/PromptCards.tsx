@@ -16,7 +16,7 @@ export const PromptCards = observer(function PromptCards({ threadId }: { threadI
   const pending = prompts.pendingForThread(threadId);
   if (pending.length === 0) return null;
   return (
-    <div className="prompt-cards" data-pack={pack} data-testid="prompt-cards">
+    <div className="prompt-cards" data-pack={pack} data-testid="workspace.prompt-card.container">
       {pending.map(prompt => (
         <PromptCard
           key={prompt.id}
@@ -55,7 +55,7 @@ function PromptCard({
       )}
       <div className="prompt-card__options">
         {prompt.options.map((option, index) => (
-          <button
+          <button data-testid={`workspace.prompt-cards.option-${option.id}`}
             key={option.id}
             type="button"
             className="prompt-card__option"
@@ -68,7 +68,7 @@ function PromptCard({
         ))}
       </div>
       {prompt.allowFreeText && (
-        <form
+        <form data-testid="workspace.prompt-cards.free"
           className="prompt-card__free"
           onSubmit={event => {
             event.preventDefault();
@@ -77,18 +77,18 @@ function PromptCard({
             onAnswer(undefined, text);
           }}
         >
-          <input
+          <input data-testid="workspace.prompt-cards.answer-in-your-own-words"
             type="text"
             aria-label="Answer in your own words"
             placeholder="Or answer in your own words…"
             value={freeText}
             onChange={event => setFreeText(event.target.value)}
           />
-          <button type="submit" disabled={!freeText.trim()}>Send</button>
+          <button data-testid="workspace.prompt-cards.send" type="submit" disabled={!freeText.trim()}>Send</button>
         </form>
       )}
       <footer className="prompt-card__foot">
-        <button type="button" className="prompt-card__decline" onClick={onDecline}>
+        <button data-testid="workspace.prompt-cards.skip-this-question" type="button" className="prompt-card__decline" onClick={onDecline}>
           Skip this question
         </button>
       </footer>

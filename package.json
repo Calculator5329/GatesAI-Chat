@@ -60,6 +60,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "agent-handles": "file:vendor/agent-handles-0.0.0.tgz",
     "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9.39.4",
     "eslint-import-resolver-typescript": "^4.4.5",

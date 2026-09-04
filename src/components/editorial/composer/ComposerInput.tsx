@@ -14,6 +14,7 @@ import {
 } from './composerStyles';
 
 interface ComposerInputProps {
+  testId: string;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   fileInputRef: RefObject<HTMLInputElement | null>;
   value: string;
@@ -35,6 +36,7 @@ interface ComposerInputProps {
 }
 
 export function ComposerInput({
+  testId,
   textareaRef,
   fileInputRef,
   value,
@@ -64,7 +66,7 @@ export function ComposerInput({
       className="composer-row"
       style={ROW_STYLE}
     >
-      <input
+      <input data-testid="workspace.composer-input.file-input"
         ref={fileInputRef}
         type="file"
         multiple
@@ -72,11 +74,13 @@ export function ComposerInput({
         onChange={onFileChange}
       />
       <AttachButton
+        testId="workspace.composer.attach"
         onClick={onAttachClick}
         disabled={readOnly || !bridgeOnline}
         title={readOnly ? 'Welcome tour is read-only' : bridgeOnline ? 'Attach file' : 'Bridge offline - cannot attach files'}
       />
       <textarea
+        data-testid={testId ?? 'workspace.composer.draft-unscoped'}
         ref={textareaRef}
         className="composer-textarea"
         value={value}
@@ -98,7 +102,7 @@ export function ComposerInput({
           },
         })}
       />
-      <button
+      <button data-testid="workspace.composer-input.composer-send-control"
         type="button"
         className="composer-send-control"
         data-ready={(streaming || canSend) || undefined}
@@ -125,10 +129,11 @@ export function ComposerInput({
 }
 
 function AttachButton({
-  onClick, disabled, title,
-}: { onClick: () => void; disabled: boolean; title: string }) {
+  testId, onClick, disabled, title,
+}: { testId: string; onClick: () => void; disabled: boolean; title: string }) {
   return (
     <button
+      data-testid={testId ?? 'workspace.composer.attach-unscoped'}
       type="button"
       className="composer-attach-btn"
       onClick={onClick}

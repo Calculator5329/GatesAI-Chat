@@ -47,7 +47,7 @@ export const WhatsNewPanel = observer(function WhatsNewPanel() {
   if (!release) return null;
 
   return (
-    <div
+    <div data-testid="app.whats-new.presentation"
       role="presentation"
       onMouseDown={event => {
         if (event.target === event.currentTarget) whatsNew.dismiss();
@@ -67,7 +67,7 @@ export const WhatsNewPanel = observer(function WhatsNewPanel() {
             </div>
             <h2 id="whats-new-title" style={{ margin: '6px 0 0', fontSize: 25, letterSpacing: '-0.03em' }}>What’s new</h2>
           </div>
-          <button
+          <button data-testid="app.whats-new.dismiss-what-s-new"
             type="button"
             aria-label="Dismiss what’s new"
             title="Dismiss"
@@ -89,7 +89,7 @@ export const WhatsNewPanel = observer(function WhatsNewPanel() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button variant="accent" onClick={whatsNew.dismiss}>Got it</Button>
+          <Button data-testid="app.whats-new.got-it" variant="accent" onClick={whatsNew.dismiss}>Got it</Button>
         </div>
       </section>
     </div>

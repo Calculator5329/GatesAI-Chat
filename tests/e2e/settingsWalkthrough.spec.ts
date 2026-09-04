@@ -150,7 +150,7 @@ test.describe('settings walkthrough (persistence)', () => {
 
     // Scoped to the Brave card: OpenRouter is already keyed by the fixture, so
     // an unscoped "Reveal" matches two buttons.
-    const card = page.getByTestId('search-card');
+    const card = page.getByTestId('settings.models.search-card');
     const field = card.getByPlaceholder('Paste your Brave Search API key…');
     await expect(field).toBeVisible();
     await field.fill('brave-test-key');
@@ -159,22 +159,22 @@ test.describe('settings walkthrough (persistence)', () => {
     await expect(card.getByRole('button', { name: 'Reveal' })).toBeVisible();
 
     await reloadInto(page, 'models');
-    await expect(page.getByTestId('search-card').getByRole('button', { name: 'Reveal' })).toBeVisible();
-    await expect(page.getByTestId('search-card')
+    await expect(page.getByTestId('settings.models.search-card').getByRole('button', { name: 'Reveal' })).toBeVisible();
+    await expect(page.getByTestId('settings.models.search-card')
       .getByPlaceholder('Paste your Brave Search API key…')).toHaveCount(0);
 
     // Clearing has to persist too, or a key the user removed is still on disk.
-    await page.getByTestId('search-card').getByRole('button', { name: 'Remove' }).click();
-    await expect(page.getByTestId('search-card')
+    await page.getByTestId('settings.models.search-card').getByRole('button', { name: 'Remove' }).click();
+    await expect(page.getByTestId('settings.models.search-card')
       .getByPlaceholder('Paste your Brave Search API key…')).toBeVisible();
     await reloadInto(page, 'models');
-    await expect(page.getByTestId('search-card')
+    await expect(page.getByTestId('settings.models.search-card')
       .getByPlaceholder('Paste your Brave Search API key…')).toBeVisible();
   });
 
   test('a set key is never rendered in the page text', async ({ page }) => {
     await page.goto('/#/menu/models');
-    const card = page.getByTestId('search-card');
+    const card = page.getByTestId('settings.models.search-card');
     const field = card.getByPlaceholder('Paste your Brave Search API key…');
     await field.fill('brave-secret-value');
     await field.press('Enter');

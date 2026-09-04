@@ -1,19 +1,21 @@
 import { tokens } from '../../core/styleTokens';
 
 interface SegmentedControlProps<T extends string> {
+  identityKey: string;
   options: readonly T[];
   value: T;
   onChange: (next: T) => void;
   labels?: Partial<Record<T, string>>;
 }
 
-export function SegmentedControl<T extends string>({ options, value, onChange, labels }: SegmentedControlProps<T>) {
+export function SegmentedControl<T extends string>({ identityKey, options, value, onChange, labels }: SegmentedControlProps<T>) {
   return (
     <div className="ui-segmented" style={{ display: 'flex', gap: 6 }}>
       {options.map(opt => {
         const active = opt === value;
         return (
           <button
+            data-testid={`settings.segmented.option-${identityKey}-${opt}`}
             type="button"
             key={opt}
             className="ui-segmented__button"

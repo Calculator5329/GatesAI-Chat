@@ -25,7 +25,7 @@ export function AuroraReplyFooter({
     <div className="aurora-reply-footer">
       {sources.length > 0 && (
         <div className="aurora-sources">
-          <button
+          <button data-testid="workspace.aurora-aurora-reply-footer.aurora-chip-muted"
             type="button"
             className="aurora-chip aurora-chip--muted"
             onClick={onOpenSources}
@@ -45,7 +45,7 @@ export function AuroraReplyFooter({
       {followUps.length > 0 && (
         <div className="aurora-followups" aria-label="Follow-ups the assistant offered">
           {followUps.map(text => (
-            <button key={text} type="button" className="aurora-followup" onClick={() => onAsk?.(text)}>
+            <button data-testid={`workspace.aurora-aurora-reply-footer.aurora-followup-${text}`} key={text} type="button" className="aurora-followup" onClick={() => onAsk?.(text)}>
               {text}
             </button>
           ))}

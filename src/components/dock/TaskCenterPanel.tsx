@@ -22,7 +22,7 @@ export const TaskCenterPanel = observer(function TaskCenterPanel(_props: DockPan
 
   if (ledger.length === 0) {
     return (
-      <div className="task-center task-center--empty" data-testid="task-center-panel">
+      <div className="task-center task-center--empty" data-testid="workspace.task-center.empty">
         <strong>No background tasks yet</strong>
         <span>Image renders and agent runs will appear here.</span>
       </div>
@@ -30,7 +30,7 @@ export const TaskCenterPanel = observer(function TaskCenterPanel(_props: DockPan
   }
 
   return (
-    <div className="task-center" data-pack={pack} data-testid="task-center-panel">
+    <div className="task-center" data-pack={pack} data-testid="workspace.task-center.ledger">
       {GROUPS.map(group => {
         const entries = ledger.filter(task => group.statuses.includes(task.status));
         if (entries.length === 0) return null;
@@ -77,7 +77,7 @@ function TaskRow({
     : null;
 
   return (
-    <article
+    <article data-testid="workspace.task-center-panel.task"
       className={`task-center__task task-center__task--${task.status}${onOpen ? ' task-center__task--linked' : ''}`}
       data-task-id={task.id}
       onClick={onOpen}
@@ -122,10 +122,10 @@ function TaskRow({
       {(cancellable || retryable) && (
         <div className="task-center__actions">
           {cancellable && (
-            <button type="button" onClick={event => { event.stopPropagation(); onCancel(); }}>Cancel</button>
+            <button data-testid="workspace.task-center-panel.cancel" type="button" onClick={event => { event.stopPropagation(); onCancel(); }}>Cancel</button>
           )}
           {retryable && (
-            <button type="button" onClick={event => { event.stopPropagation(); onRetry(); }}>Retry</button>
+            <button data-testid="workspace.task-center-panel.retry" type="button" onClick={event => { event.stopPropagation(); onRetry(); }}>Retry</button>
           )}
         </div>
       )}

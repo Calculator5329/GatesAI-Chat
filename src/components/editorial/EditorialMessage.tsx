@@ -188,7 +188,7 @@ export const EditorialMessage = observer(function EditorialMessage({
   const laterMessageLabel = `This removes ${laterMessageCount} later message${laterMessageCount === 1 ? '' : 's'}`;
 
   return (
-    <div
+    <div data-testid="workspace.editorial-message.message-ctrl-or-command-click-to-copy"
       className="editorial-message"
       aria-label="Message. Ctrl or Command click to copy."
       onFocus={showCopyHint}
@@ -222,12 +222,12 @@ export const EditorialMessage = observer(function EditorialMessage({
           Ctrl/Cmd + click to copy
         </div>
       )}
-        <div className="message-actions" onClick={onActionClick}>
-        <button type="button" title={canCopy ? 'Copy message' : 'Nothing to copy yet'} aria-label="Copy message" disabled={!canCopy} onClick={() => void copyMessage()}>
+        <div data-testid="workspace.editorial-message.message-actions" className="message-actions" onClick={onActionClick}>
+        <button data-testid="workspace.editorial-message.copy-message" type="button" title={canCopy ? 'Copy message' : 'Nothing to copy yet'} aria-label="Copy message" disabled={!canCopy} onClick={() => void copyMessage()}>
           <Icons.Copy />
         </button>
         {!isUser && (
-          <button
+          <button data-testid="workspace.editorial-message.regenerate-response"
             type="button"
             title="Regenerate response"
             aria-label="Regenerate response"
@@ -238,7 +238,7 @@ export const EditorialMessage = observer(function EditorialMessage({
           </button>
         )}
         {isUser && (
-          <button
+          <button data-testid="workspace.editorial-message.edit-and-resend"
             type="button"
             title="Edit and resend"
             aria-label="Edit and resend"
@@ -252,7 +252,7 @@ export const EditorialMessage = observer(function EditorialMessage({
             <Icons.Edit />
           </button>
         )}
-        <button
+        <button data-testid="workspace.editorial-message.branch-conversation"
           type="button"
           title="Branch conversation"
           aria-label="Branch conversation"
@@ -267,10 +267,10 @@ export const EditorialMessage = observer(function EditorialMessage({
         </div>
       </div>
       {confirmAction === 'regenerate' && (
-        <div className="message-confirm-panel" onClick={event => event.stopPropagation()}>
+        <div data-testid="workspace.editorial-message.message-confirm-panel" className="message-confirm-panel" onClick={event => event.stopPropagation()}>
           <span>{laterMessageLabel}</span>
-          <button type="button" onClick={() => setConfirmAction(null)}>Cancel</button>
-          <button type="button" disabled={actionsDisabled || streaming} onClick={confirmDestructiveAction}>Regenerate</button>
+          <button data-testid="workspace.editorial-message.cancel" type="button" onClick={() => setConfirmAction(null)}>Cancel</button>
+          <button data-testid="workspace.editorial-message.regenerate" type="button" disabled={actionsDisabled || streaming} onClick={confirmDestructiveAction}>Regenerate</button>
         </div>
       )}
       <div style={{
@@ -304,8 +304,8 @@ export const EditorialMessage = observer(function EditorialMessage({
         letterSpacing: '-0.01em',
       }}>
         {editing && isUser ? (
-          <div className="message-edit-panel" onClick={event => event.stopPropagation()}>
-            <textarea
+          <div data-testid="workspace.editorial-message.message-edit-panel" className="message-edit-panel" onClick={event => event.stopPropagation()}>
+            <textarea data-testid="workspace.editorial-message.edited-message"
               aria-label="Edited message"
               value={editText}
               autoFocus
@@ -327,13 +327,13 @@ export const EditorialMessage = observer(function EditorialMessage({
             {confirmAction === 'edit' && (
               <div className="message-confirm-panel message-confirm-panel--edit">
                 <span>{laterMessageLabel}</span>
-                <button type="button" onClick={() => setConfirmAction(null)}>Cancel</button>
-                <button type="button" disabled={actionsDisabled || streaming} onClick={confirmDestructiveAction}>Save &amp; resend</button>
+                <button data-testid="workspace.editorial-message.cancel-2" type="button" onClick={() => setConfirmAction(null)}>Cancel</button>
+                <button data-testid="workspace.editorial-message.save-amp-resend" type="button" disabled={actionsDisabled || streaming} onClick={confirmDestructiveAction}>Save &amp; resend</button>
               </div>
             )}
             <div>
-              <button type="button" onClick={cancelEdit}>Cancel</button>
-              <button type="button" onClick={submitEdit}>Save &amp; resend</button>
+              <button data-testid="workspace.editorial-message.cancel-3" type="button" onClick={cancelEdit}>Cancel</button>
+              <button data-testid="workspace.editorial-message.save-amp-resend-2" type="button" onClick={submitEdit}>Save &amp; resend</button>
             </div>
           </div>
         ) : (
@@ -564,7 +564,7 @@ function UserMessageContent({ body, attachments }: { body: string; attachments: 
 function FileAttachmentChip({ file }: { file: RenderedAttachment }) {
   const { bridge } = useEditorial();
   return (
-    <button
+    <button data-testid="workspace.editorial-message.open-attached-file"
       type="button"
       className="user-attachment-chip"
       title={`${file.name}\n${file.path}`}

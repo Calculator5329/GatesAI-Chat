@@ -37,7 +37,7 @@ export function AuroraActivityStream({
 
   return (
     <div className="aurora-activity" data-state={summary.failed ? 'failed' : summary.running ? 'running' : 'done'}>
-      <button
+      <button data-testid="workspace.aurora-aurora-activity-stream.chips"
         type="button"
         className="aurora-activity__chips"
         aria-expanded={expanded}
@@ -103,7 +103,7 @@ function AuroraTraceRow({
         <span className="aurora-trace__dot" />
       </span>
       <div className="aurora-trace__body">
-        <button
+        <button data-testid="workspace.aurora-aurora-activity-stream.head"
           type="button"
           className="aurora-trace__head"
           aria-expanded={expandable ? open : undefined}

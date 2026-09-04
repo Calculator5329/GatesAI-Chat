@@ -39,6 +39,34 @@
   was ruled against. Deciding which behavior is correct is a product call, not a
   cleanup. The other 38 e2e tests pass.
 
+## 2026-08-26 — Agent Handles clean adoption trial
+
+- Installed the packed Agent Handles package as a development dependency and
+  followed its generated adoption prompt without changing the package during
+  the trial.
+- Classified and identified all 223 static control candidates and migrated 27
+  legacy identity declarations. The verified registry contains 213 literal
+  entries, 36 dynamic patterns, 41 rename-history entries, and no unresolved or
+  invalid candidates.
+- Added five compiled Playwright journeys for settings, provider, memory, new
+  conversation, and direct-workspace paths. Verification ran them twice and
+  reported 71 controls observed with zero unidentified or duplicate handles.
+- Sealed the v4 interaction fingerprint and ratchet after a production build
+  emitted a byte-identical registry. Runtime evidence remains path-bound; it
+  does not claim exhaustive coverage of unvisited routes or states.
+- Trial scars were preserved in the adoption evidence: the package's default
+  generated-spec path did not honor this repository's Playwright `testDir`, the
+  drive API could not express the `Control+K` keyboard chord, and repeated
+  runtime controls required dynamic identity patterns that static uniqueness
+  alone could not prove.
+- Repository gates remain honestly non-green for two baseline problems outside
+  the adoption: all 1,263 unit tests and TypeScript checks pass, but lint still
+  reports the unchanged `prefer-const` error in
+  `chatPersistenceCoordinator.test.ts`; the full Playwright suite passes 43 of
+  44 tests, with the existing HTML-document test expecting a card that the
+  baseline source-view implementation does not render until its Preview action
+  is selected. The adoption journey suite itself remains green.
+
 ## 2026-08-15 — Merged ui/taste-pass-20260726 (owner ruling merge-now)
 
 - Merged the July 26 taste-pass branch into master. One deliberate exception:

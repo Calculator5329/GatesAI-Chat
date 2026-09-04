@@ -30,7 +30,7 @@ export const SidebarSettingsButton = observer(function SidebarSettingsButton() {
   }
 
   return (
-    <button
+    <button data-testid="workspace.sidebar-settings-button.settings-and-menu"
       type="button"
       className="sidebar-settings-button"
       onClick={() => router.goMenu()}
@@ -42,7 +42,7 @@ export const SidebarSettingsButton = observer(function SidebarSettingsButton() {
           stays stated in words. Bridge polling on desktop is transient and
           rides on the dot alone. */}
       {webLite && <span className="sidebar-settings-button__mode">web lite</span>}
-      <span
+      <span data-testid="workspace.sidebar-settings-button.dot"
         className="sidebar-settings-button__dot"
         style={{ background: dotColor }}
         title={dotTitle}

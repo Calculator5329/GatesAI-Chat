@@ -11,7 +11,7 @@ import type { DockPanelProps } from './panelRegistry';
 export const MediaViewerPanel = observer(function MediaViewerPanel({ params }: DockPanelProps) {
   const path = params.path ?? '';
   if (!path) {
-    return <div className="dock-panel__notice" data-testid="dock-media-viewer-notice">No media selected.</div>;
+    return <div className="dock-panel__notice" data-testid="workspace.media-viewer.empty">No media selected.</div>;
   }
   const kind = classifyDockFile(path);
   if (kind === 'video' || kind === 'audio') {
@@ -23,13 +23,13 @@ export const MediaViewerPanel = observer(function MediaViewerPanel({ params }: D
 const ImageViewer = observer(function ImageViewer({ path }: { path: string }) {
   const { src, failed } = useImageDataUrl(path);
   if (failed) {
-    return <div className="dock-panel__notice" data-testid="dock-media-viewer-notice">Could not load {path}.</div>;
+    return <div className="dock-panel__notice" data-testid="workspace.media-viewer.image-error">Could not load {path}.</div>;
   }
   if (!src) {
-    return <div className="dock-panel__notice" data-testid="dock-media-viewer-notice">Loading media...</div>;
+    return <div className="dock-panel__notice" data-testid="workspace.media-viewer.image-loading">Loading media...</div>;
   }
   return (
-    <div className="dock-media-viewer" data-testid="dock-media-viewer-image">
+    <div className="dock-media-viewer" data-testid="workspace.media-viewer.image">
       <img src={src} alt={path} />
     </div>
   );
@@ -57,13 +57,13 @@ const AvViewer = observer(function AvViewer({ path, kind }: { path: string; kind
   }, [bridge, bridgeOnline, path]);
 
   if (state.failed) {
-    return <div className="dock-panel__notice" data-testid="dock-media-viewer-notice">Could not load {path}.</div>;
+    return <div className="dock-panel__notice" data-testid="workspace.media-viewer.av-error">Could not load {path}.</div>;
   }
   if (!state.src) {
-    return <div className="dock-panel__notice" data-testid="dock-media-viewer-notice">Loading media...</div>;
+    return <div className="dock-panel__notice" data-testid="workspace.media-viewer.av-loading">Loading media...</div>;
   }
   return (
-    <div className="dock-media-viewer" data-testid={`dock-media-viewer-${kind}`}>
+    <div className="dock-media-viewer" data-testid={`workspace.media-viewer.content-${kind}`}>
       {kind === 'video'
         ? <video src={state.src} controls />
         : <audio src={state.src} controls />}

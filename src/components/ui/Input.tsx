@@ -18,5 +18,5 @@ export const fieldStyle = BASE;
 
 export function Input({ style, className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
   const classes = ['ui-field', 'ui-input', className].filter(Boolean).join(' ');
-  return <input {...rest} className={classes} style={{ ...BASE, ...style }} />;
+  return <input data-testid="ui.input.unscoped" {...rest} className={classes} style={{ ...BASE, ...style }} />;
 }

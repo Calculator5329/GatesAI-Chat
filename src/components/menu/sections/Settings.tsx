@@ -37,7 +37,7 @@ const ConversationBlock = observer(function ConversationBlock() {
       <div className="settings-section-title" style={tokens.sectionTitle}>Conversations</div>
       <SettingsRow label="Automatic thread titles" last>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-          <Toggle label="Automatic thread titles" on={ui.autoNamingEnabled} onChange={ui.setAutoNamingEnabled} />
+          <Toggle testId="settings.preferences.toggle" label="Automatic thread titles" on={ui.autoNamingEnabled} onChange={ui.setAutoNamingEnabled} />
           <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
             Generate a short title after the first response. Turn this off to keep the current or default title.
           </div>
@@ -56,6 +56,7 @@ const ThemeBlock = observer(function ThemeBlock() {
       <div className="settings-section-title" style={tokens.sectionTitle}>Theme</div>
       <SettingsRow label="Color mode" last>
         <SegmentedControl
+          identityKey="theme"
           options={THEME_OPTIONS}
           value={ui.theme}
           onChange={ui.setTheme}
@@ -82,6 +83,7 @@ const UiPackBlock = observer(function UiPackBlock() {
       <SettingsRow label="Presentation" last>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
           <SegmentedControl
+            identityKey="ui-pack"
             options={PACK_OPTIONS}
             value={ui.uiPack}
             onChange={ui.setUiPack}
@@ -107,7 +109,7 @@ const DesktopBlock = observer(function DesktopBlock() {
       <div className="settings-section-title" style={tokens.sectionTitle}>Desktop</div>
       <SettingsRow label="Global summon">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-          <Toggle label="Global summon" on={ui.globalSummonEnabled} onChange={ui.setGlobalSummonEnabled} />
+          <Toggle testId="settings.preferences.toggle-2" label="Global summon" on={ui.globalSummonEnabled} onChange={ui.setGlobalSummonEnabled} />
           <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
             Show, focus, or hide GatesAI from anywhere.
           </div>
@@ -128,7 +130,7 @@ const DesktopBlock = observer(function DesktopBlock() {
       </SettingsRow>
       <SettingsRow label="Close button hides to tray" last>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-          <Toggle label="Close button hides to tray" on={ui.closeButtonHidesToTray} onChange={ui.setCloseButtonHidesToTray} />
+          <Toggle testId="settings.preferences.toggle-3" label="Close button hides to tray" on={ui.closeButtonHidesToTray} onChange={ui.setCloseButtonHidesToTray} />
           <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
             Quit from the tray menu still exits GatesAI completely.
           </div>
@@ -190,7 +192,7 @@ const ExportImportBlock = observer(function ExportImportBlock() {
       )}
       <SettingsRow label="Export app data">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-          <Button variant="accent" onClick={handleExport}>Export JSON</Button>
+          <Button data-testid="settings.preferences.export-json" variant="accent" onClick={handleExport}>Export JSON</Button>
           <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
             Saves conversations, memories, notes, summaries, system prompt, and UI preferences.
           </div>
@@ -200,7 +202,7 @@ const ExportImportBlock = observer(function ExportImportBlock() {
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {(['merge', 'replace'] as const).map(value => (
             <label key={value} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text-dim)' }}>
-              <input
+              <input data-testid={`settings.preferences.import-mode-${value}`}
                 type="radio"
                 name="settings-data-import-mode"
                 value={value}
@@ -218,7 +220,7 @@ const ExportImportBlock = observer(function ExportImportBlock() {
             <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.45 }}>
               Type <code style={tokens.mono}>{root.replaceImportConfirmation}</code>
             </div>
-            <Input
+            <Input data-testid="settings.preferences.input"
               value={replaceConfirm}
               onChange={event => setReplaceConfirm(event.currentTarget.value)}
               placeholder={root.replaceImportConfirmation}
@@ -229,14 +231,14 @@ const ExportImportBlock = observer(function ExportImportBlock() {
       )}
       <SettingsRow label="Import file" last>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <Button
+          <Button data-testid="settings.preferences.button"
             disabled={busy || !replaceReady}
             variant={mode === 'replace' ? 'danger' : 'default'}
             onClick={() => inputRef.current?.click()}
           >
             {busy ? 'Importing...' : 'Choose JSON'}
           </Button>
-          <input
+          <input data-testid="settings.preferences.file-input"
             ref={inputRef}
             type="file"
             accept=".json,application/json"
@@ -331,17 +333,17 @@ const DangerZone = observer(function DangerZone() {
             {confirming === action.id ? (
               <div className="settings-action-controls" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{action.confirm}</span>
-                <Button
+                <Button data-testid="settings.preferences.run"
                   variant="danger"
                   disabled={busy === action.id}
                   onClick={() => { void runAction(action.id, action.run, action.done); }}
                 >
                   {busy === action.id ? 'Working...' : 'Confirm'}
                 </Button>
-                <Button disabled={busy === action.id} onClick={() => setConfirming(null)}>Cancel</Button>
+                <Button data-testid="settings.preferences.cancel" disabled={busy === action.id} onClick={() => setConfirming(null)}>Cancel</Button>
               </div>
             ) : (
-              <Button
+              <Button data-testid={`settings.preferences.delete-${action.id}`}
                 variant="danger"
                 disabled={action.disabled || !!busy}
                 onClick={() => setConfirming(action.id)}

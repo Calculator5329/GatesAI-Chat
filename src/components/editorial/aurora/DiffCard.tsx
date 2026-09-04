@@ -17,7 +17,7 @@ export function DiffCard({ artifact }: { artifact: DiffArtifact }) {
   const name = artifact.path.split('/').filter(Boolean).pop() ?? artifact.path;
 
   return (
-    <div className="aurora-diff" data-testid="aurora-diff-card">
+    <div className="aurora-diff" data-testid="workspace.aurora.diff-card">
       <div className="aurora-diff__head">
         <span className="aurora-diff__name" title={artifact.path}>{name}</span>
         <span className="aurora-diff__path">{artifact.path}</span>
@@ -34,7 +34,7 @@ export function DiffCard({ artifact }: { artifact: DiffArtifact }) {
       {(hidden > 0 || artifact.truncated) && (
         <div className="aurora-diff__foot">
           {hidden > 0 && (
-            <button type="button" onClick={() => setExpanded(true)}>
+            <button data-testid="workspace.aurora-diff-card.show" type="button" onClick={() => setExpanded(true)}>
               Show {hidden} more {hidden === 1 ? 'line' : 'lines'}
             </button>
           )}

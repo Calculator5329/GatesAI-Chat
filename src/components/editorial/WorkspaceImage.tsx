@@ -26,7 +26,7 @@ export const WorkspaceImage = observer(function WorkspaceImage({
   const { src, failed } = useImageDataUrl(path, cacheKey);
 
   return (
-    <button
+    <button data-testid="workspace.workspace-image.open"
       type="button"
       className="user-attachment-thumb"
       title={`${alt} — click to open`}

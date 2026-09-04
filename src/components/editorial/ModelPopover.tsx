@@ -223,7 +223,7 @@ const ModelRow = memo(function ModelRow({
     color: 'var(--text-faint)',
   };
   return (
-    <div
+    <div data-testid="workspace.model-popover.row"
       className="model-popover__row"
       data-model-row={model.id}
       role="option"
@@ -237,7 +237,7 @@ const ModelRow = memo(function ModelRow({
       <div style={ROW_LEFT_STYLE}>
         <span style={nameStyle}>{model.name}</span>
         {verified && <span title="Verified — covered by the live model test suite"><VerifiedMark size={11} /></span>}
-        <button
+        <button data-testid="workspace.model-popover.favorite"
           type="button"
           className="model-popover__favorite"
           aria-label={isFavorite ? `Unfavorite ${model.name}` : `Favorite ${model.name}`}
@@ -383,7 +383,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
   };
 
   return (
-    <div
+    <div data-testid="workspace.model-popover.model-popover"
       ref={ref}
       className="model-popover"
       onKeyDown={onKeyDown}
@@ -406,7 +406,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
         aria-label="Model source"
       >
         {sourceTabs.map(value => (
-          <button
+          <button data-testid={`workspace.model-popover.segment-${value}`}
             key={value}
             type="button"
             className="model-popover__segment"
@@ -433,7 +433,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
         borderBottom: '1px solid var(--border)',
       }}>
         <span style={{ color: 'var(--text-faint)', display: 'flex' }}><Icons.Search /></span>
-        <input
+        <input data-testid="workspace.model-popover.search-models"
           ref={inputRef}
           value={query}
           onChange={e => { setQuery(e.target.value); setActiveIdx(0); }}
@@ -446,7 +446,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
           }}
         />
         {query && (
-          <button
+          <button data-testid="workspace.model-popover.clear-model-search"
             type="button"
             className="model-popover__clear"
             aria-label="Clear model search"
@@ -460,7 +460,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
         {CAPABILITY_FILTERS.map(cap => {
           const on = caps.has(cap.id);
           return (
-            <button
+            <button data-testid={`workspace.model-popover.cap-filter-${cap.id}`}
               key={cap.id}
               type="button"
               className="model-popover__cap-filter"

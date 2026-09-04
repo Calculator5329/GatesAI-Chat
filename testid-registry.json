@@ -1,0 +1,4857 @@
+{
+  "schema": "agent-handles/testid-registry/v3",
+  "predicateVersion": 4,
+  "grammar": "area.component.element[.qualifier]",
+  "generatedFrom": "src/**/*.{tsx,jsx} and journeys/manifest.json",
+  "sourceDigest": "sha256:5670d2bacd230cb2f3fd8e3fc74600f5e57fce9936d2cc0906d30fd7a03503fb",
+  "journeyCoverage": {
+    "controlPath": 4,
+    "urlPath": 1
+  },
+  "coverage": {
+    "controlCandidates": 223,
+    "definiteCandidates": 195,
+    "reviewRequiredCandidates": 28,
+    "identifiedCandidates": 223,
+    "nonInteractiveCandidates": 0,
+    "unreachableCandidates": 0,
+    "unresolvedCandidates": 0,
+    "invalidIdentityMigrations": 0,
+    "interactiveElements": 223,
+    "identifiedInteractive": 223,
+    "unidentifiedInteractive": 0,
+    "maximumUnidentifiedInteractive": 0
+  },
+  "interactionFingerprint": {
+    "algorithm": "candidate-site-sha256/v1",
+    "digest": "sha256:03828f349c6200a35c74e1d16c78fca4c7a925bbfdb120eee4d7a96a13946283",
+    "sites": [
+      "candidate:0301d7966ea101ce",
+      "candidate:03cf1f812fd795ba",
+      "candidate:04a4b20100407827",
+      "candidate:051da806b6368e3f",
+      "candidate:054aec8427f17fbf",
+      "candidate:066fb5985bf5ffa1",
+      "candidate:06856809e99ebf09",
+      "candidate:0779cf00337162ec",
+      "candidate:07aad0caca6851c8",
+      "candidate:07e8c4d8af487dc4",
+      "candidate:082ea1c0c286eca5",
+      "candidate:08e25c94a93bcab4",
+      "candidate:0b91b7c86c5d8fa4",
+      "candidate:0bb1ab64da88d816",
+      "candidate:0c5af31386463afd",
+      "candidate:0c8a1b5395761d75",
+      "candidate:129a85e0dd9778a1",
+      "candidate:1337dc331ab488f3",
+      "candidate:14ed038af2ab3ccf",
+      "candidate:16b76a9349025e5e",
+      "candidate:1758020d6aa8e51e",
+      "candidate:194be6858582aef4",
+      "candidate:19791eee2564051e",
+      "candidate:1ab468e92d13f1c1",
+      "candidate:1ba2c6c9374f9b84",
+      "candidate:1d03a94aff783269",
+      "candidate:20fa72c70f84ccc8",
+      "candidate:215bd8ce75e861cd",
+      "candidate:22927544a611d6ae",
+      "candidate:22bab5a90bfcf083",
+      "candidate:236deb8973ded12e",
+      "candidate:23b1283db0728309",
+      "candidate:24ebb109843e9a94",
+      "candidate:26c5a378b22eb01b",
+      "candidate:2891fbb2c26d2507",
+      "candidate:28b7c32e8761f6ea",
+      "candidate:298cda0baf473818",
+      "candidate:2a5d1d8ef9a362e5",
+      "candidate:2e1bd7333d815317",
+      "candidate:2e46f52a7df7f383",
+      "candidate:2f3616dc8c10d5b4",
+      "candidate:2ff88ac3bc6ecd0d",
+      "candidate:31e594f354113e78",
+      "candidate:333b4d6b11976c7d",
+      "candidate:3660eaaabe94e0b2",
+      "candidate:3aabc10888e90731",
+      "candidate:3d9a5205562012c7",
+      "candidate:3e9cc94cd3431076",
+      "candidate:3fd909d37b6b7349",
+      "candidate:3fd9aa07ec593107",
+      "candidate:3fdb1da7f7d72cfe",
+      "candidate:404431a21c155a87",
+      "candidate:405530ea36bdaa37",
+      "candidate:4261d770a26ef8fc",
+      "candidate:440075359532b5e0",
+      "candidate:443946a250f5143e",
+      "candidate:4519659f776625f3",
+      "candidate:45caa626d09c2f8b",
+      "candidate:4629b70c56799440",
+      "candidate:464965ac2d729e33",
+      "candidate:46b657cad4db1772",
+      "candidate:4b878bb1bc32d9ee",
+      "candidate:4fe2b5e5ac94f799",
+      "candidate:50533289a9a7fa4c",
+      "candidate:514cd51770bf85cb",
+      "candidate:51a75e5b59538636",
+      "candidate:521b2c5b1be47a77",
+      "candidate:52cfb675003d6468",
+      "candidate:52d215a13e4ae4a5",
+      "candidate:53b342954cffdc24",
+      "candidate:567d4ff2d1e9c073",
+      "candidate:56e083bf6a63980d",
+      "candidate:5704dd09a42dab74",
+      "candidate:585aa3d5bf5451c8",
+      "candidate:58d16d4fddb894a6",
+      "candidate:599b731aeaac88be",
+      "candidate:5baa4ad827e66650",
+      "candidate:5d38b206a4783f6d",
+      "candidate:6000a6980c375635",
+      "candidate:609772c70f598469",
+      "candidate:6250ffba7af48e1a",
+      "candidate:629c61d5103cd3f2",
+      "candidate:62b8dcffa867ccd7",
+      "candidate:6366109777be9f05",
+      "candidate:63772ecf60ad6255",
+      "candidate:63eb40f969639e51",
+      "candidate:666fde1fc58be77f",
+      "candidate:66d8e18a6b25bf21",
+      "candidate:676a257bf75e3336",
+      "candidate:683ef03241e8255d",
+      "candidate:694843188610a517",
+      "candidate:6a36bcae8d2e8a4f",
+      "candidate:6a8fa3ab70047eaa",
+      "candidate:6ab6d550bc2d757c",
+      "candidate:6c29291ada8edb4d",
+      "candidate:6c5789bb94f2de71",
+      "candidate:6cca4f5a366bc6a0",
+      "candidate:6d1291e8fc8f3e85",
+      "candidate:6ea5145af0fbea78",
+      "candidate:7236331be09d00ae",
+      "candidate:724b85c31e7369a4",
+      "candidate:729b4117bce03d19",
+      "candidate:75ab3d7c559a11cb",
+      "candidate:77e04f2f95231bd0",
+      "candidate:79f3847bb89035b2",
+      "candidate:7a81f457fe018f20",
+      "candidate:7b9f707f3176edca",
+      "candidate:7c89d7f7d57c5bf8",
+      "candidate:7c9e0735cb352dc0",
+      "candidate:7dcbeff5f8e1e606",
+      "candidate:7e0337a1a20a329f",
+      "candidate:7ef528fcf2aceb5d",
+      "candidate:7fafef641f5d7950",
+      "candidate:8043eb3edceef479",
+      "candidate:806f184adbffc8f6",
+      "candidate:8129bff8bc7ea29e",
+      "candidate:818c8594633e7dce",
+      "candidate:8374b54528652977",
+      "candidate:83c2302de2506f0c",
+      "candidate:846e1589569e340f",
+      "candidate:8486f9a926c9c1ca",
+      "candidate:851ea010f543d91d",
+      "candidate:85b411e7283251ca",
+      "candidate:86224716f410ccd8",
+      "candidate:869a936084046ece",
+      "candidate:875cae287d965481",
+      "candidate:87744a4889f8a138",
+      "candidate:87a08c1005a2bd4f",
+      "candidate:8abbfd4c338bde6b",
+      "candidate:8b9f333e65dec065",
+      "candidate:8d2d8e46029fe7c0",
+      "candidate:8e4b89ce738ccf5c",
+      "candidate:90cb9cc908762bba",
+      "candidate:9204573d60516385",
+      "candidate:925261d42aa0d089",
+      "candidate:93b3c023550112cc",
+      "candidate:93ec89a4fc337e32",
+      "candidate:972b081560e7af0d",
+      "candidate:98c9384169820ab7",
+      "candidate:999361eaf6cbc2d8",
+      "candidate:99d4503290780bd4",
+      "candidate:99e03c5edd8399dc",
+      "candidate:9a7d84d2bbb79c59",
+      "candidate:9a86e873f8a926d1",
+      "candidate:9c20d38c378f3c97",
+      "candidate:9e7e7d3d19b3837e",
+      "candidate:9ff598bab3e089a8",
+      "candidate:a0169c41be9e322c",
+      "candidate:a09db5abc0cfda12",
+      "candidate:a0b1c1d9a2e1276a",
+      "candidate:a17e590e986ca3bf",
+      "candidate:a20b6b158501520b",
+      "candidate:a2d66f5441843dc3",
+      "candidate:a5a1f208188907e2",
+      "candidate:a5c2839f67cad63c",
+      "candidate:a7cefb729a2d486d",
+      "candidate:a7d5e59120fe23b7",
+      "candidate:a819aa3b521cb237",
+      "candidate:a87adc15ddeb58a3",
+      "candidate:aa670016417f9500",
+      "candidate:aaefb100f73b5c16",
+      "candidate:ad5f6706d87c7f44",
+      "candidate:ad6ed8e830da209c",
+      "candidate:b01ceec0f1af4443",
+      "candidate:b0253c7bdc116600",
+      "candidate:b06a6295477f295e",
+      "candidate:b0920c94633f492a",
+      "candidate:b293ccaef4c35648",
+      "candidate:b2e00328877a22f2",
+      "candidate:b7ccf62b1b46413a",
+      "candidate:b7dcc03bbd679983",
+      "candidate:b7dfe7fe76c966aa",
+      "candidate:bb2247b12c98acca",
+      "candidate:bcbdfbcaf2a681ba",
+      "candidate:bde9964b1d1e5842",
+      "candidate:be0bd51ca53aec19",
+      "candidate:c06ee99d41c3c373",
+      "candidate:c0740ae7b47b946f",
+      "candidate:c2445f6f06d65408",
+      "candidate:c27e48153b343b07",
+      "candidate:c2f04dbdbec7a52d",
+      "candidate:c5223d574a4c9646",
+      "candidate:c5409dcb76792135",
+      "candidate:c7ee3bf91f9f4138",
+      "candidate:c897fe674ea75351",
+      "candidate:c8d8b14db021ffd9",
+      "candidate:cb70ba586df2e4d5",
+      "candidate:cc9dd424828a323c",
+      "candidate:cca477a36626ae0a",
+      "candidate:cd378fe34f941d6e",
+      "candidate:ce482d071a686bb5",
+      "candidate:d29245a55dee224a",
+      "candidate:d4e3913f453503fd",
+      "candidate:d5c3a4f70798e86f",
+      "candidate:d834d65600b420ee",
+      "candidate:daf6d58af3359d08",
+      "candidate:db52af582583884d",
+      "candidate:dc6c17fe2d7fc20c",
+      "candidate:dc7b9261d44a0ba2",
+      "candidate:de623624474c6a32",
+      "candidate:df0eb3e71a0568a8",
+      "candidate:e34fe70a738355a2",
+      "candidate:e5068297f0bdb08b",
+      "candidate:e5311bb7a94f12ec",
+      "candidate:e5600e3f9be0de48",
+      "candidate:e5ba68b016107721",
+      "candidate:e65f77982496da05",
+      "candidate:e7f90fbbb75bee6c",
+      "candidate:e85230dfc680c1f8",
+      "candidate:e89dc437491e84e4",
+      "candidate:e94487ac7d4f3a05",
+      "candidate:e9e4a2093825ad70",
+      "candidate:ec4e5f8fa8a81b3f",
+      "candidate:ec8434bffd6f2972",
+      "candidate:ecf82e9cf980ec4b",
+      "candidate:ecfa1a69c2121c03",
+      "candidate:ed7cfeba9cbd30a0",
+      "candidate:edf938cc9d366faf",
+      "candidate:f50e2e8dd7810184",
+      "candidate:f8652316cd16ec28",
+      "candidate:f8e68c78f26d8faa",
+      "candidate:ff3bb6f7708bdf6d",
+      "candidate:ff607b4e26576269"
+    ]
+  },
+  "journeyReferences": [
+    "settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe",
+    "settings.gates-menu.tab-agent",
+    "settings.gates-menu.tab-models",
+    "settings.gates-menu.tab-settings",
+    "settings.models.search-card",
+    "settings.preferences.export-json",
+    "settings.segmented.option-theme-light",
+    "workspace.composer.draft",
+    "workspace.editorial-sidebar.begin-a-new-conversation",
+    "workspace.sidebar-settings-button.settings-and-menu"
+  ],
+  "entries": [
+    {
+      "id": "app.command-palette.backdrop",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 229,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.command-palette.command-palette",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 235,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.command-palette.empty",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 290,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.command-palette.palette-row",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 332,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.command-palette.search-commands-and-threads",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 248,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.lightbox.close",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 78,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.lightbox.copy-prompt",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 189,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.lightbox.div",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 122,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.lightbox.full-prompt",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 181,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.lightbox.image-viewer",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 57,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.lightbox.next-image",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 113,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.lightbox.open-in-os",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 192,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.lightbox.open-in-os-2",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 200,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.lightbox.previous-image",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 105,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.whats-new.dismiss-what-s-new",
+      "file": "src/components/whats-new/WhatsNewPanel.tsx",
+      "line": 70,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.whats-new.got-it",
+      "file": "src/components/whats-new/WhatsNewPanel.tsx",
+      "line": 92,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.whats-new.presentation",
+      "file": "src/components/whats-new/WhatsNewPanel.tsx",
+      "line": 50,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.add",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 147,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.add-a-memory-user-prefers-concise-answers",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 140,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.add-source",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 193,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.cancel-pull",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 309,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.clear-all",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 152,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.clear-derived-index",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 394,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.re-include-all-excluded-sources",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 359,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.rebuild-index",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 393,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.refresh-all",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 198,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.run-preview",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 377,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.search",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 342,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.toggle-2",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 293,
+      "element": "jsx-prop",
+      "attribute": "testId"
+    },
+    {
+      "id": "settings.agent.what-should-gates-ai-remember",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 370,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 31,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.chord-recorder.global-summon-shortcut",
+      "file": "src/components/menu/sections/ChordRecorder.tsx",
+      "line": 32,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.chord-recorder.reset",
+      "file": "src/components/menu/sections/ChordRecorder.tsx",
+      "line": 57,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.models-api-section.commit",
+      "file": "src/components/menu/sections/api/ApiSection.tsx",
+      "line": 108,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.models-api-section.http-127-0-0-1-11434",
+      "file": "src/components/menu/sections/api/ApiSection.tsx",
+      "line": 101,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.models-open-router-catalog-row.clear",
+      "file": "src/components/menu/sections/api/OpenRouterCatalogRow.tsx",
+      "line": 42,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.models-open-router-catalog-row.refresh",
+      "file": "src/components/menu/sections/api/OpenRouterCatalogRow.tsx",
+      "line": 38,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.models.search-card",
+      "file": "src/components/menu/sections/api/ApiSection.tsx",
+      "line": 44,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.preferences.button",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 234,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.preferences.cancel",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 343,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.preferences.export-json",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 195,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.preferences.file-input",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 241,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.preferences.input",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 223,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.preferences.run",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 336,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.preferences.toggle",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 40,
+      "element": "jsx-prop",
+      "attribute": "testId"
+    },
+    {
+      "id": "settings.preferences.toggle-2",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 112,
+      "element": "jsx-prop",
+      "attribute": "testId"
+    },
+    {
+      "id": "settings.preferences.toggle-3",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 133,
+      "element": "jsx-prop",
+      "attribute": "testId"
+    },
+    {
+      "id": "ui.button.unscoped",
+      "file": "src/components/ui/Button.tsx",
+      "line": 33,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "ui.input.unscoped",
+      "file": "src/components/ui/Input.tsx",
+      "line": 21,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "ui.select.unscoped",
+      "file": "src/components/ui/Select.tsx",
+      "line": 6,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "ui.textarea.unscoped",
+      "file": "src/components/ui/Textarea.tsx",
+      "line": 6,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "ui.toggle.unscoped",
+      "file": "src/components/ui/Toggle.tsx",
+      "line": 22,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.activity-activity-row.button",
+      "file": "src/components/editorial/activity/ActivityRow.tsx",
+      "line": 105,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.activity-timeline-group.button",
+      "file": "src/components/editorial/activity/TimelineGroup.tsx",
+      "line": 28,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.attachment-tray.remove",
+      "file": "src/components/editorial/composer/AttachmentTray.tsx",
+      "line": 39,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.attachment-tray.remove-2",
+      "file": "src/components/editorial/composer/AttachmentTray.tsx",
+      "line": 78,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.aurora-aurora-activity-stream.chips",
+      "file": "src/components/editorial/aurora/AuroraActivityStream.tsx",
+      "line": 40,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.aurora-aurora-activity-stream.head",
+      "file": "src/components/editorial/aurora/AuroraActivityStream.tsx",
+      "line": 106,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.aurora-aurora-reply-footer.aurora-chip-muted",
+      "file": "src/components/editorial/aurora/AuroraReplyFooter.tsx",
+      "line": 28,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.aurora-diff-card.show",
+      "file": "src/components/editorial/aurora/DiffCard.tsx",
+      "line": 37,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.aurora-fine-tune-card.number-input",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 107,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.aurora-fine-tune-card.render-again",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 68,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.aurora-fine-tune-card.reset",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 69,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.aurora-fine-tune-card.toggle",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 49,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.aurora.diff-card",
+      "file": "src/components/editorial/aurora/DiffCard.tsx",
+      "line": 20,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.bridge-status-pill.bridge-status-pill",
+      "file": "src/components/editorial/BridgeStatusPill.tsx",
+      "line": 51,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-banners.dismiss-notice",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 96,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-banners.editorial-banner-action",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 92,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-banners.open-local-settings",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 60,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-banners.open-local-settings-2",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 118,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-banners.open-models",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 23,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-input.composer-send-control",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 105,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-input.file-input",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 69,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-meta.local-context-mode",
+      "file": "src/components/editorial/composer/ComposerMeta.tsx",
+      "line": 185,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-meta.model",
+      "file": "src/components/editorial/composer/ComposerMeta.tsx",
+      "line": 93,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-meta.start-deep-research",
+      "file": "src/components/editorial/composer/ComposerMeta.tsx",
+      "line": 156,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-meta.thinking-effort",
+      "file": "src/components/editorial/composer/ComposerMeta.tsx",
+      "line": 202,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer-meta.workspace-skill",
+      "file": "src/components/editorial/composer/ComposerMeta.tsx",
+      "line": 123,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer.attach",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 77,
+      "element": "jsx-prop",
+      "attribute": "testId"
+    },
+    {
+      "id": "workspace.composer.attach-unscoped",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 136,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.composer.draft",
+      "file": "src/components/editorial/EditorialComposer.tsx",
+      "line": 239,
+      "element": "jsx-prop",
+      "attribute": "testId"
+    },
+    {
+      "id": "workspace.composer.draft-unscoped",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 83,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.dock-panel.close",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 138,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.dock-panel.collapse-dock",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 130,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.dock-panel.expand-dock",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 76,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.dock-panel.resize-dock",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 87,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.dock-panel.resize-dock-cells",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 106,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.dock-panel.swap-dock-cells",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 121,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.dock.collapsed-rail",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 68,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.dock.file-explorer",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 89,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.dock.html-artifact",
+      "file": "src/components/dock/HtmlArtifactPanel.tsx",
+      "line": 18,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.dock.panel",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 68,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.cancel",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 130,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.continue-with",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 336,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.dismiss",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 139,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.editorial-jump-to-bottom",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 798,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.link",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 445,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.look-around",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 291,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.open-local-settings",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 360,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.open-local-settings-2",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 367,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.open-local-settings-3",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 377,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.primary",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 343,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.pull-nomic-embed-text",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 135,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.secondary",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 370,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.secondary-2",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 380,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.show",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 749,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-composer.dismiss-chat-error",
+      "file": "src/components/editorial/EditorialComposer.tsx",
+      "line": 228,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.branch-conversation",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 255,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.cancel",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 272,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.cancel-2",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 330,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.cancel-3",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 335,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.copy-message",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 226,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.edit-and-resend",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 241,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.edited-message",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 308,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.message-actions",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 225,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.message-confirm-panel",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 270,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.message-ctrl-or-command-click-to-copy",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 191,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.message-edit-panel",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 307,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.open-attached-file",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 567,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.regenerate",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 273,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.regenerate-response",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 230,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.save-amp-resend",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 331,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-message.save-amp-resend-2",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 336,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.begin-a-new-conversation",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 323,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.brand",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 277,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.button",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 197,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.close-sidebar",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 263,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.close-sidebar-2",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 296,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.copy-link",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 241,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.menu-and-settings",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 339,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.new-conversation",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 229,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.open-sidebar",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 250,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.settings-amp-menu-live-here",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 310,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-sidebar.title",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 218,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.file-explorer-panel.entry",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 133,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.file-explorer-panel.parent-directory",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 91,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.file-explorer-panel.refresh-directory",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 111,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.file-explorer-panel.set-path",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 107,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.file-viewer-panel.summary",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 110,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.file-viewer.html",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 79,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.file-viewer.json",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 72,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.file-viewer.markdown",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 60,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.file-viewer.notice",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 51,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.file-viewer.text",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 85,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.close-html-preview",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 302,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.download",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 75,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.download-2",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 224,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.html-artifact-preview",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 170,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.open",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 72,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.open-2",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 214,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.open-3",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 221,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.open-in-dock",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 191,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.open-in-os",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 229,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.open-in-os-2",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 301,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.view",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 203,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-preview.document-card",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 63,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-preview.inline",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 26,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.image-job-card.action",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 213,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.image-job-card.cancel-render",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 142,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.image-job-card.cancel-render-2",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 163,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.image-job-card.image",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 251,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.image-job-card.retry",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 212,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.image-job-card.retry-2",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 242,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.image-job.fine-tune",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 44,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.image-job.open-unscoped",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 291,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.markdown-chunk.a",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 264,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.markdown-chunk.download",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 163,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.markdown-chunk.lines",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 139,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.markdown-chunk.open",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 162,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.markdown-chunk.open-2",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 269,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.markdown-chunk.set-copy-state",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 150,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.markdown-chunk.set-html-view",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 135,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.markdown-chunk.set-wrapped",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 147,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.markdown-fallback.a",
+      "file": "src/components/editorial/MarkdownFallback.tsx",
+      "line": 58,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.markdown-fallback.open",
+      "file": "src/components/editorial/MarkdownFallback.tsx",
+      "line": 63,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.media-viewer.av-error",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 60,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.media-viewer.av-loading",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 63,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.media-viewer.empty",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 14,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.media-viewer.image",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 32,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.media-viewer.image-error",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 26,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.media-viewer.image-loading",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 29,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.memory-disclosure.cancel",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 84,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.memory-disclosure.don-apos-t-use-this-source",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 95,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.memory-disclosure.exclude",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 85,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.memory-disclosure.open-in-memory",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 76,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.memory-disclosure.open-library",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 74,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.memory-disclosure.open-source",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 70,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.memory-disclosure.source-unavailable",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 72,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.memory-disclosure.undo-exclusion",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 80,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.memory-disclosure.why-was-this-used",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 78,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.model-popover.clear-model-search",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 449,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.model-popover.favorite",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 240,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.model-popover.model-popover",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 386,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.model-popover.row",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 226,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.model-popover.search-models",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 436,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.prompt-card.container",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 19,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.prompt-cards.answer-in-your-own-words",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 80,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.prompt-cards.free",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 71,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.prompt-cards.send",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 87,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.prompt-cards.skip-this-question",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 91,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.sidebar-settings-button.dot",
+      "file": "src/components/editorial/SidebarSettingsButton.tsx",
+      "line": 45,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.sidebar-settings-button.settings-and-menu",
+      "file": "src/components/editorial/SidebarSettingsButton.tsx",
+      "line": 33,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.skill-picker.option-none",
+      "file": "src/components/editorial/composer/SkillPopover.tsx",
+      "line": 49,
+      "element": "jsx-prop",
+      "attribute": "testId"
+    },
+    {
+      "id": "workspace.skill-picker.option-unscoped",
+      "file": "src/components/editorial/composer/SkillPopover.tsx",
+      "line": 114,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.task-center-panel.cancel",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 125,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.task-center-panel.retry",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 128,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.task-center-panel.task",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 80,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.task-center.empty",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 25,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.task-center.ledger",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 33,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.undo-toast.undo",
+      "file": "src/components/editorial/UndoToast.tsx",
+      "line": 59,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.update-pill.dismiss-update-notice",
+      "file": "src/components/editorial/UpdatePill.tsx",
+      "line": 60,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.update-pill.on-click",
+      "file": "src/components/editorial/UpdatePill.tsx",
+      "line": 46,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.workspace-image.open",
+      "file": "src/components/editorial/WorkspaceImage.tsx",
+      "line": 29,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    }
+  ],
+  "patterns": [
+    {
+      "pattern": "settings.agent.fact-cancel-*",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 124,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.agent.fact-delete-*",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 129,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.agent.fact-edit-*",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 128,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.agent.fact-input-*",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 105,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.agent.fact-save-*",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 123,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.agent.library-source-*",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 215,
+      "attribute": "testId"
+    },
+    {
+      "pattern": "settings.agent.source-group-*",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 325,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.agent.source-toggle-*",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 353,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.agent.source-type-*",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 338,
+      "attribute": "testId"
+    },
+    {
+      "pattern": "settings.gates-menu.tab-*",
+      "file": "src/components/menu/GatesMenu.tsx",
+      "line": 32,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.preferences.delete-*",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 346,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.preferences.import-mode-*",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 205,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.secret-key.connect-*",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 113,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.secret-key.get-key-*",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 119,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.secret-key.input-*",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 98,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.secret-key.remove-*",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 67,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.secret-key.reveal-*",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 65,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.secret-key.stored-*",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 60,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "settings.segmented.option-*",
+      "file": "src/components/ui/SegmentedControl.tsx",
+      "line": 18,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.aurora-aurora-reply-footer.aurora-followup-*",
+      "file": "src/components/editorial/aurora/AuroraReplyFooter.tsx",
+      "line": 48,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.dock.cell-*",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 102,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-sidebar.context-menu-*",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 619,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-sidebar.context-rename-*",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 637,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-sidebar.delete-*",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 605,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-sidebar.pin-*",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 595,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-sidebar.rename-*",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 584,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-sidebar.rename-input-*",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 508,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-sidebar.row-actions-*",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 575,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-sidebar.thread-*",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 448,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.image-job.open-*",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 282,
+      "attribute": "testId"
+    },
+    {
+      "pattern": "workspace.media-viewer.content-*",
+      "file": "src/components/dock/MediaViewerPanel.tsx",
+      "line": 66,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.memory-disclosure.chip-*",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 41,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.model-popover.cap-filter-*",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 463,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.model-popover.segment-*",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 409,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.prompt-cards.option-*",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 58,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.skill-picker.option-*",
+      "file": "src/components/editorial/composer/SkillPopover.tsx",
+      "line": 58,
+      "attribute": "testId"
+    }
+  ],
+  "invalidIdentities": [],
+  "identityHistory": {
+    "renames": [
+      {
+        "from": "dock-collapsed-rail",
+        "to": "workspace.dock.collapsed-rail"
+      },
+      {
+        "from": "dock-panel",
+        "to": "workspace.dock.panel"
+      },
+      {
+        "from": "dock-cell-*",
+        "to": "workspace.dock.cell-*"
+      },
+      {
+        "from": "dock-file-explorer",
+        "to": "workspace.dock.file-explorer"
+      },
+      {
+        "from": "dock-file-viewer-notice",
+        "to": "workspace.file-viewer.notice"
+      },
+      {
+        "from": "dock-file-viewer-markdown",
+        "to": "workspace.file-viewer.markdown"
+      },
+      {
+        "from": "dock-file-viewer-json",
+        "to": "workspace.file-viewer.json"
+      },
+      {
+        "from": "dock-file-viewer-html",
+        "to": "workspace.file-viewer.html"
+      },
+      {
+        "from": "dock-file-viewer-text",
+        "to": "workspace.file-viewer.text"
+      },
+      {
+        "from": "dock-html-artifact",
+        "to": "workspace.dock.html-artifact"
+      },
+      {
+        "from": "dock-media-viewer-notice",
+        "targets": [
+          "workspace.media-viewer.empty",
+          "workspace.media-viewer.image-error",
+          "workspace.media-viewer.image-loading",
+          "workspace.media-viewer.av-error",
+          "workspace.media-viewer.av-loading"
+        ],
+        "reason": "The reused notice selector represented distinct empty, image, and audio/video states."
+      },
+      {
+        "from": "dock-media-viewer-image",
+        "to": "workspace.media-viewer.image"
+      },
+      {
+        "from": "dock-media-viewer-*",
+        "to": "workspace.media-viewer.content-*"
+      },
+      {
+        "from": "task-center-panel",
+        "targets": [
+          "workspace.task-center.empty",
+          "workspace.task-center.ledger"
+        ],
+        "reason": "The reused panel selector represented the empty and populated task-center states."
+      },
+      {
+        "from": "aurora-diff-card",
+        "to": "workspace.aurora.diff-card"
+      },
+      {
+        "from": "finetune-card",
+        "to": "workspace.image-job.fine-tune"
+      },
+      {
+        "from": "inline-html-preview",
+        "to": "workspace.html-preview.inline"
+      },
+      {
+        "from": "inline-html-document-card",
+        "to": "workspace.html-preview.document-card"
+      },
+      {
+        "from": "prompt-cards",
+        "to": "workspace.prompt-card.container"
+      },
+      {
+        "from": "search-card",
+        "to": "settings.models.search-card"
+      },
+      {
+        "from": "command-palette-backdrop",
+        "to": "app.command-palette.backdrop"
+      },
+      {
+        "from": "palette-empty",
+        "to": "app.command-palette.empty"
+      },
+      {
+        "from": "settings.preferences.radio-input",
+        "to": "settings.preferences.import-mode-*"
+      },
+      {
+        "from": "settings.preferences.delete",
+        "to": "settings.preferences.delete-*"
+      },
+      {
+        "from": "settings.agent.cancel-edit",
+        "to": "settings.agent.fact-input-*"
+      },
+      {
+        "from": "settings.agent.save",
+        "to": "settings.agent.fact-save-*"
+      },
+      {
+        "from": "settings.agent.cancel",
+        "to": "settings.agent.fact-cancel-*"
+      },
+      {
+        "from": "settings.agent.edit",
+        "to": "settings.agent.fact-edit-*"
+      },
+      {
+        "from": "settings.agent.delete",
+        "to": "settings.agent.fact-delete-*"
+      },
+      {
+        "from": "settings.agent.toggle",
+        "to": "settings.agent.library-source-*"
+      },
+      {
+        "from": "settings.agent.set-source-query",
+        "to": "settings.agent.source-group-*"
+      },
+      {
+        "from": "settings.agent.toggle-3",
+        "to": "settings.agent.source-type-*"
+      },
+      {
+        "from": "settings.agent.exclude-source",
+        "to": "settings.agent.source-toggle-*"
+      },
+      {
+        "from": "workspace.editorial-sidebar.item",
+        "to": "workspace.editorial-sidebar.thread-*"
+      },
+      {
+        "from": "workspace.editorial-sidebar.rename",
+        "to": "workspace.editorial-sidebar.rename-input-*"
+      },
+      {
+        "from": "workspace.editorial-sidebar.row-actions",
+        "to": "workspace.editorial-sidebar.row-actions-*"
+      },
+      {
+        "from": "workspace.editorial-sidebar.rename-2",
+        "to": "workspace.editorial-sidebar.rename-*"
+      },
+      {
+        "from": "workspace.editorial-sidebar.pin-button",
+        "to": "workspace.editorial-sidebar.pin-*"
+      },
+      {
+        "from": "workspace.editorial-sidebar.delete",
+        "to": "workspace.editorial-sidebar.delete-*"
+      },
+      {
+        "from": "workspace.editorial-sidebar.actions-for",
+        "to": "workspace.editorial-sidebar.context-menu-*"
+      },
+      {
+        "from": "workspace.editorial-sidebar.rename-3",
+        "to": "workspace.editorial-sidebar.context-rename-*"
+      }
+    ],
+    "tombstones": []
+  },
+  "candidates": [
+    {
+      "id": "candidate:9ff598bab3e089a8",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 76,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:06856809e99ebf09",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 87,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onPointerDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:f8652316cd16ec28",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 106,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onPointerDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e7f90fbbb75bee6c",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 121,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:1ab468e92d13f1c1",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 130,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ecfa1a69c2121c03",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 138,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ce482d071a686bb5",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 91,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:14ed038af2ab3ccf",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 107,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:3e9cc94cd3431076",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 111,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:851ea010f543d91d",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 133,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:07aad0caca6851c8",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 110,
+      "element": "summary",
+      "classification": "definite",
+      "evidence": [
+        "summary"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:c897fe674ea75351",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 80,
+      "element": "article",
+      "classification": "review-required",
+      "evidence": [
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:c27e48153b343b07",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 125,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:46b657cad4db1772",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 128,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6cca4f5a366bc6a0",
+      "file": "src/components/editorial/activity/ActivityRow.tsx",
+      "line": 105,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:85b411e7283251ca",
+      "file": "src/components/editorial/activity/TimelineGroup.tsx",
+      "line": 28,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:875cae287d965481",
+      "file": "src/components/editorial/aurora/AuroraActivityStream.tsx",
+      "line": 40,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:215bd8ce75e861cd",
+      "file": "src/components/editorial/aurora/AuroraActivityStream.tsx",
+      "line": 106,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:cd378fe34f941d6e",
+      "file": "src/components/editorial/aurora/AuroraReplyFooter.tsx",
+      "line": 28,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:2891fbb2c26d2507",
+      "file": "src/components/editorial/aurora/AuroraReplyFooter.tsx",
+      "line": 48,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:de623624474c6a32",
+      "file": "src/components/editorial/aurora/DiffCard.tsx",
+      "line": 37,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:19791eee2564051e",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 49,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:599b731aeaac88be",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 68,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:8b9f333e65dec065",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 69,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:8abbfd4c338bde6b",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 107,
+      "element": "input",
+      "classification": "definite",
+      "evidence": [
+        "native:input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6ea5145af0fbea78",
+      "file": "src/components/editorial/BridgeStatusPill.tsx",
+      "line": 51,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:07e8c4d8af487dc4",
+      "file": "src/components/editorial/composer/AttachmentTray.tsx",
+      "line": 39,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:b2e00328877a22f2",
+      "file": "src/components/editorial/composer/AttachmentTray.tsx",
+      "line": 78,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:b7ccf62b1b46413a",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 23,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ff3bb6f7708bdf6d",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 60,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:5baa4ad827e66650",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 92,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:869a936084046ece",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 96,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:4fe2b5e5ac94f799",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 118,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:58d16d4fddb894a6",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 69,
+      "element": "input",
+      "classification": "definite",
+      "evidence": [
+        "native:input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:20fa72c70f84ccc8",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 76,
+      "element": "AttachButton",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6a8fa3ab70047eaa",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 82,
+      "element": "textarea",
+      "classification": "definite",
+      "evidence": [
+        "native:textarea"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:edf938cc9d366faf",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 105,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:bcbdfbcaf2a681ba",
+      "file": "src/components/editorial/composer/ComposerInput.tsx",
+      "line": 135,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:93b3c023550112cc",
+      "file": "src/components/editorial/composer/ComposerMeta.tsx",
+      "line": 93,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:bb2247b12c98acca",
+      "file": "src/components/editorial/composer/ComposerMeta.tsx",
+      "line": 123,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ec4e5f8fa8a81b3f",
+      "file": "src/components/editorial/composer/ComposerMeta.tsx",
+      "line": 156,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:c2445f6f06d65408",
+      "file": "src/components/editorial/composer/ComposerMeta.tsx",
+      "line": 185,
+      "element": "select",
+      "classification": "definite",
+      "evidence": [
+        "native:select"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:45caa626d09c2f8b",
+      "file": "src/components/editorial/composer/ComposerMeta.tsx",
+      "line": 202,
+      "element": "select",
+      "classification": "definite",
+      "evidence": [
+        "native:select"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:051da806b6368e3f",
+      "file": "src/components/editorial/composer/SkillPopover.tsx",
+      "line": 48,
+      "element": "SkillRow",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ad6ed8e830da209c",
+      "file": "src/components/editorial/composer/SkillPopover.tsx",
+      "line": 57,
+      "element": "SkillRow",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:b0920c94633f492a",
+      "file": "src/components/editorial/composer/SkillPopover.tsx",
+      "line": 113,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:9204573d60516385",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 130,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:7b9f707f3176edca",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 135,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:c8d8b14db021ffd9",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 139,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6a36bcae8d2e8a4f",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 291,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:404431a21c155a87",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 336,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:c0740ae7b47b946f",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 343,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:9a7d84d2bbb79c59",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 360,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:8d2d8e46029fe7c0",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 367,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:7fafef641f5d7950",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 370,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:7a81f457fe018f20",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 377,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:cb70ba586df2e4d5",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 380,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a87adc15ddeb58a3",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 445,
+      "element": "a",
+      "classification": "definite",
+      "evidence": [
+        "a[href]"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a0169c41be9e322c",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 749,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:0301d7966ea101ce",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 798,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:3fd909d37b6b7349",
+      "file": "src/components/editorial/EditorialComposer.tsx",
+      "line": 228,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:aa670016417f9500",
+      "file": "src/components/editorial/EditorialComposer.tsx",
+      "line": 238,
+      "element": "ComposerInput",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onKeyDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:9c20d38c378f3c97",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 191,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:3d9a5205562012c7",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 225,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:b293ccaef4c35648",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 226,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:724b85c31e7369a4",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 230,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:62b8dcffa867ccd7",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 241,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a7cefb729a2d486d",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 255,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6c29291ada8edb4d",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 270,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:86224716f410ccd8",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 272,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:23b1283db0728309",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 273,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:26c5a378b22eb01b",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 307,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:082ea1c0c286eca5",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 308,
+      "element": "textarea",
+      "classification": "definite",
+      "evidence": [
+        "native:textarea"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:666fde1fc58be77f",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 330,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:0c5af31386463afd",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 331,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:333b4d6b11976c7d",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 335,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:0779cf00337162ec",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 336,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:2a5d1d8ef9a362e5",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 567,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:8129bff8bc7ea29e",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 197,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:054aec8427f17fbf",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 218,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:b06a6295477f295e",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 229,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6250ffba7af48e1a",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 241,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:7c9e0735cb352dc0",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 250,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:5704dd09a42dab74",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 263,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:609772c70f598469",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 277,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "role:button",
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e5ba68b016107721",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 296,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:28b7c32e8761f6ea",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 310,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:066fb5985bf5ffa1",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 323,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:4b878bb1bc32d9ee",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 339,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e5600e3f9be0de48",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 448,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "role:button",
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:1758020d6aa8e51e",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 508,
+      "element": "input",
+      "classification": "definite",
+      "evidence": [
+        "native:input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:1d03a94aff783269",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 575,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:c06ee99d41c3c373",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 584,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:cca477a36626ae0a",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 595,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:b01ceec0f1af4443",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 605,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:846e1589569e340f",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 619,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:694843188610a517",
+      "file": "src/components/editorial/EditorialSidebar.tsx",
+      "line": 637,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:98c9384169820ab7",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 72,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:729b4117bce03d19",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 75,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:405530ea36bdaa37",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 170,
+      "element": "span",
+      "classification": "review-required",
+      "evidence": [
+        "role:button",
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:236deb8973ded12e",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 191,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:03cf1f812fd795ba",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 203,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a09db5abc0cfda12",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 214,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:63eb40f969639e51",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 221,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ad5f6706d87c7f44",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 224,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:87a08c1005a2bd4f",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 229,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:63772ecf60ad6255",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 301,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:dc6c17fe2d7fc20c",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 302,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:9a86e873f8a926d1",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 142,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:8043eb3edceef479",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 163,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:93ec89a4fc337e32",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 212,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:50533289a9a7fa4c",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 213,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:1337dc331ab488f3",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 242,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6d1291e8fc8f3e85",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 251,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:3fdb1da7f7d72cfe",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 282,
+      "element": "GridTile",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:129a85e0dd9778a1",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 290,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:22927544a611d6ae",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 135,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:3660eaaabe94e0b2",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 139,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e9e4a2093825ad70",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 147,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:999361eaf6cbc2d8",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 150,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:4261d770a26ef8fc",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 162,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:31e594f354113e78",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 163,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:4519659f776625f3",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 264,
+      "element": "a",
+      "classification": "definite",
+      "evidence": [
+        "a[href]"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:676a257bf75e3336",
+      "file": "src/components/editorial/MarkdownChunk.tsx",
+      "line": 269,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6c5789bb94f2de71",
+      "file": "src/components/editorial/MarkdownFallback.tsx",
+      "line": 58,
+      "element": "a",
+      "classification": "definite",
+      "evidence": [
+        "a[href]"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:9e7e7d3d19b3837e",
+      "file": "src/components/editorial/MarkdownFallback.tsx",
+      "line": 63,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:443946a250f5143e",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 41,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:52cfb675003d6468",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 70,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:aaefb100f73b5c16",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 72,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:dc7b9261d44a0ba2",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 74,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:8374b54528652977",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 76,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:1ba2c6c9374f9b84",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 78,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:08e25c94a93bcab4",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 80,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:2e46f52a7df7f383",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 84,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:7236331be09d00ae",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 85,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:3aabc10888e90731",
+      "file": "src/components/editorial/MemoryDisclosure.tsx",
+      "line": 95,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:5d38b206a4783f6d",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 226,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "role:option",
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:16b76a9349025e5e",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 240,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:2e1bd7333d815317",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 386,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onKeyDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6ab6d550bc2d757c",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 409,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6000a6980c375635",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 436,
+      "element": "input",
+      "classification": "definite",
+      "evidence": [
+        "native:input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a5a1f208188907e2",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 449,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:b7dfe7fe76c966aa",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 463,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:52d215a13e4ae4a5",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 58,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:0c8a1b5395761d75",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 71,
+      "element": "form",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onSubmit"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e85230dfc680c1f8",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 80,
+      "element": "input",
+      "classification": "definite",
+      "evidence": [
+        "native:input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:d5c3a4f70798e86f",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 87,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:4629b70c56799440",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 91,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a819aa3b521cb237",
+      "file": "src/components/editorial/SidebarSettingsButton.tsx",
+      "line": 33,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:194be6858582aef4",
+      "file": "src/components/editorial/SidebarSettingsButton.tsx",
+      "line": 45,
+      "element": "span",
+      "classification": "review-required",
+      "evidence": [
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:7ef528fcf2aceb5d",
+      "file": "src/components/editorial/UndoToast.tsx",
+      "line": 59,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:2ff88ac3bc6ecd0d",
+      "file": "src/components/editorial/UpdatePill.tsx",
+      "line": 46,
+      "element": "span",
+      "classification": "review-required",
+      "evidence": [
+        "tabIndex",
+        "handler:onClick",
+        "handler:onKeyDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ecf82e9cf980ec4b",
+      "file": "src/components/editorial/UpdatePill.tsx",
+      "line": 60,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ec8434bffd6f2972",
+      "file": "src/components/editorial/WorkspaceImage.tsx",
+      "line": 29,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a20b6b158501520b",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 57,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:c7ee3bf91f9f4138",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 78,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:db52af582583884d",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 105,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e65f77982496da05",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 113,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a0b1c1d9a2e1276a",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 122,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:8486f9a926c9c1ca",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 181,
+      "element": "textarea",
+      "classification": "definite",
+      "evidence": [
+        "native:textarea"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:c5223d574a4c9646",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 189,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:d834d65600b420ee",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 192,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:d29245a55dee224a",
+      "file": "src/components/media/Lightbox.tsx",
+      "line": 200,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:f8e68c78f26d8faa",
+      "file": "src/components/menu/GatesMenu.tsx",
+      "line": 32,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:22bab5a90bfcf083",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 31,
+      "element": "Textarea",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Textarea"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:51a75e5b59538636",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 105,
+      "element": "Input",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:6366109777be9f05",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 123,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:56e083bf6a63980d",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 124,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:7dcbeff5f8e1e606",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 128,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:818c8594633e7dce",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 129,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e5311bb7a94f12ec",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 140,
+      "element": "Input",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:79f3847bb89035b2",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 147,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a5c2839f67cad63c",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 152,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:24ebb109843e9a94",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 193,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e34fe70a738355a2",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 198,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ff607b4e26576269",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 215,
+      "element": "Toggle",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Toggle"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a7d5e59120fe23b7",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 293,
+      "element": "Toggle",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Toggle"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:f50e2e8dd7810184",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 309,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:7e0337a1a20a329f",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 325,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:8e4b89ce738ccf5c",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 338,
+      "element": "Toggle",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Toggle"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:cc9dd424828a323c",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 342,
+      "element": "Input",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:99d4503290780bd4",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 353,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:925261d42aa0d089",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 359,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:87744a4889f8a138",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 370,
+      "element": "Input",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:7c89d7f7d57c5bf8",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 377,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:972b081560e7af0d",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 393,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:66d8e18a6b25bf21",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 394,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:77e04f2f95231bd0",
+      "file": "src/components/menu/sections/api/ApiSection.tsx",
+      "line": 101,
+      "element": "Input",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e5068297f0bdb08b",
+      "file": "src/components/menu/sections/api/ApiSection.tsx",
+      "line": 108,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a2d66f5441843dc3",
+      "file": "src/components/menu/sections/api/OpenRouterCatalogRow.tsx",
+      "line": 38,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:90cb9cc908762bba",
+      "file": "src/components/menu/sections/api/OpenRouterCatalogRow.tsx",
+      "line": 42,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e94487ac7d4f3a05",
+      "file": "src/components/menu/sections/ChordRecorder.tsx",
+      "line": 32,
+      "element": "input",
+      "classification": "definite",
+      "evidence": [
+        "native:input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:c5409dcb76792135",
+      "file": "src/components/menu/sections/ChordRecorder.tsx",
+      "line": 57,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:75ab3d7c559a11cb",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 40,
+      "element": "Toggle",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Toggle"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:440075359532b5e0",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 112,
+      "element": "Toggle",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Toggle"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:e89dc437491e84e4",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 133,
+      "element": "Toggle",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Toggle"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:806f184adbffc8f6",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 195,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:04a4b20100407827",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 205,
+      "element": "input",
+      "classification": "definite",
+      "evidence": [
+        "native:input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:683ef03241e8255d",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 223,
+      "element": "Input",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:d4e3913f453503fd",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 234,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ed7cfeba9cbd30a0",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 241,
+      "element": "input",
+      "classification": "definite",
+      "evidence": [
+        "native:input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:53b342954cffdc24",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 336,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:0bb1ab64da88d816",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 343,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:464965ac2d729e33",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 346,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:567d4ff2d1e9c073",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 227,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:bde9964b1d1e5842",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 235,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onClick",
+        "handler:onKeyDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:be0bd51ca53aec19",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 248,
+      "element": "input",
+      "classification": "definite",
+      "evidence": [
+        "native:input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:daf6d58af3359d08",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 332,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:521b2c5b1be47a77",
+      "file": "src/components/ui/Button.tsx",
+      "line": 32,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:2f3616dc8c10d5b4",
+      "file": "src/components/ui/Input.tsx",
+      "line": 21,
+      "element": "input",
+      "classification": "definite",
+      "evidence": [
+        "native:input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:298cda0baf473818",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 59,
+      "element": "Input",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:629c61d5103cd3f2",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 65,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a17e590e986ca3bf",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 66,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:514cd51770bf85cb",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 97,
+      "element": "Input",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Input"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:0b91b7c86c5d8fa4",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 113,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:b7dcc03bbd679983",
+      "file": "src/components/ui/SecretKeyField.tsx",
+      "line": 118,
+      "element": "a",
+      "classification": "definite",
+      "evidence": [
+        "a[href]"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:83c2302de2506f0c",
+      "file": "src/components/ui/SegmentedControl.tsx",
+      "line": 17,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:b0253c7bdc116600",
+      "file": "src/components/ui/Select.tsx",
+      "line": 6,
+      "element": "select",
+      "classification": "definite",
+      "evidence": [
+        "native:select"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:99e03c5edd8399dc",
+      "file": "src/components/ui/Textarea.tsx",
+      "line": 6,
+      "element": "textarea",
+      "classification": "definite",
+      "evidence": [
+        "native:textarea"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:df0eb3e71a0568a8",
+      "file": "src/components/ui/Toggle.tsx",
+      "line": 21,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:585aa3d5bf5451c8",
+      "file": "src/components/whats-new/WhatsNewPanel.tsx",
+      "line": 50,
+      "element": "div",
+      "classification": "review-required",
+      "evidence": [
+        "handler:onMouseDown"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:3fd9aa07ec593107",
+      "file": "src/components/whats-new/WhatsNewPanel.tsx",
+      "line": 70,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:c2f04dbdbec7a52d",
+      "file": "src/components/whats-new/WhatsNewPanel.tsx",
+      "line": 92,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    }
+  ],
+  "unresolvedCandidates": [],
+  "unidentifiedInteractive": []
+}

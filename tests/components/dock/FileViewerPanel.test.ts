@@ -63,7 +63,7 @@ describe('FileViewerPanel content-type dispatch', () => {
       content: '# Plan Heading\n\nSome body text.',
       mime: 'text/markdown',
     });
-    const container = rendered.querySelector('[data-testid="dock-file-viewer-markdown"]');
+    const container = rendered.querySelector('[data-testid="workspace.file-viewer.markdown"]');
     expect(container).not.toBeNull();
     expect(container?.querySelector('h1')?.textContent).toBe('Plan Heading');
     expect(container?.textContent).toContain('Some body text.');
@@ -75,7 +75,7 @@ describe('FileViewerPanel content-type dispatch', () => {
       content: JSON.stringify({ alpha: { a: 1 }, beta: [1, 2] }),
       mime: 'application/json',
     });
-    const container = rendered.querySelector('[data-testid="dock-file-viewer-json"]');
+    const container = rendered.querySelector('[data-testid="workspace.file-viewer.json"]');
     expect(container).not.toBeNull();
     const summaries = [...(container?.querySelectorAll('summary') ?? [])].map(el => el.textContent);
     expect(summaries).toEqual(['alpha', 'beta']);
@@ -87,7 +87,7 @@ describe('FileViewerPanel content-type dispatch', () => {
       content: '{oops',
       mime: 'application/json',
     });
-    const container = rendered.querySelector('[data-testid="dock-file-viewer-json"]');
+    const container = rendered.querySelector('[data-testid="workspace.file-viewer.json"]');
     expect(container?.querySelector('details')).toBeNull();
     expect(container?.querySelector('pre')?.textContent).toBe('{oops');
   });
@@ -98,7 +98,7 @@ describe('FileViewerPanel content-type dispatch', () => {
       content: '<html><body>hi</body></html>',
       mime: 'text/html',
     });
-    const iframe = rendered.querySelector('[data-testid="dock-file-viewer-html"] iframe');
+    const iframe = rendered.querySelector('[data-testid="workspace.file-viewer.html"] iframe');
     expect(iframe).not.toBeNull();
     expect(iframe?.getAttribute('sandbox')).toBe(__htmlArtifactPreviewTestApi.sandbox);
   });
@@ -109,7 +109,7 @@ describe('FileViewerPanel content-type dispatch', () => {
       content: 'line one\nline two',
       mime: 'text/plain',
     });
-    const pre = rendered.querySelector('[data-testid="dock-file-viewer-text"] pre');
+    const pre = rendered.querySelector('[data-testid="workspace.file-viewer.text"] pre');
     expect(pre?.textContent).toBe('line one\nline two');
   });
 
@@ -118,7 +118,7 @@ describe('FileViewerPanel content-type dispatch', () => {
       ok: false,
       reason: 'not found: /workspace/missing.md',
     });
-    const notice = rendered.querySelector('[data-testid="dock-file-viewer-notice"]');
+    const notice = rendered.querySelector('[data-testid="workspace.file-viewer.notice"]');
     expect(notice?.textContent).toContain('not found: /workspace/missing.md');
   });
 });

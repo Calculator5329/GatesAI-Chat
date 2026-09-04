@@ -65,7 +65,7 @@ export const DockPanel = observer(function DockPanel() {
   return (
     <div
       className={`dock-panel${collapsed ? ' dock-panel--collapsed' : ''}`}
-      data-testid={collapsed ? 'dock-collapsed-rail' : 'dock-panel'}
+      data-testid={collapsed ? 'workspace.dock.collapsed-rail' : 'workspace.dock.panel'}
       data-collapsed={collapsed || undefined}
       // Suppressed while dragging the resizer: a transition on width turns a
       // direct-manipulation drag into a laggy one.
@@ -73,7 +73,7 @@ export const DockPanel = observer(function DockPanel() {
       style={collapsed ? undefined : { width: `${Math.round(dock.dockRatio * 1000) / 10}%` }}
     >
       {collapsed ? (
-        <button
+        <button data-testid="workspace.dock-panel.expand-dock"
           type="button"
           className="dock-panel__reopen"
           title="Expand dock"
@@ -84,7 +84,7 @@ export const DockPanel = observer(function DockPanel() {
         </button>
       ) : (
       <>
-      <div
+      <div data-testid="workspace.dock-panel.resize-dock"
         className="dock-panel__resizer"
         role="separator"
         aria-orientation="vertical"
@@ -99,11 +99,11 @@ export const DockPanel = observer(function DockPanel() {
             <div
               key={`${index}-${cell.kind}-${cell.params.path ?? ''}`}
               className="dock-cell"
-              data-testid={`dock-cell-${index}`}
+              data-testid={`workspace.dock.cell-${index}`}
               style={{ flexGrow: grow, flexBasis: 0 }}
             >
               {position === 1 && (
-                <div
+                <div data-testid="workspace.dock-panel.resize-dock-cells"
                   className="dock-cell__divider"
                   role="separator"
                   aria-orientation="horizontal"
@@ -118,7 +118,7 @@ export const DockPanel = observer(function DockPanel() {
                 </span>
                 <span className="dock-cell__actions">
                   {bothOccupied && (
-                    <button
+                    <button data-testid="workspace.dock-panel.swap-dock-cells"
                       type="button"
                       title="Swap cells"
                       aria-label="Swap dock cells"
@@ -127,7 +127,7 @@ export const DockPanel = observer(function DockPanel() {
                       <Icons.Refresh />
                     </button>
                   )}
-                  <button
+                  <button data-testid="workspace.dock-panel.collapse-dock"
                     type="button"
                     title="Collapse dock"
                     aria-label="Collapse dock"
@@ -135,7 +135,7 @@ export const DockPanel = observer(function DockPanel() {
                   >
                     <Icons.Chevron />
                   </button>
-                  <button
+                  <button data-testid="workspace.dock-panel.close"
                     type="button"
                     title="Close panel"
                     aria-label={`Close ${dockCellTitle(cell)}`}

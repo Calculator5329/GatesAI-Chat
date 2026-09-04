@@ -7,6 +7,8 @@ import { Button } from './Button';
 import { Input } from './Input';
 
 export interface SecretKeyFieldProps {
+  /** Stable provider/surface key used to keep repeated primitive controls source-unique. */
+  identityKey: string;
   /** The currently-stored key (empty / undefined → connect mode). */
   value: string;
   /** Called with the trimmed-non-empty key when the user submits. */
@@ -38,6 +40,7 @@ function maskKey(key: string): string {
  * inlined three times in `Api.tsx` with subtly different markup.
  */
 export function SecretKeyField({
+  identityKey,
   value,
   onSet,
   onClear,
@@ -54,12 +57,14 @@ export function SecretKeyField({
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
         <Input
+          data-testid={`settings.secret-key.stored-${identityKey}`}
           readOnly
           value={revealed ? value : maskKey(value)}
           style={{ ...tokens.mono, fontSize: 12, flex: 1 }}
         />
-        <Button onClick={() => setRevealed(v => !v)}>{revealed ? 'Hide' : 'Reveal'}</Button>
+        <Button data-testid={`settings.secret-key.reveal-${identityKey}`} onClick={() => setRevealed(v => !v)}>{revealed ? 'Hide' : 'Reveal'}</Button>
         <Button
+          data-testid={`settings.secret-key.remove-${identityKey}`}
           variant="danger"
           onClick={() => {
             onClear();
@@ -90,6 +95,7 @@ export function SecretKeyField({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
         <Input
+          data-testid={`settings.secret-key.input-${identityKey}`}
           type="password"
           placeholder={placeholder}
           value={draft}
@@ -104,12 +110,13 @@ export function SecretKeyField({
           }}
           onKeyDown={e => { if (e.key === 'Enter') submit(); }}
         />
-        <Button variant="accent" onClick={submit} disabled={!draft.trim()}>{connectLabel}</Button>
+        <Button data-testid={`settings.secret-key.connect-${identityKey}`} variant="accent" onClick={submit} disabled={!draft.trim()}>{connectLabel}</Button>
       </div>
       {getKeyUrl && (
         <div style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
           Get a key →{' '}
           <a href={getKeyUrl} target="_blank" rel="noreferrer"
+             data-testid={`settings.secret-key.get-key-${identityKey}`}
              style={{ color: 'var(--accent)', textDecoration: 'none' }}>
             {getKeyUrl.replace(/^https?:\/\//, '')}
           </a>

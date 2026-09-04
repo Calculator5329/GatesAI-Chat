@@ -10,6 +10,15 @@ well-managed memory — rather than a feature checklist.
 **Routing floor:** three destinations only — OpenRouter (cloud LLM + image),
 Ollama (local LLM), ComfyUI (local image). No custom OpenAI-compatible endpoint.
 
+- [x] <!-- workspace:id=work:82af8a23-ff49-45ef-a07e-179bedcf47c0 --> **Adopt Agent Handles as a clean package trial.** *(done
+      2026-08-26 — the packaged `adopt` lifecycle classified and identified all
+      223 static control candidates, migrated 27 legacy declarations, sealed the
+      v4 interaction fingerprint, emitted a byte-identical production registry,
+      and compiled five journeys that passed twice during verification. Those
+      journeys observed 71 controls with zero unidentified or duplicate handles.
+      This is path-bound evidence: routes and interaction states the journeys did
+      not visit remain explicitly uncovered.)*
+
 De-scope pass complete this session (archived to git history; recover a feature
 by restoring its files + one registry line):
 

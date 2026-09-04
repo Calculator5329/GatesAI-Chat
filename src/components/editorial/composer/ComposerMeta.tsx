@@ -90,7 +90,7 @@ export function ComposerMeta({
   return (
     <div className="editorial-composer__meta" style={META_ROW_STYLE}>
       <div style={{ position: 'relative' }}>
-        <button
+        <button data-testid="workspace.composer-meta.model"
           type="button"
           className="composer-model-label"
           aria-haspopup="listbox"
@@ -120,7 +120,7 @@ export function ComposerMeta({
       </div>
       {!webLite && activeThread && (
         <div style={{ position: 'relative' }}>
-          <button
+          <button data-testid="workspace.composer-meta.workspace-skill"
             type="button"
             className="composer-skill-label"
             aria-haspopup="listbox"
@@ -153,7 +153,7 @@ export function ComposerMeta({
         </div>
       )}
       {activeThread && activeThread.agentTask !== true && (
-        <button
+        <button data-testid="workspace.composer-meta.start-deep-research"
           type="button"
           className="composer-research-label"
           onClick={onResearch}
@@ -182,7 +182,7 @@ export function ComposerMeta({
       {activeThread && currentModel?.providerId === 'ollama' && (
         <span className="composer-reveal">
           <span style={SEP_STYLE}>·</span>
-          <select
+          <select data-testid="workspace.composer-meta.local-context-mode"
             className="composer-local-select"
             value={localContextMode}
             onChange={e => onContextModeChange(e.currentTarget.value as ChatContextMode)}
@@ -199,7 +199,7 @@ export function ComposerMeta({
       {activeThread && currentModel?.providerId === 'openrouter' && (
         <span className="composer-reveal">
           <span style={SEP_STYLE}>·</span>
-          <select
+          <select data-testid="workspace.composer-meta.thinking-effort"
             className="composer-local-select"
             value={thinkingEffort}
             onChange={e => onThinkingEffortChange(e.currentTarget.value as ChatThinkingEffort)}

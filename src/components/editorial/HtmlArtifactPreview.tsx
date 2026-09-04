@@ -23,7 +23,7 @@ export function InlineHtmlDocument({ html }: { html: string }) {
   useEffect(() => () => previewDocument.revoke?.(), [previewDocument]);
 
   return (
-    <div className="inline-html-preview" data-testid="inline-html-preview">
+    <div className="inline-html-preview" data-testid="workspace.html-preview.inline">
       <iframe
         title="HTML code preview"
         src={previewDocument.url}
@@ -60,7 +60,7 @@ export function InlineHtmlDocumentCard({ html }: { html: string }) {
   const lineCount = html.split('\n').length;
 
   return (
-    <div className="html-document-card" data-testid="inline-html-document-card">
+    <div className="html-document-card" data-testid="workspace.html-preview.document-card">
       <div className="html-document-card__meta">
         <span className="html-document-card__eyebrow">HTML document</span>
         <span className="html-document-card__name">{title ?? 'Untitled document'}</span>
@@ -69,10 +69,10 @@ export function InlineHtmlDocumentCard({ html }: { html: string }) {
         </span>
       </div>
       <div className="html-document-card__actions">
-        <button type="button" className="html-artifact-preview__open" onClick={() => openHtmlDocument(html)}>
+        <button data-testid="workspace.html-artifact-preview.open" type="button" className="html-artifact-preview__open" onClick={() => openHtmlDocument(html)}>
           Open
         </button>
-        <button type="button" className="html-artifact-preview__open" onClick={() => downloadHtmlDocument(html)}>
+        <button data-testid="workspace.html-artifact-preview.download" type="button" className="html-artifact-preview__open" onClick={() => downloadHtmlDocument(html)}>
           Download
         </button>
       </div>
@@ -167,7 +167,7 @@ export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
 
   return (
     <>
-      <span
+      <span data-testid="workspace.html-artifact-preview.html-artifact-preview"
         className="html-artifact-preview"
         role="button"
         tabIndex={0}
@@ -188,7 +188,7 @@ export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
           </span>
           <span className="html-artifact-preview__actions">
             {handsOffToDock && (
-              <button
+              <button data-testid="workspace.html-artifact-preview.open-in-dock"
                 type="button"
                 className="html-artifact-preview__open"
                 onClick={(event) => runDocumentAction(event, () => dock.openPath(path))}
@@ -200,7 +200,7 @@ export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
                 pops into an otherwise-settled transcript shifts the layout
                 under the reader's cursor. */}
             {compact && (
-              <button
+              <button data-testid="workspace.html-artifact-preview.view"
                 type="button"
                 className="html-artifact-preview__open"
                 disabled={state.status !== 'ready'}
@@ -211,22 +211,22 @@ export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
             )}
             {!compact && state.status === 'ready' && (
               <>
-                <button
+                <button data-testid="workspace.html-artifact-preview.open-2"
                   type="button"
                   className="html-artifact-preview__open"
                   onClick={(event) => runDocumentAction(event, () => setView(current => current === 'preview' ? 'source' : 'preview'))}
                 >
                   {view === 'preview' ? 'Source' : 'Preview'}
                 </button>
-                <button type="button" className="html-artifact-preview__open" onClick={(event) => runDocumentAction(event, () => openHtmlDocument(state.html))}>
+                <button data-testid="workspace.html-artifact-preview.open-3" type="button" className="html-artifact-preview__open" onClick={(event) => runDocumentAction(event, () => openHtmlDocument(state.html))}>
                   Open
                 </button>
-                <button type="button" className="html-artifact-preview__open" onClick={(event) => runDocumentAction(event, () => downloadHtmlDocument(state.html, name))}>
+                <button data-testid="workspace.html-artifact-preview.download-2" type="button" className="html-artifact-preview__open" onClick={(event) => runDocumentAction(event, () => downloadHtmlDocument(state.html, name))}>
                   Download
                 </button>
               </>
             )}
-            <button type="button" className="html-artifact-preview__open" onClick={openOs}>
+            <button data-testid="workspace.html-artifact-preview.open-in-os" type="button" className="html-artifact-preview__open" onClick={openOs}>
               Open in OS
             </button>
           </span>
@@ -298,8 +298,8 @@ function HtmlArtifactFullscreen({
           <code>{path}</code>
         </div>
         <div className="html-artifact-fullscreen__actions">
-          <button type="button" className="html-artifact-fullscreen__action" onClick={onOpenOs}>Open in OS</button>
-          <button type="button" className="html-artifact-fullscreen__action" aria-label="Close HTML preview" onClick={onClose}>Close</button>
+          <button data-testid="workspace.html-artifact-preview.open-in-os-2" type="button" className="html-artifact-fullscreen__action" onClick={onOpenOs}>Open in OS</button>
+          <button data-testid="workspace.html-artifact-preview.close-html-preview" type="button" className="html-artifact-fullscreen__action" aria-label="Close HTML preview" onClick={onClose}>Close</button>
         </div>
       </div>
       <iframe
