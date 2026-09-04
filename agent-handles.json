@@ -5,7 +5,7 @@
   "ratchetPath": "testid-ratchet.json",
   "playwrightSpecPath": "tests/e2e/journeys.generated.spec.ts",
   "adoption": {
-    "journeyVerifyCommand": "npx playwright test tests/e2e/journeys.generated.spec.ts --project=desktop-mocked --project=web-lite-journeys"
+    "journeyVerifyCommand": "npx playwright test tests/e2e/journeys.generated.spec.ts --project=desktop-mocked --project=web-lite-journeys --project=mobile-journeys"
   },
   "identityRenames": {
     "dock-collapsed-rail": "workspace.dock.collapsed-rail",
@@ -40,7 +40,6 @@
     "aurora-diff-card": "workspace.aurora.diff-card",
     "finetune-card": "workspace.image-job.fine-tune",
     "inline-html-preview": "workspace.html-preview.inline",
-    "inline-html-document-card": "workspace.html-preview.document-card",
     "prompt-cards": "workspace.prompt-card.container",
     "search-card": "settings.models.search-card",
     "command-palette-backdrop": "app.command-palette.backdrop",
@@ -92,7 +91,6 @@
     "workspace.task-center-panel.cancel": "workspace.task-center-panel.cancel-*",
     "workspace.task-center-panel.retry": "workspace.task-center-panel.retry-*",
     "workspace.file-explorer-panel.set-path": "workspace.file-explorer-panel.set-path-*",
-    "app.lightbox.open-in-os-2": "app.lightbox.open-in-os-no-prompt",
     "settings.agent.add-a-memory-user-prefers-concise-answers": "settings.agent.new-fact",
     "settings.agent.toggle-2": "settings.agent.semantic-recall",
     "settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe": "settings.agent.system-prompt",
@@ -108,8 +106,29 @@
     "workspace.html-artifact-preview.open-3": "workspace.html-artifact-preview.open-file",
     "workspace.html-artifact-preview.download-2": "workspace.html-artifact-preview.download-file",
     "workspace.html-artifact-preview.open-in-os-2": "workspace.html-artifact-preview.fullscreen-open-in-os",
-    "workspace.image-job-card.cancel-render-2": "workspace.image-job-card.cancel-pending",
+    "workspace.image-job-card.cancel-render-2": "workspace.image-job-card.cancel-pending-*",
     "workspace.image-job-card.retry-2": "workspace.image-job-card.retry-cancelled",
-    "workspace.markdown-chunk.open-2": "workspace.markdown-chunk.open-workspace-path"
+    "workspace.markdown-chunk.open-2": "workspace.markdown-chunk.open-workspace-path",
+    "workspace.aurora-aurora-activity-stream.head": "workspace.aurora-aurora-activity-stream.head-*",
+    "workspace.aurora-fine-tune-card.number-input": "workspace.aurora-fine-tune-card.number-input-*",
+    "workspace.prompt-cards.answer-in-your-own-words": "workspace.prompt-cards.answer-*",
+    "workspace.prompt-cards.free": "workspace.prompt-cards.free-*",
+    "workspace.prompt-cards.send": "workspace.prompt-cards.send-*",
+    "workspace.prompt-cards.skip-this-question": "workspace.prompt-cards.skip-*",
+    "workspace.file-viewer-panel.summary": "workspace.file-viewer-panel.summary-*"
+  },
+  "identityTombstones": {
+    "inline-html-document-card": {
+      "removedAt": "2026-09-04",
+      "reason": "Legacy selector of the removed InlineHtmlDocumentCard; the card has no call site."
+    },
+    "app.lightbox.open-in-os-2": {
+      "removedAt": "2026-09-04",
+      "reason": "Legacy selector of the no-prompt Open in OS branch; the control now renders once as app.lightbox.open-in-os."
+    },
+    "workspace.image-job-card.cancel-pending": {
+      "removedAt": "2026-09-04",
+      "reason": "Cancel is now scoped per job (workspace.image-job-card.cancel-pending-<jobId>) so two pending renders no longer share one identity."
+    }
   }
 }

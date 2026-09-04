@@ -105,3 +105,28 @@ describe('BridgeStore.readAttachmentBase64', () => {
     warn.mockRestore();
   });
 });
+
+describe('BridgeStore.whenSettled', () => {
+  it('resolves immediately once the state is known', async () => {
+    const bridge = new BridgeStore();
+    bridge.state = 'offline';
+    await expect(bridge.whenSettled(50)).resolves.toBeUndefined();
+  });
+
+  it('waits for the first poll to answer, then resolves', async () => {
+    const bridge = new BridgeStore();
+    let settled = false;
+    const pending = bridge.whenSettled(1000).then(() => { settled = true; });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    bridge.state = 'online';
+    await pending;
+    expect(settled).toBe(true);
+  });
+
+  it('gives up after the bound instead of hanging a runtime that never polls', async () => {
+    const bridge = new BridgeStore();
+    await expect(bridge.whenSettled(20)).resolves.toBeUndefined();
+    expect(bridge.state).toBe('unknown');
+  });
+});

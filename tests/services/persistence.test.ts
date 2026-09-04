@@ -148,6 +148,49 @@ describe('persistence', () => {
     expect(loadSnapshot()).toMatchObject(snapshot);
   });
 
+  it('round-trips a diff artifact on a tool result and drops a malformed one', () => {
+    const diff = {
+      kind: 'diff' as const,
+      path: '/workspace/src/runner.ts',
+      added: 1,
+      removed: 1,
+      rows: [
+        { type: 'context' as const, text: 'const a = 1;', oldLine: 1, newLine: 1 },
+        { type: 'removed' as const, text: 'run(a)', oldLine: 2 },
+        { type: 'added' as const, text: 'runSafely(a)', newLine: 2 },
+      ],
+      truncated: true,
+    };
+    const snapshot = {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
+      threads: [{
+        id: 't1', title: 'diff', subtitle: '', pinned: false,
+        modelId: 'or-gemini-3-flash',
+        createdAt: 1, updatedAt: 2,
+        messages: [{
+          id: 'a1',
+          role: 'assistant' as const,
+          content: 'edited',
+          createdAt: 3,
+          model: 'or-gemini-3-flash',
+          toolCalls: [{ id: 'c1', name: 'fs', arguments: { action: 'edit', path: diff.path } }],
+          toolResults: [
+            { toolCallId: 'c1', toolName: 'fs', content: 'ok', ranAt: 4, artifacts: [diff] },
+            { toolCallId: 'c2', toolName: 'fs', content: 'bad', ranAt: 5, artifacts: [{ kind: 'diff', path: diff.path, added: 1, removed: 0, rows: [{ type: 'added', text: 'x' }] }] },
+          ],
+        }],
+      }],
+      activeThreadId: 't1',
+    } as unknown as ChatSnapshot;
+
+    saveSnapshot(snapshot);
+
+    const loaded = loadSnapshot();
+    const results = messageToolResults(loaded!.threads[0].messages[0] as never);
+    expect(results[0].artifacts).toEqual([diff]);
+    expect(results[1].artifacts).toBeUndefined();
+  });
+
   it('round-trips a bounded retrieval trace and drops an invalid trace without dropping the reply', () => {
     const trace = {
       version: 1 as const,
@@ -180,6 +223,35 @@ describe('persistence', () => {
     const loaded = loadSnapshot()?.threads[0].messages[0];
     expect(loaded?.role).toBe('assistant');
     expect(loaded?.role === 'assistant' ? loaded.retrievalTrace : undefined).toBeUndefined();
+  });
+
+  it('keeps library sources in a persisted retrieval trace', () => {
+    const trace = {
+      version: 1 as const,
+      purpose: 'automatic_context' as const,
+      usedAt: 10,
+      generationId: 'g2',
+      model: 'nomic-embed-text',
+      rankingPolicyVersion: 1 as const,
+      items: [{
+        reference: 'library:lib-1', sourceType: 'library' as const, sourceId: 'lib-1',
+        title: 'Audit plan', sourceTimestamp: 9, excerpt: 'Review open models first.',
+        denseRank: 1, lexicalRank: undefined, fusedRank: 1,
+      }],
+    };
+    const snapshot: ChatSnapshot = {
+      schemaVersion: CURRENT_CHAT_SCHEMA_VERSION,
+      threads: [{
+        id: 't1', title: 'trace', subtitle: '', pinned: false, modelId: 'or-gpt-5.4-mini',
+        createdAt: 1, updatedAt: 2,
+        messages: [{ id: 'a1', role: 'assistant', content: 'done', createdAt: 3, retrievalTrace: trace }],
+      }],
+      activeThreadId: 't1',
+    };
+    saveSnapshot(snapshot);
+    const loaded = loadSnapshot()?.threads[0].messages[0];
+    const loadedTrace = loaded?.role === 'assistant' ? loaded.retrievalTrace : undefined;
+    expect(loadedTrace?.items.map(item => item.sourceType)).toEqual(['library']);
   });
 
   it('returns null on malformed JSON', () => {

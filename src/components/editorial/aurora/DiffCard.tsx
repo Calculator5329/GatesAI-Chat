@@ -39,7 +39,7 @@ export function DiffCard({ artifact }: { artifact: DiffArtifact }) {
             </button>
           )}
           {artifact.truncated && (
-            <span className="aurora-diff__note">Preview only — unchanged regions omitted.</span>
+            <span className="aurora-diff__note">Preview only. Unchanged regions omitted.</span>
           )}
         </div>
       )}

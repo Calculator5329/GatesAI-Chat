@@ -62,7 +62,7 @@ export function MemoryDisclosure({
           <blockquote>{selected.excerpt}</blockquote>
           {showWhy && (
             <div className="memory-disclosure__why">
-              {whyUsed(selected)} This is a retrieval ranking—not proof that it caused the answer.
+              {whyUsed(selected)} This is a retrieval ranking, not proof that it caused the answer.
             </div>
           )}
           <div className="memory-disclosure__actions">

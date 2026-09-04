@@ -103,7 +103,7 @@ function AuroraTraceRow({
         <span className="aurora-trace__dot" />
       </span>
       <div className="aurora-trace__body">
-        <button data-testid="workspace.aurora-aurora-activity-stream.head"
+        <button data-testid={`workspace.aurora-aurora-activity-stream.head-${item.id}`}
           type="button"
           className="aurora-trace__head"
           aria-expanded={expandable ? open : undefined}

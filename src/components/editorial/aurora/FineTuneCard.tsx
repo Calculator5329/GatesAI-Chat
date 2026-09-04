@@ -104,7 +104,7 @@ function NumberField({
   return (
     <label className="finetune-card__field">
       <span>{label}</span>
-      <input data-testid="workspace.aurora-fine-tune-card.number-input"
+      <input data-testid={`workspace.aurora-fine-tune-card.number-input-${label.toLowerCase()}`}
         type="number"
         inputMode="numeric"
         value={value}

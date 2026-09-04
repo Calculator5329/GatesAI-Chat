@@ -35,6 +35,19 @@ export function ollamaRoutes(plan: OllamaPlan | 'offline' | undefined): MockRout
         JSON.stringify({ model: plan.models[0], done: true, done_reason: 'stop', prompt_eval_count: 128, eval_count: 42 }) + '\n',
       ], { contentType: 'application/x-ndjson' }),
     },
+    {
+      name: 'ollama.pull',
+      matches: req => hostMatches(req, OLLAMA_HOST) && req.url.pathname === '/api/pull',
+      respond: () => {
+        const frames = plan.pull?.frames ?? 3;
+        const total = 4_000_000_000;
+        return streamedResponse([
+          JSON.stringify({ status: 'pulling manifest' }) + '\n',
+          ...Array.from({ length: frames }, (_, i) => JSON.stringify({ status: 'pulling layers', digest: 'sha256:mock', total, completed: Math.round(total * ((i + 1) / (frames + 1))) }) + '\n'),
+          JSON.stringify({ status: 'success' }) + '\n',
+        ], { delayMs: plan.pull?.delayMs ?? 0, contentType: 'application/x-ndjson' });
+      },
+    },
     { name: 'ollama.other', matches: req => hostMatches(req, OLLAMA_HOST), respond: () => jsonResponse({}) },
   ];
 }

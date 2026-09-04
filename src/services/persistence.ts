@@ -1,7 +1,7 @@
 // Persists or coordinates service-level state for persistence.
 // Called by stores and tool services; depends on snapshot contracts, bridge/local storage, and core types.
 // Invariant: services normalize legacy data before handing snapshots back to stores.
-import type { ActivityItem, ChatSnapshot, Message, MessageAttachmentRef, MessageContentPart, RetrievalTrace, RetrievalTraceItem, ToolResult, ToolResultArtifact, Thread, UserMessage } from '../core/types';
+import type { ActivityItem, ChatSnapshot, DiffRow, Message, MessageAttachmentRef, MessageContentPart, RetrievalTrace, RetrievalTraceItem, ToolResult, ToolResultArtifact, Thread, UserMessage } from '../core/types';
 import type { LlmUsage, ToolCall } from '../core/llm';
 import {
   assistantMessageParts,
@@ -682,7 +682,7 @@ function parseRetrievalTraceItem(value: unknown): RetrievalTraceItem | null {
   const fusedRank = numberField(value.fusedRank);
   const sourceType = value.sourceType;
   if (!reference || !sourceId || sourceTimestamp === undefined || excerpt === undefined || fusedRank === undefined) return null;
-  if (sourceType !== 'message' && sourceType !== 'note' && sourceType !== 'memory') return null;
+  if (sourceType !== 'message' && sourceType !== 'note' && sourceType !== 'memory' && sourceType !== 'library') return null;
   const role = value.role === 'user' || value.role === 'assistant' ? value.role : undefined;
   return {
     reference,
@@ -814,9 +814,41 @@ function parseToolResultArtifacts(value: unknown): ToolResultArtifact[] | undefi
       const count = numberField(item.count);
       return jobId && count !== undefined ? { kind: 'image-job', jobId, count } : null;
     }
+    if (item.kind === 'diff') {
+      const path = stringField(item.path);
+      const added = numberField(item.added);
+      const removed = numberField(item.removed);
+      const rows = parseDiffRows(item.rows);
+      if (!path || added === undefined || removed === undefined || !rows) return null;
+      const diff: ToolResultArtifact = { kind: 'diff', path, added, removed, rows };
+      if (item.truncated === true) diff.truncated = true;
+      return diff;
+    }
     return null;
   }).filter((artifact): artifact is ToolResultArtifact => artifact !== null);
   return artifacts.length ? artifacts : undefined;
+}
+
+function parseDiffRows(value: unknown): DiffRow[] | null {
+  if (!Array.isArray(value)) return null;
+  const rows: DiffRow[] = [];
+  for (const row of value) {
+    if (!isRecord(row)) return null;
+    const text = stringField(row.text);
+    if (text === undefined) return null;
+    const oldLine = numberField(row.oldLine);
+    const newLine = numberField(row.newLine);
+    if (row.type === 'context' && oldLine !== undefined && newLine !== undefined) {
+      rows.push({ type: 'context', text, oldLine, newLine });
+    } else if (row.type === 'removed' && oldLine !== undefined) {
+      rows.push({ type: 'removed', text, oldLine });
+    } else if (row.type === 'added' && newLine !== undefined) {
+      rows.push({ type: 'added', text, newLine });
+    } else {
+      return null;
+    }
+  }
+  return rows;
 }
 
 function parseLlmUsageArray(value: unknown): LlmUsage[] | undefined {

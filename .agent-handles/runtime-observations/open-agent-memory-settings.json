@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:38.054Z",
+  "measuredAt": "2026-09-04T17:31:21.037Z",
   "journeyName": "open-agent-memory-settings",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/agent",

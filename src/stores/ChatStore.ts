@@ -126,6 +126,12 @@ export class ChatStore {
   persistenceConflict: string | null = null;
   /** Visible while another Web Locks leader owns shared chat persistence. */
   activeTabNotice: string | null = null;
+  /**
+   * Last leader-election verdict this tab received, or null before the first
+   * one. Becoming leader reloads from storage and clears any conflict notice,
+   * so anything that stages a notice after boot has to wait for this.
+   */
+  persistenceLeaderState: LeaderElectionState | null = null;
   /** User-visible notice after an emergency compaction save. */
   compactionNotice: string | null = null;
   /** Archived thread ids currently loading their full message history. */
@@ -1250,6 +1256,7 @@ export class ChatStore {
 
   /** Apply Web Locks ownership changes to persistence and the thin UI surface. */
   private applyLeaderElectionState(state: LeaderElectionState): void {
+    this.persistenceLeaderState = state;
     if (state === 'follower') {
       this.persistence.pause();
       cancelPendingDeferredSnapshot();

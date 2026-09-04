@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:59.005Z",
+  "measuredAt": "2026-09-04T17:31:32.442Z",
   "journeyName": "web-lite-command-palette",
   "lastStep": 4,
   "pageUrl": "http://localhost:5274/?scenario=desktop-ready#/thread/active",

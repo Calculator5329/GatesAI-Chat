@@ -38,6 +38,8 @@ interface ScenarioWindow {
   localStorage: Storage;
   fetch: typeof fetch;
   WebSocket: typeof WebSocket;
+  /** Destructive settings actions confirm through window.confirm; a journey cannot answer a native dialog. */
+  confirm?: (message?: string) => boolean;
   __gatesaiScenario?: ScenarioHandle | ScenarioError;
   __gatesai?: { store?: AfterBootStore };
 }
@@ -92,6 +94,7 @@ export function installDevScenario(win: ScenarioWindow = window as unknown as Sc
   if (bridgePlan) {
     win.WebSocket = createWebSocketPatch(win.WebSocket, table, bridgePlan !== 'offline');
   }
+  win.confirm = () => true;
 
   const handle: ScenarioHandle = {
     name: scenario.name,

@@ -31,7 +31,11 @@ export function openRouterRoutes(plan: OpenRouterPlan | 'offline' | undefined, i
     {
       name: 'openrouter.image',
       matches: req => hostMatches(req, OPENROUTER_HOST) && req.url.pathname === CHAT_PATH && isImageRequest(req),
-      respond: () => imageResponse(image),
+      respond: async () => {
+        const delayMs = image && image !== 'error' ? image.delayMs ?? 0 : 0;
+        if (delayMs > 0) await new Promise(resolve => setTimeout(resolve, delayMs));
+        return imageResponse(image);
+      },
     },
     {
       // Conversation naming runs as a side request after the first reply; it

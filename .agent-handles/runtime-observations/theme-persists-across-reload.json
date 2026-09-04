@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:39.646Z",
+  "measuredAt": "2026-09-04T17:31:08.202Z",
   "journeyName": "theme-persists-across-reload",
   "lastStep": 7,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready&persist=1#/menu/settings",

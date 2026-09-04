@@ -1,10 +1,11 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:46.235Z",
+  "measuredAt": "2026-09-04T17:31:14.274Z",
   "journeyName": "tool-turn-shows-activity-and-answer",
   "lastStep": 6,
   "pageUrl": "http://localhost:5273/?scenario=tool-turn#/thread/active",
   "observedTestIds": [
+    "workspace.activity-row.toggle-bridge-1788543073915-0",
     "workspace.activity-row.toggle-call_time_1:0",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
@@ -15,16 +16,16 @@
     "workspace.composer.draft",
     "workspace.editorial-message.branch-active-assistant",
     "workspace.editorial-message.branch-active-user",
-    "workspace.editorial-message.branch-m-mtmjk4u0c85r",
-    "workspace.editorial-message.branch-m-mtmjk4u1xo77",
+    "workspace.editorial-message.branch-m-mtn8d80uzv5z",
+    "workspace.editorial-message.branch-m-mtn8d80vvma1",
     "workspace.editorial-message.copy-active-assistant",
     "workspace.editorial-message.copy-active-user",
-    "workspace.editorial-message.copy-m-mtmjk4u0c85r",
-    "workspace.editorial-message.copy-m-mtmjk4u1xo77",
+    "workspace.editorial-message.copy-m-mtn8d80uzv5z",
+    "workspace.editorial-message.copy-m-mtn8d80vvma1",
     "workspace.editorial-message.edit-active-user",
-    "workspace.editorial-message.edit-m-mtmjk4u0c85r",
+    "workspace.editorial-message.edit-m-mtn8d80uzv5z",
     "workspace.editorial-message.regenerate-active-assistant",
-    "workspace.editorial-message.regenerate-m-mtmjk4u1xo77",
+    "workspace.editorial-message.regenerate-m-mtn8d80vvma1",
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
     "workspace.editorial-sidebar.delete-active",
@@ -42,5 +43,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "33 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "34 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

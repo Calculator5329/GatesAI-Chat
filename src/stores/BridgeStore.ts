@@ -1,7 +1,7 @@
 // Owns observable BridgeStore state and actions for the app runtime.
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable, runInAction, when } from 'mobx';
 import type { ActivityItem, DraftAttachment } from '../core/types';
 import type { BridgeConnectionState, BridgeStatus, FsListResp, FsReadResp } from '../core/workspace';
 import { isWorkspacePath, resolveWorkspacePath } from '../core/workspacePaths';
@@ -89,6 +89,19 @@ export class BridgeStore {
 
   get isOnline(): boolean {
     return this.state === 'online';
+  }
+
+  /**
+   * Resolves once the first health poll has answered, or right away when
+   * the state is already known. A turn sent within a second of launch can
+   * reach its first tool round before that poll lands; bridge-dependent
+   * tools would otherwise report "bridge offline" for a bridge that is
+   * about to answer. Bounded so a runtime that never polls cannot hang a
+   * caller.
+   */
+  whenSettled(timeoutMs = 3000): Promise<void> {
+    if (this.state !== 'unknown') return Promise.resolve();
+    return when(() => this.state !== 'unknown', { timeout: timeoutMs }).catch(() => undefined);
   }
 
   get status(): BridgeStatus {

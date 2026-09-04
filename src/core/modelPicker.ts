@@ -68,7 +68,7 @@ const META: Record<string, ModelMeta> = {
   'or-gpt-5.5-pro': { tag: 'premium API tools and reasoning', capabilities: ['vision', 'tools', 'reasoning'] },
   'or-gemini-3.1-flash-lite': { tag: 'fast API vision', capabilities: ['vision', 'fast'], costLabel: '$' },
   'or-nemotron-3-ultra': { tag: 'open-weight frontier reasoning', capabilities: ['tools', 'reasoning'], costLabel: '$' },
-  'or-nemotron-3-ultra-free': { tag: 'default chat — free open-weight frontier reasoning', capabilities: ['tools', 'reasoning'], costLabel: 'FREE' },
+  'or-nemotron-3-ultra-free': { tag: 'default chat, free open-weight frontier reasoning', capabilities: ['tools', 'reasoning'], costLabel: 'FREE' },
   'or-nemotron-3-super': { tag: 'open-weight efficient MoE reasoning', capabilities: ['tools', 'reasoning', 'fast'], costLabel: '$' },
   'or-nemotron-3-super-free': { tag: 'free open-weight efficient MoE', capabilities: ['tools', 'reasoning', 'fast'], costLabel: 'FREE' },
   'or-nemotron-3-nano-free': { tag: 'free open-weight 30B/3B active MoE', capabilities: ['tools', 'fast'], costLabel: 'FREE' },

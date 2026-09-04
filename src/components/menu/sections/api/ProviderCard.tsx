@@ -19,7 +19,7 @@ export interface ApiProviderCardInfo {
 export const OPENROUTER_PROVIDER_INFO: ApiProviderCardInfo = {
   id: 'openrouter',
   name: 'OpenRouter',
-  desc: 'Unified gateway — 300+ models',
+  desc: 'Unified gateway, 300+ models',
   needsKey: true,
   keyUrl: 'https://openrouter.ai/keys',
 };

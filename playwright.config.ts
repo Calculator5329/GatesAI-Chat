@@ -23,6 +23,10 @@ export default defineConfig({
   workers: workerCount,
   reporter: isCI ? 'line' : 'list',
   globalSetup: './tests/e2e/globalSetup.ts',
+  // The app mounts after the load event (src/main.tsx imports bootstrap
+  // dynamically), so a first expect right after goto can take longer than the
+  // 5 s default when several workers boot at once.
+  expect: { timeout: 10_000 },
   use: {
     trace: 'on-first-retry',
   },
@@ -33,14 +37,22 @@ export default defineConfig({
         '**/web-lite.spec.ts',
         ...(screensTourEnabled ? [] : [screensTourSpec]),
       ],
-      // Journeys named web-lite-* belong to the web-lite-journeys project below.
-      grepInvert: /\.spec\.ts web-lite-/,
+      // Journeys named web-lite-* and mobile-* belong to the projects below.
+      grepInvert: /\.spec\.ts (web-lite|mobile)-/,
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${DESKTOP_PORT}` },
     },
     {
       name: 'web-lite',
       testMatch: screensTourEnabled ? ['**/web-lite.spec.ts', screensTourSpec] : '**/web-lite.spec.ts',
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${WEB_LITE_PORT}` },
+    },
+    {
+      // Journeys named mobile-* replay the desktop build in a phone-sized
+      // viewport, where the sidebar becomes the mobile shell (<= 640px).
+      name: 'mobile-journeys',
+      testMatch: '**/journeys.generated.spec.ts',
+      grep: /\.spec\.ts mobile-/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, baseURL: `http://localhost:${DESKTOP_PORT}` },
     },
     {
       // Compiled agent-handles journeys (journeys/manifest.json) whose name

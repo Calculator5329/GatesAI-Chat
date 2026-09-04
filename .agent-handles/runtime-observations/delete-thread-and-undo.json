@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:40.668Z",
+  "measuredAt": "2026-09-04T17:31:10.268Z",
   "journeyName": "delete-thread-and-undo",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

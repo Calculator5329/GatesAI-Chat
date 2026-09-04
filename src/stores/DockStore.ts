@@ -110,6 +110,12 @@ export class DockStore {
    */
   openPanel(kind: DockPanelKind, params: DockPanelRef['params'] = {}, cell?: 0 | 1): void {
     if (!this.available) return;
+    // The same document asked for twice (a card click, then its Open button)
+    // should surface the panel it already has, not a second copy of it.
+    if (cell === undefined && this.cells.some(existing => existing !== null && samePanel(existing, kind, params))) {
+      this.collapsed = false;
+      return;
+    }
     const target = cell ?? (this.cells[0] === null ? 0 : this.cells[1] === null ? 1 : 0);
     this.cells[target] = { kind, params: { ...params } };
     this.collapsed = false;
@@ -159,4 +165,13 @@ export class DockStore {
   setDockRatio(value: number): void {
     this.dockRatio = clampDockRatio(value);
   }
+}
+
+function samePanel(existing: DockPanelRef, kind: DockPanelKind, params: DockPanelRef['params']): boolean {
+  if (existing.kind !== kind) return false;
+  const keys = new Set([...Object.keys(existing.params), ...Object.keys(params)]);
+  for (const key of keys) {
+    if (existing.params[key as keyof DockPanelRef['params']] !== params[key as keyof DockPanelRef['params']]) return false;
+  }
+  return true;
 }

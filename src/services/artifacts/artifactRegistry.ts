@@ -45,6 +45,9 @@ export async function writeHtmlArtifactIndex(
 }
 
 export function parseHtmlArtifactIndex(raw: string): HtmlArtifactIndex {
+  // A registry file that exists but is empty (a fresh or interrupted write)
+  // is an empty index, not a malformed one.
+  if (raw.trim() === '') return { version: HTML_ARTIFACT_REGISTRY_VERSION, artifacts: [] };
   const parsed = JSON.parse(raw) as unknown;
   if (!isRecord(parsed) || parsed.version !== HTML_ARTIFACT_REGISTRY_VERSION || !Array.isArray(parsed.artifacts)) {
     throw new Error('Unsupported or malformed HTML artifact index.');

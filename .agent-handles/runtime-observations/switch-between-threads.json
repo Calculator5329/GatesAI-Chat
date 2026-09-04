@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:44.002Z",
+  "measuredAt": "2026-09-04T17:31:11.969Z",
   "journeyName": "switch-between-threads",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

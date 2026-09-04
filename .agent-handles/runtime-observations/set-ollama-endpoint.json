@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:51.734Z",
+  "measuredAt": "2026-09-04T17:31:18.821Z",
   "journeyName": "set-ollama-endpoint",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/models",
@@ -10,6 +10,7 @@
     "settings.gates-menu.tab-settings",
     "settings.models-api-section.commit",
     "settings.models-api-section.http-127-0-0-1-11434",
+    "settings.models-open-router-catalog-row.clear",
     "settings.models-open-router-catalog-row.refresh",
     "settings.secret-key.connect-brave",
     "settings.secret-key.get-key-brave",
@@ -32,5 +33,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "23 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "24 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

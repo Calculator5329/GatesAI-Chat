@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:43.767Z",
+  "measuredAt": "2026-09-04T17:31:26.150Z",
   "journeyName": "open-task-center-and-close-it",
   "lastStep": 8,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

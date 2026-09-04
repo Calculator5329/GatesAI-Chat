@@ -3,9 +3,9 @@
   "predicateVersion": 4,
   "grammar": "area.component.element[.qualifier]",
   "generatedFrom": "src/**/*.{tsx,jsx} and journeys/manifest.json",
-  "sourceDigest": "sha256:825518185db26380c5f6d25cb1fe9457c7b8912275a51afcd3d5fd24afb4f52d",
+  "sourceDigest": "sha256:444e03eb07cb38de88b57c34c204fde0925835f4c6bfd9bd10d06ea1fb4424f2",
   "journeyCoverage": {
-    "controlPath": 43,
+    "controlPath": 103,
     "urlPath": 2
   },
   "coverage": {
@@ -252,92 +252,300 @@
     ]
   },
   "journeyReferences": [
+    "app.command-palette.backdrop",
+    "app.command-palette.command-palette",
+    "app.command-palette.empty",
+    "app.command-palette.empty-classic",
     "app.command-palette.row-action:browse-files-in-dock",
     "app.command-palette.row-action:new-conversation",
+    "app.command-palette.row-action:open-artifact-landing",
     "app.command-palette.row-action:open-task-center",
     "app.command-palette.row-action:settings",
     "app.command-palette.row-thread:usage",
     "app.command-palette.search-commands-and-threads",
+    "app.lightbox.close",
+    "app.lightbox.copy-prompt",
+    "app.lightbox.div",
+    "app.lightbox.full-prompt",
+    "app.lightbox.image-viewer",
+    "app.lightbox.next-image",
+    "app.lightbox.open-in-os",
+    "app.lightbox.previous-image",
+    "app.whats-new.dismiss-what-s-new",
     "app.whats-new.got-it",
     "app.whats-new.presentation",
     "settings.agent.add",
+    "settings.agent.add-source",
+    "settings.agent.cancel-pull",
+    "settings.agent.clear-all",
+    "settings.agent.clear-derived-index",
+    "settings.agent.fact-cancel-0",
+    "settings.agent.fact-delete-0",
+    "settings.agent.fact-edit-0",
     "settings.agent.fact-edit-2",
+    "settings.agent.fact-input-0",
+    "settings.agent.fact-save-0",
+    "settings.agent.library-source-lib-audit",
     "settings.agent.new-fact",
+    "settings.agent.re-include-all-excluded-sources",
     "settings.agent.rebuild-index",
+    "settings.agent.refresh-all",
     "settings.agent.run-preview",
+    "settings.agent.search",
+    "settings.agent.semantic-recall",
+    "settings.agent.source-group-message",
+    "settings.agent.source-toggle-thread:html",
+    "settings.agent.source-type-message",
     "settings.agent.system-prompt",
     "settings.agent.what-should-gates-ai-remember",
+    "settings.chord-recorder.global-summon-shortcut",
+    "settings.chord-recorder.reset",
     "settings.gates-menu.tab-agent",
     "settings.gates-menu.tab-models",
     "settings.gates-menu.tab-settings",
     "settings.models-api-section.commit",
     "settings.models-api-section.http-127-0-0-1-11434",
+    "settings.models-open-router-catalog-row.clear",
+    "settings.models-open-router-catalog-row.refresh",
     "settings.models.search-card",
+    "settings.preferences.button",
+    "settings.preferences.cancel",
+    "settings.preferences.close-hides-to-tray",
+    "settings.preferences.delete-memories",
+    "settings.preferences.delete-provider-keys",
+    "settings.preferences.delete-threads",
     "settings.preferences.export-json",
+    "settings.preferences.global-summon",
+    "settings.preferences.import-mode-merge",
+    "settings.preferences.import-mode-replace",
+    "settings.preferences.input",
+    "settings.preferences.run",
+    "settings.preferences.toggle",
     "settings.secret-key.connect-onboarding-openrouter",
     "settings.secret-key.connect-openrouter",
+    "settings.secret-key.get-key-brave",
     "settings.secret-key.input-onboarding-openrouter",
     "settings.secret-key.input-openrouter",
     "settings.secret-key.remove-openrouter",
+    "settings.secret-key.reveal-openrouter",
     "settings.secret-key.stored-openrouter",
     "settings.segmented.option-theme-dark",
     "settings.segmented.option-theme-light",
+    "workspace.activity-row.toggle-call-img-cancelled:2",
+    "workspace.activity-row.toggle-call-img-failed:1",
+    "workspace.activity-row.toggle-call-img-tour:0",
     "workspace.activity-row.toggle-call_image_1:0",
     "workspace.activity-row.toggle-call_search_1:0",
     "workspace.activity-row.toggle-call_time_1:0",
     "workspace.activity-row.toggle-tool-assistant:work-note:0",
+    "workspace.activity-timeline-group.button",
+    "workspace.attachment-tray.remove",
+    "workspace.attachment-tray.remove-path",
+    "workspace.aurora-aurora-activity-stream.chips",
+    "workspace.aurora-aurora-activity-stream.head-aurora-assistant:work-note:0",
+    "workspace.aurora-aurora-activity-stream.head-call-cover:1",
+    "workspace.aurora-aurora-activity-stream.head-call-edit:0",
+    "workspace.aurora-aurora-reply-footer.aurora-chip-muted",
+    "workspace.aurora-aurora-reply-footer.aurora-followup-0",
+    "workspace.aurora-diff-card.show",
+    "workspace.aurora-fine-tune-card.number-input-height",
+    "workspace.aurora-fine-tune-card.number-input-images",
+    "workspace.aurora-fine-tune-card.number-input-seed",
+    "workspace.aurora-fine-tune-card.number-input-width",
+    "workspace.aurora-fine-tune-card.render-again",
+    "workspace.aurora-fine-tune-card.reset",
+    "workspace.aurora-fine-tune-card.toggle",
+    "workspace.aurora.diff-card",
+    "workspace.composer-banners.dismiss-notice",
+    "workspace.composer-banners.editorial-banner-action",
+    "workspace.composer-banners.open-local-image-settings",
+    "workspace.composer-banners.open-local-settings",
+    "workspace.composer-banners.open-models",
     "workspace.composer-input.composer-send-control",
+    "workspace.composer-meta.local-context-mode",
     "workspace.composer-meta.model",
     "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
+    "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
     "workspace.composer.draft",
     "workspace.dock-panel.close-0",
+    "workspace.dock-panel.close-1",
     "workspace.dock-panel.collapse-0",
     "workspace.dock-panel.expand-dock",
+    "workspace.dock-panel.resize-dock",
+    "workspace.dock-panel.resize-dock-cells",
+    "workspace.dock-panel.swap-0",
+    "workspace.dock-panel.swap-1",
+    "workspace.dock.cell-1",
     "workspace.dock.collapsed-rail",
     "workspace.dock.file-explorer",
+    "workspace.dock.html-artifact",
     "workspace.dock.panel",
+    "workspace.editorial-chat.cancel",
+    "workspace.editorial-chat.continue-with",
+    "workspace.editorial-chat.dismiss",
+    "workspace.editorial-chat.editorial-jump-to-bottom",
+    "workspace.editorial-chat.install-ollama",
+    "workspace.editorial-chat.link",
     "workspace.editorial-chat.look-around",
+    "workspace.editorial-chat.open-local-settings",
+    "workspace.editorial-chat.primary",
+    "workspace.editorial-chat.pull-nomic-embed-text",
+    "workspace.editorial-chat.recheck-ollama",
+    "workspace.editorial-chat.secondary",
+    "workspace.editorial-chat.show",
+    "workspace.editorial-chat.start-ollama",
     "workspace.editorial-chat.stream",
     "workspace.editorial-composer.dismiss-chat-error",
+    "workspace.editorial-message.actions-html-assistant",
+    "workspace.editorial-message.attachment-requirements.md",
     "workspace.editorial-message.branch-active-user",
+    "workspace.editorial-message.confirm-cancel-middle-assistant-1",
+    "workspace.editorial-message.confirm-panel-middle-assistant-1",
+    "workspace.editorial-message.confirm-regenerate-middle-assistant-1",
+    "workspace.editorial-message.copy-html-assistant",
     "workspace.editorial-message.edit-active-user",
+    "workspace.editorial-message.edit-cancel-middle-user-1",
+    "workspace.editorial-message.edit-confirm-cancel-middle-user-1",
     "workspace.editorial-message.edit-confirm-save-active-user",
     "workspace.editorial-message.edit-input-active-user",
+    "workspace.editorial-message.edit-input-middle-user-1",
+    "workspace.editorial-message.edit-middle-user-1",
+    "workspace.editorial-message.edit-panel-middle-user-1",
     "workspace.editorial-message.edit-save-active-user",
+    "workspace.editorial-message.edit-save-middle-user-1",
     "workspace.editorial-message.message-active-assistant",
     "workspace.editorial-message.message-active-user",
+    "workspace.editorial-message.message-html-assistant",
+    "workspace.editorial-message.message-long-assistant-66",
+    "workspace.editorial-message.message-long-user-1",
+    "workspace.editorial-message.message-long-user-7",
+    "workspace.editorial-message.message-middle-assistant-1",
+    "workspace.editorial-message.message-middle-assistant-2",
+    "workspace.editorial-message.message-middle-user-1",
+    "workspace.editorial-message.message-middle-user-2",
     "workspace.editorial-message.regenerate-active-assistant",
+    "workspace.editorial-message.regenerate-middle-assistant-1",
     "workspace.editorial-sidebar.begin-a-new-conversation",
+    "workspace.editorial-sidebar.brand",
+    "workspace.editorial-sidebar.button",
+    "workspace.editorial-sidebar.close-mobile-sidebar",
+    "workspace.editorial-sidebar.close-sidebar",
+    "workspace.editorial-sidebar.context-menu-agent-task",
     "workspace.editorial-sidebar.context-rename-agent-task",
+    "workspace.editorial-sidebar.copy-link",
     "workspace.editorial-sidebar.delete-agent-task",
+    "workspace.editorial-sidebar.menu-and-settings",
+    "workspace.editorial-sidebar.new-conversation",
+    "workspace.editorial-sidebar.open-sidebar",
     "workspace.editorial-sidebar.pin-agent-task",
     "workspace.editorial-sidebar.rename-input-agent-task",
+    "workspace.editorial-sidebar.row-actions-agent-task",
+    "workspace.editorial-sidebar.settings-amp-menu-live-here",
     "workspace.editorial-sidebar.thread-active",
     "workspace.editorial-sidebar.thread-agent-task",
     "workspace.editorial-sidebar.thread-tool",
     "workspace.editorial-sidebar.thread-usage",
+    "workspace.editorial-sidebar.title",
+    "workspace.file-explorer-panel.entry-attachments",
+    "workspace.file-explorer-panel.entry-audit-plan.md",
+    "workspace.file-explorer-panel.entry-broken.mp4",
+    "workspace.file-explorer-panel.entry-broken.png",
+    "workspace.file-explorer-panel.entry-clip.mp3",
+    "workspace.file-explorer-panel.entry-config.json",
+    "workspace.file-explorer-panel.entry-index.html",
+    "workspace.file-explorer-panel.entry-media",
     "workspace.file-explorer-panel.entry-notes",
+    "workspace.file-explorer-panel.entry-notes.txt",
+    "workspace.file-explorer-panel.entry-site",
+    "workspace.file-explorer-panel.entry-still.png",
+    "workspace.file-explorer-panel.entry-unreadable.txt",
     "workspace.file-explorer-panel.parent-directory",
+    "workspace.file-explorer-panel.refresh-directory",
+    "workspace.file-explorer-panel.set-path-0",
+    "workspace.file-viewer-panel.summary-theme",
+    "workspace.file-viewer.html",
+    "workspace.file-viewer.json",
+    "workspace.file-viewer.markdown",
+    "workspace.file-viewer.notice",
+    "workspace.file-viewer.text",
+    "workspace.html-artifact-panel.html-artifact-preview",
+    "workspace.html-artifact-panel.open-in-os",
+    "workspace.html-artifact-preview.close-html-preview",
+    "workspace.html-artifact-preview.download-file",
+    "workspace.html-artifact-preview.fullscreen-open-in-os",
+    "workspace.html-artifact-preview.html-artifact-preview",
+    "workspace.html-artifact-preview.open-file",
+    "workspace.html-artifact-preview.open-in-dock",
+    "workspace.html-artifact-preview.open-in-os",
+    "workspace.html-artifact-preview.toggle-source",
+    "workspace.html-artifact-preview.view",
+    "workspace.html-preview.inline",
+    "workspace.image-job-card.action",
+    "workspace.image-job-card.cancel-pending-img-failed",
     "workspace.image-job-card.image",
+    "workspace.image-job-card.retry",
+    "workspace.image-job-card.retry-cancelled",
+    "workspace.image-job.fine-tune",
+    "workspace.image-job.open-0",
+    "workspace.markdown-chunk.a",
+    "workspace.markdown-chunk.download",
+    "workspace.markdown-chunk.lines",
+    "workspace.markdown-chunk.open",
+    "workspace.markdown-chunk.open-workspace-path",
+    "workspace.markdown-chunk.set-copy-state",
+    "workspace.markdown-chunk.set-html-view",
+    "workspace.markdown-chunk.set-wrapped",
+    "workspace.media-viewer.av-error",
+    "workspace.media-viewer.content-audio",
+    "workspace.media-viewer.image",
+    "workspace.media-viewer.image-error",
+    "workspace.memory-disclosure.cancel",
+    "workspace.memory-disclosure.chip-library:lib-audit",
+    "workspace.memory-disclosure.chip-message:tool-user",
+    "workspace.memory-disclosure.chip-message:vanished-user",
     "workspace.memory-disclosure.chip-note:audit-plan",
     "workspace.memory-disclosure.don-apos-t-use-this-source",
     "workspace.memory-disclosure.exclude",
     "workspace.memory-disclosure.open-in-memory",
+    "workspace.memory-disclosure.open-library",
+    "workspace.memory-disclosure.open-source",
+    "workspace.memory-disclosure.source-unavailable",
     "workspace.memory-disclosure.undo-exclusion",
     "workspace.memory-disclosure.why-was-this-used",
     "workspace.model-popover.cap-filter-tools",
     "workspace.model-popover.clear-model-search",
+    "workspace.model-popover.favorite-or-gpt-5.5",
+    "workspace.model-popover.favorites-favorite-or-gpt-5.5",
+    "workspace.model-popover.favorites-row-or-gpt-5.5",
     "workspace.model-popover.model-popover",
     "workspace.model-popover.row-auto-gemini-3-flash",
     "workspace.model-popover.row-ollama-qwen2.5:7b",
     "workspace.model-popover.search-models",
     "workspace.model-popover.segment-local",
+    "workspace.prompt-card.container",
+    "workspace.prompt-cards.answer-prompt-recommend",
+    "workspace.prompt-cards.free-prompt-recommend",
+    "workspace.prompt-cards.option-prompt-approve-yes",
+    "workspace.prompt-cards.option-prompt-recommend-audit",
+    "workspace.prompt-cards.send-prompt-recommend",
+    "workspace.prompt-cards.skip-prompt-approve",
+    "workspace.prompt-cards.skip-prompt-skip",
+    "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu",
+    "workspace.skill-picker.option-none",
+    "workspace.skill-picker.option-research",
+    "workspace.task-center-panel.cancel-agent-task",
+    "workspace.task-center-panel.retry-img-cancelled",
+    "workspace.task-center-panel.retry-img-failed",
     "workspace.task-center-panel.task-img-tour",
+    "workspace.task-center.empty",
     "workspace.task-center.ledger",
-    "workspace.undo-toast.undo"
+    "workspace.undo-toast.undo",
+    "workspace.update-pill.dismiss-update-notice",
+    "workspace.update-pill.on-click",
+    "workspace.workspace-image.open"
   ],
   "entries": [
     {
@@ -358,6 +566,13 @@
       "id": "app.command-palette.empty",
       "file": "src/components/palette/CommandPalette.tsx",
       "line": 290,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "app.command-palette.empty-classic",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 262,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -726,13 +941,6 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.aurora-aurora-activity-stream.head",
-      "file": "src/components/editorial/aurora/AuroraActivityStream.tsx",
-      "line": 106,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
       "id": "workspace.aurora-aurora-reply-footer.aurora-chip-muted",
       "file": "src/components/editorial/aurora/AuroraReplyFooter.tsx",
       "line": 28,
@@ -743,13 +951,6 @@
       "id": "workspace.aurora-diff-card.show",
       "file": "src/components/editorial/aurora/DiffCard.tsx",
       "line": 37,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.aurora-fine-tune-card.number-input",
-      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
-      "line": 107,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -973,7 +1174,7 @@
     {
       "id": "workspace.editorial-chat.editorial-jump-to-bottom",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 798,
+      "line": 809,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1036,7 +1237,7 @@
     {
       "id": "workspace.editorial-chat.show",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 749,
+      "line": 760,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1050,7 +1251,7 @@
     {
       "id": "workspace.editorial-chat.stream",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 741,
+      "line": 752,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1153,13 +1354,6 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.file-viewer-panel.summary",
-      "file": "src/components/dock/FileViewerPanel.tsx",
-      "line": 110,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
       "id": "workspace.file-viewer.html",
       "file": "src/components/dock/FileViewerPanel.tsx",
       "line": 79,
@@ -1195,93 +1389,107 @@
       "attribute": "data-testid"
     },
     {
+      "id": "workspace.html-artifact-panel.html-artifact-preview",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 175,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-panel.open-in-os",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 234,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
       "id": "workspace.html-artifact-preview.close-html-preview",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 302,
+      "line": 307,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-artifact-preview.download",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 75,
+      "line": 96,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-artifact-preview.download-file",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 224,
+      "line": 229,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-artifact-preview.fullscreen-open-in-os",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 301,
+      "line": 306,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-artifact-preview.html-artifact-preview",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 170,
+      "line": 175,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-artifact-preview.open",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 72,
+      "line": 93,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-artifact-preview.open-file",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 221,
+      "line": 226,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-artifact-preview.open-in-dock",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 191,
+      "line": 196,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-artifact-preview.open-in-os",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 229,
+      "line": 234,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-artifact-preview.toggle-source",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 214,
+      "line": 219,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-artifact-preview.view",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 203,
+      "line": 208,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-preview.document-card",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 63,
+      "line": 84,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.html-preview.inline",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 26,
+      "line": 27,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1289,13 +1497,6 @@
       "id": "workspace.image-job-card.action",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 213,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.image-job-card.cancel-pending",
-      "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 163,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1519,21 +1720,21 @@
     {
       "id": "workspace.model-popover.clear-model-search",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 449,
+      "line": 451,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.model-popover.model-popover",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 386,
+      "line": 388,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.model-popover.search-models",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 436,
+      "line": 438,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1541,34 +1742,6 @@
       "id": "workspace.prompt-card.container",
       "file": "src/components/editorial/PromptCards.tsx",
       "line": 19,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.prompt-cards.answer-in-your-own-words",
-      "file": "src/components/editorial/PromptCards.tsx",
-      "line": 80,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.prompt-cards.free",
-      "file": "src/components/editorial/PromptCards.tsx",
-      "line": 71,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.prompt-cards.send",
-      "file": "src/components/editorial/PromptCards.tsx",
-      "line": 87,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.prompt-cards.skip-this-question",
-      "file": "src/components/editorial/PromptCards.tsx",
-      "line": 91,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1771,9 +1944,21 @@
       "attribute": "data-testid"
     },
     {
+      "pattern": "workspace.aurora-aurora-activity-stream.head-*",
+      "file": "src/components/editorial/aurora/AuroraActivityStream.tsx",
+      "line": 106,
+      "attribute": "data-testid"
+    },
+    {
       "pattern": "workspace.aurora-aurora-reply-footer.aurora-followup-*",
       "file": "src/components/editorial/aurora/AuroraReplyFooter.tsx",
       "line": 48,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.aurora-fine-tune-card.number-input-*",
+      "file": "src/components/editorial/aurora/FineTuneCard.tsx",
+      "line": 107,
       "attribute": "data-testid"
     },
     {
@@ -1957,6 +2142,18 @@
       "attribute": "data-testid"
     },
     {
+      "pattern": "workspace.file-viewer-panel.summary-*",
+      "file": "src/components/dock/FileViewerPanel.tsx",
+      "line": 110,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.image-job-card.cancel-pending-*",
+      "file": "src/components/editorial/ImageJobCard.tsx",
+      "line": 163,
+      "attribute": "data-testid"
+    },
+    {
       "pattern": "workspace.image-job.open-*",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 282,
@@ -1977,31 +2174,67 @@
     {
       "pattern": "workspace.model-popover.cap-filter-*",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 463,
+      "line": 465,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.model-popover.favorite-*",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 240,
+      "line": 242,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.model-popover.favorites-favorite-*",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 242,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.model-popover.favorites-row-*",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 228,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.model-popover.row-*",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 226,
+      "line": 228,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.model-popover.segment-*",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 409,
+      "line": 411,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.prompt-cards.answer-*",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 80,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.prompt-cards.free-*",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 71,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.prompt-cards.option-*",
       "file": "src/components/editorial/PromptCards.tsx",
       "line": 58,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.prompt-cards.send-*",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 87,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.prompt-cards.skip-*",
+      "file": "src/components/editorial/PromptCards.tsx",
+      "line": 91,
       "attribute": "data-testid"
     },
     {
@@ -2110,10 +2343,6 @@
       {
         "from": "inline-html-preview",
         "to": "workspace.html-preview.inline"
-      },
-      {
-        "from": "inline-html-document-card",
-        "to": "workspace.html-preview.document-card"
       },
       {
         "from": "prompt-cards",
@@ -2320,10 +2549,6 @@
         "to": "workspace.file-explorer-panel.set-path-*"
       },
       {
-        "from": "app.lightbox.open-in-os-2",
-        "to": "app.lightbox.open-in-os-no-prompt"
-      },
-      {
         "from": "settings.agent.add-a-memory-user-prefers-concise-answers",
         "to": "settings.agent.new-fact"
       },
@@ -2385,7 +2610,7 @@
       },
       {
         "from": "workspace.image-job-card.cancel-render-2",
-        "to": "workspace.image-job-card.cancel-pending"
+        "to": "workspace.image-job-card.cancel-pending-*"
       },
       {
         "from": "workspace.image-job-card.retry-2",
@@ -2394,9 +2619,53 @@
       {
         "from": "workspace.markdown-chunk.open-2",
         "to": "workspace.markdown-chunk.open-workspace-path"
+      },
+      {
+        "from": "workspace.aurora-aurora-activity-stream.head",
+        "to": "workspace.aurora-aurora-activity-stream.head-*"
+      },
+      {
+        "from": "workspace.aurora-fine-tune-card.number-input",
+        "to": "workspace.aurora-fine-tune-card.number-input-*"
+      },
+      {
+        "from": "workspace.prompt-cards.answer-in-your-own-words",
+        "to": "workspace.prompt-cards.answer-*"
+      },
+      {
+        "from": "workspace.prompt-cards.free",
+        "to": "workspace.prompt-cards.free-*"
+      },
+      {
+        "from": "workspace.prompt-cards.send",
+        "to": "workspace.prompt-cards.send-*"
+      },
+      {
+        "from": "workspace.prompt-cards.skip-this-question",
+        "to": "workspace.prompt-cards.skip-*"
+      },
+      {
+        "from": "workspace.file-viewer-panel.summary",
+        "to": "workspace.file-viewer-panel.summary-*"
       }
     ],
-    "tombstones": []
+    "tombstones": [
+      {
+        "id": "inline-html-document-card",
+        "removedAt": "2026-09-04",
+        "reason": "Legacy selector of the removed InlineHtmlDocumentCard; the card has no call site."
+      },
+      {
+        "id": "app.lightbox.open-in-os-2",
+        "removedAt": "2026-09-04",
+        "reason": "Legacy selector of the no-prompt Open in OS branch; the control now renders once as app.lightbox.open-in-os."
+      },
+      {
+        "id": "workspace.image-job-card.cancel-pending",
+        "removedAt": "2026-09-04",
+        "reason": "Cancel is now scoped per job (workspace.image-job-card.cancel-pending-<jobId>) so two pending renders no longer share one identity."
+      }
+    ]
   },
   "candidates": [
     {
@@ -3102,7 +3371,7 @@
     {
       "id": "candidate:a0169c41be9e322c",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 749,
+      "line": 760,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3114,7 +3383,7 @@
     {
       "id": "candidate:0301d7966ea101ce",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 798,
+      "line": 809,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3576,7 +3845,7 @@
     {
       "id": "candidate:98c9384169820ab7",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 72,
+      "line": 93,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3588,7 +3857,7 @@
     {
       "id": "candidate:729b4117bce03d19",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 75,
+      "line": 96,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3600,7 +3869,7 @@
     {
       "id": "candidate:405530ea36bdaa37",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 170,
+      "line": 175,
       "element": "span",
       "classification": "review-required",
       "evidence": [
@@ -3615,7 +3884,7 @@
     {
       "id": "candidate:236deb8973ded12e",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 191,
+      "line": 196,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3627,7 +3896,7 @@
     {
       "id": "candidate:03cf1f812fd795ba",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 203,
+      "line": 208,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3639,7 +3908,7 @@
     {
       "id": "candidate:a09db5abc0cfda12",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 214,
+      "line": 219,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3651,7 +3920,7 @@
     {
       "id": "candidate:63eb40f969639e51",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 221,
+      "line": 226,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3663,7 +3932,7 @@
     {
       "id": "candidate:ad5f6706d87c7f44",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 224,
+      "line": 229,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3675,7 +3944,7 @@
     {
       "id": "candidate:87a08c1005a2bd4f",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 229,
+      "line": 234,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3687,7 +3956,7 @@
     {
       "id": "candidate:63772ecf60ad6255",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 301,
+      "line": 306,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3699,7 +3968,7 @@
     {
       "id": "candidate:dc6c17fe2d7fc20c",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 302,
+      "line": 307,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4047,7 +4316,7 @@
     {
       "id": "candidate:5d38b206a4783f6d",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 226,
+      "line": 228,
       "element": "div",
       "classification": "review-required",
       "evidence": [
@@ -4060,7 +4329,7 @@
     {
       "id": "candidate:16b76a9349025e5e",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 240,
+      "line": 242,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4072,7 +4341,7 @@
     {
       "id": "candidate:2e1bd7333d815317",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 386,
+      "line": 388,
       "element": "div",
       "classification": "review-required",
       "evidence": [
@@ -4084,7 +4353,7 @@
     {
       "id": "candidate:6ab6d550bc2d757c",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 409,
+      "line": 411,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4096,7 +4365,7 @@
     {
       "id": "candidate:6000a6980c375635",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 436,
+      "line": 438,
       "element": "input",
       "classification": "definite",
       "evidence": [
@@ -4108,7 +4377,7 @@
     {
       "id": "candidate:a5a1f208188907e2",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 449,
+      "line": 451,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4120,7 +4389,7 @@
     {
       "id": "candidate:b7dfe7fe76c966aa",
       "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 463,
+      "line": 465,
       "element": "button",
       "classification": "definite",
       "evidence": [

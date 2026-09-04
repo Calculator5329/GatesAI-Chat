@@ -195,10 +195,12 @@ interface RowProps {
   onPick: (model: Model) => void;
   onToggleFavorite: (model: Model) => void;
   onHover: (index: number) => void;
+  /** True inside the Favorites section, where a model can also appear under its provider. */
+  inFavorites: boolean;
 }
 
 const ModelRow = memo(function ModelRow({
-  model, meta, selected, active, isFavorite, verified, recommendedLocal, flatIndex, onPick, onToggleFavorite, onHover,
+  model, meta, selected, active, isFavorite, verified, recommendedLocal, flatIndex, onPick, onToggleFavorite, onHover, inFavorites,
 }: RowProps) {
   // Unusable models (offline Ollama / ComfyUI) are filtered out of the picker
   // entirely by `isModelAvailable`, so every row rendered here is selectable.
@@ -223,7 +225,7 @@ const ModelRow = memo(function ModelRow({
     color: 'var(--text-faint)',
   };
   return (
-    <div data-testid={`workspace.model-popover.row-${model.id}`}
+    <div data-testid={inFavorites ? `workspace.model-popover.favorites-row-${model.id}` : `workspace.model-popover.row-${model.id}`}
       className="model-popover__row"
       data-model-row={model.id}
       role="option"
@@ -236,8 +238,8 @@ const ModelRow = memo(function ModelRow({
     >
       <div style={ROW_LEFT_STYLE}>
         <span style={nameStyle}>{model.name}</span>
-        {verified && <span title="Verified — covered by the live model test suite"><VerifiedMark size={11} /></span>}
-        <button data-testid={`workspace.model-popover.favorite-${model.id}`}
+        {verified && <span title="Verified: covered by the live model test suite"><VerifiedMark size={11} /></span>}
+        <button data-testid={inFavorites ? `workspace.model-popover.favorites-favorite-${model.id}` : `workspace.model-popover.favorite-${model.id}`}
           type="button"
           className="model-popover__favorite"
           aria-label={isFavorite ? `Unfavorite ${model.name}` : `Favorite ${model.name}`}
@@ -539,6 +541,7 @@ export const ModelPopover = observer(function ModelPopover({ currentModelId, onP
                   isFavorite={favoriteSet.has(favoriteKey)}
                   verified={isVerifiedModelId(model.id)}
                   recommendedLocal={title === 'Recommended' && model.providerId === 'ollama'}
+                  inFavorites={title === 'Favorites'}
                   flatIndex={flatIndex}
                   onPick={pickModel}
                   onToggleFavorite={toggleFavorite}

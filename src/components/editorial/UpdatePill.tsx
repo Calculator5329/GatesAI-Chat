@@ -23,7 +23,7 @@ export const UpdatePill = observer(function UpdatePill() {
   let title: string;
   let onClick: (() => void) | null = null;
   if (updates.phase === 'available') {
-    label = `v${updates.version} available — update`;
+    label = `v${updates.version} available, update`;
     title = `A new version is ready to download.${updates.notes ? `\n\n${updates.notes}` : ''}\nClick to download and install in the background.`;
     onClick = () => { void updates.install(); };
   } else if (updates.phase === 'installing') {
@@ -35,7 +35,7 @@ export const UpdatePill = observer(function UpdatePill() {
     title = `v${updates.version} is staged. Click to restart now, or keep working and restart later.`;
     onClick = () => { void updates.restart(); };
   } else {
-    label = 'update failed — retry';
+    label = 'update failed, retry';
     title = `${updates.error ?? 'Unknown error'}\n\nClick to retry the download.`;
     onClick = () => { void updates.install(); };
   }

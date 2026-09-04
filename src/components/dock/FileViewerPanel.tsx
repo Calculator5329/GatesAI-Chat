@@ -107,7 +107,7 @@ function JsonView({ content }: { content: string }) {
       <div className="dock-json-view">
         {entries.map(([key, value]) => (
           <details key={key} open={entries.length <= 4}>
-            <summary data-testid="workspace.file-viewer-panel.summary"><code>{key}</code></summary>
+            <summary data-testid={`workspace.file-viewer-panel.summary-${key}`}><code>{key}</code></summary>
             <pre>{JSON.stringify(value, null, 2)}</pre>
           </details>
         ))}

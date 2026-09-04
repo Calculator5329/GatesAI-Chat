@@ -1,8 +1,8 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:34.973Z",
+  "measuredAt": "2026-09-04T17:31:06.420Z",
   "journeyName": "rename-thread-from-context-menu",
-  "lastStep": 5,
+  "lastStep": 6,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",
   "observedTestIds": [
     "workspace.composer-input.composer-send-control",

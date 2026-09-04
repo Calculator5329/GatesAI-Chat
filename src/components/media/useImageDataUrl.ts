@@ -108,17 +108,26 @@ export function useImageDataUrl(path: string, cacheKey = path): { src: string | 
   const current = loaded.path === cacheKey
     ? loaded
     : { path: cacheKey, src: cached ?? null, failed: false };
+  // A read that failed because the bridge was still starting must be retried
+  // once it is online; otherwise every tile rendered before the first poll
+  // stays "missing" for the life of the thread.
+  const bridgeOnline = bridge.state === 'online';
 
   useEffect(() => {
     const cached = cacheGet(cacheKey);
     if (cached) return;
     let cancelled = false;
+    const hosted = /^https?:\/\//i.test(path);
     void loadImageSource(bridge, path, cacheKey).then(url => {
       if (cancelled) return;
-      setLoaded({ path: cacheKey, src: url, failed: !url });
+      // A miss while the bridge is still coming up is "not yet", not
+      // "missing": keep the pending state so the tile does not announce a
+      // missing file for the few seconds before the first successful poll.
+      const settled = hosted || bridge.state === 'online';
+      setLoaded({ path: cacheKey, src: url, failed: !url && settled });
     });
     return () => { cancelled = true; };
-  }, [bridge, path, cacheKey]);
+  }, [bridge, path, cacheKey, bridgeOnline]);
 
   return { src: current.src, failed: current.failed };
 }

@@ -50,7 +50,7 @@ export function recommendedDownload(os: ClientOs, arch: ClientArch): DownloadRec
       label: 'Download for Windows (64-bit)',
       runsOn: 'Windows 10/11, 64-bit (x64)',
       note: arch === 'arm64'
-        ? 'Your device looks like Windows on ARM — the x64 installer runs via built-in emulation.'
+        ? 'Your device looks like Windows on ARM. The x64 installer runs via built-in emulation.'
         : undefined,
     };
   }
@@ -67,7 +67,7 @@ export function recommendedDownload(os: ClientOs, arch: ClientArch): DownloadRec
     url: downloadLinks.repo,
     label: 'Get it on GitHub',
     runsOn: os === 'macos'
-      ? 'macOS — no prebuilt binary yet; build from source'
+      ? 'macOS: no prebuilt binary yet; build from source'
       : 'Build from source (Node + Rust/Tauri + Go bridge)',
   };
 }

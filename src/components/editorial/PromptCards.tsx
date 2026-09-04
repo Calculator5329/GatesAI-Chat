@@ -55,7 +55,7 @@ function PromptCard({
       )}
       <div className="prompt-card__options">
         {prompt.options.map((option, index) => (
-          <button data-testid={`workspace.prompt-cards.option-${option.id}`}
+          <button data-testid={`workspace.prompt-cards.option-${prompt.id}-${option.id}`}
             key={option.id}
             type="button"
             className="prompt-card__option"
@@ -68,7 +68,7 @@ function PromptCard({
         ))}
       </div>
       {prompt.allowFreeText && (
-        <form data-testid="workspace.prompt-cards.free"
+        <form data-testid={`workspace.prompt-cards.free-${prompt.id}`}
           className="prompt-card__free"
           onSubmit={event => {
             event.preventDefault();
@@ -77,18 +77,18 @@ function PromptCard({
             onAnswer(undefined, text);
           }}
         >
-          <input data-testid="workspace.prompt-cards.answer-in-your-own-words"
+          <input data-testid={`workspace.prompt-cards.answer-${prompt.id}`}
             type="text"
             aria-label="Answer in your own words"
             placeholder="Or answer in your own words…"
             value={freeText}
             onChange={event => setFreeText(event.target.value)}
           />
-          <button data-testid="workspace.prompt-cards.send" type="submit" disabled={!freeText.trim()}>Send</button>
+          <button data-testid={`workspace.prompt-cards.send-${prompt.id}`} type="submit" disabled={!freeText.trim()}>Send</button>
         </form>
       )}
       <footer className="prompt-card__foot">
-        <button data-testid="workspace.prompt-cards.skip-this-question" type="button" className="prompt-card__decline" onClick={onDecline}>
+        <button data-testid={`workspace.prompt-cards.skip-${prompt.id}`} type="button" className="prompt-card__decline" onClick={onDecline}>
           Skip this question
         </button>
       </footer>

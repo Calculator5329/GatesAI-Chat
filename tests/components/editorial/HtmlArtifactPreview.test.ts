@@ -1,5 +1,6 @@
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { observable, runInAction } from 'mobx';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StoreProvider } from '../../../src/stores/context';
 import { HtmlArtifactPreview, __htmlArtifactPreviewTestApi } from '../../../src/components/editorial/HtmlArtifactPreview';
@@ -237,6 +238,34 @@ describe('HtmlArtifactPreview', () => {
 
     expect(rendered.textContent).toContain('Bridge offline');
     expect(rendered.querySelector('iframe')).toBeNull();
+  });
+
+  it('retries the read once the bridge comes online after mounting offline', async () => {
+    const online = onlineBridge();
+    // An observable facade: the card mounts during the first health poll,
+    // then the poll succeeds. Before the fix the card kept "Bridge offline"
+    // with View disabled until the path changed.
+    const bridge = observable(withPreviewFacade({
+      isOnline: false,
+      client: online.client,
+      openWorkspacePath: vi.fn(async () => true),
+    }), {}, { deep: false });
+    const rendered = renderPreview(bridge);
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+    expect(rendered.textContent).toContain('Bridge offline');
+
+    await act(async () => {
+      runInAction(() => { bridge.isOnline = true; });
+      await flushMicrotasks();
+      await flushMicrotasks();
+    });
+
+    expect(rendered.textContent).not.toContain('Bridge offline');
+    expect(online.client.request).toHaveBeenCalledWith('fs.stat', { path: HTML_PATH });
+    expect(rendered.querySelector('iframe')).not.toBeNull();
   });
 
   it('shows a fallback for HTML files over 1 MB', async () => {

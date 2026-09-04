@@ -25,8 +25,8 @@ All of these must pass locally. CI (`.github/workflows/ci.yml`) enforces the
 first three on every push/PR; don't push red.
 
 ```sh
-npm run ci          # = npm test (1290 vitest) + npm run typecheck + npm run lint
-npm run test:e2e    # Playwright, 84 tests: 39 hand-written (desktop-mocked + web-lite) + 45 generated journeys (desktop-mocked + web-lite-journeys)
+npm run ci          # = npm test (1307 vitest) + npm run typecheck + npm run lint
+npm run test:e2e    # Playwright, 144 tests: 39 hand-written (desktop-mocked + web-lite) + 105 generated journeys (desktop-mocked + web-lite-journeys + mobile-journeys)
 cargo test --manifest-path src-tauri/Cargo.toml   # required if you touched src-tauri/
 ```
 

@@ -1,5 +1,85 @@
 # Changelog
 
+## 2026-09-04: Full journey coverage, 23 scenarios, and the bugs the reconcile step found
+
+- `journeys/manifest.json` grew from 45 to 105 journeys across 23 dev scenarios
+  (12 new: rich-transcript, aurora-pack, prompt-cards, update-available,
+  attachments-drafted, three local first-run states, local-no-embed,
+  local-ollama-offline, local-image-model, desktop-bare). A coverage census of
+  every literal identity and pattern in `testid-registry.json` against every
+  manifest step shows 233 of 255 identities acted on or asserted; the 22 left
+  are unreachable by construction and are listed in
+  `docs/handbook/journeys.md` under "What no journey can reach". New
+  `mobile-journeys` Playwright project runs `mobile-*` journeys at 390x844.
+- Bugs found by the journeys and fixed: diff artifacts on tool results were
+  dropped on every persistence round trip (`parseToolResultArtifacts` only
+  knew `image` and `image-job`), so Aurora diff cards vanished after a reload;
+  the transcript stopped following a stream once the user had scrolled at all
+  (`scrollFollow`); the library trace lost its `sourceType` on reload; the
+  OpenRouter catalog import ignored a cached catalog; `DockStore.openPanel`
+  opened a second identical panel instead of surfacing the open one; a
+  workspace image tile that failed before the bridge came online never
+  retried (`useImageDataUrl` now re-runs when the bridge goes online); on
+  mobile the sidebar scrim's clickable area sat under the drawer, so the
+  backdrop could not close it; `SkillsStore.refresh` wrote observables outside
+  an action when reached from a reaction.
+- Identity scoping: inline and dock variants of the HTML artifact preview,
+  favorites rows in the model popover, per-job cancel controls on pending image
+  jobs, per-key JSON summaries in the file viewer, indexed Aurora follow-up
+  chips, and a `data-testid` on the classic palette empty state, so no visible
+  state duplicates an identity. Primitives (`Button`, `Input`, `Textarea`,
+  `Toggle`, composer draft and attach, skill option, image tile) carry literal
+  `*.unscoped` fallbacks so the scanner can name them; `Toggle.testId` is now
+  optional to match.
+- Dev scenarios: `attachments-drafted` waits for the Web Locks leader election
+  before staging the persistence-conflict notice, because becoming leader
+  reloads from storage and clears it (`ChatStore.persistenceLeaderState` is
+  the new observable that makes that wait possible); `desktop-ready` and the
+  online network plan carry a mocked OpenRouter catalog so the models page has
+  rows to refresh and clear; image mocks can delay so a retried job stays
+  visibly running.
+- Ratchet: five previously measured interaction sites (`BridgeStatusPill`,
+  `Select`, `InlineHtmlDocumentCard`, the Lightbox no-prompt button) were
+  restored rather than re-baselined; their removal needs an owner verdict and
+  is filed as an inbox decision.
+- Screenshot review, every scenario at desktop and 375 wide: the inline HTML
+  artifact card loaded once on mount, so a card that rendered during the
+  first bridge health poll kept "Bridge offline" with View disabled until the
+  path changed (the card is now an observer and re-reads when the bridge
+  comes online; a regression test watches the retry); a workspace image tile
+  read "Missing" during the same window, and now stays in its pending state
+  until the bridge is online or the source is a hosted URL; failed and
+  cancelled image cards drew an empty 240 px slab under their note; on narrow
+  screens the composer meta wrapped with a lone dot separator starting the
+  second line; `parseHtmlArtifactIndex` treated a blank registry as corrupt;
+  every em dash in user-facing copy (update pill, provider cards, palette
+  rows, model labels, image tier names) was rewritten as plain sentences.
+  Playwright now waits 10 s on expectations by default, because the app
+  mounts after the load event and three journeys flaked under a parallel
+  vitest run.
+- A prompt sent within the first second after launch could reach its first
+  tool round before the bridge's first health poll answered, and every
+  bridge-backed tool (image_generate, describe_image, the file tools) then
+  reported "bridge offline" for a bridge that was about to answer. The
+  image-generation journey caught it under load. `BridgeStore.whenSettled`
+  resolves once that first poll lands (bounded at 3 s), and the tool batch
+  executor waits on it only while the state is still unknown; unit tests
+  cover the store and the executor.
+- Opening a long thread pins the transcript to the bottom and keeps
+  re-pinning for up to 60 frames while message heights settle. A scroll-up
+  inside that window (a wheel, a scrollbar drag, anything that scrolls a
+  message into view) was snapped straight back and the Jump to latest control
+  never appeared. `readerScrolledUpSinceLastPin` now ends the settle loop the
+  moment the scroller moves up and is no longer at the bottom; the long-thread
+  journey caught it under a three-project adopt run.
+- `agent-handles.json` adoption verify now runs the `mobile-journeys` project
+  too; without it the three `mobile-*` journeys produced no runtime evidence
+  and `adopt verify` reported failure after a green Playwright run.
+- Tests: `tests/e2e/polish.spec.ts` "fenced HTML document" now asserts the
+  current source-first behaviour with a Preview toggle (it had been red on the
+  previous commit against a card that no longer renders). Measured counts:
+  1307 unit, 144 e2e (39 hand-written + 105 generated).
+
 ## 2026-09-04: Journey catalog on agent-handles, with every provider mocked
 
 - `journeys/manifest.json` grew from 5 to 45 journeys across 11 dev scenarios

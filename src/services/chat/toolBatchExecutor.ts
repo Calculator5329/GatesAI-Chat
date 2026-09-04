@@ -19,6 +19,17 @@ export interface ToolBatchDeps {
   extras: ToolStoreContext;
 }
 
+/**
+ * The first bridge health poll can still be in flight when a turn's first
+ * tool round starts (a prompt sent within a second of launch). Bridge-backed
+ * tools would report "bridge offline" for a bridge that is about to answer,
+ * so the batch waits out that first poll. Bounded inside the store.
+ */
+async function settleBridgeBeforeBatch(bridge: ToolContext['bridge']): Promise<void> {
+  if (!bridge || bridge.state !== 'unknown' || !bridge.whenSettled) return;
+  await bridge.whenSettled();
+}
+
 /** Batches above this size get a warning prepended to the first result. */
 export const TOOL_BATCH_WARN_THRESHOLD = 6;
 
@@ -28,6 +39,7 @@ export async function executeToolBatch(
   signal: AbortSignal,
   deps: ToolBatchDeps,
 ): Promise<ToolResult[]> {
+  await settleBridgeBeforeBatch(deps.extras.bridge);
   const results = new Array<ToolResult>(calls.length);
   const invalidSeen = new Set<string>();
   const batchStartedAt = Date.now();

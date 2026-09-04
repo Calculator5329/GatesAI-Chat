@@ -54,7 +54,7 @@ export const MODELS: Model[] = [
   { id: 'or-llama-4-maverick', name: 'Llama 4 Maverick', vendor: 'Meta', providerId: 'openrouter', providerModelId: 'meta-llama/llama-4-maverick', description: 'Meta multimodal MoE generalist.', contextLength: 1_000_000 },
   { id: 'or-llama-4-scout',    name: 'Llama 4 Scout',    vendor: 'Meta', providerId: 'openrouter', providerModelId: 'meta-llama/llama-4-scout', description: 'Meta long-context multimodal MoE model.', contextLength: 10_000_000 },
   { id: 'or-nemotron-3-ultra',      name: 'Nemotron 3 Ultra',      vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-ultra-550b-a55b', description: 'NVIDIA open-weight frontier reasoning and orchestration MoE.', contextLength: 1_000_000, pricing: { prompt: 0.5, completion: 2.5 } },
-  { id: 'or-nemotron-3-ultra-free', name: 'Nemotron 3 Ultra free', vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-ultra-550b-a55b:free', description: 'Default chat — free OpenRouter route for Nemotron 3 Ultra open weights.', contextLength: 1_000_000, pricing: { prompt: 0, completion: 0 } },
+  { id: 'or-nemotron-3-ultra-free', name: 'Nemotron 3 Ultra free', vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-ultra-550b-a55b:free', description: 'Default chat, free OpenRouter route for Nemotron 3 Ultra open weights.', contextLength: 1_000_000, pricing: { prompt: 0, completion: 0 } },
   { id: 'or-nemotron-3-super',      name: 'Nemotron 3 Super',      vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-super-120b-a12b', description: 'NVIDIA open-weight 120B/12B-active hybrid MoE for agentic systems.', contextLength: 1_000_000, pricing: { prompt: 0.09, completion: 0.45 } },
   { id: 'or-nemotron-3-super-free', name: 'Nemotron 3 Super free', vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-super-120b-a12b:free', description: 'Free OpenRouter route for Nemotron 3 Super open weights.', contextLength: 1_000_000, pricing: { prompt: 0, completion: 0 } },
   { id: 'or-nemotron-3-nano-free',  name: 'Nemotron 3 Nano 30B free', vendor: 'NVIDIA', providerId: 'openrouter', providerModelId: 'nvidia/nemotron-3-nano-30b-a3b:free', description: 'NVIDIA open-weight 30B/3B-active MoE suitable for local-adjacent workflows.', contextLength: 256_000, pricing: { prompt: 0, completion: 0 } },
@@ -72,7 +72,7 @@ export const MODELS: Model[] = [
   // ─────────────────────────────────────────────────────────────────
   {
     id: 'image-direct-comfy-draft',
-    name: 'Draft image — SDXL',
+    name: 'Draft image: SDXL',
     vendor: 'Local image',
     providerId: 'local-image',
     providerModelId: 'comfy-direct-draft',
@@ -81,7 +81,7 @@ export const MODELS: Model[] = [
   },
   {
     id: 'image-direct-comfy',
-    name: 'Normal image — Flux 2 Klein',
+    name: 'Normal image: Flux 2 Klein',
     vendor: 'Local image',
     providerId: 'local-image',
     providerModelId: 'comfy-direct',
@@ -90,7 +90,7 @@ export const MODELS: Model[] = [
   },
   {
     id: 'image-direct-comfy-upscale',
-    name: 'Upscale image — Flux 2 Klein 2x',
+    name: 'Upscale image: Flux 2 Klein 2x',
     vendor: 'Local image',
     providerId: 'local-image',
     providerModelId: 'comfy-direct-upscale',

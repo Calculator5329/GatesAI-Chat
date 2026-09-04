@@ -48,8 +48,12 @@ export class SkillsStore {
       return;
     }
 
-    this.loading = true;
-    this.lastError = null;
+    // refresh() is also reached from a reaction, where an async autoAction
+    // does not count as an action, so the pre-await writes need one too.
+    runInAction(() => {
+      this.loading = true;
+      this.lastError = null;
+    });
     try {
       const skills = await loadWorkspaceSkills(this.bridge, { knownToolNames: this.knownToolNames() });
       runInAction(() => {

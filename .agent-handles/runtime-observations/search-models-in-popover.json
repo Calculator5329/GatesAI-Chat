@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:47.063Z",
+  "measuredAt": "2026-09-04T17:31:26.588Z",
   "journeyName": "search-models-in-popover",
   "lastStep": 6,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

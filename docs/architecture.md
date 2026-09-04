@@ -25,7 +25,7 @@ reached over a single loopback WebSocket.
 
 Stack: React 19 · TypeScript (strict) · Vite 8 · MobX 6 · Tauri 2 (Rust) ·
 Go bridge (separate repo) · Vitest (1,290 unit/component tests) + Playwright
-(84 e2e tests, 45 of them generated from journeys/manifest.json) · ESLint 9 with architecture-boundary rules. Verified against
+(144 e2e tests, 105 of them generated from journeys/manifest.json) · ESLint 9 with architecture-boundary rules. Verified against
 the tree at v4.7.0, 2026-07-19.
 
 ```
@@ -60,7 +60,7 @@ Verify (the gates CI enforces — run before committing):
 
 ```powershell
 npm run ci                  # npm test + npm run typecheck + npm run lint
-npm run test:e2e            # Playwright: desktop-mocked, web-lite, web-lite-journeys projects (84 tests)
+npm run test:e2e            # Playwright: desktop-mocked, web-lite, web-lite-journeys, mobile-journeys projects (144 tests)
 cargo test --manifest-path src-tauri/Cargo.toml   # Rust command layer
 npm run model-compat:catalog # Free OpenRouter catalog-policy audit
 npm run test:models         # OPTIONAL capped live OpenRouter probes (needs API key)
@@ -782,8 +782,11 @@ Test layers:
   step the spec fails on any visible interactive control without an identity,
   any identity absent from `testid-registry.json`, and any duplicated visible
   identity. Journeys named `web-lite-*` run on the `web-lite-journeys`
-  Playwright project against the browser build. The catalog is documented in
-  `docs/handbook/journeys.md`.
+  Playwright project against the browser build, and journeys named `mobile-*`
+  run on `mobile-journeys` at a 390x844 viewport. 23 scenarios back 105
+  journeys; the catalog is documented in `docs/handbook/journeys.md`, and the
+  identities no journey can reach (hidden file inputs, never-rendered
+  fallbacks, transient loading states) are listed there too.
 - The dev scenario layer under `src/dev/scenarios/` seeds localStorage and
   patches `fetch` and `WebSocket` before the stores boot so OpenRouter (chat,
   conversation naming, image generation), Ollama, the bridge (`/health` plus

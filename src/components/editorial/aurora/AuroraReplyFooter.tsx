@@ -44,8 +44,8 @@ export function AuroraReplyFooter({
       )}
       {followUps.length > 0 && (
         <div className="aurora-followups" aria-label="Follow-ups the assistant offered">
-          {followUps.map(text => (
-            <button data-testid={`workspace.aurora-aurora-reply-footer.aurora-followup-${text}`} key={text} type="button" className="aurora-followup" onClick={() => onAsk?.(text)}>
+          {followUps.map((text, index) => (
+            <button data-testid={`workspace.aurora-aurora-reply-footer.aurora-followup-${index}`} key={text} type="button" className="aurora-followup" onClick={() => onAsk?.(text)}>
               {text}
             </button>
           ))}

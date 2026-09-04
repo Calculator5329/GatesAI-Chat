@@ -36,6 +36,20 @@ describe('DockStore', () => {
     expect(dock.cells[1]).toEqual({ kind: 'media-viewer', params: { path: '/workspace/b.png' } });
   });
 
+  it('re-opening a panel that is already open surfaces it instead of duplicating it', () => {
+    const dock = makeStore();
+    dock.openPanel('file-viewer', { path: '/workspace/a.md' });
+    dock.setCollapsed(true);
+    dock.openPanel('file-viewer', { path: '/workspace/a.md' });
+    expect(dock.cells[0]).toEqual({ kind: 'file-viewer', params: { path: '/workspace/a.md' } });
+    expect(dock.cells[1]).toBeNull();
+    expect(dock.collapsed).toBe(false);
+
+    // A different document of the same kind is still a second panel.
+    dock.openPanel('file-viewer', { path: '/workspace/b.md' });
+    expect(dock.cells[1]).toEqual({ kind: 'file-viewer', params: { path: '/workspace/b.md' } });
+  });
+
   it('honors an explicit target cell and un-collapses on open', () => {
     const dock = makeStore();
     dock.setCollapsed(true);

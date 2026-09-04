@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:44.803Z",
+  "measuredAt": "2026-09-04T17:31:26.385Z",
   "journeyName": "preview-memory-retrieval",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/agent",

@@ -214,7 +214,7 @@
     {
       "name": "image-generation-job-card",
       "title": "Generate an image from chat",
-      "description": "The assistant calls image_generate, the job runs against the mocked OpenRouter image endpoint, and the card renders the result.",
+      "description": "The assistant calls image_generate, the job runs against the mocked OpenRouter image endpoint, and the card renders the result, even when the prompt is sent before the first bridge health poll answers.",
       "kind": "control-path",
       "context": {
         "path": "/?scenario=image-job#/workspace"
@@ -385,6 +385,11 @@
           "testId": "workspace.editorial-sidebar.thread-agent-task"
         },
         {
+          "action": "expect",
+          "testId": "workspace.editorial-sidebar.context-menu-agent-task",
+          "predicate": "visible"
+        },
+        {
           "action": "click",
           "testId": "workspace.editorial-sidebar.context-rename-agent-task"
         },
@@ -418,6 +423,11 @@
         {
           "action": "hover",
           "testId": "workspace.editorial-sidebar.thread-agent-task"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-sidebar.row-actions-agent-task",
+          "predicate": "visible"
         },
         {
           "action": "click",
@@ -1602,6 +1612,2678 @@
         {
           "action": "expect",
           "testId": "app.command-palette.row-action:new-conversation",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "code-block-toolbar",
+      "title": "Use the code block toolbar",
+      "description": "On a reply carrying an HTML document, toggle line numbers and wrapping, copy the block, then switch the block to its preview view.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.markdown-chunk.lines",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.markdown-chunk.lines"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.markdown-chunk.set-wrapped"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.markdown-chunk.set-copy-state"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.markdown-chunk.set-copy-state",
+          "predicate": "contains-text",
+          "value": "Cop"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.markdown-chunk.set-html-view"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.html-artifact-preview.html-artifact-preview",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "code-block-open-and-download",
+      "title": "Open and download a code block",
+      "description": "Open hands the HTML document to a new browser tab and Download saves it; neither leaves the thread.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.markdown-chunk.open",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.markdown-chunk.open"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.markdown-chunk.download",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.markdown-chunk.download"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "html-artifact-view-fullscreen",
+      "title": "View an HTML artifact full screen",
+      "description": "The inline artifact card enables View once the bridge has read the file; the full-screen viewer offers Open in OS and Close.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.html-artifact-preview.html-artifact-preview",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.html-artifact-preview.view",
+          "predicate": "enabled",
+          "timeoutMs": 30000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-preview.view"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.html-artifact-preview.close-html-preview",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-preview.fullscreen-open-in-os"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-preview.close-html-preview"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.html-artifact-preview.view",
+          "predicate": "visible",
+          "timeoutMs": 30000
+        }
+      ]
+    },
+    {
+      "name": "html-artifact-open-in-dock",
+      "title": "Open an HTML artifact in the dock",
+      "description": "Open in dock renders the HTML file in a dock file viewer with an inline preview; Open in OS is a no-op against the mocked bridge.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-preview.html-artifact-preview"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-preview.open-in-dock"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.dock.panel",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.file-viewer.html",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.html-preview.inline",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-preview.open-in-os"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-0"
+        }
+      ]
+    },
+    {
+      "name": "registered-artifact-panel",
+      "title": "Open a registered artifact from the palette",
+      "description": "The artifact registry lists a landing page; opening it from the palette shows the dock artifact panel with source toggle, open and download.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.html-artifact-preview.html-artifact-preview",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.html-artifact-preview.view",
+          "predicate": "enabled",
+          "timeoutMs": 30000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.composer.draft"
+        },
+        {
+          "action": "press",
+          "testId": "workspace.composer.draft",
+          "key": "Control+k"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "predicate": "visible"
+        },
+        {
+          "action": "fill",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "value": "artifact"
+        },
+        {
+          "action": "click",
+          "testId": "app.command-palette.row-action:open-artifact-landing"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.dock.html-artifact",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.html-artifact-panel.html-artifact-preview",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.html-artifact-preview.toggle-source",
+          "predicate": "visible",
+          "timeoutMs": 30000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-preview.toggle-source"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-preview.toggle-source"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-preview.download-file"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-preview.open-file"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.html-artifact-panel.open-in-os"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-0"
+        }
+      ]
+    },
+    {
+      "name": "markdown-links-open-workspace-path",
+      "title": "Follow a workspace path link",
+      "description": "A workspace path in a reply hands the file to the OS through the bridge; an external link is hovered but never followed.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.markdown-chunk.open-workspace-path",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.markdown-chunk.open-workspace-path"
+        },
+        {
+          "action": "hover",
+          "testId": "workspace.markdown-chunk.a"
+        }
+      ]
+    },
+    {
+      "name": "message-copy-from-hover-actions",
+      "title": "Copy a message from its hover actions",
+      "description": "Hovering a message reveals its action row; Copy puts the text on the clipboard.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "hover",
+          "testId": "workspace.editorial-message.message-html-assistant"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.actions-html-assistant",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-message.copy-html-assistant"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.actions-html-assistant",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "long-thread-show-earlier",
+      "title": "Reveal earlier messages in a long thread",
+      "description": "Past one page the transcript collapses its head behind a Show control; clicking it renders the earliest turns.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/long"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.show",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.show"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.message-long-user-1",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "long-thread-jump-to-latest",
+      "title": "Jump back to the latest message",
+      "description": "Scrolling up a long transcript shows Jump to latest; clicking it returns to the newest turn and hides the control.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/long"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.show",
+          "predicate": "visible"
+        },
+        {
+          "action": "hover",
+          "testId": "workspace.editorial-message.message-long-user-7"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.editorial-jump-to-bottom",
+          "predicate": "visible",
+          "timeoutMs": 15000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.editorial-jump-to-bottom"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.message-long-assistant-66",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "regenerate-confirm-and-cancel",
+      "title": "Regenerate mid-thread asks first",
+      "description": "Regenerating an answer that is not the last one shows a confirm panel; Cancel keeps the thread as it was.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/middle"
+      },
+      "steps": [
+        {
+          "action": "hover",
+          "testId": "workspace.editorial-message.message-middle-assistant-1"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-message.regenerate-middle-assistant-1"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.confirm-panel-middle-assistant-1",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.confirm-regenerate-middle-assistant-1",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-message.confirm-cancel-middle-assistant-1"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.message-middle-assistant-2",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "edit-mid-thread-confirm-and-cancel",
+      "title": "Edit mid-thread asks first",
+      "description": "Editing an earlier question opens the edit panel; Save asks to confirm because later turns would be dropped, and both cancels back out.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/middle"
+      },
+      "steps": [
+        {
+          "action": "hover",
+          "testId": "workspace.editorial-message.message-middle-user-1"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-message.edit-middle-user-1"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.edit-panel-middle-user-1",
+          "predicate": "visible"
+        },
+        {
+          "action": "fill",
+          "testId": "workspace.editorial-message.edit-input-middle-user-1",
+          "value": "First question, reworded."
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-message.edit-save-middle-user-1"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.edit-confirm-cancel-middle-user-1",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-message.edit-confirm-cancel-middle-user-1"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-message.edit-cancel-middle-user-1"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.message-middle-user-2",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "grouped-activity-timeline",
+      "title": "Expand a grouped activity timeline",
+      "description": "Consecutive tool calls fold into one group; the group control expands and collapses them.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/grouped"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.activity-timeline-group.button",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.activity-timeline-group.button"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.activity-timeline-group.button"
+        }
+      ]
+    },
+    {
+      "name": "memory-sources-open-and-unavailable",
+      "title": "Inspect every kind of memory source",
+      "description": "A reply grounded in a message, a vanished message and a library file: each chip opens its detail, and the vanished one is marked unavailable.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/memory"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.memory-disclosure.chip-message:tool-user",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.memory-disclosure.chip-message:tool-user"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.memory-disclosure.open-source",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.memory-disclosure.why-was-this-used"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.memory-disclosure.don-apos-t-use-this-source"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.memory-disclosure.exclude",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.memory-disclosure.cancel"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.memory-disclosure.chip-message:vanished-user"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.memory-disclosure.source-unavailable",
+          "predicate": "disabled"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.memory-disclosure.chip-library:lib-audit"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.memory-disclosure.open-library",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.memory-disclosure.open-library"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-agent",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "memory-source-open-thread",
+      "title": "Open the thread a memory came from",
+      "description": "Open source on a message chip navigates to the conversation that holds it.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/memory"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.memory-disclosure.chip-message:tool-user"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.memory-disclosure.open-source"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-sidebar.thread-tool",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "attachment-thumbnail-open",
+      "title": "Open a message attachment",
+      "description": "A message attachment thumbnail hands the file to the OS through the bridge; the markdown attachment is listed by name.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/attached"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-message.attachment-requirements.md",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.workspace-image.open",
+          "predicate": "enabled",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.workspace-image.open"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "image-lightbox-navigation",
+      "title": "Browse rendered images in the lightbox",
+      "description": "A finished two-image job opens in the lightbox with next and previous, the full prompt, copy and open in OS.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/images"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.image-job.open-0",
+          "predicate": "enabled",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.image-job.open-0"
+        },
+        {
+          "action": "expect",
+          "testId": "app.lightbox.image-viewer",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.lightbox.next-image"
+        },
+        {
+          "action": "click",
+          "testId": "app.lightbox.previous-image"
+        },
+        {
+          "action": "click",
+          "testId": "app.lightbox.div"
+        },
+        {
+          "action": "expect",
+          "testId": "app.lightbox.full-prompt",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.lightbox.copy-prompt"
+        },
+        {
+          "action": "click",
+          "testId": "app.lightbox.open-in-os"
+        },
+        {
+          "action": "click",
+          "testId": "app.lightbox.close"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "image-job-retry-failed-and-cancelled",
+      "title": "Retry failed and cancelled renders",
+      "description": "Failed and cancelled image jobs keep Retry; Copy error copies the failure and a retried job can be cancelled while it is still pending.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/images"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.image-job-card.retry",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.image-job-card.action"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.image-job-card.retry-cancelled"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.image-job-card.retry"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.image-job-card.cancel-pending-img-failed",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.image-job-card.cancel-pending-img-failed"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.image-job-card.retry-cancelled",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "activity-rows-toggle",
+      "title": "Expand image activity rows",
+      "description": "Each image job row on the thread can be expanded and collapsed.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/images"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.activity-row.toggle-call-img-tour:0"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.activity-row.toggle-call-img-failed:1"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.activity-row.toggle-call-img-cancelled:2"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.activity-row.toggle-call-img-tour:0"
+        }
+      ]
+    },
+    {
+      "name": "aurora-activity-stream-diff",
+      "title": "Open the Aurora activity stream and a diff",
+      "description": "In the Aurora pack the reply folds its work behind chips; expanding shows the work note and the edit call with its diff card.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=aurora-pack#/thread/aurora-active"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.aurora-aurora-activity-stream.chips",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-aurora-activity-stream.chips"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.aurora-aurora-activity-stream.head-aurora-assistant:work-note:0",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-aurora-activity-stream.head-aurora-assistant:work-note:0"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-aurora-activity-stream.head-call-edit:0"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.aurora.diff-card",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-diff-card.show"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-aurora-activity-stream.chips"
+        }
+      ]
+    },
+    {
+      "name": "aurora-fine-tune-render",
+      "title": "Fine-tune an Aurora image render",
+      "description": "The cover render exposes a fine-tune card: adjust images, size and seed, reset, then render again.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=aurora-pack#/thread/aurora-active"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.aurora-aurora-activity-stream.chips"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-aurora-activity-stream.head-call-cover:1"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.image-job.fine-tune",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-fine-tune-card.toggle"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.aurora-fine-tune-card.number-input-images",
+          "predicate": "visible"
+        },
+        {
+          "action": "fill",
+          "testId": "workspace.aurora-fine-tune-card.number-input-images",
+          "value": "2"
+        },
+        {
+          "action": "fill",
+          "testId": "workspace.aurora-fine-tune-card.number-input-width",
+          "value": "768"
+        },
+        {
+          "action": "fill",
+          "testId": "workspace.aurora-fine-tune-card.number-input-height",
+          "value": "768"
+        },
+        {
+          "action": "fill",
+          "testId": "workspace.aurora-fine-tune-card.number-input-seed",
+          "value": "7"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-fine-tune-card.reset"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-fine-tune-card.render-again"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "aurora-reply-footer",
+      "title": "Use the Aurora reply footer",
+      "description": "The suggested follow-up sends as the next message; the source chip then opens the Agent tab of the menu, where recall sources live.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=aurora-pack#/thread/aurora-active"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.aurora-aurora-reply-footer.aurora-chip-muted",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-aurora-reply-footer.aurora-followup-0"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.stream",
+          "predicate": "contains-text",
+          "value": "Want me to run the full suite next?",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.aurora-aurora-reply-footer.aurora-chip-muted"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-agent",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "prompt-cards-answer-each-way",
+      "title": "Answer prompt cards every way",
+      "description": "Three pending prompts: pick an option, write a free answer and send it, and skip the last.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=prompt-cards#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.prompt-card.container",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.prompt-cards.option-prompt-approve-yes"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.prompt-cards.free-prompt-recommend"
+        },
+        {
+          "action": "fill",
+          "testId": "workspace.prompt-cards.answer-prompt-recommend",
+          "value": "Use the audit plan first."
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.prompt-cards.send-prompt-recommend",
+          "predicate": "enabled"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.prompt-cards.send-prompt-recommend"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.prompt-cards.skip-prompt-skip"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "prompt-cards-skip-and-option",
+      "title": "Skip a prompt and pick an option",
+      "description": "Skip the approval prompt outright and answer the recommendation with one of its options.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=prompt-cards#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.prompt-cards.skip-prompt-approve"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.prompt-cards.option-prompt-recommend-audit"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.prompt-card.container",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "command-palette-empty-and-backdrop",
+      "title": "Palette empty state and backdrop",
+      "description": "A query nothing matches shows the empty row; clicking the backdrop closes the palette.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.composer.draft"
+        },
+        {
+          "action": "press",
+          "testId": "workspace.composer.draft",
+          "key": "Control+k"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.command-palette",
+          "predicate": "visible"
+        },
+        {
+          "action": "fill",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "value": "zzzz nothing matches"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.empty-classic",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.command-palette.backdrop"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "aurora-command-palette-empty",
+      "title": "Aurora palette names what it searched",
+      "description": "In the Aurora pack, a query that matches nothing shows the empty state that names the query, and the backdrop closes the palette.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=aurora-pack#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.composer.draft"
+        },
+        {
+          "action": "press",
+          "testId": "workspace.composer.draft",
+          "key": "Control+k"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.command-palette",
+          "predicate": "visible"
+        },
+        {
+          "action": "fill",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "value": "zzzz nothing matches"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.empty",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.command-palette.backdrop"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "update-pill-install-and-dismiss",
+      "title": "Act on an available update",
+      "description": "With an update staged the pill offers install; dismiss hides the notice.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=update-available#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.update-pill.on-click",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.update-pill.on-click"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.update-pill.dismiss-update-notice"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "attachment-tray-and-notice",
+      "title": "Manage a drafted attachment tray",
+      "description": "Two staged attachments can be handed to the OS and removed; the persistence notice above the draft can be dismissed.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=attachments-drafted#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.attachment-tray.remove",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.workspace-image.open",
+          "predicate": "enabled",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.workspace-image.open"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.attachment-tray.remove"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.attachment-tray.remove-path"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer-banners.dismiss-notice",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.composer-banners.dismiss-notice"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "persistence-notice-reload",
+      "title": "Reload from the persistence notice",
+      "description": "The conflict notice's Reload action reloads the app and the workspace comes back.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=attachments-drafted#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.composer-banners.editorial-banner-action",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.composer-banners.editorial-banner-action"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        }
+      ]
+    },
+    {
+      "name": "first-run-local-ready-continue",
+      "title": "Continue with a detected local model",
+      "description": "Ollama has models: the local card offers to continue with the selected one, and the sidebar hint points at the menu.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=first-run-local-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.continue-with",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-sidebar.settings-amp-menu-live-here",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.continue-with"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "first-run-menu-hint",
+      "title": "Follow the sidebar menu hint",
+      "description": "The one-time hint on the brand mark opens the menu.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=first-run-local-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.settings-amp-menu-live-here"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-settings",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "first-run-local-empty-starter-pull",
+      "title": "Pull a starter model",
+      "description": "Ollama runs with no models: the primary action pulls a starter and the secondary opens Local settings.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=first-run-local-empty#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.primary",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.primary"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.open-local-settings"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-models",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "first-run-local-installed-recheck",
+      "title": "Recheck a stopped Ollama",
+      "description": "Ollama is installed but stopped: Check again re-polls and Open Local settings goes to the models tab.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=first-run-local-installed#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.start-ollama",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.recheck-ollama"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.recheck-ollama",
+          "predicate": "enabled",
+          "timeoutMs": 10000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.start-ollama"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-models",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "first-run-install-ollama",
+      "title": "Nothing local detected",
+      "description": "No Ollama found: Check again re-runs detection and the primary action opens Local settings.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=first-run#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.install-ollama",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.secondary"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.secondary",
+          "predicate": "enabled",
+          "timeoutMs": 10000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.install-ollama"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-models",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "local-embed-pull-cancel-dismiss",
+      "title": "Pull the embedding model, cancel, dismiss",
+      "description": "The semantic-memory nudge pulls nomic-embed-text; the pull can be cancelled and the nudge dismissed.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=local-no-embed#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.pull-nomic-embed-text",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.pull-nomic-embed-text"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.cancel",
+          "predicate": "visible",
+          "timeoutMs": 10000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.cancel"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.dismiss",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.dismiss"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "agent-settings-install-embedding",
+      "title": "Install the embedding model from Agent settings",
+      "description": "With the embedding model missing, Agent settings offers Install; clicking it starts the pull and turns into Cancel.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=local-no-embed#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.sidebar-settings-button.settings-and-menu"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-agent",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.gates-menu.tab-agent"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.cancel-pull",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.cancel-pull"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.cancel-pull",
+          "predicate": "contains-text",
+          "value": "Cancel",
+          "timeoutMs": 10000
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.cancel-pull"
+        }
+      ]
+    },
+    {
+      "name": "banner-ollama-offline",
+      "title": "Ollama offline banner",
+      "description": "A local model is selected but Ollama is unreachable: the composer banner opens Local settings.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=local-ollama-offline#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.composer-banners.open-local-settings",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.composer-banners.open-local-settings"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-models",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "banner-local-image-offline",
+      "title": "Local image model offline banner",
+      "description": "A direct image model is selected but ComfyUI is stopped: the banner opens local settings.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=local-image-model#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.composer-banners.open-local-image-settings",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.composer-banners.open-local-image-settings"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-models",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "banner-no-model-open-models",
+      "title": "No model banner",
+      "description": "Nothing configured after Look around: the composer banner opens the models tab.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=first-run#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.look-around"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer-banners.open-models",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.composer-banners.open-models"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-models",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "task-center-cancel-and-retry",
+      "title": "Cancel and retry from the task center",
+      "description": "The task ledger lists an agent task and two image jobs; cancel the task and retry both jobs.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/images"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.composer.draft"
+        },
+        {
+          "action": "press",
+          "testId": "workspace.composer.draft",
+          "key": "Control+k"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.command-palette.row-action:open-task-center"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.task-center.ledger",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.task-center-panel.cancel-agent-task",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.task-center-panel.cancel-agent-task"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.task-center-panel.retry-img-cancelled"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.task-center-panel.retry-img-failed"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-0"
+        }
+      ]
+    },
+    {
+      "name": "task-center-empty",
+      "title": "Task center with nothing running",
+      "description": "A bare desktop shows the empty task ledger.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-bare#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.composer.draft"
+        },
+        {
+          "action": "press",
+          "testId": "workspace.composer.draft",
+          "key": "Control+k"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.command-palette.row-action:open-task-center"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.task-center.empty",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-0"
+        }
+      ]
+    },
+    {
+      "name": "agent-recall-sources",
+      "title": "Curate recall sources",
+      "description": "Expand the message group, search it, exclude a thread, re-include all, and toggle a whole source type.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/memory"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.sidebar-settings-button.settings-and-menu"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-agent",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.gates-menu.tab-agent"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.source-group-message",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.source-group-message"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.search",
+          "predicate": "visible"
+        },
+        {
+          "action": "fill",
+          "testId": "settings.agent.search",
+          "value": "html"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.source-toggle-thread:html",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.source-toggle-thread:html"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.re-include-all-excluded-sources",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.re-include-all-excluded-sources"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.source-type-message"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.source-type-message"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.source-group-message"
+        }
+      ]
+    },
+    {
+      "name": "agent-library-and-index",
+      "title": "Library sources and the semantic index",
+      "description": "Toggle the seeded library file, refresh the library, and rebuild the index while the danger controls stay visible.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/memory"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.sidebar-settings-button.settings-and-menu"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-agent",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.gates-menu.tab-agent"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.library-source-lib-audit",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.library-source-lib-audit"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.library-source-lib-audit"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.refresh-all",
+          "predicate": "enabled",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.refresh-all"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.add-source",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.semantic-recall",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.rebuild-index",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.rebuild-index"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.clear-derived-index",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "agent-facts-edit-and-clear",
+      "title": "Edit, cancel, delete and clear facts",
+      "description": "Facts can be edited in place, the edit cancelled, one deleted, and the rest cleared after confirmation.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.sidebar-settings-button.settings-and-menu"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-agent",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.gates-menu.tab-agent"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.fact-edit-0",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.fact-edit-0"
+        },
+        {
+          "action": "fill",
+          "testId": "settings.agent.fact-input-0",
+          "value": "Edited fact"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.fact-save-0"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.fact-edit-0"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.fact-cancel-0"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.fact-delete-0"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.clear-all",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.agent.clear-all"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.agent.new-fact",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "preferences-toggles-and-shortcut",
+      "title": "Preferences toggles and the summon chord",
+      "description": "Flip a preference toggle, record a new summon chord and reset it, switch global summon off (the recorder disables) and back on, and toggle close-to-tray.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.sidebar-settings-button.settings-and-menu"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-settings",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.gates-menu.tab-settings"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.preferences.toggle",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.toggle"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.chord-recorder.global-summon-shortcut",
+          "predicate": "enabled"
+        },
+        {
+          "action": "click",
+          "testId": "settings.chord-recorder.global-summon-shortcut"
+        },
+        {
+          "action": "press",
+          "testId": "settings.chord-recorder.global-summon-shortcut",
+          "key": "Control+Shift+K"
+        },
+        {
+          "action": "click",
+          "testId": "settings.chord-recorder.reset"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.global-summon"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.chord-recorder.global-summon-shortcut",
+          "predicate": "disabled"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.global-summon"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.chord-recorder.global-summon-shortcut",
+          "predicate": "enabled"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.close-hides-to-tray"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.preferences.export-json",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "preferences-export-and-import-modes",
+      "title": "Export and choose an import mode",
+      "description": "Export writes a JSON file; Replace mode demands the confirmation phrase before the import button enables.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.sidebar-settings-button.settings-and-menu"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-settings",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.gates-menu.tab-settings"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.export-json"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.import-mode-replace"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.preferences.input",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.preferences.button",
+          "predicate": "disabled"
+        },
+        {
+          "action": "fill",
+          "testId": "settings.preferences.input",
+          "value": "replace all GatesAI data"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.preferences.button",
+          "predicate": "enabled"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.import-mode-merge"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.preferences.button",
+          "predicate": "enabled"
+        }
+      ]
+    },
+    {
+      "name": "preferences-danger-zone",
+      "title": "Danger zone confirm and cancel",
+      "description": "Each delete asks to confirm; cancel one and run another.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.sidebar-settings-button.settings-and-menu"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-settings",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.gates-menu.tab-settings"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.preferences.delete-threads",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.delete-threads"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.preferences.run",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.cancel"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.delete-memories"
+        },
+        {
+          "action": "click",
+          "testId": "settings.preferences.run"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.preferences.delete-provider-keys",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "models-catalog-refresh-and-clear",
+      "title": "Refresh and clear the OpenRouter catalog",
+      "description": "Load models pulls the mocked catalog; Clear drops it. The stored key can be revealed, and Get key is only hovered.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.sidebar-settings-button.settings-and-menu"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-models",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.gates-menu.tab-models"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.models-open-router-catalog-row.refresh",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "settings.models-open-router-catalog-row.refresh"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.models-open-router-catalog-row.clear",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "settings.models-open-router-catalog-row.clear"
+        },
+        {
+          "action": "click",
+          "testId": "settings.secret-key.reveal-openrouter"
+        },
+        {
+          "action": "hover",
+          "testId": "settings.secret-key.get-key-brave"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.secret-key.stored-openrouter",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "dock-two-cells-swap-and-resize",
+      "title": "Two dock cells, swap and resize",
+      "description": "Opening a file beside the explorer fills the second cell; swap exchanges them and the resize handles are hoverable.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.composer.draft"
+        },
+        {
+          "action": "press",
+          "testId": "workspace.composer.draft",
+          "key": "Control+k"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.command-palette.row-action:browse-files-in-dock"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.dock.file-explorer",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-site"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-index.html"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.dock.cell-1",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.file-viewer.html",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.swap-0"
+        },
+        {
+          "action": "hover",
+          "testId": "workspace.dock-panel.resize-dock"
+        },
+        {
+          "action": "hover",
+          "testId": "workspace.dock-panel.resize-dock-cells"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.swap-1"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-1"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-0"
+        }
+      ]
+    },
+    {
+      "name": "dock-explorer-crumbs-and-refresh",
+      "title": "Breadcrumbs and refresh in the explorer",
+      "description": "Descend into a folder, climb back through the breadcrumb and the parent control, and refresh the listing.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.composer.draft"
+        },
+        {
+          "action": "press",
+          "testId": "workspace.composer.draft",
+          "key": "Control+k"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.command-palette.row-action:browse-files-in-dock"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.dock.file-explorer",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-notes"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.refresh-directory"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.file-explorer-panel.set-path-0",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.set-path-0"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-media"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.parent-directory"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.file-explorer-panel.entry-notes",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-0"
+        }
+      ]
+    },
+    {
+      "name": "dock-media-viewers",
+      "title": "Every media viewer state",
+      "description": "Audio plays inline, a still image renders, and unreadable media shows its error notices.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.composer.draft"
+        },
+        {
+          "action": "press",
+          "testId": "workspace.composer.draft",
+          "key": "Control+k"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.command-palette.row-action:browse-files-in-dock"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.dock.file-explorer",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-media"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-clip.mp3"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.media-viewer.content-audio",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-still.png"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.media-viewer.image",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-broken.mp4"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.media-viewer.av-error",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-broken.png"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.media-viewer.image-error",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-1"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-0"
+        }
+      ]
+    },
+    {
+      "name": "dock-file-viewers",
+      "title": "JSON, text and unreadable files",
+      "description": "A JSON file renders as collapsible keys, a text file as plain text, and an unreadable file as a notice, and a markdown note renders as markdown.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=rich-transcript#/thread/html"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.composer.draft"
+        },
+        {
+          "action": "press",
+          "testId": "workspace.composer.draft",
+          "key": "Control+k"
+        },
+        {
+          "action": "expect",
+          "testId": "app.command-palette.search-commands-and-threads",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.command-palette.row-action:browse-files-in-dock"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.dock.file-explorer",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-notes"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-config.json"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.file-viewer.json",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-viewer-panel.summary-theme"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-audit-plan.md"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.file-viewer.markdown",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-unreadable.txt"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.file-viewer.notice",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.parent-directory"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-attachments"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.file-explorer-panel.entry-notes.txt"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.file-viewer.text",
+          "predicate": "visible",
+          "timeoutMs": 20000
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-1"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.dock-panel.close-0"
+        }
+      ]
+    },
+    {
+      "name": "skill-picker-choose-and-clear",
+      "title": "Pick a workspace skill and clear it",
+      "description": "The skill control opens a picker; choose Research, then clear back to none.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.composer-meta.workspace-skill",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.composer-meta.workspace-skill"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.skill-picker.option-research",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.skill-picker.option-research"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.composer-meta.workspace-skill"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.skill-picker.option-none"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "favorite-a-model",
+      "title": "Star a model in the popover",
+      "description": "Starring a model adds it to the Favorites section; unstarring it from there removes the section again; picking the model from the Favorites row selects it for the composer.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.composer-meta.model"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.model-popover.favorite-or-gpt-5.5",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.model-popover.favorite-or-gpt-5.5"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.model-popover.favorites-favorite-or-gpt-5.5",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.model-popover.favorites-row-or-gpt-5.5"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer-meta.model",
+          "predicate": "contains-text",
+          "value": "GPT-5.5"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.composer-meta.model"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.model-popover.favorites-favorite-or-gpt-5.5"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.model-popover.favorite-or-gpt-5.5",
+          "predicate": "visible"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.model-popover.search-models",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "local-context-mode",
+      "title": "Choose the local context mode",
+      "description": "With a local model selected the composer offers a context mode; pick bare prompt.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=local-ollama#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.composer-meta.local-context-mode",
+          "predicate": "visible"
+        },
+        {
+          "action": "select",
+          "testId": "workspace.composer-meta.local-context-mode",
+          "value": "bare"
+        },
+        {
+          "action": "select",
+          "testId": "workspace.composer-meta.local-context-mode",
+          "value": "full"
+        }
+      ]
+    },
+    {
+      "name": "sidebar-brand-and-bridge-dot",
+      "title": "Brand mark and bridge dot",
+      "description": "Clicking the brand mark opens the menu; the settings dot re-polls the bridge.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.sidebar-settings-button.dot",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.sidebar-settings-button.dot"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.brand"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-settings",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "whats-new-dismiss",
+      "title": "Dismiss the release notes",
+      "description": "The close control on the welcome panel dismisses it without Got it.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=whats-new#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "app.whats-new.presentation",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "app.whats-new.dismiss-what-s-new"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "mobile-open-sidebar-and-menu",
+      "title": "Mobile: open the sidebar and the menu",
+      "description": "On a phone the top bar opens the sidebar; from it the menu opens and the back control returns to the chat.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-sidebar.button",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.open-sidebar"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-sidebar.close-mobile-sidebar",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.menu-and-settings"
+        },
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-settings",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.button"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "mobile-sidebar-close-controls",
+      "title": "Mobile: every way to close the sidebar",
+      "description": "The title opens the sidebar, the close control shuts it, the backdrop shuts it, and the hamburger opens it again.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.title"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.close-mobile-sidebar"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.button"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-sidebar.close-sidebar",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.close-sidebar"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "mobile-new-conversation-and-copy-link",
+      "title": "Mobile: new conversation and copy link",
+      "description": "The top bar starts a new conversation and copies the thread link.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.new-conversation"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
+          "predicate": "visible"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.copy-link"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-sidebar.title",
+          "predicate": "visible"
+        }
+      ]
+    },
+    {
+      "name": "web-lite-download-cue",
+      "title": "Web Lite: download cue on an empty conversation",
+      "description": "An empty conversation in Web Lite shows the desktop download cue; the link is hovered, never followed.",
+      "kind": "control-path",
+      "context": {
+        "path": "/?scenario=desktop-ready#/workspace"
+      },
+      "steps": [
+        {
+          "action": "click",
+          "testId": "workspace.editorial-sidebar.begin-a-new-conversation"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.editorial-chat.link",
+          "predicate": "visible"
+        },
+        {
+          "action": "hover",
+          "testId": "workspace.editorial-chat.link"
+        },
+        {
+          "action": "expect",
+          "testId": "workspace.composer.draft",
           "predicate": "visible"
         }
       ]

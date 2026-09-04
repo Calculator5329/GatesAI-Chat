@@ -128,14 +128,14 @@ export const CommandPalette = observer(function CommandPalette() {
       menuItem('settings', 'Open settings', 'Settings', ['preferences menu'], section => router.goMenu(section)),
       menuItem('models', 'Open models', 'Models', ['model api key openrouter local ollama'], section => router.goMenu(section)),
       menuItem('agent', 'Open agent', 'Agent', ['instructions memory system prompt'], section => router.goMenu(section)),
-      actionItem('toggle-fullscreen', 'Toggle fullscreen', 'F11 — use the whole screen', ['fullscreen full screen f11 window maximize'], () => {
+      actionItem('toggle-fullscreen', 'Toggle fullscreen', 'F11, use the whole screen', ['fullscreen full screen f11 window maximize'], () => {
         ui.toggleFullscreen();
       }),
       // The before/after switcher, one keystroke away: comparing packs is the
       // point of having packs, and a settings round trip loses the comparison.
       actionItem(
         'cycle-ui-pack',
-        `Switch interface pack — ${uiPackMeta(nextUiPack(ui.uiPack)).name}`,
+        `Switch interface pack to ${uiPackMeta(nextUiPack(ui.uiPack)).name}`,
         `Currently ${uiPackMeta(ui.uiPack).name}`,
         ['pack theme interface presentation aurora classic before after switch'],
         () => ui.setUiPack(nextUiPack(ui.uiPack)),
@@ -259,7 +259,7 @@ export const CommandPalette = observer(function CommandPalette() {
           {ranked.length === 0 && (
             aurora
               ? <PaletteEmpty query={query} actionCount={counts.action} threadCount={counts.thread} />
-              : <div style={EMPTY_STYLE}>No matching command or thread.</div>
+              : <div style={EMPTY_STYLE} data-testid="app.command-palette.empty-classic">No matching command or thread.</div>
           )}
           {ranked.map((item, index) => (
             <Fragment key={item.id}>

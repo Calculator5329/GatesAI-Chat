@@ -90,7 +90,7 @@ const UiPackBlock = observer(function UiPackBlock() {
             labels={PACK_LABELS}
           />
           <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
-            {uiPackMeta(ui.uiPack).description} Switching is instant and changes presentation only —
+            {uiPackMeta(ui.uiPack).description} Switching is instant and changes presentation only;
             your threads, settings, and tools are identical in every pack.
           </div>
         </div>

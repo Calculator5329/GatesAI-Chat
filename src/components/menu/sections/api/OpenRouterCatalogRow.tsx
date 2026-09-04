@@ -32,7 +32,7 @@ export const OpenRouterCatalogRow = observer(function OpenRouterCatalogRow() {
           <div style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
             {count > 0
               ? <>{count.toLocaleString()} models · last refreshed {formatTimestamp(fetchedAt)}</>
-              : <>Not loaded yet — pull the live list from OpenRouter</>}
+              : <>Not loaded yet. Pull the live list from OpenRouter</>}
           </div>
         </div>
         <Button data-testid="settings.models-open-router-catalog-row.refresh" onClick={() => { void store.refresh(); }} disabled={fetching}>

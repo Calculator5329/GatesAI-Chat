@@ -160,7 +160,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--border)' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: `width ${tokens.motion.fade}` }} />
       </div>
-      <button data-testid="workspace.image-job-card.cancel-pending"
+      <button data-testid={`workspace.image-job-card.cancel-pending-${job.id}`}
         type="button"
         className="image-job-card__cancel"
         onClick={onCancel}
@@ -202,7 +202,7 @@ const FailedCard = observer(function FailedCard({ job, onRetry }: { job: Complet
           )}
         </>
       )}
-      <div style={{ ...rectBase, padding: 12, color: 'var(--text-dim)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8 }}>
+      <div style={{ ...noteBase, padding: 12, color: 'var(--text-dim)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8 }}>
         <div style={{ color: 'var(--text)' }}>Image render failed</div>
         <div style={{ fontSize: 11.5, opacity: 0.9 }}>{advice}</div>
         <div title={job.error ?? 'Unknown error'} style={{ fontSize: 11, opacity: 0.75, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -236,7 +236,7 @@ const CancelledCard = observer(function CancelledCard({ job, onRetry }: { job: C
           )}
         </>
       )}
-      <div style={{ ...rectBase, padding: 12, color: 'var(--text-faint)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
+      <div style={{ ...noteBase, padding: 12, color: 'var(--text-faint)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
         <div>Render cancelled</div>
         {job.results.length > 0 && <div style={{ fontSize: 11.5 }}>({job.results.length} of {job.count} completed before cancel)</div>}
         <div><button data-testid="workspace.image-job-card.retry-cancelled" type="button" className="image-job-card__action" onClick={onRetry} style={inlineBtn}>Retry</button></div>
@@ -313,6 +313,9 @@ const rectBase: React.CSSProperties = {
   borderRadius: 6,
   background: 'var(--surface-soft, rgba(0,0,0,0.04))',
 };
+
+/** Terminal-state notes (failed, cancelled) size to their text instead of reserving a 240px slab. */
+const noteBase: React.CSSProperties = { ...rectBase, height: 'auto', minHeight: 0 };
 
 const cancelBtn: React.CSSProperties = {
   position: 'absolute',

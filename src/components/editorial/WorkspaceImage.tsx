@@ -29,7 +29,7 @@ export const WorkspaceImage = observer(function WorkspaceImage({
     <button data-testid="workspace.workspace-image.open"
       type="button"
       className="user-attachment-thumb"
-      title={`${alt} — click to open`}
+      title={`${alt}. Click to open`}
       aria-label={`Open ${alt}`}
       onClick={() => { void bridge.openWorkspacePath(path); }}
     >

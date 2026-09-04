@@ -37,6 +37,8 @@ export interface OllamaPlan {
   models: string[];
   reply: string;
   version?: string;
+  /** POST /api/pull streams this many progress frames, one every delayMs, before reporting success. */
+  pull?: { frames: number; delayMs: number };
 }
 
 export interface BridgeFile {
@@ -69,6 +71,8 @@ export interface ImagePlan {
   base64: string;
   mime: string;
   costUsd?: number;
+  /** Hold the image reply this long so a job stays in its running state. */
+  delayMs?: number;
 }
 
 export interface NetworkPlan {
@@ -93,6 +97,14 @@ export interface AfterBootStore {
     };
   };
   ollama?: { refresh: () => Promise<void> };
+  /** Draft attachments live only in memory, so a scenario stages them here. */
+  ui?: { addAttachment: (attachment: { id: string; filename: string; path: string; size: number; mime: string }) => void };
+  /** The updater is a Tauri plugin; outside the shell a scenario states the phase. */
+  updates?: { phase: string; version: string | null; notes: string | null };
+  /** Assistant prompts are mid-turn state and never persist. */
+  prompts?: { pending: Array<{ id: string; threadId: string }> };
+  /** Transient notices the composer shows above the draft. */
+  chat?: { persistenceConflict: string | null; persistenceLeaderState: string | null };
 }
 
 export interface ScenarioDefinition {

@@ -25,7 +25,7 @@ export const AgentSection = observer(function AgentSection() {
       <div style={tokens.section}>
         <div style={tokens.sectionTitle}>Instructions</div>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 10, lineHeight: 1.55 }}>
-          A system prompt sent on every turn. Tells the model how to behave —
+          A system prompt sent on every turn. Tells the model how to behave:
           tone, role, format preferences, things to avoid.
         </div>
         <Textarea data-testid="settings.agent.system-prompt"

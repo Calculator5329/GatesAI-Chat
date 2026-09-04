@@ -417,7 +417,9 @@
 
   .runtime-web-lite .editorial-sidebar__scrim {
     position: fixed;
-    inset: 0;
+    /* Starts where the drawer ends: the drawer covers the rest, and a control
+       that sits under another control is one no tap can reach. */
+    inset: 0 0 0 var(--mobile-drawer-width);
     z-index: 42;
     border: 0;
     background: rgba(0, 0, 0, 0.46);
@@ -1252,7 +1254,7 @@
 
   :is(.runtime-web-lite, .runtime-desktop) .editorial-sidebar__scrim {
     position: fixed;
-    inset: 0;
+    inset: 0 0 0 var(--mobile-drawer-width);
     z-index: 61;
     border: 0;
     background: rgba(0, 0, 0, 0.54);
@@ -1506,6 +1508,13 @@
   }
 
   :is(.runtime-web-lite, .runtime-desktop) .editorial-composer__meta > .composer-meta__sep {
+    display: none !important;
+  }
+
+  /* The reveal group (context / thinking select) starts with its own dot
+     separator. When the meta row wraps on a narrow screen that dot lands
+     alone at the start of the second line, so it goes too. */
+  :is(.runtime-web-lite, .runtime-desktop) .editorial-composer__meta .composer-reveal > span:first-child {
     display: none !important;
   }
 

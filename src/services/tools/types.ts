@@ -61,6 +61,8 @@ export interface BridgeClientFacade {
 export interface BridgeFacade {
   readonly isOnline: boolean;
   readonly state?: string;
+  /** Resolves once the first health poll has answered; see BridgeStore.whenSettled. */
+  whenSettled?(timeoutMs?: number): Promise<void>;
   readonly version?: string;
   readonly platform?: string;
   readonly workspaceRoot?: string;

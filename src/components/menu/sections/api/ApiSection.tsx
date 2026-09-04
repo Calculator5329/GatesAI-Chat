@@ -90,7 +90,7 @@ const LocalModelsCard = observer(function LocalModelsCard() {
           <div style={cardDescStyle}>
             {online
               ? `Ollama online · ${ollama.count} model${ollama.count === 1 ? '' : 's'}`
-              : 'Ollama not running — start it and refresh.'}
+              : 'Ollama not running. Start it and refresh.'}
           </div>
         </div>
         {online ? <Pill>● Online</Pill> : <Pill tone="muted">Offline</Pill>}

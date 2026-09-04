@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:37.402Z",
+  "measuredAt": "2026-09-04T17:31:06.214Z",
   "journeyName": "whats-new-acknowledge",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=whats-new#/thread/active",

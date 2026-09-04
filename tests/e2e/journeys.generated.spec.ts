@@ -239,7 +239,7 @@ test("web-search-grounded-reply: The assistant calls web_search, Brave answers w
   await recordFinalPageState(page, "web-search-grounded-reply");
 });
 
-test("image-generation-job-card: The assistant calls image_generate, the job runs against the mocked OpenRouter image endpoint, and the card renders the result.", async ({
+test("image-generation-job-card: The assistant calls image_generate, the job runs against the mocked OpenRouter image endpoint, and the card renders the result, even when the prompt is sent before the first bridge health poll answers.", async ({
   page,
 }) => {
   await page.goto("/?scenario=image-job#/workspace");
@@ -315,14 +315,16 @@ test("rename-thread-from-context-menu: Right-click a thread, choose Rename, type
   await page.goto("/?scenario=desktop-ready#/workspace");
   await page.getByTestId("workspace.editorial-sidebar.thread-agent-task").click({ button: "right" });
   await reconcileRuntime(page, "rename-thread-from-context-menu", 1);
-  await page.getByTestId("workspace.editorial-sidebar.context-rename-agent-task").click();
+  await expect(page.getByTestId("workspace.editorial-sidebar.context-menu-agent-task")).toBeVisible();
   await reconcileRuntime(page, "rename-thread-from-context-menu", 2);
-  await page.getByTestId("workspace.editorial-sidebar.rename-input-agent-task").fill("Renamed by the journey");
+  await page.getByTestId("workspace.editorial-sidebar.context-rename-agent-task").click();
   await reconcileRuntime(page, "rename-thread-from-context-menu", 3);
-  await page.getByTestId("workspace.editorial-sidebar.rename-input-agent-task").press("Enter");
+  await page.getByTestId("workspace.editorial-sidebar.rename-input-agent-task").fill("Renamed by the journey");
   await reconcileRuntime(page, "rename-thread-from-context-menu", 4);
-  await expect(page.getByTestId("workspace.editorial-sidebar.thread-agent-task")).toContainText("Renamed by the journey");
+  await page.getByTestId("workspace.editorial-sidebar.rename-input-agent-task").press("Enter");
   await reconcileRuntime(page, "rename-thread-from-context-menu", 5);
+  await expect(page.getByTestId("workspace.editorial-sidebar.thread-agent-task")).toContainText("Renamed by the journey");
+  await reconcileRuntime(page, "rename-thread-from-context-menu", 6);
   await recordFinalPageState(page, "rename-thread-from-context-menu");
 });
 
@@ -330,10 +332,12 @@ test("pin-thread-from-row-actions: Hover a thread row and pin it; the row stays 
   await page.goto("/?scenario=desktop-ready#/workspace");
   await page.getByTestId("workspace.editorial-sidebar.thread-agent-task").hover();
   await reconcileRuntime(page, "pin-thread-from-row-actions", 1);
-  await page.getByTestId("workspace.editorial-sidebar.pin-agent-task").click();
+  await expect(page.getByTestId("workspace.editorial-sidebar.row-actions-agent-task")).toBeVisible();
   await reconcileRuntime(page, "pin-thread-from-row-actions", 2);
-  await expect(page.getByTestId("workspace.editorial-sidebar.thread-agent-task")).toBeVisible();
+  await page.getByTestId("workspace.editorial-sidebar.pin-agent-task").click();
   await reconcileRuntime(page, "pin-thread-from-row-actions", 3);
+  await expect(page.getByTestId("workspace.editorial-sidebar.thread-agent-task")).toBeVisible();
+  await reconcileRuntime(page, "pin-thread-from-row-actions", 4);
   await recordFinalPageState(page, "pin-thread-from-row-actions");
 });
 
@@ -863,4 +867,1280 @@ test("web-lite-command-palette: The keyboard shortcut opens the palette in the b
   await expect(page.getByTestId("app.command-palette.row-action:new-conversation")).toBeVisible();
   await reconcileRuntime(page, "web-lite-command-palette", 4);
   await recordFinalPageState(page, "web-lite-command-palette");
+});
+
+test("code-block-toolbar: On a reply carrying an HTML document, toggle line numbers and wrapping, copy the block, then switch the block to its preview view.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await expect(page.getByTestId("workspace.markdown-chunk.lines")).toBeVisible();
+  await reconcileRuntime(page, "code-block-toolbar", 1);
+  await page.getByTestId("workspace.markdown-chunk.lines").click();
+  await reconcileRuntime(page, "code-block-toolbar", 2);
+  await page.getByTestId("workspace.markdown-chunk.set-wrapped").click();
+  await reconcileRuntime(page, "code-block-toolbar", 3);
+  await page.getByTestId("workspace.markdown-chunk.set-copy-state").click();
+  await reconcileRuntime(page, "code-block-toolbar", 4);
+  await expect(page.getByTestId("workspace.markdown-chunk.set-copy-state")).toContainText("Cop");
+  await reconcileRuntime(page, "code-block-toolbar", 5);
+  await page.getByTestId("workspace.markdown-chunk.set-html-view").click();
+  await reconcileRuntime(page, "code-block-toolbar", 6);
+  await expect(page.getByTestId("workspace.html-artifact-preview.html-artifact-preview")).toBeVisible();
+  await reconcileRuntime(page, "code-block-toolbar", 7);
+  await recordFinalPageState(page, "code-block-toolbar");
+});
+
+test("code-block-open-and-download: Open hands the HTML document to a new browser tab and Download saves it; neither leaves the thread.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await expect(page.getByTestId("workspace.markdown-chunk.open")).toBeVisible();
+  await reconcileRuntime(page, "code-block-open-and-download", 1);
+  await page.getByTestId("workspace.markdown-chunk.open").click();
+  await reconcileRuntime(page, "code-block-open-and-download", 2);
+  await expect(page.getByTestId("workspace.markdown-chunk.download")).toBeVisible();
+  await reconcileRuntime(page, "code-block-open-and-download", 3);
+  await page.getByTestId("workspace.markdown-chunk.download").click();
+  await reconcileRuntime(page, "code-block-open-and-download", 4);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "code-block-open-and-download", 5);
+  await recordFinalPageState(page, "code-block-open-and-download");
+});
+
+test("html-artifact-view-fullscreen: The inline artifact card enables View once the bridge has read the file; the full-screen viewer offers Open in OS and Close.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await expect(page.getByTestId("workspace.html-artifact-preview.html-artifact-preview")).toBeVisible();
+  await reconcileRuntime(page, "html-artifact-view-fullscreen", 1);
+  await expect(page.getByTestId("workspace.html-artifact-preview.view")).toBeEnabled({ timeout: 30000 });
+  await reconcileRuntime(page, "html-artifact-view-fullscreen", 2);
+  await page.getByTestId("workspace.html-artifact-preview.view").click();
+  await reconcileRuntime(page, "html-artifact-view-fullscreen", 3);
+  await expect(page.getByTestId("workspace.html-artifact-preview.close-html-preview")).toBeVisible();
+  await reconcileRuntime(page, "html-artifact-view-fullscreen", 4);
+  await page.getByTestId("workspace.html-artifact-preview.fullscreen-open-in-os").click();
+  await reconcileRuntime(page, "html-artifact-view-fullscreen", 5);
+  await page.getByTestId("workspace.html-artifact-preview.close-html-preview").click();
+  await reconcileRuntime(page, "html-artifact-view-fullscreen", 6);
+  await expect(page.getByTestId("workspace.html-artifact-preview.view")).toBeVisible({ timeout: 30000 });
+  await reconcileRuntime(page, "html-artifact-view-fullscreen", 7);
+  await recordFinalPageState(page, "html-artifact-view-fullscreen");
+});
+
+test("html-artifact-open-in-dock: Open in dock renders the HTML file in a dock file viewer with an inline preview; Open in OS is a no-op against the mocked bridge.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await page.getByTestId("workspace.html-artifact-preview.html-artifact-preview").click();
+  await reconcileRuntime(page, "html-artifact-open-in-dock", 1);
+  await page.getByTestId("workspace.html-artifact-preview.open-in-dock").click();
+  await reconcileRuntime(page, "html-artifact-open-in-dock", 2);
+  await expect(page.getByTestId("workspace.dock.panel")).toBeVisible();
+  await reconcileRuntime(page, "html-artifact-open-in-dock", 3);
+  await expect(page.getByTestId("workspace.file-viewer.html")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "html-artifact-open-in-dock", 4);
+  await expect(page.getByTestId("workspace.html-preview.inline")).toBeVisible();
+  await reconcileRuntime(page, "html-artifact-open-in-dock", 5);
+  await page.getByTestId("workspace.html-artifact-preview.open-in-os").click();
+  await reconcileRuntime(page, "html-artifact-open-in-dock", 6);
+  await page.getByTestId("workspace.dock-panel.close-0").click();
+  await reconcileRuntime(page, "html-artifact-open-in-dock", 7);
+  await recordFinalPageState(page, "html-artifact-open-in-dock");
+});
+
+test("registered-artifact-panel: The artifact registry lists a landing page; opening it from the palette shows the dock artifact panel with source toggle, open and download.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await expect(page.getByTestId("workspace.html-artifact-preview.html-artifact-preview")).toBeVisible();
+  await reconcileRuntime(page, "registered-artifact-panel", 1);
+  await expect(page.getByTestId("workspace.html-artifact-preview.view")).toBeEnabled({ timeout: 30000 });
+  await reconcileRuntime(page, "registered-artifact-panel", 2);
+  await page.getByTestId("workspace.composer.draft").click();
+  await reconcileRuntime(page, "registered-artifact-panel", 3);
+  await page.getByTestId("workspace.composer.draft").press("Control+k");
+  await reconcileRuntime(page, "registered-artifact-panel", 4);
+  await expect(page.getByTestId("app.command-palette.search-commands-and-threads")).toBeVisible();
+  await reconcileRuntime(page, "registered-artifact-panel", 5);
+  await page.getByTestId("app.command-palette.search-commands-and-threads").fill("artifact");
+  await reconcileRuntime(page, "registered-artifact-panel", 6);
+  await page.getByTestId("app.command-palette.row-action:open-artifact-landing").click();
+  await reconcileRuntime(page, "registered-artifact-panel", 7);
+  await expect(page.getByTestId("workspace.dock.html-artifact")).toBeVisible();
+  await reconcileRuntime(page, "registered-artifact-panel", 8);
+  await expect(page.getByTestId("workspace.html-artifact-panel.html-artifact-preview")).toBeVisible();
+  await reconcileRuntime(page, "registered-artifact-panel", 9);
+  await expect(page.getByTestId("workspace.html-artifact-preview.toggle-source")).toBeVisible({ timeout: 30000 });
+  await reconcileRuntime(page, "registered-artifact-panel", 10);
+  await page.getByTestId("workspace.html-artifact-preview.toggle-source").click();
+  await reconcileRuntime(page, "registered-artifact-panel", 11);
+  await page.getByTestId("workspace.html-artifact-preview.toggle-source").click();
+  await reconcileRuntime(page, "registered-artifact-panel", 12);
+  await page.getByTestId("workspace.html-artifact-preview.download-file").click();
+  await reconcileRuntime(page, "registered-artifact-panel", 13);
+  await page.getByTestId("workspace.html-artifact-preview.open-file").click();
+  await reconcileRuntime(page, "registered-artifact-panel", 14);
+  await page.getByTestId("workspace.html-artifact-panel.open-in-os").click();
+  await reconcileRuntime(page, "registered-artifact-panel", 15);
+  await page.getByTestId("workspace.dock-panel.close-0").click();
+  await reconcileRuntime(page, "registered-artifact-panel", 16);
+  await recordFinalPageState(page, "registered-artifact-panel");
+});
+
+test("markdown-links-open-workspace-path: A workspace path in a reply hands the file to the OS through the bridge; an external link is hovered but never followed.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await expect(page.getByTestId("workspace.markdown-chunk.open-workspace-path")).toBeVisible();
+  await reconcileRuntime(page, "markdown-links-open-workspace-path", 1);
+  await page.getByTestId("workspace.markdown-chunk.open-workspace-path").click();
+  await reconcileRuntime(page, "markdown-links-open-workspace-path", 2);
+  await page.getByTestId("workspace.markdown-chunk.a").hover();
+  await reconcileRuntime(page, "markdown-links-open-workspace-path", 3);
+  await recordFinalPageState(page, "markdown-links-open-workspace-path");
+});
+
+test("message-copy-from-hover-actions: Hovering a message reveals its action row; Copy puts the text on the clipboard.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await page.getByTestId("workspace.editorial-message.message-html-assistant").hover();
+  await reconcileRuntime(page, "message-copy-from-hover-actions", 1);
+  await expect(page.getByTestId("workspace.editorial-message.actions-html-assistant")).toBeVisible();
+  await reconcileRuntime(page, "message-copy-from-hover-actions", 2);
+  await page.getByTestId("workspace.editorial-message.copy-html-assistant").click();
+  await reconcileRuntime(page, "message-copy-from-hover-actions", 3);
+  await expect(page.getByTestId("workspace.editorial-message.actions-html-assistant")).toBeVisible();
+  await reconcileRuntime(page, "message-copy-from-hover-actions", 4);
+  await recordFinalPageState(page, "message-copy-from-hover-actions");
+});
+
+test("long-thread-show-earlier: Past one page the transcript collapses its head behind a Show control; clicking it renders the earliest turns.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/long");
+  await expect(page.getByTestId("workspace.editorial-chat.show")).toBeVisible();
+  await reconcileRuntime(page, "long-thread-show-earlier", 1);
+  await page.getByTestId("workspace.editorial-chat.show").click();
+  await reconcileRuntime(page, "long-thread-show-earlier", 2);
+  await expect(page.getByTestId("workspace.editorial-message.message-long-user-1")).toBeVisible();
+  await reconcileRuntime(page, "long-thread-show-earlier", 3);
+  await recordFinalPageState(page, "long-thread-show-earlier");
+});
+
+test("long-thread-jump-to-latest: Scrolling up a long transcript shows Jump to latest; clicking it returns to the newest turn and hides the control.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/long");
+  await expect(page.getByTestId("workspace.editorial-chat.show")).toBeVisible();
+  await reconcileRuntime(page, "long-thread-jump-to-latest", 1);
+  await page.getByTestId("workspace.editorial-message.message-long-user-7").hover();
+  await reconcileRuntime(page, "long-thread-jump-to-latest", 2);
+  await expect(page.getByTestId("workspace.editorial-chat.editorial-jump-to-bottom")).toBeVisible({ timeout: 15000 });
+  await reconcileRuntime(page, "long-thread-jump-to-latest", 3);
+  await page.getByTestId("workspace.editorial-chat.editorial-jump-to-bottom").click();
+  await reconcileRuntime(page, "long-thread-jump-to-latest", 4);
+  await expect(page.getByTestId("workspace.editorial-message.message-long-assistant-66")).toBeVisible();
+  await reconcileRuntime(page, "long-thread-jump-to-latest", 5);
+  await recordFinalPageState(page, "long-thread-jump-to-latest");
+});
+
+test("regenerate-confirm-and-cancel: Regenerating an answer that is not the last one shows a confirm panel; Cancel keeps the thread as it was.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/middle");
+  await page.getByTestId("workspace.editorial-message.message-middle-assistant-1").hover();
+  await reconcileRuntime(page, "regenerate-confirm-and-cancel", 1);
+  await page.getByTestId("workspace.editorial-message.regenerate-middle-assistant-1").click();
+  await reconcileRuntime(page, "regenerate-confirm-and-cancel", 2);
+  await expect(page.getByTestId("workspace.editorial-message.confirm-panel-middle-assistant-1")).toBeVisible();
+  await reconcileRuntime(page, "regenerate-confirm-and-cancel", 3);
+  await expect(page.getByTestId("workspace.editorial-message.confirm-regenerate-middle-assistant-1")).toBeVisible();
+  await reconcileRuntime(page, "regenerate-confirm-and-cancel", 4);
+  await page.getByTestId("workspace.editorial-message.confirm-cancel-middle-assistant-1").click();
+  await reconcileRuntime(page, "regenerate-confirm-and-cancel", 5);
+  await expect(page.getByTestId("workspace.editorial-message.message-middle-assistant-2")).toBeVisible();
+  await reconcileRuntime(page, "regenerate-confirm-and-cancel", 6);
+  await recordFinalPageState(page, "regenerate-confirm-and-cancel");
+});
+
+test("edit-mid-thread-confirm-and-cancel: Editing an earlier question opens the edit panel; Save asks to confirm because later turns would be dropped, and both cancels back out.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/middle");
+  await page.getByTestId("workspace.editorial-message.message-middle-user-1").hover();
+  await reconcileRuntime(page, "edit-mid-thread-confirm-and-cancel", 1);
+  await page.getByTestId("workspace.editorial-message.edit-middle-user-1").click();
+  await reconcileRuntime(page, "edit-mid-thread-confirm-and-cancel", 2);
+  await expect(page.getByTestId("workspace.editorial-message.edit-panel-middle-user-1")).toBeVisible();
+  await reconcileRuntime(page, "edit-mid-thread-confirm-and-cancel", 3);
+  await page.getByTestId("workspace.editorial-message.edit-input-middle-user-1").fill("First question, reworded.");
+  await reconcileRuntime(page, "edit-mid-thread-confirm-and-cancel", 4);
+  await page.getByTestId("workspace.editorial-message.edit-save-middle-user-1").click();
+  await reconcileRuntime(page, "edit-mid-thread-confirm-and-cancel", 5);
+  await expect(page.getByTestId("workspace.editorial-message.edit-confirm-cancel-middle-user-1")).toBeVisible();
+  await reconcileRuntime(page, "edit-mid-thread-confirm-and-cancel", 6);
+  await page.getByTestId("workspace.editorial-message.edit-confirm-cancel-middle-user-1").click();
+  await reconcileRuntime(page, "edit-mid-thread-confirm-and-cancel", 7);
+  await page.getByTestId("workspace.editorial-message.edit-cancel-middle-user-1").click();
+  await reconcileRuntime(page, "edit-mid-thread-confirm-and-cancel", 8);
+  await expect(page.getByTestId("workspace.editorial-message.message-middle-user-2")).toBeVisible();
+  await reconcileRuntime(page, "edit-mid-thread-confirm-and-cancel", 9);
+  await recordFinalPageState(page, "edit-mid-thread-confirm-and-cancel");
+});
+
+test("grouped-activity-timeline: Consecutive tool calls fold into one group; the group control expands and collapses them.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/grouped");
+  await expect(page.getByTestId("workspace.activity-timeline-group.button")).toBeVisible();
+  await reconcileRuntime(page, "grouped-activity-timeline", 1);
+  await page.getByTestId("workspace.activity-timeline-group.button").click();
+  await reconcileRuntime(page, "grouped-activity-timeline", 2);
+  await page.getByTestId("workspace.activity-timeline-group.button").click();
+  await reconcileRuntime(page, "grouped-activity-timeline", 3);
+  await recordFinalPageState(page, "grouped-activity-timeline");
+});
+
+test("memory-sources-open-and-unavailable: A reply grounded in a message, a vanished message and a library file: each chip opens its detail, and the vanished one is marked unavailable.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/memory");
+  await expect(page.getByTestId("workspace.memory-disclosure.chip-message:tool-user")).toBeVisible();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 1);
+  await page.getByTestId("workspace.memory-disclosure.chip-message:tool-user").click();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 2);
+  await expect(page.getByTestId("workspace.memory-disclosure.open-source")).toBeVisible();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 3);
+  await page.getByTestId("workspace.memory-disclosure.why-was-this-used").click();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 4);
+  await page.getByTestId("workspace.memory-disclosure.don-apos-t-use-this-source").click();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 5);
+  await expect(page.getByTestId("workspace.memory-disclosure.exclude")).toBeVisible();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 6);
+  await page.getByTestId("workspace.memory-disclosure.cancel").click();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 7);
+  await page.getByTestId("workspace.memory-disclosure.chip-message:vanished-user").click();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 8);
+  await expect(page.getByTestId("workspace.memory-disclosure.source-unavailable")).toBeDisabled();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 9);
+  await page.getByTestId("workspace.memory-disclosure.chip-library:lib-audit").click();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 10);
+  await expect(page.getByTestId("workspace.memory-disclosure.open-library")).toBeVisible();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 11);
+  await page.getByTestId("workspace.memory-disclosure.open-library").click();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 12);
+  await expect(page.getByTestId("settings.gates-menu.tab-agent")).toBeVisible();
+  await reconcileRuntime(page, "memory-sources-open-and-unavailable", 13);
+  await recordFinalPageState(page, "memory-sources-open-and-unavailable");
+});
+
+test("memory-source-open-thread: Open source on a message chip navigates to the conversation that holds it.", async ({ page }) => {
+  await page.goto("/?scenario=rich-transcript#/thread/memory");
+  await page.getByTestId("workspace.memory-disclosure.chip-message:tool-user").click();
+  await reconcileRuntime(page, "memory-source-open-thread", 1);
+  await page.getByTestId("workspace.memory-disclosure.open-source").click();
+  await reconcileRuntime(page, "memory-source-open-thread", 2);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "memory-source-open-thread", 3);
+  await expect(page.getByTestId("workspace.editorial-sidebar.thread-tool")).toBeVisible();
+  await reconcileRuntime(page, "memory-source-open-thread", 4);
+  await recordFinalPageState(page, "memory-source-open-thread");
+});
+
+test("attachment-thumbnail-open: A message attachment thumbnail hands the file to the OS through the bridge; the markdown attachment is listed by name.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/attached");
+  await expect(page.getByTestId("workspace.editorial-message.attachment-requirements.md")).toBeVisible();
+  await reconcileRuntime(page, "attachment-thumbnail-open", 1);
+  await expect(page.getByTestId("workspace.workspace-image.open")).toBeEnabled({ timeout: 20000 });
+  await reconcileRuntime(page, "attachment-thumbnail-open", 2);
+  await page.getByTestId("workspace.workspace-image.open").click();
+  await reconcileRuntime(page, "attachment-thumbnail-open", 3);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "attachment-thumbnail-open", 4);
+  await recordFinalPageState(page, "attachment-thumbnail-open");
+});
+
+test("image-lightbox-navigation: A finished two-image job opens in the lightbox with next and previous, the full prompt, copy and open in OS.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/images");
+  await expect(page.getByTestId("workspace.image-job.open-0")).toBeEnabled({ timeout: 20000 });
+  await reconcileRuntime(page, "image-lightbox-navigation", 1);
+  await page.getByTestId("workspace.image-job.open-0").click();
+  await reconcileRuntime(page, "image-lightbox-navigation", 2);
+  await expect(page.getByTestId("app.lightbox.image-viewer")).toBeVisible();
+  await reconcileRuntime(page, "image-lightbox-navigation", 3);
+  await page.getByTestId("app.lightbox.next-image").click();
+  await reconcileRuntime(page, "image-lightbox-navigation", 4);
+  await page.getByTestId("app.lightbox.previous-image").click();
+  await reconcileRuntime(page, "image-lightbox-navigation", 5);
+  await page.getByTestId("app.lightbox.div").click();
+  await reconcileRuntime(page, "image-lightbox-navigation", 6);
+  await expect(page.getByTestId("app.lightbox.full-prompt")).toBeVisible();
+  await reconcileRuntime(page, "image-lightbox-navigation", 7);
+  await page.getByTestId("app.lightbox.copy-prompt").click();
+  await reconcileRuntime(page, "image-lightbox-navigation", 8);
+  await page.getByTestId("app.lightbox.open-in-os").click();
+  await reconcileRuntime(page, "image-lightbox-navigation", 9);
+  await page.getByTestId("app.lightbox.close").click();
+  await reconcileRuntime(page, "image-lightbox-navigation", 10);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "image-lightbox-navigation", 11);
+  await recordFinalPageState(page, "image-lightbox-navigation");
+});
+
+test("image-job-retry-failed-and-cancelled: Failed and cancelled image jobs keep Retry; Copy error copies the failure and a retried job can be cancelled while it is still pending.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/images");
+  await expect(page.getByTestId("workspace.image-job-card.retry")).toBeVisible();
+  await reconcileRuntime(page, "image-job-retry-failed-and-cancelled", 1);
+  await page.getByTestId("workspace.image-job-card.action").click();
+  await reconcileRuntime(page, "image-job-retry-failed-and-cancelled", 2);
+  await page.getByTestId("workspace.image-job-card.retry-cancelled").click();
+  await reconcileRuntime(page, "image-job-retry-failed-and-cancelled", 3);
+  await page.getByTestId("workspace.image-job-card.retry").click();
+  await reconcileRuntime(page, "image-job-retry-failed-and-cancelled", 4);
+  await expect(page.getByTestId("workspace.image-job-card.cancel-pending-img-failed")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "image-job-retry-failed-and-cancelled", 5);
+  await page.getByTestId("workspace.image-job-card.cancel-pending-img-failed").click();
+  await reconcileRuntime(page, "image-job-retry-failed-and-cancelled", 6);
+  await expect(page.getByTestId("workspace.image-job-card.retry-cancelled")).toBeVisible();
+  await reconcileRuntime(page, "image-job-retry-failed-and-cancelled", 7);
+  await recordFinalPageState(page, "image-job-retry-failed-and-cancelled");
+});
+
+test("activity-rows-toggle: Each image job row on the thread can be expanded and collapsed.", async ({ page }) => {
+  await page.goto("/?scenario=rich-transcript#/thread/images");
+  await page.getByTestId("workspace.activity-row.toggle-call-img-tour:0").click();
+  await reconcileRuntime(page, "activity-rows-toggle", 1);
+  await page.getByTestId("workspace.activity-row.toggle-call-img-failed:1").click();
+  await reconcileRuntime(page, "activity-rows-toggle", 2);
+  await page.getByTestId("workspace.activity-row.toggle-call-img-cancelled:2").click();
+  await reconcileRuntime(page, "activity-rows-toggle", 3);
+  await page.getByTestId("workspace.activity-row.toggle-call-img-tour:0").click();
+  await reconcileRuntime(page, "activity-rows-toggle", 4);
+  await recordFinalPageState(page, "activity-rows-toggle");
+});
+
+test("aurora-activity-stream-diff: In the Aurora pack the reply folds its work behind chips; expanding shows the work note and the edit call with its diff card.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=aurora-pack#/thread/aurora-active");
+  await expect(page.getByTestId("workspace.aurora-aurora-activity-stream.chips")).toBeVisible();
+  await reconcileRuntime(page, "aurora-activity-stream-diff", 1);
+  await page.getByTestId("workspace.aurora-aurora-activity-stream.chips").click();
+  await reconcileRuntime(page, "aurora-activity-stream-diff", 2);
+  await expect(page.getByTestId("workspace.aurora-aurora-activity-stream.head-aurora-assistant:work-note:0")).toBeVisible();
+  await reconcileRuntime(page, "aurora-activity-stream-diff", 3);
+  await page.getByTestId("workspace.aurora-aurora-activity-stream.head-aurora-assistant:work-note:0").click();
+  await reconcileRuntime(page, "aurora-activity-stream-diff", 4);
+  await page.getByTestId("workspace.aurora-aurora-activity-stream.head-call-edit:0").click();
+  await reconcileRuntime(page, "aurora-activity-stream-diff", 5);
+  await expect(page.getByTestId("workspace.aurora.diff-card")).toBeVisible();
+  await reconcileRuntime(page, "aurora-activity-stream-diff", 6);
+  await page.getByTestId("workspace.aurora-diff-card.show").click();
+  await reconcileRuntime(page, "aurora-activity-stream-diff", 7);
+  await page.getByTestId("workspace.aurora-aurora-activity-stream.chips").click();
+  await reconcileRuntime(page, "aurora-activity-stream-diff", 8);
+  await recordFinalPageState(page, "aurora-activity-stream-diff");
+});
+
+test("aurora-fine-tune-render: The cover render exposes a fine-tune card: adjust images, size and seed, reset, then render again.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=aurora-pack#/thread/aurora-active");
+  await page.getByTestId("workspace.aurora-aurora-activity-stream.chips").click();
+  await reconcileRuntime(page, "aurora-fine-tune-render", 1);
+  await page.getByTestId("workspace.aurora-aurora-activity-stream.head-call-cover:1").click();
+  await reconcileRuntime(page, "aurora-fine-tune-render", 2);
+  await expect(page.getByTestId("workspace.image-job.fine-tune")).toBeVisible();
+  await reconcileRuntime(page, "aurora-fine-tune-render", 3);
+  await page.getByTestId("workspace.aurora-fine-tune-card.toggle").click();
+  await reconcileRuntime(page, "aurora-fine-tune-render", 4);
+  await expect(page.getByTestId("workspace.aurora-fine-tune-card.number-input-images")).toBeVisible();
+  await reconcileRuntime(page, "aurora-fine-tune-render", 5);
+  await page.getByTestId("workspace.aurora-fine-tune-card.number-input-images").fill("2");
+  await reconcileRuntime(page, "aurora-fine-tune-render", 6);
+  await page.getByTestId("workspace.aurora-fine-tune-card.number-input-width").fill("768");
+  await reconcileRuntime(page, "aurora-fine-tune-render", 7);
+  await page.getByTestId("workspace.aurora-fine-tune-card.number-input-height").fill("768");
+  await reconcileRuntime(page, "aurora-fine-tune-render", 8);
+  await page.getByTestId("workspace.aurora-fine-tune-card.number-input-seed").fill("7");
+  await reconcileRuntime(page, "aurora-fine-tune-render", 9);
+  await page.getByTestId("workspace.aurora-fine-tune-card.reset").click();
+  await reconcileRuntime(page, "aurora-fine-tune-render", 10);
+  await page.getByTestId("workspace.aurora-fine-tune-card.render-again").click();
+  await reconcileRuntime(page, "aurora-fine-tune-render", 11);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "aurora-fine-tune-render", 12);
+  await recordFinalPageState(page, "aurora-fine-tune-render");
+});
+
+test("aurora-reply-footer: The suggested follow-up sends as the next message; the source chip then opens the Agent tab of the menu, where recall sources live.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=aurora-pack#/thread/aurora-active");
+  await expect(page.getByTestId("workspace.aurora-aurora-reply-footer.aurora-chip-muted")).toBeVisible();
+  await reconcileRuntime(page, "aurora-reply-footer", 1);
+  await page.getByTestId("workspace.aurora-aurora-reply-footer.aurora-followup-0").click();
+  await reconcileRuntime(page, "aurora-reply-footer", 2);
+  await expect(page.getByTestId("workspace.editorial-chat.stream")).toContainText("Want me to run the full suite next?", { timeout: 20000 });
+  await reconcileRuntime(page, "aurora-reply-footer", 3);
+  await page.getByTestId("workspace.aurora-aurora-reply-footer.aurora-chip-muted").click();
+  await reconcileRuntime(page, "aurora-reply-footer", 4);
+  await expect(page.getByTestId("settings.gates-menu.tab-agent")).toBeVisible();
+  await reconcileRuntime(page, "aurora-reply-footer", 5);
+  await recordFinalPageState(page, "aurora-reply-footer");
+});
+
+test("prompt-cards-answer-each-way: Three pending prompts: pick an option, write a free answer and send it, and skip the last.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=prompt-cards#/workspace");
+  await expect(page.getByTestId("workspace.prompt-card.container")).toBeVisible();
+  await reconcileRuntime(page, "prompt-cards-answer-each-way", 1);
+  await page.getByTestId("workspace.prompt-cards.option-prompt-approve-yes").click();
+  await reconcileRuntime(page, "prompt-cards-answer-each-way", 2);
+  await page.getByTestId("workspace.prompt-cards.free-prompt-recommend").click();
+  await reconcileRuntime(page, "prompt-cards-answer-each-way", 3);
+  await page.getByTestId("workspace.prompt-cards.answer-prompt-recommend").fill("Use the audit plan first.");
+  await reconcileRuntime(page, "prompt-cards-answer-each-way", 4);
+  await expect(page.getByTestId("workspace.prompt-cards.send-prompt-recommend")).toBeEnabled();
+  await reconcileRuntime(page, "prompt-cards-answer-each-way", 5);
+  await page.getByTestId("workspace.prompt-cards.send-prompt-recommend").click();
+  await reconcileRuntime(page, "prompt-cards-answer-each-way", 6);
+  await page.getByTestId("workspace.prompt-cards.skip-prompt-skip").click();
+  await reconcileRuntime(page, "prompt-cards-answer-each-way", 7);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "prompt-cards-answer-each-way", 8);
+  await recordFinalPageState(page, "prompt-cards-answer-each-way");
+});
+
+test("prompt-cards-skip-and-option: Skip the approval prompt outright and answer the recommendation with one of its options.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=prompt-cards#/workspace");
+  await page.getByTestId("workspace.prompt-cards.skip-prompt-approve").click();
+  await reconcileRuntime(page, "prompt-cards-skip-and-option", 1);
+  await page.getByTestId("workspace.prompt-cards.option-prompt-recommend-audit").click();
+  await reconcileRuntime(page, "prompt-cards-skip-and-option", 2);
+  await expect(page.getByTestId("workspace.prompt-card.container")).toBeVisible();
+  await reconcileRuntime(page, "prompt-cards-skip-and-option", 3);
+  await recordFinalPageState(page, "prompt-cards-skip-and-option");
+});
+
+test("command-palette-empty-and-backdrop: A query nothing matches shows the empty row; clicking the backdrop closes the palette.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await page.getByTestId("workspace.composer.draft").click();
+  await reconcileRuntime(page, "command-palette-empty-and-backdrop", 1);
+  await page.getByTestId("workspace.composer.draft").press("Control+k");
+  await reconcileRuntime(page, "command-palette-empty-and-backdrop", 2);
+  await expect(page.getByTestId("app.command-palette.search-commands-and-threads")).toBeVisible();
+  await reconcileRuntime(page, "command-palette-empty-and-backdrop", 3);
+  await expect(page.getByTestId("app.command-palette.command-palette")).toBeVisible();
+  await reconcileRuntime(page, "command-palette-empty-and-backdrop", 4);
+  await page.getByTestId("app.command-palette.search-commands-and-threads").fill("zzzz nothing matches");
+  await reconcileRuntime(page, "command-palette-empty-and-backdrop", 5);
+  await expect(page.getByTestId("app.command-palette.empty-classic")).toBeVisible();
+  await reconcileRuntime(page, "command-palette-empty-and-backdrop", 6);
+  await page.getByTestId("app.command-palette.backdrop").click();
+  await reconcileRuntime(page, "command-palette-empty-and-backdrop", 7);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "command-palette-empty-and-backdrop", 8);
+  await recordFinalPageState(page, "command-palette-empty-and-backdrop");
+});
+
+test("aurora-command-palette-empty: In the Aurora pack, a query that matches nothing shows the empty state that names the query, and the backdrop closes the palette.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=aurora-pack#/workspace");
+  await page.getByTestId("workspace.composer.draft").click();
+  await reconcileRuntime(page, "aurora-command-palette-empty", 1);
+  await page.getByTestId("workspace.composer.draft").press("Control+k");
+  await reconcileRuntime(page, "aurora-command-palette-empty", 2);
+  await expect(page.getByTestId("app.command-palette.search-commands-and-threads")).toBeVisible();
+  await reconcileRuntime(page, "aurora-command-palette-empty", 3);
+  await expect(page.getByTestId("app.command-palette.command-palette")).toBeVisible();
+  await reconcileRuntime(page, "aurora-command-palette-empty", 4);
+  await page.getByTestId("app.command-palette.search-commands-and-threads").fill("zzzz nothing matches");
+  await reconcileRuntime(page, "aurora-command-palette-empty", 5);
+  await expect(page.getByTestId("app.command-palette.empty")).toBeVisible();
+  await reconcileRuntime(page, "aurora-command-palette-empty", 6);
+  await page.getByTestId("app.command-palette.backdrop").click();
+  await reconcileRuntime(page, "aurora-command-palette-empty", 7);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "aurora-command-palette-empty", 8);
+  await recordFinalPageState(page, "aurora-command-palette-empty");
+});
+
+test("update-pill-install-and-dismiss: With an update staged the pill offers install; dismiss hides the notice.", async ({ page }) => {
+  await page.goto("/?scenario=update-available#/workspace");
+  await expect(page.getByTestId("workspace.update-pill.on-click")).toBeVisible();
+  await reconcileRuntime(page, "update-pill-install-and-dismiss", 1);
+  await page.getByTestId("workspace.update-pill.on-click").click();
+  await reconcileRuntime(page, "update-pill-install-and-dismiss", 2);
+  await page.getByTestId("workspace.update-pill.dismiss-update-notice").click();
+  await reconcileRuntime(page, "update-pill-install-and-dismiss", 3);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "update-pill-install-and-dismiss", 4);
+  await recordFinalPageState(page, "update-pill-install-and-dismiss");
+});
+
+test("attachment-tray-and-notice: Two staged attachments can be handed to the OS and removed; the persistence notice above the draft can be dismissed.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=attachments-drafted#/workspace");
+  await expect(page.getByTestId("workspace.attachment-tray.remove")).toBeVisible();
+  await reconcileRuntime(page, "attachment-tray-and-notice", 1);
+  await expect(page.getByTestId("workspace.workspace-image.open")).toBeEnabled({ timeout: 20000 });
+  await reconcileRuntime(page, "attachment-tray-and-notice", 2);
+  await page.getByTestId("workspace.workspace-image.open").click();
+  await reconcileRuntime(page, "attachment-tray-and-notice", 3);
+  await page.getByTestId("workspace.attachment-tray.remove").click();
+  await reconcileRuntime(page, "attachment-tray-and-notice", 4);
+  await page.getByTestId("workspace.attachment-tray.remove-path").click();
+  await reconcileRuntime(page, "attachment-tray-and-notice", 5);
+  await expect(page.getByTestId("workspace.composer-banners.dismiss-notice")).toBeVisible();
+  await reconcileRuntime(page, "attachment-tray-and-notice", 6);
+  await page.getByTestId("workspace.composer-banners.dismiss-notice").click();
+  await reconcileRuntime(page, "attachment-tray-and-notice", 7);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "attachment-tray-and-notice", 8);
+  await recordFinalPageState(page, "attachment-tray-and-notice");
+});
+
+test("persistence-notice-reload: The conflict notice's Reload action reloads the app and the workspace comes back.", async ({ page }) => {
+  await page.goto("/?scenario=attachments-drafted#/workspace");
+  await expect(page.getByTestId("workspace.composer-banners.editorial-banner-action")).toBeVisible();
+  await reconcileRuntime(page, "persistence-notice-reload", 1);
+  await page.getByTestId("workspace.composer-banners.editorial-banner-action").click();
+  await reconcileRuntime(page, "persistence-notice-reload", 2);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "persistence-notice-reload", 3);
+  await recordFinalPageState(page, "persistence-notice-reload");
+});
+
+test("first-run-local-ready-continue: Ollama has models: the local card offers to continue with the selected one, and the sidebar hint points at the menu.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=first-run-local-ready#/workspace");
+  await expect(page.getByTestId("workspace.editorial-chat.continue-with")).toBeVisible();
+  await reconcileRuntime(page, "first-run-local-ready-continue", 1);
+  await expect(page.getByTestId("workspace.editorial-sidebar.settings-amp-menu-live-here")).toBeVisible();
+  await reconcileRuntime(page, "first-run-local-ready-continue", 2);
+  await page.getByTestId("workspace.editorial-chat.continue-with").click();
+  await reconcileRuntime(page, "first-run-local-ready-continue", 3);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "first-run-local-ready-continue", 4);
+  await recordFinalPageState(page, "first-run-local-ready-continue");
+});
+
+test("first-run-menu-hint: The one-time hint on the brand mark opens the menu.", async ({ page }) => {
+  await page.goto("/?scenario=first-run-local-ready#/workspace");
+  await page.getByTestId("workspace.editorial-sidebar.settings-amp-menu-live-here").click();
+  await reconcileRuntime(page, "first-run-menu-hint", 1);
+  await expect(page.getByTestId("settings.gates-menu.tab-settings")).toBeVisible();
+  await reconcileRuntime(page, "first-run-menu-hint", 2);
+  await recordFinalPageState(page, "first-run-menu-hint");
+});
+
+test("first-run-local-empty-starter-pull: Ollama runs with no models: the primary action pulls a starter and the secondary opens Local settings.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=first-run-local-empty#/workspace");
+  await expect(page.getByTestId("workspace.editorial-chat.primary")).toBeVisible();
+  await reconcileRuntime(page, "first-run-local-empty-starter-pull", 1);
+  await page.getByTestId("workspace.editorial-chat.primary").click();
+  await reconcileRuntime(page, "first-run-local-empty-starter-pull", 2);
+  await page.getByTestId("workspace.editorial-chat.open-local-settings").click();
+  await reconcileRuntime(page, "first-run-local-empty-starter-pull", 3);
+  await expect(page.getByTestId("settings.gates-menu.tab-models")).toBeVisible();
+  await reconcileRuntime(page, "first-run-local-empty-starter-pull", 4);
+  await recordFinalPageState(page, "first-run-local-empty-starter-pull");
+});
+
+test("first-run-local-installed-recheck: Ollama is installed but stopped: Check again re-polls and Open Local settings goes to the models tab.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=first-run-local-installed#/workspace");
+  await expect(page.getByTestId("workspace.editorial-chat.start-ollama")).toBeVisible();
+  await reconcileRuntime(page, "first-run-local-installed-recheck", 1);
+  await page.getByTestId("workspace.editorial-chat.recheck-ollama").click();
+  await reconcileRuntime(page, "first-run-local-installed-recheck", 2);
+  await expect(page.getByTestId("workspace.editorial-chat.recheck-ollama")).toBeEnabled({ timeout: 10000 });
+  await reconcileRuntime(page, "first-run-local-installed-recheck", 3);
+  await page.getByTestId("workspace.editorial-chat.start-ollama").click();
+  await reconcileRuntime(page, "first-run-local-installed-recheck", 4);
+  await expect(page.getByTestId("settings.gates-menu.tab-models")).toBeVisible();
+  await reconcileRuntime(page, "first-run-local-installed-recheck", 5);
+  await recordFinalPageState(page, "first-run-local-installed-recheck");
+});
+
+test("first-run-install-ollama: No Ollama found: Check again re-runs detection and the primary action opens Local settings.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=first-run#/workspace");
+  await expect(page.getByTestId("workspace.editorial-chat.install-ollama")).toBeVisible();
+  await reconcileRuntime(page, "first-run-install-ollama", 1);
+  await page.getByTestId("workspace.editorial-chat.secondary").click();
+  await reconcileRuntime(page, "first-run-install-ollama", 2);
+  await expect(page.getByTestId("workspace.editorial-chat.secondary")).toBeEnabled({ timeout: 10000 });
+  await reconcileRuntime(page, "first-run-install-ollama", 3);
+  await page.getByTestId("workspace.editorial-chat.install-ollama").click();
+  await reconcileRuntime(page, "first-run-install-ollama", 4);
+  await expect(page.getByTestId("settings.gates-menu.tab-models")).toBeVisible();
+  await reconcileRuntime(page, "first-run-install-ollama", 5);
+  await recordFinalPageState(page, "first-run-install-ollama");
+});
+
+test("local-embed-pull-cancel-dismiss: The semantic-memory nudge pulls nomic-embed-text; the pull can be cancelled and the nudge dismissed.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=local-no-embed#/workspace");
+  await expect(page.getByTestId("workspace.editorial-chat.pull-nomic-embed-text")).toBeVisible();
+  await reconcileRuntime(page, "local-embed-pull-cancel-dismiss", 1);
+  await page.getByTestId("workspace.editorial-chat.pull-nomic-embed-text").click();
+  await reconcileRuntime(page, "local-embed-pull-cancel-dismiss", 2);
+  await expect(page.getByTestId("workspace.editorial-chat.cancel")).toBeVisible({ timeout: 10000 });
+  await reconcileRuntime(page, "local-embed-pull-cancel-dismiss", 3);
+  await page.getByTestId("workspace.editorial-chat.cancel").click();
+  await reconcileRuntime(page, "local-embed-pull-cancel-dismiss", 4);
+  await expect(page.getByTestId("workspace.editorial-chat.dismiss")).toBeVisible();
+  await reconcileRuntime(page, "local-embed-pull-cancel-dismiss", 5);
+  await page.getByTestId("workspace.editorial-chat.dismiss").click();
+  await reconcileRuntime(page, "local-embed-pull-cancel-dismiss", 6);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "local-embed-pull-cancel-dismiss", 7);
+  await recordFinalPageState(page, "local-embed-pull-cancel-dismiss");
+});
+
+test("agent-settings-install-embedding: With the embedding model missing, Agent settings offers Install; clicking it starts the pull and turns into Cancel.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=local-no-embed#/workspace");
+  await page.getByTestId("workspace.sidebar-settings-button.settings-and-menu").click();
+  await reconcileRuntime(page, "agent-settings-install-embedding", 1);
+  await expect(page.getByTestId("settings.gates-menu.tab-agent")).toBeVisible();
+  await reconcileRuntime(page, "agent-settings-install-embedding", 2);
+  await page.getByTestId("settings.gates-menu.tab-agent").click();
+  await reconcileRuntime(page, "agent-settings-install-embedding", 3);
+  await expect(page.getByTestId("settings.agent.cancel-pull")).toBeVisible();
+  await reconcileRuntime(page, "agent-settings-install-embedding", 4);
+  await page.getByTestId("settings.agent.cancel-pull").click();
+  await reconcileRuntime(page, "agent-settings-install-embedding", 5);
+  await expect(page.getByTestId("settings.agent.cancel-pull")).toContainText("Cancel", { timeout: 10000 });
+  await reconcileRuntime(page, "agent-settings-install-embedding", 6);
+  await page.getByTestId("settings.agent.cancel-pull").click();
+  await reconcileRuntime(page, "agent-settings-install-embedding", 7);
+  await recordFinalPageState(page, "agent-settings-install-embedding");
+});
+
+test("banner-ollama-offline: A local model is selected but Ollama is unreachable: the composer banner opens Local settings.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=local-ollama-offline#/workspace");
+  await expect(page.getByTestId("workspace.composer-banners.open-local-settings")).toBeVisible();
+  await reconcileRuntime(page, "banner-ollama-offline", 1);
+  await page.getByTestId("workspace.composer-banners.open-local-settings").click();
+  await reconcileRuntime(page, "banner-ollama-offline", 2);
+  await expect(page.getByTestId("settings.gates-menu.tab-models")).toBeVisible();
+  await reconcileRuntime(page, "banner-ollama-offline", 3);
+  await recordFinalPageState(page, "banner-ollama-offline");
+});
+
+test("banner-local-image-offline: A direct image model is selected but ComfyUI is stopped: the banner opens local settings.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=local-image-model#/workspace");
+  await expect(page.getByTestId("workspace.composer-banners.open-local-image-settings")).toBeVisible();
+  await reconcileRuntime(page, "banner-local-image-offline", 1);
+  await page.getByTestId("workspace.composer-banners.open-local-image-settings").click();
+  await reconcileRuntime(page, "banner-local-image-offline", 2);
+  await expect(page.getByTestId("settings.gates-menu.tab-models")).toBeVisible();
+  await reconcileRuntime(page, "banner-local-image-offline", 3);
+  await recordFinalPageState(page, "banner-local-image-offline");
+});
+
+test("banner-no-model-open-models: Nothing configured after Look around: the composer banner opens the models tab.", async ({ page }) => {
+  await page.goto("/?scenario=first-run#/workspace");
+  await page.getByTestId("workspace.editorial-chat.look-around").click();
+  await reconcileRuntime(page, "banner-no-model-open-models", 1);
+  await expect(page.getByTestId("workspace.composer-banners.open-models")).toBeVisible();
+  await reconcileRuntime(page, "banner-no-model-open-models", 2);
+  await page.getByTestId("workspace.composer-banners.open-models").click();
+  await reconcileRuntime(page, "banner-no-model-open-models", 3);
+  await expect(page.getByTestId("settings.gates-menu.tab-models")).toBeVisible();
+  await reconcileRuntime(page, "banner-no-model-open-models", 4);
+  await recordFinalPageState(page, "banner-no-model-open-models");
+});
+
+test("task-center-cancel-and-retry: The task ledger lists an agent task and two image jobs; cancel the task and retry both jobs.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/images");
+  await page.getByTestId("workspace.composer.draft").click();
+  await reconcileRuntime(page, "task-center-cancel-and-retry", 1);
+  await page.getByTestId("workspace.composer.draft").press("Control+k");
+  await reconcileRuntime(page, "task-center-cancel-and-retry", 2);
+  await expect(page.getByTestId("app.command-palette.search-commands-and-threads")).toBeVisible();
+  await reconcileRuntime(page, "task-center-cancel-and-retry", 3);
+  await page.getByTestId("app.command-palette.row-action:open-task-center").click();
+  await reconcileRuntime(page, "task-center-cancel-and-retry", 4);
+  await expect(page.getByTestId("workspace.task-center.ledger")).toBeVisible();
+  await reconcileRuntime(page, "task-center-cancel-and-retry", 5);
+  await expect(page.getByTestId("workspace.task-center-panel.cancel-agent-task")).toBeVisible();
+  await reconcileRuntime(page, "task-center-cancel-and-retry", 6);
+  await page.getByTestId("workspace.task-center-panel.cancel-agent-task").click();
+  await reconcileRuntime(page, "task-center-cancel-and-retry", 7);
+  await page.getByTestId("workspace.task-center-panel.retry-img-cancelled").click();
+  await reconcileRuntime(page, "task-center-cancel-and-retry", 8);
+  await page.getByTestId("workspace.task-center-panel.retry-img-failed").click();
+  await reconcileRuntime(page, "task-center-cancel-and-retry", 9);
+  await page.getByTestId("workspace.dock-panel.close-0").click();
+  await reconcileRuntime(page, "task-center-cancel-and-retry", 10);
+  await recordFinalPageState(page, "task-center-cancel-and-retry");
+});
+
+test("task-center-empty: A bare desktop shows the empty task ledger.", async ({ page }) => {
+  await page.goto("/?scenario=desktop-bare#/workspace");
+  await page.getByTestId("workspace.composer.draft").click();
+  await reconcileRuntime(page, "task-center-empty", 1);
+  await page.getByTestId("workspace.composer.draft").press("Control+k");
+  await reconcileRuntime(page, "task-center-empty", 2);
+  await expect(page.getByTestId("app.command-palette.search-commands-and-threads")).toBeVisible();
+  await reconcileRuntime(page, "task-center-empty", 3);
+  await page.getByTestId("app.command-palette.row-action:open-task-center").click();
+  await reconcileRuntime(page, "task-center-empty", 4);
+  await expect(page.getByTestId("workspace.task-center.empty")).toBeVisible();
+  await reconcileRuntime(page, "task-center-empty", 5);
+  await page.getByTestId("workspace.dock-panel.close-0").click();
+  await reconcileRuntime(page, "task-center-empty", 6);
+  await recordFinalPageState(page, "task-center-empty");
+});
+
+test("agent-recall-sources: Expand the message group, search it, exclude a thread, re-include all, and toggle a whole source type.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/memory");
+  await page.getByTestId("workspace.sidebar-settings-button.settings-and-menu").click();
+  await reconcileRuntime(page, "agent-recall-sources", 1);
+  await expect(page.getByTestId("settings.gates-menu.tab-agent")).toBeVisible();
+  await reconcileRuntime(page, "agent-recall-sources", 2);
+  await page.getByTestId("settings.gates-menu.tab-agent").click();
+  await reconcileRuntime(page, "agent-recall-sources", 3);
+  await expect(page.getByTestId("settings.agent.source-group-message")).toBeVisible();
+  await reconcileRuntime(page, "agent-recall-sources", 4);
+  await page.getByTestId("settings.agent.source-group-message").click();
+  await reconcileRuntime(page, "agent-recall-sources", 5);
+  await expect(page.getByTestId("settings.agent.search")).toBeVisible();
+  await reconcileRuntime(page, "agent-recall-sources", 6);
+  await page.getByTestId("settings.agent.search").fill("html");
+  await reconcileRuntime(page, "agent-recall-sources", 7);
+  await expect(page.getByTestId("settings.agent.source-toggle-thread:html")).toBeVisible();
+  await reconcileRuntime(page, "agent-recall-sources", 8);
+  await page.getByTestId("settings.agent.source-toggle-thread:html").click();
+  await reconcileRuntime(page, "agent-recall-sources", 9);
+  await expect(page.getByTestId("settings.agent.re-include-all-excluded-sources")).toBeVisible();
+  await reconcileRuntime(page, "agent-recall-sources", 10);
+  await page.getByTestId("settings.agent.re-include-all-excluded-sources").click();
+  await reconcileRuntime(page, "agent-recall-sources", 11);
+  await page.getByTestId("settings.agent.source-type-message").click();
+  await reconcileRuntime(page, "agent-recall-sources", 12);
+  await page.getByTestId("settings.agent.source-type-message").click();
+  await reconcileRuntime(page, "agent-recall-sources", 13);
+  await page.getByTestId("settings.agent.source-group-message").click();
+  await reconcileRuntime(page, "agent-recall-sources", 14);
+  await recordFinalPageState(page, "agent-recall-sources");
+});
+
+test("agent-library-and-index: Toggle the seeded library file, refresh the library, and rebuild the index while the danger controls stay visible.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/memory");
+  await page.getByTestId("workspace.sidebar-settings-button.settings-and-menu").click();
+  await reconcileRuntime(page, "agent-library-and-index", 1);
+  await expect(page.getByTestId("settings.gates-menu.tab-agent")).toBeVisible();
+  await reconcileRuntime(page, "agent-library-and-index", 2);
+  await page.getByTestId("settings.gates-menu.tab-agent").click();
+  await reconcileRuntime(page, "agent-library-and-index", 3);
+  await expect(page.getByTestId("settings.agent.library-source-lib-audit")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "agent-library-and-index", 4);
+  await page.getByTestId("settings.agent.library-source-lib-audit").click();
+  await reconcileRuntime(page, "agent-library-and-index", 5);
+  await page.getByTestId("settings.agent.library-source-lib-audit").click();
+  await reconcileRuntime(page, "agent-library-and-index", 6);
+  await expect(page.getByTestId("settings.agent.refresh-all")).toBeEnabled({ timeout: 20000 });
+  await reconcileRuntime(page, "agent-library-and-index", 7);
+  await page.getByTestId("settings.agent.refresh-all").click();
+  await reconcileRuntime(page, "agent-library-and-index", 8);
+  await expect(page.getByTestId("settings.agent.add-source")).toBeVisible();
+  await reconcileRuntime(page, "agent-library-and-index", 9);
+  await expect(page.getByTestId("settings.agent.semantic-recall")).toBeVisible();
+  await reconcileRuntime(page, "agent-library-and-index", 10);
+  await expect(page.getByTestId("settings.agent.rebuild-index")).toBeVisible();
+  await reconcileRuntime(page, "agent-library-and-index", 11);
+  await page.getByTestId("settings.agent.rebuild-index").click();
+  await reconcileRuntime(page, "agent-library-and-index", 12);
+  await expect(page.getByTestId("settings.agent.clear-derived-index")).toBeVisible();
+  await reconcileRuntime(page, "agent-library-and-index", 13);
+  await recordFinalPageState(page, "agent-library-and-index");
+});
+
+test("agent-facts-edit-and-clear: Facts can be edited in place, the edit cancelled, one deleted, and the rest cleared after confirmation.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await page.getByTestId("workspace.sidebar-settings-button.settings-and-menu").click();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 1);
+  await expect(page.getByTestId("settings.gates-menu.tab-agent")).toBeVisible();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 2);
+  await page.getByTestId("settings.gates-menu.tab-agent").click();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 3);
+  await expect(page.getByTestId("settings.agent.fact-edit-0")).toBeVisible();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 4);
+  await page.getByTestId("settings.agent.fact-edit-0").click();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 5);
+  await page.getByTestId("settings.agent.fact-input-0").fill("Edited fact");
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 6);
+  await page.getByTestId("settings.agent.fact-save-0").click();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 7);
+  await page.getByTestId("settings.agent.fact-edit-0").click();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 8);
+  await page.getByTestId("settings.agent.fact-cancel-0").click();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 9);
+  await page.getByTestId("settings.agent.fact-delete-0").click();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 10);
+  await expect(page.getByTestId("settings.agent.clear-all")).toBeVisible();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 11);
+  await page.getByTestId("settings.agent.clear-all").click();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 12);
+  await expect(page.getByTestId("settings.agent.new-fact")).toBeVisible();
+  await reconcileRuntime(page, "agent-facts-edit-and-clear", 13);
+  await recordFinalPageState(page, "agent-facts-edit-and-clear");
+});
+
+test("preferences-toggles-and-shortcut: Flip a preference toggle, record a new summon chord and reset it, switch global summon off (the recorder disables) and back on, and toggle close-to-tray.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await page.getByTestId("workspace.sidebar-settings-button.settings-and-menu").click();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 1);
+  await expect(page.getByTestId("settings.gates-menu.tab-settings")).toBeVisible();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 2);
+  await page.getByTestId("settings.gates-menu.tab-settings").click();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 3);
+  await expect(page.getByTestId("settings.preferences.toggle")).toBeVisible();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 4);
+  await page.getByTestId("settings.preferences.toggle").click();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 5);
+  await expect(page.getByTestId("settings.chord-recorder.global-summon-shortcut")).toBeEnabled();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 6);
+  await page.getByTestId("settings.chord-recorder.global-summon-shortcut").click();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 7);
+  await page.getByTestId("settings.chord-recorder.global-summon-shortcut").press("Control+Shift+K");
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 8);
+  await page.getByTestId("settings.chord-recorder.reset").click();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 9);
+  await page.getByTestId("settings.preferences.global-summon").click();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 10);
+  await expect(page.getByTestId("settings.chord-recorder.global-summon-shortcut")).toBeDisabled();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 11);
+  await page.getByTestId("settings.preferences.global-summon").click();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 12);
+  await expect(page.getByTestId("settings.chord-recorder.global-summon-shortcut")).toBeEnabled();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 13);
+  await page.getByTestId("settings.preferences.close-hides-to-tray").click();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 14);
+  await expect(page.getByTestId("settings.preferences.export-json")).toBeVisible();
+  await reconcileRuntime(page, "preferences-toggles-and-shortcut", 15);
+  await recordFinalPageState(page, "preferences-toggles-and-shortcut");
+});
+
+test("preferences-export-and-import-modes: Export writes a JSON file; Replace mode demands the confirmation phrase before the import button enables.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await page.getByTestId("workspace.sidebar-settings-button.settings-and-menu").click();
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 1);
+  await expect(page.getByTestId("settings.gates-menu.tab-settings")).toBeVisible();
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 2);
+  await page.getByTestId("settings.gates-menu.tab-settings").click();
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 3);
+  await page.getByTestId("settings.preferences.export-json").click();
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 4);
+  await page.getByTestId("settings.preferences.import-mode-replace").click();
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 5);
+  await expect(page.getByTestId("settings.preferences.input")).toBeVisible();
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 6);
+  await expect(page.getByTestId("settings.preferences.button")).toBeDisabled();
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 7);
+  await page.getByTestId("settings.preferences.input").fill("replace all GatesAI data");
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 8);
+  await expect(page.getByTestId("settings.preferences.button")).toBeEnabled();
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 9);
+  await page.getByTestId("settings.preferences.import-mode-merge").click();
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 10);
+  await expect(page.getByTestId("settings.preferences.button")).toBeEnabled();
+  await reconcileRuntime(page, "preferences-export-and-import-modes", 11);
+  await recordFinalPageState(page, "preferences-export-and-import-modes");
+});
+
+test("preferences-danger-zone: Each delete asks to confirm; cancel one and run another.", async ({ page }) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await page.getByTestId("workspace.sidebar-settings-button.settings-and-menu").click();
+  await reconcileRuntime(page, "preferences-danger-zone", 1);
+  await expect(page.getByTestId("settings.gates-menu.tab-settings")).toBeVisible();
+  await reconcileRuntime(page, "preferences-danger-zone", 2);
+  await page.getByTestId("settings.gates-menu.tab-settings").click();
+  await reconcileRuntime(page, "preferences-danger-zone", 3);
+  await expect(page.getByTestId("settings.preferences.delete-threads")).toBeVisible();
+  await reconcileRuntime(page, "preferences-danger-zone", 4);
+  await page.getByTestId("settings.preferences.delete-threads").click();
+  await reconcileRuntime(page, "preferences-danger-zone", 5);
+  await expect(page.getByTestId("settings.preferences.run")).toBeVisible();
+  await reconcileRuntime(page, "preferences-danger-zone", 6);
+  await page.getByTestId("settings.preferences.cancel").click();
+  await reconcileRuntime(page, "preferences-danger-zone", 7);
+  await page.getByTestId("settings.preferences.delete-memories").click();
+  await reconcileRuntime(page, "preferences-danger-zone", 8);
+  await page.getByTestId("settings.preferences.run").click();
+  await reconcileRuntime(page, "preferences-danger-zone", 9);
+  await expect(page.getByTestId("settings.preferences.delete-provider-keys")).toBeVisible();
+  await reconcileRuntime(page, "preferences-danger-zone", 10);
+  await recordFinalPageState(page, "preferences-danger-zone");
+});
+
+test("models-catalog-refresh-and-clear: Load models pulls the mocked catalog; Clear drops it. The stored key can be revealed, and Get key is only hovered.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await page.getByTestId("workspace.sidebar-settings-button.settings-and-menu").click();
+  await reconcileRuntime(page, "models-catalog-refresh-and-clear", 1);
+  await expect(page.getByTestId("settings.gates-menu.tab-models")).toBeVisible();
+  await reconcileRuntime(page, "models-catalog-refresh-and-clear", 2);
+  await page.getByTestId("settings.gates-menu.tab-models").click();
+  await reconcileRuntime(page, "models-catalog-refresh-and-clear", 3);
+  await expect(page.getByTestId("settings.models-open-router-catalog-row.refresh")).toBeVisible();
+  await reconcileRuntime(page, "models-catalog-refresh-and-clear", 4);
+  await page.getByTestId("settings.models-open-router-catalog-row.refresh").click();
+  await reconcileRuntime(page, "models-catalog-refresh-and-clear", 5);
+  await expect(page.getByTestId("settings.models-open-router-catalog-row.clear")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "models-catalog-refresh-and-clear", 6);
+  await page.getByTestId("settings.models-open-router-catalog-row.clear").click();
+  await reconcileRuntime(page, "models-catalog-refresh-and-clear", 7);
+  await page.getByTestId("settings.secret-key.reveal-openrouter").click();
+  await reconcileRuntime(page, "models-catalog-refresh-and-clear", 8);
+  await page.getByTestId("settings.secret-key.get-key-brave").hover();
+  await reconcileRuntime(page, "models-catalog-refresh-and-clear", 9);
+  await expect(page.getByTestId("settings.secret-key.stored-openrouter")).toBeVisible();
+  await reconcileRuntime(page, "models-catalog-refresh-and-clear", 10);
+  await recordFinalPageState(page, "models-catalog-refresh-and-clear");
+});
+
+test("dock-two-cells-swap-and-resize: Opening a file beside the explorer fills the second cell; swap exchanges them and the resize handles are hoverable.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await page.getByTestId("workspace.composer.draft").click();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 1);
+  await page.getByTestId("workspace.composer.draft").press("Control+k");
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 2);
+  await expect(page.getByTestId("app.command-palette.search-commands-and-threads")).toBeVisible();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 3);
+  await page.getByTestId("app.command-palette.row-action:browse-files-in-dock").click();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 4);
+  await expect(page.getByTestId("workspace.dock.file-explorer")).toBeVisible();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 5);
+  await page.getByTestId("workspace.file-explorer-panel.entry-site").click();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 6);
+  await page.getByTestId("workspace.file-explorer-panel.entry-index.html").click();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 7);
+  await expect(page.getByTestId("workspace.dock.cell-1")).toBeVisible();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 8);
+  await expect(page.getByTestId("workspace.file-viewer.html")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 9);
+  await page.getByTestId("workspace.dock-panel.swap-0").click();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 10);
+  await page.getByTestId("workspace.dock-panel.resize-dock").hover();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 11);
+  await page.getByTestId("workspace.dock-panel.resize-dock-cells").hover();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 12);
+  await page.getByTestId("workspace.dock-panel.swap-1").click();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 13);
+  await page.getByTestId("workspace.dock-panel.close-1").click();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 14);
+  await page.getByTestId("workspace.dock-panel.close-0").click();
+  await reconcileRuntime(page, "dock-two-cells-swap-and-resize", 15);
+  await recordFinalPageState(page, "dock-two-cells-swap-and-resize");
+});
+
+test("dock-explorer-crumbs-and-refresh: Descend into a folder, climb back through the breadcrumb and the parent control, and refresh the listing.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await page.getByTestId("workspace.composer.draft").click();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 1);
+  await page.getByTestId("workspace.composer.draft").press("Control+k");
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 2);
+  await expect(page.getByTestId("app.command-palette.search-commands-and-threads")).toBeVisible();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 3);
+  await page.getByTestId("app.command-palette.row-action:browse-files-in-dock").click();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 4);
+  await expect(page.getByTestId("workspace.dock.file-explorer")).toBeVisible();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 5);
+  await page.getByTestId("workspace.file-explorer-panel.entry-notes").click();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 6);
+  await page.getByTestId("workspace.file-explorer-panel.refresh-directory").click();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 7);
+  await expect(page.getByTestId("workspace.file-explorer-panel.set-path-0")).toBeVisible();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 8);
+  await page.getByTestId("workspace.file-explorer-panel.set-path-0").click();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 9);
+  await page.getByTestId("workspace.file-explorer-panel.entry-media").click();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 10);
+  await page.getByTestId("workspace.file-explorer-panel.parent-directory").click();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 11);
+  await expect(page.getByTestId("workspace.file-explorer-panel.entry-notes")).toBeVisible();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 12);
+  await page.getByTestId("workspace.dock-panel.close-0").click();
+  await reconcileRuntime(page, "dock-explorer-crumbs-and-refresh", 13);
+  await recordFinalPageState(page, "dock-explorer-crumbs-and-refresh");
+});
+
+test("dock-media-viewers: Audio plays inline, a still image renders, and unreadable media shows its error notices.", async ({ page }) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await page.getByTestId("workspace.composer.draft").click();
+  await reconcileRuntime(page, "dock-media-viewers", 1);
+  await page.getByTestId("workspace.composer.draft").press("Control+k");
+  await reconcileRuntime(page, "dock-media-viewers", 2);
+  await expect(page.getByTestId("app.command-palette.search-commands-and-threads")).toBeVisible();
+  await reconcileRuntime(page, "dock-media-viewers", 3);
+  await page.getByTestId("app.command-palette.row-action:browse-files-in-dock").click();
+  await reconcileRuntime(page, "dock-media-viewers", 4);
+  await expect(page.getByTestId("workspace.dock.file-explorer")).toBeVisible();
+  await reconcileRuntime(page, "dock-media-viewers", 5);
+  await page.getByTestId("workspace.file-explorer-panel.entry-media").click();
+  await reconcileRuntime(page, "dock-media-viewers", 6);
+  await page.getByTestId("workspace.file-explorer-panel.entry-clip.mp3").click();
+  await reconcileRuntime(page, "dock-media-viewers", 7);
+  await expect(page.getByTestId("workspace.media-viewer.content-audio")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "dock-media-viewers", 8);
+  await page.getByTestId("workspace.file-explorer-panel.entry-still.png").click();
+  await reconcileRuntime(page, "dock-media-viewers", 9);
+  await expect(page.getByTestId("workspace.media-viewer.image")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "dock-media-viewers", 10);
+  await page.getByTestId("workspace.file-explorer-panel.entry-broken.mp4").click();
+  await reconcileRuntime(page, "dock-media-viewers", 11);
+  await expect(page.getByTestId("workspace.media-viewer.av-error")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "dock-media-viewers", 12);
+  await page.getByTestId("workspace.file-explorer-panel.entry-broken.png").click();
+  await reconcileRuntime(page, "dock-media-viewers", 13);
+  await expect(page.getByTestId("workspace.media-viewer.image-error")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "dock-media-viewers", 14);
+  await page.getByTestId("workspace.dock-panel.close-1").click();
+  await reconcileRuntime(page, "dock-media-viewers", 15);
+  await page.getByTestId("workspace.dock-panel.close-0").click();
+  await reconcileRuntime(page, "dock-media-viewers", 16);
+  await recordFinalPageState(page, "dock-media-viewers");
+});
+
+test("dock-file-viewers: A JSON file renders as collapsible keys, a text file as plain text, and an unreadable file as a notice, and a markdown note renders as markdown.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rich-transcript#/thread/html");
+  await page.getByTestId("workspace.composer.draft").click();
+  await reconcileRuntime(page, "dock-file-viewers", 1);
+  await page.getByTestId("workspace.composer.draft").press("Control+k");
+  await reconcileRuntime(page, "dock-file-viewers", 2);
+  await expect(page.getByTestId("app.command-palette.search-commands-and-threads")).toBeVisible();
+  await reconcileRuntime(page, "dock-file-viewers", 3);
+  await page.getByTestId("app.command-palette.row-action:browse-files-in-dock").click();
+  await reconcileRuntime(page, "dock-file-viewers", 4);
+  await expect(page.getByTestId("workspace.dock.file-explorer")).toBeVisible();
+  await reconcileRuntime(page, "dock-file-viewers", 5);
+  await page.getByTestId("workspace.file-explorer-panel.entry-notes").click();
+  await reconcileRuntime(page, "dock-file-viewers", 6);
+  await page.getByTestId("workspace.file-explorer-panel.entry-config.json").click();
+  await reconcileRuntime(page, "dock-file-viewers", 7);
+  await expect(page.getByTestId("workspace.file-viewer.json")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "dock-file-viewers", 8);
+  await page.getByTestId("workspace.file-viewer-panel.summary-theme").click();
+  await reconcileRuntime(page, "dock-file-viewers", 9);
+  await page.getByTestId("workspace.file-explorer-panel.entry-audit-plan.md").click();
+  await reconcileRuntime(page, "dock-file-viewers", 10);
+  await expect(page.getByTestId("workspace.file-viewer.markdown")).toBeVisible();
+  await reconcileRuntime(page, "dock-file-viewers", 11);
+  await page.getByTestId("workspace.file-explorer-panel.entry-unreadable.txt").click();
+  await reconcileRuntime(page, "dock-file-viewers", 12);
+  await expect(page.getByTestId("workspace.file-viewer.notice")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "dock-file-viewers", 13);
+  await page.getByTestId("workspace.file-explorer-panel.parent-directory").click();
+  await reconcileRuntime(page, "dock-file-viewers", 14);
+  await page.getByTestId("workspace.file-explorer-panel.entry-attachments").click();
+  await reconcileRuntime(page, "dock-file-viewers", 15);
+  await page.getByTestId("workspace.file-explorer-panel.entry-notes.txt").click();
+  await reconcileRuntime(page, "dock-file-viewers", 16);
+  await expect(page.getByTestId("workspace.file-viewer.text")).toBeVisible({ timeout: 20000 });
+  await reconcileRuntime(page, "dock-file-viewers", 17);
+  await page.getByTestId("workspace.dock-panel.close-1").click();
+  await reconcileRuntime(page, "dock-file-viewers", 18);
+  await page.getByTestId("workspace.dock-panel.close-0").click();
+  await reconcileRuntime(page, "dock-file-viewers", 19);
+  await recordFinalPageState(page, "dock-file-viewers");
+});
+
+test("skill-picker-choose-and-clear: The skill control opens a picker; choose Research, then clear back to none.", async ({ page }) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await expect(page.getByTestId("workspace.composer-meta.workspace-skill")).toBeVisible();
+  await reconcileRuntime(page, "skill-picker-choose-and-clear", 1);
+  await page.getByTestId("workspace.composer-meta.workspace-skill").click();
+  await reconcileRuntime(page, "skill-picker-choose-and-clear", 2);
+  await expect(page.getByTestId("workspace.skill-picker.option-research")).toBeVisible();
+  await reconcileRuntime(page, "skill-picker-choose-and-clear", 3);
+  await page.getByTestId("workspace.skill-picker.option-research").click();
+  await reconcileRuntime(page, "skill-picker-choose-and-clear", 4);
+  await page.getByTestId("workspace.composer-meta.workspace-skill").click();
+  await reconcileRuntime(page, "skill-picker-choose-and-clear", 5);
+  await page.getByTestId("workspace.skill-picker.option-none").click();
+  await reconcileRuntime(page, "skill-picker-choose-and-clear", 6);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "skill-picker-choose-and-clear", 7);
+  await recordFinalPageState(page, "skill-picker-choose-and-clear");
+});
+
+test("favorite-a-model: Starring a model adds it to the Favorites section; unstarring it from there removes the section again; picking the model from the Favorites row selects it for the composer.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await page.getByTestId("workspace.composer-meta.model").click();
+  await reconcileRuntime(page, "favorite-a-model", 1);
+  await expect(page.getByTestId("workspace.model-popover.favorite-or-gpt-5.5")).toBeVisible();
+  await reconcileRuntime(page, "favorite-a-model", 2);
+  await page.getByTestId("workspace.model-popover.favorite-or-gpt-5.5").click();
+  await reconcileRuntime(page, "favorite-a-model", 3);
+  await expect(page.getByTestId("workspace.model-popover.favorites-favorite-or-gpt-5.5")).toBeVisible();
+  await reconcileRuntime(page, "favorite-a-model", 4);
+  await page.getByTestId("workspace.model-popover.favorites-row-or-gpt-5.5").click();
+  await reconcileRuntime(page, "favorite-a-model", 5);
+  await expect(page.getByTestId("workspace.composer-meta.model")).toContainText("GPT-5.5");
+  await reconcileRuntime(page, "favorite-a-model", 6);
+  await page.getByTestId("workspace.composer-meta.model").click();
+  await reconcileRuntime(page, "favorite-a-model", 7);
+  await page.getByTestId("workspace.model-popover.favorites-favorite-or-gpt-5.5").click();
+  await reconcileRuntime(page, "favorite-a-model", 8);
+  await expect(page.getByTestId("workspace.model-popover.favorite-or-gpt-5.5")).toBeVisible();
+  await reconcileRuntime(page, "favorite-a-model", 9);
+  await expect(page.getByTestId("workspace.model-popover.search-models")).toBeVisible();
+  await reconcileRuntime(page, "favorite-a-model", 10);
+  await recordFinalPageState(page, "favorite-a-model");
+});
+
+test("local-context-mode: With a local model selected the composer offers a context mode; pick bare prompt.", async ({ page }) => {
+  await page.goto("/?scenario=local-ollama#/workspace");
+  await expect(page.getByTestId("workspace.composer-meta.local-context-mode")).toBeVisible();
+  await reconcileRuntime(page, "local-context-mode", 1);
+  await page.getByTestId("workspace.composer-meta.local-context-mode").selectOption("bare");
+  await reconcileRuntime(page, "local-context-mode", 2);
+  await page.getByTestId("workspace.composer-meta.local-context-mode").selectOption("full");
+  await reconcileRuntime(page, "local-context-mode", 3);
+  await recordFinalPageState(page, "local-context-mode");
+});
+
+test("sidebar-brand-and-bridge-dot: Clicking the brand mark opens the menu; the settings dot re-polls the bridge.", async ({ page }) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await expect(page.getByTestId("workspace.sidebar-settings-button.dot")).toBeVisible();
+  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 1);
+  await page.getByTestId("workspace.sidebar-settings-button.dot").click();
+  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 2);
+  await page.getByTestId("workspace.editorial-sidebar.brand").click();
+  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 3);
+  await expect(page.getByTestId("settings.gates-menu.tab-settings")).toBeVisible();
+  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 4);
+  await recordFinalPageState(page, "sidebar-brand-and-bridge-dot");
+});
+
+test("whats-new-dismiss: The close control on the welcome panel dismisses it without Got it.", async ({ page }) => {
+  await page.goto("/?scenario=whats-new#/workspace");
+  await expect(page.getByTestId("app.whats-new.presentation")).toBeVisible();
+  await reconcileRuntime(page, "whats-new-dismiss", 1);
+  await page.getByTestId("app.whats-new.dismiss-what-s-new").click();
+  await reconcileRuntime(page, "whats-new-dismiss", 2);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "whats-new-dismiss", 3);
+  await recordFinalPageState(page, "whats-new-dismiss");
+});
+
+test("mobile-open-sidebar-and-menu: On a phone the top bar opens the sidebar; from it the menu opens and the back control returns to the chat.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await expect(page.getByTestId("workspace.editorial-sidebar.button")).toBeVisible();
+  await reconcileRuntime(page, "mobile-open-sidebar-and-menu", 1);
+  await page.getByTestId("workspace.editorial-sidebar.open-sidebar").click();
+  await reconcileRuntime(page, "mobile-open-sidebar-and-menu", 2);
+  await expect(page.getByTestId("workspace.editorial-sidebar.close-mobile-sidebar")).toBeVisible();
+  await reconcileRuntime(page, "mobile-open-sidebar-and-menu", 3);
+  await page.getByTestId("workspace.editorial-sidebar.menu-and-settings").click();
+  await reconcileRuntime(page, "mobile-open-sidebar-and-menu", 4);
+  await expect(page.getByTestId("settings.gates-menu.tab-settings")).toBeVisible();
+  await reconcileRuntime(page, "mobile-open-sidebar-and-menu", 5);
+  await page.getByTestId("workspace.editorial-sidebar.button").click();
+  await reconcileRuntime(page, "mobile-open-sidebar-and-menu", 6);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "mobile-open-sidebar-and-menu", 7);
+  await recordFinalPageState(page, "mobile-open-sidebar-and-menu");
+});
+
+test("mobile-sidebar-close-controls: The title opens the sidebar, the close control shuts it, the backdrop shuts it, and the hamburger opens it again.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await page.getByTestId("workspace.editorial-sidebar.title").click();
+  await reconcileRuntime(page, "mobile-sidebar-close-controls", 1);
+  await page.getByTestId("workspace.editorial-sidebar.close-mobile-sidebar").click();
+  await reconcileRuntime(page, "mobile-sidebar-close-controls", 2);
+  await page.getByTestId("workspace.editorial-sidebar.button").click();
+  await reconcileRuntime(page, "mobile-sidebar-close-controls", 3);
+  await expect(page.getByTestId("workspace.editorial-sidebar.close-sidebar")).toBeVisible();
+  await reconcileRuntime(page, "mobile-sidebar-close-controls", 4);
+  await page.getByTestId("workspace.editorial-sidebar.close-sidebar").click();
+  await reconcileRuntime(page, "mobile-sidebar-close-controls", 5);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "mobile-sidebar-close-controls", 6);
+  await recordFinalPageState(page, "mobile-sidebar-close-controls");
+});
+
+test("mobile-new-conversation-and-copy-link: The top bar starts a new conversation and copies the thread link.", async ({ page }) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await page.getByTestId("workspace.editorial-sidebar.new-conversation").click();
+  await reconcileRuntime(page, "mobile-new-conversation-and-copy-link", 1);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "mobile-new-conversation-and-copy-link", 2);
+  await page.getByTestId("workspace.editorial-sidebar.copy-link").click();
+  await reconcileRuntime(page, "mobile-new-conversation-and-copy-link", 3);
+  await expect(page.getByTestId("workspace.editorial-sidebar.title")).toBeVisible();
+  await reconcileRuntime(page, "mobile-new-conversation-and-copy-link", 4);
+  await recordFinalPageState(page, "mobile-new-conversation-and-copy-link");
+});
+
+test("web-lite-download-cue: An empty conversation in Web Lite shows the desktop download cue; the link is hovered, never followed.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=desktop-ready#/workspace");
+  await page.getByTestId("workspace.editorial-sidebar.begin-a-new-conversation").click();
+  await reconcileRuntime(page, "web-lite-download-cue", 1);
+  await expect(page.getByTestId("workspace.editorial-chat.link")).toBeVisible();
+  await reconcileRuntime(page, "web-lite-download-cue", 2);
+  await page.getByTestId("workspace.editorial-chat.link").hover();
+  await reconcileRuntime(page, "web-lite-download-cue", 3);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "web-lite-download-cue", 4);
+  await recordFinalPageState(page, "web-lite-download-cue");
 });

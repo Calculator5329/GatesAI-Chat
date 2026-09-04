@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T05:56:39.953Z",
+  "measuredAt": "2026-09-04T17:31:24.386Z",
   "journeyName": "browse-workspace-files-in-dock",
   "lastStep": 9,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

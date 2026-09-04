@@ -111,6 +111,7 @@ export function handleBridgeOp(op: string | undefined, data: Record<string, unkn
         return { path, content: file.content, encoding: base64 ? 'base64' : 'utf8', size: file.content.length, mime: file.mime ?? 'text/plain' };
       }
       if (!base64) return bridgeError(`No such file: ${path}`, 'fs_not_found');
+      if (path.includes('broken')) return bridgeError(`Unreadable media: ${path}`, 'fs_read_failed');
       return { path, content: VISIBLE_IMAGE_SVG_BASE64, encoding: 'base64', size: 345, mime: 'image/svg+xml' };
     }
     case 'fs.stat': {

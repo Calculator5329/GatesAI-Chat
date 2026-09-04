@@ -112,7 +112,10 @@ test.describe('chat interaction polish', () => {
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('const exact = "copied";');
   });
 
-  test('announces a complete fenced HTML document instead of embedding a frame', async ({ page }) => {
+  test('shows a complete fenced HTML document as source with a Preview toggle', async ({ page }) => {
+    // Current behavior (MarkdownChunk CodeBlock): a closed ```html fence holding a
+    // complete document renders its source by default with Open and Download,
+    // and the toolbar toggle flips it into the sandboxed preview and back.
     const html = '<!doctype html><html><title>Handoff works</title><body><h1>Preview works</h1></body></html>';
     await seedThreads(page, [makeThread('html-thread', 'HTML test', [{
       id: 'html-message',
@@ -123,15 +126,22 @@ test.describe('chat interaction polish', () => {
     await mockOpenRouter(page);
     await page.goto('/');
 
-    const card = page.getByTestId('workspace.html-preview.document-card');
-    await expect(card).toBeVisible();
-    await expect(card.locator('.html-document-card__name')).toHaveText('Handoff works');
-    await expect(card.getByRole('button', { name: 'Open', exact: true })).toBeVisible();
-    await expect(card.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
-    // The 420px white slab is gone: the transcript embeds no frame at all.
-    await expect(page.locator('.inline-html-preview')).toHaveCount(0);
-    await expect(page.locator('.code-block iframe')).toHaveCount(0);
-    // ...and the source is still right there.
+    const toggle = page.getByTestId('workspace.markdown-chunk.set-html-view');
+    await expect(toggle).toHaveText('Preview');
+    await expect(page.getByTestId('workspace.markdown-chunk.open')).toBeVisible();
+    await expect(page.getByTestId('workspace.markdown-chunk.download')).toBeVisible();
+    const preview = page.getByTestId('workspace.html-preview.inline');
+    await expect(preview).toHaveCount(0);
+    await expect(page.locator('.code-block code')).toContainText('Preview works');
+
+    await toggle.click();
+    await expect(toggle).toHaveText('Source');
+    await expect(preview).toBeVisible();
+    await expect(preview.locator('iframe')).toHaveCount(1);
+
+    await toggle.click();
+    await expect(toggle).toHaveText('Preview');
+    await expect(preview).toHaveCount(0);
     await expect(page.locator('.code-block code')).toContainText('Preview works');
   });
 });

@@ -2,6 +2,7 @@
 // workspace, read on demand through the bridge store facade (the
 // stat/read/asset-inlining pipeline lives in services/bridge/artifactPreview).
 // Rendered by the markdown layer.
+import { observer } from 'mobx-react-lite';
 import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -44,6 +45,26 @@ export function htmlDocumentTitle(html: string): string | null {
   return title || null;
 }
 
+export function openHtmlDocument(html: string): void {
+  const previewDocument = createPreviewDocumentUrl(html);
+  const opened = window.open(previewDocument.url, '_blank', 'noopener,noreferrer');
+  if (opened) opened.opener = null;
+  // Blob URLs must remain alive long enough for the new tab to load.
+  if (previewDocument.revoke) window.setTimeout(previewDocument.revoke, 60_000);
+}
+
+export function downloadHtmlDocument(html: string, filename = 'artifact.html'): void {
+  const previewDocument = createDownloadDocumentUrl(html);
+  const anchor = document.createElement('a');
+  anchor.href = previewDocument.url;
+  anchor.download = filename;
+  anchor.style.display = 'none';
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  if (previewDocument.revoke) window.setTimeout(previewDocument.revoke, 0);
+}
+
 /**
  * Transcript form of a complete fenced HTML document. Like the workspace
  * artifact card it announces the document and hands off — the code stays
@@ -80,26 +101,6 @@ export function InlineHtmlDocumentCard({ html }: { html: string }) {
   );
 }
 
-export function openHtmlDocument(html: string): void {
-  const previewDocument = createPreviewDocumentUrl(html);
-  const opened = window.open(previewDocument.url, '_blank', 'noopener,noreferrer');
-  if (opened) opened.opener = null;
-  // Blob URLs must remain alive long enough for the new tab to load.
-  if (previewDocument.revoke) window.setTimeout(previewDocument.revoke, 60_000);
-}
-
-export function downloadHtmlDocument(html: string, filename = 'artifact.html'): void {
-  const previewDocument = createDownloadDocumentUrl(html);
-  const anchor = document.createElement('a');
-  anchor.href = previewDocument.url;
-  anchor.download = filename;
-  anchor.style.display = 'none';
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  if (previewDocument.revoke) window.setTimeout(previewDocument.revoke, 0);
-}
-
 /**
   * `panel` renders the sandboxed preview and is what the dock uses.
   * `inline` is the transcript form: it announces the artifact and hands off
@@ -113,7 +114,7 @@ export function downloadHtmlDocument(html: string, filename = 'artifact.html'): 
   * (`DockStore.available` is desktop-only), so there the card is modal-only
   * rather than growing an "Open in dock" button that does nothing.
   */
-export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
+export const HtmlArtifactPreview = observer(function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
   path: string;
   label?: string;
   variant?: 'inline' | 'panel';
@@ -142,13 +143,17 @@ export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
   // Every mode needs the HTML in hand: to render a frame, or to open the
   // modal that "View" offers. Repeated mentions of one path share a single
   // read through the artifactPreview cache.
+  // The load also re-runs when the bridge comes online: a card that mounted
+  // during the first health poll would otherwise keep the "Bridge offline"
+  // error, with View disabled, until the path changed.
+  const online = bridge.isOnline;
   useEffect(() => {
     let cancelled = false;
     void bridge.loadHtmlArtifactPreview(path).then(next => {
       if (!cancelled) setState(next);
     });
     return () => { cancelled = true; };
-  }, [bridge, path]);
+  }, [bridge, path, online]);
 
   function openOs(event: MouseEvent): void {
     event.stopPropagation();
@@ -167,7 +172,7 @@ export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
 
   return (
     <>
-      <span data-testid="workspace.html-artifact-preview.html-artifact-preview"
+      <span data-testid={compact ? 'workspace.html-artifact-preview.html-artifact-preview' : 'workspace.html-artifact-panel.html-artifact-preview'}
         className="html-artifact-preview"
         role="button"
         tabIndex={0}
@@ -226,7 +231,7 @@ export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
                 </button>
               </>
             )}
-            <button data-testid="workspace.html-artifact-preview.open-in-os" type="button" className="html-artifact-preview__open" onClick={openOs}>
+            <button data-testid={compact ? 'workspace.html-artifact-preview.open-in-os' : 'workspace.html-artifact-panel.open-in-os'} type="button" className="html-artifact-preview__open" onClick={openOs}>
               Open in OS
             </button>
           </span>
@@ -260,7 +265,7 @@ export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
       )}
     </>
   );
-}
+});
 
 function HtmlArtifactFullscreen({
   path,

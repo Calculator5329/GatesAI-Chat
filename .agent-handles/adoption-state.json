@@ -1,7 +1,7 @@
 {
   "schema": "agent-handles/adoption-state/v1",
   "startedAt": "2026-08-26T02:27:58.557Z",
-  "updatedAt": "2026-09-04T05:54:28.282Z",
+  "updatedAt": "2026-09-04T17:31:33.003Z",
   "passCount": 1,
   "status": "verified",
   "initialBaseline": {

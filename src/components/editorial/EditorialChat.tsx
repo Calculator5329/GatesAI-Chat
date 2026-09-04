@@ -24,7 +24,7 @@ import {
   shouldRenderFullMessage,
   streamingNeighborMessageIds,
 } from './messageWindowing';
-import { isNearScrollBottom, shouldDisengageScrollFollow } from './scrollFollow';
+import { pinScrollToBottom, readerScrolledUpSinceLastPin, resolveScrollFollow, shouldDisengageScrollFollow } from './scrollFollow';
 
 const STICKY_BOTTOM_PX = 100;
 const INITIAL_RENDERED_MESSAGES = 120;
@@ -478,7 +478,11 @@ export const EditorialChat = observer(function EditorialChat() {
   const stickyRef = useRef(true);
   // One pending consume per programmatic pin: the next scroll event is
   // ours and must not demote sticky; anything after it is the reader's.
-  const pinConsumeRef = useRef(0);
+  // True between a programmatic pin write that moved the scroller and the
+  // single scroll event the browser dispatches for it. Scroll events coalesce
+  // per frame, so a counter over-credits (two writes in one frame, one event)
+  // and later swallows a genuine reader scroll; a flag cannot drift.
+  const pendingPinRef = useRef(false);
   const streamRef = useRef<HTMLDivElement>(null);
   const windowingSupported = hasMessageWindowingSupport();
   const [viewport, setViewport] = useState({ scrollTop: 0, height: 0 });
@@ -518,9 +522,10 @@ export const EditorialChat = observer(function EditorialChat() {
     // holds still. Writes are stamped so the scroll listener can tell reader
     // intent apart from our own follow-up events.
     const now = scrollRef.current;
+    let lastPinnedTop = -1;
     if (now && stickyRef.current) {
-      pinConsumeRef.current += 1;
-      now.scrollTop = now.scrollHeight;
+      if (pinScrollToBottom(now)) pendingPinRef.current = true;
+      lastPinnedTop = now.scrollTop;
     }
     if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
     let settleFrames = 0;
@@ -528,8 +533,17 @@ export const EditorialChat = observer(function EditorialChat() {
       scrollRafRef.current = null;
       const el = scrollRef.current;
       if (!el || !stickyRef.current) return;
-      pinConsumeRef.current += 1;
-      el.scrollTop = el.scrollHeight;
+      if (readerScrolledUpSinceLastPin(lastPinnedTop, el)) {
+        // The reader scrolled up between two settle frames. Re-pinning would
+        // snap them back to the bottom, so the reader wins and the jump
+        // control takes over.
+        stickyRef.current = false;
+        pendingPinRef.current = false;
+        setAwayFromBottom(true);
+        return;
+      }
+      if (pinScrollToBottom(el)) pendingPinRef.current = true;
+      lastPinnedTop = el.scrollTop;
       const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= 1;
       if ((!atBottom || settleFrames < 3) && settleFrames < 60) {
         settleFrames += 1;
@@ -551,7 +565,7 @@ export const EditorialChat = observer(function EditorialChat() {
     // Wheel fires before scroll. Record the reader's intent now so the next
     // streaming token cannot re-pin the viewport in between those events.
     stickyRef.current = false;
-    pinConsumeRef.current = 0;
+    pendingPinRef.current = false;
     setAwayFromBottom(true);
   }, []);
 
@@ -594,8 +608,7 @@ export const EditorialChat = observer(function EditorialChat() {
     if (!stream || !el || typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver(() => {
       if (!stickyRef.current) return;
-      pinConsumeRef.current += 1;
-      el.scrollTop = el.scrollHeight;
+      if (pinScrollToBottom(el)) pendingPinRef.current = true;
     });
     observer.observe(stream);
     return () => observer.disconnect();
@@ -646,15 +659,13 @@ export const EditorialChat = observer(function EditorialChat() {
       // Tolerances are asymmetric on purpose: leaving follow is generous
       // (STICKY_BOTTOM_PX) but re-engaging demands a deliberate return to the
       // true bottom, so one wheel-up near the bottom isn't instantly undone.
-      const programmatic = pinConsumeRef.current > 0;
-      if (programmatic) pinConsumeRef.current -= 1;
-      if (stickyRef.current) {
-        if (!programmatic && !isNearScrollBottom(el, STICKY_BOTTOM_PX)) {
-          stickyRef.current = false;
-          pinConsumeRef.current = 0;
-          setAwayFromBottom(true);
-        }
-      } else if (!programmatic && isNearScrollBottom(el, 2)) {
+      const programmatic = pendingPinRef.current;
+      pendingPinRef.current = false;
+      const next = resolveScrollFollow(stickyRef.current, programmatic, el, STICKY_BOTTOM_PX);
+      if (next === 'leave') {
+        stickyRef.current = false;
+        setAwayFromBottom(true);
+      } else if (next === 'rejoin') {
         stickyRef.current = true;
         setAwayFromBottom(false);
       }
