@@ -77,7 +77,7 @@ function TaskRow({
     : null;
 
   return (
-    <article data-testid="workspace.task-center-panel.task"
+    <article data-testid={`workspace.task-center-panel.task-${task.id}`}
       className={`task-center__task task-center__task--${task.status}${onOpen ? ' task-center__task--linked' : ''}`}
       data-task-id={task.id}
       onClick={onOpen}
@@ -122,10 +122,10 @@ function TaskRow({
       {(cancellable || retryable) && (
         <div className="task-center__actions">
           {cancellable && (
-            <button data-testid="workspace.task-center-panel.cancel" type="button" onClick={event => { event.stopPropagation(); onCancel(); }}>Cancel</button>
+            <button data-testid={`workspace.task-center-panel.cancel-${task.id}`} type="button" onClick={event => { event.stopPropagation(); onCancel(); }}>Cancel</button>
           )}
           {retryable && (
-            <button data-testid="workspace.task-center-panel.retry" type="button" onClick={event => { event.stopPropagation(); onRetry(); }}>Retry</button>
+            <button data-testid={`workspace.task-center-panel.retry-${task.id}`} type="button" onClick={event => { event.stopPropagation(); onRetry(); }}>Retry</button>
           )}
         </div>
       )}

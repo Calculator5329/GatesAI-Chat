@@ -211,17 +211,17 @@ export function HtmlArtifactPreview({ path, label, variant = 'panel' }: {
             )}
             {!compact && state.status === 'ready' && (
               <>
-                <button data-testid="workspace.html-artifact-preview.open-2"
+                <button data-testid="workspace.html-artifact-preview.toggle-source"
                   type="button"
                   className="html-artifact-preview__open"
                   onClick={(event) => runDocumentAction(event, () => setView(current => current === 'preview' ? 'source' : 'preview'))}
                 >
                   {view === 'preview' ? 'Source' : 'Preview'}
                 </button>
-                <button data-testid="workspace.html-artifact-preview.open-3" type="button" className="html-artifact-preview__open" onClick={(event) => runDocumentAction(event, () => openHtmlDocument(state.html))}>
+                <button data-testid="workspace.html-artifact-preview.open-file" type="button" className="html-artifact-preview__open" onClick={(event) => runDocumentAction(event, () => openHtmlDocument(state.html))}>
                   Open
                 </button>
-                <button data-testid="workspace.html-artifact-preview.download-2" type="button" className="html-artifact-preview__open" onClick={(event) => runDocumentAction(event, () => downloadHtmlDocument(state.html, name))}>
+                <button data-testid="workspace.html-artifact-preview.download-file" type="button" className="html-artifact-preview__open" onClick={(event) => runDocumentAction(event, () => downloadHtmlDocument(state.html, name))}>
                   Download
                 </button>
               </>
@@ -298,7 +298,7 @@ function HtmlArtifactFullscreen({
           <code>{path}</code>
         </div>
         <div className="html-artifact-fullscreen__actions">
-          <button data-testid="workspace.html-artifact-preview.open-in-os-2" type="button" className="html-artifact-fullscreen__action" onClick={onOpenOs}>Open in OS</button>
+          <button data-testid="workspace.html-artifact-preview.fullscreen-open-in-os" type="button" className="html-artifact-fullscreen__action" onClick={onOpenOs}>Open in OS</button>
           <button data-testid="workspace.html-artifact-preview.close-html-preview" type="button" className="html-artifact-fullscreen__action" aria-label="Close HTML preview" onClick={onClose}>Close</button>
         </div>
       </div>

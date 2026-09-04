@@ -364,7 +364,7 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
       ) : notDetected ? (
         <>
           <p>Run chat and tools on your machine with Ollama - no account or cloud key. Local settings can help you install or connect it.</p>
-          <button data-testid="workspace.editorial-chat.open-local-settings-2" type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
+          <button data-testid="workspace.editorial-chat.install-ollama" type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
             Open Local settings
           </button>
           <button data-testid="workspace.editorial-chat.secondary" type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
@@ -374,10 +374,10 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
       ) : (
         <>
           <p>Ollama is configured but not running. Start it from Local settings; GatesAI will not silently fall back to cloud.</p>
-          <button data-testid="workspace.editorial-chat.open-local-settings-3" type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
+          <button data-testid="workspace.editorial-chat.start-ollama" type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
             Open Local settings
           </button>
-          <button data-testid="workspace.editorial-chat.secondary-2" type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
+          <button data-testid="workspace.editorial-chat.recheck-ollama" type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
             {buttonLabel}
           </button>
         </>
@@ -738,7 +738,7 @@ export const EditorialChat = observer(function EditorialChat() {
         onWheelCapture={handleTimelineWheel}
         style={{ flex: 1, overflowY: 'auto', padding: '36px 48px 8px', overflowAnchor: 'none' }}
       >
-        <div ref={streamRef} style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
+        <div ref={streamRef} data-testid="workspace.editorial-chat.stream" style={{ width: 'min(var(--reading-width, 720px), 70%)', margin: '0 auto' }} className="editorial-stream">
           {activeThreadHydrating && (
             <div className="editorial-empty-state" role="status">
               <div className="editorial-empty-state__ready">Loading conversation...</div>

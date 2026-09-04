@@ -109,7 +109,7 @@ const DesktopBlock = observer(function DesktopBlock() {
       <div className="settings-section-title" style={tokens.sectionTitle}>Desktop</div>
       <SettingsRow label="Global summon">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-          <Toggle testId="settings.preferences.toggle-2" label="Global summon" on={ui.globalSummonEnabled} onChange={ui.setGlobalSummonEnabled} />
+          <Toggle testId="settings.preferences.global-summon" label="Global summon" on={ui.globalSummonEnabled} onChange={ui.setGlobalSummonEnabled} />
           <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
             Show, focus, or hide GatesAI from anywhere.
           </div>
@@ -130,7 +130,7 @@ const DesktopBlock = observer(function DesktopBlock() {
       </SettingsRow>
       <SettingsRow label="Close button hides to tray" last>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-          <Toggle testId="settings.preferences.toggle-3" label="Close button hides to tray" on={ui.closeButtonHidesToTray} onChange={ui.setCloseButtonHidesToTray} />
+          <Toggle testId="settings.preferences.close-hides-to-tray" label="Close button hides to tray" on={ui.closeButtonHidesToTray} onChange={ui.setCloseButtonHidesToTray} />
           <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
             Quit from the tray menu still exits GatesAI completely.
           </div>

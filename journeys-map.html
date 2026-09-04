@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>gatesai-chat-agent-handles-retry-20260826 journey map</title>
+<title>gatesai-chat journey map</title>
 <style>
   :root {
     --bg: #0b0f0d; --surface: #12171400; --line: #222b25; --text: #d8ded9;
@@ -50,97 +50,547 @@
     color: var(--accent); font: 12px ui-monospace, Menlo, monospace; padding: 2px 10px; cursor: pointer; }
   button.run:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
   button.run:disabled { color: var(--muted); border-color: var(--line); cursor: default; }
+  .overlay-row { margin: -14px 0 22px; display:flex; align-items:center; gap:10px; }
+  button.overlay { background: color-mix(in srgb, var(--accent) 8%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    color: var(--accent); font: 12px ui-monospace, Menlo, monospace; padding: 5px 11px; cursor: pointer; border-radius: 5px; }
   .wall, .wall-chip i { color: var(--wall); }
+  .review-ok { color: #75ad8b; }.review-open { color: #f0a27f; }
   .wall { font-size: 12px; border: 1px solid color-mix(in srgb, var(--wall) 40%, transparent); padding: 1px 7px; }
   .wall-chip { border-color: color-mix(in srgb, var(--wall) 35%, transparent); }
   section.walled h2 { color: var(--wall); font-family: system-ui, sans-serif; font-size: 14px; }
 </style>
-<h1>gatesai-chat-agent-handles-retry-20260826 journey map</h1>
+<h1>gatesai-chat journey map</h1>
 <p class="meta">
-  <b>5</b> journeys (<b>4</b> control-path, <b>1</b> url-path)
+  <b>45</b> journeys (<b>43</b> control-path, <b>2</b> url-path)
   &middot; <b>223</b>/<b>223</b> interactive elements identified
-  &middot; <b>213</b> ids + <b>36</b> patterns
+  &middot; <b>186</b> ids + <b>64</b> patterns
   &middot; hover a step to trace its id across journeys
 </p>
+
+<section class="journey" data-journey="open-workspace-directly">
+      <header>
+        <h2>open-workspace-directly</h2>
+        <span class="kind url-path">url-path</span>
+        <span class="n">3 steps</span>
+        
+        
+      </header>
+      <p>The shareable workspace path loads a usable composer with no prior navigation.</p>
+      <div class="lane"><span class="chip jump"><b>navigate</b><u>/?scenario=desktop-ready#/workspace</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>disabled</u></span></div>
+    </section>
+<section class="journey" data-journey="start-a-new-conversation">
+      <header>
+        <h2>start-a-new-conversation</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">3 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>The sidebar control creates a thread and the composer is ready with the send control idle.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.editorial-sidebar.begin-a-new-conversation"><b>click</b><i>workspace.editorial-sidebar.begin-a-new-conversation</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>disabled</u></span></div>
+    </section>
+<section class="journey" data-journey="send-message-and-read-streamed-reply">
+      <header>
+        <h2>send-message-and-read-streamed-reply</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Type a prompt, send it, and watch the mocked OpenRouter stream land in the transcript.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>fill</b><i>workspace.composer.draft</i><u>Summarize the tour harness in one line.</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text The mocked OpenRouter stream answered this turn</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="stop-a-slow-streamed-reply">
+      <header>
+        <h2>stop-a-slow-streamed-reply</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">7 steps</span>
+        <span class="n">enters at <i>/?scenario=slow-stream#/workspace</i></span>
+        
+      </header>
+      <p>With a slow stream, the send control turns into stop; pressing it ends the turn and the composer goes idle.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>fill</b><i>workspace.composer.draft</i><u>Tell me slowly.</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text This reply arrives slowly</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>disabled</u></span></div>
+    </section>
+<section class="journey" data-journey="tool-turn-shows-activity-and-answer">
+      <header>
+        <h2>tool-turn-shows-activity-and-answer</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">6 steps</span>
+        <span class="n">enters at <i>/?scenario=tool-turn#/workspace</i></span>
+        
+      </header>
+      <p>The first reply is a tool call; its activity row expands and the follow-up answer reads the result back.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>fill</b><i>workspace.composer.draft</i><u>What time is it?</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.activity-row.toggle-call_time_1:0"><b>expect</b><i>workspace.activity-row.toggle-call_time_1:0</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.activity-row.toggle-call_time_1:0"><b>click</b><i>workspace.activity-row.toggle-call_time_1:0</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text I checked the clock</u></span></div>
+    </section>
+<section class="journey" data-journey="web-search-grounded-reply">
+      <header>
+        <h2>web-search-grounded-reply</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=web-search#/workspace</i></span>
+        
+      </header>
+      <p>The assistant calls web_search, Brave answers with mocked sources, and the follow-up cites them.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>fill</b><i>workspace.composer.draft</i><u>What is a journey catalog?</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.activity-row.toggle-call_search_1:0"><b>expect</b><i>workspace.activity-row.toggle-call_search_1:0</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text Two sources answered</u></span></div>
+    </section>
+<section class="journey" data-journey="image-generation-job-card">
+      <header>
+        <h2>image-generation-job-card</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">6 steps</span>
+        <span class="n">enters at <i>/?scenario=image-job#/workspace</i></span>
+        
+      </header>
+      <p>The assistant calls image_generate, the job runs against the mocked OpenRouter image endpoint, and the card renders the result.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>fill</b><i>workspace.composer.draft</i><u>Draw a wax seal with the letter G.</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.activity-row.toggle-call_image_1:0"><b>expect</b><i>workspace.activity-row.toggle-call_image_1:0</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text The render is queued</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.image-job-card.image"><b>expect</b><i>workspace.image-job-card.image</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="local-ollama-reply">
+      <header>
+        <h2>local-ollama-reply</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">4 steps</span>
+        <span class="n">enters at <i>/?scenario=local-ollama#/workspace</i></span>
+        
+      </header>
+      <p>With no cloud key and Ollama online, a turn is answered by the mocked local model.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>fill</b><i>workspace.composer.draft</i><u>Answer locally.</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text Mock local reply from Ollama</u></span></div>
+    </section>
+<section class="journey" data-journey="provider-error-dismiss">
+      <header>
+        <h2>provider-error-dismiss</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">7 steps</span>
+        <span class="n">enters at <i>/?scenario=provider-error#/workspace</i></span>
+        
+      </header>
+      <p>OpenRouter fails with HTTP 500; the error surfaces in the transcript and the composer error can be dismissed.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>fill</b><i>workspace.composer.draft</i><u>This will fail.</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-composer.dismiss-chat-error"><b>expect</b><i>workspace.editorial-composer.dismiss-chat-error</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text 500</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-composer.dismiss-chat-error"><b>click</b><i>workspace.editorial-composer.dismiss-chat-error</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="bridge-offline-degrades-gracefully">
+      <header>
+        <h2>bridge-offline-degrades-gracefully</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=bridge-offline#/workspace</i></span>
+        
+      </header>
+      <p>With the bridge and Ollama unreachable, attachments are disabled but a cloud turn still completes.</p>
+      <div class="lane"><span class="chip ask" data-id="workspace.composer.attach"><b>expect</b><i>workspace.composer.attach</i><u>disabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer.draft"><b>fill</b><i>workspace.composer.draft</i><u>Still online?</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text The mocked OpenRouter stream answered this turn</u></span></div>
+    </section>
+<section class="journey" data-journey="rename-thread-from-context-menu">
+      <header>
+        <h2>rename-thread-from-context-menu</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Right-click a thread, choose Rename, type a new title, and confirm it in the sidebar.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.editorial-sidebar.thread-agent-task"><b>right-click</b><i>workspace.editorial-sidebar.thread-agent-task</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-sidebar.context-rename-agent-task"><b>click</b><i>workspace.editorial-sidebar.context-rename-agent-task</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-sidebar.rename-input-agent-task"><b>fill</b><i>workspace.editorial-sidebar.rename-input-agent-task</i><u>Renamed by the journey</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-sidebar.rename-input-agent-task"><b>press</b><i>workspace.editorial-sidebar.rename-input-agent-task</i><u>Enter</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-sidebar.thread-agent-task"><b>expect</b><i>workspace.editorial-sidebar.thread-agent-task</i><u>contains-text Renamed by the journey</u></span></div>
+    </section>
+<section class="journey" data-journey="pin-thread-from-row-actions">
+      <header>
+        <h2>pin-thread-from-row-actions</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">3 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Hover a thread row and pin it; the row stays present.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.editorial-sidebar.thread-agent-task"><b>hover</b><i>workspace.editorial-sidebar.thread-agent-task</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-sidebar.pin-agent-task"><b>click</b><i>workspace.editorial-sidebar.pin-agent-task</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-sidebar.thread-agent-task"><b>expect</b><i>workspace.editorial-sidebar.thread-agent-task</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="delete-thread-and-undo">
+      <header>
+        <h2>delete-thread-and-undo</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Deleting a thread shows an undo toast; undo restores the thread.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.editorial-sidebar.thread-agent-task"><b>hover</b><i>workspace.editorial-sidebar.thread-agent-task</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-sidebar.delete-agent-task"><b>click</b><i>workspace.editorial-sidebar.delete-agent-task</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.undo-toast.undo"><b>expect</b><i>workspace.undo-toast.undo</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.undo-toast.undo"><b>click</b><i>workspace.undo-toast.undo</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-sidebar.thread-agent-task"><b>expect</b><i>workspace.editorial-sidebar.thread-agent-task</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="switch-between-threads">
+      <header>
+        <h2>switch-between-threads</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">4 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Open the tool-activity thread, then return to the active one; each transcript renders its own content.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.editorial-sidebar.thread-tool"><b>click</b><i>workspace.editorial-sidebar.thread-tool</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.activity-row.toggle-tool-assistant:work-note:0"><b>expect</b><i>workspace.activity-row.toggle-tool-assistant:work-note:0</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-sidebar.thread-active"><b>click</b><i>workspace.editorial-sidebar.thread-active</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text Here is a short implementation note</u></span></div>
+    </section>
+<section class="journey" data-journey="edit-message-and-resend">
+      <header>
+        <h2>edit-message-and-resend</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">7 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Edit the user message, confirm the truncation, and a fresh reply streams in.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.editorial-message.message-active-user"><b>hover</b><i>workspace.editorial-message.message-active-user</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-message.edit-active-user"><b>click</b><i>workspace.editorial-message.edit-active-user</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-message.edit-input-active-user"><b>fill</b><i>workspace.editorial-message.edit-input-active-user</i><u>Edited prompt from the journey</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-message.edit-save-active-user"><b>click</b><i>workspace.editorial-message.edit-save-active-user</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-message.edit-confirm-save-active-user"><b>expect</b><i>workspace.editorial-message.edit-confirm-save-active-user</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-message.edit-confirm-save-active-user"><b>click</b><i>workspace.editorial-message.edit-confirm-save-active-user</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text The mocked OpenRouter stream answered this turn</u></span></div>
+    </section>
+<section class="journey" data-journey="regenerate-assistant-reply">
+      <header>
+        <h2>regenerate-assistant-reply</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">3 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Ask for a new answer to the same prompt and read the regenerated stream.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.editorial-message.message-active-assistant"><b>hover</b><i>workspace.editorial-message.message-active-assistant</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-message.regenerate-active-assistant"><b>click</b><i>workspace.editorial-message.regenerate-active-assistant</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text The mocked OpenRouter stream answered this turn</u></span></div>
+    </section>
+<section class="journey" data-journey="branch-conversation-from-message">
+      <header>
+        <h2>branch-conversation-from-message</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">4 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Branching from the user message opens a new thread carrying that message.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.editorial-message.message-active-user"><b>hover</b><i>workspace.editorial-message.message-active-user</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-message.branch-active-user"><b>click</b><i>workspace.editorial-message.branch-active-user</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text screenshot tour</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="inspect-memory-disclosure">
+      <header>
+        <h2>inspect-memory-disclosure</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Open a memory chip to see why it was used and where it lives.</p>
+      <div class="lane"><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text Here is a short implementation note</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.memory-disclosure.chip-note:audit-plan"><b>hover</b><i>workspace.memory-disclosure.chip-note:audit-plan</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.memory-disclosure.chip-note:audit-plan"><b>click</b><i>workspace.memory-disclosure.chip-note:audit-plan</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.memory-disclosure.why-was-this-used"><b>expect</b><i>workspace.memory-disclosure.why-was-this-used</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.memory-disclosure.open-in-memory"><b>expect</b><i>workspace.memory-disclosure.open-in-memory</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="exclude-memory-source-and-undo">
+      <header>
+        <h2>exclude-memory-source-and-undo</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">9 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Mark a memory source as not to be used, confirm, and reverse the choice from the undo control.</p>
+      <div class="lane"><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text Here is a short implementation note</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.memory-disclosure.chip-note:audit-plan"><b>hover</b><i>workspace.memory-disclosure.chip-note:audit-plan</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.memory-disclosure.chip-note:audit-plan"><b>click</b><i>workspace.memory-disclosure.chip-note:audit-plan</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.memory-disclosure.don-apos-t-use-this-source"><b>click</b><i>workspace.memory-disclosure.don-apos-t-use-this-source</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.memory-disclosure.exclude"><b>expect</b><i>workspace.memory-disclosure.exclude</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.memory-disclosure.exclude"><b>click</b><i>workspace.memory-disclosure.exclude</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.memory-disclosure.undo-exclusion"><b>expect</b><i>workspace.memory-disclosure.undo-exclusion</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.memory-disclosure.undo-exclusion"><b>click</b><i>workspace.memory-disclosure.undo-exclusion</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.memory-disclosure.chip-note:audit-plan"><b>expect</b><i>workspace.memory-disclosure.chip-note:audit-plan</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="search-models-in-popover">
+      <header>
+        <h2>search-models-in-popover</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">6 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Open the model popover, filter by name, then clear the filter.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer-meta.model"><b>click</b><i>workspace.composer-meta.model</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.model-popover.search-models"><b>expect</b><i>workspace.model-popover.search-models</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.model-popover.search-models"><b>fill</b><i>workspace.model-popover.search-models</i><u>gemini</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.model-popover.row-auto-gemini-3-flash"><b>expect</b><i>workspace.model-popover.row-auto-gemini-3-flash</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.model-popover.clear-model-search"><b>click</b><i>workspace.model-popover.clear-model-search</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.model-popover.search-models"><b>expect</b><i>workspace.model-popover.search-models</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="choose-a-local-model">
+      <header>
+        <h2>choose-a-local-model</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Switch the picker to local models and select the Ollama model for this thread.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer-meta.model"><b>click</b><i>workspace.composer-meta.model</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.model-popover.segment-local"><b>click</b><i>workspace.model-popover.segment-local</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.model-popover.row-ollama-qwen2.5:7b"><b>expect</b><i>workspace.model-popover.row-ollama-qwen2.5:7b</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.model-popover.row-ollama-qwen2.5:7b"><b>click</b><i>workspace.model-popover.row-ollama-qwen2.5:7b</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-meta.model"><b>expect</b><i>workspace.composer-meta.model</i><u>contains-text qwen2.5:7b</u></span></div>
+    </section>
+<section class="journey" data-journey="filter-models-by-capability">
+      <header>
+        <h2>filter-models-by-capability</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Toggle a capability filter in the model picker and keep the popover open.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer-meta.model"><b>click</b><i>workspace.composer-meta.model</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.model-popover.cap-filter-tools"><b>click</b><i>workspace.model-popover.cap-filter-tools</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.model-popover.model-popover"><b>expect</b><i>workspace.model-popover.model-popover</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.model-popover.cap-filter-tools"><b>click</b><i>workspace.model-popover.cap-filter-tools</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.model-popover.model-popover"><b>expect</b><i>workspace.model-popover.model-popover</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="set-thinking-effort">
+      <header>
+        <h2>set-thinking-effort</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">2 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Change the reasoning effort selector in the composer meta bar.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer-meta.thinking-effort"><b>select</b><i>workspace.composer-meta.thinking-effort</i><u>high</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-meta.thinking-effort"><b>expect</b><i>workspace.composer-meta.thinking-effort</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="command-palette-find-thread">
+      <header>
+        <h2>command-palette-find-thread</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">8 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Open the palette with the keyboard, search for a thread, and open it.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>click</b><i>workspace.composer.draft</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer.draft"><b>press</b><i>workspace.composer.draft</i><u>Control+k</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="app.command-palette.search-commands-and-threads"><b>expect</b><i>app.command-palette.search-commands-and-threads</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="app.command-palette.search-commands-and-threads"><b>fill</b><i>app.command-palette.search-commands-and-threads</i><u>Usage</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="app.command-palette.row-thread:usage"><b>expect</b><i>app.command-palette.row-thread:usage</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="app.command-palette.row-thread:usage"><b>click</b><i>app.command-palette.row-thread:usage</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-sidebar.thread-usage"><b>expect</b><i>workspace.editorial-sidebar.thread-usage</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="command-palette-new-conversation">
+      <header>
+        <h2>command-palette-new-conversation</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">6 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>The palette action creates a thread and leaves the composer idle.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>click</b><i>workspace.composer.draft</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer.draft"><b>press</b><i>workspace.composer.draft</i><u>Control+k</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="app.command-palette.search-commands-and-threads"><b>expect</b><i>app.command-palette.search-commands-and-threads</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="app.command-palette.row-action:new-conversation"><b>click</b><i>app.command-palette.row-action:new-conversation</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>disabled</u></span></div>
+    </section>
+<section class="journey" data-journey="command-palette-open-settings">
+      <header>
+        <h2>command-palette-open-settings</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>The palette action opens the settings menu.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>click</b><i>workspace.composer.draft</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer.draft"><b>press</b><i>workspace.composer.draft</i><u>Control+k</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="app.command-palette.search-commands-and-threads"><b>expect</b><i>app.command-palette.search-commands-and-threads</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="app.command-palette.row-action:settings"><b>click</b><i>app.command-palette.row-action:settings</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.gates-menu.tab-settings"><b>expect</b><i>settings.gates-menu.tab-settings</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="browse-workspace-files-in-dock">
+      <header>
+        <h2>browse-workspace-files-in-dock</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">9 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Open the file explorer from the palette, enter a folder, and go back up.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>click</b><i>workspace.composer.draft</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer.draft"><b>press</b><i>workspace.composer.draft</i><u>Control+k</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="app.command-palette.search-commands-and-threads"><b>expect</b><i>app.command-palette.search-commands-and-threads</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="app.command-palette.row-action:browse-files-in-dock"><b>click</b><i>app.command-palette.row-action:browse-files-in-dock</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.dock.file-explorer"><b>expect</b><i>workspace.dock.file-explorer</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.file-explorer-panel.entry-notes"><b>click</b><i>workspace.file-explorer-panel.entry-notes</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.file-explorer-panel.parent-directory"><b>expect</b><i>workspace.file-explorer-panel.parent-directory</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.file-explorer-panel.parent-directory"><b>click</b><i>workspace.file-explorer-panel.parent-directory</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.file-explorer-panel.entry-notes"><b>expect</b><i>workspace.file-explorer-panel.entry-notes</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="open-task-center-and-close-it">
+      <header>
+        <h2>open-task-center-and-close-it</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">8 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>The task center lists the seeded image job; closing its cell returns to the plain workspace.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>click</b><i>workspace.composer.draft</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer.draft"><b>press</b><i>workspace.composer.draft</i><u>Control+k</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="app.command-palette.search-commands-and-threads"><b>expect</b><i>app.command-palette.search-commands-and-threads</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="app.command-palette.row-action:open-task-center"><b>click</b><i>app.command-palette.row-action:open-task-center</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.task-center.ledger"><b>expect</b><i>workspace.task-center.ledger</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.task-center-panel.task-img-tour"><b>expect</b><i>workspace.task-center-panel.task-img-tour</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.dock-panel.close-0"><b>click</b><i>workspace.dock-panel.close-0</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="collapse-a-dock-cell">
+      <header>
+        <h2>collapse-a-dock-cell</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">9 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Open the explorer in the dock, collapse it to the rail, and expand it again.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>click</b><i>workspace.composer.draft</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer.draft"><b>press</b><i>workspace.composer.draft</i><u>Control+k</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="app.command-palette.search-commands-and-threads"><b>expect</b><i>app.command-palette.search-commands-and-threads</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="app.command-palette.row-action:browse-files-in-dock"><b>click</b><i>app.command-palette.row-action:browse-files-in-dock</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.dock.file-explorer"><b>expect</b><i>workspace.dock.file-explorer</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.dock-panel.collapse-0"><b>click</b><i>workspace.dock-panel.collapse-0</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.dock.collapsed-rail"><b>expect</b><i>workspace.dock.collapsed-rail</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.dock-panel.expand-dock"><b>click</b><i>workspace.dock-panel.expand-dock</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.dock.panel"><b>expect</b><i>workspace.dock.panel</i><u>visible</u></span></div>
+    </section>
 <section class="journey" data-journey="open-settings-and-switch-theme">
       <header>
         <h2>open-settings-and-switch-theme</h2>
         <span class="kind control-path">control-path</span>
         <span class="n">4 steps</span>
-        <span class="n">enters at <i>/workspace</i></span>
-
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
       </header>
-      <p>Reach Settings through the visible sidebar control and select the Light theme.</p>
+      <p>Reach Settings through the sidebar control and select the Light theme.</p>
       <div class="lane"><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.gates-menu.tab-settings"><b>expect</b><i>settings.gates-menu.tab-settings</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.segmented.option-theme-light"><b>click</b><i>settings.segmented.option-theme-light</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.preferences.export-json"><b>expect</b><i>settings.preferences.export-json</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="theme-persists-across-reload">
+      <header>
+        <h2>theme-persists-across-reload</h2>
+        <span class="kind url-path">url-path</span>
+        <span class="n">7 steps</span>
+        
+        
+      </header>
+      <p>Pick the light theme, reload with storage kept straight into the settings route, and find the theme control still there.</p>
+      <div class="lane"><span class="chip jump"><b>navigate</b><u>/?scenario=desktop-ready#/workspace</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.segmented.option-theme-light"><b>click</b><i>settings.segmented.option-theme-light</i></span><span class="arr">&rarr;</span><span class="chip jump"><b>navigate</b><u>/?scenario=desktop-ready&amp;persist=1#/menu/settings</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.gates-menu.tab-settings"><b>expect</b><i>settings.gates-menu.tab-settings</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.segmented.option-theme-light"><b>expect</b><i>settings.segmented.option-theme-light</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="light-theme-preselected">
+      <header>
+        <h2>light-theme-preselected</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">3 steps</span>
+        <span class="n">enters at <i>/?scenario=light-theme#/workspace</i></span>
+        
+      </header>
+      <p>The light-theme scenario opens with Light already selected in settings.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.segmented.option-theme-light"><b>expect</b><i>settings.segmented.option-theme-light</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.segmented.option-theme-dark"><b>expect</b><i>settings.segmented.option-theme-dark</i><u>visible</u></span></div>
     </section>
 <section class="journey" data-journey="open-model-provider-settings">
       <header>
         <h2>open-model-provider-settings</h2>
         <span class="kind control-path">control-path</span>
         <span class="n">4 steps</span>
-        <span class="n">enters at <i>/workspace</i></span>
-
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
       </header>
       <p>Open the menu, select Models, and verify the web-search provider card renders.</p>
       <div class="lane"><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.gates-menu.tab-models"><b>expect</b><i>settings.gates-menu.tab-models</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.gates-menu.tab-models"><b>click</b><i>settings.gates-menu.tab-models</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.models.search-card"><b>expect</b><i>settings.models.search-card</i><u>contains-text Web search</u></span></div>
+    </section>
+<section class="journey" data-journey="replace-openrouter-key">
+      <header>
+        <h2>replace-openrouter-key</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">8 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Remove the stored key, enter a placeholder, connect, and see it stored again.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.gates-menu.tab-models"><b>click</b><i>settings.gates-menu.tab-models</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.secret-key.stored-openrouter"><b>expect</b><i>settings.secret-key.stored-openrouter</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.secret-key.remove-openrouter"><b>click</b><i>settings.secret-key.remove-openrouter</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.secret-key.input-openrouter"><b>expect</b><i>settings.secret-key.input-openrouter</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.secret-key.input-openrouter"><b>fill</b><i>settings.secret-key.input-openrouter</i><u>journey-placeholder-not-a-real-key</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.secret-key.connect-openrouter"><b>click</b><i>settings.secret-key.connect-openrouter</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.secret-key.stored-openrouter"><b>expect</b><i>settings.secret-key.stored-openrouter</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="set-ollama-endpoint">
+      <header>
+        <h2>set-ollama-endpoint</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Enter the local Ollama URL under Models and commit it.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.gates-menu.tab-models"><b>click</b><i>settings.gates-menu.tab-models</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.models-api-section.http-127-0-0-1-11434"><b>fill</b><i>settings.models-api-section.http-127-0-0-1-11434</i><u>http://127.0.0.1:11434</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.models-api-section.commit"><b>click</b><i>settings.models-api-section.commit</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.models-api-section.http-127-0-0-1-11434"><b>expect</b><i>settings.models-api-section.http-127-0-0-1-11434</i><u>visible</u></span></div>
     </section>
 <section class="journey" data-journey="open-agent-memory-settings">
       <header>
         <h2>open-agent-memory-settings</h2>
         <span class="kind control-path">control-path</span>
         <span class="n">4 steps</span>
-        <span class="n">enters at <i>/workspace</i></span>
-
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
       </header>
       <p>Open the menu, select Agent, and verify the persistent-instructions editor renders.</p>
-      <div class="lane"><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.gates-menu.tab-agent"><b>expect</b><i>settings.gates-menu.tab-agent</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.gates-menu.tab-agent"><b>click</b><i>settings.gates-menu.tab-agent</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe"><b>expect</b><i>settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe</i><u>visible</u></span></div>
+      <div class="lane"><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.gates-menu.tab-agent"><b>expect</b><i>settings.gates-menu.tab-agent</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.gates-menu.tab-agent"><b>click</b><i>settings.gates-menu.tab-agent</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.agent.system-prompt"><b>expect</b><i>settings.agent.system-prompt</i><u>visible</u></span></div>
     </section>
-<section class="journey" data-journey="start-a-new-conversation">
+<section class="journey" data-journey="add-an-agent-memory-fact">
       <header>
-        <h2>start-a-new-conversation</h2>
+        <h2>add-an-agent-memory-fact</h2>
         <span class="kind control-path">control-path</span>
-        <span class="n">2 steps</span>
-        <span class="n">enters at <i>/workspace</i></span>
-
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
       </header>
-      <p>Use the sidebar control to create a thread and verify the composer is ready.</p>
-      <div class="lane"><span class="chip do" data-id="workspace.editorial-sidebar.begin-a-new-conversation"><b>click</b><i>workspace.editorial-sidebar.begin-a-new-conversation</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span></div>
+      <p>Type a new fact under Agent, add it, and see a third editable fact appear.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.gates-menu.tab-agent"><b>click</b><i>settings.gates-menu.tab-agent</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.agent.new-fact"><b>fill</b><i>settings.agent.new-fact</i><u>The journey catalog is replayed before every release</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.agent.add"><b>click</b><i>settings.agent.add</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.agent.fact-edit-2"><b>expect</b><i>settings.agent.fact-edit-2</i><u>visible</u></span></div>
     </section>
-<section class="journey" data-journey="open-workspace-directly">
+<section class="journey" data-journey="preview-memory-retrieval">
       <header>
-        <h2>open-workspace-directly</h2>
-        <span class="kind url-path">url-path</span>
-        <span class="n">2 steps</span>
-
-
+        <h2>preview-memory-retrieval</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">5 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
       </header>
-      <p>Verify the shareable workspace path loads a usable chat composer without prior navigation.</p>
-      <div class="lane"><span class="chip jump"><b>navigate</b><u>/workspace</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span></div>
+      <p>Run the memory preview for a query and keep the results panel reachable.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.gates-menu.tab-agent"><b>click</b><i>settings.gates-menu.tab-agent</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.agent.what-should-gates-ai-remember"><b>fill</b><i>settings.agent.what-should-gates-ai-remember</i><u>screenshot tour</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.agent.run-preview"><b>click</b><i>settings.agent.run-preview</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.agent.rebuild-index"><b>expect</b><i>settings.agent.rebuild-index</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="first-run-look-around">
+      <header>
+        <h2>first-run-look-around</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">3 steps</span>
+        <span class="n">enters at <i>/?scenario=first-run#/workspace</i></span>
+        
+      </header>
+      <p>With nothing configured, the onboarding offers a look around and lands in the composer.</p>
+      <div class="lane"><span class="chip ask" data-id="workspace.editorial-chat.look-around"><b>expect</b><i>workspace.editorial-chat.look-around</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.editorial-chat.look-around"><b>click</b><i>workspace.editorial-chat.look-around</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="first-run-connect-openrouter-and-chat">
+      <header>
+        <h2>first-run-connect-openrouter-and-chat</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">8 steps</span>
+        <span class="n">enters at <i>/?scenario=first-run#/workspace</i></span>
+        
+      </header>
+      <p>Enter a placeholder key in onboarding, connect, and get the first mocked cloud reply.</p>
+      <div class="lane"><span class="chip ask" data-id="settings.secret-key.input-onboarding-openrouter"><b>expect</b><i>settings.secret-key.input-onboarding-openrouter</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.secret-key.input-onboarding-openrouter"><b>fill</b><i>settings.secret-key.input-onboarding-openrouter</i><u>journey-placeholder-not-a-real-key</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.secret-key.connect-onboarding-openrouter"><b>click</b><i>settings.secret-key.connect-onboarding-openrouter</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer.draft"><b>fill</b><i>workspace.composer.draft</i><u>Hello from the journey.</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text Your first cloud reply arrived</u></span></div>
+    </section>
+<section class="journey" data-journey="whats-new-acknowledge">
+      <header>
+        <h2>whats-new-acknowledge</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">3 steps</span>
+        <span class="n">enters at <i>/?scenario=whats-new#/workspace</i></span>
+        
+      </header>
+      <p>After an upgrade the panel opens on boot; Got it closes it and the composer is usable.</p>
+      <div class="lane"><span class="chip ask" data-id="app.whats-new.presentation"><b>expect</b><i>app.whats-new.presentation</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="app.whats-new.got-it"><b>click</b><i>app.whats-new.got-it</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span></div>
+    </section>
+<section class="journey" data-journey="web-lite-open-workspace">
+      <header>
+        <h2>web-lite-open-workspace</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">4 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>The browser build loads with attachments and deep research disabled, and the composer idle.</p>
+      <div class="lane"><span class="chip ask" data-id="workspace.composer.draft"><b>expect</b><i>workspace.composer.draft</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer.attach"><b>expect</b><i>workspace.composer.attach</i><u>disabled</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-meta.start-deep-research"><b>expect</b><i>workspace.composer-meta.start-deep-research</i><u>disabled</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>disabled</u></span></div>
+    </section>
+<section class="journey" data-journey="web-lite-send-message">
+      <header>
+        <h2>web-lite-send-message</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">4 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>A cloud turn streams in the browser build exactly as on desktop.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>fill</b><i>workspace.composer.draft</i><u>Hello from Web Lite.</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.composer-input.composer-send-control"><b>expect</b><i>workspace.composer-input.composer-send-control</i><u>enabled</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer-input.composer-send-control"><b>click</b><i>workspace.composer-input.composer-send-control</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="workspace.editorial-chat.stream"><b>expect</b><i>workspace.editorial-chat.stream</i><u>contains-text The mocked OpenRouter stream answered this turn</u></span></div>
+    </section>
+<section class="journey" data-journey="web-lite-open-model-settings">
+      <header>
+        <h2>web-lite-open-model-settings</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">4 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>Settings open from the sidebar and the Models tab renders the web-search card.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.sidebar-settings-button.settings-and-menu"><b>click</b><i>workspace.sidebar-settings-button.settings-and-menu</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.gates-menu.tab-settings"><b>expect</b><i>settings.gates-menu.tab-settings</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip do" data-id="settings.gates-menu.tab-models"><b>click</b><i>settings.gates-menu.tab-models</i></span><span class="arr">&rarr;</span><span class="chip ask" data-id="settings.models.search-card"><b>expect</b><i>settings.models.search-card</i><u>contains-text Web search</u></span></div>
+    </section>
+<section class="journey" data-journey="web-lite-command-palette">
+      <header>
+        <h2>web-lite-command-palette</h2>
+        <span class="kind control-path">control-path</span>
+        <span class="n">4 steps</span>
+        <span class="n">enters at <i>/?scenario=desktop-ready#/workspace</i></span>
+        
+      </header>
+      <p>The keyboard shortcut opens the palette in the browser build.</p>
+      <div class="lane"><span class="chip do" data-id="workspace.composer.draft"><b>click</b><i>workspace.composer.draft</i></span><span class="arr">&rarr;</span><span class="chip do" data-id="workspace.composer.draft"><b>press</b><i>workspace.composer.draft</i><u>Control+k</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="app.command-palette.search-commands-and-threads"><b>expect</b><i>app.command-palette.search-commands-and-threads</i><u>visible</u></span><span class="arr">&rarr;</span><span class="chip ask" data-id="app.command-palette.row-action:new-conversation"><b>expect</b><i>app.command-palette.row-action:new-conversation</i><u>visible</u></span></div>
     </section>
 
+<section class="journey review">
+    <h2 style="font-family:system-ui,sans-serif">Page and state evidence</h2>
+    <p><b>0</b> of <b>?</b> declared states have evidence. This is path-bound: unvisited routes and hidden states remain uncovered.</p>
+    <p class="review-open">No page/state evidence recorded yet.</p>
+  </section>
 <section class="journey">
-  <h2 style="font-family:system-ui,sans-serif">Coverage by area</h2>
+  <h2 style="font-family:system-ui,sans-serif">Journey evidence by area</h2>
   <table>
     <tr><th>area</th><th>ids</th><th>in journeys</th><th>exercised</th><th></th></tr>
     <tr>
         <td class="mono">workspace</td>
-        <td class="num">161 <span class="dim">+17 patterns</span></td>
-        <td class="num">3</td>
-        <td class="barcell"><div class="bar"><div style="width:2%"></div></div><span class="num dim">2%</span></td>
+        <td class="num">135 <span class="dim">+44 patterns</span></td>
+        <td class="num">49</td>
+        <td class="barcell"><div class="bar"><div style="width:27%"></div></div><span class="num dim">27%</span></td>
         <td></td>
       </tr>
 <tr>
         <td class="mono">settings</td>
         <td class="num">30 <span class="dim">+19 patterns</span></td>
-        <td class="num">5</td>
-        <td class="barcell"><div class="bar"><div style="width:10%"></div></div><span class="num dim">10%</span></td>
+        <td class="num">17</td>
+        <td class="barcell"><div class="bar"><div style="width:35%"></div></div><span class="num dim">35%</span></td>
         <td></td>
       </tr>
 <tr>
         <td class="mono">app</td>
-        <td class="num">17</td>
-        <td class="num">0</td>
-        <td class="barcell"><div class="bar"><div style="width:0%"></div></div><span class="num dim">0%</span></td>
+        <td class="num">16 <span class="dim">+1 patterns</span></td>
+        <td class="num">4</td>
+        <td class="barcell"><div class="bar"><div style="width:24%"></div></div><span class="num dim">24%</span></td>
         <td></td>
       </tr>
 <tr>

@@ -1,5 +1,51 @@
 # Changelog
 
+## 2026-09-04: Journey catalog on agent-handles, with every provider mocked
+
+- `journeys/manifest.json` grew from 5 to 45 journeys across 11 dev scenarios
+  (first run, desktop ready, slow stream, tool turn, web search, image job,
+  local Ollama, bridge offline, provider error, whats-new, light theme). They
+  cover onboarding, sending and interrupting turns, tool and search and image
+  turns, provider errors, thread rename/pin/delete-undo, message edit/regenerate/
+  branch, memory disclosure, the model picker, the command palette, the dock
+  (explorer, task center, collapse), settings, keys, agent memory, and four
+  Web Lite paths. Every journey passed three consecutive runs on both Playwright
+  projects (135 of 135) and `npx agent-handles adopt verify` is green.
+- New `web-lite-journeys` Playwright project runs journeys named `web-lite-*`
+  against the browser build; `desktop-mocked` excludes them.
+- Dev scenario layer (`src/dev/scenarios/`): conversation-naming requests get
+  their own mocked route so error scripts keep failing and title text never
+  consumes a scripted turn; error turns repeat; `fs.read` of a missing text
+  file returns a bridge error envelope instead of an empty string (which had
+  produced "registry refresh failed" and "snapshot malformed" warnings on
+  boot); generated images are a real PNG because the OpenRouter image client
+  rejects SVG data URLs; whats-new seeding is per scenario; post-boot store
+  mutations run inside `runInAction`. The unprovable `welcome-tour` scenario
+  was dropped: in browser mode the seeded tour thread never survives boot,
+  which is worth a look on its own.
+- Identity fixes found by the reconcile step: per-item qualifiers on message
+  actions, activity rows, model rows, palette rows, dock cells, explorer
+  entries and breadcrumbs, and task-center rows, plus 19 identity-quality
+  renames flagged by the adoption receipt (numeric suffixes such as
+  `toggle-2` and text-derived slugs became named qualifiers; 88 declared
+  renames in total); a new
+  `workspace.editorial-chat.stream` landmark on the transcript so journeys can
+  assert reply text without knowing a message id.
+- Bug fix: "Open settings/models/agent" from the command palette threw
+  `Cannot read properties of undefined (reading 'route')` because
+  `router.goMenu` was passed unbound; it is now called through a closure.
+- `tests/e2e/desktop.spec.ts` "creates a new conversation" waits for the
+  seeded thread before its raw count: the app now mounts after the load event
+  because `src/main.tsx` imports `bootstrap` dynamically (so the dev scenario
+  layer can install before any store evaluates), and a non-retrying `count()`
+  had started racing it.
+- Docs: `docs/handbook/journeys.md` (scenario and journey catalog, how to add
+  one, what green does and does not prove), Testing section of
+  `docs/architecture.md`, link from `docs/handbook/user-journeys.md`, and
+  measured test counts in README, CLAUDE.md and architecture.md (1290 unit,
+  84 e2e). Known pre-existing red: `tests/e2e/polish.spec.ts` "announces a
+  complete fenced HTML document" fails identically on the previous commit.
+
 ## 2026-08-26 — Public-repo presentation: real README hero, process docs filed
 
 - `README.md`: the hero image pointed at `docs/media/demo.gif`, which has never

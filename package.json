@@ -12,7 +12,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/check-dev-bundle.mjs dist",
     "build:web": "tsc -b && vite build --mode web-lite",
     "analyze": "vite build --mode analyze --sourcemap",
     "lint": "eslint .",
@@ -30,7 +30,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "node scripts/tauri-build.mjs"
+    "tauri:build": "node scripts/tauri-build.mjs",
+    "check:dev-bundle": "node scripts/check-dev-bundle.mjs dist"
   },
   "dependencies": {
     "@tauri-apps/plugin-process": "^2.3.1",

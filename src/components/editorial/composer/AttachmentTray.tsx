@@ -75,7 +75,7 @@ export function AttachmentTray({
               >
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
                 {a.filename}
-                <button data-testid="workspace.attachment-tray.remove-2"
+                <button data-testid="workspace.attachment-tray.remove-path"
                   type="button"
                   className="composer-attachment-remove"
                   onClick={() => onRemove(a.id)}

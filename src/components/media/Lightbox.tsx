@@ -197,7 +197,7 @@ export const Lightbox = observer(function Lightbox({ images, startIndex, prompt,
           )}
           {!prompt && (
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button data-testid="app.lightbox.open-in-os-2" type="button" onClick={() => { void bridge.openWorkspacePath(current.path); }} style={actionBtn}>
+              <button data-testid="app.lightbox.open-in-os-no-prompt" type="button" onClick={() => { void bridge.openWorkspacePath(current.path); }} style={actionBtn}>
                 Open in OS
               </button>
             </div>

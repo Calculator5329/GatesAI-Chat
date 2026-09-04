@@ -223,7 +223,7 @@ const ModelRow = memo(function ModelRow({
     color: 'var(--text-faint)',
   };
   return (
-    <div data-testid="workspace.model-popover.row"
+    <div data-testid={`workspace.model-popover.row-${model.id}`}
       className="model-popover__row"
       data-model-row={model.id}
       role="option"
@@ -237,7 +237,7 @@ const ModelRow = memo(function ModelRow({
       <div style={ROW_LEFT_STYLE}>
         <span style={nameStyle}>{model.name}</span>
         {verified && <span title="Verified — covered by the live model test suite"><VerifiedMark size={11} /></span>}
-        <button data-testid="workspace.model-popover.favorite"
+        <button data-testid={`workspace.model-popover.favorite-${model.id}`}
           type="button"
           className="model-popover__favorite"
           aria-label={isFavorite ? `Unfavorite ${model.name}` : `Favorite ${model.name}`}

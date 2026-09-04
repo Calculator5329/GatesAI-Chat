@@ -104,7 +104,7 @@ export const FileExplorerPanel = observer(function FileExplorerPanel({ params, c
           {crumbs.map((crumb, index) => (
             <span key={crumb.path}>
               {index > 0 && <i aria-hidden="true">/</i>}
-              <button data-testid="workspace.file-explorer-panel.set-path" type="button" onClick={() => setPath(crumb.path)}>{crumb.label}</button>
+              <button data-testid={`workspace.file-explorer-panel.set-path-${index}`} type="button" onClick={() => setPath(crumb.path)}>{crumb.label}</button>
             </span>
           ))}
         </div>
@@ -130,7 +130,7 @@ export const FileExplorerPanel = observer(function FileExplorerPanel({ params, c
       {state.status === 'ready' && state.entries.length > 0 && (
         <div className="dock-file-explorer__entries" role="list">
           {state.entries.map(entry => (
-            <button data-testid="workspace.file-explorer-panel.entry"
+            <button data-testid={`workspace.file-explorer-panel.entry-${entry.name}`}
               type="button"
               role="listitem"
               className="dock-file-explorer__entry"

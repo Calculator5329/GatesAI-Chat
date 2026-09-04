@@ -7,7 +7,7 @@
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app/)
 [![Vite](https://img.shields.io/badge/Vite-8-646cff?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/)
 [![MobX](https://img.shields.io/badge/MobX-6-ff9955?style=flat-square&logo=mobx&logoColor=white)](https://mobx.js.org/)
-[![Tests](https://img.shields.io/badge/tests-1174%20unit%20%2B%2028%20e2e-3fb950?style=flat-square)](#quality-gates)
+[![Tests](https://img.shields.io/badge/tests-1290%20unit%20%2B%2084%20e2e-3fb950?style=flat-square)](#quality-gates)
 
 ![GatesAI Chat on the desktop: a chat thread where the assistant runs npm test through the local bridge, with the tool activity timeline, the agent-task sidebar group, and the live token and cost readout](docs/screens/desktop-mocked/03-chat-tool-activity.png)
 
@@ -168,7 +168,7 @@ npm run test:watch # Vitest in watch mode
 npm run model-compat:catalog # Free live-catalog policy audit
 npm run test:models # Budget-capped live OpenRouter probes (needs API key)
 npm run ci         # all three, in order
-npm run test:e2e   # Playwright UI suite (28 e2e tests; desktop-mocked + web-lite)
+npm run test:e2e   # Playwright UI suite (84 e2e tests: 39 hand-written + 45 generated journeys; desktop-mocked, web-lite, web-lite-journeys)
 ```
 
 The scheduled model runner audits OpenRouter's public catalog daily and runs

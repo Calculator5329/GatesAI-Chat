@@ -125,9 +125,9 @@ export const CommandPalette = observer(function CommandPalette() {
         const id = chat.createThread();
         router.goThread(id);
       }),
-      menuItem('settings', 'Open settings', 'Settings', ['preferences menu'], router.goMenu),
-      menuItem('models', 'Open models', 'Models', ['model api key openrouter local ollama'], router.goMenu),
-      menuItem('agent', 'Open agent', 'Agent', ['instructions memory system prompt'], router.goMenu),
+      menuItem('settings', 'Open settings', 'Settings', ['preferences menu'], section => router.goMenu(section)),
+      menuItem('models', 'Open models', 'Models', ['model api key openrouter local ollama'], section => router.goMenu(section)),
+      menuItem('agent', 'Open agent', 'Agent', ['instructions memory system prompt'], section => router.goMenu(section)),
       actionItem('toggle-fullscreen', 'Toggle fullscreen', 'F11 — use the whole screen', ['fullscreen full screen f11 window maximize'], () => {
         ui.toggleFullscreen();
       }),
@@ -329,7 +329,7 @@ function PaletteRow({
     boxSizing: 'border-box',
   };
   return (
-    <button data-testid="app.command-palette.palette-row"
+    <button data-testid={`app.command-palette.row-${item.id}`}
       type="button"
       role="option"
       className="palette-row"

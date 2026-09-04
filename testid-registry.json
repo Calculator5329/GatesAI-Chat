@@ -3,10 +3,10 @@
   "predicateVersion": 4,
   "grammar": "area.component.element[.qualifier]",
   "generatedFrom": "src/**/*.{tsx,jsx} and journeys/manifest.json",
-  "sourceDigest": "sha256:5670d2bacd230cb2f3fd8e3fc74600f5e57fce9936d2cc0906d30fd7a03503fb",
+  "sourceDigest": "sha256:825518185db26380c5f6d25cb1fe9457c7b8912275a51afcd3d5fd24afb4f52d",
   "journeyCoverage": {
-    "controlPath": 4,
-    "urlPath": 1
+    "controlPath": 43,
+    "urlPath": 2
   },
   "coverage": {
     "controlCandidates": 223,
@@ -252,16 +252,92 @@
     ]
   },
   "journeyReferences": [
-    "settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe",
+    "app.command-palette.row-action:browse-files-in-dock",
+    "app.command-palette.row-action:new-conversation",
+    "app.command-palette.row-action:open-task-center",
+    "app.command-palette.row-action:settings",
+    "app.command-palette.row-thread:usage",
+    "app.command-palette.search-commands-and-threads",
+    "app.whats-new.got-it",
+    "app.whats-new.presentation",
+    "settings.agent.add",
+    "settings.agent.fact-edit-2",
+    "settings.agent.new-fact",
+    "settings.agent.rebuild-index",
+    "settings.agent.run-preview",
+    "settings.agent.system-prompt",
+    "settings.agent.what-should-gates-ai-remember",
     "settings.gates-menu.tab-agent",
     "settings.gates-menu.tab-models",
     "settings.gates-menu.tab-settings",
+    "settings.models-api-section.commit",
+    "settings.models-api-section.http-127-0-0-1-11434",
     "settings.models.search-card",
     "settings.preferences.export-json",
+    "settings.secret-key.connect-onboarding-openrouter",
+    "settings.secret-key.connect-openrouter",
+    "settings.secret-key.input-onboarding-openrouter",
+    "settings.secret-key.input-openrouter",
+    "settings.secret-key.remove-openrouter",
+    "settings.secret-key.stored-openrouter",
+    "settings.segmented.option-theme-dark",
     "settings.segmented.option-theme-light",
+    "workspace.activity-row.toggle-call_image_1:0",
+    "workspace.activity-row.toggle-call_search_1:0",
+    "workspace.activity-row.toggle-call_time_1:0",
+    "workspace.activity-row.toggle-tool-assistant:work-note:0",
+    "workspace.composer-input.composer-send-control",
+    "workspace.composer-meta.model",
+    "workspace.composer-meta.start-deep-research",
+    "workspace.composer-meta.thinking-effort",
+    "workspace.composer.attach",
     "workspace.composer.draft",
+    "workspace.dock-panel.close-0",
+    "workspace.dock-panel.collapse-0",
+    "workspace.dock-panel.expand-dock",
+    "workspace.dock.collapsed-rail",
+    "workspace.dock.file-explorer",
+    "workspace.dock.panel",
+    "workspace.editorial-chat.look-around",
+    "workspace.editorial-chat.stream",
+    "workspace.editorial-composer.dismiss-chat-error",
+    "workspace.editorial-message.branch-active-user",
+    "workspace.editorial-message.edit-active-user",
+    "workspace.editorial-message.edit-confirm-save-active-user",
+    "workspace.editorial-message.edit-input-active-user",
+    "workspace.editorial-message.edit-save-active-user",
+    "workspace.editorial-message.message-active-assistant",
+    "workspace.editorial-message.message-active-user",
+    "workspace.editorial-message.regenerate-active-assistant",
     "workspace.editorial-sidebar.begin-a-new-conversation",
-    "workspace.sidebar-settings-button.settings-and-menu"
+    "workspace.editorial-sidebar.context-rename-agent-task",
+    "workspace.editorial-sidebar.delete-agent-task",
+    "workspace.editorial-sidebar.pin-agent-task",
+    "workspace.editorial-sidebar.rename-input-agent-task",
+    "workspace.editorial-sidebar.thread-active",
+    "workspace.editorial-sidebar.thread-agent-task",
+    "workspace.editorial-sidebar.thread-tool",
+    "workspace.editorial-sidebar.thread-usage",
+    "workspace.file-explorer-panel.entry-notes",
+    "workspace.file-explorer-panel.parent-directory",
+    "workspace.image-job-card.image",
+    "workspace.memory-disclosure.chip-note:audit-plan",
+    "workspace.memory-disclosure.don-apos-t-use-this-source",
+    "workspace.memory-disclosure.exclude",
+    "workspace.memory-disclosure.open-in-memory",
+    "workspace.memory-disclosure.undo-exclusion",
+    "workspace.memory-disclosure.why-was-this-used",
+    "workspace.model-popover.cap-filter-tools",
+    "workspace.model-popover.clear-model-search",
+    "workspace.model-popover.model-popover",
+    "workspace.model-popover.row-auto-gemini-3-flash",
+    "workspace.model-popover.row-ollama-qwen2.5:7b",
+    "workspace.model-popover.search-models",
+    "workspace.model-popover.segment-local",
+    "workspace.sidebar-settings-button.settings-and-menu",
+    "workspace.task-center-panel.task-img-tour",
+    "workspace.task-center.ledger",
+    "workspace.undo-toast.undo"
   ],
   "entries": [
     {
@@ -282,13 +358,6 @@
       "id": "app.command-palette.empty",
       "file": "src/components/palette/CommandPalette.tsx",
       "line": 290,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "app.command-palette.palette-row",
-      "file": "src/components/palette/CommandPalette.tsx",
-      "line": 332,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -349,7 +418,7 @@
       "attribute": "data-testid"
     },
     {
-      "id": "app.lightbox.open-in-os-2",
+      "id": "app.lightbox.open-in-os-no-prompt",
       "file": "src/components/media/Lightbox.tsx",
       "line": 200,
       "element": "jsx-prop",
@@ -391,13 +460,6 @@
       "attribute": "data-testid"
     },
     {
-      "id": "settings.agent.add-a-memory-user-prefers-concise-answers",
-      "file": "src/components/menu/sections/Agent.tsx",
-      "line": 140,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
       "id": "settings.agent.add-source",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 193,
@@ -422,6 +484,13 @@
       "id": "settings.agent.clear-derived-index",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 394,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "settings.agent.new-fact",
+      "file": "src/components/menu/sections/Agent.tsx",
+      "line": 140,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -461,23 +530,23 @@
       "attribute": "data-testid"
     },
     {
-      "id": "settings.agent.toggle-2",
+      "id": "settings.agent.semantic-recall",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 293,
       "element": "jsx-prop",
       "attribute": "testId"
     },
     {
-      "id": "settings.agent.what-should-gates-ai-remember",
+      "id": "settings.agent.system-prompt",
       "file": "src/components/menu/sections/Agent.tsx",
-      "line": 370,
+      "line": 31,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
-      "id": "settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe",
+      "id": "settings.agent.what-should-gates-ai-remember",
       "file": "src/components/menu/sections/Agent.tsx",
-      "line": 31,
+      "line": 370,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -545,6 +614,13 @@
       "attribute": "data-testid"
     },
     {
+      "id": "settings.preferences.close-hides-to-tray",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 133,
+      "element": "jsx-prop",
+      "attribute": "testId"
+    },
+    {
       "id": "settings.preferences.export-json",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 195,
@@ -557,6 +633,13 @@
       "line": 241,
       "element": "jsx-prop",
       "attribute": "data-testid"
+    },
+    {
+      "id": "settings.preferences.global-summon",
+      "file": "src/components/menu/sections/Settings.tsx",
+      "line": 112,
+      "element": "jsx-prop",
+      "attribute": "testId"
     },
     {
       "id": "settings.preferences.input",
@@ -576,20 +659,6 @@
       "id": "settings.preferences.toggle",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 40,
-      "element": "jsx-prop",
-      "attribute": "testId"
-    },
-    {
-      "id": "settings.preferences.toggle-2",
-      "file": "src/components/menu/sections/Settings.tsx",
-      "line": 112,
-      "element": "jsx-prop",
-      "attribute": "testId"
-    },
-    {
-      "id": "settings.preferences.toggle-3",
-      "file": "src/components/menu/sections/Settings.tsx",
-      "line": 133,
       "element": "jsx-prop",
       "attribute": "testId"
     },
@@ -629,13 +698,6 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.activity-activity-row.button",
-      "file": "src/components/editorial/activity/ActivityRow.tsx",
-      "line": 105,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
       "id": "workspace.activity-timeline-group.button",
       "file": "src/components/editorial/activity/TimelineGroup.tsx",
       "line": 28,
@@ -650,7 +712,7 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.attachment-tray.remove-2",
+      "id": "workspace.attachment-tray.remove-path",
       "file": "src/components/editorial/composer/AttachmentTray.tsx",
       "line": 78,
       "element": "jsx-prop",
@@ -741,16 +803,16 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.composer-banners.open-local-settings",
+      "id": "workspace.composer-banners.open-local-image-settings",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 60,
+      "line": 118,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.composer-banners.open-local-settings-2",
+      "id": "workspace.composer-banners.open-local-settings",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 118,
+      "line": 60,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -839,20 +901,6 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.dock-panel.close",
-      "file": "src/components/dock/DockPanel.tsx",
-      "line": 138,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.dock-panel.collapse-dock",
-      "file": "src/components/dock/DockPanel.tsx",
-      "line": 130,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
       "id": "workspace.dock-panel.expand-dock",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 76,
@@ -870,13 +918,6 @@
       "id": "workspace.dock-panel.resize-dock-cells",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 106,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.dock-panel.swap-dock-cells",
-      "file": "src/components/dock/DockPanel.tsx",
-      "line": 121,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -937,6 +978,13 @@
       "attribute": "data-testid"
     },
     {
+      "id": "workspace.editorial-chat.install-ollama",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 367,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
       "id": "workspace.editorial-chat.link",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 445,
@@ -958,20 +1006,6 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.editorial-chat.open-local-settings-2",
-      "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 367,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-chat.open-local-settings-3",
-      "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 377,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
       "id": "workspace.editorial-chat.primary",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 343,
@@ -986,16 +1020,16 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.editorial-chat.secondary",
+      "id": "workspace.editorial-chat.recheck-ollama",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 370,
+      "line": 380,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.editorial-chat.secondary-2",
+      "id": "workspace.editorial-chat.secondary",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 380,
+      "line": 370,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1007,121 +1041,23 @@
       "attribute": "data-testid"
     },
     {
+      "id": "workspace.editorial-chat.start-ollama",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 377,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.editorial-chat.stream",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 741,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
       "id": "workspace.editorial-composer.dismiss-chat-error",
       "file": "src/components/editorial/EditorialComposer.tsx",
       "line": 228,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.branch-conversation",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 255,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.cancel",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 272,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.cancel-2",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 330,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.cancel-3",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 335,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.copy-message",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 226,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.edit-and-resend",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 241,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.edited-message",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 308,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.message-actions",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 225,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.message-confirm-panel",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 270,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.message-ctrl-or-command-click-to-copy",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 191,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.message-edit-panel",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 307,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.open-attached-file",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 567,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.regenerate",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 273,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.regenerate-response",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 230,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.save-amp-resend",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 331,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-message.save-amp-resend-2",
-      "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 336,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1147,16 +1083,16 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.editorial-sidebar.close-sidebar",
+      "id": "workspace.editorial-sidebar.close-mobile-sidebar",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 263,
+      "line": 296,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.editorial-sidebar.close-sidebar-2",
+      "id": "workspace.editorial-sidebar.close-sidebar",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 296,
+      "line": 263,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1203,13 +1139,6 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.file-explorer-panel.entry",
-      "file": "src/components/dock/FileExplorerPanel.tsx",
-      "line": 133,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
       "id": "workspace.file-explorer-panel.parent-directory",
       "file": "src/components/dock/FileExplorerPanel.tsx",
       "line": 91,
@@ -1220,13 +1149,6 @@
       "id": "workspace.file-explorer-panel.refresh-directory",
       "file": "src/components/dock/FileExplorerPanel.tsx",
       "line": 111,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.file-explorer-panel.set-path",
-      "file": "src/components/dock/FileExplorerPanel.tsx",
-      "line": 107,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1287,9 +1209,16 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.html-artifact-preview.download-2",
+      "id": "workspace.html-artifact-preview.download-file",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 224,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
+      "id": "workspace.html-artifact-preview.fullscreen-open-in-os",
+      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
+      "line": 301,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1308,14 +1237,7 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.html-artifact-preview.open-2",
-      "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 214,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.html-artifact-preview.open-3",
+      "id": "workspace.html-artifact-preview.open-file",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 221,
       "element": "jsx-prop",
@@ -1336,9 +1258,9 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.html-artifact-preview.open-in-os-2",
+      "id": "workspace.html-artifact-preview.toggle-source",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
-      "line": 301,
+      "line": 214,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1371,16 +1293,16 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.image-job-card.cancel-render",
+      "id": "workspace.image-job-card.cancel-pending",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 142,
+      "line": 163,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.image-job-card.cancel-render-2",
+      "id": "workspace.image-job-card.cancel-render",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 163,
+      "line": 142,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1399,7 +1321,7 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.image-job-card.retry-2",
+      "id": "workspace.image-job-card.retry-cancelled",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 242,
       "element": "jsx-prop",
@@ -1448,7 +1370,7 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.markdown-chunk.open-2",
+      "id": "workspace.markdown-chunk.open-workspace-path",
       "file": "src/components/editorial/MarkdownChunk.tsx",
       "line": 269,
       "element": "jsx-prop",
@@ -1602,23 +1524,9 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.model-popover.favorite",
-      "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 240,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
       "id": "workspace.model-popover.model-popover",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 386,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.model-popover.row",
-      "file": "src/components/editorial/ModelPopover.tsx",
-      "line": 226,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1693,27 +1601,6 @@
       "attribute": "data-testid"
     },
     {
-      "id": "workspace.task-center-panel.cancel",
-      "file": "src/components/dock/TaskCenterPanel.tsx",
-      "line": 125,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.task-center-panel.retry",
-      "file": "src/components/dock/TaskCenterPanel.tsx",
-      "line": 128,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.task-center-panel.task",
-      "file": "src/components/dock/TaskCenterPanel.tsx",
-      "line": 80,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
       "id": "workspace.task-center.empty",
       "file": "src/components/dock/TaskCenterPanel.tsx",
       "line": 25,
@@ -1757,6 +1644,12 @@
     }
   ],
   "patterns": [
+    {
+      "pattern": "app.command-palette.row-*",
+      "file": "src/components/palette/CommandPalette.tsx",
+      "line": 332,
+      "attribute": "data-testid"
+    },
     {
       "pattern": "settings.agent.fact-cancel-*",
       "file": "src/components/menu/sections/Agent.tsx",
@@ -1872,15 +1765,135 @@
       "attribute": "data-testid"
     },
     {
+      "pattern": "workspace.activity-row.toggle-*",
+      "file": "src/components/editorial/activity/ActivityRow.tsx",
+      "line": 105,
+      "attribute": "data-testid"
+    },
+    {
       "pattern": "workspace.aurora-aurora-reply-footer.aurora-followup-*",
       "file": "src/components/editorial/aurora/AuroraReplyFooter.tsx",
       "line": 48,
       "attribute": "data-testid"
     },
     {
+      "pattern": "workspace.dock-panel.close-*",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 138,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.dock-panel.collapse-*",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 130,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.dock-panel.swap-*",
+      "file": "src/components/dock/DockPanel.tsx",
+      "line": 121,
+      "attribute": "data-testid"
+    },
+    {
       "pattern": "workspace.dock.cell-*",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 102,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.actions-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 225,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.attachment-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 567,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.branch-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 255,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.confirm-cancel-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 272,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.confirm-panel-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 270,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.confirm-regenerate-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 273,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.copy-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 226,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.edit-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 241,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.edit-cancel-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 335,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.edit-confirm-cancel-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 330,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.edit-confirm-save-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 331,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.edit-input-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 308,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.edit-panel-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 307,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.edit-save-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 336,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.message-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 191,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.regenerate-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 230,
       "attribute": "data-testid"
     },
     {
@@ -1932,6 +1945,18 @@
       "attribute": "data-testid"
     },
     {
+      "pattern": "workspace.file-explorer-panel.entry-*",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 133,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.file-explorer-panel.set-path-*",
+      "file": "src/components/dock/FileExplorerPanel.tsx",
+      "line": 107,
+      "attribute": "data-testid"
+    },
+    {
       "pattern": "workspace.image-job.open-*",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 282,
@@ -1956,6 +1981,18 @@
       "attribute": "data-testid"
     },
     {
+      "pattern": "workspace.model-popover.favorite-*",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 240,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.model-popover.row-*",
+      "file": "src/components/editorial/ModelPopover.tsx",
+      "line": 226,
+      "attribute": "data-testid"
+    },
+    {
       "pattern": "workspace.model-popover.segment-*",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 409,
@@ -1972,6 +2009,24 @@
       "file": "src/components/editorial/composer/SkillPopover.tsx",
       "line": 58,
       "attribute": "testId"
+    },
+    {
+      "pattern": "workspace.task-center-panel.cancel-*",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 125,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.task-center-panel.retry-*",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 128,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.task-center-panel.task-*",
+      "file": "src/components/dock/TaskCenterPanel.tsx",
+      "line": 80,
+      "attribute": "data-testid"
     }
   ],
   "invalidIdentities": [],
@@ -2151,6 +2206,194 @@
       {
         "from": "workspace.editorial-sidebar.rename-3",
         "to": "workspace.editorial-sidebar.context-rename-*"
+      },
+      {
+        "from": "app.command-palette.palette-row",
+        "to": "app.command-palette.row-*"
+      },
+      {
+        "from": "workspace.activity-activity-row.button",
+        "to": "workspace.activity-row.toggle-*"
+      },
+      {
+        "from": "workspace.dock-panel.close",
+        "to": "workspace.dock-panel.close-*"
+      },
+      {
+        "from": "workspace.dock-panel.collapse-dock",
+        "to": "workspace.dock-panel.collapse-*"
+      },
+      {
+        "from": "workspace.dock-panel.swap-dock-cells",
+        "to": "workspace.dock-panel.swap-*"
+      },
+      {
+        "from": "workspace.editorial-message.message-ctrl-or-command-click-to-copy",
+        "to": "workspace.editorial-message.message-*"
+      },
+      {
+        "from": "workspace.editorial-message.message-actions",
+        "to": "workspace.editorial-message.actions-*"
+      },
+      {
+        "from": "workspace.editorial-message.copy-message",
+        "to": "workspace.editorial-message.copy-*"
+      },
+      {
+        "from": "workspace.editorial-message.regenerate-response",
+        "to": "workspace.editorial-message.regenerate-*"
+      },
+      {
+        "from": "workspace.editorial-message.edit-and-resend",
+        "to": "workspace.editorial-message.edit-*"
+      },
+      {
+        "from": "workspace.editorial-message.branch-conversation",
+        "to": "workspace.editorial-message.branch-*"
+      },
+      {
+        "from": "workspace.editorial-message.message-confirm-panel",
+        "to": "workspace.editorial-message.confirm-panel-*"
+      },
+      {
+        "from": "workspace.editorial-message.cancel",
+        "to": "workspace.editorial-message.confirm-cancel-*"
+      },
+      {
+        "from": "workspace.editorial-message.regenerate",
+        "to": "workspace.editorial-message.confirm-regenerate-*"
+      },
+      {
+        "from": "workspace.editorial-message.message-edit-panel",
+        "to": "workspace.editorial-message.edit-panel-*"
+      },
+      {
+        "from": "workspace.editorial-message.edited-message",
+        "to": "workspace.editorial-message.edit-input-*"
+      },
+      {
+        "from": "workspace.editorial-message.cancel-2",
+        "to": "workspace.editorial-message.edit-confirm-cancel-*"
+      },
+      {
+        "from": "workspace.editorial-message.save-amp-resend",
+        "to": "workspace.editorial-message.edit-confirm-save-*"
+      },
+      {
+        "from": "workspace.editorial-message.cancel-3",
+        "to": "workspace.editorial-message.edit-cancel-*"
+      },
+      {
+        "from": "workspace.editorial-message.save-amp-resend-2",
+        "to": "workspace.editorial-message.edit-save-*"
+      },
+      {
+        "from": "workspace.editorial-message.open-attached-file",
+        "to": "workspace.editorial-message.attachment-*"
+      },
+      {
+        "from": "workspace.file-explorer-panel.entry",
+        "to": "workspace.file-explorer-panel.entry-*"
+      },
+      {
+        "from": "workspace.model-popover.row",
+        "to": "workspace.model-popover.row-*"
+      },
+      {
+        "from": "workspace.model-popover.favorite",
+        "to": "workspace.model-popover.favorite-*"
+      },
+      {
+        "from": "workspace.task-center-panel.task",
+        "to": "workspace.task-center-panel.task-*"
+      },
+      {
+        "from": "workspace.task-center-panel.cancel",
+        "to": "workspace.task-center-panel.cancel-*"
+      },
+      {
+        "from": "workspace.task-center-panel.retry",
+        "to": "workspace.task-center-panel.retry-*"
+      },
+      {
+        "from": "workspace.file-explorer-panel.set-path",
+        "to": "workspace.file-explorer-panel.set-path-*"
+      },
+      {
+        "from": "app.lightbox.open-in-os-2",
+        "to": "app.lightbox.open-in-os-no-prompt"
+      },
+      {
+        "from": "settings.agent.add-a-memory-user-prefers-concise-answers",
+        "to": "settings.agent.new-fact"
+      },
+      {
+        "from": "settings.agent.toggle-2",
+        "to": "settings.agent.semantic-recall"
+      },
+      {
+        "from": "settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe",
+        "to": "settings.agent.system-prompt"
+      },
+      {
+        "from": "settings.preferences.toggle-2",
+        "to": "settings.preferences.global-summon"
+      },
+      {
+        "from": "settings.preferences.toggle-3",
+        "to": "settings.preferences.close-hides-to-tray"
+      },
+      {
+        "from": "workspace.attachment-tray.remove-2",
+        "to": "workspace.attachment-tray.remove-path"
+      },
+      {
+        "from": "workspace.composer-banners.open-local-settings-2",
+        "to": "workspace.composer-banners.open-local-image-settings"
+      },
+      {
+        "from": "workspace.editorial-chat.open-local-settings-2",
+        "to": "workspace.editorial-chat.install-ollama"
+      },
+      {
+        "from": "workspace.editorial-chat.open-local-settings-3",
+        "to": "workspace.editorial-chat.start-ollama"
+      },
+      {
+        "from": "workspace.editorial-chat.secondary-2",
+        "to": "workspace.editorial-chat.recheck-ollama"
+      },
+      {
+        "from": "workspace.editorial-sidebar.close-sidebar-2",
+        "to": "workspace.editorial-sidebar.close-mobile-sidebar"
+      },
+      {
+        "from": "workspace.html-artifact-preview.open-2",
+        "to": "workspace.html-artifact-preview.toggle-source"
+      },
+      {
+        "from": "workspace.html-artifact-preview.open-3",
+        "to": "workspace.html-artifact-preview.open-file"
+      },
+      {
+        "from": "workspace.html-artifact-preview.download-2",
+        "to": "workspace.html-artifact-preview.download-file"
+      },
+      {
+        "from": "workspace.html-artifact-preview.open-in-os-2",
+        "to": "workspace.html-artifact-preview.fullscreen-open-in-os"
+      },
+      {
+        "from": "workspace.image-job-card.cancel-render-2",
+        "to": "workspace.image-job-card.cancel-pending"
+      },
+      {
+        "from": "workspace.image-job-card.retry-2",
+        "to": "workspace.image-job-card.retry-cancelled"
+      },
+      {
+        "from": "workspace.markdown-chunk.open-2",
+        "to": "workspace.markdown-chunk.open-workspace-path"
       }
     ],
     "tombstones": []

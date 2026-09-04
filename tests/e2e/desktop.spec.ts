@@ -99,6 +99,9 @@ test.describe('desktop (mocked bridge + LLM)', () => {
     );
     await page.goto('/');
 
+    // The app mounts after the load event (src/main.tsx imports bootstrap
+    // dynamically), so wait for the seeded thread before taking a raw count.
+    await expect(page.locator('.editorial-sidebar__item', { hasText: 'Existing thread' })).toBeVisible();
     const initialCount = await page.locator('.editorial-sidebar__item').count();
     await page.locator('.editorial-sidebar__new').click();
 

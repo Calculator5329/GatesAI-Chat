@@ -266,7 +266,7 @@ function AnchorOrWorkspaceLink({ bridge, href, children, ...rest }: AnchorProps)
 
 function WorkspacePathLink({ path, bridge }: { path: string; bridge: BridgeStore }) {
   return (
-    <button data-testid="workspace.markdown-chunk.open-2"
+    <button data-testid="workspace.markdown-chunk.open-workspace-path"
       type="button"
       className="workspace-path-link"
       title={`Open ${path}`}

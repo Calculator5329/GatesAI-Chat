@@ -160,7 +160,7 @@ const RunningCard = observer(function RunningCard({ job, onCancel }: { job: Imag
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, background: 'var(--border)' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', transition: `width ${tokens.motion.fade}` }} />
       </div>
-      <button data-testid="workspace.image-job-card.cancel-render-2"
+      <button data-testid="workspace.image-job-card.cancel-pending"
         type="button"
         className="image-job-card__cancel"
         onClick={onCancel}
@@ -239,7 +239,7 @@ const CancelledCard = observer(function CancelledCard({ job, onRetry }: { job: C
       <div style={{ ...rectBase, padding: 12, color: 'var(--text-faint)', fontSize: 12, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6 }}>
         <div>Render cancelled</div>
         {job.results.length > 0 && <div style={{ fontSize: 11.5 }}>({job.results.length} of {job.count} completed before cancel)</div>}
-        <div><button data-testid="workspace.image-job-card.retry-2" type="button" className="image-job-card__action" onClick={onRetry} style={inlineBtn}>Retry</button></div>
+        <div><button data-testid="workspace.image-job-card.retry-cancelled" type="button" className="image-job-card__action" onClick={onRetry} style={inlineBtn}>Retry</button></div>
       </div>
     </div>
   );

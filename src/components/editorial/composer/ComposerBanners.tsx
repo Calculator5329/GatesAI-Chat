@@ -115,7 +115,7 @@ export const LocalImageBanner = observer(function LocalImageBanner() {
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
     }}>
       <span>Start and connect ComfyUI to use local image generation.</span>
-      <button data-testid="workspace.composer-banners.open-local-settings-2"
+      <button data-testid="workspace.composer-banners.open-local-image-settings"
         type="button"
         className="editorial-banner-action"
         onClick={() => router.goMenu('models')}

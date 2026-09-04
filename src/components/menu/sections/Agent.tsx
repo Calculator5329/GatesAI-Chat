@@ -28,7 +28,7 @@ export const AgentSection = observer(function AgentSection() {
           A system prompt sent on every turn. Tells the model how to behave —
           tone, role, format preferences, things to avoid.
         </div>
-        <Textarea data-testid="settings.agent.you-are-a-thoughtful-collaborator-answer-precisely-prefe"
+        <Textarea data-testid="settings.agent.system-prompt"
           value={profile.defaultSystemPrompt}
           onChange={e => profile.setDefaultSystemPrompt(e.target.value)}
           placeholder="You are a thoughtful collaborator. Answer precisely, prefer simple direct language, and explain tradeoffs before writing code."
@@ -137,7 +137,7 @@ const MemorySection = observer(function MemorySection() {
       )}
 
       <div style={{ display: 'flex', gap: 8 }}>
-        <Input data-testid="settings.agent.add-a-memory-user-prefers-concise-answers"
+        <Input data-testid="settings.agent.new-fact"
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') onAdd(); }}
@@ -290,7 +290,7 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
           <div style={subsectionTitleStyle}>Semantic recall</div>
           <div style={detailStyle}>Finds relevant context in conversations, notes, facts, and approved library sources. Text and vectors stay local.</div>
         </div>
-        <Toggle testId="settings.agent.toggle-2" label="Semantic recall" on={rag.settings.autoInject} onChange={value => rag.setAutoInject(value)} disabled={!rag.servingCompleteGeneration} />
+        <Toggle testId="settings.agent.semantic-recall" label="Semantic recall" on={rag.settings.autoInject} onChange={value => rag.setAutoInject(value)} disabled={!rag.servingCompleteGeneration} />
       </div>
 
       <div style={statusRowStyle} data-state={rag.phase}>

@@ -293,7 +293,7 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           <div className="editorial-sidebar__brand-dot" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', alignSelf: 'center', marginBottom: 2 }} />
         </div>
         {mobileShell && (
-          <button data-testid="workspace.editorial-sidebar.close-sidebar-2"
+          <button data-testid="workspace.editorial-sidebar.close-mobile-sidebar"
             type="button"
             className="editorial-sidebar__close"
             aria-label="Close sidebar"

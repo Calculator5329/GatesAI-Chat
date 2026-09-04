@@ -24,8 +24,8 @@ Go bridge** that lives in the sibling repository
 reached over a single loopback WebSocket.
 
 Stack: React 19 · TypeScript (strict) · Vite 8 · MobX 6 · Tauri 2 (Rust) ·
-Go bridge (separate repo) · Vitest (1,174 unit/component tests) + Playwright
-(28 e2e tests) · ESLint 9 with architecture-boundary rules. Verified against
+Go bridge (separate repo) · Vitest (1,290 unit/component tests) + Playwright
+(84 e2e tests, 45 of them generated from journeys/manifest.json) · ESLint 9 with architecture-boundary rules. Verified against
 the tree at v4.7.0, 2026-07-19.
 
 ```
@@ -60,7 +60,7 @@ Verify (the gates CI enforces — run before committing):
 
 ```powershell
 npm run ci                  # npm test + npm run typecheck + npm run lint
-npm run test:e2e            # Playwright: desktop-mocked + web-lite projects (28 tests)
+npm run test:e2e            # Playwright: desktop-mocked, web-lite, web-lite-journeys projects (84 tests)
 cargo test --manifest-path src-tauri/Cargo.toml   # Rust command layer
 npm run model-compat:catalog # Free OpenRouter catalog-policy audit
 npm run test:models         # OPTIONAL capped live OpenRouter probes (needs API key)
@@ -775,6 +775,29 @@ Test layers:
 - E2E tests under `tests/e2e` run mocked desktop and Web Lite flows, including
   bridge behavior, multi-tab persistence, screens tour, and degraded Web Lite
   surfaces.
+- Journeys under `journeys/manifest.json` are compiled by agent-handles into
+  `tests/e2e/journeys.generated.spec.ts` (never edited by hand). Each journey
+  names a scenario in its context path (`/?scenario=tool-turn#/workspace`) and
+  drives the app through registered `data-testid` identities only. After every
+  step the spec fails on any visible interactive control without an identity,
+  any identity absent from `testid-registry.json`, and any duplicated visible
+  identity. Journeys named `web-lite-*` run on the `web-lite-journeys`
+  Playwright project against the browser build. The catalog is documented in
+  `docs/handbook/journeys.md`.
+- The dev scenario layer under `src/dev/scenarios/` seeds localStorage and
+  patches `fetch` and `WebSocket` before the stores boot so OpenRouter (chat,
+  conversation naming, image generation), Ollama, the bridge (`/health` plus
+  the request/result socket envelope) and Brave answer deterministically.
+  `?scenario=<name>` selects one, `&persist=1` keeps the previous page's
+  storage for reload journeys, and `window.__gatesaiScenario` exposes the
+  recorded calls. `src/main.tsx` imports it only behind `import.meta.env.DEV`
+  and `scripts/check-dev-bundle.mjs` fails the build if its sentinel reaches
+  `dist/`. Unit coverage lives in `tests/dev/scenarios.test.ts`.
+- Repeated UI rows carry their item id as an identity qualifier
+  (`workspace.editorial-message.copy-<messageId>`,
+  `app.command-palette.row-<itemId>`, `workspace.dock-panel.close-<index>`),
+  so multi-instance states reconcile cleanly. Renaming an identity requires an
+  `identityRenames` entry in `agent-handles.json`, or `scan check` fails.
 - Model compatibility lives under `scripts/model-compat/`. Its free catalog
   policy is scheduled daily; a credentialed weekly/manual runner exercises the
   production OpenRouter streaming adapter with text, supported reasoning,

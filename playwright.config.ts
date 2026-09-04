@@ -33,11 +33,21 @@ export default defineConfig({
         '**/web-lite.spec.ts',
         ...(screensTourEnabled ? [] : [screensTourSpec]),
       ],
+      // Journeys named web-lite-* belong to the web-lite-journeys project below.
+      grepInvert: /\.spec\.ts web-lite-/,
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${DESKTOP_PORT}` },
     },
     {
       name: 'web-lite',
       testMatch: screensTourEnabled ? ['**/web-lite.spec.ts', screensTourSpec] : '**/web-lite.spec.ts',
+      use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${WEB_LITE_PORT}` },
+    },
+    {
+      // Compiled agent-handles journeys (journeys/manifest.json) whose name
+      // starts with web-lite- replay against the browser build.
+      name: 'web-lite-journeys',
+      testMatch: '**/journeys.generated.spec.ts',
+      grep: /\.spec\.ts web-lite-/,
       use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${WEB_LITE_PORT}` },
     },
   ],

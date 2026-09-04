@@ -1,19 +1,17 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import './index.css';
-import { App } from './app/App';
-import { rootStore } from './stores/RootStore';
-import { StoreProvider } from './stores/context';
+// Entry point. In development a scenario named in the URL (`?scenario=`) is
+// installed before any store module evaluates, so seeded storage and mocked
+// providers are in place when the app boots. The scenario layer is imported
+// dynamically behind import.meta.env.DEV; production bundles never contain it
+// (scripts/check-dev-bundle.mjs proves that on every build).
+async function start(): Promise<void> {
+  if (import.meta.env.DEV) {
+    const { installDevScenario } = await import('./dev/scenarios');
+    const scenario = installDevScenario();
+    await import('./bootstrap');
+    if (scenario && 'afterBoot' in scenario) await scenario.afterBoot();
+    return;
+  }
+  await import('./bootstrap');
+}
 
-const container = document.getElementById('root');
-if (!container) throw new Error('Root element #root not found');
-
-rootStore.boot();
-
-createRoot(container).render(
-  <StrictMode>
-    <StoreProvider store={rootStore}>
-      <App />
-    </StoreProvider>
-  </StrictMode>,
-);
+void start();

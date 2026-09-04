@@ -118,7 +118,7 @@ export const DockPanel = observer(function DockPanel() {
                 </span>
                 <span className="dock-cell__actions">
                   {bothOccupied && (
-                    <button data-testid="workspace.dock-panel.swap-dock-cells"
+                    <button data-testid={`workspace.dock-panel.swap-${index}`}
                       type="button"
                       title="Swap cells"
                       aria-label="Swap dock cells"
@@ -127,7 +127,7 @@ export const DockPanel = observer(function DockPanel() {
                       <Icons.Refresh />
                     </button>
                   )}
-                  <button data-testid="workspace.dock-panel.collapse-dock"
+                  <button data-testid={`workspace.dock-panel.collapse-${index}`}
                     type="button"
                     title="Collapse dock"
                     aria-label="Collapse dock"
@@ -135,7 +135,7 @@ export const DockPanel = observer(function DockPanel() {
                   >
                     <Icons.Chevron />
                   </button>
-                  <button data-testid="workspace.dock-panel.close"
+                  <button data-testid={`workspace.dock-panel.close-${index}`}
                     type="button"
                     title="Close panel"
                     aria-label={`Close ${dockCellTitle(cell)}`}

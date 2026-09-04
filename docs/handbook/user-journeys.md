@@ -3,6 +3,9 @@
 These journeys describe how the product should feel from the user's point of
 view. They are not implementation tickets by themselves, but they guide tickets.
 
+The replayable, tested counterpart of this page is [journeys.md](journeys.md): the
+catalog of scenarios and compiled journeys that run on every `npm run test:e2e`.
+
 ## Journey 1: Web Lite demo
 
 User goal:
