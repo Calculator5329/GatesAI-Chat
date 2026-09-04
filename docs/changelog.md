@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-09-04: Hosted showcase build
+
+- `npm run build:showcase` (`scripts/build-showcase.mjs`) builds the
+  desktop-runtime app in the new vite mode `showcase`, the only production
+  build that keeps the dev scenario layer, under `dist-showcase/app/`, and
+  writes a catalog page at `dist-showcase/index.html` linking all 23 scenarios
+  and the thread each of the 105 journeys starts from. `VITE_GATESAI_SHOWCASE`
+  is defined in every mode (`'1'` only for `showcase`) so the guard in
+  `src/main.tsx` still folds away and `check-dev-bundle` keeps passing for
+  `npm run build`. Meant for Firebase Hosting in project `ethan-488900`
+  (config local and gitignored); site creation is an owner action.
+
 ## 2026-09-04: Full journey coverage, 23 scenarios, and the bugs the reconcile step found
 
 - `journeys/manifest.json` grew from 45 to 105 journeys across 23 dev scenarios

@@ -234,13 +234,13 @@ describe('bridge mock', () => {
 });
 
 describe('main entry', () => {
-  it('only reaches the dev layer through a DEV-guarded dynamic import', async () => {
+  it('only reaches the dev layer through a DEV-or-showcase-guarded dynamic import', async () => {
     const { readFile } = await import('node:fs/promises');
     const { fileURLToPath } = await import('node:url');
     const path = await import('node:path');
     const here = fileURLToPath(new URL(import.meta.url.replace(/^\/@fs/, 'file://')));
     const source = await readFile(path.resolve(path.dirname(here), '../../src/main.tsx'), 'utf8');
-    expect(source).toMatch(/if \(import\.meta\.env\.DEV\) \{\s*const \{ installDevScenario \} = await import\('\.\/dev\/scenarios'\);/);
+    expect(source).toMatch(/if \(import\.meta\.env\.DEV \|\| import\.meta\.env\.VITE_GATESAI_SHOWCASE === '1'\) \{\s*const \{ installDevScenario \} = await import\('\.\/dev\/scenarios'\);/);
     expect(source.match(/dev\/scenarios/g)).toHaveLength(1);
     expect(source).not.toMatch(/^import .*dev\/scenarios/m);
   });

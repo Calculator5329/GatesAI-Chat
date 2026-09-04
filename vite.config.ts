@@ -8,6 +8,10 @@ import { agentHandles } from 'agent-handles/vite'
 export default defineConfig(({ mode }) => {
   const analyze = mode === 'analyze'
   const webLite = mode === 'web-lite'
+  // The hosted showcase keeps the dev scenario layer in a production build.
+  // Defined in every mode so the branch in src/main.tsx is a constant and
+  // check-dev-bundle keeps proving the layer is absent everywhere else.
+  const showcase = mode === 'showcase'
   // Base public path override for static hosts that serve from a subpath, e.g.
   // a GitHub Pages project site at /<repo>/. Defaults to root, so desktop
   // (Tauri) and root-domain hosting builds are unaffected.
@@ -31,9 +35,10 @@ export default defineConfig(({ mode }) => {
     },
     // Web Lite is a build mode, not a deploy-time secret. Keep the runtime
     // switch in the build config so it does not depend on a tracked .env file.
-    define: webLite
-      ? { 'import.meta.env.VITE_GATESAI_WEB': JSON.stringify('1') }
-      : undefined,
+    define: {
+      ...(webLite ? { 'import.meta.env.VITE_GATESAI_WEB': JSON.stringify('1') } : {}),
+      'import.meta.env.VITE_GATESAI_SHOWCASE': JSON.stringify(showcase ? '1' : '0'),
+    },
     plugins: [
       agentHandles(),
       react(),

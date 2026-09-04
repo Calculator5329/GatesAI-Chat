@@ -794,8 +794,18 @@ Test layers:
   `?scenario=<name>` selects one, `&persist=1` keeps the previous page's
   storage for reload journeys, and `window.__gatesaiScenario` exposes the
   recorded calls. `src/main.tsx` imports it only behind `import.meta.env.DEV`
-  and `scripts/check-dev-bundle.mjs` fails the build if its sentinel reaches
-  `dist/`. Unit coverage lives in `tests/dev/scenarios.test.ts`.
+  (or `VITE_GATESAI_SHOWCASE === '1'`, which only vite mode `showcase` defines
+  as `'1'`) and `scripts/check-dev-bundle.mjs` fails the build if its sentinel
+  reaches `dist/`. Unit coverage lives in `tests/dev/scenarios.test.ts`.
+- The hosted showcase is `npm run build:showcase`
+  (`scripts/build-showcase.mjs`): the desktop-runtime app built in mode
+  `showcase` under `dist-showcase/app/` with `VITE_BASE=/app/`, plus a
+  generated catalog page at `dist-showcase/index.html` that links every
+  scenario and the thread each journey opens. It is the one production build
+  that keeps the scenario layer, so it must never be served as the product.
+  Firebase Hosting config for it (`firebase.json`, `.firebaserc`, site
+  `gatesai-chat-showcase` in project `ethan-488900`) stays local and
+  gitignored, as the public-readiness pass decided.
 - Repeated UI rows carry their item id as an identity qualifier
   (`workspace.editorial-message.copy-<messageId>`,
   `app.command-palette.row-<itemId>`, `workspace.dock-panel.close-<index>`),
