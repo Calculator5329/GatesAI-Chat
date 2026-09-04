@@ -10,7 +10,10 @@
   is defined in every mode (`'1'` only for `showcase`) so the guard in
   `src/main.tsx` still folds away and `check-dev-bundle` keeps passing for
   `npm run build`. Meant for Firebase Hosting in project `ethan-488900`
-  (config local and gitignored); site creation is an owner action.
+  (config local and gitignored). Deployed the same day with Ethan's approval
+  to https://gatesai-chat-showcase.web.app with `SHOWCASE_LANDING_DIR`
+  pointing at the landing repo's `public/next/` diagram page as the root,
+  the catalog at `/catalog/` and the mocked app at `/app/`.
 
 ## 2026-09-04: Full journey coverage, 23 scenarios, and the bugs the reconcile step found
 

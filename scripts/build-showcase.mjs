@@ -7,13 +7,19 @@
 // The regular `npm run build` still strips the scenario layer and proves it
 // with scripts/check-dev-bundle.mjs; only this script sets the mode that
 // keeps it.
+//
+// SHOWCASE_LANDING_DIR=<dir> copies a self-contained landing page (index.html
+// plus its assets, relative references only) to the site root and moves the
+// catalog to /catalog/. Without it the catalog is the root page.
 import { execSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(new URL('..', import.meta.url).pathname);
 const outDir = path.join(root, 'dist-showcase');
 const appDir = path.join(outDir, 'app');
+const landingDir = process.env.SHOWCASE_LANDING_DIR ? path.resolve(process.env.SHOWCASE_LANDING_DIR) : null;
+const catalogDir = landingDir ? path.join(outDir, 'catalog') : outDir;
 
 execSync('npx vite build --mode showcase --outDir dist-showcase/app --emptyOutDir', {
   cwd: root,
@@ -120,7 +126,7 @@ const html = `<!doctype html>
       <span><b>${scenarios.length}</b> scenarios</span>
       <span><b>${journeyCount}</b> journeys</span>
       <span>built <b>${generatedAt}</b></span>
-      <span><a href="/app/" style="color: var(--accent); text-decoration: none;">open the app bare</a></span>
+      <span><a href="/app/" style="color: var(--accent); text-decoration: none;">open the app bare</a></span>${landingDir ? '\n      <span><a href="/" style="color: var(--accent); text-decoration: none;">landing page</a></span>' : ''}
     </div>
   </header>
 ${sections}
@@ -132,6 +138,7 @@ ${sections}
 </html>
 `;
 
-mkdirSync(outDir, { recursive: true });
-writeFileSync(path.join(outDir, 'index.html'), html);
-console.log(`showcase: ${scenarios.length} scenarios, ${journeyCount} journeys, app at ${path.relative(root, appDir)}/`);
+mkdirSync(catalogDir, { recursive: true });
+writeFileSync(path.join(catalogDir, 'index.html'), html);
+if (landingDir) cpSync(landingDir, outDir, { recursive: true });
+console.log(`showcase: ${scenarios.length} scenarios, ${journeyCount} journeys, app at ${path.relative(root, appDir)}/, catalog at ${path.relative(root, catalogDir)}/${landingDir ? `, landing from ${landingDir}` : ''}`);

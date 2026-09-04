@@ -800,8 +800,10 @@ Test layers:
 - The hosted showcase is `npm run build:showcase`
   (`scripts/build-showcase.mjs`): the desktop-runtime app built in mode
   `showcase` under `dist-showcase/app/` with `VITE_BASE=/app/`, plus a
-  generated catalog page at `dist-showcase/index.html` that links every
-  scenario and the thread each journey opens. It is the one production build
+  generated catalog page that links every scenario and the thread each
+  journey opens. With `SHOWCASE_LANDING_DIR=<dir>` a self-contained landing
+  page (the gatesai-landing repo's `public/next/`) is copied to the site root
+  and the catalog moves to `/catalog/`. It is the one production build
   that keeps the scenario layer, so it must never be served as the product.
   Firebase Hosting config for it (`firebase.json`, `.firebaserc`, site
   `gatesai-chat-showcase` in project `ethan-488900`) stays local and
