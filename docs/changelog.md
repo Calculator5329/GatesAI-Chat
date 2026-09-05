@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-04: Unused helper cleanup
+
+- Archived four unused image completion helpers and two legacy RAG formatters, including their private source-lookup types and helper. Direct-image turns retain their existing display and mode helpers; semantic recall retains the structured formatter used by the memory service. Original file bytes are retained under `docs/archive/anti-slop-20260904/`.
+- Also archived unused token-count and message-token helpers, the silent JSON fallback wrapper, and a runtime-default clone export after confirming no callers. Existing validators and runtime behavior remain intact. Required checks passed: 1307 unit tests, typecheck, lint, and 144 browser tests.
+
 ## 2026-09-04: Hosted showcase build
 
 - `npm run build:showcase` (`scripts/build-showcase.mjs`) builds the

@@ -1,8 +1,3 @@
-export function safeJsonObject(raw: string): Record<string, unknown> {
-  const parsed = parseJsonObject(raw);
-  return parsed.ok ? parsed.value : {};
-}
-
 export type JsonObjectParseResult =
   | { ok: true; value: Record<string, unknown> }
   | { ok: false; value: Record<string, unknown>; error: string; rawPreview: string };
