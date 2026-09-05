@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Thread } from '../../../src/core/types';
 import { DEFAULT_MODEL_ID } from '../../../src/core/models';
 import { chunkText, collectRagSources, contentHash, RagIndexer, type RagWatermark, type RagWatermarkStore } from '../../../src/services/rag/indexer';
@@ -142,6 +142,30 @@ describe('RagIndexer', () => {
     await expect(indexer.tick()).rejects.toThrow('embedding failed');
     expect(persistence.manifest?.generationId).toBe(activeId);
     expect([...persistence.chunks.values()][0]?.text).toBe('alpha first');
+  });
+
+  it('creates distinct generation IDs without randomUUID even within one millisecond', async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(crypto, 'randomUUID');
+    Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true });
+    const now = vi.spyOn(Date, 'now').mockReturnValue(123);
+    try {
+      const persistence = new MemoryRagPersistence();
+      const indexer = new RagIndexer({
+        vectorStore: new RagVectorStore(persistence), embedder: new FakeEmbedder(),
+        getSources: () => ({ threads: [thread('t', 'm', 'alpha')], notes: [], facts: [] }),
+        getModel: () => 'model-a', getActive: () => true, isStreaming: () => false,
+        watermarkStore: new MemoryWatermarks(),
+      });
+      await indexer.tick();
+      const first = persistence.manifest?.generationId;
+      await indexer.rebuild();
+      expect(first).toMatch(/^[0-9a-f]{32}$/);
+      expect(persistence.manifest?.generationId).not.toBe(first);
+    } finally {
+      if (descriptor) Object.defineProperty(crypto, 'randomUUID', descriptor);
+      else Reflect.deleteProperty(crypto, 'randomUUID');
+      now.mockRestore();
+    }
   });
 
   it('reembeds both neighboring messages after an edit and both after a title change', async () => {

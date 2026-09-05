@@ -125,7 +125,7 @@ export class RagIndexer {
   ): Promise<{ indexed: number; skipped: number; purged: number }> {
     throwIfPaused(signal, this.getActive, this.isStreaming);
     const startedAt = Date.now();
-    const generationId = crypto.randomUUID();
+    const generationId = Array.from(crypto.getRandomValues(new Uint32Array(4)), word => word.toString(16).padStart(8, '0')).join('');
     const prepared = sources.flatMap(source => {
       const fingerprint = contentHash(source.embeddingText ?? source.text);
       const displayPieces = chunkText(source.text);

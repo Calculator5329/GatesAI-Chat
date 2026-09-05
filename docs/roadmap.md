@@ -2,7 +2,7 @@
 
 - [x] Retain browser traces for local first-attempt failures. *(2026-09-05 — intentionally failed zero-retry probe: baseline zero traces, candidate one validated trace; CI retry policy unchanged. Required full CI and 144 browser checks passed.)*
 
-- [x] Reuse exact unchanged embedding inputs across atomic generations; retain forced rebuild and failure safety. *(2026-09-05 — 1328 unit tests, typecheck, lint and all 144 browser tests passed; [design and measured input counts](design-embedding-reuse-20260905.md).)*
+- [x] Reuse exact unchanged embedding inputs across atomic generations; retain forced rebuild and failure safety. *(2026-09-05 — 1329 unit tests, typecheck, lint and all 144 browser tests passed; [design and measured input counts](design-embedding-reuse-20260905.md).)*
 
 - [x] Apply recall source eligibility before the dense candidate limit. *(2026-09-04 — four candidate-starvation cases reproduced before repair; 12 focused tests, all 1312 unit tests, typecheck, lint, and all 144 browser tests passed. Model, generation, dimension, and abstention safeguards remain intact.)*
 

@@ -33,3 +33,11 @@ A12 diagnostic uses the real Playwright configuration with a temporary one-test 
 - Archived all 105 generated tracked runtime-observation modifications, verified SHA-256 against archived bytes, and restored only those files after checking baseline hashes equal HEAD. Archive manifest `/home/ethan/.cache/tmp/astra-audit-20260905/embedding-runtime-observations/manifest.json`.
 
 No live embedding provider, production deployment, or wall-latency benchmark was run. Tests use the existing injected embedder and mocked browser environments. Both A11 and A12 were present during required verification.
+
+## Review correction: non-secure local contexts
+
+Parent review (2026-09-05) identified that bare `crypto.randomUUID()` unnecessarily requires a secure context; localhost E2E cannot expose that regression. Generation identity must work in supported browser contexts where earlier indexing worked. Use 128 random bits from `crypto.getRandomValues`, which does not require the UUID secure-context API. Keep a diagnostic with randomUUID absent and fixed time: distinct replacement generation IDs must still be produced. Future ID changes must preserve this compatibility, not infer it from localhost verification.
+
+The Chromium diagnostic intercepted an HTTP `.invalid` fixture entirely locally and observed `isSecureContext: false`, `typeof crypto.randomUUID: undefined`, and successful 16-byte `getRandomValues`. It passed without contacting an external site. Log: `/home/ethan/.cache/tmp/astra-embedding-insecure-probe.log`. The first correction CI attempt exposed a TypeScript mismatch in Vitest getter spying (the runtime probe passed); the test now temporarily defines/restores only the UUID property descriptor instead.
+
+Final review correction gates: `npm run ci` passed 1329 tests, typecheck and lint (`/home/ethan/.cache/tmp/astra-embedding-id-ci-final.log`); the required full browser command above with output `embedding-id-e2e` again passed all 144 with two workers and zero retries (`/home/ethan/.cache/tmp/astra-embedding-id-e2e.log`). Its 105 generated observations were separately archived, hash-verified and restored; manifest `/home/ethan/.cache/tmp/astra-audit-20260905/embedding-id-runtime-observations/manifest.json`.
