@@ -25,6 +25,7 @@ const MarkdownChunk = lazy(() => import('./MarkdownChunk').then(m => ({ default:
 
 
 interface MessageProps {
+  responseOrigin?: { threadId: string };
   message: Message;
   modelName: string | undefined;
   streaming: boolean;
@@ -68,6 +69,7 @@ const STREAM_SMOOTH_TARGET_BACKLOG = 180;
 export const EditorialMessage = observer(function EditorialMessage({
   message,
   modelName,
+  responseOrigin,
   streaming,
   preTokenLabel,
   onRegenerate,
@@ -79,6 +81,7 @@ export const EditorialMessage = observer(function EditorialMessage({
   const { chat, router } = useEditorial();
   const rag = useRagStore();
   const pack = useUiPack();
+  const [downloadFailed, setDownloadFailed] = useState(false);
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const [editing, setEditing] = useState(false);
   const content = messageText(message);
@@ -215,6 +218,7 @@ export const EditorialMessage = observer(function EditorialMessage({
       }}>
         {headLabel}
         {copyState === 'copied' && <span className="message-copy-feedback"> · copied</span>}
+        {downloadFailed && <span role="status" className="message-copy-feedback"> · download could not start</span>}
         {copyState === 'failed' && <span className="message-copy-feedback"> · copy failed</span>}
       </div>
       {copyState === 'hint' && (
@@ -226,6 +230,22 @@ export const EditorialMessage = observer(function EditorialMessage({
         <button data-testid={`workspace.editorial-message.copy-${message.id}`} type="button" title={canCopy ? 'Copy message' : 'Nothing to copy yet'} aria-label="Copy message" disabled={!canCopy} onClick={() => void copyMessage()}>
           <Icons.Copy />
         </button>
+        {message.role === 'assistant' && (
+          <button data-testid={`workspace.editorial-message.download-${message.id}`}
+            type="button"
+            title="Download response (.md)"
+            aria-label="Download response (.md)"
+            disabled={streaming || !hasContent || !responseOrigin}
+            onClick={() => {
+              setDownloadFailed(false);
+              if (!responseOrigin) return;
+              try { chat.downloadResponse(message, responseOrigin, streaming, modelName); }
+              catch { setDownloadFailed(true); }
+            }}
+          >
+            <Icons.Download />
+          </button>
+        )}
         {!isUser && (
           <button data-testid={`workspace.editorial-message.regenerate-${message.id}`}
             type="button"

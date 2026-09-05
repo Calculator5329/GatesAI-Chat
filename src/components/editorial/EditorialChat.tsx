@@ -787,6 +787,7 @@ export const EditorialChat = observer(function EditorialChat() {
                 return (
                   <WindowedEditorialMessage
                     key={m.id}
+                    responseOrigin={activeThreadId ? { threadId: activeThreadId } : undefined}
                     message={m}
                     modelName={renderBody && modelId ? (registry.findById(modelId)?.name ?? modelId) : undefined}
                     streaming={m.id === chat.streamingMessageId}
@@ -827,6 +828,7 @@ export const EditorialChat = observer(function EditorialChat() {
 
 function WindowedEditorialMessage({
   message,
+  responseOrigin,
   modelName,
   streaming,
   renderBody,
@@ -839,6 +841,7 @@ function WindowedEditorialMessage({
   onMeasure,
 }: {
   message: Message;
+  responseOrigin?: { threadId: string };
   modelName: string | undefined;
   streaming: boolean;
   renderBody: boolean;
@@ -874,6 +877,7 @@ function WindowedEditorialMessage({
       {renderBody ? (
         <EditorialMessage
           message={message}
+          responseOrigin={responseOrigin}
           modelName={modelName}
           streaming={streaming}
           actionsDisabled={actionsDisabled}

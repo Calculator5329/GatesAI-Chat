@@ -1033,3 +1033,5 @@ Ethan's packet reply, planning/reports/backlog-audit-packet-20260825. Reversible
 - [x] 2026-09-05 — A34 stop blanket pruning of readable chat-library files; retain foreign/stale bytes while the index follows active conversations. Focused retention regression and combined A33 release gates passed (1,358 unit tests, typecheck/lint, 144 E2E).
 
 - [x] 2026-09-05 — A33 reuse unchanged readable conversation pairs using exact rendering, complete file presence, and bridge connection lifecycle; global index stays fresh. Collision, failure, missing-file, and lifecycle regressions verified; 1,358 unit tests and 144 E2E passed.
+
+- [x] 2026-09-05 — A23 first slice: download a completed assistant response as Markdown with exact text and separate source provenance. Browser offline/reload/repeat-download acceptance passed. The broader deliverables item remains open: this is download initiation, not workspace persistence or native-save verification.

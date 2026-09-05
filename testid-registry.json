@@ -3,28 +3,28 @@
   "predicateVersion": 4,
   "grammar": "area.component.element[.qualifier]",
   "generatedFrom": "src/**/*.{tsx,jsx} and journeys/manifest.json",
-  "sourceDigest": "sha256:444e03eb07cb38de88b57c34c204fde0925835f4c6bfd9bd10d06ea1fb4424f2",
+  "sourceDigest": "sha256:54fdc0387484bdd99338c9462c661d9e074a521fc7a9ffa2ae10701d66a76c24",
   "journeyCoverage": {
     "controlPath": 103,
     "urlPath": 2
   },
   "coverage": {
-    "controlCandidates": 223,
-    "definiteCandidates": 195,
+    "controlCandidates": 224,
+    "definiteCandidates": 196,
     "reviewRequiredCandidates": 28,
-    "identifiedCandidates": 223,
+    "identifiedCandidates": 224,
     "nonInteractiveCandidates": 0,
     "unreachableCandidates": 0,
     "unresolvedCandidates": 0,
     "invalidIdentityMigrations": 0,
-    "interactiveElements": 223,
-    "identifiedInteractive": 223,
+    "interactiveElements": 224,
+    "identifiedInteractive": 224,
     "unidentifiedInteractive": 0,
     "maximumUnidentifiedInteractive": 0
   },
   "interactionFingerprint": {
     "algorithm": "candidate-site-sha256/v1",
-    "digest": "sha256:03828f349c6200a35c74e1d16c78fca4c7a925bbfdb120eee4d7a96a13946283",
+    "digest": "sha256:3d0553510e392dc7bff9c4378ddd6fddda207a4d4451d4e92de241693c9e4e1d",
     "sites": [
       "candidate:0301d7966ea101ce",
       "candidate:03cf1f812fd795ba",
@@ -38,6 +38,7 @@
       "candidate:07e8c4d8af487dc4",
       "candidate:082ea1c0c286eca5",
       "candidate:08e25c94a93bcab4",
+      "candidate:0a5a31393c87d687",
       "candidate:0b91b7c86c5d8fa4",
       "candidate:0bb1ab64da88d816",
       "candidate:0c5af31386463afd",
@@ -1174,7 +1175,7 @@
     {
       "id": "workspace.editorial-chat.editorial-jump-to-bottom",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 809,
+      "line": 810,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1988,97 +1989,103 @@
     {
       "pattern": "workspace.editorial-message.actions-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 225,
+      "line": 229,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.attachment-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 567,
+      "line": 587,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.branch-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 255,
+      "line": 275,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.confirm-cancel-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 272,
+      "line": 292,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.confirm-panel-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 270,
+      "line": 290,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.confirm-regenerate-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 273,
+      "line": 293,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.copy-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 226,
+      "line": 230,
+      "attribute": "data-testid"
+    },
+    {
+      "pattern": "workspace.editorial-message.download-*",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 234,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.edit-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 241,
+      "line": 261,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.edit-cancel-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 335,
+      "line": 355,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.edit-confirm-cancel-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 330,
+      "line": 350,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.edit-confirm-save-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 331,
+      "line": 351,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.edit-input-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 308,
+      "line": 328,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.edit-panel-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 307,
+      "line": 327,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.edit-save-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 336,
+      "line": 356,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.message-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 191,
+      "line": 194,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-message.regenerate-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 230,
+      "line": 250,
       "attribute": "data-testid"
     },
     {
@@ -3383,7 +3390,7 @@
     {
       "id": "candidate:0301d7966ea101ce",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 809,
+      "line": 810,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3419,7 +3426,7 @@
     {
       "id": "candidate:9c20d38c378f3c97",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 191,
+      "line": 194,
       "element": "div",
       "classification": "review-required",
       "evidence": [
@@ -3431,7 +3438,7 @@
     {
       "id": "candidate:3d9a5205562012c7",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 225,
+      "line": 229,
       "element": "div",
       "classification": "review-required",
       "evidence": [
@@ -3443,7 +3450,7 @@
     {
       "id": "candidate:b293ccaef4c35648",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 226,
+      "line": 230,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3455,7 +3462,7 @@
     {
       "id": "candidate:724b85c31e7369a4",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 230,
+      "line": 234,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3467,7 +3474,7 @@
     {
       "id": "candidate:62b8dcffa867ccd7",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 241,
+      "line": 250,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3479,7 +3486,19 @@
     {
       "id": "candidate:a7cefb729a2d486d",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 255,
+      "line": 261,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:0a5a31393c87d687",
+      "file": "src/components/editorial/EditorialMessage.tsx",
+      "line": 275,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3491,7 +3510,7 @@
     {
       "id": "candidate:6c29291ada8edb4d",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 270,
+      "line": 290,
       "element": "div",
       "classification": "review-required",
       "evidence": [
@@ -3503,7 +3522,7 @@
     {
       "id": "candidate:86224716f410ccd8",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 272,
+      "line": 292,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3515,7 +3534,7 @@
     {
       "id": "candidate:23b1283db0728309",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 273,
+      "line": 293,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3527,7 +3546,7 @@
     {
       "id": "candidate:26c5a378b22eb01b",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 307,
+      "line": 327,
       "element": "div",
       "classification": "review-required",
       "evidence": [
@@ -3539,7 +3558,7 @@
     {
       "id": "candidate:082ea1c0c286eca5",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 308,
+      "line": 328,
       "element": "textarea",
       "classification": "definite",
       "evidence": [
@@ -3551,7 +3570,7 @@
     {
       "id": "candidate:666fde1fc58be77f",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 330,
+      "line": 350,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3563,7 +3582,7 @@
     {
       "id": "candidate:0c5af31386463afd",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 331,
+      "line": 351,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3575,7 +3594,7 @@
     {
       "id": "candidate:333b4d6b11976c7d",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 335,
+      "line": 355,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3587,7 +3606,7 @@
     {
       "id": "candidate:0779cf00337162ec",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 336,
+      "line": 356,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3599,7 +3618,7 @@
     {
       "id": "candidate:2a5d1d8ef9a362e5",
       "file": "src/components/editorial/EditorialMessage.tsx",
-      "line": 567,
+      "line": 587,
       "element": "button",
       "classification": "definite",
       "evidence": [

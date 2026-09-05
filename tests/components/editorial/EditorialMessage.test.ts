@@ -90,7 +90,7 @@ function renderMessage(
   imageJobs = new ImageJobStore(),
   handlers: Pick<
     Parameters<typeof EditorialMessage>[0],
-    'onRegenerate' | 'onBranch' | 'onEditAndResend' | 'actionsDisabled' | 'laterMessageCount'
+    'onRegenerate' | 'onBranch' | 'onEditAndResend' | 'actionsDisabled' | 'laterMessageCount' | 'responseOrigin'
   > = {},
 ): HTMLDivElement {
   host = document.createElement('div');
@@ -990,5 +990,14 @@ describe('EditorialMessage markdown rendering', () => {
     });
 
     expect(onEditAndResend).toHaveBeenCalledWith('m-actions-user-confirm', 'Original prompt');
+  });
+});
+
+
+describe('response download eligibility', () => {
+  it('disables download while the response is streaming', () => {
+    const assistant = { id: 'download-probe', role: 'assistant' as const, createdAt: 1, parts: [{ type: 'text' as const, text: 'answer' }] };
+    const node = renderMessage(assistant, undefined, true);
+    expect((node.querySelector('[aria-label="Download response (.md)"]') as HTMLButtonElement).disabled).toBe(true);
   });
 });
