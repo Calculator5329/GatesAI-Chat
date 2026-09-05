@@ -28,6 +28,7 @@ const Ico = ({ d, size = 16, stroke = 1.5, fill = 'none', style }: IconProps) =>
 );
 
 export const Icons = {
+  Download:  () => <Ico d="M8 2v8M5 7l3 3 3-3M3 11v3h10v-3" />,
   Search:    () => <Ico d={<><circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5L14 14" /></>} />,
   Plus:      () => <Ico d="M8 3v10M3 8h10" />,
   ArrowUp:   () => <Ico d="M8 13V3M4 7l4-4 4 4" />,

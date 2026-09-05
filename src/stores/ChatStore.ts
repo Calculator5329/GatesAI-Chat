@@ -1,3 +1,4 @@
+import { downloadResponse, type ResponseOrigin } from '../services/chat/responseExport';
 // Observable ChatStore state facade for app runtime, RootStore, and React hooks.
 import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { ActivityItem, AssistantMessage, ChatSnapshot, Message, StreamActivity, Thread } from '../core/types';
@@ -480,6 +481,10 @@ export class ChatStore {
 
   threadLlmSpendUsd(threadId: string | null | undefined): number {
     return threadId ? (this.llmSpendByThread[threadId] ?? 0) : 0;
+  }
+
+  downloadResponse(message: Message, origin: ResponseOrigin, streaming: boolean, modelName?: string): void {
+    downloadResponse(message, origin, streaming, modelName);
   }
 
   async enableWorkspacePersistence(client: BridgeClientFacade): Promise<boolean> {

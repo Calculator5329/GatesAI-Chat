@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 // Broad UI coverage against the default (desktop-mode) build with the LLM and
 // bridge mocked: load, navigation, the streamed chat flow, thread previews +
 // body search, and persisted model favorites.
@@ -231,4 +232,36 @@ test.describe('desktop without a configured provider', () => {
     await page.locator('.composer-textarea').fill('hello without a key');
     await expect(page.locator('button.composer-send-control[aria-label="Send"]')).toBeDisabled();
   });
+});
+
+
+test('downloads exact response bytes and provenance offline, including after reload', async ({ page, context }) => {
+  await seedReadyProvider(page);
+  await mockOpenRouter(page);
+  const text = '  # Export fixture\n\n**Exact response** with café.\n';
+  await seedThreads(page, [makeThread('export-origin', 'Origin', [
+    { id: 'export-message', role: 'assistant', content: text, createdAt: 123 },
+  ])], 'export-origin');
+  await page.goto('/#/workspace');
+  const button = page.getByRole('button', { name: 'Download response (.md)', exact: true });
+  await expect(button).toBeEnabled();
+  await page.reload();
+  await expect(button).toBeEnabled();
+  await context.setOffline(true);
+  await page.getByTestId('workspace.editorial-message.message-export-message').hover();
+  for (let click = 0; click < 2; click++) {
+    const pending = page.waitForEvent('download');
+    await button.click();
+    const download = await pending;
+    expect(await download.failure()).toBeNull();
+    const path = await download.path();
+    expect(path).not.toBeNull();
+    const bytes = await readFile(path!, 'utf8');
+    expect(bytes.startsWith(text + '\n\n---\n')).toBe(true);
+    const metadata = JSON.parse(bytes.split('```json\n')[1].split('\n```')[0]);
+    expect(metadata.threadId).toBe('export-origin');
+    expect(metadata.messageId).toBe('export-message');
+    expect(metadata.messageCreatedAt).toBe(123);
+    expect(download.suggestedFilename()).toMatch(/^gatesai-response-export-message-.*\.md$/);
+  }
 });

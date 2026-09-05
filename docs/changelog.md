@@ -3210,3 +3210,7 @@ Stopped deleting unrecognized and stale HTML/Markdown files during readable-libr
 ### 2026-09-05 — A33 incremental readable library writes
 
 Unchanged conversation HTML/Markdown pairs now retain their last successful write timestamp and skip bridge writes after complete presence checks. The index remains current. Reconnects, new workspace instances, acquisition failures, and partial writes invalidate cached reuse; colliding filenames retain ordered full writes. In a measured 100-thread synthetic corpus, unchanged saves fell from 201 writes / 3,134,818 bytes to 1 / 319,098; one same-timestamp message edit needed 3 writes / 347,264 bytes. No render CPU or disk-integrity claim. CI passed 1,358 tests plus typecheck/lint; full desktop/Web Lite/mobile E2E passed 144 checks with two workers and zero retries after the collision correction.
+
+### 2026-09-05 — Download a response with its origin
+
+Completed assistant messages now offer Download response (.md) beside existing message actions. Files retain the exact response text and a separate provenance section with thread/message identity and timestamps. Streaming and empty responses cannot download; failures appear inline. Downloads need no Bridge or workspace write. Browser download bytes were verified offline after reload in desktop-mode Chromium and Web Lite; native WebView completion remains unverified.
