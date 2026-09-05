@@ -5,6 +5,8 @@
 // Uses the real localStorage persistence path rather than a mock — the point
 // of these tests is that a snapshot actually lands, not that a spy was called.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { observable, runInAction } from 'mobx';
+import { messageText, messageToolCalls } from '../../src/core/messageParts';
 import {
   ChatPersistenceCoordinator,
   snapshotLatestUpdatedAt,
@@ -223,5 +225,116 @@ describe('snapshotLatestUpdatedAt', () => {
 
   it('is 0 for an empty snapshot, so a fresh local state never beats the workspace copy', () => {
     expect(snapshotLatestUpdatedAt(makeSnapshot({ threads: [] }))).toBe(0);
+  });
+});
+
+
+describe('ChatPersistenceCoordinator — real reaction lifecycle', () => {
+  const active: ChatPersistenceCoordinator[] = [];
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(10_000); });
+  afterEach(() => { active.splice(0).forEach(coordinator => coordinator.dispose()); vi.useRealTimers(); });
+  function fixture() {
+    const state = observable({ snapshot: makeSnapshot({ threads: [makeThread({ messages: [userMessage('m1', 'before')] })] }) });
+    const coordinator = new ChatPersistenceCoordinator(() => state.snapshot);
+    active.push(coordinator);
+    coordinator.start();
+    flushPendingSnapshot();
+    return { state, coordinator };
+  }
+  it('persists leading state immediately and trailing same-length/deep edits after 250 ms', () => {
+    const { state } = fixture();
+    expect(messageText(loadSnapshot()!.threads[0].messages[0])).toBe('before');
+    runInAction(() => { state.snapshot.threads[0].messages[0].content = 'after!'; });
+    vi.advanceTimersByTime(249);
+    flushPendingSnapshot();
+    expect(messageText(loadSnapshot()!.threads[0].messages[0])).toBe('before');
+    vi.advanceTimersByTime(1);
+    flushPendingSnapshot();
+    expect(messageText(loadSnapshot()!.threads[0].messages[0])).toBe('after!');
+    runInAction(() => { state.snapshot.threads[0].messages.push(userMessage('m2', 'new')); });
+    vi.advanceTimersByTime(250);
+    flushPendingSnapshot();
+    expect(loadSnapshot()?.threads[0].messages.map(message => message.id)).toEqual(['m1', 'm2']);
+  });
+  it.each(['pagehide', 'beforeunload', 'dispose'])('drains latest structural and nested state on %s', (event) => {
+    const { state, coordinator } = fixture();
+    runInAction(() => { state.snapshot.threads[0].messages[0].content = 'pending'; });
+    runInAction(() => {
+      state.snapshot = makeSnapshot({ activeThreadId: 'replacement', threads: [makeThread({ id: 'replacement', messages: [userMessage('new', 'latest')] })] });
+    });
+    runInAction(() => { state.snapshot.threads[0].messages.push(userMessage('last', 'complete')); });
+    if (event === 'dispose') coordinator.dispose();
+    else window.dispatchEvent(new Event(event));
+    expect(loadSnapshot()?.activeThreadId).toBe('replacement');
+    expect(loadSnapshot()?.threads[0].messages.map(messageText)).toEqual(['latest', 'complete']);
+    coordinator.dispose();
+    coordinator.dispose();
+    runInAction(() => { state.snapshot.threads[0].messages[0].content = 'after disposal'; });
+    vi.advanceTimersByTime(1000);
+    flushPendingSnapshot();
+    expect(messageText(loadSnapshot()!.threads[0].messages[0])).toBe('latest');
+  });
+  it('suppresses paused trailing/unload writes to both local and workspace storage', () => {
+    const { state, coordinator } = fixture();
+    const workspace = deferredWorkspacePersistence();
+    coordinator.attachWorkspacePersistence(workspace.persistence);
+    coordinator.pause();
+    runInAction(() => { state.snapshot.threads[0].messages[0].content = 'follower'; });
+    window.dispatchEvent(new Event('pagehide'));
+    vi.advanceTimersByTime(1000);
+    flushPendingSnapshot();
+    expect(messageText(loadSnapshot()!.threads[0].messages[0])).toBe('before');
+    expect(workspace.saved).toHaveLength(1);
+  });
+  it('coalesces actual deep argument reads and persists the latest nested mutation', () => {
+    const history = Array.from({ length: 100 }, (_, i): Message => ({
+      id: `tool-${i}`, role: 'assistant', createdAt: 1,
+      parts: [{ type: 'tool', call: { id: `call-${i}`, name: 'synthetic', arguments: { syntheticPayload: 'unchanged' } } }],
+    }));
+    const snapshot = observable(makeSnapshot({ threads: [makeThread({ messages: [...history, userMessage('stream', '')] })] }));
+    const coordinator = new ChatPersistenceCoordinator(() => snapshot);
+    active.push(coordinator);
+    coordinator.start(); flushPendingSnapshot();
+    let argumentReads = 0;
+    const stringify = JSON.stringify;
+    vi.spyOn(JSON, 'stringify').mockImplementation((value, ...rest) => {
+      if (value && typeof value === 'object' && 'syntheticPayload' in value) argumentReads++;
+      return stringify(value, ...rest);
+    });
+    for (let i = 0; i < 40; i++) runInAction(() => { snapshot.threads[0].messages[100].content += 'a'; });
+    const first = snapshot.threads[0].messages[0];
+    runInAction(() => { if (first.parts?.[0].type === 'tool' && first.parts[0].call) first.parts[0].call.arguments.syntheticPayload = 'corrected'; });
+    expect(argumentReads).toBe(0);
+    vi.advanceTimersByTime(250); flushPendingSnapshot();
+    expect(argumentReads).toBe(100);
+    expect(messageText(loadSnapshot()!.threads[0].messages.find(message => message.id === 'stream')!)).toBe('a'.repeat(40));
+    expect(loadSnapshot()!.threads[0].messages.flatMap(message => message.role === 'assistant' ? messageToolCalls(message) : []).find(call => call.id === 'call-0')?.arguments).toEqual({ syntheticPayload: 'corrected' });
+  });
+});
+
+
+describe('ChatPersistenceCoordinator — workspace pause ownership', () => {
+  it('does not save on paused attach or resume, then accepts fresh scheduled state', async () => {
+    let current = makeSnapshot({ activeThreadId: 'follower' });
+    const coordinator = new ChatPersistenceCoordinator(() => current);
+    const workspace = deferredWorkspacePersistence();
+    coordinator.pause();
+    coordinator.attachWorkspacePersistence(workspace.persistence);
+    expect(workspace.saved).toEqual([]);
+    coordinator.resume();
+    expect(workspace.saved).toEqual([]);
+    current = makeSnapshot({ activeThreadId: 'refreshed-leader' });
+    coordinator.schedule(current);
+    expect(workspace.saved.map(snapshot => snapshot.activeThreadId)).toEqual(['refreshed-leader']);
+    await workspace.settleOne();
+  });
+  it('does not revive stale pending state if resume happens before the old write settles', async () => {
+    const coordinator = new ChatPersistenceCoordinator(() => makeSnapshot({ activeThreadId: 'initial' }));
+    const workspace = deferredWorkspacePersistence();
+    coordinator.attachWorkspacePersistence(workspace.persistence);
+    coordinator.schedule(makeSnapshot({ activeThreadId: 'stale' }));
+    coordinator.pause(); coordinator.resume();
+    await workspace.settleOne();
+    expect(workspace.saved.map(snapshot => snapshot.activeThreadId)).toEqual(['initial']);
   });
 });
