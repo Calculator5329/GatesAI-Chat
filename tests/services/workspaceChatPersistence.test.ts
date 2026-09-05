@@ -466,3 +466,42 @@ function memoryBridge(initial: Record<string, string> = {}): BridgeClientFacade 
     },
   };
 }
+
+
+describe('workspace persistence publication authority', () => {
+  it('allows a read-only missing-state load without creating a directory', async () => {
+    const calls: string[] = [];
+    const persistence = createWorkspaceChatPersistence({ request: async (op: string) => {
+      calls.push(op); throw new Error('not found');
+    } }, () => false);
+    expect(await persistence.load()).toEqual({ kind: 'missing' });
+    expect(calls).toEqual(['fs.read']);
+    await expect(persistence.backupMalformed('bad')).rejects.toThrow('authority expired');
+    await expect(persistence.save(sampleSnapshot('t1', 'Read only'))).rejects.toThrow('authority expired');
+    expect(calls).toEqual(['fs.read']);
+  });
+
+  for (const deferredOp of ['fs.mkdir', 'fs.write', 'fs.move'] as const) {
+    it(`does not start another mutation after authority expires during ${deferredOp}`, async () => {
+      let allowed = true;
+      let release: (() => void) | undefined;
+      let arrived: (() => void) | undefined;
+      const started = new Promise<void>(resolve => { arrived = resolve; });
+      const hold = new Promise<void>(resolve => { release = resolve; });
+      const calls: string[] = [];
+      const persistence = createWorkspaceChatPersistence({ async request<T>(op: string): Promise<T> {
+        calls.push(op);
+        if (op === deferredOp) { arrived?.(); await hold; }
+        if (op === 'fs.move') throw new Error('synthetic move failure');
+        return {} as T;
+      } }, () => allowed);
+      const save = persistence.save(sampleSnapshot('t1', 'Authority'));
+      await started;
+      allowed = false;
+      const before = [...calls];
+      release?.();
+      await expect(save).rejects.toThrow('authority expired');
+      expect(calls).toEqual(before);
+    });
+  }
+});

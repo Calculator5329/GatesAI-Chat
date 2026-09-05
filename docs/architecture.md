@@ -388,7 +388,14 @@ Chat persistence flow:
    `workspaceChatPersistence.ts` writes `/workspace/.gatesai/chat/state.v1.json`
    through a privileged bridge client and also writes a best-effort readable
    `/workspace/chat-history` HTML/Markdown mirror.
-8. Multi-tab storage events pause autosave and show reload/dismiss behavior;
+8. Desktop workspace hydration reads without creating directories. Current
+   followers may import into memory; shared local/workspace publication requires
+   the coordinator's current write permission and the hydration generation.
+   RootStore coalesces root/authority changes, and stale or disposed hydration
+   cannot apply memory or start further writes. The privileged request wrapper
+   checks each mutation; an already-dispatched request is not recalled. See
+   `docs/designs/workspace-hydration-authority-20260905.md`.
+9. Multi-tab storage events pause autosave and show reload/dismiss behavior;
    there is no merge.
 
 Secrets:

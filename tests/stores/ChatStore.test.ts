@@ -2616,3 +2616,89 @@ describe('ChatStore', () => {
 function estimateLowerBound(text: string): number {
   return Math.ceil(text.length / 4);
 }
+
+
+describe('workspace hydration authority', () => {
+  for (const scenario of ['follower', 'leader', 'lost', 'aba', 'disposed', 'superseded'] as const) {
+    it(`keeps deferred ${scenario} hydration within its current authority`, async () => {
+      vi.useFakeTimers();
+      clearAppStorage();
+      localStorage.setItem(CHAT_SNAPSHOT_STORAGE_KEY, JSON.stringify(chatSnapshot('local', 'Local')));
+      let acquire: (() => void) | undefined;
+      const election = new WebLocksLeaderElection({ locks: {
+        request: (_name, _options, callback) => {
+          acquire = () => { void callback({}); };
+          return new Promise(() => {});
+        },
+      } });
+      const registry = new ModelRegistry();
+      const chat = new ChatStore(new ProviderStore(registry), registry, new UserProfileStore(), undefined, election);
+      election.start();
+      if (scenario !== 'follower') acquire?.();
+      let current = true;
+      let resolveRead: (() => void) | undefined;
+      let readStarted: (() => void) | undefined;
+      const started = new Promise<void>(resolve => { readStarted = resolve; });
+      const pendingRead = new Promise<void>(resolve => { resolveRead = resolve; });
+      const operations: string[] = [];
+      const bridge: BridgeClientFacade = {
+        async request<T>(op: string): Promise<T> {
+          operations.push(op);
+          if (op === 'fs.read') {
+            readStarted?.();
+            await pendingRead;
+            return { content: JSON.stringify({ version: 1, savedAt: '2026-09-05', snapshot: chatSnapshot('workspace', 'Workspace') }) } as T;
+          }
+          return { entries: [] } as T;
+        },
+      };
+      const writes = vi.spyOn(Storage.prototype, 'setItem');
+      try {
+        const hydration = chat.enableWorkspacePersistence(bridge, () => current);
+        await started;
+        if (scenario === 'lost' || scenario === 'aba') {
+          // Controlled verdict change exercises the real subscription; browser revocation is not claimed.
+          (election as unknown as { transition(state: 'follower' | 'leader'): void }).transition('follower');
+          if (scenario === 'aba') (election as unknown as { transition(state: 'leader'): void }).transition('leader');
+        }
+        if (scenario === 'disposed') { chat.dispose(); election.dispose(); }
+        if (scenario === 'superseded') current = false;
+        writes.mockClear();
+        resolveRead?.();
+        expect(await hydration).toBe(scenario === 'leader');
+        if (scenario === 'leader' || scenario === 'follower') expect(chat.activeThreadId).toBe('workspace');
+        else expect(chat.activeThreadId).toBe('local');
+        if (scenario !== 'leader') {
+          expect(operations).toEqual(['fs.read']);
+          expect(writes.mock.calls.filter(([key]) => key === CHAT_SNAPSHOT_STORAGE_KEY)).toHaveLength(0);
+        } else {
+          expect(writes.mock.calls.some(([key]) => key === CHAT_SNAPSHOT_STORAGE_KEY)).toBe(true);
+        }
+      } finally {
+        chat.dispose(); election.dispose(); writes.mockRestore(); vi.useRealTimers(); clearAppStorage();
+      }
+    });
+  }
+});
+
+it.each(['missing', 'malformed', 'older'] as const)('does not migrate a follower over %s workspace history', async kind => {
+  vi.useFakeTimers();
+  clearAppStorage();
+  localStorage.setItem(CHAT_SNAPSHOT_STORAGE_KEY, JSON.stringify(chatSnapshot('local', 'Local')));
+  const election = new WebLocksLeaderElection({ locks: { request: () => new Promise(() => {}) } });
+  const registry = new ModelRegistry();
+  const chat = new ChatStore(new ProviderStore(registry), registry, new UserProfileStore(), undefined, election);
+  const operations: string[] = [];
+  const older = chatSnapshot('workspace', 'Older');
+  older.threads[0].updatedAt = 1;
+  try {
+    const bridge: BridgeClientFacade = { async request<T>(op: string): Promise<T> {
+      operations.push(op);
+      if (kind === 'missing') throw new Error('not found');
+      return { content: kind === 'malformed' ? '{broken' : JSON.stringify({ version: 1, savedAt: '2026-09-05', snapshot: older }) } as T;
+    } };
+    expect(await chat.enableWorkspacePersistence(bridge)).toBe(false);
+    expect(chat.activeThreadId).toBe('local');
+    expect(operations).toEqual(['fs.read']);
+  } finally { chat.dispose(); election.dispose(); vi.useRealTimers(); clearAppStorage(); }
+});

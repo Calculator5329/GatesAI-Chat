@@ -43,12 +43,20 @@ export interface WorkspaceChatPersistence {
 // Workspace persistence is intentionally bridge-backed rather than local-only:
 // the chat state should travel with a project, and localStorage is only the
 // migration/fallback layer managed by ChatStore.
-export function createWorkspaceChatPersistence(rawClient: BridgeClientFacade): WorkspaceChatPersistence {
+export function createWorkspaceChatPersistence(
+  rawClient: BridgeClientFacade,
+  canWrite: () => boolean = () => true,
+): WorkspaceChatPersistence {
   // All chat-persistence ops touch the bridge's protected chat-history
   // subtrees, which deny unprivileged (tool-originated) requests. Wrap the
   // client once so every request from this module is marked privileged.
   const client: BridgeClientFacade = {
-    request: (op, data, onEvent) => rawClient.request(op, data, onEvent, { privileged: true }),
+    request: (op, data, onEvent) => {
+      if (op !== 'fs.read' && op !== 'fs.list' && !canWrite()) {
+        return Promise.reject(new Error('Workspace chat write authority expired.'));
+      }
+      return rawClient.request(op, data, onEvent, { privileged: true });
+    },
   };
   const readableCache: ReadableLibraryCache = {
     entries: new Map(),
@@ -59,7 +67,6 @@ export function createWorkspaceChatPersistence(rawClient: BridgeClientFacade): W
   };
   return {
     async load(): Promise<WorkspaceChatLoadResult> {
-      await ensureDir(client);
       let raw = '';
       try {
         const resp = await client.request<FsReadResp>('fs.read', {

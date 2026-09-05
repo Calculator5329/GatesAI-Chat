@@ -222,22 +222,33 @@ export class RootStore {
       }
     }));
 
-    let attemptedWorkspacePersistenceRoot: string | undefined;
-    let workspacePersistenceAttemptInFlight = false;
+    let workspaceHydrationDisposed = false;
+    let workspaceHydrationInFlight = false;
+    let desiredWorkspace: { key: string; client: BridgeStore['client']; online: boolean } | undefined;
+    const hydrateDesiredWorkspace = (): void => {
+      const desired = desiredWorkspace;
+      if (workspaceHydrationDisposed || workspaceHydrationInFlight || !desired?.online) return;
+      workspaceHydrationInFlight = true;
+      const isCurrent = () => !workspaceHydrationDisposed && desired === desiredWorkspace;
+      void desired.client.connect()
+        .then(() => isCurrent() ? this.chat.enableWorkspacePersistence(desired.client, isCurrent) : false)
+        .catch(err => { logger.warn('persistence', 'workspace chat persistence boot failed', err); })
+        .finally(() => {
+          workspaceHydrationInFlight = false;
+          // Retry only a new external context, never an unchanged failed attempt.
+          if (desired !== desiredWorkspace) hydrateDesiredWorkspace();
+        });
+    };
+    this.disposers.push(() => { workspaceHydrationDisposed = true; });
     this.disposers.push(autorun(() => {
       if (this.runtime !== 'desktop') return;
-      if (!this.bridge.isOnline || !this.bridge.workspaceRoot) return;
-      if (attemptedWorkspacePersistenceRoot === this.bridge.workspaceRoot) return;
-      if (workspacePersistenceAttemptInFlight) return;
-      const workspaceRoot = this.bridge.workspaceRoot;
-      workspacePersistenceAttemptInFlight = true;
-      void this.bridge.client.connect()
-        .then(() => this.chat.enableWorkspacePersistence(this.bridge.client))
-        .then(ok => {
-          if (ok) attemptedWorkspacePersistenceRoot = workspaceRoot;
-        })
-        .catch(err => { logger.warn('persistence', 'workspace chat persistence boot failed', err); })
-        .finally(() => { workspacePersistenceAttemptInFlight = false; });
+      const client = this.bridge.client;
+      const online = this.bridge.isOnline && Boolean(this.bridge.workspaceRoot);
+      const key = JSON.stringify([this.bridge.workspaceRoot, online, client.connectionEpoch,
+        this.chat.persistenceLeaderState, this.chat.persistenceConflict, this.chat.persistenceAuthorityGeneration]);
+      if (desiredWorkspace?.key === key && desiredWorkspace.client === client) return;
+      desiredWorkspace = { key, client, online };
+      hydrateDesiredWorkspace();
     }));
 
     let attemptedSkillsRoot: string | undefined;

@@ -1,5 +1,10 @@
 # Changelog
 
+
+## 2026-09-05 — Workspace hydration authority
+
+Workspace hydration keeps current follower reads in memory while guarding shared publication with the current lifetime/leadership generation. Each privileged mutation rechecks permission, and RootStore reconciles changed contexts without retrying unchanged failures. Stale completions cannot change memory. Verification: CI passed 1385 tests plus typecheck/lint; full E2E passed 146 tests. Details in `designs/workspace-hydration-authority-20260905.md`.
+
 ## 2026-09-04 — v5 architecture spike (`spike-v5/`)
 
 - Built one vertical slice of the incubator's v5 design in a new `spike-v5/`
