@@ -12,6 +12,13 @@
 
 ## Narrowed scope — depth over breadth (2026-07-19)
 
+- [x] **A30: retain journey observations as per-test artifacts.** *(2026-09-05)*
+  Refreshed the existing vendored Handles package and regenerated all 105
+  journeys through it. Full CI passes (1,329 unit tests, typecheck and lint);
+  all 144 E2E tests pass with zero retries. Hash comparison across all 1,133
+  tracked files found zero changes during E2E; all 105 generated receipts report
+  success. Historical observations and manual baselines remain unchanged.
+
 **Principle:** a fast, beautiful, local-first chat workspace that does a small
 set of things exceedingly well — bring-your-own-model chat (OpenRouter + local
 Ollama), real workspace tools through the bridge, image gen via ComfyUI, and
