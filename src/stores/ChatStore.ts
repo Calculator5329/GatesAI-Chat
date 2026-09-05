@@ -153,6 +153,9 @@ export class ChatStore {
   private stopUserSystemPromptPersistence: (() => void) | null = null;
   private readonly hydrationByThread = new Map<string, Promise<Thread | null>>();
   private workspacePersistenceHydrating = false;
+  private workspacePersistenceGeneration = 0;
+  private workspacePersistenceContext: object | null = null;
+  private disposed = false;
   private recentSummariesProvider: (() => string[]) | null = null;
   private semanticContextProvider: ((userText: string, threadId: string) => RagContextBundle | string | Promise<RagContextBundle | string>) | null = null;
   private toolStoresProvider: (() => ToolStoreContext) | null = null;
@@ -220,10 +223,11 @@ export class ChatStore {
       if (key !== CHAT_SNAPSHOT_STORAGE_KEY) return;
       logger.warn('persistence', 'Chat autosave paused after cross-tab write', { key });
       runInAction(() => {
+        this.workspacePersistenceGeneration += 1;
+        this.persistence.pause();
         this.persistenceConflict =
           'Another browser tab updated chat history. Saving is paused until you reload or dismiss this warning.';
       });
-      this.persistence.pause();
       // Drop any save already queued for a microtask so it can't fire after the
       // pause and clobber the other tab's write.
       cancelPendingDeferredSnapshot();
@@ -232,7 +236,7 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'autoNamer' | 'turnRunner' | 'turnEngine' | 'agentTasks' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'stopUserSystemPromptPersistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled' | 'undoService'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'autoNamer' | 'turnRunner' | 'turnEngine' | 'agentTasks' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'stopUserSystemPromptPersistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'workspacePersistenceContext' | 'disposed' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled' | 'undoService'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -246,6 +250,8 @@ export class ChatStore {
       stopUserSystemPromptPersistence: false,
       hydrationByThread: false,
       workspacePersistenceHydrating: false,
+      workspacePersistenceContext: false,
+      disposed: false,
       recentSummariesProvider: false,
       semanticContextProvider: false,
       toolStoresProvider: false,
@@ -393,6 +399,8 @@ export class ChatStore {
   }
 
   dispose(): void {
+    this.disposed = true;
+    this.workspacePersistenceGeneration += 1;
     this.turnEngine.abortAllStreams();
     this.streamingByThread = {};
     this.agentTasks.clearAllTimers();
@@ -401,6 +409,11 @@ export class ChatStore {
     this.stopUserSystemPromptPersistence?.();
     this.stopUserSystemPromptPersistence = null;
     this.persistence.dispose();
+  }
+
+  /** Changes on every authority transition, including an ABA inside one MobX action. */
+  get persistenceAuthorityGeneration(): number {
+    return this.workspacePersistenceGeneration;
   }
 
   /** True while a different tab owns the Web Locks persistence lease. */
@@ -487,12 +500,19 @@ export class ChatStore {
     downloadResponse(message, origin, streaming, modelName);
   }
 
-  async enableWorkspacePersistence(client: BridgeClientFacade): Promise<boolean> {
-    if (this.workspacePersistenceHydrating) return false;
+  async enableWorkspacePersistence(client: BridgeClientFacade, contextIsCurrent: () => boolean = () => true): Promise<boolean> {
+    if (this.disposed || this.workspacePersistenceHydrating || !contextIsCurrent()) return false;
+    const generation = this.workspacePersistenceGeneration;
+    const context = {};
+    this.workspacePersistenceContext = context;
     this.workspacePersistenceHydrating = true;
-    const persistence = createWorkspaceChatPersistence(client);
+    const isCurrent = () => !this.disposed && generation === this.workspacePersistenceGeneration
+      && context === this.workspacePersistenceContext && contextIsCurrent();
+    const canWrite = () => isCurrent() && !this.persistence.isPaused;
+    const persistence = createWorkspaceChatPersistence(client, canWrite);
     try {
       const loaded = await persistence.load();
+      if (!isCurrent()) return false;
       if (loaded.kind === 'loaded') {
         const localSnapshot = this.snapshot;
         if (snapshotLatestUpdatedAt(localSnapshot) > snapshotLatestUpdatedAt(loaded.snapshot)) {
@@ -508,14 +528,17 @@ export class ChatStore {
               );
             }
           });
+          if (!canWrite()) return false;
           await persistence.save(localSnapshot, 'local-newer-than-workspace');
         } else {
           runInAction(() => {
             this.applySnapshot(loaded.snapshot);
           });
+          if (!canWrite()) return false;
           saveSnapshot(this.snapshot);
         }
       } else if (loaded.kind === 'malformed') {
+        if (!canWrite()) return false;
         try {
           await persistence.backupMalformed(loaded.raw);
         } catch (err) {
@@ -523,8 +546,10 @@ export class ChatStore {
         }
         await persistence.save(this.snapshot, 'localStorage-migration');
       } else {
+        if (!canWrite()) return false;
         await persistence.save(this.snapshot, 'localStorage-migration');
       }
+      if (!canWrite()) return false;
       this.persistence.attachWorkspacePersistence(persistence);
       return true;
     } catch (err) {
@@ -1261,6 +1286,7 @@ export class ChatStore {
 
   /** Apply Web Locks ownership changes to persistence and the thin UI surface. */
   private applyLeaderElectionState(state: LeaderElectionState): void {
+    this.workspacePersistenceGeneration += 1;
     this.persistenceLeaderState = state;
     if (state === 'follower') {
       this.persistence.pause();

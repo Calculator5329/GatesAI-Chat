@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] **A55 — guard workspace hydration publication across follower, root and lifetime changes.** *(2026-09-05 — current follower reads preserved; stale/disposed/ABA publication refused. CI 1385 and full E2E 146 passed; isolated candidate, integration tracked separately.)*
+
 - [x] Preserve unreadable artifact indexes; require complete listing proof of absence before initialization and retain unsafe legacy filenames. *(2026-09-05; 1347 tests, typecheck, lint and all 144 browser checks passed. See docs/design-artifact-registry-preservation-20260905.md.)*
 
 - [x] Retain browser traces for local first-attempt failures. *(2026-09-05 — intentionally failed zero-retry probe: baseline zero traces, candidate one validated trace; CI retry policy unchanged. Required full CI and 144 browser checks passed.)*
