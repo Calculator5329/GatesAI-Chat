@@ -164,8 +164,10 @@ describe('workspace chat persistence', () => {
     });
   });
 
-  it('prunes stale readable conversation exports after rename or delete', async () => {
+  it('retains stale and unrecognized files while the index follows current conversations', async () => {
     const bridge = memoryBridge({
+      '/workspace/chat-history/conversations/owner-notes.md': 'foreign owner draft',
+      '/workspace/chat-history/conversations/custom-report.html': '<article>foreign report</article>',
       '/workspace/chat-history/conversations/old-title-t1.html': 'old html',
       '/workspace/chat-history/conversations/old-title-t1.md': 'old markdown',
       '/workspace/chat-history/conversations/deleted-thread-t2.html': 'deleted html',
@@ -179,12 +181,20 @@ describe('workspace chat persistence', () => {
 
     await createWorkspaceChatPersistence(bridge).save(snapshot);
 
-    expect(bridge.files.has('/workspace/chat-history/conversations/old-title-t1.html')).toBe(false);
-    expect(bridge.files.has('/workspace/chat-history/conversations/old-title-t1.md')).toBe(false);
-    expect(bridge.files.has('/workspace/chat-history/conversations/deleted-thread-t2.html')).toBe(false);
-    expect(bridge.files.has('/workspace/chat-history/conversations/deleted-thread-t2.md')).toBe(false);
+    expect(bridge.files.get('/workspace/chat-history/conversations/old-title-t1.html')).toBe('old html');
+    expect(bridge.files.get('/workspace/chat-history/conversations/old-title-t1.md')).toBe('old markdown');
+    expect(bridge.files.get('/workspace/chat-history/conversations/deleted-thread-t2.html')).toBe('deleted html');
+    expect(bridge.files.get('/workspace/chat-history/conversations/deleted-thread-t2.md')).toBe('deleted markdown');
     expect(bridge.files.has('/workspace/chat-history/conversations/new-title-t1.html')).toBe(true);
     expect(bridge.files.has('/workspace/chat-history/conversations/new-title-t1.md')).toBe(true);
+    expect(bridge.files.get('/workspace/chat-history/conversations/owner-notes.md')).toBe('foreign owner draft');
+    expect(bridge.files.get('/workspace/chat-history/conversations/custom-report.html')).toBe('<article>foreign report</article>');
+    const index = bridge.files.get(WORKSPACE_CHAT_LIBRARY_INDEX_PATH) ?? '';
+    expect(index).toContain('new-title-t1.html');
+    expect(index).not.toContain('old-title-t1');
+    expect(index).not.toContain('deleted-thread-t2');
+    expect(index).not.toContain('owner-notes');
+
   });
 });
 

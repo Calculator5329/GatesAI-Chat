@@ -5,7 +5,6 @@
 // rendering failure must never block the canonical JSON snapshot save.
 import type { AssistantMessage, ChatSnapshot, Message, MessageAttachmentRef, Thread, ToolResultArtifact } from '../../core/types';
 import { messageAttachments, messageText, messageToolCalls, messageToolResults } from '../../core/messageParts';
-import type { FsListResp } from '../../core/workspace';
 import type { BridgeClientFacade } from '../tools/types';
 import { logger } from '../diagnostics/logger';
 
@@ -33,12 +32,9 @@ export async function saveReadableChatLibrary(client: BridgeClientFacade, snapsh
       encoding: 'utf8',
     });
 
-    const expectedConversationPaths = new Set<string>();
     for (const entry of entries) {
       const htmlPath = `${WORKSPACE_CHAT_LIBRARY_CONVERSATIONS_DIR}/${entry.baseName}.html`;
       const markdownPath = `${WORKSPACE_CHAT_LIBRARY_CONVERSATIONS_DIR}/${entry.baseName}.md`;
-      expectedConversationPaths.add(htmlPath);
-      expectedConversationPaths.add(markdownPath);
       await client.request('fs.write', {
         path: htmlPath,
         content: renderConversationHtml(entry.thread, savedAt),
@@ -50,22 +46,8 @@ export async function saveReadableChatLibrary(client: BridgeClientFacade, snapsh
         encoding: 'utf8',
       });
     }
-    await pruneStaleConversationFiles(client, expectedConversationPaths);
   } catch (err) {
     logger.warn('persistence', 'failed to save readable chat history library', err);
-  }
-}
-
-async function pruneStaleConversationFiles(client: BridgeClientFacade, expectedPaths: Set<string>): Promise<void> {
-  const resp = await client.request<FsListResp>('fs.list', {
-    path: WORKSPACE_CHAT_LIBRARY_CONVERSATIONS_DIR,
-  });
-  const entries = Array.isArray(resp.entries) ? resp.entries : [];
-  for (const entry of entries) {
-    if (entry.kind !== 'file') continue;
-    if (!/\.html?$/i.test(entry.path) && !/\.md$/i.test(entry.path)) continue;
-    if (expectedPaths.has(entry.path)) continue;
-    await client.request('fs.delete', { path: entry.path });
   }
 }
 

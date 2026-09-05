@@ -3195,3 +3195,7 @@ architecture. UI is pixel-identical to the previous build.
 - GatesMenu uses only the `topTabs` layout (the active one)
 - `localStorage` key is unchanged (`gatesai.state.v1`), so existing user
   state survives the refactor
+
+### 2026-09-05 — A34 readable library retention
+
+Stopped deleting unrecognized and stale HTML/Markdown files during readable-library saves. Current exports and index still update normally; retired or renamed files remain in place. Archived the removed helper in `docs/design-readable-library-20260905.md`.

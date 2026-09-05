@@ -888,3 +888,5 @@ Honest list for anyone picking the project up cold:
   ignored explicitly; keep generated diagnostics out of commits.
 - **Test-count badges rot.** The README badge (995 unit + 20 e2e) is updated
   by hand; counts drift every wave.
+
+Readable library retention: exports are derived mirrors. Saves update current paths and index entries, but preserve stale names, retired conversations, and unrecognized files in place. Removing an index entry is not content erasure.
