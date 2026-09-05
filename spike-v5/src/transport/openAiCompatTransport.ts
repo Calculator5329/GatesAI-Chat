@@ -74,10 +74,14 @@ export class OpenAiCompatTransport implements ChatTransport {
     }
 
     let finishReason: 'stop' | 'length' | undefined;
+    let done = false;
     for await (const payload of readSseData(response.body, signal)) {
-      if (payload === '[DONE]') break;
+      if (payload === '[DONE]') { done = true; break; }
       const frame = parseFrame(payload);
-      if (!frame) continue;
+      if (!frame || frame.error) {
+        yield { type: 'error', message: 'Invalid or failed provider stream frame.' };
+        return;
+      }
       if (frame.delta) yield { type: 'text', delta: frame.delta };
       if (frame.usage) yield { type: 'usage', usage: frame.usage };
       if (frame.finishReason) finishReason = frame.finishReason;
@@ -85,11 +89,14 @@ export class OpenAiCompatTransport implements ChatTransport {
 
     yield signal.aborted
       ? { type: 'done', finishReason: 'cancelled' }
-      : { type: 'done', finishReason: finishReason ?? 'stop' };
+      : done || finishReason
+        ? { type: 'done', finishReason: finishReason ?? 'stop' }
+        : { type: 'error', message: 'Provider stream ended without completion evidence.' };
   }
 }
 
 interface ParsedFrame {
+  error?: boolean;
   delta?: string;
   finishReason?: 'stop' | 'length';
   usage?: { promptTokens: number; completionTokens: number };
@@ -100,10 +107,10 @@ function parseFrame(payload: string): ParsedFrame | undefined {
   try {
     raw = JSON.parse(payload);
   } catch {
-    // A malformed frame is a provider bug, not a reason to end a good stream.
     return undefined;
   }
   if (!isRecord(raw)) return undefined;
+  if ('error' in raw) return { error: true };
 
   const frame: ParsedFrame = {};
   const choices = raw.choices;
@@ -114,6 +121,7 @@ function parseFrame(payload: string): ParsedFrame | undefined {
     const reason = choice.finish_reason;
     if (reason === 'stop') frame.finishReason = 'stop';
     if (reason === 'length' || reason === 'max_tokens') frame.finishReason = 'length';
+    if (reason != null && !frame.finishReason) return { error: true };
   }
 
   if (isRecord(raw.usage)) {

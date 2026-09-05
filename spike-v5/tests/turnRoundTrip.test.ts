@@ -248,26 +248,98 @@ describe('one chat turn round-trip', () => {
     ]);
   });
 
-  it('refuses a second turn while one is in flight', async () => {
-    const h = harness(() => sseResponse([contentFrame('ok'), finishFrame('stop'), DONE_FRAME]));
-    const conversation = await h.runtime.startConversation();
-
-    // Persist a conversation whose last message is a streaming assistant reply.
-    await h.store.set(
-      `spike-v5.conversation.${conversation.id}`,
-      JSON.stringify({
-        schemaVersion: 2,
-        conversation: {
-          ...conversation,
-          messages: [
-            { kind: 'user', id: 'm1', role: 'user', text: 'hi', createdAt: 1 },
-            { kind: 'assistant', id: 'm2', role: 'assistant', text: '', createdAt: 2, modelId: 'x' },
-          ],
-        },
-      }),
-    );
-
-    await expect(h.runtime.send(conversation.id, 'again')).rejects.toThrow(/has not stopped/);
-    expect(h.requests).toHaveLength(0);
+  it('refuses a real overlapping send before persistence or transport, while another conversation works', async () => {
+    let release!: () => void;
+    let entered!: () => void;
+    const started = new Promise<void>(resolve => { entered = resolve; });
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    let calls = 0;
+    const h = harness(async () => {
+      if (++calls === 1) { entered(); await gate; }
+      return sseResponse([contentFrame('reply'), DONE_FRAME]);
+    });
+    const one = await h.runtime.startConversation();
+    const two = await h.runtime.startConversation();
+    const pending = h.runtime.send(one.id, 'first');
+    await started;
+    const writes = h.store.writeCount;
+    await expect(h.runtime.send(one.id, 'duplicate')).rejects.toThrow(/has not stopped/);
+    expect(h.store.writeCount).toBe(writes);
+    expect(calls).toBe(1);
+    expect((await h.runtime.send(two.id, 'independent')).stopReason).toBe('complete');
+    release(); await pending;
+    expect((await h.runtime.send(one.id, 'next')).stopReason).toBe('complete');
+    expect(storedConversation(h.store, one.id).conversation.messages.map(m => m.text)).toEqual(['first', 'reply', 'next', 'reply']);
   });
+});
+
+import { readSseData } from '../src/transport/sse';
+
+for (const newline of ['\n', '\r\n', '\r']) it(`accepts split ${JSON.stringify(newline)} SSE frames`, async () => {
+  const wire = (contentFrame('café') + finishFrame('stop') + usageFrame(4, 2) + DONE_FRAME).replaceAll('\n', newline);
+  const h = harness(() => sseResponse([...wire]));
+  const c = await h.runtime.startConversation();
+  const result = await h.runtime.send(c.id, 'go');
+  expect(result.text).toBe('café'); expect(result.stopReason).toBe('complete');
+  expect(result.usage).toEqual({ promptTokens: 4, completionTokens: 2 });
+});
+
+for (const tail of ['data: broken\n\n', 'data: {"error":{"message":"private detail"}}\n\n', 'data: {"choices":[{"finish_reason":"tool_calls"}]}\n\n', '']) {
+  it(`preserves partial text and fails invalid/premature stream ${JSON.stringify(tail)}`, async () => {
+    const h = harness(() => sseResponse([contentFrame('partial'), tail]));
+    const c = await h.runtime.startConversation(); const result = await h.runtime.send(c.id, 'go');
+    expect(result.text).toBe('partial'); expect(result.stopReason).toBe('error');
+    expect(result.error).not.toContain('private detail');
+    expect(storedConversation(h.store, c.id).conversation.messages[1]?.stopReason).toBe('error');
+    expect((await h.runtime.send(c.id, 'retry')).stopReason).toBe('error');
+  });
+}
+
+it('accepts known finish plus EOF and DONE without a finish frame', async () => {
+  for (const ending of [finishFrame('stop'), DONE_FRAME]) {
+    const h = harness(() => sseResponse([contentFrame('ok'), ending]));
+    const c = await h.runtime.startConversation(); expect((await h.runtime.send(c.id, 'go')).stopReason).toBe('complete');
+  }
+});
+
+it('SSE preserves data spacing and multiline fields, ignores comments and discards unfinished event', async () => {
+  const wire = ':comment\r\nevent: ignored\r\ndata:  leading\r\ndata:second\r\ndata\r\n\r\ndata:unfinished';
+  const response = sseResponse([...wire]); const payloads: string[] = [];
+  for await (const payload of readSseData(response.body!, new AbortController().signal)) payloads.push(payload);
+  expect(payloads).toEqual([' leading\nsecond\n']);
+});
+
+it('abort settles a stalled read even when cancellation never resolves', async () => {
+  const controller = new AbortController(); let cancelled = false;
+  const h = harness(() => new Response(new ReadableStream<Uint8Array>({
+    start(stream) { stream.enqueue(new TextEncoder().encode(contentFrame('partial'))); },
+    cancel() { cancelled = true; return new Promise<void>(() => {}); },
+  })));
+  h.runtime.subscribe(event => { if (event.type === 'assistant.delta') setTimeout(() => controller.abort(), 0); });
+  const c = await h.runtime.startConversation(); const result = await h.runtime.send(c.id, 'go', { signal: controller.signal });
+  expect(result.stopReason).toBe('cancelled'); expect(result.text).toBe('partial'); expect(cancelled).toBe(true);
+});
+
+it('an arbitrary transport EOF cannot declare successful completion', async () => {
+  const runtime = createChatRuntime({ defaultModelId: 'fixture', repository: new KeyValueConversationRepository({ store: new MapKeyValueStore() }), transport: { id: 'fixture', async *stream() { yield { type: 'text', delta: 'partial' }; } } });
+  const c = await runtime.startConversation(); const result = await runtime.send(c.id, 'go');
+  expect(result.text).toBe('partial'); expect(result.stopReason).toBe('error');
+});
+
+for (const failure of ['load', 'save', 'plugin', 'listener']) it(`releases runtime admission after ${failure} failure`, async () => {
+  let fail = false;
+  const base = new KeyValueConversationRepository({ store: new MapKeyValueStore() });
+  const runtime = createChatRuntime({
+    defaultModelId: 'fixture',
+    repository: {
+      async load(id) { if (fail && failure === 'load') throw new Error('synthetic'); return base.load(id); },
+      async save(c) { if (fail && failure === 'save') throw new Error('synthetic'); return base.save(c); },
+    },
+    plugins: [{ name: 'fixture', decorateRequest(request) { if (fail && failure === 'plugin') throw new Error('synthetic'); return request; } }],
+    transport: { id: 'fixture', async *stream() { yield { type: 'done', finishReason: 'stop' }; } },
+  });
+  runtime.subscribe(() => { if (fail && failure === 'listener') throw new Error('synthetic'); });
+  const c = await runtime.startConversation(); fail = true;
+  await expect(runtime.send(c.id, 'failure')).rejects.toThrow('synthetic');
+  fail = false; expect((await runtime.send(c.id, 'retry')).stopReason).toBe('complete');
 });

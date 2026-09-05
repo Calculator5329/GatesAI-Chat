@@ -8,9 +8,9 @@ from scratch so the design could be measured against the shipping app instead
 of argued about. It imports nothing from `src/` and `src/` imports nothing
 from it.
 
-Read [`FINDINGS.md`](FINDINGS.md) for the result. Short version: adopt the
-layering (53 interface members on the v4 turn path against 10 here), drop the
-"extract the core and keep the tests" premise.
+Read [`FINDINGS.md`](FINDINGS.md) for the measured baseline defects, repaired
+behavior and limits. The smaller text-only interface does not establish
+production equivalence or justify a domain rewrite. This remains a spike.
 
 ## Run the test
 
