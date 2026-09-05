@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-09-05 — Journey verification artifacts (A30)
+
+- Refreshed `vendor/agent-handles-0.0.0.tgz` from delivered Handles core
+  `bf64ba9f75227f94c95090be67603bcab79fd50e`, updated its lock integrity, and
+  regenerated the 105 journeys with the installed vendor compiler. No dependency
+  declaration, journey definition or app behavior changed.
+- Ordinary observations, final-page screenshots and receipts attach to each
+  Playwright test; full E2E no longer rewrites repository observation baselines.
+  Manual-review/historical files remain intact. The compiler's empty fixture
+  pattern was corrected upstream to pass the existing consumer lint policy.
+- Verification: `npm run ci` passed 1,329 unit tests, typecheck and lint;
+  `npm run test:e2e -- --workers=2 --retries=0` passed all 144 tests. All 105
+  generated receipt statuses were read as passed. SHA-256 comparison before/after
+  E2E found zero changes across all 1,133 tracked files. Evidence is retained in
+  `/home/ethan/.cache/tmp/astra-a30-gates-artifacts/` and the accompanying
+  `astra-a30-gates-{ci-final,e2e,tracked-comparison}` logs/JSON.
+
+
 ## 2026-09-05: First-failure browser traces
 
 - Local Playwright runs retain traces on failure, including the first attempt with zero retries. CI keeps on-first-retry tracing; retry counts, workers and timeouts are unchanged.
