@@ -1,20 +1,20 @@
 # Roadmap
 
-- [x] **A55 — guard workspace hydration publication across follower, root and lifetime changes.** *(2026-09-05 — current follower reads preserved; stale/disposed/ABA publication refused. CI 1385 and full E2E 146 passed; isolated candidate, integration tracked separately.)*
+- [x] <!-- workspace:id=work:6575d305-45b5-5914-a6f0-7240168ec5d9 --> **A55 — guard workspace hydration publication across follower, root and lifetime changes.** *(2026-09-05 — current follower reads preserved; stale/disposed/ABA publication refused. CI 1385 and full E2E 146 passed; isolated candidate, integration tracked separately.)*
 
-- [x] Preserve unreadable artifact indexes; require complete listing proof of absence before initialization and retain unsafe legacy filenames. *(2026-09-05; 1347 tests, typecheck, lint and all 144 browser checks passed. See docs/design-artifact-registry-preservation-20260905.md.)*
+- [x] <!-- workspace:id=work:fa8b1d56-2ac1-55da-b9a5-2f6fdfb16e86 --> Preserve unreadable artifact indexes; require complete listing proof of absence before initialization and retain unsafe legacy filenames. *(2026-09-05; 1347 tests, typecheck, lint and all 144 browser checks passed. See docs/design-artifact-registry-preservation-20260905.md.)*
 
-- [x] Retain browser traces for local first-attempt failures. *(2026-09-05 — intentionally failed zero-retry probe: baseline zero traces, candidate one validated trace; CI retry policy unchanged. Required full CI and 144 browser checks passed.)*
+- [x] <!-- workspace:id=work:d859315e-2f6a-5091-b158-89affda4c2a8 --> Retain browser traces for local first-attempt failures. *(2026-09-05 — intentionally failed zero-retry probe: baseline zero traces, candidate one validated trace; CI retry policy unchanged. Required full CI and 144 browser checks passed.)*
 
-- [x] Reuse exact unchanged embedding inputs across atomic generations; retain forced rebuild and failure safety. *(2026-09-05 — 1329 unit tests, typecheck, lint and all 144 browser tests passed; [design and measured input counts](design-embedding-reuse-20260905.md).)*
+- [x] <!-- workspace:id=work:785ab492-a1fe-5d35-abc3-4d6408e06885 --> Reuse exact unchanged embedding inputs across atomic generations; retain forced rebuild and failure safety. *(2026-09-05 — 1329 unit tests, typecheck, lint and all 144 browser tests passed; [design and measured input counts](design-embedding-reuse-20260905.md).)*
 
-- [x] Apply recall source eligibility before the dense candidate limit. *(2026-09-04 — four candidate-starvation cases reproduced before repair; 12 focused tests, all 1312 unit tests, typecheck, lint, and all 144 browser tests passed. Model, generation, dimension, and abstention safeguards remain intact.)*
+- [x] <!-- workspace:id=work:b6b65dab-5281-5165-9ef6-f6f5a19ebf2b --> Apply recall source eligibility before the dense candidate limit. *(2026-09-04 — four candidate-starvation cases reproduced before repair; 12 focused tests, all 1312 unit tests, typecheck, lint, and all 144 browser tests passed. Model, generation, dimension, and abstention safeguards remain intact.)*
 
-- [x] Archive unused image/RAG, token, JSON-wrapper, and runtime-default helpers. *(2026-09-04 — six original files retained; 1307 unit tests, typecheck, lint, and all 144 browser tests passed. [Audit and verification](archive/anti-slop-20260904/README.md). Earlier intermittent browser failures remain unexplained.)*
+- [x] <!-- workspace:id=work:0cc71c8a-7fee-58f5-ac0a-d3832d1a84ad --> Archive unused image/RAG, token, JSON-wrapper, and runtime-default helpers. *(2026-09-04 — six original files retained; 1307 unit tests, typecheck, lint, and all 144 browser tests passed. [Audit and verification](archive/anti-slop-20260904/README.md). Earlier intermittent browser failures remain unexplained.)*
 
 ## Narrowed scope — depth over breadth (2026-07-19)
 
-- [x] **A30: retain journey observations as per-test artifacts.** *(2026-09-05)*
+- [x] <!-- workspace:id=work:99dc6d46-33d9-5b62-832c-0c90cf1dedbd --> **A30: retain journey observations as per-test artifacts.** *(2026-09-05)*
   Refreshed the existing vendored Handles package and regenerated all 105
   journeys through it. Full CI passes (1,329 unit tests, typecheck and lint);
   all 144 E2E tests pass with zero retries. Hash comparison across all 1,133
@@ -1032,16 +1032,16 @@ Ethan's packet reply, planning/reports/backlog-audit-packet-20260825. Reversible
 
 - Manually test the foundation surface before rebuilding optional integrations <!-- workspace:id=work:d44276ce-f85a-54b7-9678-2d2af968dfe7 -->
 
-- [x] 2026-09-05 — A34 stop blanket pruning of readable chat-library files; retain foreign/stale bytes while the index follows active conversations. Focused retention regression and combined A33 release gates passed (1,358 unit tests, typecheck/lint, 144 E2E).
+- [x] <!-- workspace:id=work:579da006-4a50-5acc-a647-f903bdef2460 --> 2026-09-05 — A34 stop blanket pruning of readable chat-library files; retain foreign/stale bytes while the index follows active conversations. Focused retention regression and combined A33 release gates passed (1,358 unit tests, typecheck/lint, 144 E2E).
 
-- [x] 2026-09-05 — A33 reuse unchanged readable conversation pairs using exact rendering, complete file presence, and bridge connection lifecycle; global index stays fresh. Collision, failure, missing-file, and lifecycle regressions verified; 1,358 unit tests and 144 E2E passed.
+- [x] <!-- workspace:id=work:3c7d230b-501f-5d98-8dfd-70cce89205cc --> 2026-09-05 — A33 reuse unchanged readable conversation pairs using exact rendering, complete file presence, and bridge connection lifecycle; global index stays fresh. Collision, failure, missing-file, and lifecycle regressions verified; 1,358 unit tests and 144 E2E passed.
 
-- [x] 2026-09-05 — A23 first slice: download a completed assistant response as Markdown with exact text and separate source provenance. Browser offline/reload/repeat-download acceptance passed. The broader deliverables item remains open: this is download initiation, not workspace persistence or native-save verification.
+- [x] <!-- workspace:id=work:ef2ebdc7-6fb1-576b-ab9b-35bd9105a229 --> 2026-09-05 — A23 first slice: download a completed assistant response as Markdown with exact text and separate source provenance. Browser offline/reload/repeat-download acceptance passed. The broader deliverables item remains open: this is download initiation, not workspace persistence or native-save verification.
 
-- [x] A25 Handles starting-route consumer (2026-09-05): combined A25+A38 candidate verified with CI 1361, all 146 E2E checks, 22 explicit spike tests and spike TypeScript passing. Installed plugin /run smoke and 105-journey byte parity passed. Historical full 145 passed / 1 lightbox failure and unchanged focused pass remain recorded separately in docs/design-handles-route-consumer-20260905.md; no cause is established. Supported default-branch landing remains with the coordinating session.
+- [x] <!-- workspace:id=work:c2620a36-ac11-5137-9297-dbdd093229be --> A25 Handles starting-route consumer (2026-09-05): combined A25+A38 candidate verified with CI 1361, all 146 E2E checks, 22 explicit spike tests and spike TypeScript passing. Installed plugin /run smoke and 105-journey byte parity passed. Historical full 145 passed / 1 lightbox failure and unchanged focused pass remain recorded separately in docs/design-handles-route-consumer-20260905.md; no cause is established. Supported default-branch landing remains with the coordinating session.
 
-- [x] A38 verify and repair isolated D20 spike correctness (2026-09-05): real concurrent-turn refusal, SSE framing/cancellation and terminal evidence; corrected non-equivalent architecture comparisons. 22 spike tests and spike TypeScript pass. Actual public-runtime before/after evidence in `spike-v5/FINDINGS.md`; no production v5 adoption.
+- [x] <!-- workspace:id=work:330ae3b8-68f7-5b0f-aac2-57e2e56e92f7 --> A38 verify and repair isolated D20 spike correctness (2026-09-05): real concurrent-turn refusal, SSE framing/cancellation and terminal evidence; corrected non-equivalent architecture comparisons. 22 spike tests and spike TypeScript pass. Actual public-runtime before/after evidence in `spike-v5/FINDINGS.md`; no production v5 adoption.
 
-- [x] A53 — Coalesce deep autosave observation with the existing 250 ms persistence throttle. Completed source candidate 2026-09-05; combined 21 focused lifecycle/trigger tests, same-input operation-count proof, CI (1,370 tests/type/lint), and full E2E (146 passed) are green. Parent source review passed. [Design/evidence](design-autosave-scheduling-20260905.md).
+- [x] <!-- workspace:id=work:dad7d043-ca59-5581-a85a-93ffa4e1fbf8 --> A53 — Coalesce deep autosave observation with the existing 250 ms persistence throttle. Completed source candidate 2026-09-05; combined 21 focused lifecycle/trigger tests, same-input operation-count proof, CI (1,370 tests/type/lint), and full E2E (146 passed) are green. Parent source review passed. [Design/evidence](design-autosave-scheduling-20260905.md).
 
-- [x] A54 — Suppress coordinator workspace enqueue/drain while paused and drop stale pending snapshots without replay on resume. Completed alongside A53 on 2026-09-05; combined focused tests, CI, and all 146 E2E tests passed. Already in-flight and caller-owned hydration writes remain outside this scope. [Design/evidence](design-autosave-scheduling-20260905.md).
+- [x] <!-- workspace:id=work:89a4ee4f-1f0b-5a13-a615-3d67464d14c8 --> A54 — Suppress coordinator workspace enqueue/drain while paused and drop stale pending snapshots without replay on resume. Completed alongside A53 on 2026-09-05; combined focused tests, CI, and all 146 E2E tests passed. Already in-flight and caller-owned hydration writes remain outside this scope. [Design/evidence](design-autosave-scheduling-20260905.md).
