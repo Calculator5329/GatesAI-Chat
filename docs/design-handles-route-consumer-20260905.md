@@ -35,3 +35,19 @@ Mechanical revalidation found no leases or active sessions and a clean canonical
 Final combined-tree validation: npm run ci passed 1361 tests plus typecheck/lint. The explicit D20 command npx vitest run --config spike-v5/vitest.config.ts passed its 7 existing tests; this adds test evidence, not an architecture-adoption decision. Full consumer E2E recorded 145 passed and one failed image-lightbox-navigation case. The real click completed normally but the expected viewer was absent for 10 seconds. No cause is established. The entire failing test-result directory is retained at /home/ethan/.cache/tmp/astra-audit-20260905/gates-route-final-lightbox-failure. One root-authorized focused rerun of that existing journey passed unchanged (one test, zero retries), recorded in gates-route-lightbox-focused.log. The full run is not retrospectively green; gates-route-final-e2e.log retains the failed result. Root's acceptance disposition is pending. No source or test was changed to obtain the focused pass.
 
 Root disposition: retain the full 145/1 result and focused one-test pass without assigning a cause. Leave A25 pending. A complete Gates check must exit zero before default-branch landing; coordinate the next heavy window after AO, preferably together with the separately owned A38 spike correction. This commit records documentation and evidence only and releases its holders for that work. No default landing is authorized by the focused pass.
+
+
+## Final combined candidate verification — 2026-09-05
+
+Normal merge fa5c51a6fee15be73860f1cfe78e0e64e6537ca8 combines the A25 checkpoint 24da38f2f54c9632aee14fdeb21b9ecbba40947a with A38 959e46d8. Both documentation histories are preserved. Before this final run, node_modules and its agent-handles package were confirmed lane-local real directories; all 29 packaged files still matched the approved tarball, and the lock integrity matched its bytes. No dependency installation or source edit intervened.
+
+Actual final commands and results, run from this isolated lane:
+
+- `npm run ci`: exit 0; 177 test files / 1361 tests passed, followed by typecheck and lint.
+- `GATESAI_E2E_DESKTOP_PORT=15553 GATESAI_E2E_WEB_LITE_PORT=15554 npm run test:e2e -- --workers=2`: exit 0; all 146 tests passed in 2.9 minutes. Real listeners ran outside the sandbox in the coordinated heavy-test window.
+- `npx vitest run --config spike-v5/vitest.config.ts`: 22 tests passed.
+- `npx tsc -p spike-v5/tsconfig.json`: exit 0.
+
+Logs are /home/ethan/.cache/tmp/astra-audit-20260905/gates-combined-ci.log, gates-combined-e2e.log, gates-combined-spike.log and gates-combined-spike-tsc.log. The earlier full 145/1 run, retained lightbox trace and focused one-test pass remain separate historical results. Trace review did not establish a cause; no speculative lightbox source or test change was made. This fresh full pass satisfies the previously pending candidate gate, not a claim that the intermittent failure has been diagnosed.
+
+The roadmap now records the verified implementation. The coordinating session owns final supported integration and push. The isolated worktree and dependencies remain available. Session end releases the actual holder's own paths; no redundant lease release follows.

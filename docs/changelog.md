@@ -3246,7 +3246,7 @@ Completed assistant messages now offer Download response (.md) beside existing m
 
 ### 2026-09-05 — Handles starting-route consumer migration
 
-Updated the vendored Handles runtime so live journey replay initializes its declared starting route before the first control. Verified the actual lane-installed package against the approved tarball, unchanged generated journeys, and real Gates /run browser behavior. No application schema or UI change. The earlier checkpoint's changelog hold ended after D20 completed; its source and documentation were preserved by merging current master into the consumer lane.
+Updated the vendored Handles runtime so live journey replay initializes its declared starting route before the first control. Verified the actual lane-installed package against the approved tarball, unchanged generated journeys, and real Gates /run browser behavior. No application schema or UI change. The earlier checkpoint's changelog hold ended after D20 completed; its source and documentation were preserved by merging current master into the consumer lane. Final combined A25+A38 candidate passed 1361 unit tests, typecheck/lint, all 146 browser tests, 22 explicit spike tests and spike TypeScript. The earlier full run with one lightbox failure and its unchanged focused pass remain historical evidence; the fresh full pass does not establish a cause.
 
 ## 2026-09-05 — A38 isolated architecture spike correctness
 
