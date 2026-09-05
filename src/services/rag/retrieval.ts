@@ -77,8 +77,10 @@ export async function rankHybrid(options: {
   const query = options.request.query.trim();
   if (!query || options.request.limit <= 0) return [];
   const all = (await options.vectorStore.activeChunks(options.model)).filter(chunk => allowed(chunk, options.request));
-  const dense = (await options.vectorStore.search(options.queryVector, options.model, RAG_CANDIDATE_POOL))
-    .filter(result => allowed(result.chunk, options.request));
+  const dense = await options.vectorStore.search(
+    options.queryVector, options.model, RAG_CANDIDATE_POOL,
+    chunk => allowed(chunk, options.request),
+  );
   const lexical = lexicalSearch(query, all, RAG_CANDIDATE_POOL);
   const fused = new Map<string, RagRetrievalResult>();
   dense.forEach((result, index) => {

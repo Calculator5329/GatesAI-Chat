@@ -3,6 +3,7 @@ import {
   RAG_CHUNK_POLICY_VERSION,
   RAG_INDEX_SCHEMA_VERSION,
   RagVectorStore,
+  type RagChunk,
   type RagIndexManifest,
 } from '../../../src/services/rag/vectorStore';
 import { MemoryRagPersistence, vectorForText } from './helpers';
@@ -76,6 +77,31 @@ describe('RagVectorStore', () => {
     }]);
     await store.search(vectorForText('beta'), 'model-a', 1);
     expect(allSpy.count).toBe(2);
+  });
+
+  it('applies eligibility before top-k without admitting inactive or incompatible chunks', async () => {
+    const store = new RagVectorStore(new MemoryRagPersistence());
+    const eligible = {
+      id: 'eligible', generationId: 'g1', sourceType: 'note' as const,
+      sourceId: 'allowed', text: 'alpha', vector: new Float32Array([0.8, 0.6, 0]),
+      updatedAt: 1, model: 'model-a',
+    };
+    await store.replaceGeneration(generation('g1', 3, 2), [
+      eligible,
+      { ...eligible, id: 'excluded', sourceId: 'excluded', vector: vectorForText('alpha') },
+    ]);
+    await store.putMany([
+      { ...eligible, id: 'inactive', generationId: 'g0', vector: vectorForText('alpha') },
+      { ...eligible, id: 'wrong-model', model: 'model-b', vector: vectorForText('alpha') },
+      { ...eligible, id: 'wrong-dimensions', vector: new Float32Array([1, 0]) },
+    ]);
+    const isEligible = (item: RagChunk) => item.sourceId === 'allowed';
+    const results = await store.search(vectorForText('alpha'), 'model-a', 1, isEligible);
+    expect(results.map(result => result.chunk.id)).toEqual(['eligible']);
+    expect(results[0].score).toBeCloseTo(0.8);
+    expect((await store.search(vectorForText('alpha'), 'model-a', 1))[0].chunk.id).toBe('excluded');
+    expect(await store.search(vectorForText('alpha'), 'model-b', 1, isEligible)).toEqual([]);
+    expect(await store.search(new Float32Array([1, 0]), 'model-a', 1, isEligible)).toEqual([]);
   });
 
   it('activates complete generations atomically and rejects dimension drift', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { retrieveHybrid } from '../../../src/services/rag/retrieval';
+import { RAG_CANDIDATE_POOL, retrieveHybrid, type RagRetrievalRequest } from '../../../src/services/rag/retrieval';
 import {
   RAG_CHUNK_POLICY_VERSION,
   RAG_INDEX_SCHEMA_VERSION,
@@ -9,6 +9,30 @@ import {
 import { FakeEmbedder, MemoryRagPersistence, vectorForText } from './helpers';
 
 describe('hybrid retrieval', () => {
+  it.each([
+    { name: 'active thread', purpose: 'automatic_context', activeThreadId: 'excluded' },
+    { name: 'excluded thread', purpose: 'automatic_context', sourcePolicy: { excludedReferences: ['thread:excluded'] } },
+    { name: 'library-only automatic context', purpose: 'automatic_context', sourcePolicy: { sourceTypes: ['library'] } },
+    { name: 'library-only semantic recall', purpose: 'explicit_recall', sourcePolicy: { sourceTypes: ['library'] } },
+  ] satisfies Array<Omit<RagRetrievalRequest, 'query' | 'limit'> & { name: string }>)('filters $name before dense candidate truncation', async ({ name: _name, ...policy }) => {
+    const eligible = {
+      ...chunk('eligible', policy.purpose === 'automatic_context' ? 'alpha launch notes' : 'launch notes'),
+      sourceType: 'library' as const,
+      vector: new Float32Array([0.8, 0.6, 0]),
+    };
+    const store = await makeStore([
+      ...Array.from({ length: RAG_CANDIDATE_POOL + 1 }, (_, index) => chunk(`excluded-${index}`, 'alpha', 'excluded', 'user')),
+      eligible,
+    ]);
+    const results = await retrieveHybrid({
+      request: { ...policy, query: 'alpha', limit: 5 },
+      model: 'model-a', embedder: new FakeEmbedder(), vectorStore: store,
+    });
+    expect(results.map(result => result.sourceId)).toEqual(['eligible']);
+    expect(results[0].denseRank).toBe(1);
+    expect(results[0].denseScore).toBeCloseTo(0.8);
+  });
+
   it('fuses lexical exact-ID and dense candidates with complete provenance', async () => {
     const store = await makeStore([
       chunk('exact', 'Ticket ORB-731 tracks resumed uploads.', 't1', 'user'),

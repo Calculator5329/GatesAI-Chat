@@ -129,7 +129,12 @@ export class RagVectorStore {
     ));
   }
 
-  async search(query: Float32Array, model: string, k: number): Promise<RagSearchResult[]> {
+  async search(
+    query: Float32Array,
+    model: string,
+    k: number,
+    isEligible?: (chunk: RagChunk) => boolean,
+  ): Promise<RagSearchResult[]> {
     const manifest = await this.activeManifest();
     if (manifest && (manifest.embeddingModel !== model || query.length !== manifest.vectorDimensions)) return [];
     const chunks = (await this.loadAll()).filter(chunk => (
@@ -141,6 +146,7 @@ export class RagVectorStore {
     ));
     const scored: RagSearchResult[] = [];
     for (const chunk of chunks) {
+      if (isEligible && !isEligible(chunk)) continue;
       const score = dot(query, chunk.vector);
       scored.push({ chunk, score });
     }
