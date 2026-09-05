@@ -8,6 +8,7 @@ import {
 import {
   loadHtmlArtifactIndex,
   nextHtmlArtifactId,
+  parseHtmlArtifactIndex,
   writeHtmlArtifactIndex,
 } from '../../../src/services/artifacts/artifactRegistry';
 import type { BridgeClientFacade } from '../../../src/services/tools/types';
@@ -96,5 +97,81 @@ describe('HTML artifact registry', () => {
 
     await expect(loadHtmlArtifactIndex(client)).rejects.toThrow('Unsupported or malformed');
     expect(wrote).toBe(false);
+  });
+});
+
+
+describe('artifact registry acquisition preservation', () => {
+  const empty = { version: HTML_ARTIFACT_REGISTRY_VERSION, artifacts: [] };
+  const entry = (name: string, kind = 'file', parent = HTML_ARTIFACT_ROOT) => ({ path: `${parent}/${name}`, name, kind, mtime: 1, size: 12 });
+  function clientFor(list: (path: string) => unknown, content?: string) {
+    const mutations: string[] = [];
+    const client: BridgeClientFacade = { async request<T>(op: string, data: unknown): Promise<T> {
+      const path = (data as { path: string }).path;
+      if (op === 'fs.read') {
+        if (content !== undefined) return { content } as T;
+        throw new Error('operation_failed: temporary permission failure');
+      }
+      if (op === 'fs.list') return list(path) as T;
+      mutations.push(op);
+      return {} as T;
+    } };
+    return { client, mutations };
+  }
+
+  it('preserves an unreadable index when listings also fail or the index is visible', async () => {
+    for (const listing of [() => { throw new Error('operation_failed'); },
+      (path: string) => ({ path, entries: [entry('index.json')] })]) {
+      const { client, mutations } = clientFor(listing);
+      await expect(loadHtmlArtifactIndex(client)).rejects.toThrow();
+      expect(mutations).toEqual([]);
+    }
+  });
+
+  it.each([undefined, {}, { path: HTML_ARTIFACT_ROOT, entries: [] , truncated: true },
+    { path: HTML_ARTIFACT_ROOT, entries: 'broken' },
+    { path: HTML_ARTIFACT_ROOT, entries: [{ name: 'legacy.html' }] },
+    { path: HTML_ARTIFACT_ROOT, entries: [entry('same.html'), entry('same.html')] },
+  ])('refuses malformed or truncated listing without migration (%j)', async listing => {
+    const { client, mutations } = clientFor(() => listing);
+    await expect(loadHtmlArtifactIndex(client)).rejects.toThrow();
+    expect(mutations).toEqual([]);
+  });
+
+  it.each(['/workspace/artifacts', '/workspace'])('initializes only after complete parent %s proves the child absent', async parent => {
+    const { client, mutations } = clientFor(path => {
+      if (path !== parent) throw new Error('operation_failed');
+      return { path: path === '/workspace' ? '/workspace/.' : path, entries: [] };
+    });
+    await expect(loadHtmlArtifactIndex(client)).resolves.toEqual(empty);
+    expect(mutations).toEqual(['fs.mkdir', 'fs.write']);
+  });
+
+  it('refuses when the unreadable child remains present in its parent', async () => {
+    const { client, mutations } = clientFor(path => {
+      if (path === HTML_ARTIFACT_ROOT) throw new Error('operation_failed');
+      return { path, entries: [entry('html', 'dir', '/workspace/artifacts')] };
+    });
+    await expect(loadHtmlArtifactIndex(client)).rejects.toThrow('still exists');
+    expect(mutations).toEqual([]);
+  });
+
+  it.each(['My Chart.html', 'chart.htm', 'chart.HTML'])('preserves noncanonical legacy filename %s', async name => {
+    const { client, mutations } = clientFor(path => ({ path, entries: [entry(name)] }));
+    await expect(loadHtmlArtifactIndex(client)).rejects.toThrow('Legacy HTML filenames');
+    expect(mutations).toEqual([]);
+  });
+
+  it('refuses existing empty content but accepts an explicit empty registry', async () => {
+    const { client, mutations } = clientFor(() => { throw new Error('unexpected listing'); }, '  ');
+    await expect(loadHtmlArtifactIndex(client)).rejects.toThrow('index is empty');
+    expect(mutations).toEqual([]);
+    expect(parseHtmlArtifactIndex(JSON.stringify(empty))).toEqual(empty);
+  });
+
+  it('keeps confirmed indexless listing read-only when migration is disabled', async () => {
+    const { client, mutations } = clientFor(path => ({ path, entries: [entry('chart-1.html')] }));
+    expect((await loadHtmlArtifactIndex(client, { migrate: false })).artifacts[0].id).toBe('chart-1');
+    expect(mutations).toEqual([]);
   });
 });

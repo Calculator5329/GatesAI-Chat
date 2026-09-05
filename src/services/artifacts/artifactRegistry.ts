@@ -8,9 +8,10 @@ import {
   type HtmlArtifactIndex,
   type HtmlArtifactRecord,
   isHtmlArtifactId,
+  htmlArtifactPath,
   sanitizeHtmlArtifactTitle,
 } from '../../core/htmlArtifacts';
-import type { FsListResp, FsReadResp } from '../../core/workspace';
+import type { FsEntry, FsListResp, FsReadResp } from '../../core/workspace';
 import type { BridgeClientFacade } from '../tools/types';
 import { isRecord } from '../../core/guards';
 
@@ -25,7 +26,8 @@ export async function loadHtmlArtifactIndex(
       encoding: 'utf8',
     });
   } catch {
-    const migrated = await migrateIndexlessFolder(client, options.threadId ?? 'unknown');
+    const listing = await observeIndexlessFolder(client);
+    const migrated = migrateIndexlessFolder(listing, options.threadId ?? 'unknown');
     if (options.migrate !== false) await writeHtmlArtifactIndex(client, migrated);
     return migrated;
   }
@@ -45,9 +47,7 @@ export async function writeHtmlArtifactIndex(
 }
 
 export function parseHtmlArtifactIndex(raw: string): HtmlArtifactIndex {
-  // A registry file that exists but is empty (a fresh or interrupted write)
-  // is an empty index, not a malformed one.
-  if (raw.trim() === '') return { version: HTML_ARTIFACT_REGISTRY_VERSION, artifacts: [] };
+  if (raw.trim() === '') throw new Error('HTML artifact index is empty. Preserve it and restore a valid registry before retrying.');
   const parsed = JSON.parse(raw) as unknown;
   if (!isRecord(parsed) || parsed.version !== HTML_ARTIFACT_REGISTRY_VERSION || !Array.isArray(parsed.artifacts)) {
     throw new Error('Unsupported or malformed HTML artifact index.');
@@ -69,38 +69,60 @@ export function nextHtmlArtifactId(title: string, records: readonly HtmlArtifact
   return `${slug}-${suffix}`;
 }
 
-async function migrateIndexlessFolder(
-  client: BridgeClientFacade,
-  threadId: string,
-): Promise<HtmlArtifactIndex> {
-  let listing: FsListResp;
-  try {
-    listing = await client.request<FsListResp>('fs.list', { path: HTML_ARTIFACT_ROOT, recursive: false });
-  } catch {
-    return { version: HTML_ARTIFACT_REGISTRY_VERSION, artifacts: [] };
+
+function completeListing(listing: FsListResp, path: string): FsEntry[] {
+  const names = new Set<string>();
+  if (!isRecord(listing) || (listing.path === '/workspace/.' ? '/workspace' : listing.path) !== path
+    || !Array.isArray(listing.entries) || (listing.truncated !== undefined && listing.truncated !== false)) {
+    throw new Error('HTML artifact listing is incomplete or malformed; existing files are preserved.');
   }
-  const usedIds = new Set<string>();
-  const artifacts = (Array.isArray(listing.entries) ? listing.entries : [])
+  for (const entry of listing.entries) {
+    if (!isRecord(entry) || typeof entry.name !== 'string' || !entry.name
+      || entry.name === '.' || entry.name === '..' || /[/\\]/.test(entry.name)
+      || entry.path !== `${path}/${entry.name}` || !['file', 'dir'].includes(entry.kind)
+      || typeof entry.mtime !== 'number' || !Number.isFinite(entry.mtime)
+      || (entry.size !== undefined && (typeof entry.size !== 'number' || !Number.isFinite(entry.size) || entry.size < 0))
+      || names.has(entry.name)) {
+      throw new Error('HTML artifact listing entries are malformed; existing files are preserved.');
+    }
+    names.add(entry.name);
+  }
+  return listing.entries;
+}
+
+async function observeIndexlessFolder(client: BridgeClientFacade): Promise<FsEntry[]> {
+  let path = HTML_ARTIFACT_ROOT;
+  let missingChild: string | undefined;
+  while (true) {
+    let listing: FsListResp;
+    try {
+      listing = await client.request<FsListResp>('fs.list', { path, recursive: false });
+    } catch (error) {
+      if (path === '/workspace') throw error;
+      // A failed child read only permits inspecting its parent, never writing.
+      missingChild = path.slice(path.lastIndexOf('/') + 1);
+      path = path.slice(0, path.lastIndexOf('/'));
+      continue;
+    }
+    const entries = completeListing(listing, path);
+    const present = entries.some(entry => entry.name === (missingChild ?? 'index.json'));
+    if (present) throw new Error('HTML artifact registry could not be read; its path still exists. Existing files are preserved.');
+    return missingChild ? [] : entries;
+  }
+}
+
+function migrateIndexlessFolder(entries: FsEntry[], threadId: string): HtmlArtifactIndex {
+  const artifacts = entries
     .filter(entry => entry.kind === 'file' && /\.html?$/i.test(entry.name))
     .map(entry => {
-      const rawId = entry.name.replace(/\.html?$/i, '');
-      const baseId = isHtmlArtifactId(rawId) ? rawId : sanitizeHtmlArtifactTitle(rawId);
-      let id = baseId;
-      let suffix = 2;
-      while (usedIds.has(id)) {
-        id = `${baseId}-${suffix}`;
-        suffix += 1;
+      const id = entry.name.replace(/\.html?$/i, '');
+      if (!isHtmlArtifactId(id) || entry.path !== htmlArtifactPath(id)) {
+        throw new Error('Legacy HTML filenames do not match registry IDs. Preserve the files and resolve their names before migrating.');
       }
-      usedIds.add(id);
       const timestamp = safeIso(entry.mtime);
       return {
-        id,
-        title: titleFromId(id),
-        threadId,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        revision: 1,
-        sizeBytes: entry.size ?? 0,
+        id, title: titleFromId(id), threadId, createdAt: timestamp, updatedAt: timestamp,
+        revision: 1, sizeBytes: entry.size ?? 0,
       } satisfies HtmlArtifactRecord;
     });
   return { version: HTML_ARTIFACT_REGISTRY_VERSION, artifacts };

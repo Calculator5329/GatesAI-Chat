@@ -897,6 +897,17 @@ describe('workspace tool', () => {
 });
 
 describe('artifact tool', () => {
+  it.each(['list_artifacts', 'create_html_artifact', 'update_html_artifact'])('preserves unavailable registry for %s without any mutation', async action => {
+    const requests: FakeRequest[] = [];
+    const bridge = fakeBridge({ online: true, requests, respond: () => { throw new Error('operation_failed: temporary permission error'); } });
+    const out = await toolRegistry.execute('artifact', {
+      action, title: 'Existing', id: 'existing-1', content: '<!doctype html><html><body>keep</body></html>',
+    }, makeCtx({ bridge }));
+    expect(out.ok).toBe(false);
+    expect(requests[0]?.op).toBe('fs.read');
+    expect(requests.every(request => request.op === 'fs.read' || request.op === 'fs.list')).toBe(true);
+  });
+
   it('creates an HTML artifact and validates it before returning success', async () => {
     const requests: FakeRequest[] = [];
     const files = new Map<string, string>();
@@ -905,6 +916,7 @@ describe('artifact tool', () => {
       requests,
       respond: (op, data) => {
         const path = (data as { path?: string }).path ?? '';
+        if (op === 'fs.list') return { path, entries: [] };
         if (op === 'fs.mkdir') return { path };
         if (op === 'fs.write') {
           const content = (data as { content: string }).content;
@@ -947,7 +959,7 @@ describe('artifact tool', () => {
           if (content == null) throw new Error(`missing ${request.path}`);
           return { path: request.path, content, encoding: 'utf8', size: content.length, mime: 'text/plain' };
         }
-        if (op === 'fs.list') throw new Error('missing directory');
+        if (op === 'fs.list') return { path: request.path, entries: [] };
         if (op === 'fs.mkdir') return { path: request.path };
         if (op === 'fs.write') {
           files.set(request.path, request.content ?? '');
@@ -1017,7 +1029,8 @@ describe('artifact tool', () => {
       online: true,
       requests,
       respond: (op) => {
-        if (op === 'fs.read' || op === 'fs.list') throw new Error('missing registry');
+        if (op === 'fs.read') throw new Error('missing registry');
+        if (op === 'fs.list') return { path: HTML_ARTIFACT_ROOT, entries: [] };
         return {};
       },
     });
