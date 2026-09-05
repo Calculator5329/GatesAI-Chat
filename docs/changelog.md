@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-09-04 — v5 architecture spike (`spike-v5/`)
+
+- Built one vertical slice of the incubator's v5 design in a new `spike-v5/`
+  directory: a single chat turn through transport (OpenAI-wire SSE over an
+  injected `fetch`), a pure domain (immutable conversation, ports, one turn
+  use case, one event union) and a persistence adapter (versioned records with
+  a v1→v2 migration), plus a composition root and a narrow `TurnPlugin`
+  extension seam. 1,050 production lines across 9 files. No existing
+  application code, dependency or config was touched, and nothing under `src/`
+  imports it.
+- `spike-v5/tests/turnRoundTrip.test.ts` covers seven behaviors through the
+  public seam — happy-path stream, deltas split across byte boundaries, HTTP
+  429, mid-stream abort keeping the partial reply, an extension decorating the
+  request, a v1 record migrated and continued, and a rejected concurrent turn.
+  Run it with `npx vitest run --config spike-v5/vitest.config.ts`; it uses the
+  installed vitest under `environment: 'node'` and adds no dependency. **The
+  suite was not executed in the authoring lane** — every runner invocation was
+  refused by that run's command sandbox — so no timing is claimed on either
+  side.
+- `spike-v5/FINDINGS.md` records the measured comparison against the v4 turn
+  path (`ChatStore` → `ChatTurnEngine` → `TurnRunner` →
+  `StreamingRoundExecutor` → `OpenAiCompatProvider` → `parseSse` →
+  `ChatPersistenceCoordinator`): 25 files / 6,733 lines and 53 interface
+  members across 8 seams, against 9 files / 1,050 lines and 10 members across
+  6 ports. Verdict is **adapt** — adopt the layering, drop the design's
+  "extract the core and keep the tests" premise, and spike the tool round
+  before committing. The spike is disposable and should be deleted or archived
+  once the decision is recorded.
+
 ## 2026-09-05 — Artifact registry preservation
 
 - Verification: 1,347 tests, typecheck, lint and all 144 browser checks passed after merging A30; two browser workers and zero retries.
