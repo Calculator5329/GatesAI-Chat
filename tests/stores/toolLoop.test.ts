@@ -37,6 +37,19 @@ class ScriptedProvider {
   }
 }
 
+const activeChats: ChatStore[] = [];
+
+function trackChat(chat: ChatStore): ChatStore {
+  activeChats.push(chat);
+  return chat;
+}
+
+function disposeActiveChats(): void {
+  while (activeChats.length > 0) {
+    activeChats.pop()?.dispose();
+  }
+}
+
 function setupScripted(script: Array<Array<import('../../src/core/llm').LlmChunk>>) {
   clearAppStorage();
   const registry = new ModelRegistry();
@@ -44,13 +57,18 @@ function setupScripted(script: Array<Array<import('../../src/core/llm').LlmChunk
   const profile = new UserProfileStore();
   const mock = new ScriptedProvider(script);
   installMockProvider(providers, mock as unknown as MockProvider);
-  const chat = new ChatStore(providers, registry, profile);
+  const chat = trackChat(new ChatStore(providers, registry, profile));
   return { registry, providers, profile, mock, chat };
 }
 
 describe('Tool loop — scripted', () => {
   beforeEach(() => clearAppStorage());
-  afterEach(() => clearAppStorage());
+  afterEach(() => {
+    // Release each store's persistence autorun and unload listeners before the
+    // resetting the shared synthetic storage.
+    disposeActiveChats();
+    clearAppStorage();
+  });
 
   it('memory(add): executes tool, mutates bio, appends tool message, and finishes with a final reply', async () => {
     const { chat, mock, profile } = setupScripted([

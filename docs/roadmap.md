@@ -1,5 +1,12 @@
 # Roadmap
 
+- [x] **Dispose every `ChatStore` the tool-loop test file creates.** Reuse the
+      `trackChat`/`disposeActiveChats` pattern from `tests/stores/ChatStore.test.ts`
+      so `tests/stores/toolLoop.test.ts` releases each store's persistence
+      autorun and window listeners before its storage reset. Verified2026-09-05: CI1385tests/typecheck/lint and146browser tests passed;
+      all23original test bodies/assertions unchanged.
+      [Design](designs/tool-loop-test-disposal-20260905.md).
+
 - [x] <!-- workspace:id=work:6575d305-45b5-5914-a6f0-7240168ec5d9 --> **A55 — guard workspace hydration publication across follower, root and lifetime changes.** *(2026-09-05 — current follower reads preserved; stale/disposed/ABA publication refused. CI 1385 and full E2E 146 passed; isolated candidate, integration tracked separately.)*
 
 - [x] <!-- workspace:id=work:fa8b1d56-2ac1-55da-b9a5-2f6fdfb16e86 --> Preserve unreadable artifact indexes; require complete listing proof of absence before initialization and retain unsafe legacy filenames. *(2026-09-05; 1347 tests, typecheck, lint and all 144 browser checks passed. See docs/design-artifact-registry-preservation-20260905.md.)*

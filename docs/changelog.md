@@ -1,6 +1,10 @@
 # Changelog
 
 
+## 2026-09-05 — Tool-loop test store disposal
+
+`tests/stores/toolLoop.test.ts` now tracks each `ChatStore` it builds and disposes them in its existing `afterEach`, before `clearAppStorage()`, reusing the `trackChat`/`disposeActiveChats` pattern from `tests/stores/ChatStore.test.ts`. `setupScripted` was the file's only construction site and nothing released the persistence autorun or the `pagehide`/`beforeunload` listeners that `ChatPersistenceCoordinator.start()` installs. Test-only change; no production edit, all original titles and assertions retained. No memory/CPU measurement and no cross-test pollution repro is claimed. Parent verification: all23original test bodies/assertions unchanged; CI passed1385tests plus typecheck/lint, and all146browser tests passed. Details in `designs/tool-loop-test-disposal-20260905.md`.
+
 ## 2026-09-05 — Workspace hydration authority
 
 Workspace hydration keeps current follower reads in memory while guarding shared publication with the current lifetime/leadership generation. Each privileged mutation rechecks permission, and RootStore reconciles changed contexts without retrying unchanged failures. Stale completions cannot change memory. Verification: CI passed 1385 tests plus typecheck/lint; full E2E passed 146 tests. Details in `designs/workspace-hydration-authority-20260905.md`.
