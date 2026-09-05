@@ -12,12 +12,45 @@ export const WORKSPACE_CHAT_LIBRARY_DIR = '/workspace/chat-history';
 export const WORKSPACE_CHAT_LIBRARY_INDEX_PATH = `${WORKSPACE_CHAT_LIBRARY_DIR}/index.html`;
 const WORKSPACE_CHAT_LIBRARY_CONVERSATIONS_DIR = `${WORKSPACE_CHAT_LIBRARY_DIR}/conversations`;
 
-// Save both the machine-readable snapshot and a browsable library. The HTML/MD
-// mirror is best-effort so corrupt rendering never blocks the canonical state.
-export async function saveReadableChatLibrary(client: BridgeClientFacade, snapshot: ChatSnapshot, savedAt: string): Promise<void> {
+interface ReadableConversationPair {
+  html: string;
+  markdown: string;
+  savedAt: string;
+}
+
+export interface ReadableLibraryCache {
+  entries: Map<string, ReadableConversationPair>;
+  epoch?: number;
+  getConnectionEpoch(): number | undefined;
+}
+
+// The HTML/MD mirror is best-effort so corrupt rendering never blocks the
+// canonical snapshot. Cached Saved timestamps describe successful pair writes.
+export async function saveReadableChatLibrary(client: BridgeClientFacade, snapshot: ChatSnapshot, savedAt: string, cache?: ReadableLibraryCache): Promise<void> {
   try {
     await client.request('fs.mkdir', { path: WORKSPACE_CHAT_LIBRARY_DIR });
     await client.request('fs.mkdir', { path: WORKSPACE_CHAT_LIBRARY_CONVERSATIONS_DIR });
+    const epoch = cache?.getConnectionEpoch();
+    if (cache && (epoch === undefined || cache.epoch !== epoch)) cache.entries.clear();
+    let present: Set<string> | undefined;
+    if (cache && epoch !== undefined) {
+      try {
+        const listing = await client.request<{ path?: unknown; entries?: unknown; truncated?: unknown }>('fs.list', {
+          path: WORKSPACE_CHAT_LIBRARY_CONVERSATIONS_DIR,
+        });
+        if (listing.path === WORKSPACE_CHAT_LIBRARY_CONVERSATIONS_DIR
+          && (listing.truncated === undefined || listing.truncated === false)
+          && Array.isArray(listing.entries)
+          && listing.entries.every(entry => entry && typeof entry.path === 'string' && typeof entry.kind === 'string')) {
+          present = new Set(listing.entries.filter(entry => entry.kind === 'file').map(entry => entry.path as string));
+        }
+      } catch {
+        // A failed acquisition cannot establish cache eligibility. Known current
+        // paths still receive the ordinary best-effort full projection below.
+      }
+      if (!present) cache.entries.clear();
+    }
+    const nextEntries = new Map<string, ReadableConversationPair>();
     const threads = snapshot.threads
       .filter(thread => thread.deletedAt == null)
       .sort((a, b) => b.updatedAt - a.updatedAt);
@@ -25,6 +58,13 @@ export async function saveReadableChatLibrary(client: BridgeClientFacade, snapsh
       thread,
       baseName: conversationFileBaseName(thread),
     }));
+
+    const seenNames = new Set<string>();
+    const collidingNames = new Set<string>();
+    for (const { baseName } of entries) {
+      if (seenNames.has(baseName)) collidingNames.add(baseName);
+      seenNames.add(baseName);
+    }
 
     await client.request('fs.write', {
       path: WORKSPACE_CHAT_LIBRARY_INDEX_PATH,
@@ -35,18 +75,38 @@ export async function saveReadableChatLibrary(client: BridgeClientFacade, snapsh
     for (const entry of entries) {
       const htmlPath = `${WORKSPACE_CHAT_LIBRARY_CONVERSATIONS_DIR}/${entry.baseName}.html`;
       const markdownPath = `${WORKSPACE_CHAT_LIBRARY_CONVERSATIONS_DIR}/${entry.baseName}.md`;
+      // Colliding names share a destination: preserve ordered last-write behavior.
+      const previous = collidingNames.has(entry.baseName) ? undefined : cache?.entries.get(entry.baseName);
+      if (previous && present?.has(htmlPath) && present.has(markdownPath)
+        && cache?.getConnectionEpoch() === epoch
+        && renderConversationHtml(entry.thread, previous.savedAt) === previous.html
+        && renderConversationMarkdown(entry.thread, previous.savedAt) === previous.markdown) {
+        nextEntries.set(entry.baseName, previous);
+        continue;
+      }
+      const pair = {
+        html: renderConversationHtml(entry.thread, savedAt),
+        markdown: renderConversationMarkdown(entry.thread, savedAt),
+        savedAt,
+      };
       await client.request('fs.write', {
         path: htmlPath,
-        content: renderConversationHtml(entry.thread, savedAt),
+        content: pair.html,
         encoding: 'utf8',
       });
       await client.request('fs.write', {
         path: markdownPath,
-        content: renderConversationMarkdown(entry.thread, savedAt),
+        content: pair.markdown,
         encoding: 'utf8',
       });
+      if (!collidingNames.has(entry.baseName)) nextEntries.set(entry.baseName, pair);
+    }
+    if (cache) {
+      cache.entries = present && cache.getConnectionEpoch() === epoch ? nextEntries : new Map();
+      cache.epoch = epoch;
     }
   } catch (err) {
+    cache?.entries.clear();
     logger.warn('persistence', 'failed to save readable chat history library', err);
   }
 }

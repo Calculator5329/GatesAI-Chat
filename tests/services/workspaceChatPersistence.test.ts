@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChatSnapshot } from '../../src/core/types';
 import type { BridgeClientFacade } from '../../src/services/tools/types';
 import {
@@ -197,6 +197,203 @@ describe('workspace chat persistence', () => {
 
   });
 });
+
+describe('incremental readable library', () => {
+  afterEach(() => vi.useRealTimers());
+  it('skips unchanged pairs and rewrites an edit without updatedAt changing', async () => {
+    const bridge = measuredBridge();
+    const persistence = createWorkspaceChatPersistence(bridge);
+    const snapshot = sampleSnapshot('t1', 'Visible thread');
+    await persistence.save(snapshot);
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(bridge.writes.filter(path => path.includes('/conversations/'))).toEqual([]);
+    snapshot.threads[0].messages[0].parts = [{ type: 'text', text: 'edited with same timestamp' }];
+    await persistence.save(snapshot);
+    expect(bridge.writes.filter(path => path.includes('/conversations/'))).toHaveLength(2);
+  });
+  it('preserves last-write behavior when thread names collide after path normalization', async () => {
+    const bridge = measuredBridge();
+    const persistence = createWorkspaceChatPersistence(bridge);
+    const snapshot = sampleSnapshot('A', 'Same');
+    snapshot.threads[0].messages[0].parts = [{ type: 'text', text: 'FIRST THREAD' }];
+    const second = sampleSnapshot('a', 'Same').threads[0];
+    second.messages[0].parts = [{ type: 'text', text: 'SECOND THREAD' }];
+    snapshot.threads.push(second);
+    await persistence.save(snapshot);
+    const path = '/workspace/chat-history/conversations/same-a.md';
+    expect(bridge.files.get(path)).toContain('SECOND THREAD');
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(bridge.files.get(path)).toContain('SECOND THREAD');
+    expect(bridge.files.get(path)).not.toContain('FIRST THREAD');
+    expect(conversationWrites(bridge)).toHaveLength(4);
+  });
+
+  it('keeps the pair write timestamp while refreshing the index and detects nested attachment changes', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-05T10:00:00Z'));
+    const bridge = measuredBridge();
+    const persistence = createWorkspaceChatPersistence(bridge);
+    const snapshot = sampleSnapshot('t1', 'Visible thread');
+    await persistence.save(snapshot);
+    const path = '/workspace/chat-history/conversations/visible-thread-t1.md';
+    const original = bridge.files.get(path);
+    vi.setSystemTime(new Date('2026-09-05T10:01:00Z'));
+    await persistence.save(snapshot);
+    expect(bridge.files.get(path)).toBe(original);
+    expect(bridge.files.get(WORKSPACE_CHAT_LIBRARY_INDEX_PATH)).toContain('2026-09-05T10:01:00.000Z');
+    snapshot.threads[0].messages[0].parts = userMessageParts('hello', [{
+      name: 'notes.txt', mime: 'text/plain', size: 10, path: '/workspace/attachments/notes.txt',
+    }]);
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(2);
+    expect(bridge.files.get(path)).toContain('2026-09-05T10:01:00.000Z');
+    expect(bridge.files.get(path)).toContain('notes.txt');
+    bridge.writes.length = 0;
+    vi.setSystemTime(new Date('2026-09-06T10:01:00Z'));
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(2);
+  });
+
+  it('detects nested tool result edits and does not claim integrity of external edits', async () => {
+    const bridge = measuredBridge();
+    const persistence = createWorkspaceChatPersistence(bridge);
+    const snapshot = sampleSnapshot('t1', 'Visible thread');
+    snapshot.threads[0].messages.push({
+      id: 'm2', role: 'assistant', createdAt: 4,
+      parts: assistantMessageParts({ text: 'Generated', toolResults: [{
+        toolCallId: 'c1', toolName: 'generate', content: 'before', ranAt: 5,
+        artifacts: [{ kind: 'image', path: '/workspace/artifacts/before.png', mime: 'image/png' }],
+      }] }),
+    });
+    await persistence.save(snapshot);
+    const path = '/workspace/chat-history/conversations/visible-thread-t1.md';
+    bridge.files.set(path, 'external edit');
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(0);
+    expect(bridge.files.get(path)).toBe('external edit');
+    const result = snapshot.threads[0].messages[1].parts?.find(part => part.type === 'tool');
+    if (!result || result.type !== 'tool' || !result.result) throw new Error('expected tool result');
+    result.result.content = 'after';
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(2);
+    expect(bridge.files.get(path)).toContain('after');
+  });
+
+  it('refreshes missing pairs, connection changes, and new workspace instances', async () => {
+    const bridge = measuredBridge();
+    const persistence = createWorkspaceChatPersistence(bridge);
+    const snapshot = sampleSnapshot('t1', 'Visible thread');
+    await persistence.save(snapshot);
+    bridge.files.delete('/workspace/chat-history/conversations/visible-thread-t1.md');
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(2);
+    bridge.connectionEpoch++;
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(2);
+    bridge.writes.length = 0;
+    await createWorkspaceChatPersistence(bridge).save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(2);
+  });
+
+  it.each(['failed', 'truncated', 'malformed'] as const)('does not promote cache after a %s listing', async mode => {
+    const bridge = measuredBridge();
+    const persistence = createWorkspaceChatPersistence(bridge);
+    const snapshot = sampleSnapshot('t1', 'Visible thread');
+    await persistence.save(snapshot);
+    bridge.listingMode = mode;
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(2);
+    bridge.listingMode = 'complete';
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(2);
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(0);
+  });
+
+  it('clears all entries after partial writes and never promotes across an epoch change', async () => {
+    const bridge = measuredBridge();
+    const persistence = createWorkspaceChatPersistence(bridge);
+    const snapshot = sampleSnapshot('t1', 'Visible thread');
+    snapshot.threads.push(sampleSnapshot('t2', 'Second').threads[0]);
+    await persistence.save(snapshot);
+    snapshot.threads[0].title = 'Changed';
+    bridge.failWrite = '/workspace/chat-history/conversations/changed-t1.md';
+    await expect(persistence.save(snapshot)).resolves.toBeUndefined();
+    expect(bridge.files.get(WORKSPACE_CHAT_STATE_PATH)).toContain('Changed');
+    bridge.failWrite = undefined;
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(4);
+    bridge.bumpEpochOnWrite = true;
+    await persistence.save(snapshot);
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(4);
+  });
+
+  it('keeps unknown facades uncached and leaves retired names in place', async () => {
+    const bridge = measuredBridge();
+    const facade = { request: bridge.request.bind(bridge) };
+    const persistence = createWorkspaceChatPersistence(facade);
+    const snapshot = sampleSnapshot('t1', 'Old');
+    await persistence.save(snapshot);
+    bridge.writes.length = 0;
+    await persistence.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(2);
+    const cached = createWorkspaceChatPersistence(bridge);
+    await cached.save(snapshot);
+    snapshot.threads[0].title = 'New';
+    await cached.save(snapshot);
+    expect(bridge.files.has('/workspace/chat-history/conversations/old-t1.md')).toBe(true);
+    snapshot.threads[0].deletedAt = 4;
+    bridge.writes.length = 0;
+    await cached.save(snapshot);
+    expect(conversationWrites(bridge)).toHaveLength(0);
+    expect(bridge.files.get(WORKSPACE_CHAT_LIBRARY_INDEX_PATH)).not.toContain('new-t1.html');
+    expect(bridge.files.has('/workspace/chat-history/conversations/new-t1.md')).toBe(true);
+  });
+
+});
+
+function measuredBridge() {
+  const base = memoryBridge();
+  const writes: string[] = [];
+  return {
+    ...base,
+    connectionEpoch: 1,
+    writes,
+    listingMode: 'complete' as 'complete' | 'failed' | 'truncated' | 'malformed',
+    failWrite: undefined as string | undefined,
+    bumpEpochOnWrite: false,
+    async request<T = unknown>(op: string, data: unknown): Promise<T> {
+      if (op === 'fs.list') {
+        if (this.listingMode === 'failed') throw new Error('injected listing failure');
+        if (this.listingMode === 'truncated') return { path: '/workspace/chat-history/conversations', entries: [], truncated: true } as T;
+        if (this.listingMode === 'malformed') return { entries: null } as T;
+      }
+      if (op === 'fs.write') {
+        const path = (data as { path: string }).path;
+        writes.push(path);
+        if (this.bumpEpochOnWrite && path === WORKSPACE_CHAT_LIBRARY_INDEX_PATH) { this.connectionEpoch++; this.bumpEpochOnWrite = false; }
+        if (path === this.failWrite) throw new Error('injected write failure');
+      }
+      return base.request<T>(op, data);
+    },
+  };
+}
+
+function conversationWrites(bridge: { writes: string[] }) {
+  return bridge.writes.filter(path => path.includes('/conversations/'));
+}
 
 function sampleSnapshot(id: string, title: string): ChatSnapshot {
   return {

@@ -88,6 +88,10 @@ export class BridgeClient {
   private readonly url: string;
   private readonly pending = new Map<string, Pending>();
   private nextId = 1;
+  private openedConnectionEpoch = 0;
+
+  /** Successful socket incarnation; idempotent connect calls keep this value. */
+  get connectionEpoch(): number { return this.openedConnectionEpoch; }
   private connectingPromise: Promise<void> | null = null;
   private handshakeWaiter: ((protocolVersion: number) => void) | null = null;
 
@@ -120,6 +124,7 @@ export class BridgeClient {
 
       ws.onopen = () => {
         if (settled) return;
+        this.openedConnectionEpoch += 1;
         settled = true;
         clearTimeout(timer);
         resolve();
