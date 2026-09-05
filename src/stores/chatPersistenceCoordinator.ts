@@ -12,7 +12,6 @@ import { autorun } from 'mobx';
 import type { ChatSnapshot, Thread } from '../core/types';
 import {
   flushPendingSnapshot,
-  saveSnapshot,
   scheduleSaveSnapshot,
 } from '../services/persistence';
 import { logger } from '../services/diagnostics/logger';
@@ -107,6 +106,7 @@ export class ChatPersistenceCoordinator {
   /** Pause all writes (multi-tab conflict). `resume()` re-enables them. */
   pause(): void {
     this.paused = true;
+    this.pendingWorkspaceSnap = null;
   }
 
   resume(): void {
@@ -124,50 +124,37 @@ export class ChatPersistenceCoordinator {
    * flushes any pending save.
    */
   start(): void {
-    let lastSaveAt = 0;
-    let pendingSnap: ChatSnapshot | null = null;
+    let lastRunAt: number | null = null;
+    let pendingRun: (() => void) | null = null;
     let pendingTimer: ReturnType<typeof setTimeout> | null = null;
-    const flush = (): void => {
-      if (pendingTimer) {
-        clearTimeout(pendingTimer);
-        pendingTimer = null;
-      }
-      if (pendingSnap) {
-        this.schedule(pendingSnap);
-        lastSaveAt = Date.now();
-        pendingSnap = null;
+    const flushReaction = (): void => {
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+      const run = pendingRun;
+      pendingRun = null;
+      if (run) {
+        lastRunAt = Date.now();
+        run();
       }
     };
     const stopPersistAutorun = autorun(() => {
       const snap = this.getSnapshot();
-      // Subscribe to nested thread/message fields. `snapshot` only tracks the
-      // threads array + activeThreadId, so without this an appended message or
-      // streamed token would never trigger a save (the bug where a single fresh
-      // conversation was lost on reload). The throttle below still bounds how
-      // often we actually write.
+      // Keep every nested dependency, but perform the expensive observation
+      // only when the same leading/trailing save window admits this reaction.
       trackSnapshotDeep(snap.threads);
-      const now = Date.now();
-      const elapsed = now - lastSaveAt;
-      if (elapsed >= FLUSH_MS) {
-        if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
-        pendingSnap = null;
-        this.schedule(snap);
-        lastSaveAt = now;
-        return;
-      }
-      pendingSnap = snap;
-      if (pendingTimer) return;
-      pendingTimer = setTimeout(flush, FLUSH_MS - elapsed);
+      this.schedule(snap);
+    }, {
+      scheduler: run => {
+        pendingRun = run;
+        const remaining = lastRunAt === null ? 0 : FLUSH_MS - (Date.now() - lastRunAt);
+        if (remaining <= 0) flushReaction();
+        else pendingTimer = setTimeout(flushReaction, remaining);
+      },
     });
     let removeUnloadListeners = (): void => {};
     const syncFlush = (): void => {
-      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
-      if (pendingSnap && !this.paused) {
-        saveSnapshot(pendingSnap);
-        this.scheduleWorkspaceSnapshotSave(pendingSnap);
-        lastSaveAt = Date.now();
-        pendingSnap = null;
-      }
+      // MobX's runner does nothing after disposal. Drain while it can still
+      // observe the latest nested fields AND a replaced snapshot/thread array.
+      flushReaction();
       if (!this.paused) flushPendingSnapshot();
     };
     if (typeof window !== 'undefined') {
@@ -181,8 +168,8 @@ export class ChatPersistenceCoordinator {
       };
     }
     this.cleanup = (): void => {
-      stopPersistAutorun();
       syncFlush();
+      stopPersistAutorun();
       removeUnloadListeners();
     };
   }
@@ -207,14 +194,14 @@ export class ChatPersistenceCoordinator {
   }
 
   private scheduleWorkspaceSnapshotSave(snapshot: ChatSnapshot): void {
-    if (!this.workspaceReady || !this.workspacePersistence) return;
+    if (this.paused || !this.workspaceReady || !this.workspacePersistence) return;
     this.pendingWorkspaceSnap = snapshot;
     if (this.workspaceSaveInFlight) return;
     this.drainWorkspaceSnapshotSave();
   }
 
   private drainWorkspaceSnapshotSave(): void {
-    if (!this.workspacePersistence || !this.pendingWorkspaceSnap) return;
+    if (this.paused || !this.workspacePersistence || !this.pendingWorkspaceSnap) return;
     const snap = this.pendingWorkspaceSnap;
     this.pendingWorkspaceSnap = null;
     this.workspaceSaveInFlight = true;
