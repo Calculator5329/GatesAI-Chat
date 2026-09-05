@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-05: First-failure browser traces
+
+- Local Playwright runs retain traces on failure, including the first attempt with zero retries. CI keeps on-first-retry tracing; retry counts, workers and timeouts are unchanged.
+- An intentionally failing isolated browser probe produced zero traces under the previous setting and one valid trace ZIP under the new setting. Required verification with both changes present passed all 1328 unit tests, typecheck, lint, and 144 browser tests. [Diagnostic evidence](design-embedding-reuse-20260905.md).
+
 ## 2026-09-05: Exact local embedding reuse
 
 - Automatic indexing embeds only changed effective inputs, including neighboring-message and title/path context. Exact optional input metadata on derived chunks permits reuse after restart; older records refresh safely. Metadata-only changes and source removal reuse vectors without an embedding call. Source fingerprints no longer authorize skipping work.

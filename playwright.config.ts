@@ -28,7 +28,7 @@ export default defineConfig({
   // 5 s default when several workers boot at once.
   expect: { timeout: 10_000 },
   use: {
-    trace: 'on-first-retry',
+    trace: isCI ? 'on-first-retry' : 'retain-on-failure',
   },
   projects: [
     {
