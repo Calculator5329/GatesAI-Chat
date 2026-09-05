@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Preserve unreadable artifact indexes; require complete listing proof of absence before initialization and retain unsafe legacy filenames. *(2026-09-05; see docs/design-artifact-registry-preservation-20260905.md.)*
+
 - [x] Retain browser traces for local first-attempt failures. *(2026-09-05 — intentionally failed zero-retry probe: baseline zero traces, candidate one validated trace; CI retry policy unchanged. Required full CI and 144 browser checks passed.)*
 
 - [x] Reuse exact unchanged embedding inputs across atomic generations; retain forced rebuild and failure safety. *(2026-09-05 — 1329 unit tests, typecheck, lint and all 144 browser tests passed; [design and measured input counts](design-embedding-reuse-20260905.md).)*

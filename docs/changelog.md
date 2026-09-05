@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-05 — Artifact registry preservation
+
+- Failed registry reads no longer initialize empty metadata. Complete folder or parent listings must prove absence; unavailable, malformed or truncated listings preserve files.
+- Empty existing indexes now require recovery. Explicit versioned empty JSON remains valid. Legacy migration retains canonical filenames and refuses unsafe name-to-ID mappings without renaming files.
+
+
 ## 2026-09-05: First-failure browser traces
 
 - Local Playwright runs retain traces on failure, including the first attempt with zero retries. CI keeps on-first-retry tracing; retry counts, workers and timeouts are unchanged.
