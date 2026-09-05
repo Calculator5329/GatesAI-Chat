@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-05 — Artifact registry preservation
+
+- Verification: 1,347 tests, typecheck, lint and all 144 browser checks passed after merging A30; two browser workers and zero retries.
+
+- Failed registry reads no longer initialize empty metadata. Complete folder or parent listings must prove absence; unavailable, malformed or truncated listings preserve files.
+- Empty existing indexes now require recovery. Explicit versioned empty JSON remains valid. Legacy migration retains canonical filenames and refuses unsafe name-to-ID mappings without renaming files.
+
 ## 2026-09-05 — Journey verification artifacts (A30)
 
 - Refreshed `vendor/agent-handles-0.0.0.tgz` from delivered Handles core
