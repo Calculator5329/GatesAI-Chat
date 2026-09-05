@@ -168,22 +168,12 @@ describe('one chat turn round-trip', () => {
 
   it('keeps the partial reply when the caller aborts mid-stream', async () => {
     const controller = new AbortController();
-    const encoder = new TextEncoder();
-    const h = harness(
-      () =>
-        new Response(
-          new ReadableStream<Uint8Array>({
-            start(streamController) {
-              streamController.enqueue(encoder.encode(contentFrame('partial')));
-              // Abort once the first frame is in flight, then keep sending.
-              controller.abort();
-              streamController.enqueue(encoder.encode(contentFrame(' more')));
-              streamController.close();
-            },
-          }),
-          { status: 200 },
-        ),
-    );
+    // Two frames, enqueued separately so the reader sees two reads. Abort
+    // fires on the first delta, so the second frame is never consumed.
+    const h = harness(() => sseResponse([contentFrame('partial'), contentFrame(' more')]));
+    h.runtime.subscribe(event => {
+      if (event.type === 'assistant.delta') controller.abort();
+    });
 
     const conversation = await h.runtime.startConversation();
     const result = await h.runtime.send(conversation.id, 'go', { signal: controller.signal });
