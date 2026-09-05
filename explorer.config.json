@@ -1,0 +1,45 @@
+{
+  "devServer": {
+    "command": "npm run dev -- --mode web-lite --host 127.0.0.1 --port {port} --strictPort",
+    "port": 5324
+  },
+  "routes": [
+    "/?scenario=desktop-ready",
+    "/?scenario=rich-transcript",
+    "/?scenario=first-run",
+    "/?scenario=provider-error",
+    "/?scenario=images",
+    "/?scenario=notes",
+    "/?scenario=skills"
+  ],
+  "exclude": {
+    "testIds": [
+      "settings.agent.clear-all",
+      "settings.agent.clear-derived-index",
+      "settings.chord-recorder.reset",
+      "settings.models-open-router-catalog-row.clear",
+      "settings.preferences.export-json",
+      "workspace.aurora-fine-tune-card.reset",
+      "app.lightbox.open-in-os",
+      "app.lightbox.open-in-os-no-prompt"
+    ],
+    "testIdPrefixes": ["dev."]
+  },
+  "budget": {
+    "maxDepth": 2,
+    "maxStates": 40,
+    "maxActionsPerState": 30,
+    "maxSteps": 120,
+    "settleMs": 400,
+    "maxRuntimeMs": 1200000
+  },
+  "fix": {
+    "enabled": true,
+    "setupCmd": "npm ci --prefer-offline --no-audit --no-fund",
+    "buildCmd": "npm run typecheck",
+    "testCmd": "npm test",
+    "modelTier": "big",
+    "maxRuntimeMinutes": 40,
+    "port": 5325
+  }
+}
