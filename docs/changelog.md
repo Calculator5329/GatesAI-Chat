@@ -3243,3 +3243,7 @@ Unchanged conversation HTML/Markdown pairs now retain their last successful writ
 ### 2026-09-05 — Download a response with its origin
 
 Completed assistant messages now offer Download response (.md) beside existing message actions. Files retain the exact response text and a separate provenance section with thread/message identity and timestamps. Streaming and empty responses cannot download; failures appear inline. Downloads need no Bridge or workspace write. Browser download bytes were verified offline after reload in desktop-mode Chromium and Web Lite; native WebView completion remains unverified.
+
+## 2026-09-05 — A38 isolated architecture spike correctness
+
+The D20 spike now refuses same-conversation overlapping sends, handles split SSE line endings and stalled-read cancellation, and requires explicit stream completion evidence. Partial error replies persist. Corrected findings distinguish text-only static counts from unproven production equivalence or rewrite cost. 22 spike tests and spike TypeScript pass; the original public-runtime probe now observes one provider call with the first reply preserved, matching LF/CRLF output, and honest error outcomes for provider errors and premature EOF. No production code or architecture adoption changed.

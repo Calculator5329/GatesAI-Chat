@@ -77,3 +77,9 @@ tool-round experiment could test whether the small interface survives that added
 responsibility. Neither a tool decorator nor a domain rewrite is selected by the
 current evidence. Preserve this experiment as evidence; do not treat it as a
 replacement implementation.
+
+The original public-runtime harness was also rerun against the repaired source,
+with concurrency now expecting refusal rather than awaiting a second completion.
+It observed one fake provider call, preserved the first reply, matched LF/CRLF
+text, and returned error for provider-error and missing-finish streams. Repaired
+script, source hashes and results: `~/.cache/tmp/astra-d20-fixed-proof/`.
