@@ -1,0 +1,195 @@
+{
+  "sourceHead": "fce9e603ca02d49a2997c18d8d3f4b43230fe659",
+  "artifacts": [
+    {
+      "path": "output/playwright/agent-reload.png",
+      "bytes": 53985,
+      "sha256": "ccc5db5bec86653a5c7f82e2eb942acfa5c6107cc7806b55460c92a60557ed81"
+    },
+    {
+      "path": "output/playwright/c1-ci-20260904.log",
+      "bytes": 94037,
+      "sha256": "5a0c877781e68a4d070fbed7d1fd222855ccdfad82c93cc61af46926581ed88c"
+    },
+    {
+      "path": "output/playwright/c1-e2e-20260904.log",
+      "bytes": 41546,
+      "sha256": "940d4732519b301e723cc0078d6546b9c45a809821f625f94ae067c5f105047d"
+    },
+    {
+      "path": "output/playwright/models-synthetic-catalog.png",
+      "bytes": 70138,
+      "sha256": "6a4b415c0f2be32ea7d3a5e2403335ba1c780cdd9b13dbb96534554af49acc97"
+    },
+    {
+      "path": "output/playwright/session/console-2026-09-04T03-41-22-996Z.log",
+      "bytes": 45897,
+      "sha256": "e2213b404a8080b74425be0dadeafbf1cc1576f7680047700a48b7c54cdd7c3d"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-41-27-075Z.yml",
+      "bytes": 425,
+      "sha256": "5d1245d378ffbb7555587fe36fe3f43682ce2d42d9b63d5739203fd090d305c0"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-43-03-037Z.yml",
+      "bytes": 4928,
+      "sha256": "5361c82108b196257e29ec394bebc01445235d3ac44b1b49e59075ed2577c141"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-43-39-896Z.yml",
+      "bytes": 4936,
+      "sha256": "7c1c1091e0f1e60b23d4b311b3c3471889a587a16dcbe599d6f9d4748f2f3352"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-43-41-668Z.yml",
+      "bytes": 443,
+      "sha256": "96ac038043c0b2981cb2d1ff4abef4cea36bdb1d15f6b69bab920f7a94b88c7d"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-44-29-179Z.yml",
+      "bytes": 5131,
+      "sha256": "cf487183ffb92c8a215fe8d2961bd58e5ad82331e376ccdfcce41a93e346732b"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-44-30-504Z.yml",
+      "bytes": 443,
+      "sha256": "b7dc6dbc729eedcecb3fa4a0a68dbbc0e794843a2f3a0f7d4d2ec72267bd59ab"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-46-00-422Z.yml",
+      "bytes": 3763,
+      "sha256": "ceb3a0435fb498508d1f246b46eb8c9cb7d4652ea6901cd2ea9487ea20410098"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-46-22-036Z.yml",
+      "bytes": 4534,
+      "sha256": "bd8a423fb0c855db0f0e3d0ddab6d9728aecd29e91e23ab28ad22115f7fb3942"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-46-47-801Z.yml",
+      "bytes": 4524,
+      "sha256": "f45606b1f3075bf78b270b04612aa97d65791483c68e7699518364236496d100"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-46-48-726Z.yml",
+      "bytes": 4514,
+      "sha256": "99899b65243022d9d57870464270f36d6dac1d7731427c4129a6c64e39c7f5bf"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-46-49-660Z.yml",
+      "bytes": 4504,
+      "sha256": "39547f3f039818fccfe1743d142cfdaa9b6887ef6925396e15fcdf68d9a15c87"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-46-50-558Z.yml",
+      "bytes": 443,
+      "sha256": "3e7bf8420611adf13adaa76b3bd7e958d47f622e767c0997b31329e386d3e9ab"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-48-19-757Z.yml",
+      "bytes": 671,
+      "sha256": "950d01dcd33169c5f2429f57fcf26165bde9bd2a1db3eb999c86b6634fb2f20a"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-50-18-914Z.yml",
+      "bytes": 3540,
+      "sha256": "b8c27d07b45da8748a669050fe9b1279f2bd31404b83586f530d38911b8e75bd"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-50-19-803Z.yml",
+      "bytes": 443,
+      "sha256": "f2a2f5b93af7a20ba39c4e5304d4958bc285c6956172573345bacb863175b176"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-55-01-085Z.yml",
+      "bytes": 3540,
+      "sha256": "9acfa68a7905faeb7e04ef9a68d79d9e43849827e047d15b6a2f4552abb56846"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-56-04-239Z.yml",
+      "bytes": 3581,
+      "sha256": "6f464e472af4281265e3432b9f2028e57584dc6bef29007a2fef74f09ca1a835"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-56-23-767Z.yml",
+      "bytes": 443,
+      "sha256": "d3b5121fc7eb9f19843ccf947ba1d805b543c879153e4458065a0d2cc3afb6ed"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-56-47-523Z.yml",
+      "bytes": 4490,
+      "sha256": "0f387fc696e3105a7b4512ee051b841c674a837de3cb49c8ca6c3a79c9e372bc"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-57-12-672Z.yml",
+      "bytes": 4789,
+      "sha256": "99d3e835bcc3cf4250035b9ddae59e791d3d9d6f0204fb674eff174034116ac7"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-57-35-771Z.yml",
+      "bytes": 4789,
+      "sha256": "dc372bf8b21badaf3daa996e7997e7b10392bbfec2e6b795cfed1f27ae2e1c4e"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-57-56-222Z.yml",
+      "bytes": 4788,
+      "sha256": "635aebcf5426026a8dae0c9ee869469b12e188b3b9c14d1a9b8dfe1d65db7b5e"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-57-59-447Z.yml",
+      "bytes": 443,
+      "sha256": "b270d4b305ed107362393ce6473481387483c0d8e8137990125dad2246dfad9a"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-58-24-034Z.yml",
+      "bytes": 5190,
+      "sha256": "40b13a8e7744712185f4913c641e0ffc83c1a6a6523882b61f1c41014242d53c"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-59-14-056Z.yml",
+      "bytes": 5483,
+      "sha256": "10c4350a4a6d6c039c20f1f4f5bb0080008b7783d47921a9a3a8173cca40749a"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-59-43-409Z.yml",
+      "bytes": 5190,
+      "sha256": "b21e479e95d28e8857c2b167cf1cdbea62beef831b94a963d18edb0986a4dbb5"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T03-59-46-879Z.yml",
+      "bytes": 5338,
+      "sha256": "d50035152c4ca3084e5c031ae2ecc8a09f6f62e83bc4373630623997f443f130"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T04-00-01-795Z.yml",
+      "bytes": 5181,
+      "sha256": "742f3d843cee44cf30ffad7ae95ef01bbe69a301f6893f65c908f898b4b7236c"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T04-00-09-333Z.yml",
+      "bytes": 3639,
+      "sha256": "24a42c5cc5204defbd28dcca69320cef246d892770f21a9f6c000c97c968b584"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T04-00-45-083Z.yml",
+      "bytes": 3663,
+      "sha256": "5c9a4489c708bb508157d610db9dabe17fe1f88752e0f5774733411f6ca9d8e2"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T04-01-02-926Z.yml",
+      "bytes": 3654,
+      "sha256": "843817d8d05e81dc3e2decc714df9cf4d3ad083a59b4c9ee89f03f3850bb4c6c"
+    },
+    {
+      "path": "output/playwright/session/page-2026-09-04T04-03-53-654Z.yml",
+      "bytes": 443,
+      "sha256": "be49f392e4499bd4fbdcc80c45a6398a8ad54c514377a9e161b72f284d9c8544"
+    },
+    {
+      "path": "output/playwright/settings-confirmation-cancelled.png",
+      "bytes": 63202,
+      "sha256": "4f3ecce2c9a5e3b8c68a83083a0a30807bd6f46dadfaeff14722009ce6e1e87b"
+    }
+  ]
+}
