@@ -14,6 +14,8 @@ export interface RagChunk {
   sourceTitle?: string;
   chunkOrdinal?: number;
   fingerprint?: string;
+  /** Exact bounded embedder input; older derived chunks without it are not reusable. */
+  embeddingInput?: string;
 }
 
 export interface StoredRagChunk extends Omit<RagChunk, 'vector'> {

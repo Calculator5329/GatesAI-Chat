@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-05: First-failure browser traces
+
+- Local Playwright runs retain traces on failure, including the first attempt with zero retries. CI keeps on-first-retry tracing; retry counts, workers and timeouts are unchanged.
+- An intentionally failing isolated browser probe produced zero traces under the previous setting and one valid trace ZIP under the new setting. Required verification with both changes present passed all 1329 unit tests, typecheck, lint, and 144 browser tests. [Diagnostic evidence](design-embedding-reuse-20260905.md).
+
+## 2026-09-05: Exact local embedding reuse
+
+- Automatic indexing embeds only changed effective inputs, including neighboring-message and title/path context. Exact optional input metadata on derived chunks permits reuse after restart; older records refresh safely. Metadata-only changes and source removal reuse vectors without an embedding call. Source fingerprints no longer authorize skipping work.
+- Generation IDs use 128 random bits without requiring the secure-context-only UUID API; the non-secure-origin browser diagnostic and fixed-clock/absent-UUID unit probe pass.
+- Explicit rebuild remains a full refresh. Invalid output, dimension drift during automatic updates, and cancellation before commit retain the previous atomic generation. The measured 100-source fixture reduced a one-edit batch from 100 inputs to 1 and removal from 99 inputs to 0; no production latency claim. All 1329 unit tests, typecheck, lint, and all 144 browser tests passed with two browser workers and zero retries. [Design and diagnostic evidence](design-embedding-reuse-20260905.md).
+
 ## 2026-09-04: Recall source eligibility
 
 - Allowed memories remain recallable when more than 40 higher-scoring chunks belong to the active thread or excluded sources. Dense search now applies the same source eligibility policy as lexical search before limiting candidates. This also preserves semantic-only matches in library-only explicit recall.

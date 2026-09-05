@@ -92,20 +92,8 @@ export class RagIndexer {
       const model = this.getModel();
       const snapshot = await this.getSources();
       const sources = collectRagSources(snapshot);
-      const liveKeys = new Set(sources.map(sourceKey));
       const watermarks = this.watermarks.load();
       this.report('scanning', 0, sources.length, 0, 0);
-      let skipped = 0;
-      const unchanged = sources.every(source => {
-        const existing = watermarks[sourceKey(source)];
-      const hash = contentHash(source.embeddingText ?? source.text);
-        if (existing?.hash === hash && existing.model === model && existing.updatedAt === source.updatedAt) {
-          skipped += 1;
-          return true;
-        }
-        return false;
-      }) && Object.keys(watermarks).every(key => liveKeys.has(key));
-      if (unchanged && await this.vectorStore.activeManifest()) return { indexed: 0, skipped, purged: 0 };
       return await this.buildGeneration(sources, model, watermarks, signal);
     } finally {
       this.inFlight = false;
@@ -118,7 +106,7 @@ export class RagIndexer {
     try {
       const model = this.getModel();
       const snapshot = await this.getSources();
-      await this.buildGeneration(collectRagSources(snapshot), model, {}, signal);
+      await this.buildGeneration(collectRagSources(snapshot), model, {}, signal, true);
     } finally {
       this.inFlight = false;
     }
@@ -133,10 +121,11 @@ export class RagIndexer {
     model: string,
     previousWatermarks: Record<string, RagWatermark>,
     signal?: AbortSignal,
+    forceRefresh = false,
   ): Promise<{ indexed: number; skipped: number; purged: number }> {
     throwIfPaused(signal, this.getActive, this.isStreaming);
     const startedAt = Date.now();
-    const generationId = `${startedAt.toString(36)}-${contentHash(sources.map(sourceKey).join('|'))}`;
+    const generationId = Array.from(crypto.getRandomValues(new Uint32Array(4)), word => word.toString(16).padStart(8, '0')).join('');
     const prepared = sources.flatMap(source => {
       const fingerprint = contentHash(source.embeddingText ?? source.text);
       const displayPieces = chunkText(source.text);
@@ -148,13 +137,41 @@ export class RagIndexer {
         fingerprint,
       }));
     });
-    this.report('embedding', 0, sources.length, 0, prepared.length);
-    const vectors = await this.embedder.embed(prepared.map(item => item.embeddingText), model, signal);
+    const activeManifest = await this.vectorStore.activeManifest();
+    const compatible = !forceRefresh && activeManifest?.schemaVersion === RAG_INDEX_SCHEMA_VERSION
+      && activeManifest.embeddingModel === model
+      && activeManifest.chunkPolicyVersion === RAG_CHUNK_POLICY_VERSION;
+    const previousChunks = compatible ? await this.vectorStore.activeChunks(model) : [];
+    const previousByKey = new Map(previousChunks.map(chunk => [chunkKey(chunk, chunk.chunkOrdinal), chunk]));
+    const reused = prepared.map(item => {
+      const previous = previousByKey.get(chunkKey(item.source, item.chunkOrdinal));
+      return previous?.embeddingInput === item.embeddingText && previous.vector.length > 0
+        && previous.vector.every(Number.isFinite) ? previous : undefined;
+    });
+    const unchanged = compatible && activeManifest.chunkCount === prepared.length
+      && activeManifest.sourceCount === sources.length && previousChunks.length === prepared.length
+      && prepared.every((item, index) => {
+        const previous = reused[index];
+        return previous && previous.text === item.text && previous.updatedAt === item.source.updatedAt
+          && previous.sourceTitle === item.source.sourceTitle && previous.role === item.source.role
+          && previous.fingerprint === item.fingerprint;
+      });
     throwIfPaused(signal, this.getActive, this.isStreaming);
-    if (vectors.length !== prepared.length) throw new Error('RAG embedding count mismatch.');
+    if (unchanged) return { indexed: 0, skipped: sources.length, purged: 0 };
+    const pending = prepared.filter((_, index) => !reused[index]);
+    this.report('embedding', 0, sources.length, prepared.length - pending.length, prepared.length);
+    const freshVectors = pending.length > 0
+      ? await this.embedder.embed(pending.map(item => item.embeddingText), model, signal) : [];
+    throwIfPaused(signal, this.getActive, this.isStreaming);
+    if (freshVectors.length !== pending.length) throw new Error('RAG embedding count mismatch.');
+    let freshIndex = 0;
+    const vectors = prepared.map((_, index) => reused[index]?.vector ?? freshVectors[freshIndex++]);
     const vectorDimensions = vectors[0]?.length ?? 0;
     if (prepared.length > 0 && vectorDimensions === 0) throw new Error('RAG embedding vector is empty.');
+    if (compatible && activeManifest.vectorDimensions > 0 && prepared.length > 0
+      && vectorDimensions !== activeManifest.vectorDimensions) throw new Error('RAG embedding dimensions changed; rebuild required.');
     if (vectors.some(vector => vector.length !== vectorDimensions)) throw new Error('RAG embedding dimensions are inconsistent.');
+    if (vectors.some(vector => !vector.every(Number.isFinite))) throw new Error('RAG embedding vector contains non-finite values.');
     const chunks: RagChunk[] = prepared.map((item, index) => ({
       id: `${generationId}:${item.source.sourceType}:${item.source.sourceId}:${item.fingerprint}:${item.chunkOrdinal}`,
       generationId,
@@ -164,6 +181,7 @@ export class RagIndexer {
       ...(item.source.role ? { role: item.source.role } : {}),
       ...(item.source.sourceTitle ? { sourceTitle: item.source.sourceTitle } : {}),
       text: item.text,
+      embeddingInput: item.embeddingText,
       vector: vectors[index],
       updatedAt: item.source.updatedAt,
       model,
@@ -334,6 +352,10 @@ export function createLocalStorageRagWatermarkStore(
       storage?.removeItem(key);
     },
   };
+}
+
+function chunkKey(source: Pick<RagChunk, 'sourceType' | 'threadId' | 'sourceId'>, ordinal: number | undefined): string {
+  return JSON.stringify([source.sourceType, source.threadId ?? null, source.sourceId, ordinal ?? null]);
 }
 
 function sourceKey(source: RagSource): string {
