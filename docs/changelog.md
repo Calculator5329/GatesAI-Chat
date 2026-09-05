@@ -3243,3 +3243,7 @@ Unchanged conversation HTML/Markdown pairs now retain their last successful writ
 ### 2026-09-05 — Download a response with its origin
 
 Completed assistant messages now offer Download response (.md) beside existing message actions. Files retain the exact response text and a separate provenance section with thread/message identity and timestamps. Streaming and empty responses cannot download; failures appear inline. Downloads need no Bridge or workspace write. Browser download bytes were verified offline after reload in desktop-mode Chromium and Web Lite; native WebView completion remains unverified.
+
+### 2026-09-05 — Handles starting-route consumer migration
+
+Updated the vendored Handles runtime so live journey replay initializes its declared starting route before the first control. Verified the actual lane-installed package against the approved tarball, unchanged generated journeys, and real Gates /run browser behavior. No application schema or UI change. The earlier checkpoint's changelog hold ended after D20 completed; its source and documentation were preserved by merging current master into the consumer lane.
