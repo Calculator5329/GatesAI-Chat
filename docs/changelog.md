@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-04: Recall source eligibility
+
+- Allowed memories remain recallable when more than 40 higher-scoring chunks belong to the active thread or excluded sources. Dense search now applies the same source eligibility policy as lexical search before limiting candidates. This also preserves semantic-only matches in library-only explicit recall.
+- Embedding scores, automatic abstention thresholds, source diversification, and active-generation/model/dimension checks are unchanged. Five new cases cover candidate starvation and compatibility safeguards; all 1312 unit tests, typecheck, lint, and 144 mocked desktop/Web Lite/mobile browser tests passed. Browser verification used two workers and zero retries.
+
 ## 2026-09-04: Unused helper cleanup
 
 - Archived four unused image completion helpers and two legacy RAG formatters, including their private source-lookup types and helper. Direct-image turns retain their existing display and mode helpers; semantic recall retains the structured formatter used by the memory service. Original file bytes are retained under `docs/archive/anti-slop-20260904/`.
