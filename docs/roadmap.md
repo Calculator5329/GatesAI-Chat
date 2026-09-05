@@ -1035,3 +1035,5 @@ Ethan's packet reply, planning/reports/backlog-audit-packet-20260825. Reversible
 - [x] 2026-09-05 — A33 reuse unchanged readable conversation pairs using exact rendering, complete file presence, and bridge connection lifecycle; global index stays fresh. Collision, failure, missing-file, and lifecycle regressions verified; 1,358 unit tests and 144 E2E passed.
 
 - [x] 2026-09-05 — A23 first slice: download a completed assistant response as Markdown with exact text and separate source provenance. Browser offline/reload/repeat-download acceptance passed. The broader deliverables item remains open: this is download initiation, not workspace persistence or native-save verification.
+
+- [ ] A25 Handles starting-route consumer: verified isolated package/install checkpoint (2026-09-05), pending required changelog update after D20 releases ownership and supported integration. CI 1361 and full 146 browser tests passed; installed plugin /run route smoke and 105-journey byte parity passed. See docs/design-handles-route-consumer-20260905.md. Do not mark complete or integrate before the documentation handoff.
