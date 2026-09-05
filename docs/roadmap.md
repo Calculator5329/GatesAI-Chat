@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Reuse exact unchanged embedding inputs across atomic generations; retain forced rebuild and failure safety. *(2026-09-05 — 1328 unit tests, typecheck, lint and all 144 browser tests passed; [design and measured input counts](design-embedding-reuse-20260905.md).)*
+
 - [x] Apply recall source eligibility before the dense candidate limit. *(2026-09-04 — four candidate-starvation cases reproduced before repair; 12 focused tests, all 1312 unit tests, typecheck, lint, and all 144 browser tests passed. Model, generation, dimension, and abstention safeguards remain intact.)*
 
 - [x] Archive unused image/RAG, token, JSON-wrapper, and runtime-default helpers. *(2026-09-04 — six original files retained; 1307 unit tests, typecheck, lint, and all 144 browser tests passed. [Audit and verification](archive/anti-slop-20260904/README.md). Earlier intermittent browser failures remain unexplained.)*

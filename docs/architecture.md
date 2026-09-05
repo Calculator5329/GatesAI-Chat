@@ -473,7 +473,13 @@ RAG:
   documents from RootStore providers. It requires Ollama availability and a
   configured embeddings model.
 - `indexer.ts` builds atomic generations; `vectorStore.ts` persists derived
-  chunks and generation manifests in IndexedDB.
+  chunks and generation manifests in IndexedDB. Automatic indexing reuses vectors
+  only when compatible model/schema/chunk-policy metadata and the exact bounded
+  embedding input match (including neighboring messages, titles and library paths).
+  Derived chunks optionally retain that input; older records are refreshed on the
+  next index pass. Source hashes are provenance, never reuse proof. Metadata-only
+  changes and removals need no embeddings; explicit rebuild refreshes all vectors.
+  Invalid output or cancellation before commit retains the previous generation.
 - `TurnRunner` supplies bounded historical excerpts as a separate untrusted
   user-role evidence message for full/micro turns. The assistant response keeps
   the exact bounded retrieval trace used for the visible source disclosure.

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-05: Exact local embedding reuse
+
+- Automatic indexing embeds only changed effective inputs, including neighboring-message and title/path context. Exact optional input metadata on derived chunks permits reuse after restart; older records refresh safely. Metadata-only changes and source removal reuse vectors without an embedding call. Source fingerprints no longer authorize skipping work.
+- Explicit rebuild remains a full refresh. Invalid output, dimension drift during automatic updates, and cancellation before commit retain the previous atomic generation. The measured 100-source fixture reduced a one-edit batch from 100 inputs to 1 and removal from 99 inputs to 0; no production latency claim. All 1328 unit tests, typecheck, lint, and all 144 browser tests passed with two browser workers and zero retries. [Design and diagnostic evidence](design-embedding-reuse-20260905.md).
+
 ## 2026-09-04: Recall source eligibility
 
 - Allowed memories remain recallable when more than 40 higher-scoring chunks belong to the active thread or excluded sources. Dense search now applies the same source eligibility policy as lexical search before limiting candidates. This also preserves semantic-only matches in library-only explicit recall.
