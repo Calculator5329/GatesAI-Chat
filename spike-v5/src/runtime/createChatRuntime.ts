@@ -36,10 +36,15 @@ export interface SendOptions {
 
 export class ChatRuntime {
   private readonly listeners = new Set<TurnListener>();
+  private readonly options: ChatRuntimeOptions;
   private readonly clock: Clock;
   private readonly ids: IdSource;
 
-  constructor(private readonly options: ChatRuntimeOptions) {
+  // No parameter properties: `erasableSyntaxOnly` is on, so every construct
+  // here survives plain type-stripping and the core stays runnable without a
+  // TypeScript-aware build step.
+  constructor(options: ChatRuntimeOptions) {
+    this.options = options;
     this.clock = options.clock ?? systemClock();
     this.ids = options.ids ?? randomIds();
   }

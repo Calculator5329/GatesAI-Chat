@@ -165,19 +165,21 @@ export function promptMessages(
   return system ? [{ role: 'system' as const, content: system }, ...history] : history;
 }
 
+export type DomainErrorCode =
+  | 'empty-user-message'
+  | 'turn-in-flight'
+  | 'no-user-turn'
+  | 'message-stopped'
+  | 'unknown-message'
+  | 'unknown-conversation';
+
 export class DomainError extends Error {
-  constructor(
-    readonly code:
-      | 'empty-user-message'
-      | 'turn-in-flight'
-      | 'no-user-turn'
-      | 'message-stopped'
-      | 'unknown-message'
-      | 'unknown-conversation',
-    message: string,
-  ) {
+  readonly code: DomainErrorCode;
+
+  constructor(code: DomainErrorCode, message: string) {
     super(message);
     this.name = 'DomainError';
+    this.code = code;
   }
 }
 

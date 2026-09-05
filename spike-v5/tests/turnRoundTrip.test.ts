@@ -7,6 +7,7 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  conversationId,
   createChatRuntime,
   KeyValueConversationRepository,
   MapKeyValueStore,
@@ -115,8 +116,8 @@ describe('one chat turn round-trip', () => {
       'assistant.stopped',
       'conversation.saved',
     ]);
-    const deltas = h.events.filter(event => event.type === 'assistant.delta');
-    expect(deltas.map(event => event.delta)).toEqual(['Hello', ', ', 'world.']);
+    const deltas = h.events.flatMap(event => (event.type === 'assistant.delta' ? [event.delta] : []));
+    expect(deltas).toEqual(['Hello', ', ', 'world.']);
 
     // Persistence: the durable record, read back as bytes.
     const record = storedConversation(h.store, conversation.id);
@@ -238,7 +239,7 @@ describe('one chat turn round-trip', () => {
     const h = harness(() => sseResponse([contentFrame('second answer'), finishFrame('stop'), DONE_FRAME]));
     await h.store.set('spike-v5.conversation.conv-legacy', JSON.stringify(legacy));
 
-    const result = await h.runtime.send('conv-legacy' as never, 'second question');
+    const result = await h.runtime.send(conversationId('conv-legacy'), 'second question');
 
     expect(result.text).toBe('second answer');
     expect(h.requests[0]?.body.messages).toEqual([
