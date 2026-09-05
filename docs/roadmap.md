@@ -1029,3 +1029,7 @@ not by itself imply acceptance of every proposed implementation detail.
 Ethan's packet reply, planning/reports/backlog-audit-packet-20260825. Reversible: move a line back to its section to revive.
 
 - Manually test the foundation surface before rebuilding optional integrations <!-- workspace:id=work:d44276ce-f85a-54b7-9678-2d2af968dfe7 -->
+
+- [x] 2026-09-05 — A34 stop blanket pruning of readable chat-library files; retain foreign/stale bytes while the index follows active conversations. Focused retention regression and combined A33 release gates passed (1,358 unit tests, typecheck/lint, 144 E2E).
+
+- [x] 2026-09-05 — A33 reuse unchanged readable conversation pairs using exact rendering, complete file presence, and bridge connection lifecycle; global index stays fresh. Collision, failure, missing-file, and lifecycle regressions verified; 1,358 unit tests and 144 E2E passed.

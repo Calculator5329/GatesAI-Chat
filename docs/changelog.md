@@ -3202,3 +3202,11 @@ architecture. UI is pixel-identical to the previous build.
 - GatesMenu uses only the `topTabs` layout (the active one)
 - `localStorage` key is unchanged (`gatesai.state.v1`), so existing user
   state survives the refactor
+
+### 2026-09-05 — A34 readable library retention
+
+Stopped deleting unrecognized and stale HTML/Markdown files during readable-library saves. Current exports and index still update normally; retired or renamed files remain in place. Archived the removed helper in `docs/design-readable-library-20260905.md`.
+
+### 2026-09-05 — A33 incremental readable library writes
+
+Unchanged conversation HTML/Markdown pairs now retain their last successful write timestamp and skip bridge writes after complete presence checks. The index remains current. Reconnects, new workspace instances, acquisition failures, and partial writes invalidate cached reuse; colliding filenames retain ordered full writes. In a measured 100-thread synthetic corpus, unchanged saves fell from 201 writes / 3,134,818 bytes to 1 / 319,098; one same-timestamp message edit needed 3 writes / 347,264 bytes. No render CPU or disk-integrity claim. CI passed 1,358 tests plus typecheck/lint; full desktop/Web Lite/mobile E2E passed 144 checks with two workers and zero retries after the collision correction.

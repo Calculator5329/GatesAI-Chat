@@ -11,7 +11,7 @@ import {
 } from './persistence';
 import type { BridgeClientFacade } from './tools/types';
 import { logger } from './diagnostics/logger';
-import { saveReadableChatLibrary } from './chat/libraryExport';
+import { saveReadableChatLibrary, type ReadableLibraryCache } from './chat/libraryExport';
 
 export {
   WORKSPACE_CHAT_LIBRARY_DIR,
@@ -49,6 +49,13 @@ export function createWorkspaceChatPersistence(rawClient: BridgeClientFacade): W
   // client once so every request from this module is marked privileged.
   const client: BridgeClientFacade = {
     request: (op, data, onEvent) => rawClient.request(op, data, onEvent, { privileged: true }),
+  };
+  const readableCache: ReadableLibraryCache = {
+    entries: new Map(),
+    getConnectionEpoch: () => {
+      const epoch = (rawClient as BridgeClientFacade & { readonly connectionEpoch?: unknown }).connectionEpoch;
+      return typeof epoch === 'number' && Number.isSafeInteger(epoch) && epoch >= 0 ? epoch : undefined;
+    },
   };
   return {
     async load(): Promise<WorkspaceChatLoadResult> {
@@ -107,7 +114,7 @@ export function createWorkspaceChatPersistence(rawClient: BridgeClientFacade): W
           encoding: 'utf8',
         });
       }
-      await saveReadableChatLibrary(client, envelope.snapshot, savedAt);
+      await saveReadableChatLibrary(client, envelope.snapshot, savedAt, readableCache);
     },
 
     async backupMalformed(raw: string): Promise<string> {

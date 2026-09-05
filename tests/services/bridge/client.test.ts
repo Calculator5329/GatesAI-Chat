@@ -102,6 +102,29 @@ describe('BridgeClient', () => {
   });
 
   describe('connect()', () => {
+    it('advances the readonly epoch only when a new socket successfully opens', async () => {
+      const client = new BridgeClient('ws://test');
+      expect(client.connectionEpoch).toBe(0);
+      const first = client.connect();
+      const duplicate = client.connect();
+      expect(client.connectionEpoch).toBe(0);
+      lastSocket().open();
+      await Promise.all([first, duplicate]);
+      expect(client.connectionEpoch).toBe(1);
+      await client.connect();
+      expect(client.connectionEpoch).toBe(1);
+      lastSocket().serverClose();
+      const reconnect = client.connect();
+      lastSocket().open();
+      await reconnect;
+      expect(client.connectionEpoch).toBe(2);
+      client.disconnect();
+      const failed = client.connect();
+      lastSocket().fail();
+      await expect(failed).rejects.toBeInstanceOf(BridgeOfflineError);
+      expect(client.connectionEpoch).toBe(2);
+    });
+
     it('resolves once the socket opens and reports isOpen()', async () => {
       const client = new BridgeClient('ws://test');
       const connecting = client.connect();
