@@ -3247,3 +3247,7 @@ Completed assistant messages now offer Download response (.md) beside existing m
 ### 2026-09-05 — Handles starting-route consumer migration
 
 Updated the vendored Handles runtime so live journey replay initializes its declared starting route before the first control. Verified the actual lane-installed package against the approved tarball, unchanged generated journeys, and real Gates /run browser behavior. No application schema or UI change. The earlier checkpoint's changelog hold ended after D20 completed; its source and documentation were preserved by merging current master into the consumer lane.
+
+## 2026-09-05 — A38 isolated architecture spike correctness
+
+The D20 spike now refuses same-conversation overlapping sends, handles split SSE line endings and stalled-read cancellation, and requires explicit stream completion evidence. Partial error replies persist. Corrected findings distinguish text-only static counts from unproven production equivalence or rewrite cost. 22 spike tests and spike TypeScript pass; the original public-runtime probe now observes one provider call with the first reply preserved, matching LF/CRLF output, and honest error outcomes for provider errors and premature EOF. No production code or architecture adoption changed.
