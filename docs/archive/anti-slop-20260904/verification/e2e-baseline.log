@@ -1,0 +1,22 @@
+
+> gatesai-chat@4.7.0 test:e2e
+> playwright test --project=web-lite --grep shows the web lite status and disables attachments
+
+[vite:desktop] 
+  VITE v8.1.4  ready in 1013 ms
+
+[vite:desktop]   ➜  Local:   http://127.0.0.1:15373/
+[vite:web-lite] 
+  VITE v8.1.4   web-lite   ready in 297 ms
+
+[vite:web-lite]   ➜  Local:   http://127.0.0.1:15374/
+
+Running 1 test using 1 worker
+
+(node:1988075) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1988075) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [web-lite] › tests/e2e/web-lite.spec.ts:13:3 › web lite (no bridge) › shows the web lite status and disables attachments (7.4s)
+
+  1 passed (10.4s)

@@ -1,0 +1,1182 @@
+
+> gatesai-chat@4.7.0 ci
+> npm test && npm run typecheck && npm run lint
+
+
+> gatesai-chat@4.7.0 test
+> vitest run --config vitest.config.ts --configLoader runner
+
+
+ RUN  v3.2.7 /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904
+
+ ✓ tests/components/editorial/Lightbox.test.ts (2 tests) 68ms
+ ✓ tests/services/image/imageBackend.test.ts (4 tests) 151ms
+ ✓ tests/dev/scenarios.test.ts (27 tests) 53ms
+ ✓ tests/components/editorial/HtmlArtifactPreview.test.ts (12 tests) 196ms
+ ✓ tests/components/menu/SettingsSection.test.ts (5 tests) 142ms
+ ✓ tests/components/menu/AgentSection.test.ts (2 tests) 117ms
+ ✓ tests/components/editorial/ActivityRow.test.ts (4 tests) 79ms
+ ✓ tests/components/menu/GatesMenu.test.ts (4 tests) 123ms
+ ✓ tests/components/editorial/markdownChunks.test.ts (17 tests) 122ms
+ ✓ tests/components/editorial/ActivityStream.test.ts (11 tests) 80ms
+stderr | tests/stores/OllamaStore.test.ts > OllamaStore > refresh() captures network errors into lastError
+[models] Ollama catalog fetch failed {
+  err: Error: ECONNREFUSED
+      at Object.local.service.fetchOllamaTags (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/OllamaStore.test.ts:71:130)
+      at LocalRuntimeStore.apply (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/LocalRuntimeStore.ts:262:25)
+      at executeAction (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:70:19)
+      at LocalRuntimeStore.fetchOllamaTags (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:50:16)
+      at OllamaStore.apply (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/OllamaStore.ts:243:44)
+      at executeAction (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:70:19)
+      at OllamaStore.refresh (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:50:16)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/OllamaStore.test.ts:73:17
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+}
+
+ ✓ tests/components/editorial/ModelPopover.test.ts (7 tests) 508ms
+stderr | tests/stores/OllamaStore.test.ts > OllamaStore > startPull() enforces one active pull and duplicate guard
+[models] Ollama pull failed { model: 'llama3.2:3b', err: DOMException {} }
+
+stderr | tests/stores/OllamaStore.test.ts > OllamaStore > cancelPull() aborts the active pull
+[models] Ollama pull failed { model: 'llama3.2:3b', err: DOMException {} }
+
+ ✓ tests/stores/OllamaStore.test.ts (10 tests) 106ms
+ ✓ tests/components/dock/FileExplorerPanel.test.ts (4 tests) 59ms
+stderr | pingSuspendedRoot (/home/ethan/projects/ai/gatesai-chat/node_modules/react-dom/cjs/react-dom-client.development.js:18600:17)
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | tests/stores/UpdateStore.test.ts > UpdateStore > surfaces install failure as a retryable error phase
+[updates] update install failed: disk full { version: '9.9.9' }
+
+ ✓ tests/stores/UpdateStore.test.ts (6 tests) 8ms
+ ✓ tests/components/editorial/modelPopoverSections.test.ts (5 tests) 23ms
+stderr | tests/stores/ChatStore.test.ts > ChatStore > surfaces a future-version snapshot warning as a persistence notice
+[persistence] found newer chat snapshot schema; preserving backup and starting fresh { schemaVersion: 999 }
+
+ ✓ tests/components/editorial/PromptCards.test.ts (7 tests) 85ms
+ ✓ tests/stores/SummaryStore.test.ts (8 tests) 74ms
+stdout | tests/stores/ChatStore.test.ts > ChatStore > reloadFromStorage applies a newer snapshot and clears persistence conflict
+[persistence] Reloaded chat from localStorage after multi-tab conflict
+
+stdout | tests/stores/ChatStore.test.ts > ChatStore > reloadFromStorage aborts in-flight streams so abandoned turns stop mutating
+[persistence] Reloaded chat from localStorage after multi-tab conflict
+
+stderr | tests/stores/toolLoop.test.ts > Tool loop — scripted > executes the valid prefix before stopping at an invalid tool call
+[tool-call-failed] tool call failed {
+  toolName: 'fs',
+  toolCallId: 'bad-read',
+  threadId: 't-mtnopnf8pe21',
+  reason: '`path` is required for fs action "read".',
+  resultPreview: 'status: error\n' +
+    'tool: fs\n' +
+    'error_code: missing_required_argument\n' +
+    'summary: `path` is required for fs action "read".\n' +
+    'fix: Retry fs with { "action": "read", "path": "..." } and include any other required fields for that action.\n' +
+    'retryable: true',
+  argumentsPreview: '{"action":"read"}',
+  bridgeOnline: true,
+  readOnly: false,
+  durationMs: 0,
+  ranAt: '2026-09-05T01:08:47.445Z'
+}
+
+stderr | tests/stores/toolLoop.test.ts > Tool loop — scripted > returns malformed argument feedback instead of treating parse failures as empty arguments
+[tool-call-failed] tool call failed {
+  toolName: 'fs',
+  toolCallId: 'bad-json',
+  threadId: 't-mtnopnfffg7n',
+  reason: 'Tool arguments for fs were not valid JSON.',
+  resultPreview: 'status: error\n' +
+    'tool: fs\n' +
+    'error_code: malformed_arguments\n' +
+    'summary: Tool arguments for fs were not valid JSON.\n' +
+    'fix: Retry the tool call with a complete JSON object matching the tool schema. Do not send placeholders or partial arguments. For finished HTML games/apps, prefer artifact.create_html_artifact with path and content.\n' +
+    'retryable: true',
+  argumentsPreview: '{}',
+  bridgeOnline: false,
+  readOnly: false,
+  durationMs: 0,
+  ranAt: '2026-09-05T01:08:47.453Z'
+}
+
+stderr | tests/stores/toolLoop.test.ts > Tool loop — scripted > keeps completed tool progress visible when the provider fails before final summary
+[chat] provider stream exception {
+  threadId: 't-mtnopnfkru6c',
+  round: 1,
+  err: Error: OpenRouter 402 Insufficient credits
+      at StreamingRoundExecutor.executeAttempt (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/streamingRoundExecutor.ts:259:22)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at StreamingRoundExecutor.execute (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/streamingRoundExecutor.ts:166:23)
+      at TurnRunner.run (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/turnRunner.ts:300:23)
+      at ChatTurnEngine.runTurn (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/chatTurnEngine.ts:237:5)
+}
+
+stderr | tests/stores/ChatStore.test.ts > ChatStore > keeps local fallback when workspace history is malformed and writes a backup
+[persistence] Workspace chat snapshot malformed {
+  error: "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+}
+
+ ✓ tests/stores/agentTask.test.ts (17 tests) 170ms
+stderr | tests/stores/ChatStore.test.ts > ChatStore > continues saving localStorage when workspace persistence cannot start
+[persistence] workspace chat persistence unavailable {
+  name: 'Error',
+  message: 'workspace unavailable',
+  stack: 'Error: workspace unavailable\n' +
+    '    at Object.request (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/ChatStore.test.ts:248:13)\n' +
+    '    at Object.request (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/workspaceChatPersistence.ts:51:47)\n' +
+    '    at ensureDir (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/workspaceChatPersistence.ts:123:16)\n' +
+    '    at Object.load (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/workspaceChatPersistence.ts:55:13)\n' +
+    '    at ChatStore.apply (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/ChatStore.ts:490:40)\n' +
+    '    at executeAction (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:70:19)\n' +
+    '    at ChatStore.enableWorkspacePersistence (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:50:16)\n' +
+    '    at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/ChatStore.test.ts:758:23\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26'
+}
+
+ ✓ tests/stores/toolLoop.test.ts (23 tests) 200ms
+ ✓ tests/perf/streaming.perf.test.ts (6 tests) 368ms
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (queue management) > enqueue() returns a stable id and pushes onto the queue
+[image-jobs] dispatch imgjob-mtnopnmh-1 (1/1) backend=local-comfy seed=994819067 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (queue management) > cancel() removes the job and marks cancelled in history
+[image-jobs] dispatch imgjob-mtnopnml-1 (1/1) backend=local-comfy seed=2088068589 dims=1024x1024
+[image-jobs] active job cancelled { jobId: 'imgjob-mtnopnml-1' }
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (queue management) > retry preserves the local ComfyUI mode override
+[image-jobs] dispatch imgjob-mtnopnmn-1 (1/1) backend=local-comfy seed=595635657 dims=1024x1024
+[image-jobs] active job cancelled { jobId: 'imgjob-mtnopnmn-1' }
+[image-jobs] dispatch imgjob-mtnopnmn-1 (1/1) backend=local-comfy seed=1084348222 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (queue management) > history rehydrates from localStorage on next construction
+[image-jobs] dispatch imgjob-mtnopnmq-1 (1/1) backend=local-comfy seed=461483249 dims=1024x1024
+[image-jobs] active job cancelled { jobId: 'imgjob-mtnopnmq-1' }
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (queue management) > rehydrates interrupted active and queued jobs as retryable failures
+[image-jobs] recovered interrupted jobs on boot { count: 2 }
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (queue management) > delete() removes a job from history
+[image-jobs] dispatch imgjob-mtnopnmt-1 (1/1) backend=local-comfy seed=737239777 dims=1024x1024
+[image-jobs] active job cancelled { jobId: 'imgjob-mtnopnmt-1' }
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (queue management) > clearHistory() empties history and storage
+[image-jobs] dispatch imgjob-mtnopnmu-1 (1/1) backend=local-comfy seed=1585529309 dims=1024x1024
+[image-jobs] active job cancelled { jobId: 'imgjob-mtnopnmu-1' }
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > runs a queued job to completion via the injected dispatcher
+[image-jobs] dispatch imgjob-mtnopnmw-1 (1/1) backend=local-comfy seed=2137560596 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > runs a queued job to completion via the injected dispatcher
+[image-jobs] dispatch imgjob-mtnopnmw-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > runs a queued job to completion via the injected dispatcher
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847720-1.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > runs a queued job to completion via the injected dispatcher
+[image-jobs] fs.write imgjob-mtnopnmw-1 -> /workspace/artifacts/images/local/comfy-20260904-200847720-1.png
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > applies a job-level ComfyUI mode override before dispatching
+[image-jobs] dispatch imgjob-mtnopnmy-1 (1/1) backend=local-comfy seed=814351650 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > applies a job-level ComfyUI mode override before dispatching
+[image-jobs] dispatch imgjob-mtnopnmy-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > applies a job-level ComfyUI mode override before dispatching
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847722-1.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > applies a job-level ComfyUI mode override before dispatching
+[image-jobs] fs.write imgjob-mtnopnmy-1 -> /workspace/artifacts/images/local/comfy-20260904-200847722-1.png
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > uses built-in ComfyUI workflows for direct-image modes even when a custom Local workflow is saved
+[image-jobs] dispatch imgjob-mtnopnn0-1 (1/1) backend=local-comfy seed=1245604619 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > uses built-in ComfyUI workflows for direct-image modes even when a custom Local workflow is saved
+[image-jobs] dispatch imgjob-mtnopnn0-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > uses built-in ComfyUI workflows for direct-image modes even when a custom Local workflow is saved
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847725-1.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > uses built-in ComfyUI workflows for direct-image modes even when a custom Local workflow is saved
+[image-jobs] fs.write imgjob-mtnopnn0-1 -> /workspace/artifacts/images/local/comfy-20260904-200847725-1.png
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > persists hosted backend URLs into workspace artifacts for reliable gallery loading
+[image-jobs] dispatch imgjob-mtnopnn3-1 (1/1) backend=local-comfy seed=569121718 dims=1024x1024
+
+stderr | tests/stores/LocalRuntimeStore.test.ts > LocalRuntimeStore > keeps an address-in-use start error as crashed when the existing server does not respond
+[local-runtime] Failed to start runtime { id: 'ollama', message: 'bind: address already in use' }
+
+ ✓ tests/core/attachments.test.ts (5 tests) 3ms
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > persists hosted backend URLs into workspace artifacts for reliable gallery loading
+[image-jobs] dispatch imgjob-mtnopnn3-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > persists hosted backend URLs into workspace artifacts for reliable gallery loading
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847731-1.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > persists hosted backend URLs into workspace artifacts for reliable gallery loading
+[image-jobs] fetched hosted url imgjob-mtnopnn3-1 -> /workspace/artifacts/images/local/comfy-20260904-200847731-1.png
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > multi-image (count: 3) writes three files and accumulates results
+[image-jobs] dispatch imgjob-mtnopnn8-1 (1/3) backend=local-comfy seed=2133747241 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > multi-image (count: 3) writes three files and accumulates results
+[image-jobs] dispatch imgjob-mtnopnn8-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > multi-image (count: 3) writes three files and accumulates results
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847733-1.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > multi-image (count: 3) writes three files and accumulates results
+[image-jobs] fs.write imgjob-mtnopnn8-1 -> /workspace/artifacts/images/local/comfy-20260904-200847733-1.png
+[image-jobs] dispatch imgjob-mtnopnn8-1 (2/3) backend=local-comfy seed=682569196 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > multi-image (count: 3) writes three files and accumulates results
+[image-jobs] dispatch imgjob-mtnopnn8-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > multi-image (count: 3) writes three files and accumulates results
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847733-2.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > multi-image (count: 3) writes three files and accumulates results
+[image-jobs] fs.write imgjob-mtnopnn8-1 -> /workspace/artifacts/images/local/comfy-20260904-200847733-2.png
+[image-jobs] dispatch imgjob-mtnopnn8-1 (3/3) backend=local-comfy seed=1171454500 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > multi-image (count: 3) writes three files and accumulates results
+[image-jobs] dispatch imgjob-mtnopnn8-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > multi-image (count: 3) writes three files and accumulates results
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847734-3.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > multi-image (count: 3) writes three files and accumulates results
+[image-jobs] fs.write imgjob-mtnopnn8-1 -> /workspace/artifacts/images/local/comfy-20260904-200847734-3.png
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > routes OpenRouter images into the API image artifacts folder
+[image-jobs] dispatch imgjob-mtnopnnb-1 (1/1) backend=openrouter-image seed=281330427 dims=1024x1024 prefix=nebula-city
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > routes OpenRouter images into the API image artifacts folder
+[image-jobs] dispatch imgjob-mtnopnnb-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > routes OpenRouter images into the API image artifacts folder
+[image-jobs] fs.write -> /workspace/artifacts/images/api/nebula-city-20260904-200847735-1.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > routes OpenRouter images into the API image artifacts folder
+[image-jobs] fs.write imgjob-mtnopnnb-1 -> /workspace/artifacts/images/api/nebula-city-20260904-200847735-1.png
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > tracks provider image costs per thread
+[image-jobs] dispatch imgjob-mtnopnnc-1 (1/2) backend=openrouter-image seed=347080579 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > tracks provider image costs per thread
+[image-jobs] dispatch imgjob-mtnopnnc-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > tracks provider image costs per thread
+[image-jobs] fs.write -> /workspace/artifacts/images/api/openrouter-20260904-200847736-1.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > tracks provider image costs per thread
+[image-jobs] fs.write imgjob-mtnopnnc-1 -> /workspace/artifacts/images/api/openrouter-20260904-200847736-1.png
+[image-jobs] dispatch imgjob-mtnopnnc-1 (2/2) backend=openrouter-image seed=374620196 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > tracks provider image costs per thread
+[image-jobs] dispatch imgjob-mtnopnnc-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > tracks provider image costs per thread
+[image-jobs] fs.write -> /workspace/artifacts/images/api/openrouter-20260904-200847736-2.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > tracks provider image costs per thread
+[image-jobs] fs.write imgjob-mtnopnnc-1 -> /workspace/artifacts/images/api/openrouter-20260904-200847736-2.png
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > notifies when a job reaches a terminal state
+[image-jobs] dispatch imgjob-mtnopnne-1 (1/1) backend=local-comfy seed=668895306 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > notifies when a job reaches a terminal state
+[image-jobs] dispatch imgjob-mtnopnne-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > notifies when a job reaches a terminal state
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847738-1.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > notifies when a job reaches a terminal state
+[image-jobs] fs.write imgjob-mtnopnne-1 -> /workspace/artifacts/images/local/comfy-20260904-200847738-1.png
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > isolates terminal notification failures from queue completion
+[image-jobs] dispatch imgjob-mtnopnnf-1 (1/1) backend=local-comfy seed=1307255032 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > isolates terminal notification failures from queue completion
+[image-jobs] dispatch imgjob-mtnopnnf-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > isolates terminal notification failures from queue completion
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847739-1.png in 0ms
+
+ ✓ tests/stores/LocalRuntimeStore.test.ts (14 tests) 31ms
+stderr | tests/components/editorial/EditorialMessage.test.ts > EditorialMessage markdown rendering > shows a token-limit notice when a response is cut off
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > isolates terminal notification failures from queue completion
+[image-jobs] fs.write imgjob-mtnopnnf-1 -> /workspace/artifacts/images/local/comfy-20260904-200847739-1.png
+
+stderr | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > isolates terminal notification failures from queue completion
+[image-jobs] terminal notification failed {
+  name: 'Error',
+  message: 'notification boom',
+  stack: 'Error: notification boom\n' +
+    '    at Object.onTerminal (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/ImageJobStore.test.ts:420:33)\n' +
+    '    at ImageJobStore.apply (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/ImageJobStore.ts:453:20)\n' +
+    '    at executeAction (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:70:19)\n' +
+    '    at ImageJobStore.moveToHistory (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:50:16)\n' +
+    '    at ImageJobStore.runJob (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/ImageJobStore.ts:421:12)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at ImageJobStore.runNext (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/ImageJobStore.ts:263:7)'
+}
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > does not notify chat for silent batch jobs
+[image-jobs] dispatch imgjob-mtnopno7-1 (1/1) backend=local-comfy seed=942057892 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > does not notify chat for silent batch jobs
+[image-jobs] dispatch imgjob-mtnopno7-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > does not notify chat for silent batch jobs
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847768-1.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > does not notify chat for silent batch jobs
+[image-jobs] fs.write imgjob-mtnopno7-1 -> /workspace/artifacts/images/local/comfy-20260904-200847768-1.png
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > failed dispatch lands the job in history with status=failed
+[image-jobs] dispatch imgjob-mtnopno9-1 (1/1) backend=local-comfy seed=294416328 dims=1024x1024
+
+stderr | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > failed dispatch lands the job in history with status=failed
+[image-jobs] dispatch imgjob-mtnopno9-1 failed: upstream boom {
+  jobId: 'imgjob-mtnopno9-1',
+  backend: 'local-comfy',
+  comfyMode: undefined,
+  width: 1024,
+  height: 1024,
+  count: 1,
+  seed: undefined,
+  threadId: 't1',
+  promptPreview: 'a sunset'
+}
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] dispatch imgjob-mtnopnoa-1 (1/4) backend=local-comfy seed=265205836 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] dispatch imgjob-mtnopnoa-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847770-1.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] fs.write imgjob-mtnopnoa-1 -> /workspace/artifacts/images/local/comfy-20260904-200847770-1.png
+[image-jobs] dispatch imgjob-mtnopnoa-1 (2/4) backend=local-comfy seed=1436455063 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] dispatch imgjob-mtnopnoa-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847771-2.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] fs.write imgjob-mtnopnoa-1 -> /workspace/artifacts/images/local/comfy-20260904-200847771-2.png
+[image-jobs] dispatch imgjob-mtnopnoa-1 (3/4) backend=local-comfy seed=42396849 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] dispatch imgjob-mtnopnoa-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847771-3.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] fs.write imgjob-mtnopnoa-1 -> /workspace/artifacts/images/local/comfy-20260904-200847771-3.png
+[image-jobs] dispatch imgjob-mtnopnoa-1 (4/4) backend=local-comfy seed=700637693 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] dispatch imgjob-mtnopnoa-1 returned in 0ms (mime=image/png)
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] fs.write -> /workspace/artifacts/images/local/comfy-20260904-200847771-4.png in 0ms
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > reports cumulative progress across all iterations of a multi-image job
+[image-jobs] fs.write imgjob-mtnopnoa-1 -> /workspace/artifacts/images/local/comfy-20260904-200847771-4.png
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > cancelled active job leaves the next queued job cancellable
+[image-jobs] dispatch imgjob-mtnopnob-1 (1/1) backend=local-comfy seed=1248502466 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > cancelled active job leaves the next queued job cancellable
+[image-jobs] active job cancelled { jobId: 'imgjob-mtnopnob-1' }
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > cancelled active job leaves the next queued job cancellable
+[image-jobs] dispatch imgjob-mtnopnoc-2 (1/1) backend=local-comfy seed=584610946 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > cancelled active job leaves the next queued job cancellable
+[image-jobs] active job cancelled { jobId: 'imgjob-mtnopnoc-2' }
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > cancel during a running multi-image job marks cancelled and stops further iterations
+[image-jobs] dispatch imgjob-mtnopnps-1 (1/5) backend=local-comfy seed=380282780 dims=1024x1024
+
+stdout | tests/stores/ImageJobStore.test.ts > ImageJobStore (runner) > cancel during a running multi-image job marks cancelled and stops further iterations
+[image-jobs] active job cancelled { jobId: 'imgjob-mtnopnps-1' }
+
+ ✓ tests/stores/ImageJobStore.test.ts (22 tests) 135ms
+ ✓ tests/components/editorial/AuroraActivityStream.test.ts (7 tests) 67ms
+ ✓ tests/services/imageGenStorage.test.ts (7 tests) 5ms
+ ✓ tests/components/palette/CommandPalette.test.ts (5 tests) 280ms
+stderr | tests/services/persistence.test.ts > persistence > returns null on malformed JSON
+[persistence] quarantined unreadable chat snapshot {
+  reason: "Saved chat state was unreadable: Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+}
+
+stderr | tests/services/persistence.test.ts > persistence > returns null when threads is not an array
+[persistence] quarantined corrupt chat snapshot { reason: 'Saved chat state had an invalid thread list.' }
+
+stderr | tests/services/persistence.test.ts > persistence > backs up future-version snapshots and starts fresh with a visible warning
+[persistence] found newer chat snapshot schema; preserving backup and starting fresh { schemaVersion: 14 }
+
+stderr | tests/services/persistence.test.ts > persistence > falls back to the single localStorage snapshot when the archive store is unavailable
+[persistence] Thread archive store is disabled.
+
+ ✓ tests/components/editorial/EditorialChat.test.ts (12 tests) 435ms
+stderr | tests/components/editorial/ImageJobCard.test.ts > ImageJobCard UI (Batch D) > shows partial thumbnails and cancel copy when a job was cancelled mid-batch
+An update to BigImage2 inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stderr | tests/services/persistence.test.ts > persistence > keeps a thread fully in localStorage when its archive write fails
+[persistence] IndexedDB thread archive write failed; keeping thread in localStorage. {
+  name: 'Error',
+  message: 'failed put t1',
+  stack: 'Error: failed put t1\n' +
+    '    at Object.putThread (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/persistence.test.ts:725:53)\n' +
+    '    at prepareSnapshotForArchiveTier (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence.ts:243:19)\n' +
+    '    at saveTieredSnapshot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence.ts:215:24)\n' +
+    '    at saveCleanedSnapshot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence.ts:205:23)\n' +
+    '    at Object.save (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence.ts:97:7)\n' +
+    '    at saveSnapshot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence.ts:122:27)\n' +
+    '    at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/persistence.test.ts:590:5\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20'
+}
+
+ ✓ tests/components/editorial/ImageJobCard.test.ts (14 tests) 43ms
+stderr | tests/components/editorial/EditorialSidebar.test.ts > EditorialSidebar history list > caps the unpinned history at 20 rows while still showing pinned threads
+[persistence] IndexedDB thread archive write failed; keeping thread in localStorage. {
+  name: 'Error',
+  message: 'IndexedDB is unavailable.',
+  stack: 'Error: IndexedDB is unavailable.\n' +
+    '    at db (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/idb.ts:21:41)\n' +
+    '    at Object.putThread (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/idb.ts:46:30)\n' +
+    '    at prepareSnapshotForArchiveTier (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence.ts:243:19)\n' +
+    '    at saveTieredSnapshot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence.ts:215:24)\n' +
+    '    at saveCleanedSnapshot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence.ts:205:23)\n' +
+    '    at Object.save (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence.ts:97:7)\n' +
+    '    at saveSnapshot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence.ts:122:27)\n' +
+    '    at syncFlush (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/chatPersistenceCoordinator.ts:166:9)\n' +
+    '    at ChatPersistenceCoordinator.cleanup (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/chatPersistenceCoordinator.ts:185:7)\n' +
+    '    at ChatPersistenceCoordinator.dispose (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/chatPersistenceCoordinator.ts:191:10)'
+}
+
+ ✓ tests/stores/RootStore.ollama.test.ts (8 tests) 160ms
+ ✓ tests/services/persistence.test.ts (28 tests) 167ms
+ ✓ tests/components/editorial/WindowFileDrop.test.ts (1 test) 85ms
+ ✓ tests/services/storage/webLiteLocalData.test.ts (3 tests) 4ms
+ ✓ tests/services/chat/dataExport.test.ts (7 tests) 133ms
+ ✓ tests/components/menu/SettingsWalkthrough.test.ts (4 tests) 545ms
+   ✓ settings surface walkthrough > renders and routes every menu section in desktop mode  377ms
+ ✓ tests/services/llmRouter.test.ts (10 tests) 95ms
+ ✓ tests/components/editorial/EditorialSidebar.test.ts (7 tests) 696ms
+   ✓ EditorialSidebar history list > caps the unpinned history at 20 rows while still showing pinned threads  341ms
+stderr | tests/stores/ChatStore.test.ts > ChatStore > records the provider error in lastError when stream returns done:error
+[chat] provider stream exception {
+  threadId: 't-mtnopoc5frne',
+  round: 0,
+  err: Error: rate limit
+      at StreamingRoundExecutor.executeAttempt (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/streamingRoundExecutor.ts:259:22)
+      at StreamingRoundExecutor.execute (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/streamingRoundExecutor.ts:166:23)
+      at TurnRunner.run (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/turnRunner.ts:300:23)
+      at ChatTurnEngine.runTurn (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/chatTurnEngine.ts:237:5)
+}
+
+stderr | tests/stores/ChatStore.test.ts > ChatStore > keeps lastError scoped to the thread that failed
+[chat] provider stream exception {
+  threadId: 't-mtnopocifjly',
+  round: 0,
+  err: Error: thread A failed
+      at StreamingRoundExecutor.executeAttempt (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/streamingRoundExecutor.ts:259:22)
+      at StreamingRoundExecutor.execute (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/streamingRoundExecutor.ts:166:23)
+      at TurnRunner.run (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/turnRunner.ts:300:23)
+      at ChatTurnEngine.runTurn (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/chat/chatTurnEngine.ts:237:5)
+}
+
+stderr | tests/stores/OpenRouterStore.test.ts > OpenRouterStore > refresh() captures network errors in fetchError
+[models] OpenRouter catalog fetch failed {
+  err: Error: offline
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/OpenRouterStore.test.ts:49:54
+      at mockCall (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/spy/dist/index.js:96:15)
+      at spy (file:///home/ethan/projects/ai/gatesai-chat/node_modules/tinyspy/dist/index.js:47:80)
+      at fetchOpenRouterModels (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/llm/openrouterCatalog.ts:39:21)
+      at OpenRouterStore.apply (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/OpenRouterStore.ts:68:28)
+      at executeAction (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:70:19)
+      at OpenRouterStore.refresh (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:50:16)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/OpenRouterStore.test.ts:51:17
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+}
+
+stderr | tests/stores/ChatStore.test.ts > ChatStore > pauses local saves after another tab writes chat storage
+[persistence] another browser tab modified localStorage { key: 'gatesai.state.v1', hadPrevious: true }
+[persistence] Chat autosave paused after cross-tab write { key: 'gatesai.state.v1' }
+
+stderr | tests/stores/ChatStore.test.ts > ChatStore > pauses local saves after another tab writes chat storage
+[persistence] User dismissed multi-tab conflict; autosave resumed without reload
+
+ ✓ tests/stores/OpenRouterStore.test.ts (4 tests) 175ms
+stdout | tests/stores/ChatStore.test.ts > ChatStore > suppresses follower persistence until the Web Locks leader hands over
+[persistence] Storage cleared by another tab; resetting to an empty conversation
+
+ ✓ tests/components/menu/ChordRecorder.test.ts (2 tests) 31ms
+stderr | tests/components/editorial/EditorialComposer.test.ts > EditorialComposer API-key banner > model picker auto row selects the resolved cloud default when local is offline
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+A suspended resource finished loading inside a test, but the event was not wrapped in act(...).
+
+When testing, code that resolves suspended data should be wrapped into act(...):
+
+act(() => {
+  /* finish loading suspended data */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ ✓ tests/components/dock/FileViewerPanel.test.ts (6 tests) 220ms
+ ✓ tests/services/bridge/client.test.ts (16 tests) 30ms
+ ✓ tests/components/dock/TaskCenterPanel.test.ts (2 tests) 70ms
+stdout | tests/components/editorial/EditorialMessage.test.ts > EditorialMessage markdown rendering > wires assistant regenerate and branch actions
+[image-jobs] recovered interrupted jobs on boot { count: 1 }
+
+ ✓ tests/services/image/openrouterImageClient.test.ts (5 tests) 9ms
+ ✓ tests/components/editorial/EditorialMessage.test.ts (38 tests) 1223ms
+   ✓ EditorialMessage markdown rendering > renders mermaid fences as diagrams instead of plain code blocks  343ms
+ ✓ tests/components/editorial/MemoryDisclosure.test.ts (4 tests) 78ms
+stderr | tests/stores/chatPersistenceCoordinator.test.ts > ChatPersistenceCoordinator — workspace save queue > survives a failing save instead of wedging the queue forever
+[persistence] failed to save workspace chat snapshot {
+  name: 'Error',
+  message: 'bridge went away',
+  stack: 'Error: bridge went away\n' +
+    '    at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/chatPersistenceCoordinator.test.ts:147:32\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20\n' +
+    '    at new Promise (<anonymous>)\n' +
+    '    at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)\n' +
+    '    at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)\n' +
+    '    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n' +
+    '    at runSuite (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)\n' +
+    '    at runSuite (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)'
+}
+
+ ✓ tests/stores/chatPersistenceCoordinator.test.ts (12 tests) 12ms
+ ✓ tests/stores/ChatStore.test.ts (89 tests) 1737ms
+ ✓ tests/components/ui/Toggle.test.ts (4 tests) 32ms
+ ✓ tests/services/rag/RagStore.test.ts (5 tests) 21ms
+stderr | tests/stores/SearchStore.test.ts > SearchStore > returns per-query failures without failing the whole batch
+[search] Brave search failed {
+  query: 'bad',
+  errorCode: 'search_error',
+  err: Error: network down
+      at Object.searchContext (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/SearchStore.test.ts:86:40)
+      at SearchStore.apply (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/SearchStore.ts:139:41)
+      at executeAction (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:70:19)
+      at SearchStore.searchOne (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:50:16)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/SearchStore.ts:125:56
+      at Array.map (<anonymous>)
+      at SearchStore.apply (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/SearchStore.ts:125:38)
+      at executeAction (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:70:19)
+      at SearchStore.searchBraveContext (/home/ethan/projects/ai/gatesai-chat/node_modules/mobx/src/core/action.ts:50:16)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/SearchStore.test.ts:93:33
+}
+
+ ✓ tests/stores/SearchStore.test.ts (5 tests) 80ms
+ ✓ tests/stores/tourThread.test.ts (2 tests) 42ms
+stderr | tests/stores/BridgeStore.test.ts > BridgeStore.whenSettled > waits for the first poll to answer, then resolves
+[MobX] Since strict-mode is enabled, changing (observed) observable values without using an action is not allowed. Tried to modify: BridgeStore@8.state
+
+ ✓ tests/stores/BridgeStore.test.ts (9 tests) 77ms
+stderr | tests/services/tools.test.ts > fs tool > denies direct reads of app-managed chat history files
+[security] Blocked protected chat-history access { tool: 'fs', pathHint: '.gatesai/chat/state.v1.json' }
+
+stderr | tests/services/tools.test.ts > fs tool > denies direct reads of the readable chat-history mirror
+[security] Blocked protected chat-history access { tool: 'fs', pathHint: 'chat-history/conversations/t1.html' }
+
+stderr | tests/services/tools.test.ts > fs tool > denies writes and deletes inside app-managed chat history scope
+[security] Blocked protected chat-history access { tool: 'fs', pathHint: '.gatesai/chat/manual.json' }
+
+stderr | tests/services/tools.test.ts > fs tool > denies writes and deletes inside app-managed chat history scope
+[security] Blocked protected chat-history access { tool: 'fs', pathHint: '.gatesai/chat' }
+
+stderr | tests/services/tools.test.ts > inspect_file tool > denies direct inspection of app-managed chat history files
+[security] Blocked protected chat-history access { tool: 'inspect_file', pathHint: '.gatesai/chat/state.v1.json' }
+
+stderr | tests/services/tools.test.ts > terminal tool > rejects commands that read protected chat-history mirror files
+[security] Blocked protected chat-history access { tool: 'terminal' }
+
+stderr | tests/services/tools.test.ts > python_inline tool > rejects inline Python that reads protected chat-history paths
+[security] Blocked protected chat-history access { tool: 'python_inline' }
+
+stderr | tests/services/tools.test.ts > sqlite_query tool > rejects queries against protected chat-history database paths
+[security] Blocked protected chat-history access {
+  tool: 'sqlite_query',
+  pathHint: 'chat-history/conversations/t1.sqlite'
+}
+
+ ✓ tests/services/llm/streamCore.test.ts (5 tests) 8ms
+ ✓ tests/services/openrouter.test.ts (11 tests) 44ms
+stderr | tests/services/tools.test.ts > artifact tool > rejects a smoke-render failure before writing and preserves id/revision evidence
+[html-artifacts] smoke validation failed for broken-1 revision 1 {
+  artifactId: 'broken-1',
+  revision: 1,
+  threadId: 't-test',
+  phase: 'smoke',
+  issues: [ 'Uncaught Error: boom' ]
+}
+
+ ✓ tests/services/tools.test.ts (71 tests) 67ms
+ ✓ tests/scripts/generate-changelog.test.ts (6 tests) 40ms
+ ✓ tests/stores/LibraryStore.test.ts (2 tests) 75ms
+ ✓ tests/services/image/types.test.ts (43 tests) 33ms
+ ✓ tests/components/editorial/UndoToast.test.ts (3 tests) 63ms
+ ✓ tests/stores/UserProfileStore.test.ts (3 tests) 10ms
+ ✓ tests/components/editorial/EditorialComposer.test.ts (25 tests) 1706ms
+ ✓ tests/services/chat/turnRunner.test.ts (6 tests) 50ms
+ ✓ tests/core/threadSelectors.test.ts (19 tests) 30ms
+ ✓ tests/scripts/model-compat/cli.test.ts (3 tests) 2ms
+ ✓ tests/services/rag/retrieval.test.ts (3 tests) 11ms
+ ✓ tests/services/llm/ollama.test.ts (15 tests) 19ms
+ ✓ tests/services/rag/vectorStore.test.ts (4 tests) 4ms
+ ✓ tests/services/chat/autoNamer.test.ts (5 tests) 38ms
+ ✓ tests/core/htmlArtifactPolicy.test.ts (4 tests) 18ms
+ ✓ tests/stores/ProviderStore.test.ts (9 tests) 57ms
+ ✓ tests/services/chat/streamingRoundExecutor.test.ts (11 tests) 67ms
+ ✓ tests/stores/UiStore.test.ts (7 tests) 12ms
+ ✓ tests/services/uiPrefsStorage.test.ts (7 tests) 6ms
+stderr | tests/services/imageJobsStorage.test.ts > imageJobsStorage > returns [] when the entry is malformed JSON
+[persistence] localStorage load failed; using defaults {
+  key: 'gatesai.imagejobs.v1',
+  err: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+      at JSON.parse (<anonymous>)
+      at Object.load (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/storage/persistenceProvider.ts:45:35)
+      at loadImageJobsHistory (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/imageJobsStorage.ts:114:31)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/imageJobsStorage.test.ts:39:12
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+}
+
+ ✓ tests/services/imageJobsStorage.test.ts (5 tests) 12ms
+ ✓ tests/stores/modelRegistry.test.ts (2 tests) 17ms
+ ✓ tests/services/tools/activityDisplay.test.ts (8 tests) 24ms
+ ✓ tests/stores/PromptStore.test.ts (7 tests) 14ms
+stdout | tests/services/diagnostics/logger.test.ts > logger file sinks > writes info entries to the daily app log only
+[test-scope] routine event
+
+stderr | tests/services/diagnostics/logger.test.ts > logger file sinks > duplicates warn and error entries into the daily error trail with their data payload
+[image-jobs] dispatch imgjob-x failed: Load failed { jobId: 'imgjob-x', backend: 'local-comfy' }
+[bridge] went offline
+
+stderr | tests/services/diagnostics/logger.test.ts > logger file sinks > writes nothing when the sink is offline
+[test-scope] boom
+
+ ✓ tests/services/diagnostics/logger.test.ts (3 tests) 14ms
+ ✓ tests/stores/TaskStore.test.ts (6 tests) 20ms
+ ✓ tests/stores/ImageGenStore.test.ts (5 tests) 49ms
+ ✓ tests/services/tools/fetchPage.test.ts (5 tests) 31ms
+ ✓ tests/services/rag/indexer.test.ts (7 tests) 9ms
+ ✓ tests/services/modelCatalog.test.ts (7 tests) 5ms
+stderr | tests/services/workspaceChatPersistence.test.ts > workspace chat persistence > backs up malformed workspace JSON before replacement
+[persistence] Workspace chat snapshot malformed {
+  error: "Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+}
+
+ ✓ tests/services/diff/diffArtifact.test.ts (6 tests) 9ms
+ ✓ tests/services/workspaceChatPersistence.test.ts (8 tests) 33ms
+ ✓ tests/services/persistence/retiredSlots.test.ts (3 tests) 6ms
+ ✓ tests/components/editorial/codeBlock.test.ts (5 tests) 4ms
+ ✓ tests/scripts/rag-eval.test.ts (5 tests) 27ms
+ ✓ tests/components/editorial/messageWindowing.test.ts (8 tests) 25ms
+ ✓ tests/stores/SkillsStore.test.ts (1 test) 11ms
+ ✓ tests/services/modelPickerAvailability.test.ts (11 tests) 5ms
+ ✓ tests/components/media/useImageDataUrl.test.ts (2 tests) 11ms
+ ✓ tests/services/chat/toolFailureLog.test.ts (3 tests) 6ms
+ ✓ tests/services/llm/ollamaPull.test.ts (6 tests) 12ms
+ ✓ tests/scripts/model-compat/policy.test.ts (3 tests) 29ms
+ ✓ tests/services/search/braveClient.test.ts (12 tests) 32ms
+stderr | tests/stores/DockStore.test.ts > DockStore > boots with defaults from a corrupt snapshot
+[persistence] localStorage load failed; using defaults {
+  key: 'gatesai.dock.v1',
+  err: SyntaxError: Unexpected token 'g', "garbage{{" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at Object.load (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/storage/persistenceProvider.ts:45:35)
+      at loadDockSnapshot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/storage/dockStorage.ts:58:26)
+      at new DockStore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/DockStore.ts:38:22)
+      at makeStore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/DockStore.test.ts:9:17)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/stores/DockStore.test.ts:146:18
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+}
+
+ ✓ tests/stores/DockStore.test.ts (13 tests) 31ms
+ ✓ tests/services/chat/agentTaskLifecycle.test.ts (3 tests) 10ms
+ ✓ tests/components/editorial/composerAttachments.test.ts (2 tests) 12ms
+ ✓ tests/app/useDesktopAmbient.test.ts (2 tests) 19ms
+ ✓ tests/services/llm/vision.test.ts (2 tests) 13ms
+ ✓ tests/services/artifacts/smokeRender.test.ts (2 tests) 21ms
+ ✓ tests/core/threadOps.test.ts (4 tests) 7ms
+stderr | tests/services/storage/dockStorage.test.ts > dockStorage > falls back to defaults on unparseable JSON
+[persistence] localStorage load failed; using defaults {
+  key: 'gatesai.dock.v1',
+  err: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+      at JSON.parse (<anonymous>)
+      at Object.load (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/storage/persistenceProvider.ts:45:35)
+      at loadDockSnapshot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/storage/dockStorage.ts:58:26)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/storage/dockStorage.test.ts:41:12
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+}
+
+ ✓ tests/services/image/comfyClient.test.ts (16 tests) 17ms
+ ✓ tests/services/storage/dockStorage.test.ts (6 tests) 12ms
+ ✓ tests/stores/ArtifactStore.test.ts (2 tests) 12ms
+stderr | tests/stores/NotesStore.test.ts > NotesStore > quarantines corrupt notes and preserves a recovery copy instead of wiping silently
+[persistence] quarantined unreadable notes snapshot {
+  reason: "Saved notes were unreadable: Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+}
+
+ ✓ tests/stores/NotesStore.test.ts (4 tests) 18ms
+ ✓ tests/core/localModelMeta.test.ts (5 tests) 3ms
+ ✓ tests/components/dock/panelRegistry.test.ts (8 tests) 4ms
+ ✓ tests/scripts/model-compat/liveRunner.test.ts (4 tests) 6ms
+ ✓ tests/services/inspectFileTool.test.ts (13 tests) 28ms
+ ✓ tests/core/themeContrast.test.ts (1 test) 12ms
+ ✓ tests/services/tools/imageGenerate.test.ts (21 tests) 20ms
+ ✓ tests/services/prompts/artifactContract.test.ts (2 tests) 53ms
+ ✓ tests/services/artifacts/artifactRegistry.test.ts (4 tests) 7ms
+ ✓ tests/services/openRouterCompatibility.test.ts (6 tests) 9ms
+ ✓ tests/services/keyboard/shortcuts.test.ts (8 tests) 33ms
+ ✓ tests/services/openrouterCatalog.test.ts (5 tests) 8ms
+ ✓ tests/services/llm/ollamaCatalog.test.ts (5 tests) 10ms
+ ✓ tests/services/secretStorage.test.ts (5 tests) 8ms
+stderr | tests/services/storage/persistenceProvider.test.ts > persistence providers > falls back through the parser when stored JSON is malformed
+[persistence] localStorage load failed; using defaults {
+  key: 'slot',
+  err: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+      at JSON.parse (<anonymous>)
+      at Object.load (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/storage/persistenceProvider.ts:45:35)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/storage/persistenceProvider.test.ts:43:21
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+
+stderr | tests/services/storage/persistenceProvider.test.ts > persistence providers > swallows write and clear failures from the backend
+[persistence] localStorage save failed {
+  key: 'slot',
+  err: Error: no writes
+      at Object.setItem (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/storage/persistenceProvider.test.ts:49:30)
+      at Object.save (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/storage/persistenceProvider.ts:56:17)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/storage/persistenceProvider.test.ts:58:27
+      at Proxy.assertThrows (file:///home/ethan/projects/ai/gatesai-chat/node_modules/chai/index.js:2767:5)
+      at Proxy.methodWrapper (file:///home/ethan/projects/ai/gatesai-chat/node_modules/chai/index.js:1686:25)
+      at Proxy.<anonymous> (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/expect/dist/index.js:1088:12)
+      at Proxy.overwritingMethodWrapper (file:///home/ethan/projects/ai/gatesai-chat/node_modules/chai/index.js:1735:33)
+      at Proxy.<anonymous> (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/expect/dist/index.js:1420:16)
+      at Proxy.<anonymous> (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/expect/dist/index.js:1029:14)
+      at Proxy.methodWrapper (file:///home/ethan/projects/ai/gatesai-chat/node_modules/chai/index.js:1686:25)
+}
+[persistence] localStorage clear failed {
+  key: 'slot',
+  err: Error: no clears
+      at Object.removeItem (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/storage/persistenceProvider.test.ts:50:33)
+      at Object.clear (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/storage/persistenceProvider.ts:63:17)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/storage/persistenceProvider.test.ts:59:27
+      at Proxy.assertThrows (file:///home/ethan/projects/ai/gatesai-chat/node_modules/chai/index.js:2767:5)
+      at Proxy.methodWrapper (file:///home/ethan/projects/ai/gatesai-chat/node_modules/chai/index.js:1686:25)
+      at Proxy.<anonymous> (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/expect/dist/index.js:1088:12)
+      at Proxy.overwritingMethodWrapper (file:///home/ethan/projects/ai/gatesai-chat/node_modules/chai/index.js:1735:33)
+      at Proxy.<anonymous> (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/expect/dist/index.js:1420:16)
+      at Proxy.<anonymous> (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/expect/dist/index.js:1029:14)
+      at Proxy.methodWrapper (file:///home/ethan/projects/ai/gatesai-chat/node_modules/chai/index.js:1686:25)
+}
+
+stderr | tests/services/modelPickerStorage.test.ts > modelPickerStorage favorites > falls back to an empty list when stored data is corrupt
+[persistence] Model picker preference load failed {
+  key: 'gatesai.modelPicker.favorites.v1',
+  err: SyntaxError: Unexpected token 'o', "not json" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at loadFavoriteModelIds (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/storage/modelPickerStorage.ts:58:25)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/modelPickerStorage.test.ts:26:12
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+
+ ✓ tests/services/modelPickerStorage.test.ts (3 tests) 9ms
+ ✓ tests/services/storage/persistenceProvider.test.ts (6 tests) 20ms
+ ✓ tests/services/router.test.ts (6 tests) 4ms
+ ✓ tests/core/clientPlatform.test.ts (7 tests) 5ms
+ ✓ tests/services/rag/lexical.test.ts (2 tests) 15ms
+ ✓ tests/services/local/autoDetect.test.ts (2 tests) 2ms
+ ✓ tests/services/chat/runtimeContext.test.ts (2 tests) 29ms
+ ✓ tests/services/defaultWorkspaceGuide.test.ts (3 tests) 5ms
+ ✓ tests/core/tokens.test.ts (1 test) 5ms
+ ✓ tests/components/editorial/composerRecall.test.ts (3 tests) 10ms
+ ✓ tests/services/userGuideInstall.test.ts (3 tests) 3ms
+ ✓ tests/components/editorial/groupConsecutive.test.ts (4 tests) 4ms
+ ✓ tests/components/editorial/activitySummary.test.ts (8 tests) 3ms
+ ✓ tests/core/downloads.test.ts (4 tests) 8ms
+ ✓ tests/core/modelCapabilities.test.ts (5 tests) 4ms
+ ✓ tests/core/messageParts.test.ts (6 tests) 12ms
+ ✓ tests/components/editorial/iconForActivity.test.ts (8 tests) 10ms
+ ✓ tests/services/diff/lineDiff.test.ts (6 tests) 9ms
+stderr | tests/services/window/fullscreen.test.ts > toggleFullscreen (web path) > returns null instead of throwing when the platform refuses
+[window] fullscreen toggle failed {
+  name: 'Error',
+  message: 'denied',
+  stack: 'Error: denied\n' +
+    '    at HTMLHtmlElement.<anonymous> (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/window/fullscreen.test.ts:30:40)\n' +
+    '    at HTMLHtmlElement.mockCall (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/spy/dist/index.js:96:15)\n' +
+    '    at HTMLHtmlElement.spy (file:///home/ethan/projects/ai/gatesai-chat/node_modules/tinyspy/dist/index.js:47:80)\n' +
+    '    at toggleFullscreen (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/window/fullscreen.ts:27:36)\n' +
+    '    at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/window/fullscreen.test.ts:35:18\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n' +
+    '    at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20\n' +
+    '    at new Promise (<anonymous>)\n' +
+    '    at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)'
+}
+
+ ✓ tests/services/window/fullscreen.test.ts (3 tests) 17ms
+ ✓ tests/core/workspacePaths.test.ts (11 tests) 4ms
+ ✓ tests/services/streamingTextBuffer.test.ts (6 tests) 4ms
+ ✓ tests/services/chat/deepResearch.test.ts (2 tests) 5ms
+ ✓ tests/components/editorial/markdownPluginLoader.test.ts (2 tests) 4ms
+ ✓ tests/services/library/librarySourceService.test.ts (3 tests) 3ms
+ ✓ tests/core/usage.test.ts (4 tests) 3ms
+ ✓ tests/services/tools/webSearch.test.ts (4 tests) 8ms
+ ✓ tests/services/rag/sourceRepository.test.ts (2 tests) 3ms
+ ✓ tests/services/tools/describeImage.test.ts (3 tests) 13ms
+ ✓ tests/services/askUser.test.ts (8 tests) 6ms
+ ✓ tests/services/threadNamer.test.ts (2 tests) 11ms
+ ✓ tests/services/wireFormat.test.ts (3 tests) 6ms
+ ✓ tests/services/contextCompaction.test.ts (3 tests) 4ms
+stderr | tests/services/openrouterCache.test.ts > openrouterCache > returns null on malformed payload
+[persistence] localStorage load failed; using defaults {
+  key: 'gatesai.openrouter.catalog.v1',
+  err: SyntaxError: Unexpected token 'o', "not json" is not valid JSON
+      at JSON.parse (<anonymous>)
+      at load (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/storage/persistenceProvider.ts:45:35)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/services/openrouterCache.test.ts:35:12
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+      at processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+
+ ✓ tests/services/openrouterCache.test.ts (4 tests) 11ms
+ ✓ tests/services/storage/webLocksLeaderElection.test.ts (2 tests) 10ms
+ ✓ tests/services/image/jobs/comfyProgress.test.ts (5 tests) 13ms
+stderr | tests/services/tools/protectedWorkspacePaths.test.ts > protectedWorkspacePaths > denyIfReferencesProtectedChatHistory returns a stable denial message
+[security] Blocked protected chat-history access { tool: 'unknown' }
+
+ ✓ tests/services/tools/protectedWorkspacePaths.test.ts (6 tests) 7ms
+ ✓ tests/services/llm/resolveImages.test.ts (7 tests) 4ms
+ ✓ tests/services/library/libraryTool.test.ts (2 tests) 7ms
+ ✓ tests/services/chat/chatTurnEngine.test.ts (2 tests) 3ms
+ ✓ tests/services/skills/skillsService.test.ts (7 tests) 18ms
+ ✓ tests/core/defaultModel.test.ts (6 tests) 3ms
+ ✓ tests/services/chat/userSystemPrompt.test.ts (4 tests) 10ms
+ ✓ tests/services/undo/UndoService.test.ts (3 tests) 9ms
+ ✓ tests/services/tauriConfig.test.ts (1 test) 15ms
+ ✓ tests/stores/WhatsNewStore.test.ts (4 tests) 7ms
+stderr | tests/services/chat/toolBatchExecutor.test.ts > executeToolBatch and the first bridge poll > does not wait when the bridge state is already known
+[tool-call-failed] tool call failed {
+  toolName: 'image_generate',
+  toolCallId: 'call_1',
+  threadId: 't1',
+  reason: 'Error: bridge is offline.',
+  resultPreview: 'Error: bridge is offline.',
+  argumentsPreview: '{"prompt":"a wax seal"}',
+  bridgeOnline: false,
+  readOnly: false,
+  durationMs: 0,
+  ranAt: '2026-09-05T01:08:53.746Z'
+}
+
+ ✓ tests/services/chat/toolBatchExecutor.test.ts (2 tests) 7ms
+ ✓ tests/core/followUps.test.ts (6 tests) 4ms
+ ✓ tests/services/chat/contextModes.test.ts (4 tests) 6ms
+ ✓ tests/components/editorial/scrollFollow.test.ts (11 tests) 3ms
+ ✓ tests/services/local/platformCopy.test.ts (2 tests) 2ms
+ ✓ tests/components/editorial/messageCopy.test.ts (2 tests) 3ms
+ ✓ tests/services/desktop/chordRecorder.test.ts (3 tests) 3ms
+ ✓ tests/components/palette/ranking.test.ts (2 tests) 2ms
+ ✓ tests/core/uiPacks.test.ts (5 tests) 2ms
+ ✓ tests/components/editorial/MarkdownChunk.orphan.test.ts (3 tests) 2ms
+ ✓ tests/stores/threadPreview.test.ts (5 tests) 2ms
+stderr | tests/headless.test.ts > headless core > boots and disposes the full RootStore graph without browser globals
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.mcp.v1',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:38:18
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+}
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.offlineLibrary.v1',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:38:18
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+}
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.schedules.v1',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:38:18
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+}
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.schedules.v2',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:38:18
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+}
+
+stderr | tests/headless.test.ts > headless core > connects Ollama and streams a normal ChatStore turn
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.mcp.v1',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:48:18
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+}
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.offlineLibrary.v1',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:48:18
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+}
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.schedules.v1',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:48:18
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+}
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.schedules.v2',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:48:18
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+      at runTest (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)
+}
+
+stderr | tests/headless.test.ts > headless core > runs the scripted CLI and writes streamed output
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.mcp.v1',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at runHeadlessCli (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:166:16)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:70:28
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+}
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.offlineLibrary.v1',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at runHeadlessCli (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:166:16)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:70:28
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+}
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.schedules.v1',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at runHeadlessCli (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:166:16)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:70:28
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+}
+[persistence] retired slot cleanup failed {
+  key: 'gatesai.schedules.v2',
+  err: ReferenceError: localStorage is not defined
+      at purgeRetiredLocalSlots (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/services/persistence/retiredSlots.ts:29:7)
+      at RootStore.boot (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/stores/RootStore.ts:187:5)
+      at bootHeadlessCore (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:39:9)
+      at runHeadlessCli (/home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/src/headless.ts:166:16)
+      at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/headless.test.ts:70:28
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26
+      at file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20
+      at new Promise (<anonymous>)
+      at runWithTimeout (file:///home/ethan/projects/ai/gatesai-chat/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)
+}
+
+ ✓ tests/headless.test.ts (3 tests) 54ms
+
+ Test Files  176 passed (176)
+      Tests  1307 passed (1307)
+   Start at  20:08:45
+   Duration  9.65s (transform 7.59s, setup 0ms, collect 36.72s, tests 13.04s, environment 66.02s, prepare 13.29s)
+
+
+> gatesai-chat@4.7.0 typecheck
+> tsc -b && tsc -p tsconfig.test.json --noEmit
+
+
+> gatesai-chat@4.7.0 lint
+> eslint .
+

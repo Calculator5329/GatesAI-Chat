@@ -1,0 +1,82 @@
+
+> gatesai-chat@4.7.0 test:e2e
+> playwright test --workers=2 --trace=on tests/e2e/settingsWalkthrough.spec.ts tests/e2e/web-lite.spec.ts tests/e2e/multiTab.spec.ts
+
+[vite:desktop] 
+  VITE v8.1.4  ready in 451 ms
+
+[vite:desktop]   ➜  Local:   http://127.0.0.1:15373/
+[vite:web-lite] 
+  VITE v8.1.4   web-lite   ready in 357 ms
+
+[vite:web-lite]   ➜  Local:   http://127.0.0.1:15374/
+
+Running 19 tests using 2 workers
+
+(node:3512551) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3512552) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3512551) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3512552) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[vite:desktop] 8:07:40 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.whatsNew.v1","hadPrevious":true}
+[vite:desktop] 8:07:40 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.whatsNew.v1","hadPrevious":true}
+[vite:desktop] 8:07:40 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:40 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:41 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.whatsNew.v1","hadPrevious":true}
+[vite:desktop] 8:07:41 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.whatsNew.v1","hadPrevious":true}
+[vite:desktop] 8:07:41 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.openrouter.catalog.v1","hadPrevious":true}
+[vite:desktop] 8:07:41 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.openrouter.catalog.v1","hadPrevious":true}
+[vite:desktop] 8:07:41 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:41 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:41 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.state.v1","hadPrevious":true}
+  ✓   1 [desktop-mocked] › tests/e2e/multiTab.spec.ts:26:3 › multi-tab leader election › the second tab is read-only while the first tab owns persistence (4.4s)
+  ✓   2 [desktop-mocked] › tests/e2e/multiTab.spec.ts:56:3 › multi-tab leader election › closing the leader refreshes the follower and hands over persistence (5.0s)
+[vite:desktop] 8:07:42 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:43 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:44 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:44 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓   3 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:31:3 › settings walkthrough (persistence) › automatic thread titles survives a reload (2.8s)
+  ✓   4 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:46:3 › settings walkthrough (persistence) › colour mode survives a reload and reaches the document (2.3s)
+[vite:desktop] 8:07:45 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:45 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:46 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:47 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓   5 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:59:3 › settings walkthrough (persistence) › the agent system prompt survives a reload (2.5s)
+  ✓   6 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:77:3 › settings walkthrough (persistence) › the close-to-tray toggle survives a reload (2.6s)
+[vite:desktop] 8:07:48 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:48 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:49 PM [vite] (client) [console.warn] [models] Ollama catalog fetch failed {"err":{"name":"TypeError","message":"Failed to fetch","stack":"TypeError: Failed to fetch\n    at Object.fetchOllamaTags (http://localhost:15373/src/services/local/localRuntimeService.ts:34:23)\n    at LocalRuntimeStore.fetchOllamaTags (http://localhost:15373/src/stores/LocalRuntimeStore.ts:208:23)\n    at executeAction (http://localhost:15373/node_modules/.vite/deps/mobx.js?v=9602c490:901:13)\n    at LocalRuntimeStore.fetchOllamaTags (http://localhost:15373/node_modules/.vite/deps/mobx.js?v=9602c490:886:10)\n    at OllamaStore.refresh (http://localhost:15373/src/stores/OllamaStore.ts:229:41)\n    at executeAction (http://localhost:15373/node_modules/.vite/deps/mobx.js?v=9602c490:901:13)\n    at OllamaStore.refresh (http://localhost:15373/node_modules/.vite/deps/mobx.js?v=9602c490:886:10)\n    at commit (http://localhost:15373/src/components/menu/sections/api/ApiSection.tsx:200:15)\n    at onKeyDown (http://localhost:15373/src/components/menu/sections/api/ApiSection.tsx:266:31)\n    at executeDispatch (http://localhost:15373/node_modules/.vite/deps/react-dom_client.js?v=9602c490:9141:5)"}}
+[vite:desktop] 8:07:49 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:50 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓   7 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:92:3 › settings walkthrough (persistence) › a saved fact survives a reload, and delete removes it for good (3.3s)
+  ✓   8 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:112:3 › settings walkthrough (persistence) › the Ollama address survives a reload (3.2s)
+[vite:desktop] 8:07:51 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:51 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓   9 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:127:3 › settings walkthrough (persistence) › changing a setting never throws in the page (1.9s)
+[vite:desktop] 8:07:53 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:53 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 8:07:54 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  11 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:175:3 › settings walkthrough (persistence) › a set key is never rendered in the page text (1.7s)
+  ✓  10 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:144:3 › settings walkthrough (persistence) › the Brave search key sets, persists, and clears (3.9s)
+(node:3518995) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3518995) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[vite:desktop] 8:07:55 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  12 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:188:3 › settings walkthrough (persistence) › every switch on the settings page reports its state to assistive tech (1.1s)
+(node:3519256) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3519256) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  13 [web-lite] › tests/e2e/web-lite.spec.ts:13:3 › web lite (no bridge) › shows the web lite status and disables attachments (3.1s)
+  ✓  15 [web-lite] › tests/e2e/web-lite.spec.ts:26:3 › web lite (no bridge) › redirects retired menu hashes to their new homes (2.1s)
+  ✓  16 [web-lite] › tests/e2e/web-lite.spec.ts:34:3 › web lite (no bridge) › hides the desktop-only settings rather than showing dead switches (1.1s)
+  ✓  17 [web-lite] › tests/e2e/web-lite.spec.ts:47:3 › web lite (no bridge) › explains that semantic recall requires desktop without dead controls (1.1s)
+  ✓  18 [web-lite] › tests/e2e/web-lite.spec.ts:63:3 › web lite without a configured provider › shows OpenRouter onboarding without local runtimes (1.1s)
+  ✓  19 [web-lite] › tests/e2e/web-lite.spec.ts:74:3 › web lite without a configured provider › models menu shows the OpenRouter key connect form (1.1s)
+  ✓  14 [web-lite] › tests/e2e/web-lite.spec.ts:19:3 › web lite (no bridge) › still streams a chat reply without the bridge (13.6s)
+
+  19 passed (33.7s)

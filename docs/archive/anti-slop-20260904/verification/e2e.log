@@ -1,0 +1,321 @@
+
+> gatesai-chat@4.7.0 test:e2e
+> playwright test --workers=4
+
+[vite:desktop] 7:04:10 PM [vite] (client) Re-optimizing dependencies because vite config has changed
+[vite:desktop] 
+  VITE v8.1.4  ready in 756 ms
+
+[vite:desktop]   ➜  Local:   http://127.0.0.1:15373/
+[vite:web-lite] 
+  VITE v8.1.4   web-lite   ready in 517 ms
+
+  ➜  Local:   http://127.0.0.1:15374/
+[vite:desktop] 7:04:12 PM [vite] (client) [optimizer] bundling dependencies...
+[vite:web-lite] 7:04:12 PM [vite] (client) [optimizer] scanning dependencies...
+
+Running 144 tests using 4 workers
+
+[vite:web-lite] 7:04:14 PM [vite] (client) [optimizer] bundling dependencies...
+(node:1887199) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1887183) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1887209) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1887176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1887199) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1887183) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1887176) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1887209) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[vite:desktop] 7:04:22 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:04:22 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:04:22 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓    4 [desktop-mocked] › tests/e2e/desktop.spec.ts:20:3 › desktop (mocked bridge + LLM) › loads with the composer and model picker (7.6s)
+  ✓    2 [desktop-mocked] › tests/e2e/bridge.spec.ts:19:3 › bridge-backed flows (faked online bridge) › uploads an attachment once the bridge is online (7.7s)
+  ✓    3 [desktop-mocked] › tests/e2e/artifactContract.spec.ts:41:3 › HTML artifact contract (mocked bridge) › opens a registry artifact from the palette in the dock (7.7s)
+  ✓    1 [desktop-mocked] › tests/e2e/bridge.spec.ts:33:3 › bridge-backed flows (faked online bridge) › clears all threads from the danger zone (7.8s)
+[vite:desktop] 7:04:24 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓    7 [desktop-mocked] › tests/e2e/desktop.spec.ts:39:3 › desktop (mocked bridge + LLM) › sends a message and renders the streamed reply (2.5s)
+[vite:desktop] 7:04:25 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓    8 [desktop-mocked] › tests/e2e/desktop.spec.ts:58:3 › desktop (mocked bridge + LLM) › scopes composer draft per thread when switching threads (2.9s)
+  ✓    5 [desktop-mocked] › tests/e2e/desktop.spec.ts:26:3 › desktop (mocked bridge + LLM) › navigates between menu sections (3.2s)
+  ✓    6 [desktop-mocked] › tests/e2e/desktop.spec.ts:47:3 › desktop (mocked bridge + LLM) › favoriting a model surfaces a Favorites section (3.3s)
+  ✓    9 [desktop-mocked] › tests/e2e/desktop.spec.ts:90:3 › desktop (mocked bridge + LLM) › creates a new conversation from the sidebar button (2.0s)
+[vite:desktop] 7:04:27 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:04:27 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓   10 [desktop-mocked] › tests/e2e/desktop.spec.ts:113:3 › desktop (mocked bridge + LLM) › models menu loads OpenRouter API key controls (2.3s)
+[vite:desktop] 7:04:28 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:04:28 PM [vite] (client) [console.warn] [llm] Provider stream error {"provider":"OpenRouter","modelId":"~google/gemini-flash-latest","error":"OpenRouter 400 Bad Request — {\"error\":{\"message\":\"rate limit\"}}"}
+[vite:desktop] 7:04:28 PM [vite] (client) [console.error] [chat] provider stream exception {"threadId":"t1","round":0,"err":{"name":"Error","message":"OpenRouter 400 Bad Request — {\"error\":{\"message\":\"rate limit\"}}","stack":"Error: OpenRouter 400 Bad Request — {\"error\":{\"message\":\"rate limit\"}}\n    at StreamingRoundExecutor.executeAttempt (http://localhost:15373/src/services/chat/streamingRoundExecutor.ts:159:15)\n    at async StreamingRoundExecutor.execute (http://localhost:15373/src/services/chat/streamingRoundExecutor.ts:62:20)\n    at async TurnRunner.run (http://localhost:15373/src/services/chat/turnRunner.ts:197:20)\n    at async ChatTurnEngine.runTurn (http://localhost:15373/src/services/chat/chatTurnEngine.ts:172:3)"}}
+[vite:desktop] 7:04:28 PM [vite] (client) [console.warn] [llm] Provider stream error {"provider":"OpenRouter","modelId":"google/gemini-3.1-flash-lite","error":"OpenRouter 400 Bad Request — {\"error\":{\"message\":\"rate limit\"}}"}
+[vite:desktop] 7:04:28 PM [vite] (client) [console.warn] [llm] Provider stream error {"provider":"OpenRouter","modelId":"~google/gemini-flash-latest","error":"OpenRouter 400 Bad Request — {\"error\":{\"message\":\"rate limit\"}}"}
+[vite:desktop] 7:04:28 PM [vite] (client) [console.warn] [llm] Provider stream error {"provider":"OpenRouter","modelId":"nvidia/nemotron-3-ultra-550b-a55b:free","error":"OpenRouter 400 Bad Request — {\"error\":{\"message\":\"rate limit\"}}"}
+  ✓   12 [desktop-mocked] › tests/e2e/desktop.spec.ts:155:3 › desktop (mocked bridge + LLM) › shows stop control while a reply is streaming (2.5s)
+  ✓   11 [desktop-mocked] › tests/e2e/desktop.spec.ts:123:3 › desktop (mocked bridge + LLM) › does not show another thread error on the active composer (2.7s)
+[vite:desktop] 7:04:29 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓   13 [desktop-mocked] › tests/e2e/desktop.spec.ts:164:3 › desktop (mocked bridge + LLM) › reveals and controls semantic-memory evidence (2.1s)
+  ✓   14 [desktop-mocked] › tests/e2e/desktop.spec.ts:223:3 › desktop without a configured provider › shows first-run onboarding and disables send (1.7s)
+[vite:desktop] 7:04:30 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:04:30 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓   16 [desktop-mocked] › tests/e2e/dock.spec.ts:50:3 › dock (mocked bridge) › shows an image job running and completing in the task center (2.4s)
+  ✓   15 [desktop-mocked] › tests/e2e/dock.spec.ts:23:3 › dock (mocked bridge) › opens a markdown file in the dock via the command palette (2.5s)
+  ✓   17 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:145:1 › open-workspace-directly: The shareable workspace path loads a usable composer with no prior navigation. (1.8s)
+  ✓   18 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:551:1 › command-palette-open-settings: The palette action opens the settings menu. (2.6s)
+  ✓   21 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:155:1 › start-a-new-conversation: The sidebar control creates a thread and the composer is ready with the send control idle. (2.0s)
+  ✓   19 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1049:1 › regenerate-confirm-and-cancel: Regenerating an answer that is not the last one shows a confirm panel; Cancel keeps the thread as it was. (2.7s)
+  ✓   20 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1524:1 › agent-settings-install-embedding: With the embedding model missing, Agent settings offers Install; clicking it starts the pull and turns into Cancel. (2.8s)
+  ✓   22 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:566:1 › browse-workspace-files-in-dock: Open the file explorer from the palette, enter a folder, and go back up. (2.6s)
+  ✓   23 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:168:1 › send-message-and-read-streamed-reply: Type a prompt, send it, and watch the mocked OpenRouter stream land in the transcript. (2.0s)
+  ✓   25 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1545:1 › banner-ollama-offline: A local model is selected but Ollama is unreachable: the composer banner opens Local settings. (2.2s)
+  ✓   24 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1068:1 › edit-mid-thread-confirm-and-cancel: Editing an earlier question opens the edit panel; Save asks to confirm because later turns would be dropped, and both cancels back out. (2.4s)
+  ✓   26 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:589:1 › open-task-center-and-close-it: The task center lists the seeded image job; closing its cell returns to the plain workspace. (1.9s)
+  ✓   29 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1093:1 › grouped-activity-timeline: Consecutive tool calls fold into one group; the group control expands and collapses them. (1.7s)
+  ✓   27 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:185:1 › stop-a-slow-streamed-reply: With a slow stream, the send control turns into stop; pressing it ends the turn and the composer goes idle. (2.6s)
+  ✓   28 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1558:1 › banner-local-image-offline: A direct image model is selected but ComfyUI is stopped: the banner opens local settings. (2.2s)
+  ✓   30 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:612:1 › collapse-a-dock-cell: Open the explorer in the dock, collapse it to the rail, and expand it again. (2.9s)
+  ✓   32 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:206:1 › tool-turn-shows-activity-and-answer: The first reply is a tool call; its activity row expands and the follow-up answer reads the result back. (3.2s)
+  ✓   33 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1571:1 › banner-no-model-open-models: Nothing configured after Look around: the composer banner opens the models tab. (2.8s)
+  ✓   31 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1106:1 › memory-sources-open-and-unavailable: A reply grounded in a message, a vanished message and a library file: each chip opens its detail, and the vanished one is marked unavailable. (3.3s)
+  ✓   34 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:635:1 › open-settings-and-switch-theme: Reach Settings through the sidebar control and select the Light theme. (2.6s)
+  ✓   37 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1139:1 › memory-source-open-thread: Open source on a message chip navigates to the conversation that holds it. (3.5s)
+  ✓   35 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:225:1 › web-search-grounded-reply: The assistant calls web_search, Brave answers with mocked sources, and the follow-up cites them. (3.6s)
+  ✓   36 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1584:1 › task-center-cancel-and-retry: The task ledger lists an agent task and two image jobs; cancel the task and retry both jobs. (4.7s)
+[vite:desktop] 7:04:46 PM [vite] (client) [console.warn] [openExternal] not running in Tauri, ignoring C:/gatesai-workspace/attachments/diagram.png
+  ✓   39 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1152:1 › attachment-thumbnail-open: A message attachment thumbnail hands the file to the OS through the bridge; the markdown attachment is listed by name. (2.6s)
+  ✓   38 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:648:1 › theme-persists-across-reload: Pick the light theme, reload with storage kept straight into the settings route, and find the theme control still there. (5.7s)
+  ✓   40 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:242:1 › image-generation-job-card: The assistant calls image_generate, the job runs against the mocked OpenRouter image endpoint, and the card renders the result, even when the prompt is sent before the first bridge health poll answers. (3.3s)
+  ✓   41 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1611:1 › task-center-empty: A bare desktop shows the empty task ledger. (2.6s)
+  ✓   43 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:668:1 › light-theme-preselected: The light-theme scenario opens with Light already selected in settings. (2.2s)
+[vite:desktop] 7:04:50 PM [vite] (client) [console.warn] [openExternal] not running in Tauri, ignoring C:/gatesai-workspace/artifacts/images/tour-1.png
+  ✓   44 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:261:1 › local-ollama-reply: With no cloud key and Ollama online, a turn is answered by the mocked local model. (2.2s)
+  ✓   42 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1167:1 › image-lightbox-navigation: A finished two-image job opens in the lightbox with next and previous, the full prompt, copy and open in OS. (3.2s)
+  ✓   45 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1628:1 › agent-recall-sources: Expand the message group, search it, exclude a thread, re-include all, and toggle a whole source type. (3.4s)
+[vite:desktop] 7:04:51 PM [vite] (client) [console.warn] [llm] Provider stream error {"provider":"OpenRouter","modelId":"~google/gemini-flash-latest","error":"OpenRouter 500 Mocked error — {\"error\":{\"message\":\"Upstream model provider is unavailable (mocked).\",\"code\":500}}"}
+  ✓   48 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1196:1 › image-job-retry-failed-and-cancelled: Failed and cancelled image jobs keep Retry; Copy error copies the failure and a retried job can be cancelled while it is still pending. (2.2s)
+  ✓   46 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:679:1 › open-model-provider-settings: Open the menu, select Models, and verify the web-search provider card renders. (2.7s)
+[vite:desktop] 7:04:52 PM [vite] (client) [console.warn] [llm] Provider stream error {"provider":"OpenRouter","modelId":"~google/gemini-flash-latest","error":"OpenRouter 500 Mocked error — {\"error\":{\"message\":\"Upstream model provider is unavailable (mocked).\",\"code\":500}}"}
+  ✓   50 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1217:1 › activity-rows-toggle: Each image job row on the thread can be expanded and collapsed. (2.3s)
+  ✓   49 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1663:1 › agent-library-and-index: Toggle the seeded library file, refresh the library, and rebuild the index while the danger controls stay visible. (3.3s)
+  ✓   51 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:692:1 › replace-openrouter-key: Remove the stored key, enter a placeholder, connect, and see it stored again. (2.8s)
+[vite:desktop] 7:04:56 PM [vite] (client) [console.warn] [llm] Provider stream error {"provider":"OpenRouter","modelId":"~google/gemini-flash-latest","error":"OpenRouter 500 Mocked error — {\"error\":{\"message\":\"Upstream model provider is unavailable (mocked).\",\"code\":500}}"}
+[vite:desktop] 7:04:56 PM [vite] (client) [console.error] [chat] provider stream exception {"threadId":"active","round":0,"err":{"name":"Error","message":"OpenRouter 500 Mocked error — {\"error\":{\"message\":\"Upstream model provider is unavailable (mocked).\",\"code\":500}}","stack":"Error: OpenRouter 500 Mocked error — {\"error\":{\"message\":\"Upstream model provider is unavailable (mocked).\",\"code\":500}}\n    at StreamingRoundExecutor.executeAttempt (http://localhost:15373/src/services/chat/streamingRoundExecutor.ts:159:15)\n    at async StreamingRoundExecutor.execute (http://localhost:15373/src/services/chat/streamingRoundExecutor.ts:62:20)\n    at async TurnRunner.run (http://localhost:15373/src/services/chat/turnRunner.ts:197:20)\n    at async ChatTurnEngine.runTurn (http://localhost:15373/src/services/chat/chatTurnEngine.ts:172:3)"}}
+  ✓   52 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1230:1 › aurora-activity-stream-diff: In the Aurora pack the reply folds its work behind chips; expanding shows the work note and the edit call with its diff card. (2.6s)
+  ✓   47 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:274:1 › provider-error-dismiss: OpenRouter fails with HTTP 500; the error surfaces in the transcript and the composer error can be dismissed. (7.5s)
+  ✓   54 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:713:1 › set-ollama-endpoint: Enter the local Ollama URL under Models and commit it. (3.1s)
+  ✓   53 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1696:1 › agent-facts-edit-and-clear: Facts can be edited in place, the edit cancelled, one deleted, and the rest cleared after confirmation. (3.7s)
+  ✓   56 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:295:1 › bridge-offline-degrades-gracefully: With the bridge and Ollama unreachable, attachments are disabled but a cloud turn still completes. (4.3s)
+[vite:desktop] 7:05:02 PM [vite] (client) [console.error] [image-jobs] dispatch imgjob-mtnmfnrk-1 failed: OpenRouter image generation failed 502 Mocked error: {"error":{"message":"Image generation is unavailable in this scenario."}} {"jobId":"imgjob-mtnmfnrk-1","backend":"openrouter-image","width":512,"height":512,"count":2,"threadId":"active","promptPreview":"A polished app workspace screenshot thumbnail"}
+  ✓   55 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1253:1 › aurora-fine-tune-render: The cover render exposes a fine-tune card: adjust images, size and seed, reset, then render again. (4.7s)
+  ✓   57 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:728:1 › open-agent-memory-settings: Open the menu, select Agent, and verify the persistent-instructions editor renders. (4.6s)
+  ✓   58 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1729:1 › preferences-toggles-and-shortcut: Flip a preference toggle, record a new summon chord and reset it, switch global summon off (the recorder disables) and back on, and toggle close-to-tray. (5.0s)
+  ✓   59 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:312:1 › rename-thread-from-context-menu: Right-click a thread, choose Rename, type a new title, and confirm it in the sidebar. (2.5s)
+  ✓   60 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1284:1 › aurora-reply-footer: The suggested follow-up sends as the next message; the source chip then opens the Agent tab of the menu, where recall sources live. (3.2s)
+  ✓   61 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:743:1 › add-an-agent-memory-fact: Type a new fact under Agent, add it, and see a third editable fact appear. (4.2s)
+  ✓   63 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:331:1 › pin-thread-from-row-actions: Hover a thread row and pin it; the row stays present. (3.7s)
+  ✓   62 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1766:1 › preferences-export-and-import-modes: Export writes a JSON file; Replace mode demands the confirmation phrase before the import button enables. (4.5s)
+  ✓   64 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1301:1 › prompt-cards-answer-each-way: Three pending prompts: pick an option, write a free answer and send it, and skip the last. (3.0s)
+  ✓   68 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1324:1 › prompt-cards-skip-and-option: Skip the approval prompt outright and answer the recommendation with one of its options. (2.1s)
+  ✓   65 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:758:1 › preview-memory-retrieval: Run the memory preview for a query and keep the results panel reachable. (3.5s)
+  ✓   66 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:344:1 › delete-thread-and-undo: Deleting a thread shows an undo toast; undo restores the thread. (2.8s)
+  ✓   67 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1795:1 › preferences-danger-zone: Each delete asks to confirm; cancel one and run another. (3.7s)
+  ✓   70 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:773:1 › first-run-look-around: With nothing configured, the onboarding offers a look around and lands in the composer. (2.6s)
+  ✓   69 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1337:1 › command-palette-empty-and-backdrop: A query nothing matches shows the empty row; clicking the backdrop closes the palette. (3.0s)
+  ✓   71 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:359:1 › switch-between-threads: Open the tool-activity thread, then return to the active one; each transcript renders its own content. (2.8s)
+  ✓   73 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:784:1 › first-run-connect-openrouter-and-chat: Enter a placeholder key in onboarding, connect, and get the first mocked cloud reply. (2.2s)
+  ✓   72 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1820:1 › models-catalog-refresh-and-clear: Load models pulls the mocked catalog; Clear drops it. The stored key can be revealed, and Get key is only hovered. (3.9s)
+  ✓   74 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1360:1 › aurora-command-palette-empty: In the Aurora pack, a query that matches nothing shows the empty state that names the query, and the backdrop closes the palette. (2.3s)
+  ✓   75 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:374:1 › edit-message-and-resend: Edit the user message, confirm the truncation, and a fresh reply streams in. (2.5s)
+  ✓   76 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:807:1 › whats-new-acknowledge: After an upgrade the panel opens on boot; Got it closes it and the composer is usable. (2.8s)
+  ✓   78 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1383:1 › update-pill-install-and-dismiss: With an update staged the pill offers install; dismiss hides the notice. (2.7s)
+  ✓   79 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:393:1 › regenerate-assistant-reply: Ask for a new answer to the same prompt and read the regenerated stream. (3.2s)
+  ✓   77 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1847:1 › dock-two-cells-swap-and-resize: Opening a file beside the explorer fills the second cell; swap exchanges them and the resize handles are hoverable. (3.9s)
+[vite:desktop] 7:05:20 PM [vite] (client) [console.warn] [openExternal] not running in Tauri, ignoring C:/gatesai-workspace/attachments/diagram.png
+[vite:desktop] 7:05:21 PM [vite] (client) [console.warn] [persistence] User dismissed multi-tab conflict; autosave resumed without reload
+  ✓   81 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1396:1 › attachment-tray-and-notice: Two staged attachments can be handed to the OS and removed; the persistence notice above the draft can be dismissed. (2.7s)
+  ✓   80 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:872:1 › code-block-toolbar: On a reply carrying an HTML document, toggle line numbers and wrapping, copy the block, then switch the block to its preview view. (2.8s)
+  ✓   82 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:404:1 › branch-conversation-from-message: Branching from the user message opens a new thread carrying that message. (2.9s)
+  ✓   83 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1884:1 › dock-explorer-crumbs-and-refresh: Descend into a folder, climb back through the breadcrumb and the parent control, and refresh the listing. (4.1s)
+  ✓   84 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1419:1 › persistence-notice-reload: The conflict notice's Reload action reloads the app and the workspace comes back. (3.6s)
+  ✓   85 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:893:1 › code-block-open-and-download: Open hands the HTML document to a new browser tab and Download saves it; neither leaves the thread. (4.0s)
+  ✓   86 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:417:1 › inspect-memory-disclosure: Open a memory chip to see why it was used and where it lives. (3.9s)
+[vite:desktop] 7:05:28 PM [vite] (client) [console.warn] [readAttachmentBase64] failed {"workspacePath":"/workspace/media/broken.mp4","err":{"name":"BridgeError","message":"Unreadable media: /workspace/media/broken.mp4","stack":"BridgeError: Unreadable media: /workspace/media/broken.mp4\n    at BridgeClient.handleMessage (http://localhost:15373/src/services/bridge/client.ts:236:20)\n    at ws.onmessage (http://localhost:15373/src/services/bridge/client.ts:94:10)\n    at http://localhost:15373/src/dev/scenarios/mocks/bridge.ts:260:20"}}
+7:05:28 PM [vite] (client) [console.warn] [readAttachmentBase64] failed {"workspacePath":"/workspace/media/broken.mp4","err":{"name":"BridgeError","message":"Unreadable media: /workspace/media/broken.mp4","stack":"BridgeError: Unreadable media: /workspace/media/broken.mp4\n    at BridgeClient.handleMessage (http://localhost:15373/src/services/bridge/client.ts:236:20)\n    at ws.onmessage (http://localhost:15373/src/services/bridge/client.ts:94:10)\n    at http://localhost:15373/src/dev/scenarios/mocks/bridge.ts:260:20"}}
+[vite:desktop] 7:05:28 PM [vite] (client) [console.warn] [readAttachmentBase64] failed {"workspacePath":"/workspace/media/broken.png","err":{"name":"BridgeError","message":"Unreadable media: /workspace/media/broken.png","stack":"BridgeError: Unreadable media: /workspace/media/broken.png\n    at BridgeClient.handleMessage (http://localhost:15373/src/services/bridge/client.ts:236:20)\n    at ws.onmessage (http://localhost:15373/src/services/bridge/client.ts:94:10)\n    at http://localhost:15373/src/dev/scenarios/mocks/bridge.ts:260:20"}}
+  ✓   87 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1917:1 › dock-media-viewers: Audio plays inline, a still image renders, and unreadable media shows its error notices. (5.3s)
+  ✓   88 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1430:1 › first-run-local-ready-continue: Ollama has models: the local card offers to continue with the selected one, and the sidebar hint points at the menu. (4.4s)
+[vite:desktop] 7:05:30 PM [vite] (client) [console.warn] [openExternal] not running in Tauri, ignoring C:/gatesai-workspace/site/index.html
+  ✓   89 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:910:1 › html-artifact-view-fullscreen: The inline artifact card enables View once the bridge has read the file; the full-screen viewer offers Open in OS and Close. (5.7s)
+  ✓   90 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:432:1 › exclude-memory-source-and-undo: Mark a memory source as not to be used, confirm, and reverse the choice from the undo control. (5.8s)
+  ✓   92 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1445:1 › first-run-menu-hint: The one-time hint on the brand mark opens the menu. (5.9s)
+[vite:desktop] 7:05:35 PM [vite] (client) [console.warn] [BridgeStore] readWorkspaceTextFile failed {"path":"/workspace/notes/unreadable.txt","err":{"name":"BridgeError","message":"No such file: /workspace/notes/unreadable.txt","stack":"BridgeError: No such file: /workspace/notes/unreadable.txt\n    at BridgeClient.handleMessage (http://localhost:15373/src/services/bridge/client.ts:236:20)\n    at ws.onmessage (http://localhost:15373/src/services/bridge/client.ts:94:10)\n    at http://localhost:15373/src/dev/scenarios/mocks/bridge.ts:260:20"}}
+[vite:desktop] 7:05:35 PM [vite] (client) [console.warn] [BridgeStore] readWorkspaceTextFile failed {"path":"/workspace/notes/unreadable.txt","err":{"name":"BridgeError","message":"No such file: /workspace/notes/unreadable.txt","stack":"BridgeError: No such file: /workspace/notes/unreadable.txt\n    at BridgeClient.handleMessage (http://localhost:15373/src/services/bridge/client.ts:236:20)\n    at ws.onmessage (http://localhost:15373/src/services/bridge/client.ts:94:10)\n    at http://localhost:15373/src/dev/scenarios/mocks/bridge.ts:260:20"}}
+  ✓   91 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1954:1 › dock-file-viewers: A JSON file renders as collapsible keys, a text file as plain text, and an unreadable file as a notice, and a markdown note renders as markdown. (7.2s)
+[vite:desktop] 7:05:36 PM [vite] (client) [console.warn] [openExternal] not running in Tauri, ignoring C:/gatesai-workspace/site/index.html
+  ✓   93 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:931:1 › html-artifact-open-in-dock: Open in dock renders the HTML file in a dock file viewer with an inline preview; Open in OS is a no-op against the mocked bridge. (5.6s)
+  ✓   94 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:457:1 › search-models-in-popover: Open the model popover, filter by name, then clear the filter. (5.7s)
+  ✓   95 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1454:1 › first-run-local-empty-starter-pull: Ollama runs with no models: the primary action pulls a starter and the secondary opens Local settings. (5.3s)
+  ✓   96 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1999:1 › skill-picker-choose-and-clear: The skill control opens a picker; choose Research, then clear back to none. (5.7s)
+[vite:desktop] 7:05:43 PM [vite] (client) [console.warn] [openExternal] not running in Tauri, ignoring C:/gatesai-workspace/artifacts/html/landing.html
+  ✓   98 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:474:1 › choose-a-local-model: Switch the picker to local models and select the Ollama model for this thread. (5.7s)
+  ✓   97 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:952:1 › registered-artifact-panel: The artifact registry lists a landing page; opening it from the palette shows the dock artifact panel with source toggle, open and download. (7.0s)
+  ✓   99 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1469:1 › first-run-local-installed-recheck: Ollama is installed but stopped: Check again re-polls and Open Local settings goes to the models tab. (5.8s)
+  ✓  100 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:2018:1 › favorite-a-model: Starring a model adds it to the Favorites section; unstarring it from there removes the section again; picking the model from the Favorites row selects it for the composer. (6.7s)
+[vite:desktop] 7:05:49 PM [vite] (client) [console.warn] [openExternal] not running in Tauri, ignoring C:/gatesai-workspace/notes/audit-plan.md
+  ✓  102 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:991:1 › markdown-links-open-workspace-path: A workspace path in a reply hands the file to the OS through the bridge; an external link is hovered but never followed. (5.7s)
+  ✓  101 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:489:1 › filter-models-by-capability: Toggle a capability filter in the model picker and keep the popover open. (6.4s)
+  ✓  103 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1486:1 › first-run-install-ollama: No Ollama found: Check again re-runs detection and the primary action opens Local settings. (5.4s)
+  ✓  104 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:2045:1 › local-context-mode: With a local model selected the composer offers a context mode; pick bare prompt. (4.9s)
+  ✓  106 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:504:1 › set-thinking-effort: Change the reasoning effort selector in the composer meta bar. (5.4s)
+  ✓  105 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1004:1 › message-copy-from-hover-actions: Hovering a message reveals its action row; Copy puts the text on the clipboard. (5.9s)
+[vite:desktop] 7:05:56 PM [vite] (client) [console.warn] [models] Ollama pull failed {"model":"nomic-embed-text","err":{"name":"AbortError","message":"The Ollama pull was cancelled."}}
+  ✓  107 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1503:1 › local-embed-pull-cancel-dismiss: The semantic-memory nudge pulls nomic-embed-text; the pull can be cancelled and the nudge dismissed. (4.8s)
+  ✓  108 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:2056:1 › sidebar-brand-and-bridge-dot: Clicking the brand mark opens the menu; the settings dot re-polls the bridge. (4.7s)
+  ✓  109 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:513:1 › command-palette-find-thread: Open the palette with the keyboard, search for a thread, and open it. (5.6s)
+  ✓  110 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1019:1 › long-thread-show-earlier: Past one page the transcript collapses its head behind a Show control; clicking it renders the earliest turns. (5.8s)
+[vite:desktop] 7:06:01 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.whatsNew.v1","hadPrevious":true}
+[vite:desktop] 7:06:02 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  112 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:2069:1 › whats-new-dismiss: The close control on the welcome panel dismisses it without Got it. (5.1s)
+[vite:desktop] 7:06:04 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.whatsNew.v1","hadPrevious":true}
+[vite:desktop] 7:06:04 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.openrouter.catalog.v1","hadPrevious":true}
+  ✓  111 [desktop-mocked] › tests/e2e/multiTab.spec.ts:26:3 › multi-tab leader election › the second tab is read-only while the first tab owns persistence (7.9s)
+  ✓  113 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:534:1 › command-palette-new-conversation: The palette action creates a thread and leaves the composer idle. (4.3s)
+  ✓  114 [desktop-mocked] › tests/e2e/journeys.generated.spec.ts:1032:1 › long-thread-jump-to-latest: Scrolling up a long transcript shows Jump to latest; clicking it returns to the newest turn and hides the control. (4.2s)
+[vite:desktop] 7:06:07 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.whatsNew.v1","hadPrevious":true}
+[vite:desktop] 7:06:07 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  116 [desktop-mocked] › tests/e2e/polish.spec.ts:16:3 › chat interaction polish › draws keyboard focus around the rounded composer instead of the textarea (3.4s)
+[vite:desktop] 7:06:09 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:06:09 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  118 [desktop-mocked] › tests/e2e/polish.spec.ts:94:3 › chat interaction polish › copies fenced code with visible success feedback (3.9s)
+[vite:desktop] 7:06:09 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.whatsNew.v1","hadPrevious":true}
+[vite:desktop] 7:06:09 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.openrouter.catalog.v1","hadPrevious":true}
+[vite:desktop] 7:06:10 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:06:10 PM [vite] (client) [console.warn] [persistence] another browser tab modified localStorage {"key":"gatesai.state.v1","hadPrevious":true}
+  ✓  115 [desktop-mocked] › tests/e2e/multiTab.spec.ts:56:3 › multi-tab leader election › closing the leader refreshes the follower and hands over persistence (6.9s)
+  ✓  117 [desktop-mocked] › tests/e2e/polish.spec.ts:37:3 › chat interaction polish › wheel intent over the message column disengages follow and bottom re-engages it (5.9s)
+[vite:desktop] 7:06:11 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  119 [desktop-mocked] › tests/e2e/polish.spec.ts:115:3 › chat interaction polish › shows a complete fenced HTML document as source with a Preview toggle (4.0s)
+[vite:desktop] 7:06:12 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:06:14 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:06:14 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:06:15 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:06:16 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  120 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:31:3 › settings walkthrough (persistence) › automatic thread titles survives a reload (7.3s)
+[vite:desktop] 7:06:17 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  121 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:46:3 › settings walkthrough (persistence) › colour mode survives a reload and reaches the document (6.6s)
+[vite:desktop] 7:06:17 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  122 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:59:3 › settings walkthrough (persistence) › the agent system prompt survives a reload (6.3s)
+  ✓  123 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:77:3 › settings walkthrough (persistence) › the close-to-tray toggle survives a reload (6.3s)
+[vite:desktop] 7:06:21 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:06:23 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:06:23 PM [vite] (client) [console.warn] [models] Ollama catalog fetch failed {"err":{"name":"TypeError","message":"Failed to fetch","stack":"TypeError: Failed to fetch\n    at Object.fetchOllamaTags (http://localhost:15373/src/services/local/localRuntimeService.ts:34:23)\n    at LocalRuntimeStore.fetchOllamaTags (http://localhost:15373/src/stores/LocalRuntimeStore.ts:208:23)\n    at executeAction (http://localhost:15373/node_modules/.vite/deps/mobx.js?v=761bc27b:901:13)\n    at LocalRuntimeStore.fetchOllamaTags (http://localhost:15373/node_modules/.vite/deps/mobx.js?v=761bc27b:886:10)\n    at OllamaStore.refresh (http://localhost:15373/src/stores/OllamaStore.ts:229:41)\n    at executeAction (http://localhost:15373/node_modules/.vite/deps/mobx.js?v=761bc27b:901:13)\n    at OllamaStore.refresh (http://localhost:15373/node_modules/.vite/deps/mobx.js?v=761bc27b:886:10)\n    at commit (http://localhost:15373/src/components/menu/sections/api/ApiSection.tsx:200:15)\n    at onKeyDown (http://localhost:15373/src/components/menu/sections/api/ApiSection.tsx:266:31)\n    at executeDispatch (http://localhost:15373/node_modules/.vite/deps/react-dom_client.js?v=dceaf70f:9141:5)"}}
+[vite:desktop] 7:06:23 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  126 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:127:3 › settings walkthrough (persistence) › changing a setting never throws in the page (6.4s)
+[vite:desktop] 7:06:24 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:06:25 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  124 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:92:3 › settings walkthrough (persistence) › a saved fact survives a reload, and delete removes it for good (9.2s)
+[vite:desktop] 7:06:27 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+[vite:desktop] 7:06:27 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  125 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:112:3 › settings walkthrough (persistence) › the Ollama address survives a reload (10.0s)
+[vite:desktop] 7:06:27 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  128 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:175:3 › settings walkthrough (persistence) › a set key is never rendered in the page text (3.9s)
+(node:1959212) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1959212) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1959473) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[vite:desktop] 7:06:28 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+(node:1959473) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  129 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:188:3 › settings walkthrough (persistence) › every switch on the settings page reports its state to assistive tech (2.9s)
+(node:1960146) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1960146) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[vite:desktop] 7:06:29 PM [vite] (client) [console.warn] [persistence] Workspace chat snapshot malformed {"error":"Unexpected end of JSON input"}
+  ✓  127 [desktop-mocked] › tests/e2e/settingsWalkthrough.spec.ts:144:3 › settings walkthrough (persistence) › the Brave search key sets, persists, and clears (11.7s)
+(node:1961049) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1961049) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  130 [web-lite] › tests/e2e/web-lite.spec.ts:13:3 › web lite (no bridge) › shows the web lite status and disables attachments (10.7s)
+(node:1966618) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1966618) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  132 [web-lite] › tests/e2e/web-lite.spec.ts:26:3 › web lite (no bridge) › redirects retired menu hashes to their new homes (10.7s)
+  ✓  133 [web-lite] › tests/e2e/web-lite.spec.ts:34:3 › web lite (no bridge) › hides the desktop-only settings rather than showing dead switches (9.6s)
+  ✓  135 [web-lite] › tests/e2e/web-lite.spec.ts:63:3 › web lite without a configured provider › shows OpenRouter onboarding without local runtimes (3.7s)
+  ✓  136 [web-lite] › tests/e2e/web-lite.spec.ts:74:3 › web lite without a configured provider › models menu shows the OpenRouter key connect form (4.0s)
+  ✓  134 [web-lite] › tests/e2e/web-lite.spec.ts:47:3 › web lite (no bridge) › explains that semantic recall requires desktop without dead controls (4.3s)
+(node:1968862) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1968862) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1969179) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1969179) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1969219) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1969219) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  131 [web-lite] › tests/e2e/web-lite.spec.ts:19:3 › web lite (no bridge) › still streams a chat reply without the bridge (21.8s)
+[vite:desktop] 7:06:50 PM [vite] (client) [Unhandled rejection] NotAllowedError: Failed to execute 'writeText' on 'Clipboard': Write permission denied.
+
+  ✓  138 [mobile-journeys] › tests/e2e/journeys.generated.spec.ts:2120:1 › mobile-new-conversation-and-copy-link: The top bar starts a new conversation and copies the thread link. (4.9s)
+(node:1971591) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1971591) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  139 [mobile-journeys] › tests/e2e/journeys.generated.spec.ts:2101:1 › mobile-sidebar-close-controls: The title opens the sidebar, the close control shuts it, the backdrop shuts it, and the hamburger opens it again. (5.3s)
+  ✓  137 [mobile-journeys] › tests/e2e/journeys.generated.spec.ts:2080:1 › mobile-open-sidebar-and-menu: On a phone the top bar opens the sidebar; from it the menu opens and the back control returns to the chat. (5.6s)
+(node:1971747) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1971747) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1972092) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1972092) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  140 [web-lite-journeys] › tests/e2e/journeys.generated.spec.ts:818:1 › web-lite-open-workspace: The browser build loads with attachments and deep research disabled, and the composer idle. (4.8s)
+  ✓  142 [web-lite-journeys] › tests/e2e/journeys.generated.spec.ts:2133:1 › web-lite-download-cue: An empty conversation in Web Lite shows the desktop download cue; the link is hovered, never followed. (4.7s)
+  ✓  141 [web-lite-journeys] › tests/e2e/journeys.generated.spec.ts:846:1 › web-lite-open-model-settings: Settings open from the sidebar and the Models tab renders the web-search card. (5.9s)
+  ✓  143 [web-lite-journeys] › tests/e2e/journeys.generated.spec.ts:833:1 › web-lite-send-message: A cloud turn streams in the browser build exactly as on desktop. (2.4s)
+  ✓  144 [web-lite-journeys] › tests/e2e/journeys.generated.spec.ts:859:1 › web-lite-command-palette: The keyboard shortcut opens the palette in the browser build. (3.5s)
+
+
+  1) [web-lite] › tests/e2e/web-lite.spec.ts:13:3 › web lite (no bridge) › shows the web lite status and disables attachments 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('web lite')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for getByText('web lite')[22m
+
+
+      13 |   test('shows the web lite status and disables attachments', async ({ page }) => {
+      14 |     await page.goto('/');
+    > 15 |     await expect(page.getByText('web lite')).toBeVisible();
+         |                                              ^
+      16 |     await expect(page.locator('button.composer-attach-btn')).toBeDisabled();
+      17 |   });
+      18 |
+        at /home/ethan/projects/ai/.agent-worktrees/gatesai-chat/lanes/anti-slop-gates-20260904/tests/e2e/web-lite.spec.ts:15:46
+
+    Error Context: test-results/web-lite-web-lite-no-bridg-cfce7-us-and-disables-attachments-web-lite/error-context.md
+
+  1 failed
+    [web-lite] › tests/e2e/web-lite.spec.ts:13:3 › web lite (no bridge) › shows the web lite status and disables attachments 
+  143 passed (2.9m)
