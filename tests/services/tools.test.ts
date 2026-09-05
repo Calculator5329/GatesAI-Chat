@@ -904,6 +904,7 @@ describe('artifact tool', () => {
       action, title: 'Existing', id: 'existing-1', content: '<!doctype html><html><body>keep</body></html>',
     }, makeCtx({ bridge }));
     expect(out.ok).toBe(false);
+    expect(requests[0]?.op).toBe('fs.read');
     expect(requests.every(request => request.op === 'fs.read' || request.op === 'fs.list')).toBe(true);
   });
 
