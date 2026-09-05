@@ -5,7 +5,7 @@
 // talks to two methods. Subscribing is how the UI observes a turn; there is
 // no host-callback interface to implement.
 
-import { createConversation, conversationId as brandConversationId } from '../domain/model';
+import { DomainError, createConversation, conversationId as brandConversationId } from '../domain/model';
 import type { Conversation, ConversationId } from '../domain/model';
 import type {
   ChatTransport,
@@ -35,6 +35,7 @@ export interface SendOptions {
 }
 
 export class ChatRuntime {
+  private readonly activeTurns = new Set<ConversationId>();
   private readonly listeners = new Set<TurnListener>();
   private readonly options: ChatRuntimeOptions;
   private readonly clock: Clock;
@@ -67,23 +68,29 @@ export class ChatRuntime {
   }
 
   async send(id: ConversationId, text: string, options: SendOptions = {}): Promise<TurnResult> {
-    return runChatTurn(
-      {
-        transport: this.options.transport,
-        repository: this.options.repository,
-        clock: this.clock,
-        ids: this.ids,
-        listeners: [this.fanOut],
-        ...(this.options.plugins ? { plugins: this.options.plugins } : {}),
-      },
-      {
-        conversationId: id,
-        text,
-        ...(options.signal ? { signal: options.signal } : {}),
-        ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
-        ...(options.maxOutputTokens !== undefined ? { maxOutputTokens: options.maxOutputTokens } : {}),
-      },
-    );
+    if (this.activeTurns.has(id)) throw new DomainError('turn-in-flight', 'The previous assistant turn has not stopped.');
+    this.activeTurns.add(id);
+    try {
+      return await runChatTurn(
+        {
+          transport: this.options.transport,
+          repository: this.options.repository,
+          clock: this.clock,
+          ids: this.ids,
+          listeners: [this.fanOut],
+          ...(this.options.plugins ? { plugins: this.options.plugins } : {}),
+        },
+        {
+          conversationId: id,
+          text,
+          ...(options.signal ? { signal: options.signal } : {}),
+          ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
+          ...(options.maxOutputTokens !== undefined ? { maxOutputTokens: options.maxOutputTokens } : {}),
+        },
+      );
+    } finally {
+      this.activeTurns.delete(id);
+    }
   }
 
   private readonly fanOut = (event: TurnEvent): void => {

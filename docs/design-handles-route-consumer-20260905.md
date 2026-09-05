@@ -1,0 +1,53 @@
+# A25 Handles starting-route consumer — 2026-09-05
+
+Pre-source decision: wait for root approval of the final core candidate before replacing the vendor tarball. The approved implementation and current acceptance status are recorded below. Gates base is 65f89fb2207377561f50ed33a66186d0ff6a31be. Own only the package tarball, lock, roadmap, and this note. A live D20 lane owns docs/changelog.md; preserve it and do not claim completion/integrability until the required changelog update can be coordinated.
+
+The prior response-export slice found shared node_modules/agent-handles older than the tracked tarball. This migration must verify three distinct boundaries: approved source → packaged tarball → the actual package resolved by the running consumer. A new tarball or matching lock alone proves neither installation nor runtime behavior.
+
+Planned dependency setup: create a real node_modules inside this isolated lane, never a symlink to canonical dependencies. Update only the local tarball lock entry through npm, then use a lane-local install from the existing cache. If an offline or ignore-scripts install lacks native optional dependencies, resolve that installation failure rather than weakening verification. Match every shipped package file to extracted tarball bytes, record import.meta.resolve('agent-handles/vite') and its real path, and test actual Vite startup. Existing tools may be read from shared cache but installed package state remains local.
+
+Starting-route smoke uses the existing set-thinking-effort journey. Begin on an unrelated menu route; POST the real development middleware /run endpoint; require the declared /?scenario=desktop-ready#/workspace route before selecting workspace.composer-meta.thinking-effort. Record browser frame-navigation URL events and the actual visible select value high alongside the first declared-step receipt. The middleware emits no separate initialization receipt; initialization failure is HTTP422 before NDJSON steps. This checks running middleware and browser executor, not mocked fetch or a compilation-only claim. The browser uses only synthetic scenario data and an ephemeral port, never live Bridge activation.
+
+The 105 existing journeys should compile byte-identically to the committed spec. Compare hashes without hand-editing generated output. Run the full Gates CI and E2E suites after installation. Existing core tests and independent root review remain acceptance gates; added consumer smoke is a diagnostic probe. No Fathom/N2K dependency change belongs in this scope.
+
+## Approved candidate and observed installation
+
+Root approved agent-handles e11274f2783cd61e0cdc70b90965ad9d643e1b1f. Tarball SHA256 bab9f0880ccad8aff3f5e60d668490489f7f349701f66845c5fe665d2e25e0af. npm lock-only offline changed one integrity value and no dependency versions. Initial sandbox access to the configured npm cache failed EROFS; the same command with approved cache access succeeded. npm ci --offline --ignore-scripts installed 658 packages in a new real lane-local node_modules. All 29 shipped package files match tarball bytes. Actual agent-handles/vite resolution is inside this lane; no shared node_modules symlink. Full CI passed 1361 tests, typecheck, and lint, and actual Vite/browser startup exercised installed native dependencies.
+
+Installed compiler output for all 105 journeys is byte-identical to the committed spec: SHA256 7fb5e0485131c5ae29dc55078e9250ea29049190e14314c672d871b1c4918277. No generated source edit was needed. Package/lock evidence is recorded in the campaign cache gates-route-install-proof.json.
+
+Real /run smoke passed on port15543 from /?scenario=desktop-ready#/menu/settings. Browser navigation recorded /?scenario=desktop-ready#/workspace before the existing RootStore.ts376–391 reaction selected /thread/active. The first declared action selected thinking effort high, and both declared-step receipts were ok. The original probe incorrectly required the final URL to remain /workspace; its receipt is retained as gates-route-smoke-before-route-assertion.json. The corrected probe checks the observed route chain and canonical final URL, not a looser success flag. Current receipt: gates-route-smoke.json; script: gates-route-smoke.mjs. No live Bridge was activated; the scenario supplies synthetic data.
+
+At installation review, full consumer E2E and required changelog coordination with the active D20 owner were pending. See the checkpoint receipt below for final gate status. Proposed changelog text, for insertion only after that lease is free: Updated the vendored Handles runtime so live journey replay initializes its declared starting route before the first control. Verified the lane-installed package, unchanged generated journeys, and actual Gates /run browser behavior. No application schema or UI change.
+
+## Verified checkpoint — not yet integrable
+
+Full Gates consumer CI passed 1361 tests, typecheck, and lint. Full E2E passed 146 tests in 3.8 minutes with zero retries on disposable ports15553/15554. The real installed-plugin /run smoke passed; the source map, installed package bytes, and compiled 105-journey parity are recorded above. Root independently compared the 29 packaged files to core canonical and the installed consumer (handles-route-package-root-parity.json).
+
+Evidence files in /home/ethan/.cache/tmp/astra-audit-20260905/: gates-route-ci.log, gates-route-e2e.log, gates-route-install-proof.json, gates-route-smoke.json. The dedicated smoke server was stopped. The worktree and real lane-local dependencies are retained for resume.
+
+Required remaining work: wait for D20's docs/changelog.md lease to release; append the prepared changelog text, then run repository-required verification for the final candidate and use supported landing. No competing documentation edit or forced handoff. The roadmap item stays open. Root authorized this verified checkpoint commit only; it is not a completed or integrable delivery. End both actual holders using session end; do not redundantly call lease release.
+
+## Documentation handoff resumed
+
+Mechanical revalidation found no leases or active sessions and a clean canonical master at 5c8c9a2af3c882afff3f1c35309c5283ed622491. D20 had landed; its delta is confined to spike-v5 and its changelog. Rejoined the retained consumer lane, claimed the now-free exact documentation paths, and merged that master normally. The prepared changelog entry is now appended. No D20 source was modified. Final combined-tree verification is pending coordinated heavy-test capacity; root owns supported final landing and push.
+
+Final combined-tree validation: npm run ci passed 1361 tests plus typecheck/lint. The explicit D20 command npx vitest run --config spike-v5/vitest.config.ts passed its 7 existing tests; this adds test evidence, not an architecture-adoption decision. Full consumer E2E recorded 145 passed and one failed image-lightbox-navigation case. The real click completed normally but the expected viewer was absent for 10 seconds. No cause is established. The entire failing test-result directory is retained at /home/ethan/.cache/tmp/astra-audit-20260905/gates-route-final-lightbox-failure. One root-authorized focused rerun of that existing journey passed unchanged (one test, zero retries), recorded in gates-route-lightbox-focused.log. The full run is not retrospectively green; gates-route-final-e2e.log retains the failed result. Root's acceptance disposition is pending. No source or test was changed to obtain the focused pass.
+
+Root disposition: retain the full 145/1 result and focused one-test pass without assigning a cause. Leave A25 pending. A complete Gates check must exit zero before default-branch landing; coordinate the next heavy window after AO, preferably together with the separately owned A38 spike correction. This commit records documentation and evidence only and releases its holders for that work. No default landing is authorized by the focused pass.
+
+
+## Final combined candidate verification — 2026-09-05
+
+Normal merge fa5c51a6fee15be73860f1cfe78e0e64e6537ca8 combines the A25 checkpoint 24da38f2f54c9632aee14fdeb21b9ecbba40947a with A38 959e46d8. Both documentation histories are preserved. Before this final run, node_modules and its agent-handles package were confirmed lane-local real directories; all 29 packaged files still matched the approved tarball, and the lock integrity matched its bytes. No dependency installation or source edit intervened.
+
+Actual final commands and results, run from this isolated lane:
+
+- `npm run ci`: exit 0; 177 test files / 1361 tests passed, followed by typecheck and lint.
+- `GATESAI_E2E_DESKTOP_PORT=15553 GATESAI_E2E_WEB_LITE_PORT=15554 npm run test:e2e -- --workers=2`: exit 0; all 146 tests passed in 2.9 minutes. Real listeners ran outside the sandbox in the coordinated heavy-test window.
+- `npx vitest run --config spike-v5/vitest.config.ts`: 22 tests passed.
+- `npx tsc -p spike-v5/tsconfig.json`: exit 0.
+
+Logs are /home/ethan/.cache/tmp/astra-audit-20260905/gates-combined-ci.log, gates-combined-e2e.log, gates-combined-spike.log and gates-combined-spike-tsc.log. The earlier full 145/1 run, retained lightbox trace and focused one-test pass remain separate historical results. Trace review did not establish a cause; no speculative lightbox source or test change was made. This fresh full pass satisfies the previously pending candidate gate, not a claim that the intermittent failure has been diagnosed.
+
+The roadmap now records the verified implementation. The coordinating session owns final supported integration and push. The isolated worktree and dependencies remain available. Session end releases the actual holder's own paths; no redundant lease release follows.

@@ -106,7 +106,8 @@ export async function runChatTurn(deps: TurnDependencies, input: TurnInput): Pro
     ...(input.maxOutputTokens !== undefined ? { maxOutputTokens: input.maxOutputTokens } : {}),
   });
 
-  let stopReason: StopReason = 'complete';
+  let stopReason: StopReason = 'error';
+  let terminal = false;
   let error: string | undefined;
   let usage: TokenUsage | undefined;
 
@@ -133,10 +134,12 @@ export async function runChatTurn(deps: TurnDependencies, input: TurnInput): Pro
         continue;
       }
       if (chunk.type === 'error') {
+        terminal = true;
         stopReason = 'error';
         error = chunk.message;
         break;
       }
+      terminal = true;
       stopReason = chunk.finishReason === 'stop' ? 'complete' : chunk.finishReason;
       break;
     }
@@ -147,7 +150,8 @@ export async function runChatTurn(deps: TurnDependencies, input: TurnInput): Pro
     error = cause instanceof Error ? cause.message : String(cause);
   }
 
-  if (signal.aborted && stopReason === 'complete') stopReason = 'cancelled';
+  if (signal.aborted) stopReason = 'cancelled';
+  else if (!terminal && error === undefined) error = 'Transport ended without completion evidence.';
 
   conversation = stopAssistantMessage(conversation, {
     id: assistantMessageId,

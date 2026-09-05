@@ -3243,3 +3243,11 @@ Unchanged conversation HTML/Markdown pairs now retain their last successful writ
 ### 2026-09-05 — Download a response with its origin
 
 Completed assistant messages now offer Download response (.md) beside existing message actions. Files retain the exact response text and a separate provenance section with thread/message identity and timestamps. Streaming and empty responses cannot download; failures appear inline. Downloads need no Bridge or workspace write. Browser download bytes were verified offline after reload in desktop-mode Chromium and Web Lite; native WebView completion remains unverified.
+
+### 2026-09-05 — Handles starting-route consumer migration
+
+Updated the vendored Handles runtime so live journey replay initializes its declared starting route before the first control. Verified the actual lane-installed package against the approved tarball, unchanged generated journeys, and real Gates /run browser behavior. No application schema or UI change. The earlier checkpoint's changelog hold ended after D20 completed; its source and documentation were preserved by merging current master into the consumer lane. Final combined A25+A38 candidate passed 1361 unit tests, typecheck/lint, all 146 browser tests, 22 explicit spike tests and spike TypeScript. The earlier full run with one lightbox failure and its unchanged focused pass remain historical evidence; the fresh full pass does not establish a cause.
+
+## 2026-09-05 — A38 isolated architecture spike correctness
+
+The D20 spike now refuses same-conversation overlapping sends, handles split SSE line endings and stalled-read cancellation, and requires explicit stream completion evidence. Partial error replies persist. Corrected findings distinguish text-only static counts from unproven production equivalence or rewrite cost. 22 spike tests and spike TypeScript pass; the original public-runtime probe now observes one provider call with the first reply preserved, matching LF/CRLF output, and honest error outcomes for provider errors and premature EOF. No production code or architecture adoption changed.
