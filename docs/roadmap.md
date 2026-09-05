@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Archive unused image/RAG, token, JSON-wrapper, and runtime-default helpers. *(2026-09-04 — six original files retained; 1307 unit tests, typecheck, lint, and all 144 browser tests passed. [Audit and verification](archive/anti-slop-20260904/README.md). Earlier intermittent browser failures remain unexplained.)*
+
 ## Narrowed scope — depth over breadth (2026-07-19)
 
 **Principle:** a fast, beautiful, local-first chat workspace that does a small

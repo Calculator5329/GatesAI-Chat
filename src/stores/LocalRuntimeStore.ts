@@ -391,7 +391,3 @@ function isAlreadyRunningOutsideGatesAI(message: string): boolean {
 function runtimeLabel(id: LocalRuntimeId): string {
   return id === 'ollama' ? 'Ollama' : 'ComfyUI';
 }
-
-export function localRuntimeDefaults(): LocalRuntimePersistedConfig {
-  return JSON.parse(JSON.stringify(DEFAULT_LOCAL_RUNTIME_CONFIG)) as LocalRuntimePersistedConfig;
-}

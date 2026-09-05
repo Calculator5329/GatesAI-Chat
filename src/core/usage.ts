@@ -99,11 +99,6 @@ export function formatUsd(value: number): string {
   return `$${safe.toFixed(decimals)}`;
 }
 
-export function formatTokenCount(value: number): string {
-  const safe = Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0;
-  return safe.toLocaleString();
-}
-
 function hasUsagePayload(usage: LlmUsage): boolean {
   return usage.promptTokens != null
     || usage.completionTokens != null

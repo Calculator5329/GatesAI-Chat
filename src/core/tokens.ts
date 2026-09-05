@@ -37,12 +37,6 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / CHARS_PER_TOKEN);
 }
 
-export function estimateMessageTokens(messages: Array<{ content: string }>): number {
-  let total = 0;
-  for (const m of messages) total += estimateTokens(m.content) + MESSAGE_OVERHEAD_TOKENS;
-  return total;
-}
-
 export function estimateWireTokens(messages: LlmMessage[], tools: ToolDef[] = []): number {
   let total = 0;
   for (const message of messages) {
