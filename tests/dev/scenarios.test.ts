@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { findScenario, installDevScenario, readScenarioName, routesFor, SCENARIOS, seedStorage } from '../../src/dev/scenarios';
 import { BridgeFileTable, createWebSocketPatch, handleBridgeOp, ScenarioBridgeSocket } from '../../src/dev/scenarios/mocks/bridge';
-import { createFetchMock } from '../../src/dev/scenarios/mocks/http';
+import { createFetchMock, streamedResponse } from '../../src/dev/scenarios/mocks/http';
 import { STORAGE_KEYS } from '../../src/dev/scenarios/seeds';
 
 function memoryStorage(): Storage {
@@ -309,5 +309,30 @@ describe('scenario layer follow-ups', () => {
     const response = await postChat(routesFor(findScenario('image-job')!), { modalities: ['image', 'text'] });
     const payload = await response.json() as { choices: Array<{ message: { images: Array<{ image_url: { url: string } }> } }> };
     expect(payload.choices[0].message.images[0].image_url.url).toMatch(/^data:image\/png;base64,iVBOR/);
+  });
+});
+
+
+describe('Explorer interruption fidelity', () => {
+  it('rejects an already-aborted Request without executing the mock handler', async () => {
+    const abort = new AbortController();
+    abort.abort();
+    let called = false;
+    const mock = createFetchMock([{ name: 'abort', matches: () => true, respond: () => { called = true; return new Response('unexpected'); } }], fetch);
+    const request = new Request('https://example.test');
+    Object.defineProperty(request, 'signal', { value: abort.signal });
+    await expect(mock.fetch(request)).rejects.toMatchObject({ name: 'AbortError' });
+    expect(called).toBe(false);
+  });
+
+  it('rejects a pending body read promptly when a stream is stopped', async () => {
+    const abort = new AbortController();
+    const mock = createFetchMock([{ name: 'stream', matches: () => true, respond: () => streamedResponse(['first', 'late'], { delayMs: 1000, contentType: 'text/plain' }) }], fetch);
+    const response = await mock.fetch('https://example.test', { signal: abort.signal });
+    const reader = response.body!.getReader();
+    expect(new TextDecoder().decode((await reader.read()).value)).toBe('first');
+    const pending = reader.read();
+    abort.abort();
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
   });
 });

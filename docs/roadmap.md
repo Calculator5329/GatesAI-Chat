@@ -1052,3 +1052,7 @@ Ethan's packet reply, planning/reports/backlog-audit-packet-20260825. Reversible
 - [x] <!-- workspace:id=work:dad7d043-ca59-5581-a85a-93ffa4e1fbf8 --> A53 — Coalesce deep autosave observation with the existing 250 ms persistence throttle. Completed source candidate 2026-09-05; combined 21 focused lifecycle/trigger tests, same-input operation-count proof, CI (1,370 tests/type/lint), and full E2E (146 passed) are green. Parent source review passed. [Design/evidence](design-autosave-scheduling-20260905.md).
 
 - [x] <!-- workspace:id=work:89a4ee4f-1f0b-5a13-a615-3d67464d14c8 --> A54 — Suppress coordinator workspace enqueue/drain while paused and drop stale pending snapshots without replay on resume. Completed alongside A53 on 2026-09-05; combined focused tests, CI, and all 146 E2E tests passed. Already in-flight and caller-owned hydration writes remain outside this scope. [Design/evidence](design-autosave-scheduling-20260905.md).
+
+- [x] 2026-09-06: Dogfood Explorer against fictional desktop streaming,
+  cancellation, thread switching, edit/resend and failure recovery; correct
+  abort semantics in dev response streams. See `docs/explorer-dogfood-20260906.md`.

@@ -3266,3 +3266,11 @@ The D20 spike now refuses same-conversation overlapping sends, handles split SSE
 Autosave now coalesces deep history observation within its existing 250 ms window, preserving immediate startup and synchronous latest-state saves on teardown. The synthetic same-input probe reduced repeated tool-argument serialization from 40,000 to 1,000 operations; this is not a browser frame measurement. Combined A53/A54 focused lifecycle/trigger checks passed; CI passed 1,370 tests/type/lint and the full E2E suite passed all 146 tests. Parent source review passed. [Design/evidence](design-autosave-scheduling-20260905.md).
 
 A54 separately closes coordinator-owned paused attachment and queued-drain writes. Resume only re-enables scheduling; already in-flight writes and direct hydration saves are not claimed cancellable or follower-gated. Combined CI passed 1,370 tests, typecheck, and lint; full E2E passed 146 tests in 1.7 minutes.
+
+## 2026-09-06 — Explorer interruption dogfood
+
+- Dev scenario streams now stop pending body reads when their request is
+  aborted, and recognize signals carried by Request objects. This makes
+  cancellation testing reflect native fetch behavior.
+- Added a reusable six-goal Explorer driver with timed frames, action receipts,
+  fictional provider call evidence, and a seeded stuck-stream probe.
