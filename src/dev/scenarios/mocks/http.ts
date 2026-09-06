@@ -18,8 +18,20 @@ export function createFetchMock(routes: MockRoute[], fallback: typeof fetch): Fe
     const route = routes.find(candidate => candidate.matches(req));
     if (!route) return fallback(input, init);
     calls.push({ route: route.name, method: req.method, url: req.url.toString(), at: Date.now(), body: req.body });
-    if (init?.signal?.aborted) throw abortError();
-    return route.respond(req);
+    const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+    if (signal?.aborted) throw abortError();
+    const response = await route.respond(req);
+    if (signal?.aborted) {
+      await response.body?.cancel();
+      throw abortError();
+    }
+    // Native fetch also aborts body reads after the headers have arrived.
+    // Mirror that boundary so Stop/recovery journeys exercise real semantics.
+    return signal && response.body
+      ? new Response(response.body.pipeThrough(new TransformStream(), { signal }), {
+        status: response.status, statusText: response.statusText, headers: response.headers,
+      })
+      : response;
   };
   return { fetch: fetchImpl, calls };
 }
