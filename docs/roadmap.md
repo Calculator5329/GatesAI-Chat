@@ -1,6 +1,6 @@
 # Roadmap
 
-- [x] **Dispose every `ChatStore` the tool-loop test file creates.** Reuse the
+- [x] <!-- workspace:id=work:a9916f05-b1b9-5339-899b-f6013872ca6a --> **Dispose every `ChatStore` the tool-loop test file creates.** Reuse the
       `trackChat`/`disposeActiveChats` pattern from `tests/stores/ChatStore.test.ts`
       so `tests/stores/toolLoop.test.ts` releases each store's persistence
       autorun and window listeners before its storage reset. Verified2026-09-05: CI1385tests/typecheck/lint and146browser tests passed;
@@ -1053,6 +1053,6 @@ Ethan's packet reply, planning/reports/backlog-audit-packet-20260825. Reversible
 
 - [x] <!-- workspace:id=work:89a4ee4f-1f0b-5a13-a615-3d67464d14c8 --> A54 — Suppress coordinator workspace enqueue/drain while paused and drop stale pending snapshots without replay on resume. Completed alongside A53 on 2026-09-05; combined focused tests, CI, and all 146 E2E tests passed. Already in-flight and caller-owned hydration writes remain outside this scope. [Design/evidence](design-autosave-scheduling-20260905.md).
 
-- [x] 2026-09-06: Dogfood Explorer against fictional desktop streaming,
+- [x] <!-- workspace:id=work:732e328a-99a4-5b4b-95a1-d55ebf71f96c --> 2026-09-06: Dogfood Explorer against fictional desktop streaming,
   cancellation, thread switching, edit/resend and failure recovery; correct
   abort semantics in dev response streams. See `docs/explorer-dogfood-20260906.md`.
