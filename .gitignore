@@ -79,3 +79,4 @@ blob-report/
 
 # app-explorer runs and findings (evidence lives in ai/app-explorer/docs/evidence)
 .explorer/
+dist-web-lite/
