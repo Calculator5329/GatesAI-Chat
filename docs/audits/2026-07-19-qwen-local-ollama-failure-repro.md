@@ -1,4 +1,4 @@
-# Qwen local Ollama failure repro — 2026-07-19
+# Qwen local Ollama failure repro: 2026-07-19
 
 ## Failure observed
 Qwen local sessions (`qwen2.5:7b`, `qwen2.5-coder:14b`) were failing when the request body looked like a normal generic Ollama chat payload.

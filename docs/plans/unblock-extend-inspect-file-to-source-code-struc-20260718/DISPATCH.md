@@ -2,17 +2,17 @@
 
 Follow-up implementation task for the approved roadmap item
 "Extend `inspect_file` to source-code structure (`py`, `js`, `ts`, `go`)".
-Design is final in `design.md` (same folder) — implement it as specified;
+Design is final in `design.md` (same folder): implement it as specified;
 do not re-open the approach (heuristic pure-TS outliner, zero new deps).
 
 ## Task spec
 
 - **title:** Implement inspect_file source-code outlines (py, js, ts, go) per approved design
 - **goal:** Implement docs/plans/unblock-extend-inspect-file-to-source-code-struc-20260718/design.md exactly:
-  1. NEW `src/services/tools/codeOutline.ts` — pure parser module exporting
+  1. NEW `src/services/tools/codeOutline.ts`, pure parser module exporting
      `CodeLang`, `CodeSymbol`, `parseCodeOutline(content, lang)`, and
      `findSymbolRange(symbols, query)`; no bridge/store imports.
-  2. EXTEND `src/services/tools/inspectFile.ts` — add `py|js|ts|go` to
+  2. EXTEND `src/services/tools/inspectFile.ts`, add `py|js|ts|go` to
      `InspectFormat`, `detectFormat` (extensions + mime hints per design
      table), the `format` enum in the tool def, a new optional `symbol`
      string parameter, and an `inspectCode` dispatcher implementing
@@ -49,10 +49,10 @@ do not re-open the approach (heuristic pure-TS outliner, zero new deps).
   - `docs/changelog.md`
   - `docs/roadmap.md`
 - **test-cmd:** `npm run ci`
-  (vitest 995+ / typecheck / lint — the repo's mandatory gate; no Rust
+  (vitest 995+ / typecheck / lint, the repo's mandatory gate; no Rust
   touched so no cargo test. `npm run test:e2e` may additionally be run but
-  carries a pre-existing, already-filed `artifactContract` failure —
-  commit c8778b2 — which must not be attributed to this change.)
+  carries a pre-existing, already-filed `artifactContract` failure,
+  commit c8778b2, which must not be attributed to this change.)
 - **model tier:** smart (multi-language parser + edge cases)
 - **suggested cap:** ~$25 (complex multi-file per spend norms)
 

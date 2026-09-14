@@ -1,4 +1,4 @@
-# Performance Pass — May 2026
+# Performance Pass: May 2026
 
 Goal: eliminate >50ms interactions. Order of execution = order of ROI. All file paths relative to repo root.
 
@@ -11,7 +11,7 @@ Run `npm run analyze` before bundle or import-graph cleanup. It builds with sour
 
 Bundle/perf refactors should include the touched chunk's before/after raw and gzip sizes. If a refactor has no measurable improvement, revert it and document the result instead of keeping churn.
 
-## Phase 1 — Streaming hot path
+## Phase 1: Streaming hot path
 
 **Problem:** During assistant streaming, the entire react-markdown + rehype-highlight + rehype-katex tree re-parses on every ~48-char token flush. Auto-scroll fires every flush. Off-screen messages still paint.
 
@@ -24,7 +24,7 @@ Bundle/perf refactors should include the touched chunk's before/after raw and gz
 
 **Acceptance:** Streaming a 2KB response shows visibly fewer paints in DevTools. Auto-scroll doesn't fight a user who scrolled up.
 
-## Phase 2 — Keystroke cascade
+## Phase 2: Keystroke cascade
 
 **Problem:** Each keystroke in the composer fires `ui.setDraft` → ContextMeter observers → `chat.tokenUsage(draft)` (expensive: flattens messages, builds tool defs, composes system prompt). Inline style objects re-create on every render. Textarea autoresize does sync DOM read+write per char. User confirmed 120ms staleness on token count is fine.
 
@@ -36,24 +36,24 @@ Bundle/perf refactors should include the touched chunk's before/after raw and gz
 4. **Hoist inline style objects** in `EditorialComposer.tsx` (the `labelStyle` etc.) and `ModelPopover.tsx` (`ModelRow` style props). Move to module-scope constants or CSS classes. Wrap `ModelRow` in `React.memo`.
 5. **Replace direct DOM mutation in AttachButton** (`onMouseEnter` style.background) with CSS `:hover`.
 
-**Acceptance:** Typing in composer shows no MobX reactions firing per keystroke in profiler — only every ~120ms. ModelPopover scroll is smooth at 60fps with full model list.
+**Acceptance:** Typing in composer shows no MobX reactions firing per keystroke in profiler, only every ~120ms. ModelPopover scroll is smooth at 60fps with full model list.
 
-## Phase 3 — Storage & I/O
+## Phase 3: Storage & I/O
 
 **Problem:** UiStore localStorage save runs on every pref mutation. Large snapshot writes block the main thread.
 
 **Tasks:**
 
 1. **Debounce `saveUiPrefs` autorun** in `src/services/uiPrefsStorage.ts` (or wherever the autorun lives) to 500ms trailing.
-2. **Confirm ChatStore snapshot save** is already throttled to 250ms — if not, fix; if yes, leave alone.
+2. **Confirm ChatStore snapshot save** is already throttled to 250ms: if not, fix; if yes, leave alone.
 3. **Async snapshot persistence:** wrap `localStorage.setItem` for the chat snapshot in a `queueMicrotask` or `setTimeout(0)` so the JSON.stringify + write doesn't block the streaming token flush that triggered it.
 4. **Skip the redundant emergency-save fallback** unless the primary throws QuotaExceededError. Currently it appears unconditional; verify and tighten.
 
-(No Web Worker — out of scope per user.)
+(No Web Worker, out of scope per user.)
 
 **Acceptance:** No long tasks >50ms attributable to localStorage writes during streaming.
 
-## Phase 4 — Bundle & lazy load
+## Phase 4: Bundle & lazy load
 
 **Problem:** highlight.js (~120KB) and katex (~56KB) are imported eagerly even on first paint when no code/math is on screen.
 
@@ -61,27 +61,27 @@ Bundle/perf refactors should include the touched chunk's before/after raw and gz
 
 1. **Dynamic-import `rehype-highlight`** in `EditorialMessage.tsx` / `MarkdownBody`. Render markdown without highlight on first pass; swap in highlight plugin once loaded. Use `React.lazy` or a top-level `import()` resolved into module state.
 2. **Dynamic-import `rehype-katex` + katex CSS** the same way, only when math syntax is detected in content (cheap regex `\$[^$]+\$|\\\(`).
-3. **Audit menu sections** in `src/components/menu/sections/` — lazy-load Local section (image gen UI) since it's not on the critical path.
+3. **Audit menu sections** in `src/components/menu/sections/`: lazy-load Local section (image gen UI) since it's not on the critical path.
 4. **Verify Vite chunking:** add manual `rollupOptions.output.manualChunks` if the above produces awkward chunks. Confirm bundle analyzer (or `vite build --mode=analyze`) shows the split.
 
 **Acceptance:** Initial JS payload drops by >150KB on a fresh load with no code blocks.
 
-## Phase 5 — Perceived perf polish
+## Phase 5: Perceived perf polish
 
 **Tasks:**
 
 1. **Skeleton bubble** for assistant messages: render an empty bubble with a shimmer/typing indicator the moment the user sends, before first token arrives.
-2. **Optimistic user-message append:** the user's message appears in the thread *before* the network round-trip; if send fails, mark with retry affordance. (Confirm current behavior — likely already optimistic; if so, polish the visual transition only.)
+2. **Optimistic user-message append:** the user's message appears in the thread *before* the network round-trip; if send fails, mark with retry affordance. (Confirm current behavior, likely already optimistic; if so, polish the visual transition only.)
 3. **View Transitions API on thread switch:** wrap `RootStore.setActiveThread` (or its UI caller) in `document.startViewTransition(() => …)` if supported. Fade/slide between threads instead of hard swap.
 4. **Subtle keystroke ack:** a 1px border-color shift on the composer wrapper when the textarea is focused + non-empty. Pure CSS, zero JS.
 
-**Acceptance:** Subjective — sending feels instant; thread switch feels fluid.
+**Acceptance:** Subjective, sending feels instant; thread switch feels fluid.
 
 ## Out of scope (this pass)
 
-- Chat list virtualization (Phase 6 in original brainstorm) — deferred, `content-visibility: auto` is enough for now.
-- Web Worker for JSON/base64 — too much new infra.
-- IndexedDB migration — deferred.
+- Chat list virtualization (Phase 6 in original brainstorm): deferred, `content-visibility: auto` is enough for now.
+- Web Worker for JSON/base64, too much new infra.
+- IndexedDB migration, deferred.
 
 ## Execution
 

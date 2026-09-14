@@ -1,4 +1,4 @@
-# A25 Handles starting-route consumer — 2026-09-05
+# A25 Handles starting-route consumer: 2026-09-05
 
 Pre-source decision: wait for root approval of the final core candidate before replacing the vendor tarball. The approved implementation and current acceptance status are recorded below. Gates base is 65f89fb2207377561f50ed33a66186d0ff6a31be. Own only the package tarball, lock, roadmap, and this note. A live D20 lane owns docs/changelog.md; preserve it and do not claim completion/integrability until the required changelog update can be coordinated.
 
@@ -20,7 +20,7 @@ Real /run smoke passed on port15543 from /?scenario=desktop-ready#/menu/settings
 
 At installation review, full consumer E2E and required changelog coordination with the active D20 owner were pending. See the checkpoint receipt below for final gate status. Proposed changelog text, for insertion only after that lease is free: Updated the vendored Handles runtime so live journey replay initializes its declared starting route before the first control. Verified the lane-installed package, unchanged generated journeys, and actual Gates /run browser behavior. No application schema or UI change.
 
-## Verified checkpoint — not yet integrable
+## Verified checkpoint: not yet integrable
 
 Full Gates consumer CI passed 1361 tests, typecheck, and lint. Full E2E passed 146 tests in 3.8 minutes with zero retries on disposable ports15553/15554. The real installed-plugin /run smoke passed; the source map, installed package bytes, and compiled 105-journey parity are recorded above. Root independently compared the 29 packaged files to core canonical and the installed consumer (handles-route-package-root-parity.json).
 
@@ -37,7 +37,7 @@ Final combined-tree validation: npm run ci passed 1361 tests plus typecheck/lint
 Root disposition: retain the full 145/1 result and focused one-test pass without assigning a cause. Leave A25 pending. A complete Gates check must exit zero before default-branch landing; coordinate the next heavy window after AO, preferably together with the separately owned A38 spike correction. This commit records documentation and evidence only and releases its holders for that work. No default landing is authorized by the focused pass.
 
 
-## Final combined candidate verification — 2026-09-05
+## Final combined candidate verification: 2026-09-05
 
 Normal merge fa5c51a6fee15be73860f1cfe78e0e64e6537ca8 combines the A25 checkpoint 24da38f2f54c9632aee14fdeb21b9ecbba40947a with A38 959e46d8. Both documentation histories are preserved. Before this final run, node_modules and its agent-handles package were confirmed lane-local real directories; all 29 packaged files still matched the approved tarball, and the lock integrity matched its bytes. No dependency installation or source edit intervened.
 

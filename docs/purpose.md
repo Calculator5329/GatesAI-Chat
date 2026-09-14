@@ -1,4 +1,4 @@
-# Purpose — gatesai-chat
+# Purpose: gatesai-chat
 
 > The steering statement: the one paragraph Ethan corrects when the
 > project drifts. Weekly steering cards (design 5.5) check work against
@@ -14,4 +14,4 @@ schemas belong in the compact Agent → Memory library and ordinary chat flow,
 without restoring the former plugin host or silently reading unapproved data.
 
 *(Seeded 2026-07-12 from the portfolio + first-principles sessions.
-Corrections to this paragraph ARE the steering mechanism — edit freely.)*
+Corrections to this paragraph ARE the steering mechanism, edit freely.)*

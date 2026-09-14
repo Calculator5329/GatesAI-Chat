@@ -1,4 +1,4 @@
-# LAN companion — bridge serves Web Lite on LAN with pairing code
+# LAN companion: bridge serves Web Lite on LAN with pairing code
 
 **Status:** design + threat model (the IDEAS.md #14 "first step"). No source
 changes in this lane; implementation is specced in `DISPATCH.md` beside this
@@ -19,7 +19,7 @@ network)").
 build to a phone/tablet browser, gated by a short-lived pairing code shown on
 the desktop (QR + typeable code). Optionally (slice C) the same listener
 reverse-proxies the desktop's loopback Ollama so the phone can chat with local
-models — that is the "data never leaves the network" payoff, since the
+models, that is the "data never leaves the network" payoff, since the
 GitHub Pages copy of Web Lite (https) cannot call a LAN Ollama (http) due to
 mixed-content blocking.
 
@@ -29,16 +29,16 @@ mixed-content blocking.
   instance: its own IndexedDB, its own settings, its own provider keys typed
   on the phone. Desktop chats do not appear on the phone. A "true companion"
   (phone speaks an authenticated bridge protocol and reads
-  `/workspace/.gatesai/chat/`) is Phase 2 — see §9.
+  `/workspace/.gatesai/chat/`) is Phase 2, see §9.
 - **Key sync.** Desktop keychain secrets are never transmitted to the phone.
 - **Any workspace/exec capability on the LAN.** See the hard invariant below.
 - **TLS.** v1 is plain HTTP on the LAN, risk-accepted with an explicit UI
   warning; analysis in §6.
 
 **Hard invariant (the one non-negotiable):** the existing bridge WebSocket
-(`ws://127.0.0.1:7331/ws`) and everything reachable through it — workspace
+(`ws://127.0.0.1:7331/ws`) and everything reachable through it, workspace
 path jail, `exec.run` with the command allowlist, the caller-asserted
-`privileged` flag — stays loopback-only, exactly as today. The protocol doc
+`privileged` flag, stays loopback-only, exactly as today. The protocol doc
 already states the `privileged` flag "is caller-asserted, not an authenticated
 capability … its safe use therefore also depends on the local-only deployment
 boundary." We do not authenticate that surface; we simply never expose it.
@@ -58,10 +58,10 @@ checklist item, a Go test, and an ADR (§8) pin this.
   server component**; every bridge/Tauri capability is hidden via
   `src/core/runtime.ts` gating.
 - Web Locks leader election already degrades to `fallback` when
-  `navigator.locks` is absent (`webLocksLeaderElection.ts:113-116`) — which is
+  `navigator.locks` is absent (`webLocksLeaderElection.ts:113-116`): which is
   exactly what happens in an insecure (plain-HTTP, non-localhost) context.
 - Secrets on Web Lite fall back to `localStorage` (documented in
-  architecture.md §Security model) — on the phone this means keys typed there
+  architecture.md §Security model): on the phone this means keys typed there
   live in the phone browser's localStorage, same as visiting the Pages build.
 
 ## 3. Threat model
@@ -70,7 +70,7 @@ checklist item, a Go test, and an ADR (§8) pin this.
 
 | Asset | Where it lives | Exposure change from this feature |
 | --- | --- | --- |
-| Workspace files + exec capability (RCE-equivalent: allowlist includes `python`, `node`) | Bridge WS on loopback | **None — must stay none.** The invariant in §1. |
+| Workspace files + exec capability (RCE-equivalent: allowlist includes `python`, `node`) | Bridge WS on loopback | **None, must stay none.** The invariant in §1. |
 | Desktop chat history (`.gatesai/chat/`, `chat-history/`) | Workspace, via privileged WS ops | None in v1 (phone never reads it). |
 | Desktop API keys | OS keychain | None (never transmitted). |
 | Phone-side chats + keys | Phone browser IndexedDB/localStorage | New, but equivalent to using the Pages build on the phone. |
@@ -84,17 +84,17 @@ checklist item, a Go test, and an ADR (§8) pin this.
    Without a valid session it can reach only: the pairing page and the pairing
    POST. Mitigations: 256-bit session tokens; pairing code is short-lived
    (5 min TTL), single-use, and invalidated after 5 failed attempts (regenerate
-   from desktop — brute-forcing a 6-digit code at ≤5 tries is a 0.0005%
+   from desktop, brute-forcing a 6-digit code at ≤5 tries is a 0.0005%
    chance); constant-time compare; all auth failures logged to bridge stderr →
-   app log. It can also sniff paired devices' traffic (plain HTTP) — §6.
+   app log. It can also sniff paired devices' traffic (plain HTTP): §6.
 2. **Malicious website open in any browser on the LAN (CSRF / DNS rebinding).**
    A hostile page could POST to `http://<desktop-ip>:7332` or rebind its
-   hostname to the LAN IP. Mitigations: (a) Host-header validation — requests
+   hostname to the LAN IP. Mitigations: (a) Host-header validation, requests
    whose `Host` is not an IP-literal:port matching one of the machine's own
    addresses (or the exact advertised host) get 403; this kills DNS rebinding,
    which necessarily arrives with an attacker hostname in `Host`. (b) The
    Ollama proxy and every state-changing endpoint authenticate via an
-   `Authorization: Bearer <token>` header, never via cookie — cross-origin
+   `Authorization: Bearer <token>` header, never via cookie, cross-origin
    pages cannot attach that header without a CORS preflight, and the listener
    sends no CORS headers. (c) Static assets are gated by an `HttpOnly,
    SameSite=Lax` cookie, which is never a state-changing surface.
@@ -107,7 +107,7 @@ checklist item, a Go test, and an ADR (§8) pin this.
 4. **Stolen/lost phone.** Session token is on the phone. Mitigations: tokens
    are revocable from desktop Settings (per-device list, "revoke"), expire
    after 30 days, and grant only what §1 allows (static assets + Ollama
-   proxy) — no workspace access to lose.
+   proxy): no workspace access to lose.
 5. **Malicious pairing attempt while the code is displayed.** Code is
    displayed only while the Settings pairing dialog is open, single-use, and
    the desktop shows a "device paired: <name/IP>" confirmation, so a hijacked
@@ -115,7 +115,7 @@ checklist item, a Go test, and an ADR (§8) pin this.
 
 ## 4. Architecture
 
-### Bridge side (sibling repo `../gatesai-bridge` — separate task, own repo)
+### Bridge side (sibling repo `../gatesai-bridge`: separate task, own repo)
 
 New, cleanly separated `internal/companion` package:
 
@@ -123,21 +123,21 @@ New, cleanly separated `internal/companion` package:
   started/stopped at runtime by control ops from the loopback WS. Separate mux;
   shares zero routes with the loopback server.
 - **Routes:**
-  - `GET /pair` — minimal embedded pairing page (code entry form; also reached
+  - `GET /pair`: minimal embedded pairing page (code entry form; also reached
     by QR with `?code=` prefilled). No session required.
-  - `POST /pair` — `{ code, deviceName? }` → on success: sets session cookie
+  - `POST /pair`: `{ code, deviceName? }` → on success: sets session cookie
     (`HttpOnly; SameSite=Lax; Max-Age=30d`) and returns
     `{ token }` JSON for `Authorization`-header use; rate-limited as in §3.1.
-  - `GET /*` — Web Lite static assets from the configured dist dir; requires
+  - `GET /*`: Web Lite static assets from the configured dist dir; requires
     the session cookie; unauthenticated hits redirect to `/pair`. SPA
     fallback to `index.html`. `Cache-Control: no-store` on `index.html`.
-  - `POST/GET /companion/ollama/*` (slice C) — reverse proxy to
+  - `POST/GET /companion/ollama/*` (slice C): reverse proxy to
     `http://127.0.0.1:11434`, requires `Authorization` header, streams
     responses, caps request bodies (16 MiB), strips hop-by-hop headers. Ollama
     itself stays loopback-bound and needs no `OLLAMA_ORIGINS` change (the
     proxy makes it same-origin).
 - **Control ops on the existing loopback WS** (new `op` values; protocol
-  version stays 2 — additive ops are tolerated because unknown-`op` requests
+  version stays 2, additive ops are tolerated because unknown-`op` requests
   from old apps simply get `operation_failed`, and old bridges given new ops
   fail the same way, which the app treats as "companion unsupported"):
   - `lan.start { web_dist, port? }` → `{ url, addresses[] }`
@@ -170,7 +170,7 @@ New, cleanly separated `internal/companion` package:
   your network; never port-forward this"), QR code + typeable code + URL while
   pairing dialog is open, paired-device list with revoke. QR is rendered
   **without a new dependency**: encode the URL in a canvas via a small vendored
-  QR routine is *not* free — if a QR lib would be needed, v1 ships
+  QR routine is *not* free, if a QR lib would be needed, v1 ships
   code + URL text only and QR becomes a follow-up (dependency additions are a
   deliberate decision per CLAUDE.md; do not buy one silently).
 - **Web Lite side:** no behavioral change required for slice A/B. For slice C,
@@ -204,7 +204,7 @@ New, cleanly separated `internal/companion` package:
 6. Later: desktop revokes → next asset/proxy request from that phone gets
    401 → phone lands back on `/pair`.
 
-## 6. TLS on LAN — analysis and v1 decision
+## 6. TLS on LAN: analysis and v1 decision
 
 Options considered:
 
@@ -221,7 +221,7 @@ from "accepted risk" to "required"; record that in the ADR.
 
 ## 7. Testing / acceptance
 
-Bridge (Go, sibling repo): httptest coverage for — pairing happy path;
+Bridge (Go, sibling repo): httptest coverage for, pairing happy path;
 rate-limit → code invalidation; expired/reused code; Host-header validation
 (reject hostname, reject public-IP literal); asset route 401→redirect without
 cookie; proxy 401 without bearer token; **a test asserting the companion mux
@@ -243,21 +243,21 @@ the network".
 ## 8. Gates, sequencing, and dependencies
 
 - **ADR required** (CLAUDE.md: security-model changes need an explicit ADR):
-  the implementation lane adds `docs/adr/` "LAN companion listener — moving
+  the implementation lane adds `docs/adr/` "LAN companion listener, moving
   a bridge surface off loopback, opt-in" capturing §1's invariant, §3, §6.
 - **Sequencing dependency:** a concurrent lane is deciding "Go bridge vs
   folding into Rust core"
   (`docs/plans/unblock-decide-deliberately-go-bridge-vs-folding-20260718`).
   The HTTP surface, routes, and threat model here are language-agnostic, but
   the bridge-side implementation task must not start until that decision
-  lands — if the bridge folds into Rust, `internal/companion` becomes a Rust
+  lands, if the bridge folds into Rust, `internal/companion` becomes a Rust
   module with the same contract and the control ops become Tauri commands.
 - **No new dependency** is assumed anywhere in v1 scope; if the implementer
   concludes one is needed (e.g. QR rendering), that is a stop-and-queue for
   Ethan, not a buy.
 - No deploy, no persistence-schema change (phone-side token lives in
   localStorage, not a versioned slot; desktop-side state is bridge-owned), no
-  new global keybinds — no card-gate beyond the already-given approval.
+  new global keybinds, no card-gate beyond the already-given approval.
 
 ## 9. Phasing
 

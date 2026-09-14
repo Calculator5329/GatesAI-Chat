@@ -1,4 +1,4 @@
-# ADR — direct CodeMirror 6 for the dock editor
+# ADR: direct CodeMirror 6 for the dock editor
 
 Date: 2026-07-18  
 Status: **Accepted for W-1 implementation**  

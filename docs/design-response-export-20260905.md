@@ -1,4 +1,4 @@
-# A23 response download — 2026-09-05
+# A23 response download: 2026-09-05
 
 Root adopted one Download response (.md) action in the existing assistant action row. The file begins with the exact messageText snapshot and ends with a separate provenance section containing thread/message identity, message creation time, export time, and the displayed model label. Text is not reconstructed from rendered HTML. Source thread identity is passed with the message through the windowed renderer; it is never looked up from current selection at click time.
 

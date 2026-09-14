@@ -13,15 +13,15 @@
 **Tech Stack:** TypeScript, React, MobX (`mobx-react-lite`), Vitest, Tauri 2 (host shell-open + temp dir), existing bridge `fs.read/fs.write/fs.list/fs.mkdir`.
 
 **Reference patterns to copy:**
-- `src/services/tools/imageGenerate.ts` — tool shape, dispatching to a store
-- `src/stores/ImageJobStore.ts` — store shape, persistence wiring
-- `src/services/imageJobsStorage.ts` + `src/services/imageGenStorage.ts` — localStorage + workspace-disk persistence split
-- `src/components/editorial/ImageJobCard.tsx` — card structure + Lightbox integration
-- `src/components/editorial/EditorialMessage.tsx:139–155` — artifact render branch in tool results
+- `src/services/tools/imageGenerate.ts`: tool shape, dispatching to a store
+- `src/stores/ImageJobStore.ts`: store shape, persistence wiring
+- `src/services/imageJobsStorage.ts` + `src/services/imageGenStorage.ts`: localStorage + workspace-disk persistence split
+- `src/components/editorial/ImageJobCard.tsx`: card structure + Lightbox integration
+- `src/components/editorial/EditorialMessage.tsx:139–155`: artifact render branch in tool results
 
 ---
 
-## Task 1: Core types — `ToolResultArtifact` discriminator
+## Task 1: Core types, `ToolResultArtifact` discriminator
 
 **Files:**
 - Modify: `src/core/types.ts:77-90`
@@ -38,7 +38,7 @@
   };
 ```
 
-**Step 2:** `npx tsc --noEmit` — expect zero new errors. Add the case to `EditorialMessage` later (Task 9) so deferring the unknown branch is fine for now (current code uses `if (kind === ...) return …; return null`).
+**Step 2:** `npx tsc --noEmit`, expect zero new errors. Add the case to `EditorialMessage` later (Task 9) so deferring the unknown branch is fine for now (current code uses `if (kind === ...) return …; return null`).
 
 **Step 3:** Commit.
 
@@ -88,7 +88,7 @@ describe('artifact path helpers', () => {
 });
 ```
 
-**Step 2:** Run `npx vitest run tests/core/artifacts.test.ts` — expect FAIL (module not found).
+**Step 2:** Run `npx vitest run tests/core/artifacts.test.ts`, expect FAIL (module not found).
 
 **Step 3: Implement**
 
@@ -99,7 +99,7 @@ export interface ArtifactVersion {
   version: number;
   createdAt: number;
   changeNote?: string;
-  /** Bytes on disk (UTF-8) — handy for budget displays. */
+  /** Bytes on disk (UTF-8): handy for budget displays. */
   size: number;
 }
 
@@ -162,7 +162,7 @@ function normalizeWorkspacePath(p: string): string | null {
 }
 ```
 
-**Step 4:** Re-run the test — expect PASS.
+**Step 4:** Re-run the test, expect PASS.
 
 **Step 5:** Commit.
 
@@ -179,7 +179,7 @@ git commit -m "core: artifact path helpers and id generator"
 - Create: `src/services/artifactStorage.ts`
 - Test: `tests/services/artifactStorage.test.ts`
 
-This module is bridge-aware: it serializes meta.json and html bytes via the existing `bridge.client.request('fs.write' / 'fs.read' / 'fs.mkdir')` calls. Don't duplicate path validation — reuse helpers from Task 2.
+This module is bridge-aware: it serializes meta.json and html bytes via the existing `bridge.client.request('fs.write' / 'fs.read' / 'fs.mkdir')` calls. Don't duplicate path validation, reuse helpers from Task 2.
 
 **Step 1: Write the failing test** (use a fake `BridgeFacade` that records calls):
 
@@ -292,7 +292,7 @@ export class ArtifactStorage {
 }
 ```
 
-**Step 4:** Re-run — expect PASS.
+**Step 4:** Re-run, expect PASS.
 
 **Step 5:** Commit.
 
@@ -309,7 +309,7 @@ git commit -m "services: ArtifactStorage disk persistence"
 - Create: `src/stores/ArtifactStore.ts`
 - Test: `tests/stores/ArtifactStore.test.ts`
 
-Mirror the surface of `ImageJobStore`: in-memory map of meta + cached html, observable, with `create`, `update`, `findById`, `getHtml`, and a `hydrate` that lazy-reads meta from disk on first access. We do NOT keep an index in localStorage — meta.json on disk is the source of truth, and the chat message carries the id.
+Mirror the surface of `ImageJobStore`: in-memory map of meta + cached html, observable, with `create`, `update`, `findById`, `getHtml`, and a `hydrate` that lazy-reads meta from disk on first access. We do NOT keep an index in localStorage, meta.json on disk is the source of truth, and the chat message carries the id.
 
 **Step 1: Write the failing test**
 
@@ -463,7 +463,7 @@ export class ArtifactStore {
 }
 ```
 
-**Step 4:** Re-run — PASS.
+**Step 4:** Re-run. PASS.
 
 **Step 5:** Commit.
 
@@ -480,7 +480,7 @@ git commit -m "stores: ArtifactStore with hydrate / create / update"
 - Modify: `src/stores/RootStore.ts`
 - Modify: `src/stores/context.tsx`
 
-**Step 1:** Read `src/stores/RootStore.ts` — note how `ImageJobStore` is constructed (it takes the bridge / persistence dependencies). Construct `ArtifactStore` similarly: pass a new `ArtifactStorage(this.bridge)` instance.
+**Step 1:** Read `src/stores/RootStore.ts`, note how `ImageJobStore` is constructed (it takes the bridge / persistence dependencies). Construct `ArtifactStore` similarly: pass a new `ArtifactStorage(this.bridge)` instance.
 
 **Step 2:** Add the store to the root: `readonly artifacts = new ArtifactStore(new ArtifactStorage(this.bridge));` (place near `imageJobs`).
 
@@ -501,7 +501,7 @@ git commit -m "stores: register ArtifactStore in root + context hook"
 
 **Files:**
 - Modify: `src/services/tools/types.ts`
-- Modify: wherever `ToolContext` is built (search for `imageJobs:` to find it — likely `src/services/chat/` or `src/stores/ChatStore.ts`)
+- Modify: wherever `ToolContext` is built (search for `imageJobs:` to find it, likely `src/services/chat/` or `src/stores/ChatStore.ts`)
 
 **Step 1:** Add to `types.ts`:
 
@@ -609,12 +609,12 @@ describe('artifact tool', () => {
 });
 ```
 
-**Step 2:** Run — FAIL.
+**Step 2:** Run. FAIL.
 
-**Step 3: Implement** `src/services/tools/artifact.ts`. Description (verbatim — model-facing):
+**Step 3: Implement** `src/services/tools/artifact.ts`. Description (verbatim, model-facing):
 
 ```
-artifact — emit a self-contained interactive HTML page that renders inline in the chat.
+artifact, emit a self-contained interactive HTML page that renders inline in the chat.
 
 Use this when the user asks for a page, widget, calculator, mini-tool, visualization, demo, dashboard, or anything they can click on. Single-file HTML only: inline <style> and <script>, optional CDN imports. The page renders inside a sandboxed iframe; you have NO access to host cookies or storage, but `window.gates` is available for workspace I/O:
 
@@ -623,10 +623,10 @@ Use this when the user asks for a page, widget, calculator, mini-tool, visualiza
   await window.gates.writeFile(path, content)  // only inside this artifact's data folder
 
 Actions:
-• `create` — { title, html, summary? }. Returns artifact_id + v1.
-• `update` — { artifact_id, html, change_note? }. Bumps to v(n+1). Always pass the FULL replacement html.
+• `create`, { title, html, summary? }. Returns artifact_id + v1.
+• `update`, { artifact_id, html, change_note? }. Bumps to v(n+1). Always pass the FULL replacement html.
 
-Constraints: html ≤ 1,000,000 chars. After calling, do NOT paste the html back into chat — the user already sees the rendered card.
+Constraints: html ≤ 1,000,000 chars. After calling, do NOT paste the html back into chat, the user already sees the rendered card.
 ```
 
 Skeleton:
@@ -679,7 +679,7 @@ git commit -m "tools: artifact tool (create/update) + always-on registration"
 
 ---
 
-## Task 8: Workspace bridge — host-side postMessage router
+## Task 8: Workspace bridge, host-side postMessage router
 
 **Files:**
 - Create: `src/components/editorial/artifactBridge.ts`
@@ -687,14 +687,14 @@ git commit -m "tools: artifact tool (create/update) + always-on registration"
 
 This module owns the host half of `window.gates`. The iframe sends `{ id, op, args }`, we route it to the bridge's `fs.read/list/write`, and post `{ id, ok, value }` or `{ id, ok: false, error }` back. Writes are restricted to `isArtifactDataPath(artifactId, path)`.
 
-**Step 1: Test** — drives a fake bridge + a fake `MessageEvent` and asserts:
+**Step 1: Test**: drives a fake bridge + a fake `MessageEvent` and asserts:
 - `readFile('/workspace/notes/x.md')` calls `fs.read` and resolves with the content.
 - `listDir('/workspace/artifacts/foo/data')` calls `fs.list` and returns string[] of paths.
 - `writeFile('/workspace/artifacts/foo/data/state.json', '{}')` for matching `artifactId` succeeds.
 - `writeFile('/workspace/notes/foo.md', 'hi')` for `artifactId='foo'` rejects with "writes restricted…".
 - Unknown `op` returns an error frame.
 
-**Step 2:** Run — FAIL.
+**Step 2:** Run. FAIL.
 
 **Step 3: Implement**
 
@@ -775,7 +775,7 @@ export const ARTIFACT_PREAMBLE = `
 `;
 ```
 
-**Step 4:** Re-run — PASS.
+**Step 4:** Re-run. PASS.
 
 **Step 5:** Commit.
 
@@ -798,9 +798,9 @@ git commit -m "editorial: artifact bridge router + iframe preamble"
 - Renders an iframe with `srcdoc = ARTIFACT_PREAMBLE + html`, `sandbox="allow-scripts allow-popups"`, `style={{ width:'100%', height:420, border:'1px solid var(--border)', borderRadius:8 }}`.
 - Listens to `window` `message` events. For frames marked `__gates: true` AND coming from `iframeRef.current.contentWindow`, calls `handleArtifactBridgeRequest(id, bridge, frame)` and posts the response with `__gatesResp: true`.
 - Header row: title + `v{version}` pill + buttons: **Expand**, **Open in browser**, **Download .html**.
-- Expand: full-screen overlay (reuse `Lightbox`'s shell pattern — black backdrop, ESC to close — but render the same iframe full-window).
+- Expand: full-screen overlay (reuse `Lightbox`'s shell pattern, black backdrop, ESC to close, but render the same iframe full-window).
 - Download: anchor with `href=data:text/html;base64,…` and `download="<slug>-v<n>.html"`.
-- Open in browser: write the html to `workspace/artifacts/<id>/v<n>.html` (it's already there) and use Tauri's shell-open via `@tauri-apps/api/shell` `open()` or whatever pattern `WorkspaceImage` already uses for "open in OS". Search `grep -rn "shell" src/components` to find the precedent; if there isn't one, use `@tauri-apps/plugin-opener`'s `open()` if it's already a dep — check `package.json`.
+- Open in browser: write the html to `workspace/artifacts/<id>/v<n>.html` (it's already there) and use Tauri's shell-open via `@tauri-apps/api/shell` `open()` or whatever pattern `WorkspaceImage` already uses for "open in OS". Search `grep -rn "shell" src/components` to find the precedent; if there isn't one, use `@tauri-apps/plugin-opener`'s `open()` if it's already a dep, check `package.json`.
 - Loading / missing states: spinner placeholder while hydrating; "Lost track of artifact <id>" if hydrate returns null.
 
 **Step 1: Test** focuses on:
@@ -809,7 +809,7 @@ git commit -m "editorial: artifact bridge router + iframe preamble"
 - Clicking Expand toggles a full-screen container.
 - A `MessageEvent` with `__gates:true` from the iframe's contentWindow triggers the router and posts a response.
 
-**Step 2:** Run — FAIL.
+**Step 2:** Run. FAIL.
 
 **Step 3:** Implement. Key glue:
 
@@ -863,13 +863,13 @@ git commit -m "editorial: ArtifactCard with sandboxed iframe + gates bridge"
 
 1. Start the bridge + dev server.
 2. In a chat: "Build me a small click counter as an artifact." Confirm the model calls `artifact { action: 'create' }` and a card renders.
-3. Click in the iframe, increment counter — works.
+3. Click in the iframe, increment counter, works.
 4. Ask: "Update it so the count starts at 10." Card should update to v2 (version pill changes).
-5. Inside the iframe DevTools, run `await window.gates.readFile('/workspace/notes')` (or an existing notes file path) — resolves successfully.
-6. Run `await window.gates.writeFile('/workspace/notes/escape.md', 'x')` — rejects with "writes restricted…".
-7. Run `await window.gates.writeFile('/workspace/artifacts/<id>/data/state.json', '{}')` — succeeds; check the file appears on disk.
+5. Inside the iframe DevTools, run `await window.gates.readFile('/workspace/notes')` (or an existing notes file path): resolves successfully.
+6. Run `await window.gates.writeFile('/workspace/notes/escape.md', 'x')`, rejects with "writes restricted…".
+7. Run `await window.gates.writeFile('/workspace/artifacts/<id>/data/state.json', '{}')`, succeeds; check the file appears on disk.
 8. Click **Download .html**, **Open in browser**, **Expand**.
-9. Refresh the app, reopen the same thread — card rehydrates from disk and renders the latest version.
+9. Refresh the app, reopen the same thread, card rehydrates from disk and renders the latest version.
 
 **Step 3:** Commit.
 
@@ -883,9 +883,9 @@ git commit -m "test: artifact end-to-end flow + manual smoke checklist"
 ## Task 11: Docs touch-ups
 
 **Files:**
-- Modify: `docs/architecture.md` — add an "Artifacts" subsection under Tools / Workspace.
-- Modify: `docs/changelog.md` — entry for the new tool.
-- Modify: `docs/tech_spec.md` — extend the `ToolResultArtifact` enum docs.
+- Modify: `docs/architecture.md`, add an "Artifacts" subsection under Tools / Workspace.
+- Modify: `docs/changelog.md`, entry for the new tool.
+- Modify: `docs/tech_spec.md`, extend the `ToolResultArtifact` enum docs.
 
 Brief, factual prose. No marketing tone. Commit:
 

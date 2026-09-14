@@ -1,4 +1,4 @@
-# Duel mode — two models side-by-side or cross-reviewing
+# Duel mode: two models side-by-side or cross-reviewing
 
 **Status:** approved; design + implementation handoff (source lands in a
 follow-up lane per `DISPATCH.md`)
@@ -9,7 +9,7 @@ follow-up lane per `DISPATCH.md`)
 directions*: "Duel mode: two models side-by-side or cross-reviewing".
 
 **Scope of this lane:** design and an exact, bounded v1 implementation
-handoff. No source changes here — my lease covers only this folder.
+handoff. No source changes here, my lease covers only this folder.
 
 ## Outcome
 
@@ -24,7 +24,7 @@ The feature works in Desktop and Web Lite, adds **no persistence-schema
 migration**, and never lets two candidate models both perform irreversible
 side-effecting tool actions.
 
-## Corrected baseline — what already exists
+## Corrected baseline: what already exists
 
 This is a greenfield feature (no `duel`/`compare`/`variant`/`candidate` code
 exists anywhere in `src/`), but almost every primitive it needs is already in
@@ -35,18 +35,18 @@ the codebase. Do **not** rebuild these; compose them.
   options)` (`src/services/chat/turnRunner.ts:182`) creates exactly one
   `AssistantMessage` with `model: thread.modelId` (`turnRunner.ts:186-194`) and
   `buildTurnRequest` (`turnRunner.ts:497`) derives the whole request from
-  `thread`. `AssistantMessage` (`types.ts:92`) carries a single `model?` field —
+  `thread`. `AssistantMessage` (`types.ts:92`) carries a single `model?` field,
   there is **no** variant/candidate/alternatives array.
-- **Concurrent turns on separate threads already work — this is the key
+- **Concurrent turns on separate threads already work, this is the key
   enabler.** Background agent tasks run up to `MAX_CONCURRENT_AGENT_TASKS`
   `TurnRunner.run` calls concurrently, each on its own thread with its own
   `AbortController` (`ChatStore.ts:1257-1283`, `SchedulesStore.ts:195`,
   `controllersByThread` at `ChatStore.ts:129`). The **only** concurrency blocker
-  is `ChatStore`'s per-thread single-slot streaming state —
+  is `ChatStore`'s per-thread single-slot streaming state,
   `streamingByThread` / `streamActivityByThread` / `controllersByThread`
   (`ChatStore.ts:113-129`) key streaming by *thread id*, so two live streams in
   the **same** thread would collide. Duel mode sidesteps this entirely by
-  running each candidate on its **own** scratch thread — no change to the
+  running each candidate on its **own** scratch thread, no change to the
   streaming-state keying is needed. The provider layer (`services/llm/*`) has no
   shared mutable state and is already safe for concurrent streams
   (`openaiCompat.ts:70`, `streamCore.ts:96-130`).
@@ -77,7 +77,7 @@ the codebase. Do **not** rebuild these; compose them.
 
 Two shapes were considered:
 
-1. **Persisted variants** — store N candidate answers per turn, either as a
+1. **Persisted variants**: store N candidate answers per turn, either as a
    `candidates[]` array on `AssistantMessage` or as sibling messages linked by a
    new `turnId`. Requires a message-model change, a `streamingByThread` rework to
    key streaming by message id (`ChatStore.ts:113-129`), a schema bump + v3→4
@@ -86,7 +86,7 @@ Two shapes were considered:
    export/import/archive handling for a fan-out history. The architecture
    explicitly flags "message model is not content-parts" as a known limitation
    (`docs/architecture.md`), so this is a large, risky change.
-2. **Ephemeral candidates, commit one** *(chosen)* — run both answers on
+2. **Ephemeral candidates, commit one** *(chosen)*: run both answers on
    transient in-memory scratch threads (each its own thread id, so the existing
    per-thread streaming slot and `TurnRunner` work unchanged), render them
    side-by-side, and append only the chosen answer to the real thread as a normal
@@ -100,7 +100,7 @@ blast radius small, ships the user-visible value (compare two models, keep the
 best), and leaves a clean seam for v2 cross-review and a possible future "keep
 both as branches" without redoing the plumbing.
 
-## v1 — side-by-side compare ("Duel")
+## v1: side-by-side compare ("Duel")
 
 ### Trigger & entry points
 
@@ -125,7 +125,7 @@ connect a second model to duel").
 - In Web Lite, the selectable set is whatever is ready in-browser (OpenRouter /
   OpenAI-compatible keys). Local Ollama models require the Desktop bridge and are
   simply absent from the Web Lite duel picker (the popover already applies this
-  gate) — graceful degradation, never a half-working control.
+  gate): graceful degradation, never a half-working control.
 
 ### Execution
 
@@ -142,7 +142,7 @@ Introduce a small **`DuelStore`** (MobX) that owns a transient duel session:
   follow-up lane picks the least invasive.
 - Run both candidates **concurrently**, each with its own `AbortController`,
   reusing `TurnRunner` unchanged so both candidates get real streaming, usage,
-  finish reason, and activity — the same pipeline a normal turn uses. This is the
+  finish reason, and activity, the same pipeline a normal turn uses. This is the
   exact shape agent tasks already use to run concurrent turns across threads.
 
 ### Safety: side-effecting tools are suppressed in candidates
@@ -152,7 +152,7 @@ This is the load-bearing safety rule. Two models answering the same prompt must
 `spawn_task`, MCP side-effects). Candidates run in a **read-only tool posture**:
 
 - Read-only tools (per the side-effect/read-only metadata the batch executor
-  already consults — `web_search`, `recall`, `time`, read-only `inspect_file`,
+  already consults, `web_search`, `recall`, `time`, read-only `inspect_file`,
   `chat_history`, etc.) remain available so answers are grounded.
 - Every tool whose side-effect predicate is true is **suppressed** for duel
   candidates. Implement as an explicit filter on the duel run path (a
@@ -160,13 +160,13 @@ This is the load-bearing safety rule. Two models answering the same prompt must
   (`contextModes.ts:88`) assembles the tool list), **not** by weakening any
   tool's own metadata.
 - The **winner**, once committed, continues the conversation as a normal thread
-  turn with the full tool set — so nothing is permanently lost; the user compares
+  turn with the full tool set, so nothing is permanently lost; the user compares
   *answers* first, then the chosen model acts.
 
 This rule is in the DISPATCH acceptance list and must have a direct test (a
 side-effecting tool call requested inside a duel candidate is never executed).
 
-### UI — the duel panel
+### UI: the duel panel
 
 - A two-column panel (overlay or right-dock region) titled with each model's
   name (via `ModelRegistry.findById(modelId)?.name`), each column streaming its
@@ -192,10 +192,10 @@ On **Keep this answer**:
    `ChatStore.ts:1410`).
 2. Set the real thread's `modelId` to the winning model (`setThreadModel`), so
    the conversation naturally continues with the model the user just preferred.
-   (Design choice: switch to the winner — the least surprising default, visible
+   (Design choice: switch to the winner, the least surprising default, visible
    in the model pill; the user can always switch back.)
 3. Discard the losing candidate and tear down the scratch threads.
-4. Persist through the existing snapshot path — a committed duel winner is
+4. Persist through the existing snapshot path, a committed duel winner is
    indistinguishable from a normal assistant message (`canonicalizeMessage`
    spreads it as-is), so **no** migration, export/import, or archive change is
    needed.
@@ -206,7 +206,7 @@ None for candidates. The only persisted artefact is the committed winner, which
 uses the existing `AssistantMessage.model` field and the current schema. Do
 **not** bump `CURRENT_CHAT_SCHEMA_VERSION`. (Note: a sibling SP-1 lane may bump
 3→4 for `systemPromptOverride`; duel v1 deliberately needs no schema change and
-must not add one — if both land, the harvesting integration keeps SP-1's bump
+must not add one, if both land, the harvesting integration keeps SP-1's bump
 and duel adds nothing.)
 
 ### Runtime parity
@@ -216,10 +216,10 @@ and duel adds nothing.)
   absent from the picker. The panel, keep/dismiss, and commit behave identically.
   No Desktop bridge call is on the duel control path itself.
 - **Spend:** two concurrent streams double token spend for that turn. Surface it
-  — the duel panel shows each candidate's usage, and the pre-send affordance
+  the duel panel shows each candidate's usage, and the pre-send affordance
   should make it obvious two models will run.
 
-## v2 (designed, dispatched separately) — cross-review
+## v2 (designed, dispatched separately): cross-review
 
 Cross-review answers the roadmap's "or cross-reviewing" half. It reuses the
 scratch-thread + commit primitive:
@@ -229,7 +229,7 @@ scratch-thread + commit primitive:
    and A's answer plus a built-in review instruction ("critique this answer for
    correctness/completeness; if you can improve it, provide a revised answer").
    B's output renders as a review card beneath A's answer.
-3. The user can **keep A**, **keep B's revision**, or **dismiss** — the same
+3. The user can **keep A**, **keep B's revision**, or **dismiss**, the same
    commit primitive as v1.
 
 v2 needs only: a review-prompt template (new built-in system text, analogous to

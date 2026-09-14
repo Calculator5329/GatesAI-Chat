@@ -21,16 +21,16 @@ were authored in this lease folder because the lease covers only this directory;
 the follow-up task (`DISPATCH.md`) moves them into `docs/adr/` and wires the
 index links.
 
-1. `adr-2026-07-18-go-bridge-language.md` — the companion **Go** bridge stays a
+1. `adr-2026-07-18-go-bridge-language.md`: the companion **Go** bridge stays a
    separate-repo Tauri sidecar over the versioned WebSocket protocol; Rust vs
    Go authority boundary; cross-references the active
    `decide-deliberately-go-bridge-vs-folding` deliberation as a scheduled review
    that may supersede it.
-2. `adr-2026-07-18-firestore-parked-cloud-sync.md` — persistence is
+2. `adr-2026-07-18-firestore-parked-cloud-sync.md`: persistence is
    **local-first**; **Firestore / hosted cloud sync is parked** behind the
    existing `PersistenceProvider<T>` boundary; unparking needs its own ADR and
    an opt-in, E2E-encrypted, user-owned model.
-3. `adr-2026-07-18-desktop-auto-updater.md` — signed **auto-updater** via the
+3. `adr-2026-07-18-desktop-auto-updater.md`: signed **auto-updater** via the
    public releases repo (`tauri-plugin-updater`, pubkey pinned in
    `tauri.conf.json`, `latest.json` manifest, user-gated `UpdatePill`), records
    the shipped W-5 decision; Windows signing/SmartScreen is explicitly a
@@ -51,7 +51,7 @@ index links.
 
 ## Scope notes / non-goals
 
-- No source or app-behavior changes — this item is documentation only. The ADRs
+- No source or app-behavior changes, this item is documentation only. The ADRs
   describe decisions already in force.
 - The **repo-visibility** ADR and the **signed/trusted Windows release** ADR are
   tracked by their own roadmap items and are *not* part of this item; each ADR

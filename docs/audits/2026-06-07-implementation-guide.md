@@ -1,4 +1,4 @@
-# Audit Batches A–E — Developer Implementation Guide
+# Audit Batches A–E: Developer Implementation Guide
 
 **Date:** 2026-06-07  
 **Companion docs:** [comprehensive audit](./2026-06-07-comprehensive-audit.md) · [test coverage matrix](./2026-06-07-test-coverage-matrix.md)
@@ -7,7 +7,7 @@ This guide explains what each batch changed, which invariants must hold, where t
 
 ---
 
-## Batch A — Safety first
+## Batch A: Safety first
 
 ### What & why
 
@@ -20,7 +20,7 @@ This guide explains what each batch changed, which invariants must hold, where t
 
 ### Invariants
 
-- Protected paths: use `protectedWorkspacePaths` helpers — do not duplicate path strings in individual tools.
+- Protected paths: use `protectedWorkspacePaths` helpers, do not duplicate path strings in individual tools.
 - Multi-tab: never resume autosave after an external write without user Reload or explicit Dismiss.
 - Image queue: at most one `inflight` `AbortController`; `finally` must compare `this.inflight === ac` before nulling.
 - Streaming: any post-stream mutation on a thread must verify the turn still owns `streamingByThread[threadId]`.
@@ -37,7 +37,7 @@ This guide explains what each batch changed, which invariants must hold, where t
 
 ---
 
-## Batch B — Conversation correctness
+## Batch B: Conversation correctness
 
 ### What & why
 
@@ -51,7 +51,7 @@ This guide explains what each batch changed, which invariants must hold, where t
 
 ### Invariants
 
-- Draft state keys off thread id — never store composer text in a single global string.
+- Draft state keys off thread id, never store composer text in a single global string.
 - `lastError` is always derived from `lastErrorByThread[activeThreadId]`, not a global field.
 - `autoNamed: true` means "do not auto-name" (set by successful auto-name **or** manual rename).
 - Soft-delete on a streaming thread must produce the same interrupt markers as explicit Stop.
@@ -64,13 +64,13 @@ This guide explains what each batch changed, which invariants must hold, where t
 | Draft / attachments | `tests/stores/UiStore.test.ts`, `tests/e2e/desktop.spec.ts` |
 | Per-thread errors | `tests/stores/ChatStore.test.ts`, `tests/e2e/desktop.spec.ts` |
 | Rename vs auto-name | `tests/stores/ChatStore.test.ts` |
-| Soft-delete + stream | `tests/stores/ChatStore.test.ts` — `softDeleteThread while streaming annotates the partial assistant reply` |
+| Soft-delete + stream | `tests/stores/ChatStore.test.ts`, `softDeleteThread while streaming annotates the partial assistant reply` |
 | Summary eligibility | `tests/stores/SummaryStore.test.ts` |
-| Background activity routing | `tests/stores/ChatStore.test.ts` — `recordActivityEvent attaches to a background streaming thread…` |
+| Background activity routing | `tests/stores/ChatStore.test.ts`, `recordActivityEvent attaches to a background streaming thread…` |
 
 ---
 
-## Batch C — User clarity
+## Batch C: User clarity
 
 ### What & why
 
@@ -84,7 +84,7 @@ This guide explains what each batch changed, which invariants must hold, where t
 
 ### Invariants
 
-- Provider banners are mutually exclusive and model/runtime-aware — one primary action per failure mode.
+- Provider banners are mutually exclusive and model/runtime-aware, one primary action per failure mode.
 - All composer chrome controls (send, stop, model picker, menu) must be real `<button>` elements with accessible names.
 - User-facing settings path is **Models**, not API/Settings/API keys.
 
@@ -94,13 +94,13 @@ This guide explains what each batch changed, which invariants must hold, where t
 |------|-----------|
 | Banner copy / visibility | `tests/components/editorial/EditorialComposer.test.ts` |
 | Model picker gating | `tests/components/editorial/ModelPopover.test.ts` |
-| Empty-state checklist | `tests/components/editorial/EditorialChat.test.ts` — first-run checklist with undone/done steps |
+| Empty-state checklist | `tests/components/editorial/EditorialChat.test.ts`, first-run checklist with undone/done steps |
 | Menu navigation | `tests/e2e/desktop.spec.ts`, `tests/components/menu/GatesMenu.test.ts` |
 | Legacy routes | `tests/services/router.test.ts` |
 
 ---
 
-## Batch D — Image polish
+## Batch D: Image polish
 
 ### What & why
 
@@ -113,23 +113,23 @@ This guide explains what each batch changed, which invariants must hold, where t
 
 ### Invariants
 
-- `image-job` artifacts render **outside** the collapsible `activity-row__button` — never only inside collapsed detail.
+- `image-job` artifacts render **outside** the collapsible `activity-row__button`, never only inside collapsed detail.
 - Terminal jobs (`failed`, `cancelled`, `done`) must surface any `results[]` paths already persisted.
 - `prompt_file` must validate the full batch before enqueueing; cap at 500 entries; return one artifact per job.
-- Missing files must reach a terminal UI state — no indefinite spinner on a broken path.
+- Missing files must reach a terminal UI state, no indefinite spinner on a broken path.
 
 ### Where to add tests
 
 | Area | Test home |
 |------|-----------|
 | Activity layout | `tests/components/editorial/ActivityRow.test.ts` |
-| Card variants / partial UI | `tests/components/editorial/ImageJobCard.test.ts` — cancelled partial + missing-file render tests |
+| Card variants / partial UI | `tests/components/editorial/ImageJobCard.test.ts`, cancelled partial + missing-file render tests |
 | `prompt_file` / artifacts | `tests/services/tools/imageGenerate.test.ts` |
 | Queue / partial persistence | `tests/stores/ImageJobStore.test.ts` |
 
 ---
 
-## Batch E — Storage durability
+## Batch E: Storage durability
 
 ### What & why
 
@@ -142,7 +142,7 @@ This guide explains what each batch changed, which invariants must hold, where t
 
 ### Invariants
 
-- Compaction must notify the user when emergency trimming runs — do not swallow quota recovery silently.
+- Compaction must notify the user when emergency trimming runs, do not swallow quota recovery silently.
 - Corrupt domain snapshots follow chat's quarantine pattern (recovery copy + visible error), not silent reset.
 - Note title/body lengths are capped at store write time.
 - Web Lite clear must reset both storage **and** in-memory state (reload is the current mechanism).
@@ -153,7 +153,7 @@ This guide explains what each batch changed, which invariants must hold, where t
 |------|-----------|
 | Compaction handler + banner | `tests/services/persistence.test.ts`; `tests/components/editorial/EditorialComposer.test.ts` |
 | Notes quarantine | `tests/stores/NotesStore.test.ts` |
-| Notes size limits | `tests/stores/NotesStore.test.ts` — `truncates oversized titles and bodies…` |
+| Notes size limits | `tests/stores/NotesStore.test.ts`, `truncates oversized titles and bodies…` |
 | Web Lite clear | `tests/services/storage/webLiteLocalData.test.ts` (credential preservation); reload UX still e2e **partial** |
 
 ---
@@ -162,13 +162,13 @@ This guide explains what each batch changed, which invariants must hold, where t
 
 These are **documented limitations**, not regressions:
 
-1. **Bridge-level chat-history enforcement** — Protection is enforced in app-side tools only. The bridge process can still read protected paths if invoked outside the tool layer. Follow-up: enforce in the bridge or add a workspace read allowlist at the bridge boundary.
+1. **Bridge-level chat-history enforcement**: Protection is enforced in app-side tools only. The bridge process can still read protected paths if invoked outside the tool layer. Follow-up: enforce in the bridge or add a workspace read allowlist at the bridge boundary.
 
-2. **Full multi-tab merge/reload coordination** — Current behavior: detect external `gatesai.state.v1` write → pause saves → banner with Reload (`reloadFromStorage`) or Dismiss. There is no BroadcastChannel merge, no automatic reload, and no conflict resolution across notes/profile keys.
+2. **Full multi-tab merge/reload coordination**: Current behavior: detect external `gatesai.state.v1` write → pause saves → banner with Reload (`reloadFromStorage`) or Dismiss. There is no BroadcastChannel merge, no automatic reload, and no conflict resolution across notes/profile keys.
 
 ---
 
-## Quick reference — primary files
+## Quick reference: primary files
 
 | Concern | Primary implementation |
 |---------|------------------------|

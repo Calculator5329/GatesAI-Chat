@@ -4,7 +4,7 @@
 
 GatesAI Chat is a local-first desktop AI workspace: a chat app where you bring
 your own models (OpenRouter in the cloud, Ollama locally) and the assistant can
-actually *do* things on your machine — read/write files in a jailed workspace,
+actually *do* things on your machine, read/write files in a jailed workspace,
 run allowlisted shell/Python/SQLite/git commands, search and fetch the web,
 generate images through ComfyUI, and recall past conversations plus approved
 workspace documents through a local RAG index. Everything stays on the
@@ -49,14 +49,14 @@ Develop:
 
 ```powershell
 npm install                 # once, or after dependency changes
-npm run dev                 # Vite dev server — Web Lite mode in the browser
+npm run dev                 # Vite dev server. Web Lite mode in the browser
 npm run tauri:dev           # desktop app against the dev server
 # bridge from source (desktop features), in the sibling repo:
 #   cd ..\gatesai-bridge ; go run ./cmd/gatesai-bridge
 # or place a prebuilt binary at ..\gatesai-bridge\bin\gatesai-bridge.exe
 ```
 
-Verify (the gates CI enforces — run before committing):
+Verify (the gates CI enforces, run before committing):
 
 ```powershell
 npm run ci                  # npm test + npm run typecheck + npm run lint
@@ -116,7 +116,7 @@ Release:
   `GATESAI_BRIDGE_REPOSITORY`, optional `GATESAI_BRIDGE_TOKEN` secret) and
   publishes assets under **stable names** to the separate public releases repo
   `Calculator5329/GatesAI-Chat-releases` (needs `RELEASES_TOKEN`). Asset names
-  are deep-linked from the README and the in-app download hints — do not rename.
+  are deep-linked from the README and the in-app download hints, do not rename.
 - Web Lite auto-deploys to GitHub Pages on every push to `master` via
   `.github/workflows/deploy-web-lite.yml`.
 - Bump `version` in both `package.json` and `src-tauri/tauri.conf.json` before
@@ -576,7 +576,7 @@ Other Rust modules:
 ### Global summon shortcut
 
 Desktop registers a single configurable global summon shortcut (default
-`Ctrl+Shift+Space`, settable in Desktop settings — e.g. `Super+G`).
+`Ctrl+Shift+Space`, settable in Desktop settings, e.g. `Super+G`).
 `handle_global_shortcut` toggles window visibility via `toggle_summon`, which
 shows and focuses the window or hides it if already focused. There is no longer
 a separate feature-specific global shortcut.
@@ -606,7 +606,7 @@ App flow:
 ## UI packs (presentation switch)
 
 A **pack** is one complete presentation of the same data. Packs never change
-what the app knows or does — only how a turn looks.
+what the app knows or does, only how a turn looks.
 
 - `core/uiPacks.ts` is the registry: `UiPackKey`, the `UI_PACKS` list,
   `DEFAULT_UI_PACK` (`classic`), and `coerceUiPack`, which maps anything
@@ -619,7 +619,7 @@ what the app knows or does — only how a turn looks.
   Unlike the other store hooks it does **not** throw without a provider: a pack
   is presentation with a safe default, so a component rendered outside the app
   shell gets Classic instead of an exception.
-- Renderers live beside the classic ones — Aurora's are in
+- Renderers live beside the classic ones. Aurora's are in
   `components/editorial/aurora/`, its styles in `styles/packs/aurora.css`. A
   pack switch is a branch at the top of the shared component
   (`ActivityStream` is the model to copy), never a fork of the store layer.
@@ -630,13 +630,13 @@ falls through to the classic rendering.
 
 Aurora also introduced two pieces of real machinery that both packs use:
 
-- **Assistant prompts** — `core/prompts.ts`, `stores/PromptStore.ts`, and the
+- **Assistant prompts**: `core/prompts.ts`, `stores/PromptStore.ts`, and the
   `ask_user` tool. The tool blocks the turn until the user answers or declines;
   `PromptCards` renders the question above the composer in either pack. Every
   exit path (answer, decline, abort, thread cancel) settles the waiting promise
-  exactly once, and every card offers a decline — an unanswerable card would
+  exactly once, and every card offers a decline, an unanswerable card would
   wedge the turn.
-- **Diff artifacts** — `services/diff/diffArtifact.ts` builds a bounded,
+- **Diff artifacts**: `services/diff/diffArtifact.ts` builds a bounded,
   changed-regions-only artifact from the existing line differ. The `fs` tool
   snapshots the previous revision before a text write and attaches it;
   `activityProjection.ts` promotes its counts to `ActivityItem.stats`.
@@ -678,7 +678,7 @@ two stacked read-only panels (one column × 1–2 cells).
   replaces cell 0) and un-collapses; `openPath()` routes a workspace path to
   the right panel kind by extension.
 - **Registry**: `components/dock/panelRegistry.tsx` maps panel kind →
-  `{ title, icon, Component, requiresBridge }` — one line per panel, same
+  `{ title, icon, Component, requiresBridge }`, one line per panel, same
   shape as the tool registry.
 - **Panels (v1)**: `FileExplorerPanel` performs non-recursive directory reads
   through `BridgeStore.listWorkspaceDir`, clamps persisted roots to
@@ -693,7 +693,7 @@ two stacked read-only panels (one column × 1–2 cells).
 - **Shell**: `components/dock/DockPanel.tsx` renders in `App.tsx` after the
   surface; left-edge column resizer, draggable cell divider, per-cell header
   (icon, title, swap, close), and a thin reopen rail when collapsed. Hidden
-  entirely on the mobile shell and on Web Lite (`DockStore.available` — the
+  entirely on the mobile shell and on Web Lite (`DockStore.available`, the
   v1 panels all need the bridge).
 - **Entry points**: command palette "Browse workspace in dock" and "Open file
   in dock…" (workspace-path prompt), plus an "Open in dock" action on gallery
@@ -869,7 +869,7 @@ Honest list for anyone picking the project up cold:
 - **Source repo is private; binaries ship from a separate public repo**
   (`Calculator5329/GatesAI-Chat-releases`, see the comment in
   `.github/workflows/release.yml`). Going public (or deliberately keeping the
-  split) is the top open-source-readiness decision — see `docs/roadmap.md`.
+  split) is the top open-source-readiness decision, see `docs/roadmap.md`.
 - **Unsigned installers.** No code signing anywhere in the release workflow;
   Windows SmartScreen will warn on the NSIS installer.
 - **No macOS build** (keyring support is ready; needs a runner + signing).

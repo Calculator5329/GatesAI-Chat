@@ -1,6 +1,6 @@
 # ADR: Companion Go bridge as a separate-repo Tauri sidecar
 
-- Status: Accepted (scheduled re-evaluation — see "Consequences")
+- Status: Accepted (scheduled re-evaluation, see "Consequences")
 - Date: 2026-07-18
 - Scope: standing decision, retroactively recorded
 - Related: `docs/bridge-protocol.md`, `docs/architecture.md` (Bridge and
@@ -11,7 +11,7 @@
 
 Desktop workspace, shell/exec, artifact, attachment, and app-persistence
 operations that need broad local OS authority are mediated by a companion
-process — the `gatesai-bridge` — written in **Go**, living in the sibling
+process, the `gatesai-bridge`, written in **Go**, living in the sibling
 repository `../gatesai-bridge`, bundled as a Tauri sidecar, and reached by the
 app over a loopback WebSocket (`ws://127.0.0.1:7331/ws`, protocol version 2).
 The Tauri shell already ships a Rust command layer (`src-tauri/`). A recurring
@@ -37,7 +37,7 @@ Forces:
   candidate host for future LAN/companion serving.
 - Go gives fast cross-compilation to a static, dependency-light sidecar binary,
   a strong standard-library HTTP/WebSocket/filesystem story, and goroutine-based
-  concurrency for streamed exec/watch workloads — with a much lower barrier to
+  concurrency for streamed exec/watch workloads, with a much lower barrier to
   contribution than async Rust for this class of glue code.
 
 ## Decision
@@ -71,7 +71,7 @@ from an app-scoped session.
 - Two native runtimes to build, ship, and version. Mitigated by the versioned
   handshake, the prebuilt-binary convention, and the Web Lite degrade path.
 - The bridge can be audited, sandboxed, and released independently of the app
-  shell — the highest-authority code has the clearest blast-radius boundary.
+  shell, the highest-authority code has the clearest blast-radius boundary.
 - The seam keeps Web Lite genuinely runnable browser-only; nothing bridge-owned
   can leak into the portable build.
 - **Scheduled re-evaluation:** the "Decide deliberately: Go bridge vs folding"
@@ -90,7 +90,7 @@ from an app-scoped session.
   isolation but discards Go's lower contribution barrier and fast static
   cross-compilation for this workload, with no boundary or security gain over
   the current split. Reconsidered only if the two-runtime toolchain cost
-  outweighs those benefits — that trade-off is the linked lane's to make.
+  outweighs those benefits, that trade-off is the linked lane's to make.
 - **Do everything in the WebView (browser fetch to a loopback server).** Turns
   browser code into a local network proxy, muddies Web Lite/CORS behavior, and
   was already rejected for the narrower Offline Library boundary

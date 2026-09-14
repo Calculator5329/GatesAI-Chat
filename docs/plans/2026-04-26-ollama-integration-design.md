@@ -1,4 +1,4 @@
-# Ollama integration — design
+# Ollama integration: design
 
 ## Goal
 
@@ -16,7 +16,7 @@ core/
 
 services/
   llm/
-    ollama.ts                 # NEW: OllamaProvider — speaks /api/chat (NDJSON)
+    ollama.ts                 # NEW: OllamaProvider, speaks /api/chat (NDJSON)
     LlmRouter.ts              # already routes by providerId, no change
 
 stores/
@@ -31,7 +31,7 @@ components/
                               # and ImageGenCard in ApiSection.
 ```
 
-The Ollama card lives in the API panel as a sibling to the existing provider cards. The existing "Local endpoint" provider stays untouched — it serves LM Studio / vLLM / llama.cpp users.
+The Ollama card lives in the API panel as a sibling to the existing provider cards. The existing "Local endpoint" provider stays untouched, it serves LM Studio / vLLM / llama.cpp users.
 
 ## Data flow
 
@@ -68,16 +68,16 @@ Implements `LlmProvider`. Talks Ollama's native `/api/chat` rather than the Open
 - we want to pass `keep_alive` (default `5m`) so model loads aren't repeated per turn
 - vision input goes via `images: ["<base64>"]` on each user message, not OpenAI content-parts
 
-Tool-call shape: Ollama emits `message.tool_calls: [{function: {name, arguments}}]` once the model is done; map these into our `ToolCall` events. No call ids — synthesize `tool-<n>` on our side. Tool results go back as a `role: 'tool'` message with `content` set; the existing `wireFormat.ts` translation already produces this.
+Tool-call shape: Ollama emits `message.tool_calls: [{function: {name, arguments}}]` once the model is done; map these into our `ToolCall` events. No call ids, synthesize `tool-<n>` on our side. Tool results go back as a `role: 'tool'` message with `content` set; the existing `wireFormat.ts` translation already produces this.
 
 Auth: `Authorization: Bearer <key>` only when `OllamaStore.config.apiKey` is set.
 
-Vision: at the wire boundary, walk user messages; for each `LlmImagePart`, append its `base64` to the message's `images` array and strip the part. The existing `resolveImages.ts` helper already pre-resolves bytes — Ollama just consumes them in a different shape than OpenAI/Anthropic/Gemini.
+Vision: at the wire boundary, walk user messages; for each `LlmImagePart`, append its `base64` to the message's `images` array and strip the part. The existing `resolveImages.ts` helper already pre-resolves bytes. Ollama just consumes them in a different shape than OpenAI/Anthropic/Gemini.
 
 ### OllamaStore
 
 Owns:
-- `config: { baseUrl: string; apiKey?: string; toolsEnabled: boolean }` — persisted under `gatesai.ollama.v1`
+- `config: { baseUrl: string; apiKey?: string; toolsEnabled: boolean }`: persisted under `gatesai.ollama.v1`
 - `state: 'unknown' | 'online' | 'offline'`
 - `lastError: string | undefined`
 - `catalog: Model[]` (pushed into `ModelRegistry` on refresh)
@@ -95,7 +95,7 @@ Same visual rhythm as `ProviderCard`:
 - Base URL field (mono input, default placeholder shown)
 - Optional API key via `SecretKeyField` (the user said they don't need it; default empty)
 - Catalog row: "N models · last refreshed …" + Refresh / Clear buttons (mirrors `OpenRouterCatalogRow` pattern; can extract a shared `CatalogStatusRow` later, but YAGNI for v1)
-- Small toggle: "Allow tool calls" — flips `toolsEnabled`. When off, `LlmRequest.tools` is dropped before the wire request leaves.
+- Small toggle: "Allow tool calls", flips `toolsEnabled`. When off, `LlmRequest.tools` is dropped before the wire request leaves.
 - Hint line below: "Run `ollama pull llama3.1` to add a model. Restart the Ollama service if the status stays offline."
 
 ## Error handling
@@ -107,8 +107,8 @@ Same visual rhythm as `ProviderCard`:
 
 ## Testing
 
-- Unit: `tests/services/llm/ollama.test.ts` with mock fetch — verify request shape, NDJSON parsing, tool-call mapping, image rewriting, error path.
-- Unit: `tests/stores/OllamaStore.test.ts` — refresh populates registry, status transitions, persistence round-trip.
+- Unit: `tests/services/llm/ollama.test.ts` with mock fetch, verify request shape, NDJSON parsing, tool-call mapping, image rewriting, error path.
+- Unit: `tests/stores/OllamaStore.test.ts`, refresh populates registry, status transitions, persistence round-trip.
 - Skip integration tests against a real Ollama (out of scope for the suite; manual smoke covers it).
 
 ## Manual smoke (acceptance)
@@ -116,8 +116,8 @@ Same visual rhythm as `ProviderCard`:
 1. `ollama serve` running, `ollama pull llama3.1:8b`.
 2. Open Settings → API. Ollama card shows ● Connected with 1 model after refresh.
 3. Pick `ollama-llama3.1:8b` from the composer's model picker.
-4. Send "what's 2+2" — get a streamed response.
-5. Send "list the files in /workspace" — model calls the `fs` tool, result renders.
+4. Send "what's 2+2", get a streamed response.
+5. Send "list the files in /workspace", model calls the `fs` tool, result renders.
 6. Stop the Ollama service. Status pill flips to ○ Not running within ~30s. Picker still shows the cached model. Sending a turn surfaces a clear error.
 
 ## Out of scope
@@ -126,8 +126,8 @@ Same visual rhythm as `ProviderCard`:
 - GPU / VRAM telemetry
 - Per-model parameter tuning (temperature, top_p, repeat_penalty sliders)
 - `/api/embeddings`
-- Onboarding flow that walks the user through installing Ollama and pulling a recommended model — explicitly deferred until the v1 integration is in hand
-- Centering on a single recommended vision model — deferred
+- Onboarding flow that walks the user through installing Ollama and pulling a recommended model, explicitly deferred until the v1 integration is in hand
+- Centering on a single recommended vision model, deferred
 - Auto-detecting Ollama under the existing "Local endpoint" provider
 
 ## Persistence

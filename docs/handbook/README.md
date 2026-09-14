@@ -44,7 +44,7 @@ front door.
 - [Changelog](../changelog.md)
 - [Quick Setup](../quick-setup.md)
 - [ComfyUI Setup](../comfyui-setup.md)
-- [Screens corpus](../screens/README.md) — regenerate with `npm run screens:tour`
+- [Screens corpus](../screens/README.md): regenerate with `npm run screens:tour`
 - [Audit Notes](../audits/2026-07-05-open-models-audit.md) (latest; older under `docs/audits/`)
 
 ## The one-sentence product direction

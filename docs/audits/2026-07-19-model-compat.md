@@ -1,4 +1,4 @@
-# Model compatibility auto-runner — 2026-07-19
+# Model compatibility auto-runner: 2026-07-19
 
 ## Outcome
 
@@ -39,10 +39,10 @@ contradict the current OpenRouter/Ollama/ComfyUI routing floor.
 
 ## Verification
 
-- `npm run model-compat:catalog` — pass, 72 routes.
-- `env -u NODE_ENV npm run ci` — pass, 159 files and 1,165 tests plus
+- `npm run model-compat:catalog`: pass, 72 routes.
+- `env -u NODE_ENV npm run ci`: pass, 159 files and 1,165 tests plus
   typecheck and lint.
-- `git diff --check` — pass.
+- `git diff --check`: pass.
 
 The catalog policy follows OpenRouter's documented public Models API and its
 `supported_parameters` capability metadata:

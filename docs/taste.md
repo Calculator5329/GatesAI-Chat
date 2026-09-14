@@ -1,4 +1,4 @@
-# Product taste — gatesai-chat
+# Product taste: gatesai-chat
 
 ## Design comparisons
 
@@ -29,7 +29,7 @@
 
 - The transcript announces and hands off; it does not embed. A rich payload
   (an HTML artifact, a generated document) gets a compact card saying what it
-  is, and a control that opens it somewhere with room — the dock on desktop,
+  is, and a control that opens it somewhere with room, the dock on desktop,
   the full-screen modal everywhere. Never a fixed-height frame inline: it
   costs the same vertical wall on every mention, so naming a file twice builds
   two walls.
@@ -46,12 +46,12 @@
 
 - Presentation belongs in CSS, not inline styles. Inline styles beat ordinary
   stylesheet rules, so a component that styles itself inline silently disables
-  any state its stylesheet tries to add later — that is how `.ui-toggle`'s
+  any state its stylesheet tries to add later, that is how `.ui-toggle`'s
   press animation sat dead in the sheet while the thumb ignored it.
 - Disabled, focus, and hover come from the shared tokens and the global rules.
   A control that hardcodes its own disabled opacity or focus ring is the one
   control that looks wrong, and the local rule usually loses to the global
-  `!important` anyway — dead code that reads like intent.
+  `!important` anyway, dead code that reads like intent.
 - Every `role="switch"` needs an accessible name on the control itself. A
   visible label in a sibling element is not associated with it and is not
   announced.

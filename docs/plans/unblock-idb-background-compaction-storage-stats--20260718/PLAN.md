@@ -6,7 +6,7 @@
 **Lane:** `unblock-idb-background-compaction-storage-stats--20260718` (Claude).
 **Deliverable type:** design + execution plan (this doc) plus an exact
 implementation follow-up spec (`DISPATCH.md`). No source is changed in this
-lane — the lease covers only `docs/plans/<task-id>/`.
+lane, the lease covers only `docs/plans/<task-id>/`.
 
 ---
 
@@ -24,7 +24,7 @@ IDB on demand (`loadArchivedThread`, `persistence.ts:350-366`;
 `ChatStore.hydrateThread`).
 
 The store interface already has a `deleteThread(id)` method
-(`src/services/persistence/idb.ts:11,44-51`) — **but grep confirms it is never
+(`src/services/persistence/idb.ts:11,44-51`): **but grep confirms it is never
 called anywhere in `src/`.** Consequently the IDB `threads` object store only
 ever grows. It accumulates orphaned records in every one of these ordinary
 flows:
@@ -38,8 +38,8 @@ flows:
 - **Import/replace.** A versioned import that replaces app data drops old thread
   ids from the snapshot; their IDB records are never reclaimed.
 
-Nothing corrupts today — hydration is keyed by id and orphans are simply never
-read — but IDB usage grows unbounded, which is exactly the disk-cost problem a
+Nothing corrupts today, hydration is keyed by id and orphans are simply never
+read, but IDB usage grows unbounded, which is exactly the disk-cost problem a
 "background compaction" pass is meant to bound. There is **no scheduler** for any
 of this today: archiving happens inline-on-save (microtask-deferred via
 `scheduleSaveSnapshot`); there is no `requestIdleCallback`, no periodic pass, no
@@ -67,7 +67,7 @@ surfaces to the user.
    estimated bytes used / quota (from `navigator.storage.estimate()`), a
    percentage/bar, and hot-vs-archived thread counts. Degrades gracefully where
    the API is unavailable (older browsers / headless).
-3. Both runtimes considered — desktop **and** Web Lite (IDB and
+3. Both runtimes considered, desktop **and** Web Lite (IDB and
    `navigator.storage` behave identically; the only branch is the
    feature-absent guard). No `console.*`, no raw `localStorage` in
    stores/components, layer boundaries respected.
@@ -85,7 +85,7 @@ export interface ThreadArchiveStore {
   getThread(id: string): Promise<Thread | null>;
   putThread(thread: Thread): Promise<void>;
   deleteThread(id: string): Promise<void>;
-  listThreadIds(): Promise<string[]>;   // NEW — IDBObjectStore.getAllKeys()
+  listThreadIds(): Promise<string[]>;   // NEW. IDBObjectStore.getAllKeys()
 }
 ```
 
@@ -112,7 +112,7 @@ Algorithm (reconcile-to-live-stubs, the race-safe rule):
 1. If no archive store is available (`getThreadArchiveStore()` → null), return a
    no-op result.
 2. Compute `liveArchivedIds = new Set(snapshot.threads.filter(t => t.archived).map(t => t.id))`
-   — the exact set of ids whose canonical full copy *should* live in IDB.
+   the exact set of ids whose canonical full copy *should* live in IDB.
 3. `const storedIds = await store.listThreadIds();`
 4. For every `id` in `storedIds` **not** in `liveArchivedIds`, call
    `store.deleteThread(id)`. These are orphans: either the thread is gone from
@@ -123,7 +123,7 @@ Algorithm (reconcile-to-live-stubs, the race-safe rule):
 
 **Why this rule is race-safe:** a hot thread's messages are fully present in
 localStorage, so deleting its stale IDB duplicate can never lose data even if a
-save is concurrently re-archiving it — the worst case is the next tiered save
+save is concurrently re-archiving it, the worst case is the next tiered save
 re-writes a fresh IDB record via `putThread`. We only ever delete records whose
 data is *not* the live source of truth. We do **not** delete records backing a
 live archived stub. Guard the pass so it does not run while a tiered save is
@@ -171,12 +171,12 @@ export interface StorageStats {
 export async function readStorageStats(): Promise<StorageStats>
 ```
 
-- Guard `navigator?.storage?.estimate` — return `{ supported: false, usageBytes:
+- Guard `navigator?.storage?.estimate`, return `{ supported: false, usageBytes:
   null, quotaBytes: null, ... }` where absent (older browser, headless). Never
   throw.
 - `snapshotBytes` is read via the persistence layer, not by touching
   `localStorage` directly from a component (respect the "no raw localStorage in
-  stores/components" rule — expose a `chatSnapshotByteSize()` from
+  stores/components" rule, expose a `chatSnapshotByteSize()` from
   `persistence.ts` that reads `CHAT_SNAPSHOT_STORAGE_KEY` through the existing
   `KeyValuePersistence` provider).
 - `archivedThreadCount` from the archive store's new `listThreadIds()`.
@@ -188,7 +188,7 @@ existing usage tables. Because the stats are async, drive them through a small
 store/hook rather than calling the service inline in render:
 
 - Add a lightweight observable (either a new `StorageStatsStore` or a field on an
-  existing store facade — prefer a minimal `useStorageStats()` hook that loads
+  existing store facade, prefer a minimal `useStorageStats()` hook that loads
   once on mount and exposes `{ stats, loading, refresh }`). Keep it in the store
   layer so the component stays view-only, consistent with `useChatStore()` /
   `useModelRegistry()` usage in the panel.
@@ -197,20 +197,20 @@ store/hook rather than calling the service inline in render:
     `usageBytes`/`quotaBytes` are present.
   - "Chat snapshot **X**" (localStorage hot tier) and "Archived threads **N**".
   - A graceful "Storage estimate unavailable in this browser" line when
-    `supported === false` (Web Lite on old browsers / headless) — never a broken
+    `supported === false` (Web Lite on old browsers / headless): never a broken
     or empty widget.
   - Optional manual "Compact now" affordance is **out of scope for v1** (keep the
     surface read-only; compaction runs automatically). Note it as a follow-up.
 - Add a `formatBytes(n: number): string` helper to `src/core/usage.ts` beside
   `formatUsd`/`formatTokenCount` (KB/MB/GB, 1 decimal). Unit-test it.
 
-Registration is unchanged — `menuSectionMeta.ts` already lists `usage` as
+Registration is unchanged, `menuSectionMeta.ts` already lists `usage` as
 `supported: true` in both runtimes.
 
 ### 3.6 What is deliberately NOT in scope
 
-- No new Rust/Tauri command — everything is browser storage.
-- No schema/migration bump — the IDB object-store shape and the localStorage
+- No new Rust/Tauri command, everything is browser storage.
+- No schema/migration bump, the IDB object-store shape and the localStorage
   snapshot shape are unchanged (`schemaVersion` stays 3; IDB DB version stays 1).
   Adding `getAllKeys`-based enumeration reads existing keys.
 - No "Compact now" button, no per-thread storage breakdown, no eviction of hot
@@ -249,7 +249,7 @@ double via `setThreadArchiveStoreForTests`, `persistence.ts:51-55`).
   test (the repo's convention is to test pure selectors/hooks rather than JSX for
   menu sections).
 
-E2E: the existing Usage e2e coverage should stay green; add nothing heavy —
+E2E: the existing Usage e2e coverage should stay green; add nothing heavy,
 `navigator.storage.estimate` is available in Chromium/Playwright, so the Storage
 block will render, but avoid asserting exact byte values (assert the block and
 labels exist).

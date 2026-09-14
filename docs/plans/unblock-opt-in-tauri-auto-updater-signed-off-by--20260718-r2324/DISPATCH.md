@@ -1,4 +1,4 @@
-# DISPATCH — implement the default-off signed updater opt-in
+# DISPATCH: implement the default-off signed updater opt-in
 
 This source task is immediately dispatchable. Read `PLAN.md` in this folder
 first; it is the authoritative repository-backed design for the re-dispatched

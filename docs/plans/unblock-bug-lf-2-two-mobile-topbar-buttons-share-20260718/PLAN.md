@@ -1,4 +1,4 @@
-# LF-2 plan — distinct mobile-topbar accessible names
+# LF-2 plan: distinct mobile-topbar accessible names
 
 Date: 2026-07-18
 

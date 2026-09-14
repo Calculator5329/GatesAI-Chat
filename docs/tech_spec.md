@@ -7,7 +7,7 @@
 - **react-markdown** + **remark-gfm** + **rehype-highlight** (rendering)
 - **Vitest 3** + **jsdom** (unit/component tests)
 - **Playwright** (browser e2e tests)
-- **ESLint 9** + **typescript-eslint** (lint) — enforces the layered import
+- **ESLint 9** + **typescript-eslint** (lint): enforces the layered import
   boundaries plus project patterns: `no-console` (only the diagnostics logger
   may use the console), `consistent-type-imports`, no `fetch` in stores, no
   `localStorage` in stores/UI, `import/no-cycle`, and the `mobx/*-make-observable`
@@ -20,7 +20,7 @@ in-memory ring buffer, writes a level-filtered console (everything in dev,
 warn/error in prod), and on desktop appends JSONL to
 `/workspace/logs/app-<date>.log` via the bridge. The `logs` tool reads the ring
 buffer so the assistant can inspect recent failures and self-diagnose. UI never
-logs directly — it dispatches to a store, which logs.
+logs directly, it dispatches to a store, which logs.
 
 Key scopes added in the 2026-06-07 hardening pass: `security` (chat-history
 denials), `persistence` (multi-tab pause/reload, dropped threads, compaction
@@ -36,12 +36,12 @@ Two layers, both runnable offline:
   and an in-memory `localStorage`. `npm run ci` chains test + typecheck + lint.
 - **End-to-end (Playwright):** `npm run test:e2e` runs `tests/e2e/**/*.spec.ts`
   against two Vite dev servers via `playwright.config.ts`:
-  - `desktop-mocked` — the default build (runtime mode `desktop`, so the bridge
+  - `desktop-mocked`: the default build (runtime mode `desktop`, so the bridge
     poller runs). The bridge is faked online with a `/health` route plus a
     `routeWebSocket` server that answers the `BridgeClient` request/response
     envelope protocol (`fs.*`, `exec.run`), so attachment upload, image-job
     artifacts, and workspace seeding all succeed without a real sidecar.
-  - `web-lite` — the `web-lite`-mode build (`VITE_GATESAI_WEB=1`), used to assert
+  - `web-lite`: the `web-lite`-mode build (`VITE_GATESAI_WEB=1`), used to assert
     the degraded states (web-lite pill, disabled attachments, section notices).
   - The OpenRouter chat stream is mocked as SSE and provider keys / threads /
     image-jobs are seeded into `localStorage` via `addInitScript`. Shared helpers
@@ -54,7 +54,7 @@ type Role = 'user' | 'assistant';
 
 // Discriminated union by `role`. One row per round trip: user message OR
 // one assistant message that may carry text, tool calls, AND the results
-// of those calls — all on the same object. Tool results are NOT separate
+// of those calls, all on the same object. Tool results are NOT separate
 // messages; nobody "said" them. The wire format still uses `role: 'tool'`
 // rows; that translation lives in `services/llm/wireFormat.ts`.
 type Message =
@@ -121,7 +121,7 @@ interface Thread {
   threadContext?: string;      // appended to system prompt under "About this conversation:"
   summary?: string;            // 1-sentence digest written by SummaryStore
   summaryUpdatedAt?: number;   // last write time (ms)
-  summaryMessageCount?: number;// messages.length at last write — staleness lever
+  summaryMessageCount?: number;// messages.length at last write, staleness lever
 }
 
 interface ChatSnapshot {
@@ -161,9 +161,9 @@ interface LlmRequest {
 interface LlmMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
-  toolCalls?: ToolCall[];     // assistant only — set when the model called tools
-  toolCallId?: string;        // tool only — matches the assistant's call id
-  toolName?: string;          // tool only — some providers (Gemini, OpenAI) want this on results
+  toolCalls?: ToolCall[];     // assistant only, set when the model called tools
+  toolCallId?: string;        // tool only, matches the assistant's call id
+  toolName?: string;          // tool only, some providers (Gemini, OpenAI) want this on results
 }
 
 interface ToolDef {
@@ -245,7 +245,7 @@ and `message.content` in place, which does not change the array identity the
 `snapshot` getter subscribes to. A `trackSnapshotDeep(threads)` helper reads each
 thread's mutable fields and every message's content length inside the reaction so
 those in-place edits invalidate it and re-run the throttled save. Without it, a
-freshly created conversation can be lost on reload (it was — see the
+freshly created conversation can be lost on reload (it was, see the
 2026-06-07 changelog entry).
 
 If a full chat snapshot exceeds the browser's `localStorage` quota, the
@@ -343,7 +343,7 @@ as Gemini hidden-token budgets.
 1. appends a user message
 2. opens one `AbortController` for the whole turn
 3. appends ONE assistant message that will represent the entire turn
-4. drives `runTurn(threadId, signal)` — a tool-execution loop bounded by
+4. drives `runTurn(threadId, signal)`, a tool-execution loop bounded by
    `MAX_TOOL_ROUNDS` (currently 16). Each round:
    - resolves `provider, providerModelId` and calls `provider.stream(req,
      signal)` with `flattenForWire(thread.messages)` for the messages
@@ -381,7 +381,7 @@ the turn forces the `local-comfy` backend and always derives the
 Draft/Normal/Upscale `comfyMode`, independent of the user's global image-backend
 preference.
 
-The same `AssistantMessage` is mutated across all rounds — one stored
+The same `AssistantMessage` is mutated across all rounds, one stored
 row per user turn, regardless of how many round trips happened. This
 keeps the renderer trivial (one speaker boundary per turn, no
 continuation logic) and the data model honest (a turn is a turn).
@@ -395,7 +395,7 @@ between the two.
 
 `stopStreaming()` aborts the controller and annotates the partial assistant
 message (`*[interrupted]*`, or `*[no response]*` if zero tokens). `selectThread`
-no longer aborts — streams survive thread switches and continue writing into
+no longer aborts, streams survive thread switches and continue writing into
 their original thread.
 
 Runtime context is regenerated for every provider request and sits directly
@@ -432,7 +432,7 @@ Adding a tool: drop `services/tools/<name>.ts` exporting a `Tool`, then add
 one `toolRegistry.register()` line in `services/tools/registry.ts`. No UI
 wiring required.
 
-Tools may return either a plain `string` (the common case — the string
+Tools may return either a plain `string` (the common case, the string
 becomes the tool result the model sees next round), a structured
 `ToolOutcome`, or `{ content: string; summary?: string; artifacts?: ToolResultArtifact[] }`.
 The `content` remains the model-facing payload; `summary` is the
@@ -475,7 +475,7 @@ Ollama catalog mapper for known-bad tool families like `gemma*`,
 `phi*`, `codellama`), `ChatStore.buildTurnRequest` omits the `tools`
 field entirely so the model isn't asked to call tools it can't reliably
 emit. The `OllamaProvider` independently honors a global `toolsEnabled`
-toggle that suppresses tool calls across all Ollama models — both gates
+toggle that suppresses tool calls across all Ollama models, both gates
 must allow tools for them to reach the wire.
 
 Tool failures are logged from the central `ChatStore.executeOneToolCall`
@@ -487,44 +487,44 @@ keeps failed tool usage visible for harness iteration without changing the
 model-facing tool result contract.
 
 Current tool catalog:
-- `memory({ action, fact?, index?, next? })` — unified memory tool with four
+- `memory({ action, fact?, index?, next? })`: unified memory tool with four
   verbs: `add` / `remove` / `update` / `list`. Operates on
   `UserProfileStore.facts` (parsed from `bio`). `remove` and `update`
   accept either an `index` (from a prior `list`) or a substring `fact` to
-  match. Mirrors OpenAI's `bio` tool — one tool, many actions, keeps the
+  match. Mirrors OpenAI's `bio` tool, one tool, many actions, keeps the
   catalog small.
-- `notes({ action, id?, title?, body?, tags?, query?, limit? })` — six
+- `notes({ action, id?, title?, body?, tags?, query?, limit? })`: six
   verbs: `create` / `read` / `update` / `delete` / `search` / `list`.
   Backed by `NotesStore` and the `gatesai.notes.v1` localStorage key.
   Notes are searched on demand and never auto-injected into the system
-  prompt — they're the long-form companion to `memory`'s atomic facts.
-- `thread({ action, id?, title?, context?, limit? })` — six verbs:
+  prompt, they're the long-form companion to `memory`'s atomic facts.
+- `thread({ action, id?, title?, context?, limit? })`: six verbs:
   `rename` / `set_context` / `get_context` / `summarize_now` /
   `switch_to` / `list`. Lets the model manage the conversation it lives
   inside; most actions default to the calling thread when `id` is
   omitted. `set_context` is the only end-to-end path for writing
   `Thread.threadContext`, which is then injected into every subsequent
   system prompt under "About this conversation".
-- `chat_history({ action, id?, query?, limit?, offset? })` — read-only access to
+- `chat_history({ action, id?, query?, limit?, offset? })`: read-only access to
   bounded slices of persisted conversations. It lists recent visible threads,
   searches titles/messages/tool metadata/workspace paths, and reads transcript
   slices without exposing app-managed JSON files through `fs`.
-- `web_search({ queries, freshness?, country?, search_lang? })` — live web
+- `web_search({ queries, freshness?, country?, search_lang? })`: live web
   grounding through Brave LLM Context. `SearchStore` owns the locally persisted
   Brave key and a short in-memory query cache; desktop builds call the Tauri
   `brave_llm_context` command to avoid browser CORS.
-- `artifact({ action, path, content? })` — validates or creates finished HTML
+- `artifact({ action, path, content? })`: validates or creates finished HTML
   artifacts under `/workspace/artifacts/...`, checking file existence, basic
   HTML shape, inline script syntax, and local asset references.
-- `time({})` — no arguments. Returns ISO + human-readable + timezone +
+- `time({})`: no arguments. Returns ISO + human-readable + timezone +
   unix_ms. Used whenever the model needs the current date/time.
-- `workspace({ action })` — bridge runtime facade. `info` returns platform,
+- `workspace({ action })`: bridge runtime facade. `info` returns platform,
   workspace root, allowlist, and path semantics; `limits` returns known caps;
   `how_to_run_scripts` gives the artifact-first query script recipe: check
   artifacts first, inspect sources with `inspect_file`, write scripts under
   `/workspace/notes/query_scripts/`, and write reusable outputs under
   `/workspace/artifacts/`.
-- `fs({ action, path?, content?, encoding?, ... })` — workspace
+- `fs({ action, path?, content?, encoding?, ... })`: workspace
   filesystem ops via the bridge. Verbs: `read | write | append | list |
   delete | move | copy | mkdir | stat | search`. All paths resolve
   inside `~/GatesAI/workspace/`; the bridge enforces a path jail.
@@ -532,7 +532,7 @@ Current tool catalog:
   companion process isn't running. `list` and `search` defensively normalize
   legacy bridge `null` arrays to empty arrays so stale bridge processes cannot
   leak JavaScript formatter errors into tool results.
-- `inspect_file({ action, path?, format?, ... })` — read-only semantic
+- `inspect_file({ action, path?, format?, ... })`: read-only semantic
   inspection for CSV, JSON, and text files. Verbs: `workspace_profile |
   profile | preview | search | extract | aggregate`. `workspace_profile`
   uses bridge `fs.list` and optional `fs.search` to return an artifact-first
@@ -545,34 +545,34 @@ Current tool catalog:
   counts, likely date columns, numeric min/max/sample, and empty/ragged row
   counts. Attachment footers reinforce the same rule: use `inspect_file` for
   CSV/JSON/text and `fs` only for byte-level reads/writes.
-- `python_inline({ code, stdin?, timeout_ms? })` — scoped short Python
+- `python_inline({ code, stdin?, timeout_ms? })`: scoped short Python
   snippets through `exec.run` with `cmd: "python"` and argv
   `["-c", code]`. It intentionally does not use PowerShell, cmd.exe, pipes,
   redirects, or shell expansion. Longer reusable work should still be written
   as scripts under `/workspace/notes/query_scripts/`.
-- `sqlite_query({ path, sql, params?, max_rows?, timeout_ms? })` — scoped
+- `sqlite_query({ path, sql, params?, max_rows?, timeout_ms? })`: scoped
   read-only SQLite queries over workspace-relative `.sqlite`, `.sqlite3`, or
   `.db` files. It rejects dot-commands, multiple statements, absolute paths,
   and path traversal, then executes through Python's stdlib `sqlite3` helper
   rather than the raw `sqlite3` shell.
-- `query_script({ action, topic? })` — model-facing templates for organized
+- `query_script({ action, topic? })`: model-facing templates for organized
   data scripts. Actions: `template_python_csv_query`, `template_json_query`,
   and `template_artifact_audit`. Templates keep scripts under
   `/workspace/notes/query_scripts/<topic>.py`, final reusable JSON under
   `/workspace/artifacts/<topic>.json`, use cwd-relative paths, and include
   validation checkpoints before reporting results.
 - `git({ action, paths?, message?, branch?, ref?, staged?, cwd?, limit?,
-  confirm? })` — local-only Git porcelain through the bridge. Read actions:
+  confirm? })`, local-only Git porcelain through the bridge. Read actions:
   `status | diff | log | show | branch_list`; safe local writes:
   `add | commit | branch_create | branch_switch`; guarded restore actions:
   `restore | restore_staged` require `confirm: "restore local changes"`.
   The tool deliberately exposes no push, pull, fetch, remote, reset, rebase,
   merge, or force operations.
-- `describe_image({ path, question? })` — reads an image from the workspace
+- `describe_image({ path, question? })`: reads an image from the workspace
   through `BridgeStore.readAttachmentBase64` and sends it to the selected
   Ollama vision model from `LocalRuntimeStore`. This lets non-vision chat
   models delegate screenshot/artifact inspection to a local vision model.
-- `terminal({ cmd, args?, cwd?, stdin?, timeout_ms? })` — runs an
+- `terminal({ cmd, args?, cwd?, stdin?, timeout_ms? })`: runs an
   allowlisted shell command via the bridge. Allowlist lives in
   `~/.gatesai/bridge.json`; defaults are read-mostly + safe writes
   (`ls, cat, grep, mkdir, mv, rm, …`). Streams stdout/stderr lines
@@ -583,7 +583,7 @@ Current tool catalog:
 
 A separate Go process at `../gatesai-bridge/`. Owns the workspace folder
 and exposes filesystem + shell ops over a single WebSocket. Loopback-only
-binding (`127.0.0.1:7331`) is the entire trust boundary — no auth header.
+binding (`127.0.0.1:7331`) is the entire trust boundary, no auth header.
 On Windows, `Start GatesAI Chat.cmd` in the chat repo root starts this bridge
 and the Vite dev server in separate PowerShell windows. The launcher uses a
 built `../gatesai-bridge/bin/gatesai-bridge.exe` when present, otherwise it
@@ -665,7 +665,7 @@ inflight `AbortController`, asks the Comfy progress adapter to POST
 Per-iteration cancel checks bail out of the multi-image loop.
 
 History is persisted under `gatesai.imagejobs.v1` (capped at 200
-entries). Pending and running jobs do not persist — closing the app
+entries). Pending and running jobs do not persist, closing the app
 mid-render loses in-flight work.
 
 ## Local runtimes
@@ -698,7 +698,7 @@ appended automatically; health is `http://127.0.0.1:8188/system_stats`. Health
 URLs are derived in Rust from the runtime id, not accepted from the WebView.
 
 `ImageGenStore` keeps the image-generation backend contract but reads the
-ComfyUI base URL from `LocalRuntimeStore` at the point of use — the URL is no
+ComfyUI base URL from `LocalRuntimeStore` at the point of use, the URL is no
 longer mirrored into `ImageGenConfig`. `OllamaStore` likewise reads
 `localRuntime.ollamaBaseUrl` on each request rather than persisting its own
 copy. `ProviderStore.effectiveConfigs` is a lazy getter that overlays the
@@ -726,15 +726,15 @@ save) that drives `<ThreadTitle>`'s typewriter animation.
 
 ## Memory & cross-thread summaries
 
-The system prompt is the only delivery mechanism — there is no retrieval
+The system prompt is the only delivery mechanism, there is no retrieval
 layer, no embeddings store, no RAG. Memory is two layers stacked into the
 prompt:
 
-1. **`UserProfileStore.bio`** — durable, hand-curated facts. The `memory`
+1. **`UserProfileStore.bio`**: durable, hand-curated facts. The `memory`
    tool is the model's API into this; the Agent UI is the user's. Stored
    as a newline-separated string for textarea round-trip; exposed as
    `facts: string[]` for tools and the UI.
-2. **`Thread.summary`** — one-line digest of each *other* thread, written
+2. **`Thread.summary`**: one-line digest of each *other* thread, written
    lazily by `SummaryStore`.
 
 `SummaryStore`'s scheduler runs on a 15-second interval and picks the

@@ -1,4 +1,4 @@
-# LF-9 execution plan — capture and audit expanded tool activity
+# LF-9 execution plan: capture and audit expanded tool activity
 
 Date: 2026-07-18
 

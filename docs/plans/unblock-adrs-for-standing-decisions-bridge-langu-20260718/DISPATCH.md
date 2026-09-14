@@ -2,7 +2,7 @@
 
 The three ADRs for this item are finished and live in this plan folder. They
 must be moved into `docs/adr/` (outside this lease) and lightly wired in. This
-is a small, mechanical docs task — no app/source behavior changes.
+is a small, mechanical docs task, no app/source behavior changes.
 
 ---
 
@@ -24,7 +24,7 @@ Steps:
 2. In `docs/architecture.md`, add a single "See `docs/adr/…`" pointer to each of:
    the "Bridge and workspace" section (Go bridge ADR), the "Persistence"
    section (Firestore-parked ADR), and the "Rust layer" or a release note (updater
-   ADR) — mirroring how the Offline Library ADR is already referenced at
+   ADR): mirroring how the Offline Library ADR is already referenced at
    `docs/architecture.md:621`.
 3. Verify all relative links in the three ADRs resolve from their new location
    (they reference sibling `docs/adr/…`, `docs/bridge-protocol.md`,
@@ -42,4 +42,4 @@ Steps:
 are unaffected. Optionally spot-check rendered links.)
 
 **Not in scope:** the repo-visibility ADR and the signed/trusted-Windows-release
-ADR — those are separate roadmap items with their own leases.
+ADR, those are separate roadmap items with their own leases.

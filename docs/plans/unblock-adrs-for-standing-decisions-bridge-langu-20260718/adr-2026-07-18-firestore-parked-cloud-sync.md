@@ -29,7 +29,7 @@ be swapped in without rewriting stores.
 ## Decision
 
 Persistence stays **local-first and offline-complete**. A synchronizing cloud
-backend — Firestore specifically, and hosted always-on sync generally — is
+backend. Firestore specifically, and hosted always-on sync generally, is
 **parked**: intentionally not built now, but kept swappable.
 
 Concretely:
@@ -38,10 +38,10 @@ Concretely:
    (or the higher-level persistence services), never a concrete cloud client.
    No store may import or assume a network-backed repository.
 2. The default and only shipping repositories are local: `localStorage`
-   snapshot, IndexedDB archive, and — on desktop — the bridge workspace mirror.
+   snapshot, IndexedDB archive, and, on desktop, the bridge workspace mirror.
    The full feature set must work with the network permanently off.
 3. Any future cloud sync arrives as a **new provider implementation behind the
-   existing boundary** and as an explicit, off-by-default opt-in — matching the
+   existing boundary** and as an explicit, off-by-default opt-in, matching the
    roadmap's Cloud track (E2E-encrypted sync to user-owned storage). It must not
    become a prerequisite for any base feature, must not weaken the secrets model
    (`secretStorage.ts` keychain on desktop), and must ship with its own ADR.
@@ -60,7 +60,7 @@ Concretely:
   as the option value that keeps cloud parked-but-reachable.
 - Reviewers should reject any change that makes a network store load-bearing,
   that bypasses the provider boundary, or that routes secrets through a cloud
-  path — those re-open a decision this ADR closes.
+  path, those re-open a decision this ADR closes.
 - Unparking requires a follow-up ADR covering the concrete backend, the
   encryption/ownership model, the opt-in UX, and migration.
 
@@ -74,4 +74,4 @@ Concretely:
   indirection cost but forecloses cloud/IndexedDB swaps and would force store
   rewrites later; the boundary is cheap insurance for a likely future.
 - **Cloud-first with a local cache.** Inverts the product's privacy default and
-  makes the network load-bearing — a non-starter for this app.
+  makes the network load-bearing, a non-starter for this app.

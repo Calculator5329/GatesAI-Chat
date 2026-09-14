@@ -4,7 +4,7 @@ Status: approved for execution (Ethan: `APPROVED`, 2026-07-18)
 
 Roadmap item:
 
-> Fix pre-existing e2e failure: artifactContract.spec.ts "opens a registry artifact from the palette in the dock" — dock-panel iframe [title="Preview of Status board"] never appears (fails identically on pre-merge master 7fbac5c; not a Wave-D regression; found 2026-07-18)
+> Fix pre-existing e2e failure: artifactContract.spec.ts "opens a registry artifact from the palette in the dock", dock-panel iframe [title="Preview of Status board"] never appears (fails identically on pre-merge master 7fbac5c; not a Wave-D regression; found 2026-07-18)
 
 ## Outcome
 

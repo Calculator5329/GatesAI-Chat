@@ -1,4 +1,4 @@
-# Canvas/whiteboard artifact type for planning sessions — design & execution plan
+# Canvas/whiteboard artifact type for planning sessions: design & execution plan
 
 *2026-07-18, orchestrator lane `unblock-canvas-whiteboard-artifact-type-for-plan-20260718`.*
 *Roadmap item: "Canvas/whiteboard artifact type for planning sessions"
@@ -12,7 +12,7 @@ Planning sessions ("map out this feature", "lay out the migration phases",
 "what are the options here") today produce prose or, at best, an HTML
 artifact. A canvas artifact gives them a spatial form the model can create
 and **revise in place**: sticky notes, labeled boxes, arrows, and
-frames/lanes — a whiteboard the conversation keeps updating instead of a
+frames/lanes, a whiteboard the conversation keeps updating instead of a
 wall of regenerated text.
 
 The prize is not a drawing app. It is that the *model* owns the board:
@@ -27,13 +27,13 @@ rules. Verdict: **not viable.** Three independent blockers:
 
 1. **The artifact document CSP forbids it.** `HTML_ARTIFACT_DOCUMENT_CSP`
    (`src/core/htmlArtifactPolicy.ts`) is `default-src 'none'`,
-   `connect-src 'none'`, `script-src 'unsafe-inline' 'unsafe-eval'` only —
+   `connect-src 'none'`, `script-src 'unsafe-inline' 'unsafe-eval'` only,
    no `https:` script source, so loading either library from a CDN inside
    the artifact iframe is blocked, and the model-facing contract already
    mandates a self-contained single file with no external network. (The
    Tauri app-shell CSP tested in `tests/services/tauriConfig.test.ts` does
    allow some CDNs, but that policy governs the app shell, not the artifact
-   document policy — the artifact contract deliberately mirrors the
+   document policy, the artifact contract deliberately mirrors the
    stricter per-document CSP.) There is also no `worker-src`/`blob:` script
    allowance, and both libraries want workers and font/asset fetches.
 2. **The size budget forbids inlining.** A self-contained artifact is capped
@@ -61,7 +61,7 @@ the artifact iframe**:
   a ~small SVG component in the dock and in chat.
 
 **Decision: (B) for v1.** The planning-session use case is boxes, stickies,
-arrows, and lanes — not freehand ink. LLMs author structured JSON reliably
+arrows, and lanes, not freehand ink. LLMs author structured JSON reliably
 and freehand vector strokes badly, so (B) is *better* for the actual user
 ("the model keeps the board current"), not just cheaper. Zero new
 dependencies, no CSP or licensing questions, theme-aware rendering for
@@ -103,20 +103,20 @@ Colors are **tokens**, mapped to theme-aware fills in CSS (light + dark),
 never raw hex from the model.
 
 `validateCanvasScene(raw: string): { scene } | { issues: string[] }` is the
-whole validation gate — deterministic, no smoke render needed (there is no
+whole validation gate, deterministic, no smoke render needed (there is no
 script execution; that is a feature). Rules:
 
 - parses as JSON, `version === 1`, arrays present;
 - ids unique across nodes and edges; edge `from`/`to` reference existing
   nodes; `parent` references a `frame` node, and frames have no `parent`
-  (flat one-level grouping — no cycles possible);
+  (flat one-level grouping, no cycles possible);
 - finite coordinates within ±100 000; `w`,`h` in [1, 10 000];
 - caps: ≤ 400 nodes, ≤ 400 edges, ≤ 2 000 chars per `text`/`label`,
-  `CANVAS_ARTIFACT_MAX_BYTES` = 256 KB (warn at 64 KB) — mirrors the HTML
+  `CANVAS_ARTIFACT_MAX_BYTES` = 256 KB (warn at 64 KB): mirrors the HTML
   size-policy shape;
 - unknown `kind`/`color`/`style` values rejected (closed enums, versioned).
 
-Scene text is **data, never instructions** — it is rendered as SVG text
+Scene text is **data, never instructions**, it is rendered as SVG text
 nodes, never as HTML/markdown, so a scene cannot inject markup or script.
 No new security surface: no iframe, no CSP change, no exec, no network.
 
@@ -133,28 +133,28 @@ Mirror the HTML layout exactly:
   ids via the existing `nextHtmlArtifactId` logic, shared.
 - `ArtifactStore` loads both indexes and exposes canvases alongside HTML
   artifacts for gallery/dock/palette.
-- Workspace-file storage only — **no IDB persistence schema change, so no
+- Workspace-file storage only, **no IDB persistence schema change, so no
   migration or `schemaVersion` bump** is needed.
 
 ## Tool contract
 
-Extend the existing `artifact` tool (`src/services/tools/artifact.ts`) —
+Extend the existing `artifact` tool (`src/services/tools/artifact.ts`),
 one deliverable system, not a second tool:
 
-- `create_canvas_artifact` — `{ title, content }` where `content` is the
+- `create_canvas_artifact`: `{ title, content }` where `content` is the
   scene JSON string (reuses the existing strict-schema `content` param).
   Validates via `validateCanvasScene`, assigns id, writes file + index,
   refreshes `ArtifactStore`, opens the dock panel via `artifactSurface`
   (same post-create flow as HTML).
-- `update_canvas_artifact` — `{ id, content }`; same id ⇒ bump revision,
+- `update_canvas_artifact`: `{ id, content }`; same id ⇒ bump revision,
   rewrite, update index. Update-in-place rules identical to HTML.
-- `list_artifacts` — now returns both registries; each record gains
+- `list_artifacts`: now returns both registries; each record gains
   `type: 'html' | 'canvas'` (index files on disk stay separate and
   unversioned-change-free; only the tool's merged view is new).
 - Validation failures log to the error trail via the existing
   `logArtifactFailure` path with `phase: 'static'`.
 - `src/services/prompts/artifactContract.ts`: bump
-  `ARTIFACT_CONTRACT_VERSION` to 2 and append a canvas section — schema
+  `ARTIFACT_CONTRACT_VERSION` to 2 and append a canvas section, schema
   sketch, the closed enums, caps, "canvas for spatial planning boards, HTML
   for documents/apps", and the same create-once/update-in-place rule.
   Snapshot test updated deliberately (existing pattern).
@@ -166,14 +166,14 @@ one deliverable system, not a second tool:
   `components/dock/CanvasArtifactPanel.tsx`), params `{ id }`,
   `requiresBridge: true` like `html-artifact`. Loading a persisted dock
   snapshot with the new kind on an old build is already safe (unknown kinds
-  are dropped on load — verify in `dockStorage` tests).
+  are dropped on load, verify in `dockStorage` tests).
 - **In-chat preview**: `components/editorial/CanvasArtifactPreview.tsx`
-  mirroring `HtmlArtifactPreview` wiring — renders the scene inline after
+  mirroring `HtmlArtifactPreview` wiring, renders the scene inline after
   create/update, with "Open in dock". Same renderer component underneath.
 - **Renderer** (shared by panel + preview): one SVG component. v1: auto-fit
   viewBox on open, wheel/drag pan-zoom, fit button, nodes (sticky/box/text,
   frames drawn behind children with title), edges as straight lines with
-  arrowheads + optional labels, theme-token colors. **Read-only in v1** —
+  arrowheads + optional labels, theme-token colors. **Read-only in v1**,
   the model is the editor; user editing is the explicitly cut line (below).
 - **Gallery / palette**: gallery's artifact tab and the palette's "Open
   artifact…" list include canvases (type badge), from `ArtifactStore`.
@@ -186,14 +186,14 @@ existing degradation notices. No half-working surface.
 
 ## Execution slices (all in the one follow-up task; C is the cut line)
 
-- **A — contract core**: `core/canvasArtifacts.ts` (types, validation,
+- **A, contract core**: `core/canvasArtifacts.ts` (types, validation,
   policy constants), registry generalization, tool actions, contract prompt
   v2. Fully unit-testable without UI.
-- **B — surfaces**: renderer + dock panel + in-chat preview + gallery/
+- **B, surfaces**: renderer + dock panel + in-chat preview + gallery/
   palette listing + dock kind.
 - **C (optional, cuttable)**: user drag-to-move with explicit Save
   (writes through `ArtifactStore` → bridge, bumps revision). If the task
-  runs long, C ships as a roadmap follow-up instead — v1 is complete
+  runs long, C ships as a roadmap follow-up instead, v1 is complete
   without it.
 
 ## Testing
@@ -207,7 +207,7 @@ existing degradation notices. No half-working surface.
 - E2e (desktop-mocked): create canvas → inline preview renders → opens in
   dock → update moves a node → preview reflects revision 2.
 - Known state: one **pre-existing** e2e failure exists on master
-  (artifactContract palette→dock iframe — filed in roadmap, changelog
+  (artifactContract palette→dock iframe, filed in roadmap, changelog
   2026-07-18). Don't chase it; don't add to it.
 
 ## Risks & non-goals

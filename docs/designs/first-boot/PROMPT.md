@@ -1,4 +1,4 @@
-# First boot — current functional spec
+# First boot: current functional spec
 
 Extracted 2026-07-16 from live code at `6439e33d7619e34c1f464725e2b0fd57c62551a6`. This is the source prompt for design rounds, not a proposal. When this document and the app disagree, the app is authoritative and this document should be regenerated.
 

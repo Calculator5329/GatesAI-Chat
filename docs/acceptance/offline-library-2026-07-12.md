@@ -1,4 +1,4 @@
-# Offline Library cross-repository acceptance — 2026-07-12
+# Offline Library cross-repository acceptance: 2026-07-12
 
 Status: accepted for the read-only G0–G6 scope.
 

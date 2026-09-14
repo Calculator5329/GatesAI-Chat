@@ -1,4 +1,4 @@
-# A38 spike correctness — pre-source design, 2026-09-05
+# A38 spike correctness: pre-source design, 2026-09-05
 
 ## Decision and scope
 

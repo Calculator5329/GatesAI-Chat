@@ -1,4 +1,4 @@
-# DISPATCH — follow-up implementation task
+# DISPATCH: follow-up implementation task
 
 Source changes are required; this lane's lease covered only the plan
 folder. Dispatch the following task to implement the design in
@@ -6,13 +6,13 @@ folder. Dispatch the following task to implement the design in
 
 ## Task spec
 
-- **title**: Canvas artifact type v1 — scene contract, tool actions, dock/chat renderer
+- **title**: Canvas artifact type v1, scene contract, tool actions, dock/chat renderer
 - **model tier**: smart
 - **suggested cap**: $25 (complex multi-file; per spend norms)
 - **goal**: |
     Implement the canvas/whiteboard artifact type per
     docs/plans/unblock-canvas-whiteboard-artifact-type-for-plan-20260718/design.md
-    (read it first; it is the authoritative design — decision already made:
+    (read it first; it is the authoritative design, decision already made:
     structured scene JSON + hand-rolled SVG renderer, NO tldraw/excalidraw
     dependency, no artifact-CSP changes).
 
@@ -35,7 +35,7 @@ folder. Dispatch the following task to implement the design in
        ARTIFACT_CONTRACT_VERSION to 2, append the canvas contract section;
        update the snapshot test deliberately.
     5. Surfaces: shared read-only SVG scene renderer (auto-fit, pan/zoom,
-       theme-token colors, text rendered as SVG text — never HTML);
+       theme-token colors, text rendered as SVG text, never HTML);
        `CanvasArtifactPanel` behind new DockPanelKind 'canvas-artifact'
        (requiresBridge: true) in `src/core/dock.ts` + `panelRegistry.tsx`;
        in-chat `CanvasArtifactPreview` mirroring HtmlArtifactPreview with
@@ -53,7 +53,7 @@ folder. Dispatch the following task to implement the design in
     change/migration (workspace files only); Web Lite degrades by hiding
     the tool/panel exactly like html-artifact; respect layer boundaries
     (core → services → stores → components). Known pre-existing e2e
-    failure (artifactContract palette→dock iframe) is on master — do not
+    failure (artifactContract palette→dock iframe) is on master, do not
     chase it and do not add new failures.
 - **owns**:
     - src/core/canvasArtifacts.ts

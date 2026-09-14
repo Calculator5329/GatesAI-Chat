@@ -2,7 +2,7 @@
 
 ## Task
 
-**Title:** W-1.3 — Ship the safe CodeMirror dock editor
+**Title:** W-1.3. Ship the safe CodeMirror dock editor
 
 **Goal:** Complete W-1 by adding a lazily loaded CodeMirror 6 editor panel for
 jailed workspace JS/TS/JSON/Markdown/HTML files. Preserve the shipped dock,

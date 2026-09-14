@@ -14,7 +14,7 @@ Lane path: `docs/plans/unblock-share-thread-as-single-file-html-20260718`
 
 ## Step sequence
 
-### Step 1 — Implement pure thread-share renderer
+### Step 1: Implement pure thread-share renderer
 
 File to add:
 
@@ -29,7 +29,7 @@ Tasks:
   no remote font/script/style links.
 - provide deterministic filename/metadata helpers.
 
-### Step 2 — Implement share action helpers
+### Step 2: Implement share action helpers
 
 Files to update:
 
@@ -43,7 +43,7 @@ Tasks:
   returning a status object (`copied` vs `downloaded`).
 - implement robust fallback when clipboard API is unavailable.
 
-### Step 3 — Add user actions
+### Step 3: Add user actions
 
 Files to update:
 
@@ -58,7 +58,7 @@ Tasks:
   component style.
 - add a corresponding command-palette action for discoverability.
 
-### Step 4 — Tests and hardening
+### Step 4: Tests and hardening
 
 Files to update:
 
@@ -75,7 +75,7 @@ Tasks:
 - assert share action targets the intended thread.
 - assert copy-vs-download branch behavior in a mocked browser environment.
 
-### Step 5 — Verification
+### Step 5: Verification
 
 Run:
 

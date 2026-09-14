@@ -1,4 +1,4 @@
-# SP-1 — user-configurable system prompt
+# SP-1: user-configurable system prompt
 
 **Status:** approved and implementation-ready
 

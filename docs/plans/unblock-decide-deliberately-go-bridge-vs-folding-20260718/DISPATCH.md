@@ -1,4 +1,4 @@
-# DISPATCH — follow-up task spec
+# DISPATCH: follow-up task spec
 
 The decision for roadmap item `docs/roadmap.md:665` ("Decide deliberately: Go
 bridge vs folding into a Rust sidecar") is made and fully argued in
@@ -40,7 +40,7 @@ this task's lease). That is this task.
 2. Lint green; working tree otherwise clean.
 3. Report back so the harvesting session can tick `docs/roadmap.md:665` and
    note partial progress on `docs/roadmap.md:693` (ADRs for standing
-   decisions — "bridge language" is now covered; "Firestore parked" and
+   decisions, "bridge language" is now covered; "Firestore parked" and
    "updater" remain).
 
 ---
@@ -51,7 +51,7 @@ The decision doc identifies two small additive items that capture the security
 benefit a fold would have provided. They are independent of the ADR landing and
 of each other:
 
-1. **Bridge WS spawn-time shared secret** — *cross-repo, paired lanes.*
+1. **Bridge WS spawn-time shared secret**: *cross-repo, paired lanes.*
    App half (this repo): generate a per-launch random token in
    `src-tauri/src/lib.rs`, pass it to the sidecar spawn args, expose it to the
    frontend, present it at WS connect in `src/services/bridge/client.ts`.
@@ -59,7 +59,7 @@ of each other:
    reject unauthenticated WS upgrades. Requires a protocol note in
    `docs/bridge-protocol.md` and coordinated rollout (old app + new bridge must
    still pair during transition, or ship both halves in one release).
-2. **Health identity check before reusing a process on 7331** — *app-repo
+2. **Health identity check before reusing a process on 7331**: *app-repo
    only, tiny.* `bridge_already_running()` in `src-tauri/src/lib.rs:26` should
    require the health JSON to look like our bridge (`status: "ok"` and
    `protocol_version` present) before skipping the bundled sidecar spawn.

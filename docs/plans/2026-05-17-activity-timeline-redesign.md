@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Unify the assistant activity rows (thinking, tool calls, image jobs, bridge events) under one polished `TimelineRow` primitive with icons, link-styled targets, stats chips, grouping, and optional section headers — without changing the message data model or palette.
+**Goal:** Unify the assistant activity rows (thinking, tool calls, image jobs, bridge events) under one polished `TimelineRow` primitive with icons, link-styled targets, stats chips, grouping, and optional section headers, without changing the message data model or palette.
 
 **Architecture:** Keep the existing `ActivityStream` → `ActivityRow` structure and the existing `activitiesForMessage` synthesizer. Generalize the row's visuals (slots, icons, stats), add two optional fields to `ActivityItem` (`stats`, `groupKey`), introduce a lightweight `TimelineGroup` wrapper that collapses consecutive same-key rows, and add a small `TimelineHeader`. Thinking is already an `ActivityItem` of kind `'thinking'`; the redesign just gives it a real visual identity instead of treating it like every other row.
 
@@ -10,7 +10,7 @@
 
 **Reference:** [docs/plans/2026-05-17-activity-timeline-redesign-design.md](docs/plans/2026-05-17-activity-timeline-redesign-design.md) (approved design).
 
-**Working commands** (PowerShell — this project's shell):
+**Working commands** (PowerShell, this project's shell):
 - Run all tests: `npm.cmd test`
 - Run one test file: `npm.cmd test -- tests/components/editorial/ActivityStream.test.ts`
 - Typecheck: `npm.cmd run typecheck`
@@ -18,7 +18,7 @@
 - Full CI gate: `npm.cmd run ci`
 
 **Working notes for the executor:**
-- Commit after each task. Use Conventional Commits (the repo's style — see `git log`).
+- Commit after each task. Use Conventional Commits (the repo's style, see `git log`).
 - TDD where the task touches logic (grouping, stats, header rendering). Skip TDD for pure visual CSS-only steps.
 - Do **not** invent new color tokens. Use `var(--accent)`, `var(--text)`, `var(--text-faint)`, `var(--border)`, and the existing `#ffaaaa` failure tone.
 - Never change `ActivityItem` semantics in ways that break the existing `activitiesForMessage` synthesizer in [src/stores/ChatStore.ts:502](src/stores/ChatStore.ts:502).
@@ -118,7 +118,7 @@ Expected: clean exit.
 
 **Step 3: Visual smoke (skip if no dev server running)**
 
-If a dev server is already running, no action needed — icons are not yet wired in. We will see them in later tasks.
+If a dev server is already running, no action needed, icons are not yet wired in. We will see them in later tasks.
 
 **Step 4: Commit**
 
@@ -180,7 +180,7 @@ describe('iconForActivity', () => {
 **Step 2: Run test to verify it fails**
 
 Run: `npm.cmd test -- tests/components/editorial/iconForActivity.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 **Step 3: Implement**
 
@@ -271,7 +271,7 @@ it('renders a free-form stats label when added/removed are absent', () => {
 **Step 2: Run tests to verify they fail**
 
 Run: `npm.cmd test -- tests/components/editorial/ActivityStream.test.ts`
-Expected: FAIL — no `.activity-row__icon`, no `.activity-row__stats`.
+Expected: FAIL, no `.activity-row__icon`, no `.activity-row__stats`.
 
 **Step 3: Replace the glyph with an icon and add the stats slot**
 
@@ -383,7 +383,7 @@ function useElapsedLabel(active: boolean, startedAt: number): string {
 
 The previous `glyphFor` helper is deleted.
 
-**Step 4: Update CSS — replace `__glyph` rule and add stats + icon styles**
+**Step 4: Update CSS, replace `__glyph` rule and add stats + icon styles**
 
 In `src/index.css`, replace the `.activity-row__glyph` block (lines 194-199) with:
 
@@ -451,7 +451,7 @@ And update the target to be link-styled. Replace the `.activity-row__target, .ac
 **Step 5: Run tests to verify they pass**
 
 Run: `npm.cmd test -- tests/components/editorial/ActivityStream.test.ts`
-Expected: PASS — all old and new cases.
+Expected: PASS, all old and new cases.
 
 **Step 6: Typecheck + lint**
 
@@ -526,7 +526,7 @@ describe('groupConsecutive', () => {
 **Step 2: Run test to verify it fails**
 
 Run: `npm.cmd test -- tests/components/editorial/groupConsecutive.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 **Step 3: Implement**
 
@@ -605,7 +605,7 @@ it('marks the group failed when any child failed', () => {
 **Step 2: Run test to verify it fails**
 
 Run: `npm.cmd test -- tests/components/editorial/ActivityStream.test.ts`
-Expected: FAIL — no `.activity-group` element.
+Expected: FAIL, no `.activity-group` element.
 
 **Step 3: Implement `TimelineGroup`**
 
@@ -745,7 +745,7 @@ Expected: existing tests pass. Note which `activitiesForMessage` tests exist for
 
 **Step 2: Write a failing test**
 
-Add to `tests/stores/ChatStore.test.ts` (or create a new describe block if needed) — append a test that calls `activitiesForMessage` on a message with three `terminal` tool calls and asserts each emitted item has `groupKey === 'tool:terminal'`. Use the patterns already present in that file for constructing an `AssistantMessage`. Outline:
+Add to `tests/stores/ChatStore.test.ts` (or create a new describe block if needed): append a test that calls `activitiesForMessage` on a message with three `terminal` tool calls and asserts each emitted item has `groupKey === 'tool:terminal'`. Use the patterns already present in that file for constructing an `AssistantMessage`. Outline:
 
 ```ts
 it('marks consecutive terminal tool calls with a shared groupKey', () => {
@@ -762,7 +762,7 @@ The executor should mirror the helper patterns in [tests/stores/ChatStore.test.t
 **Step 3: Run to verify it fails**
 
 Run: `npm.cmd test -- tests/stores/ChatStore.test.ts`
-Expected: FAIL — `groupKey` is undefined.
+Expected: FAIL, `groupKey` is undefined.
 
 **Step 4: Set `groupKey` on the synthesized tool items**
 
@@ -805,7 +805,7 @@ git commit -m "feat(activity): tag tool-call rows with a per-tool groupKey for c
 
 **Files:**
 - Modify: `src/stores/ChatStore.ts` (same `activitiesForMessage` loop)
-- Reference: any existing `tool.ui` definitions to confirm shape — grep for `ui: {` in `src/tools/` if present.
+- Reference: any existing `tool.ui` definitions to confirm shape, grep for `ui: {` in `src/tools/` if present.
 
 **Step 1: Locate the tool registry**
 
@@ -850,7 +850,7 @@ And include `stats` on the pushed `ActivityItem`:
 
 **Step 5: Tests**
 
-If the edit tool already has unit tests, add a case verifying its `ui.stats` returns the expected `{ added, removed }`. If not, this task is acceptable to ship without a new test — the rendering of `stats` is already covered by Task 4's stats tests.
+If the edit tool already has unit tests, add a case verifying its `ui.stats` returns the expected `{ added, removed }`. If not, this task is acceptable to ship without a new test, the rendering of `stats` is already covered by Task 4's stats tests.
 
 **Step 6: Run full suite**
 
@@ -979,7 +979,7 @@ git commit -m "test(activity): cover combined stream rendering and header slot"
 **Step 1: Run the full CI gate**
 
 Run: `npm.cmd run ci`
-Expected: clean — tests, typecheck, lint all pass.
+Expected: clean, tests, typecheck, lint all pass.
 
 **Step 2: Manual smoke**
 
@@ -1033,7 +1033,7 @@ Return the PR URL.
 If something visually breaks in production:
 
 1. Revert the merge commit on master.
-2. The data-model fields (`stats`, `groupKey`) are optional — leaving them in master with rendering reverted is harmless.
+2. The data-model fields (`stats`, `groupKey`) are optional, leaving them in master with rendering reverted is harmless.
 
 ---
 

@@ -232,7 +232,7 @@ Lightning workflow.
 ## 8. What The AI Can Tweak
 
 GatesAI can choose between prepared workflows, prompts, aspect ratios, and seeds.
-The final ComfyUI workflow JSON itself is static at generation time — node
+The final ComfyUI workflow JSON itself is static at generation time, node
 settings such as `tile_width`, `mask_blur`, and `seam_fix_denoise` are baked
 into `current-final-workflow.json`. To re-tune them, edit the JSON directly
 and reload the page.

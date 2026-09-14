@@ -19,7 +19,7 @@
 **Step 1: Write the failing tests**
 
 Add tests that assert:
-- Favorites appear first in this exact order: Gemini 3 Flash, DeepSeek V4 Flash, GPT-5.5, Claude Opus 4.7, Gemini 3.1 Pro, Normal image — Flux 2 Klein.
+- Favorites appear first in this exact order: Gemini 3 Flash, DeepSeek V4 Flash, GPT-5.5, Claude Opus 4.7, Gemini 3.1 Pro, Normal image. Flux 2 Klein.
 - Non-favorite OpenRouter catalog entries are grouped by their underlying provider, with top providers ordered before the remaining catalog.
 
 **Step 2: Run test to verify it fails**
@@ -53,7 +53,7 @@ Add UI metadata for favorite cost labels:
 - GPT-5.5: `$$`
 - Claude Opus 4.7: `$$$`
 - Gemini 3.1 Pro: `$$`
-- Normal image — Flux 2 Klein: `LOCAL`
+- Normal image. Flux 2 Klein: `LOCAL`
 
 **Step 2: Render grouped sections**
 

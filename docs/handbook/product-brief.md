@@ -22,9 +22,9 @@ ChatGPT-style conversation
 1. **Fast and performant.** Streaming feels instant, the UI never janks, long
    threads stay smooth. Perceived speed is a feature, not a nice-to-have.
 2. **Easy and nice to use.** The surface reads like ChatGPT: type, send, read.
-   Good UI/UX beats feature count. Power is progressive — hidden until wanted.
-3. **Agentic depth on your machine.** Claude Code / Codex-style capabilities —
-   files, terminal, git, SQLite, artifacts, image generation — scoped to a
+   Good UI/UX beats feature count. Power is progressive, hidden until wanted.
+3. **Agentic depth on your machine.** Claude Code / Codex-style capabilities,
+   files, terminal, git, SQLite, artifacts, image generation, scoped to a
    workspace the user owns and can inspect.
 4. **Any model, your choice.** Any OpenRouter model, any local Ollama model.
    Switch mid-conversation. No model lock-in, no separate subscription.

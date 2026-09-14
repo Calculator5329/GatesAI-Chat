@@ -44,8 +44,8 @@ it; enabling performs manifest discovery and requires schema 1 plus a
 compatible 1.x plugin version. It stores no secret and creates no cloud
 dependency.
 
-Citation identifiers returned by the host—including `kiwix://`, `library://`,
-`man:`, and `db://`—are opaque evidence references. GatesAI must preserve their
+Citation identifiers returned by the host, including `kiwix://`, `library://`,
+`man:`, and `db://`, are opaque evidence references. GatesAI must preserve their
 exact strings through tool results, message content parts, persistence, export,
 and rendering. Benchmark trust values remain labeled grounding proxies; the
 consumer must not relabel them as factual hallucination rates.
@@ -63,7 +63,7 @@ consumer must not relabel them as factual hallucination rates.
 - Offline, disabled, incompatible, and healthy are distinct user-visible
   states. No failure silently routes to a remote provider.
 - Profiles are task-aware suggestions with evidence, limitations, and explicit
-  user override—not a universal default-model claim.
+  user override, not a universal default-model claim.
 
 ## Contract fixture
 

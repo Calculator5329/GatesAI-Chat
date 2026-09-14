@@ -1,4 +1,4 @@
-# GatesAI Chat — Comprehensive Audit & User-Story Reference
+# GatesAI Chat: Comprehensive Audit & User-Story Reference
 
 **Date:** 2026-06-07
 **Type:** Read-only audit (no code changed)
@@ -13,7 +13,7 @@ This document doubles as a **user-story / use-case reference** for future work.
 ## 1. Executive summary (plain English)
 
 The app is well-built: clean layered architecture, a thoughtfully designed
-chat engine, and strong test coverage. Most findings are not "it's broken" —
+chat engine, and strong test coverage. Most findings are not "it's broken",
 they are sharp edges a real user could hit.
 
 - **4 Critical**, ~**11 High**, plus many Medium/Low issues.
@@ -77,22 +77,22 @@ Each was traced through the real code.
 
 ## 3. Critical findings (verified by hand)
 
-### C1 — Two browser tabs corrupt each other's data
+### C1: Two browser tabs corrupt each other's data
 No cross-tab coordination exists. Whichever tab saves last silently wipes the
 other's chats, memories, and notes. No warning, no merge.
 **Evidence:** no `storage`/`StorageEvent` listener in `src/`; each store loads
 once and overwrites (`ChatStore.ts:305-318`, `UserProfileStore.ts:22-26`,
 `NotesStore.ts:28-32`).
 
-### C2 — Cancelling an image job can break the next job's cancel
+### C2: Cancelling an image job can break the next job's cancel
 `cancel()` nulls the active job and immediately calls `runNext()`, starting the
 next job. The cancelled job's `finally` then sets `this.inflight = null`,
-clobbering the **new** job's abort controller — so the next job can become
+clobbering the **new** job's abort controller, so the next job can become
 un-cancellable, and two ComfyUI renders can overlap.
 **Evidence:** `ImageJobStore.ts:124-131` (cancel → runNext), `:226-227` (new
 controller), `:239-241` (`finally` nulls it). Verified manually.
 
-### C3 — Model can read private chat history through a side door
+### C3: Model can read private chat history through a side door
 Chat-state files are hidden from `fs`/`inspect_file`, but the protection (a)
 only covers `.gatesai/chat`, **not** the readable `/workspace/chat-history`
 HTML/Markdown mirror, and (b) is **not** enforced in `terminal`,
@@ -103,7 +103,7 @@ and `inspectFile.ts:106-108`, absent in `terminal.ts`, `pythonInline.ts`,
 `sqliteQuery.ts`. Verified manually. (Low real-world risk on single-user
 desktop, but it defeats an intended boundary.)
 
-### C4 — A stopped reply can still "finish" and scramble titles/metadata
+### C4: A stopped reply can still "finish" and scramble titles/metadata
 After interrupt-and-resend, the abandoned turn's post-stream finalize isn't
 guarded. It can stamp a finish-reason on an already-`*[interrupted]*` message
 and fire `maybeAutoName` from partial text, blocking proper naming by the real
@@ -116,18 +116,18 @@ reply.
 ## 4. High-impact findings
 
 ### Cross-conversation state leaks
-- **Shared composer draft** — one global string; type in A, switch to B, send →
+- **Shared composer draft**: one global string; type in A, switch to B, send →
   posts to B. (`UiStore.ts:28-29`; no reset on thread switch.)
-- **Global error banner** — error from A shows while viewing B; dismiss clears
+- **Global error banner**: error from A shows while viewing B; dismiss clears
   globally. (`ChatStore.ts` `lastError`; banner `EditorialComposer.tsx:292-296`.)
-- **Background streams** — Stop button only controls the active thread
+- **Background streams**: Stop button only controls the active thread
   (`stopStreaming` keys off `activeThreadId`, `ChatStore.ts:937-941`); bridge
   activity rows attach to the wrong message (`recordActivityEvent`, `:651-655`).
 
 ### Provider / model UX
-- **Ollama offline shows "Add an API key"** — wrong advice; user needs to start
+- **Ollama offline shows "Add an API key"**: wrong advice; user needs to start
   Ollama. (`EditorialComposer.tsx:216-218`, `573-588`.)
-- **Offline Ollama models look pickable** — only ComfyUI gets a disabled state.
+- **Offline Ollama models look pickable**: only ComfyUI gets a disabled state.
   (`ModelPopover.tsx:752-755`.)
 
 ### Silent data loss
@@ -315,42 +315,42 @@ Recommendation: use **Models** everywhere.
 > **Status (2026-06-07):** Batches A–E implemented in app code; see
 > `docs/changelog.md` (2026-06-07 entries). Remaining gaps: bridge-level
 > chat-history enforcement (app-side tools only), full multi-tab merge/reload
-> coordination (banner + pause only — no BroadcastChannel merge).
+> coordination (banner + pause only, no BroadcastChannel merge).
 >
 > **Test coverage:** per-item implementation and test mapping in
 > [`2026-06-07-test-coverage-matrix.md`](./2026-06-07-test-coverage-matrix.md);
 > developer guide in
 > [`2026-06-07-implementation-guide.md`](./2026-06-07-implementation-guide.md).
 > **Diagnostics (2026-06-07):** logging, inline comments, and architecture docs
-> updated for observability — see changelog “Diagnostics pass”.
+> updated for observability, see changelog “Diagnostics pass”.
 
-### Batch A — Safety first
+### Batch A: Safety first
 - [x] Chat-history protection across all tool paths.
 - [x] Multi-tab overwrite warning.
 - [x] Image cancel runner lock.
 - [x] Stale turn finalization guard.
 
-### Batch B — Conversation correctness
+### Batch B: Conversation correctness
 - [x] Per-thread draft.
 - [x] Per-thread lastError.
 - [x] Manual rename protection.
 - [x] Soft-delete streaming annotation.
 - [x] Summary scheduler ignores any streaming thread and excludes deleted threads.
 
-### Batch C — User clarity
+### Batch C: User clarity
 - [x] Rename "API" copy to "Models".
 - [x] Context-aware provider banners.
 - [x] First-run setup checklist.
 - [x] Model picker as a real button.
 - [x] Desktop menu/gear affordance.
 
-### Batch D — Image polish
+### Batch D: Image polish
 - [x] Show image job cards expanded or outside collapsed activity rows.
 - [x] Show partial failed/cancelled results.
 - [x] Better batch tracking (`prompt_file` returns `{ content, artifacts[] }`).
 - [x] Missing-artifact failed state.
 
-### Batch E — Storage durability
+### Batch E: Storage durability
 - [x] User-visible quota/compaction notice.
 - [x] Quarantine corrupt notes.
 - [x] Notes size limits.
@@ -385,11 +385,11 @@ Key engineering decisions and their rationale:
   rather than scattering guards.
 - **Fail loud over fail silent (S1/C1):** storage exhaustion and cross-tab write
   races now surface a notice / cancel queued saves rather than quietly diverging
-  from disk — consistent with the audit's "no silent failure paths" theme.
+  from disk, consistent with the audit's "no silent failure paths" theme.
 - **Defense in depth for chat history (C3):** rather than guarding one tool, the
   protected-path check is enforced at every tool that can read the filesystem,
   with path canonicalization so `..` traversal and the readable mirror are both
   covered.
 - **Filter, don't disable (P1 / deslop):** unusable models are filtered out of
   the picker by `isModelAvailable`, which let us delete the dead
-  `disabledReasonForModel` branch entirely — fewer states, simpler component.
+  `disabledReasonForModel` branch entirely, fewer states, simpler component.

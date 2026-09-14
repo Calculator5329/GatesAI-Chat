@@ -41,7 +41,7 @@ published from the private source repository to the public
       - `GatesAI-Chat-Setup-x64.exe` (+ `.sig`)
       - `GatesAI-Chat-x86_64.AppImage` (+ `.sig`)
       - `latest.json` (the auto-updater manifest from the `updater-manifest`
-        job — its `version` must match the tag and its URLs must point at the
+        job, its `version` must match the tag and its URLs must point at the
         tag's assets)
 - [ ] Follow the README's latest-download links in a signed-out browser and
       confirm each resolves to the matching asset in the public releases repo.
@@ -49,7 +49,7 @@ published from the private source repository to the public
       launch it on Linux, and confirm each app reports the new version and can
       connect to its bundled bridge.
 - [ ] Auto-update smoke test: launch the PREVIOUS release's AppImage and
-      confirm the sidebar shows the "v<new> available — update" pill, the
+      confirm the sidebar shows the "v<new> available, update" pill, the
       download completes, and "restart to finish updating" relaunches into the
       new version.
 
@@ -58,8 +58,8 @@ published from the private source repository to the public
 The updater verifies every download against the pubkey pinned in
 `tauri.conf.json` (`plugins.updater.pubkey`). Builds sign with the
 `TAURI_SIGNING_PRIVATE_KEY` GitHub Actions secret (key generated 2026-07-12,
-no password — the password secret is intentionally unset; local copy at
+no password, the password secret is intentionally unset; local copy at
 `~/.tauri/gatesai-chat-updater.key` on the dev box). The private key must
 NEVER enter either repo. If the key is ever lost, generate a new pair, update
-the pubkey in `tauri.conf.json`, and ship one manual-download release —
+the pubkey in `tauri.conf.json`, and ship one manual-download release,
 existing installs cannot verify updates signed by a different key.

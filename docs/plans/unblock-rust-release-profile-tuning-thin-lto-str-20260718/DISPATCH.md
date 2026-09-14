@@ -1,4 +1,4 @@
-# DISPATCH — Rust release profile tuning
+# DISPATCH: Rust release profile tuning
 
 This source task is immediately dispatchable. Read `PLAN.md` in this folder
 first; it is the approved design and scope boundary.

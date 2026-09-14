@@ -1,11 +1,11 @@
-# Follow-up source dispatch — LF-9 expanded tool-activity evidence
+# Follow-up source dispatch: LF-9 expanded tool-activity evidence
 
 Source and evidence changes are required; this lane's lease covers only this
 plan folder. Dispatch the task below after reading [PLAN.md](./PLAN.md).
 
 ## Task spec
 
-- **title:** LF-9 — expand tool activity before screenshot capture and re-audit it
+- **title:** LF-9: expand tool activity before screenshot capture and re-audit it
 - **model tier:** smart
 - **goal:** |
     Resolve the approved LF-9 roadmap item exactly as specified in

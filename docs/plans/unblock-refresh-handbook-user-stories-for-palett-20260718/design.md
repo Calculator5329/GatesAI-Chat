@@ -1,4 +1,4 @@
-# Handbook user-story refresh — palette, onboarding, MCP, and usage
+# Handbook user-story refresh: palette, onboarding, MCP, and usage
 
 *2026-07-18, orchestrator lane
 `unblock-refresh-handbook-user-stories-for-palett-20260718`.*
@@ -10,8 +10,8 @@ retire delivered ones.” Ethan’s decision: APPROVED.*
 Make `docs/handbook/user-stories.md` a useful, truthful product record again.
 It currently contains a priority-ranked backlog of fourteen broad stories. Most
 of those stories describe behavior that has shipped, while four substantial
-current product surfaces—command palette, local-first onboarding, MCP, and
-usage—have no dedicated story at all. The document therefore neither tells a
+current product surfaces, command palette, local-first onboarding, MCP, and
+usage, have no dedicated story at all. The document therefore neither tells a
 reader what is actually available nor identifies a coherent outstanding body
 of work.
 
@@ -23,8 +23,8 @@ available in a runtime where it is gated.
 
 ## Evidence and source of truth
 
-The handbook must follow code and focused regression coverage—not its old
-stories—as the source of truth:
+The handbook must follow code and focused regression coverage, not its old
+stories, as the source of truth:
 
 | Surface | Source evidence | Truth the refreshed story must preserve |
 | --- | --- | --- |

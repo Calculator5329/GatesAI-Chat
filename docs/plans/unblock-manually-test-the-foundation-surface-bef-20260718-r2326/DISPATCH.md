@@ -1,4 +1,4 @@
-# DISPATCH — execute the foundation surface manual acceptance
+# DISPATCH: execute the foundation surface manual acceptance
 
 Read [PLAN.md](./PLAN.md) completely before running this task. It is the
 authoritative scope, protocol, evidence format, and pass/fail policy.

@@ -43,6 +43,6 @@ Selected policy: lexical-weighted reciprocal-rank fusion, source diversity, and 
 |---|---:|---:|
 | Query embedding | 17.0 ms | 19.7 ms |
 | Local ranking | 0.4 ms | 1.9 ms |
-| Local ranking, 10,000 chunks | — | 19.7 ms |
+| Local ranking, 10,000 chunks | n/a | 19.7 ms |
 
 Index duration: 95.8 ms.

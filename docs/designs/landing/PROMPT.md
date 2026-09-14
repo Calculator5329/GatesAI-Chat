@@ -1,4 +1,4 @@
-# Design rounds — gatesai landing site
+# Design rounds: gatesai landing site
 
 Surface: public landing/marketing site for GatesAI. Links out to Web Lite
 (https://calculator5329.github.io/GatesAI-Chat/) and desktop downloads

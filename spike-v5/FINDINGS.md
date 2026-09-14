@@ -1,4 +1,4 @@
-# v5 architecture spike — bounded findings
+# v5 architecture spike: bounded findings
 
 This is an isolated, text-only experiment, not the start of v5 or a decision to
 rewrite the production domain. It demonstrates an inward dependency direction

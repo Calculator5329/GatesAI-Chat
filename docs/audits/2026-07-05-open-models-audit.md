@@ -1,8 +1,8 @@
-# Open-models-first screen audit — 2026-07-05
+# Open-models-first screen audit: 2026-07-05
 
 Lens: **"What do I do if I'm running open/local models only?"** (no OpenRouter key, Ollama for
 LLMs + embeddings, ComfyUI for images). Reviewed against the committed `docs/screens/` corpus
-plus source. Direction confirmed with the product owner: **simpler is better — Ollama is THE
+plus source. Direction confirmed with the product owner: **simpler is better. Ollama is THE
 local LLM runtime** (no multi-runtime sprawl), ComfyUI for images, embeddings first-class.
 
 ## Verdict
@@ -16,11 +16,11 @@ that dead-ends at "install Ollama" with no way to get a model without a terminal
 
 ### 01 First-run onboarding
 - ✅ Local path is present and equal in layout.
-- ❌ F1: Composer shows **Gemini 3 Flash preselected** even with no key — the global default
+- ❌ F1: Composer shows **Gemini 3 Flash preselected** even with no key, the global default
   model is hardcoded cloud (`DEFAULT_MODEL_ID`). A local-only user's very first state is a
   model that cannot work.
 - ❌ F2: When Ollama is missing, the local card is a dead end ("install… check again"). When
-  Ollama is present but has no models, there is guidance text but no action — getting a model
+  Ollama is present but has no models, there is guidance text but no action, getting a model
   requires a terminal.
 - ❌ F3: The local path never mentions the embedding model, so semantic memory silently stays
   off for exactly the users most likely to want local memory.
@@ -42,7 +42,7 @@ that dead-ends at "install Ollama" with no way to get a model without a terminal
 - ❌ F7: "Auto-detect could not find…" renders in error-red; on a fresh machine this is the
   NORMAL state and should read as calm guidance, not failure.
 - ❌ F8: No in-app model pulling. This is the single biggest local-UX gap: the app can start
-  Ollama but cannot get models into it. Ollama's `/api/pull` streams progress — an in-app
+  Ollama but cannot get models into it. Ollama's `/api/pull` streams progress, an in-app
   "recommended models" block (chat + embedding) with pull progress closes the loop.
 - ❌ F9: Embedding model has no presence here; semantic-memory setup lives only in Agent.
 
@@ -54,7 +54,7 @@ that dead-ends at "install Ollama" with no way to get a model without a terminal
 ### 02/03 Chat + composer
 - ✅ Context meter, spend chip, tool gating all work for local.
 - ⚠️ F11 (minor): thinking-effort control is OpenRouter-only; local reasoning models exist but
-  Ollama's think support is uneven — acceptable to leave, revisit later.
+  Ollama's think support is uneven, acceptable to leave, revisit later.
 
 ### Cross-cutting (from source, not screens)
 - ❌ F12: Auto-namer / summaries / background helpers use cheap-cloud-model cascades; verify
@@ -62,7 +62,7 @@ that dead-ends at "install Ollama" with no way to get a model without a terminal
   local threads keep fallback titles).
 - 💡 F13 (recommended direction, owner invited): ONE generic **"OpenAI-compatible endpoint"**
   provider slot (base URL + optional key) makes LM Studio, llama.cpp server, vLLM, Jan, and
-  LocalAI all work through the existing `openaiCompat` path — maximum reach for minimum
+  LocalAI all work through the existing `openaiCompat` path, maximum reach for minimum
   complexity, no per-vendor integrations. Ollama remains the first-class managed runtime.
 
 ## Fix plan → Wave H

@@ -1,4 +1,4 @@
-# Portable mode (ZIP, data beside EXE) — design
+# Portable mode (ZIP, data beside EXE): design
 
 > **Decision status:** APPROVED by Ethan (authoritative task decision,
 > 2026-07-18).

@@ -1,4 +1,4 @@
-# A53 — schedule deep autosave observation with the existing throttle
+# A53: schedule deep autosave observation with the existing throttle
 
 Adopted and implemented source candidate, 2026-09-05; focused checks and all required gates passed; parent source and commit review passed. Source-only synthetic work, no real conversations or provider calls. The unchanged baseline and source hashes live in `/home/ethan/.cache/tmp/astra-chat-hotpath`.
 
@@ -38,7 +38,7 @@ Separate baseline issue confirmed: a paused coordinator still writes once when w
 
 Full CI/type/lint and the complete E2E suite passed in the coordinated windows. Parent source review precedes delivery. No live data or providers were accessed.
 
-## A54 — separate adopted workspace pause suppression
+## A54: separate adopted workspace pause suppression
 
 The actual baseline also starts a queued workspace snapshot after pause when an earlier save settles (`paused-drain.json`: initial and queued-before-pause both saved while paused). This is distinct from A53's observation cost. The adopted narrow correction clears pending workspace state on pause and checks pause at both enqueue and drain. Attaching while paused establishes the adapter but cannot start a save. A write already in flight is not cancelled and is not claimed to be cancellable.
 
@@ -59,7 +59,7 @@ Root independently reviewed the complete production change and passed the existi
 Combined A53/A54 focused suite passed 21 tests after moving the single queued-pause incident case into its named trigger. Full CI passed 1,370 tests across 178 files (8.86 seconds test phase), application/test TypeScript checks, and lint. Initial CI exposed a missing assistant-role type narrowing in a new test assertion; that test-only fix passed the full rerun, and `ci-initial-types.log` is retained. No production change was needed. Final E2E subsequently passed as recorded below.
 
 
-## Final combined gates — 2026-09-05
+## Final combined gates: 2026-09-05
 
 `npm run ci` passed: 1,370 tests, application/test typechecks, and lint. `npm run test:e2e -- --workers=4 --output=/home/ethan/.cache/tmp/astra-chat-hotpath/e2e-artifacts` passed all 146 tests in 1.7 minutes, using isolated ports 5633/5634. No scope narrowing or timeout change. `e2e.log` and artifacts are retained. Teardown completed; an outside-sandbox listener check confirmed both owned ports closed. No generated journey/source artifacts changed.
 

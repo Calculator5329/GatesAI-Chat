@@ -1,4 +1,4 @@
-# DISPATCH — CB-1 source change (follow-up task spec)
+# DISPATCH: CB-1 source change (follow-up task spec)
 
 The design in `DESIGN.md` requires a source edit that lies outside this task's
 lease (which owns only `docs/plans/.../`). Dispatch the following bounded task
@@ -28,7 +28,7 @@ screenshots if needed, staying within the "soft glow, no hard ring" intent):
    - **no rule contains a zero-blur `0 0 0 2px var(--focus-ring)` hard ring;**
    - focus applies a translucent accent **fill** (large-spread inset box-shadow,
      e.g. `inset 0 0 0 200px color-mix(in srgb, var(--accent) 4-6%, transparent)`)
-     — needed because the panel fill is set inline in `ROW_STYLE`, so a plain
+     needed because the panel fill is set inline in `ROW_STYLE`, so a plain
      `background:` override would be ignored;
    - focus applies a wide, blurred, low-alpha **outer halo**
      (e.g. `0 0 18-22px 2-3px color-mix(in srgb, var(--accent) 8-12%, transparent)`);
@@ -38,7 +38,7 @@ screenshots if needed, staying within the "soft glow, no hard ring" intent):
 
 ### acceptance
 
-- Focused composer shows **no hard accent ring** in the default (dark) theme —
+- Focused composer shows **no hard accent ring** in the default (dark) theme,
   focus reads as a gentle warming of the field.
 - Keyboard focus is **visibly distinct from blur in both light and dark**
   themes (border-color shift toward accent is the load-bearing indicator).
@@ -59,8 +59,8 @@ npm run ci && npm run test:e2e
 - The existing e2e guard `tests/e2e/polish.spec.ts:16` still passes as-is
   (asserts composer focus `box-shadow !== 'none'`, which stays true). Optionally
   tighten it to assert the computed `box-shadow` does **not** contain a `2px`
-  zero-blur ring — but only if the assertion is robust across engines; a brittle
+  zero-blur ring, but only if the assertion is robust across engines; a brittle
   string match is worse than none. Leave it alone if unsure.
-- Do not weaken `eslint.config.js` or the layer boundaries — this is CSS-only.
+- Do not weaken `eslint.config.js` or the layer boundaries, this is CSS-only.
 - Full rationale, exact CSS, WCAG reasoning, and runtime coverage in
   `DESIGN.md` (same folder).

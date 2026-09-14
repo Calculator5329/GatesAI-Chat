@@ -1,6 +1,6 @@
 # Semantic-memory UI selection
 
-Status: **SELECTED — OPTION 2**
+Status: **SELECTED. OPTION 2**
 
 Ethan selected Option 2 on 2026-07-19:
 

@@ -1,4 +1,4 @@
-# DISPATCH — implement SP-1 user-configurable system prompt
+# DISPATCH: implement SP-1 user-configurable system prompt
 
 This task is immediately dispatchable. Read `PLAN.md` in this folder first;
 it is the authoritative design and records the approved decision. The existing
@@ -7,7 +7,7 @@ micro-mode, migration, wire-proof, and documentation gaps.
 
 ## Task spec
 
-- **title:** SP-1 — per-thread system-prompt override with Ollama/Web Lite parity
+- **title:** SP-1: per-thread system-prompt override with Ollama/Web Lite parity
 - **model tier:** smart
 - **goal:** |
     Implement

@@ -1,13 +1,13 @@
-# DISPATCH — Extend `inspect_file` to document formats
+# DISPATCH: Extend `inspect_file` to document formats
 
 Two follow-up implementation tasks derived from
 `2026-07-18-inspect-file-documents-design.md`. **Task 1 is immediately
 dispatchable in-repo.** Task 2 (pdf) is gated on an Ethan dependency/runtime
-decision and is scoped to a different repo — dispatch only after that decision.
+decision and is scoped to a different repo, dispatch only after that decision.
 
 ---
 
-## Task 1 — inspect_file: xlsx + docx (client-side)
+## Task 1: inspect_file: xlsx + docx (client-side)
 
 **title:** `inspect_file: add xlsx + docx support (client-side OOXML)`
 
@@ -38,7 +38,7 @@ Concretely:
    from "run action", letting xlsx feed a pre-built `CsvTable` and docx feed
    pre-split lines through the existing action switches (reuse
    `renderCsvRows`/`searchCsv`/`extractCsv`/`aggregateCsv`/`profileCsvColumn` and
-   `renderNumberedLines`/`searchText`/line-range extract — do not duplicate action
+   `renderNumberedLines`/`searchText`/line-range extract, do not duplicate action
    logic).
 5. Wire `detectFormat` (extension + mime for both formats; legacy `.xls`/`.doc`
    → clear "save as .xlsx/.docx" error), widen `InspectFormat`, the `def` supported-
@@ -68,7 +68,7 @@ contract semantics for existing formats, or `eslint.config.js` layer rules.
 
 **test-cmd:** `npm run ci && npm run test:e2e`
 (= `npm test` (vitest) + `npm run typecheck` + `npm run lint`, then Playwright.
-No `cargo test` needed — no Rust change.)
+No `cargo test` needed, no Rust change.)
 
 **definition of done:**
 - xlsx + docx pass all actions with fixtures assembled in-test via `fflate.zipSync`
@@ -83,7 +83,7 @@ No `cargo test` needed — no Rust change.)
 
 ---
 
-## Task 2 — inspect_file: pdf (GATED — do not dispatch until Ethan decides)
+## Task 2: inspect_file: pdf (GATED, do not dispatch until Ethan decides)
 
 **Blocked on decision (queue for Ethan):** client `pdfjs-dist` (heavy dep, both
 runtimes, in-repo) **vs** bridge-side Go `doc.extract_text` RPC (desktop-only, Web

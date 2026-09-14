@@ -1,7 +1,7 @@
 # TODO
 
 Long-running list of things we want to do but aren't doing right now.
-Living doc — when something starts, move it into `docs/roadmap.md`.
+Living doc, when something starts, move it into `docs/roadmap.md`.
 
 ---
 
@@ -19,7 +19,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 > **Routing floor (2026-07-19):** every LLM call goes through OpenRouter or
 > local Ollama; image generation goes through ComfyUI. Direct provider
 > adapters (Anthropic/OpenAI/Google/Groq) and the custom OpenAI-compatible
-> endpoint were removed — new model access means new OpenRouter routes, not
+> endpoint were removed, new model access means new OpenRouter routes, not
 > new adapters.
 
 - [x] OpenRouter (with live model catalog)
@@ -29,14 +29,14 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 ### Provider features
 - [x] Per-provider streaming via Server-Sent Events
 - [x] Tool / function calling (unified shape across providers)
-- [x] Vision input (image attachments) *(verified already-done, 2026-07-10 truth pass — multimodal Phase 1; `src/services/llm/resolveImages.ts`, per-model `supportsVision`)*
+- [x] Vision input (image attachments) *(verified already-done, 2026-07-10 truth pass, multimodal Phase 1; `src/services/llm/resolveImages.ts`, per-model `supportsVision`)*
 - [ ] Audio input (Whisper-style transcription)
 - [ ] Audio output (TTS)
-- [x] Embeddings (for memory / RAG) *(verified already-done, 2026-07-10 truth pass — Wave F RAG; `src/services/rag/embeddings.ts` + `recall` tool)*
+- [x] Embeddings (for memory / RAG) *(verified already-done, 2026-07-10 truth pass. Wave F RAG; `src/services/rag/embeddings.ts` + `recall` tool)*
 - [x] Structured output (JSON mode) *(done 2026-07-10, burndown w5)*
 - [x] Per-model context-window awareness (shown for OpenRouter live entries; need to wire counting + display per provider for the curated set too)
 - [x] Token counting / context-window estimation per request
-- [ ] Live catalog refresh for the direct providers (Anthropic / OpenAI / Gemini / Groq) — today only OpenRouter has a fetcher
+- [ ] Live catalog refresh for the direct providers (Anthropic / OpenAI / Gemini / Groq): today only OpenRouter has a fetcher
 - [x] Cost tracking per request (normalized usage on messages + real Usage menu section, 2026-07-02)
 - [ ] Provider health checks + automatic fallback
 - [x] Rate-limit handling with backoff (transient-provider retry policy in StreamingRoundExecutor, 2026-07-02)
@@ -45,7 +45,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 ## Backend / persistence
 
-> Backlog / aspirational — not scheduled (truth pass 2026-07-10)
+> Backlog / aspirational, not scheduled (truth pass 2026-07-10)
 
 > **Heads-up (apr 2026):** considering moving from localStorage to a real
 > backend. Capturing the shape here so future decisions stay consistent.
@@ -62,7 +62,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [ ] **Google Cloud Storage** for attachments (images, audio, files)
   - Signed-URL upload flow
   - Reference URLs stored on the message, blobs in GCS
-- [ ] Firebase Auth (email + Google sign-in) — prerequisite for the above
+- [ ] Firebase Auth (email + Google sign-in): prerequisite for the above
 - [ ] Security rules: users can only read/write their own threads
 - [x] Export / import (versioned JSON envelope, merge/replace modes, secrets excluded, 2026-07-02; attachments already live in the user's workspace folder)
 
@@ -74,7 +74,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
       so we can swap localStorage ↔ Firestore without touching `ChatStore`
 - [ ] Per-thread `MessageStore` once histories get big (>500 messages)
 - [x] IndexedDB fallback for very large local-only setups *(verified 2026-07-10
-      — archive tier shipped 2026-07-02; `services/persistence/idb.ts`)*
+      archive tier shipped 2026-07-02; `services/persistence/idb.ts`)*
 - [ ] Web Worker for token counting / markdown rendering of huge messages
 - [ ] Code-splitting: lazy-load `GatesMenu` and `react-markdown` plugins
 
@@ -84,21 +84,21 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 - [x] Move appearance controls (accent, bg, header) out of the floating
       Tweaks panel and into the Appearance menu section *(superseded 2026-07-10
-      — Appearance tab retired; foundation presentation fixed)*
+      Appearance tab retired; foundation presentation fixed)*
 - [x] Real keyboard shortcuts (Ctrl/⌘K palette with thread search + actions, Ctrl/⌘N, Ctrl/⌘,, Ctrl/⌘L, 2026-07-02)
-- [x] Thread search / filter in the sidebar *(verified already-done, 2026-07-10 truth pass — `src/stores/SearchStore.ts`, sidebar body search + Ctrl/Cmd+K palette)*
-- [x] Soft-delete threads (sidebar trash + undo) *(verified 2026-07-10 —
+- [x] Thread search / filter in the sidebar *(verified already-done, 2026-07-10 truth pass, `src/stores/SearchStore.ts`, sidebar body search + Ctrl/Cmd+K palette)*
+- [x] Soft-delete threads (sidebar trash + undo) *(verified 2026-07-10,
       `EditorialSidebar.tsx`)*
 - [x] Inline thread rename (right-click or hover affordance) *(done 2026-07-10, burndown w7)*
-- [x] Pin / unpin threads (data is there, UI isn't) *(verified already-done, 2026-07-10 truth pass — sidebar pin/trash icons shipped in the Web Lite UX pass; `pinned` wired in `EditorialSidebar.tsx`/`ChatStore.ts`)*
+- [x] Pin / unpin threads (data is there, UI isn't) *(verified already-done, 2026-07-10 truth pass, sidebar pin/trash icons shipped in the Web Lite UX pass; `pinned` wired in `EditorialSidebar.tsx`/`ChatStore.ts`)*
 - [ ] Drag-to-reorder pinned threads
-- [x] Message actions: copy, regenerate, edit-and-resend, branch *(verified already-done, 2026-07-10 truth pass — shipped 2026-07-02 wave; regenerate/edit/branch in `EditorialMessage.tsx` + `ChatStore.ts`, Ctrl/Cmd-click copy gesture)*
+- [x] Message actions: copy, regenerate, edit-and-resend, branch *(verified already-done, 2026-07-10 truth pass, shipped 2026-07-02 wave; regenerate/edit/branch in `EditorialMessage.tsx` + `ChatStore.ts`, Ctrl/Cmd-click copy gesture)*
 - [x] Code block: copy button, language label, line numbers toggle *(done 2026-07-10, burndown w4)*
 - [x] File attachments in the composer (paperclip + drag-drop into `/workspace/attachments/`)
 - [ ] Inline attachment previews (image thumbnails, PDF first-page peek)
 - [x] Per-thread rename UX in the sidebar (right-click → rename) *(done 2026-07-10, burndown w7)*
 - [ ] Persistent `Thread.naming` flag (so closing the tab mid-name doesn't strand a thread on the fallback "first 40 chars" title forever)
-- [ ] Upgrade the "working/thinking" indicator to a Codex-style status line —
+- [ ] Upgrade the "working/thinking" indicator to a Codex-style status line,
       shimmer/animated "Working" label with live elapsed timer and
       "esc to interrupt" hint, like the brainless "Codex Working" shadcn
       component (https://brainless.swerdlow.dev/r/codex-working.json, prompt
@@ -118,7 +118,7 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 - [x] Workspace settings panel under `#/menu/workspace`
 - [x] Bridge status pill in the sidebar
 - [x] Live exec tail beneath running `terminal` calls
-- [x] Auto-launch bridge from chat *(verified 2026-07-10 — Tauri sidecar spawns
+- [x] Auto-launch bridge from chat *(verified 2026-07-10. Tauri sidecar spawns
       `gatesai-bridge` on desktop start; `src-tauri/src/lib.rs`)*
 - [ ] Bridge installer / one-click "Install GatesAI bridge" download
 - [ ] Bridge GUI tray-icon companion (start/stop, edit allowlist, open workspace)
@@ -140,18 +140,18 @@ Living doc — when something starts, move it into `docs/roadmap.md`.
 
 - [x] Vitest suite under `tests/` (Phase 4 of current refactor)
 - [x] ESLint + TypeScript CI scripts
-- [x] Playwright smoke test (send a message, switch threads, open menu) *(verified already-done, 2026-07-10 truth pass — 20-test Playwright suite, `playwright.config.ts`, e2e job in CI)*
-- [x] GitHub Actions CI: typecheck + lint + test on PR *(verified already-done, 2026-07-10 truth pass — `.github/workflows/ci.yml`: unit tests + typecheck + lint + Playwright e2e + Rust tests)*
+- [x] Playwright smoke test (send a message, switch threads, open menu) *(verified already-done, 2026-07-10 truth pass, 20-test Playwright suite, `playwright.config.ts`, e2e job in CI)*
+- [x] GitHub Actions CI: typecheck + lint + test on PR *(verified already-done, 2026-07-10 truth pass, `.github/workflows/ci.yml`: unit tests + typecheck + lint + Playwright e2e + Rust tests)*
 - [ ] Bundle-size budget + report in CI
 
 ---
 
 ## Wired-up menu sections
 
-> **Superseded 2026-07 trim:** the menu is now three tabs — Settings, Models,
+> **Superseded 2026-07 trim:** the menu is now three tabs. Settings, Models,
 > Agent. Retired tabs (Profile, Usage, API, Appearance, Local, Workspace,
 > Gallery) either merged into the survivors or were removed; legacy deep links
 > redirect in `src/services/router.ts`.
 
-- [ ] **Agent** — system prompt, default model, temperature persisted
-- [ ] **Settings** — language, timezone, retention all wired
+- [ ] **Agent**: system prompt, default model, temperature persisted
+- [ ] **Settings**: language, timezone, retention all wired

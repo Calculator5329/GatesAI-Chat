@@ -4,25 +4,25 @@
 
 **Goal:** Ship GatesAI Chat + bridge as a single double-clickable desktop app (Windows `.exe` first, macOS/Linux later) so non-developers can install it without Node, Go, or a terminal.
 
-**Architecture:** Tauri shell wraps the existing React/Vite UI in a native window using the OS's webview. The existing Go bridge ships unchanged as a Tauri "sidecar" — a separate binary the Rust shell spawns on launch and kills on exit. The chat still talks to the bridge over `127.0.0.1:7331` HTTP+WebSocket, so `BridgeStore` and `BridgeClient` need no changes.
+**Architecture:** Tauri shell wraps the existing React/Vite UI in a native window using the OS's webview. The existing Go bridge ships unchanged as a Tauri "sidecar", a separate binary the Rust shell spawns on launch and kills on exit. The chat still talks to the bridge over `127.0.0.1:7331` HTTP+WebSocket, so `BridgeStore` and `BridgeClient` need no changes.
 
 **Tech Stack:** Tauri 2.x, Rust (only for the ~50-line shell), existing Vite/React UI, existing Go bridge as sidecar binary, NSIS installer for Windows.
 
 **Repos involved:**
-- `C:\Users\et2bo\Desktop\Projects\GatesAI Chat` — chat UI, will host Tauri scaffolding under `src-tauri/`
-- `C:\Users\et2bo\Desktop\Projects\gatesai-bridge` — Go bridge, gets a cross-compile script for sidecar binaries
+- `C:\Users\et2bo\Desktop\Projects\GatesAI Chat`: chat UI, will host Tauri scaffolding under `src-tauri/`
+- `C:\Users\et2bo\Desktop\Projects\gatesai-bridge`: Go bridge, gets a cross-compile script for sidecar binaries
 
 **Key constraints:**
 - Bridge binary name must follow Tauri's convention: `gatesai-bridge-<target-triple>.exe` (e.g. `gatesai-bridge-x86_64-pc-windows-msvc.exe`).
 - Bridge default port is 7331; if it's already running (someone left the old `.cmd` launcher up), the app must detect and reuse instead of failing on bind.
-- Bridge config lives at `~/.gatesai/bridge.json` and is auto-created — no installer step needed for first-run state.
+- Bridge config lives at `~/.gatesai/bridge.json` and is auto-created, no installer step needed for first-run state.
 - Tauri 2.x requires explicit capability/permission declarations to spawn sidecars; v1 syntax does not apply.
 
 **Out of scope for v1:** macOS/Linux installers (plan mentions cross-compile but Windows is the only verified target), code signing, auto-update server, custom workspace-picker UI in the shell.
 
 ---
 
-### Task 0: Prerequisites — verify Rust toolchain installed
+### Task 0: Prerequisites, verify Rust toolchain installed
 
 **Files:** none (one-time machine setup)
 
@@ -32,9 +32,9 @@
 
 **Step 3:** Install Tauri CLI globally so `npm` doesn't pull a fresh copy each time: `cargo install tauri-cli --version "^2.0"`. Expected: build completes, `cargo tauri --version` returns 2.x.
 
-**Step 4:** Install WebView2 runtime check — on Windows 10/11 it ships with the OS, but confirm: open PowerShell, `Get-AppxPackage *WebView*`. If absent, `winget install Microsoft.EdgeWebView2Runtime`.
+**Step 4:** Install WebView2 runtime check, on Windows 10/11 it ships with the OS, but confirm: open PowerShell, `Get-AppxPackage *WebView*`. If absent, `winget install Microsoft.EdgeWebView2Runtime`.
 
-**No commit** — environment only.
+**No commit**: environment only.
 
 ---
 
@@ -95,7 +95,7 @@ src-tauri/binaries/*-linux
 npm run tauri:dev
 ```
 
-Expected: a native window opens showing the existing chat UI, served from the Vite dev server. Bridge will show as offline (we haven't wired the sidecar yet — that's correct for now). Close the window with the X button.
+Expected: a native window opens showing the existing chat UI, served from the Vite dev server. Bridge will show as offline (we haven't wired the sidecar yet, that's correct for now). Close the window with the X button.
 
 **Step 6: Commit**
 
@@ -135,7 +135,7 @@ Under `bundle`:
   "active": true,
   "targets": ["nsis"],
   "publisher": "Ethan Gates",
-  "shortDescription": "GatesAI Chat — local-first AI chat with workspace tools",
+  "shortDescription": "GatesAI Chat, local-first AI chat with workspace tools",
   "longDescription": "Desktop client for GatesAI Chat with embedded local bridge for filesystem and command-execution tools."
 }
 ```
@@ -381,7 +381,7 @@ npm run tauri:dev
 Expected:
 1. Window opens
 2. Console (terminal where you ran the command) prints `[gatesai] spawned bridge sidecar`
-3. After ~1 second the chat UI's bridge indicator flips to **online** (green) — same UX as today's `.cmd` launcher
+3. After ~1 second the chat UI's bridge indicator flips to **online** (green): same UX as today's `.cmd` launcher
 4. Workspace tools work end-to-end (try `bridge.fs.list` via the chat UI)
 
 If the indicator stays red, check whether the bridge process is alive (Task Manager → search for `gatesai-bridge`) and tail its stderr from the Tauri terminal.
@@ -421,10 +421,10 @@ In `lib.rs`, extend the builder before `.run(...)`:
 
 1. `npm run tauri:dev`, wait for bridge online indicator
 2. Close the app via the X button
-3. In a separate terminal: `Get-Process gatesai-bridge -ErrorAction SilentlyContinue` — expected: nothing
-4. Re-launch immediately — bridge should come up cleanly
+3. In a separate terminal: `Get-Process gatesai-bridge -ErrorAction SilentlyContinue`, expected: nothing
+4. Re-launch immediately, bridge should come up cleanly
 
-If a bridge process lingers, check whether the close handler fires (add a `dbg!()`). Sometimes you need `tauri::WindowEvent::CloseRequested` instead of `Destroyed` depending on platform behavior — adjust if so.
+If a bridge process lingers, check whether the close handler fires (add a `dbg!()`). Sometimes you need `tauri::WindowEvent::CloseRequested` instead of `Destroyed` depending on platform behavior, adjust if so.
 
 **Step 3: Commit**
 
@@ -435,7 +435,7 @@ git commit -m "fix: kill bridge sidecar when window closes"
 
 ---
 
-### Task 7: Production build — produce the installer
+### Task 7: Production build, produce the installer
 
 **Files:** none (output only)
 
@@ -448,8 +448,8 @@ npm run tauri:build
 ```
 
 Expected: build takes 2–5 min on first run (Rust crates compile from scratch). Output:
-- `src-tauri/target/release/gatesai-chat.exe` — the unpackaged app
-- `src-tauri/target/release/bundle/nsis/GatesAI Chat_<version>_x64-setup.exe` — the installer
+- `src-tauri/target/release/gatesai-chat.exe`: the unpackaged app
+- `src-tauri/target/release/bundle/nsis/GatesAI Chat_<version>_x64-setup.exe`: the installer
 
 **Step 2: Test the installer on the same machine**
 
@@ -461,11 +461,11 @@ Expected: build takes 2–5 min on first run (Rust crates compile from scratch).
 
 **Step 3: Test the installer on a CLEAN machine (or VM, or fresh user)**
 
-This is the real test — make sure we haven't accidentally depended on `npm`/`go`/`node` being on PATH.
+This is the real test, make sure we haven't accidentally depended on `npm`/`go`/`node` being on PATH.
 
 1. Copy the installer to a machine that has never had Node, Go, or this project.
-2. Install. Launch. Bridge should still come online — the sidecar is fully self-contained.
-3. Verify a tool call works. If it fails, the most likely culprit is the bridge's `exec_allowlist` referencing tools (`git`, `python`, `node`) that aren't present on the target machine — that's expected and out of scope; the chat itself should still load and respond.
+2. Install. Launch. Bridge should still come online, the sidecar is fully self-contained.
+3. Verify a tool call works. If it fails, the most likely culprit is the bridge's `exec_allowlist` referencing tools (`git`, `python`, `node`) that aren't present on the target machine, that's expected and out of scope; the chat itself should still load and respond.
 
 **Step 4:** No commit; this is a verification gate. If anything fails, return to the relevant earlier task.
 
@@ -514,7 +514,7 @@ Out of scope for v1 ship. Notes for later:
 - Cross-compiling Go to mac/linux is one-line (`GOOS=darwin GOARCH=arm64 go build ...`); the script in Task 3 already detects host triple, just needs invocation per target.
 - Tauri supports `dmg` and `appimage`/`deb` bundle targets; add to `tauri.conf.json > bundle.targets` per platform.
 - macOS unsigned `.app` bundles trigger Gatekeeper warnings. Code signing requires an Apple Developer account ($99/yr). Acceptable to ship unsigned for friends-and-family v1 with a "right-click → Open" workaround note in README.
-- Tauri builds must run on the host OS for that target — no cross-OS bundling. CI later (GitHub Actions matrix) is the clean answer.
+- Tauri builds must run on the host OS for that target, no cross-OS bundling. CI later (GitHub Actions matrix) is the clean answer.
 
 Skip until someone actually asks for non-Windows.
 

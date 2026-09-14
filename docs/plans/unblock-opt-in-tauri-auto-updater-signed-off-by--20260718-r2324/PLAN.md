@@ -1,4 +1,4 @@
-# Opt-in Tauri auto-updater — signed and OFF by default
+# Opt-in Tauri auto-updater: signed and OFF by default
 
 **Status:** implementation-ready follow-up required
 

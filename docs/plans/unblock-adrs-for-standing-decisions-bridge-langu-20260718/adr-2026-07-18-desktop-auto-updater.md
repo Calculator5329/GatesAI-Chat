@@ -33,7 +33,7 @@ Desktop builds self-update through **`tauri-plugin-updater` +
   publishes it to the releases repo. Installed apps poll
   `releases/latest/download/latest.json` on launch and every 6 hours.
 - Discovery is surfaced, not forced: a sidebar `UpdatePill` shows
-  "vX available — update"; the user clicks to download in the background, then
+  "vX available, update"; the user clicks to download in the background, then
   confirms relaunch. Failures land in the error trail with a retry offer. There
   is no silent auto-install.
 - Version identity is single-sourced by the release process: `package.json` and
@@ -41,7 +41,7 @@ Desktop builds self-update through **`tauri-plugin-updater` +
 
 ## Consequences
 
-- Updates require no first-party infrastructure — GitHub Releases is the only
+- Updates require no first-party infrastructure. GitHub Releases is the only
   distribution surface, keeping the local-first, low-cost posture intact.
 - The signing key is load-bearing: losing or rotating it breaks the update path
   for installed builds. The release checklist's "setup once, guard forever"

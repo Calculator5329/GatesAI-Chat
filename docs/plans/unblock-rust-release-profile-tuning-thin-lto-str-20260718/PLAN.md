@@ -4,7 +4,7 @@ Status: **approved and implementation-ready**
 
 Roadmap item: `Rust release profile tuning (thin LTO, strip) for installer size`
 
-Decision authority: Ethan — `APPROVED` (2026-07-18)
+Decision authority: Ethan, `APPROVED` (2026-07-18)
 
 ## Outcome
 

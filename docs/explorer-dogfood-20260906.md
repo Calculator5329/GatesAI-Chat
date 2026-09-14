@@ -1,4 +1,4 @@
-# Explorer desktop dogfood — 2026-09-06
+# Explorer desktop dogfood: 2026-09-06
 
 The autonomous project campaign uses the real desktop-mode React app with the
 existing fictional dev scenarios. It never uses a live provider or a user's

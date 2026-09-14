@@ -1,8 +1,8 @@
-# AP-3 — user-controlled self-scheduling execution plan
+# AP-3: user-controlled self-scheduling execution plan
 
 Date: 2026-07-18  
 Decision input: **APPROVED**  
-Canonical Item: `docs/roadmap.md` → **AP-3 — User-controlled self-scheduling**  
+Canonical Item: `docs/roadmap.md` → **AP-3. User-controlled self-scheduling**  
 Story source: [`../07-16-agentic-platform-design.md`](../07-16-agentic-platform-design.md#story-ap-3--self-scheduling-with-visible-wakes)  
 Implementation handoff: [DISPATCH.md](./DISPATCH.md)
 

@@ -1,4 +1,4 @@
-# Settings and motion audit — 2026-07-26
+# Settings and motion audit: 2026-07-26
 
 Source audit for the v2 UI taste pass (`ui/taste-pass-20260726`). Partially
 satisfies QA-1's acceptance (a) "a coverage report of which settings work / are
@@ -80,7 +80,7 @@ written. The genuine in-app count was six.
 - **Export/import** with an explicit merge-vs-replace choice and a typed
   confirmation on the destructive path.
 
-### Dead — removed in this lane (`ac5471b`)
+### Dead: removed in this lane (`ac5471b`)
 
 | Thing | Why it was dead |
 |---|---|
@@ -88,14 +88,14 @@ written. The genuine in-app count was six.
 | `ProviderCard.needsBaseUrl` and its whole branch | Leftover from the openai-compat provider retired 2026-07-19. The only `ApiProviderCardInfo` sets it `false`. |
 | Duplicate section labels | Defined twice, in two files, in two different orders. Now `core/menuSections.ts`. |
 
-### Dead-looking but NOT dead — left alone
+### Dead-looking but NOT dead: left alone
 
 The eight unwired `UiPrefsSnapshot` fields look like vestige from the retired
 Appearance tab, but `animationsEnabled` drives the animation kill-switch in
 `App.tsx`. Removing the block wholesale would break it. Anyone revisiting this
 should remove them individually, not as a group.
 
-### Confusing — proposed, not yet done
+### Confusing: proposed, not yet done
 
 1. **The three tabs are cut by subsystem, not by object.** "Settings" holds
    theme *and* export *and* the danger zone. "Agent" holds instructions *and*

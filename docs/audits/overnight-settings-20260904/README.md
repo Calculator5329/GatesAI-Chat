@@ -1,4 +1,4 @@
-# C1 settings audit — 2026-09-04
+# C1 settings audit: 2026-09-04
 
 Audit source: `fce9e603ca02d49a2997c18d8d3f4b43230fe659` (4.7.0), isolated AO lane `codex-settings-audit-20260904`. No production code changed. The current menu has Settings, Models and Agent; the older seven-section walkthrough is not the current inventory.
 

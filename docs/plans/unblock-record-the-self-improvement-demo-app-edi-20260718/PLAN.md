@@ -1,4 +1,4 @@
-# Demo production plan — "The app edits itself, rebuilds, and asks to update"
+# Demo production plan: "The app edits itself, rebuilds, and asks to update"
 
 **Roadmap item:** "Record the self-improvement demo (app edits itself, rebuilds,
 asks to update) once the loop closes" (docs/roadmap.md, Visions / Later).
@@ -10,7 +10,7 @@ signing machine); this document is the shooting script Ethan follows.
 
 ---
 
-## 1. Verdict: the loop is closed — this is recordable today
+## 1. Verdict: the loop is closed, this is recordable today
 
 The item is gated on "once the loop closes." As of v4.7.0 every stage the demo
 narrates is shipped and wired to a **real, user-visible UI affordance** (not a
@@ -18,14 +18,14 @@ mockup). Verified against source in this worktree:
 
 | Loop stage | Mechanism (shipped) | User-visible affordance |
 | --- | --- | --- |
-| **Edits itself** | `source_workspace` tool — `status`/`prepare`/`list`/`read`/`write`/`edit`/`search` over an **app-managed duplicate** of GatesAI's own source (`src/services/tools/sourceWorkspace.ts`, `src/services/sourceWorkspace.ts`, `SourceWorkspaceStore`). Always offered on the desktop runtime (`registry.ts` selects `source_workspace` + `source_build` whenever `desktopRuntime !== false`). | Workspace menu: source status, **changed-files list, per-file diff, per-file revert** (`src/components/menu/sections/Workspace.tsx`). |
-| **Rebuilds** | `source_build` tool — `test` (`npm ci`→`npm test`+`typecheck`+`lint`), `build` (`npm run build`), `package` (`npm run tauri:build`), one job at a time (`src/services/tools/sourceBuild.ts`). Recommended workflow baked into the tool description: *edit → test → fix → test → build*. | Workspace menu **SourceBuildCard**: live step status + tail logs, and **"Open output folder"** on build success. |
+| **Edits itself** | `source_workspace` tool, `status`/`prepare`/`list`/`read`/`write`/`edit`/`search` over an **app-managed duplicate** of GatesAI's own source (`src/services/tools/sourceWorkspace.ts`, `src/services/sourceWorkspace.ts`, `SourceWorkspaceStore`). Always offered on the desktop runtime (`registry.ts` selects `source_workspace` + `source_build` whenever `desktopRuntime !== false`). | Workspace menu: source status, **changed-files list, per-file diff, per-file revert** (`src/components/menu/sections/Workspace.tsx`). |
+| **Rebuilds** | `source_build` tool, `test` (`npm ci`→`npm test`+`typecheck`+`lint`), `build` (`npm run build`), `package` (`npm run tauri:build`), one job at a time (`src/services/tools/sourceBuild.ts`). Recommended workflow baked into the tool description: *edit → test → fix → test → build*. | Workspace menu **SourceBuildCard**: live step status + tail logs, and **"Open output folder"** on build success. |
 | **Asks to update** | Signed Tauri auto-updater W-5 (shipped v4.6.0): `tauri-plugin-updater` + `tauri-plugin-process`, CI-signed artifacts, `latest.json` on the public `Calculator5329/GatesAI-Chat-releases` repo (`src/services/updates/appUpdater.ts`, `UpdateStore`). | Sidebar **UpdatePill** (`src/components/editorial/UpdatePill.tsx`): `available → downloading…% → restart to finish updating`, click-to-install / click-to-relaunch, ×-dismiss. |
 
 **Important honesty boundary (drives the whole shoot):** the on-camera
 `source_build package` produces a **local signed installer**. It does *not*
 publish a GitHub release, and the app never auto-installs its own freshly-built
-artifact — by design the tool "does not install the generated installer or
+artifact, by design the tool "does not install the generated installer or
 modify the live app… the user must choose and approve any install/update"
 (`sourceBuild.ts`). So the last beat, "asks to update," has two truthful
 framings; **pick one before shooting** (§4). Do not stitch a fake continuous
@@ -38,12 +38,12 @@ take that implies the app silently swallowed its own build.
 A good on-camera self-edit must be (a) *visibly* about the app changing itself,
 (b) test-safe so `source_build test` goes green on the first take, (c) fast, and
 (d) trivially reverted. **Chosen change: add a dated line to the app's own
-in-app What's-New / changelog surface** — the app literally writing its own
+in-app What's-New / changelog surface**, the app literally writing its own
 release notes is the most on-message possible edit.
 
 - **Primary target:** append one entry to `docs/changelog.md` in the duplicate
   source (pure content, cannot break the 995-test vitest suite, typecheck, or
-  lint — it is not compiled). This guarantees a green `test` run on camera.
+  lint, it is not compiled). This guarantees a green `test` run on camera.
 - **Optional "you can see it in the running app" upgrade:** also edit the
   What's-New panel data source so the new line renders in the rebuilt app.
   Before shooting, confirm the exact file with
@@ -54,7 +54,7 @@ release notes is the most on-message possible edit.
   cosmetic string the app shows about itself (e.g. a footer/among-tagline
   string). Verify it is **not** asserted in a snapshot/e2e test first
   (`grep -rn "<the string>" src tests`). If it is, either update the test in the
-  duplicate too (agent can do this on camera — it *is* the point) or fall back
+  duplicate too (agent can do this on camera, it *is* the point) or fall back
   to changelog-only.
 
 **Why not a functional feature edit on camera:** real feature work risks a red
@@ -70,35 +70,35 @@ takes.
 Narration is written to be spoken. `→` marks an expected tool call the viewer
 sees stream in the chat.
 
-### Act 0 — cold open (10s)
+### Act 0: cold open (10s)
 > "This is GatesAI Chat. Watch me ask it to change its own source code, rebuild
-> itself, and hand me a new installer — all from the chat box."
+> itself, and hand me a new installer, all from the chat box."
 
 Frame: app open, sidebar visible (so the UpdatePill area is in-shot later),
 Workspace menu reachable.
 
-### Act 1 — the app edits itself (40–60s)
+### Act 1: the app edits itself (40–60s)
 **Prompt to type (verbatim):**
 > "Open your own source workspace and add a changelog entry dated today that
 > says you edited yourself live during a demo. Show me the diff before building."
 
 Expected on-camera sequence:
-1. → `source_workspace { action: "status" }` — reports bundled snapshot + prepared duplicate location.
-2. → `source_workspace { action: "prepare" }` *(only if status says missing/stale — pre-prepare before the take to skip the copy wait; see §5)*.
+1. → `source_workspace { action: "status" }`, reports bundled snapshot + prepared duplicate location.
+2. → `source_workspace { action: "prepare" }` *(only if status says missing/stale, pre-prepare before the take to skip the copy wait; see §5)*.
 3. → `source_workspace { action: "read", path: "docs/changelog.md" }`.
 4. → `source_workspace { action: "edit"/"write" }` appending the dated entry.
 5. Agent stops and says it's ready; **cut to the Workspace menu** and show the
    **changed-files list → the diff** for `docs/changelog.md`. Narrate: "That's a
-   real diff in a real duplicate of its own codebase — nothing hidden."
+   real diff in a real duplicate of its own codebase, nothing hidden."
 
-### Act 2 — it rebuilds itself (60–90s, time-compressed)
+### Act 2: it rebuilds itself (60–90s, time-compressed)
 **Prompt:**
 > "Run your tests, and if they pass, build a new installer."
 
 Expected sequence:
 1. → `source_build { action: "start", command: "test" }` → cut to the
    **SourceBuildCard live logs**; show steps go green (`npm test`, `typecheck`,
-   `lint`). Narrate over a **hard cut / speed-ramp** — do not sit through the
+   `lint`). Narrate over a **hard cut / speed-ramp**, do not sit through the
    full run.
 2. → `source_build { action: "start", command: "package" }` (`npm run
    tauri:build`). **Time-compress hard** (this is minutes). Show the card reach
@@ -108,9 +108,9 @@ Expected sequence:
    the freshly-built signed installer file on disk.
 
 > "It just tested and rebuilt itself and produced a signed installer. It did
-> **not** install it — that's my call."
+> **not** install it, that's my call."
 
-### Act 3 — it asks to update (30–45s) — choose ONE framing in §4
+### Act 3: it asks to update (30–45s): choose ONE framing in §4
 Show the **UpdatePill** doing the asking, then relaunch into the changed app and
 point at the new changelog line. End card:
 > "The app improved itself, and asked permission before shipping. Local-first,
@@ -118,21 +118,21 @@ point at the new changelog line. End card:
 
 ---
 
-## 4. The "asks to update" beat — two honest framings (pick before shooting)
+## 4. The "asks to update" beat: two honest framings (pick before shooting)
 
 The updater pill is driven by a **published release** with a higher version in
 `latest.json`, not by the local `package` job. Do not imply otherwise. Options:
 
-- **Framing A — "reviewable self-build" (single machine, fully self-contained,
+- **Framing A, "reviewable self-build" (single machine, fully self-contained,
   recommended for a quick honest cut).** After Act 2, **double-click the
   installer the app just built** and let the OS installer run; relaunch GatesAI;
   show the new changelog line live. The "asks to update" beat is the app's own
   handoff ("ready to build / open output folder / your call to install"). Most
   truthful to what one machine actually does end-to-end; no release plumbing.
 
-- **Framing B — "full auto-update loop" (shows the literal UpdatePill).**
+- **Framing B, "full auto-update loop" (shows the literal UpdatePill).**
   Pre-stage a real signed release one patch above the running build on the
-  `GatesAI-Chat-releases` repo (normal `v*` tag flow — Ethan-only, done *before*
+  `GatesAI-Chat-releases` repo (normal `v*` tag flow. Ethan-only, done *before*
   the shoot, off-camera). Run the app one version behind. When it boots it
   polls, and the **UpdatePill** appears: `available → downloading…% → restart to
   finish updating`; click through and relaunch. This is the most cinematic but
@@ -145,10 +145,10 @@ polished "the pill literally pops up" shot is wanted for marketing.
 
 ---
 
-## 5. Owner-action packet — how Ethan records it
+## 5. Owner-action packet: how Ethan records it
 
 Recording needs a real screen-capture + narration on the **signing dev machine**
-(`~/projects/ai/gatesai-chat`), and Framing B additionally needs a release tag —
+(`~/projects/ai/gatesai-chat`), and Framing B additionally needs a release tag,
 both owner-only. Agents cannot capture the screen or publish releases.
 
 **5a. What this changes / produces:** a screen-recording file (the demo video)
@@ -194,7 +194,7 @@ grep -rn "whats.new\|what-new\|whatsNew\|What's New" src        # find the panel
 **5e. Undo / cleanup after the shoot:**
 - Revert the on-camera edit: Workspace menu per-file **revert** (or discard the
   duplicate source workspace). Nothing lands in the real repo from the demo edit.
-- Framing B leaves a real published release — that's a genuine version bump, so
+- Framing B leaves a real published release, that's a genuine version bump, so
   only stage it if you intend to ship that version; otherwise use Framing A.
 
 **5f. What to return so downstream work can resume:** the recorded file path (put
@@ -226,7 +226,7 @@ must not overclaim:
 
 ## 7. Why no code DISPATCH.md
 
-Recording the demo **requires no source changes** — every affordance the script
+Recording the demo **requires no source changes**, every affordance the script
 uses already ships (§1), verified in this worktree. Therefore this lane produces
 a plan + owner-action packet only; there is no follow-up implementation task to
 dispatch. The harvesting session should tick the roadmap item from this

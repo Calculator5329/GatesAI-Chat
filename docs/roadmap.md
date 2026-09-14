@@ -7,19 +7,19 @@
       all23original test bodies/assertions unchanged.
       [Design](designs/tool-loop-test-disposal-20260905.md).
 
-- [x] <!-- workspace:id=work:6575d305-45b5-5914-a6f0-7240168ec5d9 --> **A55 — guard workspace hydration publication across follower, root and lifetime changes.** *(2026-09-05 — current follower reads preserved; stale/disposed/ABA publication refused. CI 1385 and full E2E 146 passed; isolated candidate, integration tracked separately.)*
+- [x] <!-- workspace:id=work:6575d305-45b5-5914-a6f0-7240168ec5d9 --> **A55, guard workspace hydration publication across follower, root and lifetime changes.** *(2026-09-05: current follower reads preserved; stale/disposed/ABA publication refused. CI 1385 and full E2E 146 passed; isolated candidate, integration tracked separately.)*
 
 - [x] <!-- workspace:id=work:fa8b1d56-2ac1-55da-b9a5-2f6fdfb16e86 --> Preserve unreadable artifact indexes; require complete listing proof of absence before initialization and retain unsafe legacy filenames. *(2026-09-05; 1347 tests, typecheck, lint and all 144 browser checks passed. See docs/design-artifact-registry-preservation-20260905.md.)*
 
-- [x] <!-- workspace:id=work:d859315e-2f6a-5091-b158-89affda4c2a8 --> Retain browser traces for local first-attempt failures. *(2026-09-05 — intentionally failed zero-retry probe: baseline zero traces, candidate one validated trace; CI retry policy unchanged. Required full CI and 144 browser checks passed.)*
+- [x] <!-- workspace:id=work:d859315e-2f6a-5091-b158-89affda4c2a8 --> Retain browser traces for local first-attempt failures. *(2026-09-05, intentionally failed zero-retry probe: baseline zero traces, candidate one validated trace; CI retry policy unchanged. Required full CI and 144 browser checks passed.)*
 
-- [x] <!-- workspace:id=work:785ab492-a1fe-5d35-abc3-4d6408e06885 --> Reuse exact unchanged embedding inputs across atomic generations; retain forced rebuild and failure safety. *(2026-09-05 — 1329 unit tests, typecheck, lint and all 144 browser tests passed; [design and measured input counts](design-embedding-reuse-20260905.md).)*
+- [x] <!-- workspace:id=work:785ab492-a1fe-5d35-abc3-4d6408e06885 --> Reuse exact unchanged embedding inputs across atomic generations; retain forced rebuild and failure safety. *(2026-09-05, 1329 unit tests, typecheck, lint and all 144 browser tests passed; [design and measured input counts](design-embedding-reuse-20260905.md).)*
 
-- [x] <!-- workspace:id=work:b6b65dab-5281-5165-9ef6-f6f5a19ebf2b --> Apply recall source eligibility before the dense candidate limit. *(2026-09-04 — four candidate-starvation cases reproduced before repair; 12 focused tests, all 1312 unit tests, typecheck, lint, and all 144 browser tests passed. Model, generation, dimension, and abstention safeguards remain intact.)*
+- [x] <!-- workspace:id=work:b6b65dab-5281-5165-9ef6-f6f5a19ebf2b --> Apply recall source eligibility before the dense candidate limit. *(2026-09-04, four candidate-starvation cases reproduced before repair; 12 focused tests, all 1312 unit tests, typecheck, lint, and all 144 browser tests passed. Model, generation, dimension, and abstention safeguards remain intact.)*
 
-- [x] <!-- workspace:id=work:0cc71c8a-7fee-58f5-ac0a-d3832d1a84ad --> Archive unused image/RAG, token, JSON-wrapper, and runtime-default helpers. *(2026-09-04 — six original files retained; 1307 unit tests, typecheck, lint, and all 144 browser tests passed. [Audit and verification](archive/anti-slop-20260904/README.md). Earlier intermittent browser failures remain unexplained.)*
+- [x] <!-- workspace:id=work:0cc71c8a-7fee-58f5-ac0a-d3832d1a84ad --> Archive unused image/RAG, token, JSON-wrapper, and runtime-default helpers. *(2026-09-04, six original files retained; 1307 unit tests, typecheck, lint, and all 144 browser tests passed. [Audit and verification](archive/anti-slop-20260904/README.md). Earlier intermittent browser failures remain unexplained.)*
 
-## Narrowed scope — depth over breadth (2026-07-19)
+## Narrowed scope: depth over breadth (2026-07-19)
 
 - [x] <!-- workspace:id=work:99dc6d46-33d9-5b62-832c-0c90cf1dedbd --> **A30: retain journey observations as per-test artifacts.** *(2026-09-05)*
   Refreshed the existing vendored Handles package and regenerated all 105
@@ -29,15 +29,15 @@
   success. Historical observations and manual baselines remain unchanged.
 
 **Principle:** a fast, beautiful, local-first chat workspace that does a small
-set of things exceedingly well — bring-your-own-model chat (OpenRouter + local
+set of things exceedingly well, bring-your-own-model chat (OpenRouter + local
 Ollama), real workspace tools through the bridge, image gen via ComfyUI, and
-well-managed memory — rather than a feature checklist.
+well-managed memory, rather than a feature checklist.
 
-**Routing floor:** three destinations only — OpenRouter (cloud LLM + image),
+**Routing floor:** three destinations only. OpenRouter (cloud LLM + image),
 Ollama (local LLM), ComfyUI (local image). No custom OpenAI-compatible endpoint.
 
 - [x] <!-- workspace:id=work:82af8a23-ff49-45ef-a07e-179bedcf47c0 --> **Adopt Agent Handles as a clean package trial.** *(done
-      2026-08-26 — the packaged `adopt` lifecycle classified and identified all
+      2026-08-26, the packaged `adopt` lifecycle classified and identified all
       223 static control candidates, migrated 27 legacy declarations, sealed the
       v4 interaction fingerprint, emitted a byte-identical production registry,
       and compiled five journeys that passed twice during verification. Those
@@ -63,7 +63,7 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
 - [x] <!-- workspace:id=work:f0b0039d-f1e8-5e61-9676-3741e31084f4 --> Remove the dormant AP-2/AP-3/AP-4 scaffolding cluster (~3.4k lines:
       `core/agentSchedules|agentOutcomes|subAgentPolicy|agentTaskPolicy`,
       `services/tasks/{subAgents,scheduleLedger,outcomeLedger,agentTaskSpec,budgets}`)
-      — it was imported only by its own tests; the design docs remain the
+      it was imported only by its own tests; the design docs remain the
       source of truth for a future clean implementation *(2026-07-19)*
 - [x] <!-- workspace:id=work:17e2d588-2bb6-5e78-98c1-ce7befbc7555 --> Centralize `isRecord` into `core/guards.ts` (was 13 copies) *(2026-07-19)*
 - [x] <!-- workspace:id=work:8df0d5aa-dbc9-55c2-bf93-ebc61590f8e1 --> Drop the dead `mcp` tool category, unused `WebLiteNotice`, unused
@@ -77,7 +77,7 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
 ### Next up (priority order)
 
 - [x] <!-- workspace:id=work:d76261d4-e89e-53e7-8d76-4d9474394fe9 --> **Switchable UI packs, with an AI-native pack ("Aurora").** *(done
-      2026-08-11 — `core/uiPacks.ts` is the registry, `UiStore.uiPack` the
+      2026-08-11, `core/uiPacks.ts` is the registry, `UiStore.uiPack` the
       persisted choice, and `Settings` + the command palette both switch it.
       Aurora reimplements eleven AI-native primitives on real turn data:
       pixel loader with live elapsed, typed activity trace with chip header,
@@ -88,7 +88,7 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       renderers.)*
 - [ ] <!-- workspace:id=work:c5e53088-e5e8-5a9c-8bcb-f9bdc2fafb6c --> **Add an AI SDK Elements pack.** Third entry in `UI_PACKS`, renderers
       under `components/editorial/elements/`, no changes to Classic or Aurora.
-- [x] <!-- workspace:id=work:ef142638-602f-540a-b16a-658154a9df23 --> **Assistant activity, ChatGPT-style.** *(done 2026-07-31 — the transcript
+- [x] <!-- workspace:id=work:ef142638-602f-540a-b16a-658154a9df23 --> **Assistant activity, ChatGPT-style.** *(done 2026-07-31: the transcript
       keeps a condensed digest of plain-English step headlines; the full
       reasoning, tool cards, and terminal tails read in a new Activity dock
       panel that auto-reveals on a live turn and can be aimed at one step from
@@ -137,23 +137,23 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       Raised under finding 12 on 2026-08-13. The stash stays untouched until a
       decision, and no agent pops or drops it.
 - [x] <!-- workspace:id=work:bc9ad7d9-a194-5c38-8241-060756af7a9c --> **Prepare a multi-surface owner feedback session for the depth pass.**
-      *(done 2026-07-20 — one Forge-rich choice now compares guided missions,
+      *(done 2026-07-20, one Forge-rich choice now compares guided missions,
       a code-derived evidence board, and a speech-first challenge deck against
       the ordinary review packet, Visions structured input, Comms Deck, and
       in-chat feedback using one shared rubric)*
-- [x] <!-- workspace:id=work:a17e8a57-751a-57c4-ad9c-26c510111654 --> **Semantic memory / RAG — build it right.** *(done 2026-07-19 — complete
+- [x] <!-- workspace:id=work:a17e8a57-751a-57c4-ad9c-26c510111654 --> **Semantic memory / RAG, build it right.** *(done 2026-07-19: complete
       atomic local indexing across retained conversations, evaluated hybrid
       recall, untrusted evidence boundary, exact response provenance, Option 2
       source chips, and reversible Agent → Memory source controls)* Keep and elevate; manage
       memory carefully (what gets indexed, recall quality, transparency, user
       control). This is a headline capability, not a checkbox.
-- [x] <!-- workspace:id=work:6d91f6ad-6030-5ee8-902a-6c15d5d2e566 --> **Search: basic + deep research.** *(done 2026-07-19 — restored concise
+- [x] <!-- workspace:id=work:6d91f6ad-6030-5ee8-902a-6c15d5d2e566 --> **Search: basic + deep research.** *(done 2026-07-19: restored concise
       Brave setup under Models, kept normal `web_search` compact, added an
       official large-context deep budget, and shipped a first-class Research
       composer action backed by visible/cancellable/retryable linked agent
       tasks with primary-source and citation-integrity instructions)* Center on
       one provider (Brave for now); do not try to support every search API.
-- [x] <!-- workspace:id=work:9005525a-b3ec-56cb-acf4-1235c35d4257 --> **Model-compat auto-runner.** *(done 2026-07-19 — daily catalog policy,
+- [x] <!-- workspace:id=work:9005525a-b3ec-56cb-acf4-1235c35d4257 --> **Model-compat auto-runner.** *(done 2026-07-19: daily catalog policy,
       weekly/manual budget-capped live text/tool/continuation probes, durable
       JSON + Markdown Actions artifacts, and focused family reruns)* The live
       OpenRouter catalog now discovers every active Claude since Sonnet 4,
@@ -162,7 +162,7 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       reported as an explicit boundary rather than a false pass: its in-house
       models are not OpenRouter-addressable, and adding a Cursor provider would
       violate the three-route product floor.
-- [x] <!-- workspace:id=work:8010745d-ceb2-505b-9a52-66d8e0cab334 --> **Database / library layer, redone with taste.** *(done 2026-07-19 —
+- [x] <!-- workspace:id=work:8010745d-ceb2-505b-9a52-66d8e0cab334 --> **Database / library layer, redone with taste.** *(done 2026-07-19,
       shipped a first-class Agent → Memory knowledge library for explicitly
       approved workspace documents and SQLite databases; documents join local
       semantic recall, databases expose schema only, row access stays in the
@@ -173,18 +173,18 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
 
 ### Parked (re-add excellently later, with documented value)
 
-- **Schedules** — recurring automation. Value: unattended periodic agent runs
+- **Schedules**: recurring automation. Value: unattended periodic agent runs
   (digests, monitors). Re-add on the v2 agent-task foundation, not the legacy
   30s app-open loop.
-- **Source workspace + build runner** — in-app self-improvement loop. Value:
+- **Source workspace + build runner**: in-app self-improvement loop. Value:
   the app editing/rebuilding itself under review. Heavy; revisit deliberately.
-- **MCP (managed code providers)** — external tool servers. Value: connect
+- **MCP (managed code providers)**: external tool servers. Value: connect
   third-party tool ecosystems (HTTP + stdio) as namespaced `mcp_*` tools
   without bespoke integrations. Re-add once the core tool UX is top-tier.
-- **Web Lite** — frozen as a marketing demo; degrades gracefully, not a
+- **Web Lite**: frozen as a marketing demo; degrades gracefully, not a
   development target.
 
-## Handoff plan — Now / Next / Later (2026-07-05)
+## Handoff plan: Now / Next / Later (2026-07-05)
 
 Current focus: **open-source / product readiness**. The app itself is deep
 (997 unit + 20 e2e tests, CI, releases at v4.5.0); what's missing is the
@@ -217,16 +217,16 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       are in `docs/adr/2026-08-13-source-repo-visibility.md`.
       *(superseded 2026-08-16: Ethan answered inbox ask
       `gatesai-chat-is-public-today-and-your-d1--20260813070` with **"Leave it
-      public and reopen D1 with a new ruling"** — the private flip is
+      public and reopen D1 with a new ruling"**, the private flip is
       cancelled and the repo stays public. This also supersedes the
       waiting-on-you packet's "keep the split, write it down" recommendation
       for the visibility card (ask 2426f25f). Follow-up filed below.)*
 - [ ] <!-- workspace:id=work:bd17833e-59ce-58fb-a1b6-59568c2f3e05 --> **Update `docs/adr/2026-08-13-source-repo-visibility.md` for the
-      2026-08-16 leave-it-public ruling** — the ADR records D1 as "private";
+      2026-08-16 leave-it-public ruling**, the ADR records D1 as "private";
       append the reopened ruling so the ADR and reality agree, and run the
       full git-history secret scan the original acceptance asked for, since
       the history is public today and was never scanned.
-- [x] <!-- workspace:id=work:6c110178-4045-53be-af10-6f9d456ad526 --> **Demo GIF at the top of the README.** *(capture pending owner hands —
+- [x] <!-- workspace:id=work:6c110178-4045-53be-af10-6f9d456ad526 --> **Demo GIF at the top of the README.** *(capture pending owner hands,
       script ready, 2026-07-17)* Everything except the recording itself is
       landed: `scripts/demo-capture.md` is an exact click-by-click 20–40s
       capture script (spawn a background agent via `spawn_task` → open the
@@ -234,7 +234,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       ffmpeg `palettegen`/`paletteuse` gif one-liner and the <10 MB budget;
       `README.md` embeds the demo above the fold at `docs/media/demo.gif`
       with alt text and an HTML comment pointing at the capture script. The
-      recording needs a human on a desktop machine — do the take per the
+      recording needs a human on a desktop machine, do the take per the
       script, drop the GIF at `docs/media/demo.gif`, and update this note
       with the ship date.
       *Acceptance:* `docs/media/demo.gif` (< 10 MB) embedded above
@@ -252,11 +252,11 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       PR expectations, and the AGPL-3.0 contribution terms.
       *Acceptance:* file exists at repo root, linked from README; a newcomer
       can go from clone to green `npm run ci` using only it.
-- [x] <!-- workspace:id=work:2116043d-b79f-5111-958f-451bca4140ab --> **Dependency audit.** *(done 2026-07-11 — npm: 10→0 via audit fix, ci green; cargo: quinn-proto RUSTSEC cleared, quick-xml pair pinned upstream by tauri — details + re-check plan in docs/audits/2026-07-11-dependency-audit.md)* Run `npm audit` and `cargo audit`
-      (install `cargo-audit` if absent) — fix or explicitly waive findings.
+- [x] <!-- workspace:id=work:2116043d-b79f-5111-958f-451bca4140ab --> **Dependency audit.** *(done 2026-07-11: npm: 10→0 via audit fix, ci green; cargo: quinn-proto RUSTSEC cleared, quick-xml pair pinned upstream by tauri, details + re-check plan in docs/audits/2026-07-11-dependency-audit.md)* Run `npm audit` and `cargo audit`
+      (install `cargo-audit` if absent): fix or explicitly waive findings.
       *Acceptance:* zero high/critical advisories, or each remaining one
       documented with justification in the PR/commit message; `npm run ci`
-      still green. *(progress 2026-07-11: npm side DONE — audit fix cleared all 10 vulns, ci 1040 green; cargo side documented in docs/audits/2026-07-11-dependency-audit.md — 3 transitive RUSTSECs need targeted cargo update, ~20 unmaintained gtk3 warnings inherent to tauri v2 linux)*
+      still green. *(progress 2026-07-11: npm side DONE, audit fix cleared all 10 vulns, ci 1040 green; cargo side documented in docs/audits/2026-07-11-dependency-audit.md, 3 transitive RUSTSECs need targeted cargo update, ~20 unmaintained gtk3 warnings inherent to tauri v2 linux)*
 
 - [x] <!-- workspace:id=work:e844e796-9762-52c5-9189-cf27f657bdd7 --> **Repo hygiene sweep.** *(done 2026-07-10)* Remove or ignore root scratch files
       (`debug.log`, `vite-5182.*.log`, `.codex-vite-*.log`, `.codex-tasks/`
@@ -273,7 +273,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       coordinated with `../local-ai-lab`)* Integrate the host-ready,
       loopback-only Offline Library as a swappable read-only addon. The work is
       ordered so UI/tool code never outruns the versioned safety contract:
-  - [x] <!-- workspace:id=work:6d1ac6c5-ab4d-5296-bbc1-478f90873af0 --> **G0 — ADR and shared contract fixture.** *(done 2026-07-12 —
+  - [x] <!-- workspace:id=work:6d1ac6c5-ab4d-5296-bbc1-478f90873af0 --> **G0. ADR and shared contract fixture.** *(done 2026-07-12,
         dedicated fixed-authority Tauri boundary accepted in
         `docs/adr/2026-07-12-offline-library-plugin.md`; sanitized host 1.3
         manifest/profile/benchmark fixtures pinned with contract tests)* Record the desktop proxy
@@ -281,7 +281,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         model, Web Lite degradation, plugin lifecycle, and citation contract.
         Import a sanitized API fixture only after local-ai-lab declares the
         benchmark/profile endpoints in its manifest and OpenAPI document.
-  - [x] <!-- workspace:id=work:60ad97dc-5e93-50e9-81db-345ecfb373d8 --> **G1 — typed service client and trusted proxy.** *(done 2026-07-12 —
+  - [x] <!-- workspace:id=work:60ad97dc-5e93-50e9-81db-345ecfb373d8 --> **G1, typed service client and trusted proxy.** *(done 2026-07-12,
         dedicated Rust commands own the exact `127.0.0.1:8892/api/v1`
         authority and fixed route/method set; typed TypeScript result states
         degrade without invoking transport in Web Lite; hostile aliases,
@@ -291,7 +291,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         benchmark summaries. Browser code must not fetch `127.0.0.1` directly;
         the desktop backend must allow only the fixed host/port/path set, bound
         response sizes, reject redirects, and preserve offline/error states.
-  - [x] <!-- workspace:id=work:66c4a36d-8cf4-5138-a3fa-217e01d3930d --> **G2 — plugin lifecycle and settings.** *(done 2026-07-12 — explicit
+  - [x] <!-- workspace:id=work:66c4a36d-8cf4-5138-a3fa-217e01d3930d --> **G2, plugin lifecycle and settings.** *(done 2026-07-12: explicit
         default-off enablement persists locally; compatible manifest + health
         discovery exposes healthy/offline/incompatible/error states and
         declared read permissions; Web Lite stays disabled and makes zero
@@ -300,7 +300,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         read permissions, and remain disabled/unavailable in Web Lite with a
         clear desktop-only explanation. Do not add secrets or background cloud
         dependencies.
-  - [x] <!-- workspace:id=work:5d6384cf-0343-591d-8c5e-4664d2875dd2 --> **G3 — read-only model tools.** *(done 2026-07-12 — four knowledge
+  - [x] <!-- workspace:id=work:5d6384cf-0343-591d-8c5e-4664d2875dd2 --> **G3, read-only model tools.** *(done 2026-07-12: four knowledge
         tools are exposed only while the explicitly enabled addon is healthy;
         inputs and projected outputs are bounded, public-schema results exclude
         rows, benchmark summaries retain evidence and trust-proxy labels, and
@@ -310,7 +310,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         summaries with honest read-only metadata. Preserve `kiwix://`,
         `library://`, `man:`, and `db://` citations through tool results,
         messages, persistence, export, and rendering.
-  - [x] <!-- workspace:id=work:d409eae3-e860-56ed-8214-4f9a52e73278 --> **G4 — task-aware local profiles.** *(done 2026-07-12 — the host's
+  - [x] <!-- workspace:id=work:d409eae3-e860-56ed-8214-4f9a52e73278 --> **G4, task-aware local profiles.** *(done 2026-07-12: the host's
         evidence-linked schema/document recommendations load with lifecycle
         state; Settings shows model, retrieval, trials, confidence interval,
         citation-grounding proxy, latency, and limitation; users can persist
@@ -321,7 +321,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         for document quality; Qwen + hybrid/native for balanced latency. Show
         evidence/sample sizes, never claim one universal winner, and never
         silently fall back to a remote provider.
-  - [x] <!-- workspace:id=work:1cf8b59d-288c-5aee-92e5-8076bca59da4 --> **G5 — user-facing addon surface.** *(done 2026-07-12 — Settings now
+  - [x] <!-- workspace:id=work:1cf8b59d-288c-5aee-92e5-8076bca59da4 --> **G5, user-facing addon surface.** *(done 2026-07-12: Settings now
         combines health, declared permissions, source count, task-aware profile
         evidence/override, and a right-dock entry point; the bridge-independent
         dock explorer filters model × retrieval-setup cells and shows aggregate
@@ -331,7 +331,7 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         controls and benchmark model × setup inspection using the existing
         editorial system or right-dock framework. Avoid duplicating the Offline
         Library dashboard or exposing private database metadata.
-  - [x] <!-- workspace:id=work:7ea7cb11-8f08-5490-af12-9ccccc8ad277 --> **G6 — full acceptance.** *(done 2026-07-12 — pinned host `083fef6` /
+  - [x] <!-- workspace:id=work:7ea7cb11-8f08-5490-af12-9ccccc8ad277 --> **G6, full acceptance.** *(done 2026-07-12: pinned host `083fef6` /
         plugin 1.3.0; host 42 tests + compile gate, GatesAI 1,146 frontend
         tests + type/lint, 25/25 E2E, 39 normal Rust tests, live trusted-backend
         citation test, and controlled typed-offline test all passed; service
@@ -340,11 +340,11 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
         overrides, Web Lite degradation, and persistence. Pass `npm run ci`,
         `npm run test:e2e`, and Rust tests for Tauri changes, plus a live local
         desktop smoke against the matching host API version.
-  - [ ] <!-- workspace:id=work:626cef17-d8ac-5d81-97ea-56165f628e0b --> **G7 — separately gated follow-ups.** Management mutations, private
+  - [ ] <!-- workspace:id=work:626cef17-d8ac-5d81-97ea-56165f628e0b --> **G7, separately gated follow-ups.** Management mutations, private
         alias confirmation, row queries, and semantic hallucination judging are
         excluded until separately approved and threat-modeled.
 
-- [x] <!-- workspace:id=work:2475b0e1-68c9-5c90-ad8d-82cf59693881 --> **Super+G Offline Knowledge entry point.** *(done 2026-07-12 — fixed
+- [x] <!-- workspace:id=work:2475b0e1-68c9-5c90-ad8d-82cf59693881 --> **Super+G Offline Knowledge entry point.** *(done 2026-07-12: fixed
       desktop chord registration has independent availability state; pressing
       it shows/focuses GatesAI, requires a healthy explicitly enabled addon and
       connected Ollama runtime, prefers the installed evidence-backed Qwen
@@ -357,18 +357,18 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       fallback. Show shortcut availability in Settings and cover Rust + ambient
       event routing in tests.
 
-**Workbench program (Ethan, 2026-07-12)** — design frame in
+**Workbench program (Ethan, 2026-07-12)**: design frame in
 `docs/plans/2026-07-12-workbench-vision-design.md`; each item gets its own
 dated plan doc before implementation. Order matters (5→4→1→2→3 in the doc):
 
-- [x] <!-- workspace:id=work:667e3084-f7e6-53c5-8caa-d1c888909c7c --> **W-5: Auto-updater via releases repo.** *(shipped 2026-07-12 —
+- [x] <!-- workspace:id=work:667e3084-f7e6-53c5-8caa-d1c888909c7c --> **W-5: Auto-updater via releases repo.** *(shipped 2026-07-12,
       plugins + signed workflow + latest.json manifest job + sidebar
       UpdatePill; signing key in GH secrets, pubkey pinned in
-      tauri.conf.json; see docs/release-checklist.md. Final acceptance —
-      an older AppImage updating in-app — verifies on the first tagged
+      tauri.conf.json; see docs/release-checklist.md. Final acceptance,
+      an older AppImage updating in-app, verifies on the first tagged
       release, tracked in "Verify published assets".)*
 - [x] <!-- workspace:id=work:d9d775c7-1cc0-556b-b871-8125c492716e --> **W-4: Fullscreen toggle + discoverability (Linux first).** *(shipped
-      2026-07-12 — F11 via shortcuts dispatcher → services/window/fullscreen
+      2026-07-12. F11 via shortcuts dispatcher → services/window/fullscreen
       (Tauri setFullscreen on desktop, browser Fullscreen API on Web Lite);
       "Toggle fullscreen" palette entry via UiStore facade.)*
 - [ ] <!-- workspace:id=work:91f65b2b-c06a-5ebd-99af-4e92445854b9 --> **W-1: Right dock panel framework.** DockStore (1 col × 1–2 cells,
@@ -380,7 +380,7 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       implementation dispatch pending.)*
       *(Slices 1+2 shipped 2026-07-12: DockStore + persisted shell + panel
       registry, FileViewerPanel + MediaViewerPanel, palette/gallery entry
-      points, Web Lite + mobile gating — see the changelog entry. The basic
+      points, Web Lite + mobile gating, see the changelog entry. The basic
       read-only file explorer shipped 2026-07-15 through the existing jailed
       `fs.list`/file-viewer path, with no bridge expansion. Remaining for slice
       3: CodeMirror editor panel (dependency ADR first) and terminal panel
@@ -390,17 +390,17 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       generated from code, artifact id registry under
       `/workspace/artifacts/html/`, smoke-render validation at creation,
       failures into the error trail; artifacts open in the dock panel.
-- [x] <!-- workspace:id=work:0704cf9a-b563-511c-afbe-d65583930614 --> **W-3: Unified background-task framework.** *(done 2026-07-16, codex lane per docs/plans/07-12-unified-tasks.md — generic TaskStore with image/agent/command kinds, task-center dock panel with progress/cancel/retry/cost, ImageJobStore strangler migration kept green.)* Promote the ImageJob
+- [x] <!-- workspace:id=work:0704cf9a-b563-511c-afbe-d65583930614 --> **W-3: Unified background-task framework.** *(done 2026-07-16, codex lane per docs/plans/07-12-unified-tasks.md, generic TaskStore with image/agent/command kinds, task-center dock panel with progress/cancel/retry/cost, ImageJobStore strangler migration kept green.)* Promote the ImageJob
       lifecycle to a generic TaskStore (`image` | `agent` | `command`
       kinds), task-center dock panel with progress/cancel/retry/cost;
       strangler migration keeping ImageJobStore's 22 tests green.
 
-- [x] <!-- workspace:id=work:d4c1ed10-0710-534e-8b60-80d1aa908a88 --> **BUG: white screen on NVIDIA + Wayland — bake the WebKit DMABUF
+- [x] <!-- workspace:id=work:d4c1ed10-0710-534e-8b60-80d1aa908a88 --> **BUG: white screen on NVIDIA + Wayland, bake the WebKit DMABUF
       workaround into the app.** *(done 2026-07-16, codex lane
       a13-nvidia-wayland-dmabuf-20260716: Linux-only /proc + /sys NVIDIA
       detection without shelling out, respects user-set values incl. 0,
       runs before the first webview; 6 unit tests, cargo suite 45/45.
-      README/troubleshooting doc line still pending — folded into the
+      README/troubleshooting doc line still pending, folded into the
       docs sweep.)* Confirmed 2026-07-12 on the RTX 5070 Ti
       (CachyOS/Hyprland): the AppImage renders an all-white webview because
       WebKitGTK's DMABUF renderer fails on NVIDIA + Wayland. Workaround
@@ -409,7 +409,7 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       user still gets a white window). Fix in `src-tauri/src/main.rs` (or
       `lib.rs` `run()` before the builder): on Linux, if an NVIDIA GPU is
       present (e.g. `/proc/driver/nvidia/version` exists or `nvidia` in
-      `/sys/class/drm/card*/device/driver` — do NOT shell out to
+      `/sys/class/drm/card*/device/driver`, do NOT shell out to
       `nvidia-smi`) and the var isn't already set, `std::env::set_var(
       "WEBKIT_DISABLE_DMABUF_RENDERER", "1")`. Must run before the first
       webview is created. Respect an existing user-set value (incl. `0` to
@@ -434,27 +434,27 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
       composer defaults to keyless cloud Gemini. Give the local path equal
       or leading prominence; default composer to a detected Ollama model
       when present. (screen-chat-onboarding.png)
-- [x] <!-- workspace:id=work:66fb4a79-c7c1-5204-88fa-7bde77b558fa --> **LF-5: sidebar renders "DECEMBER 1969" date group** — epoch-0
+- [x] <!-- workspace:id=work:66fb4a79-c7c1-5204-88fa-7bde77b558fa --> **LF-5: sidebar renders "DECEMBER 1969" date group**: epoch-0
       timestamp leak in date bucketing. (screen-chat-empty.png) *(done
-      2026-07-13 — `groupThreadsByDate` prefers `updatedAt`, falls back to
+      2026-07-13, `groupThreadsByDate` prefers `updatedAt`, falls back to
       `createdAt`, and parks a thread with no sane timestamp in a shared
       "Older" bucket rather than dropping it or minting a pre-2000 month;
       threadSelectors 19 + EditorialSidebar 7 green on master @730b416)
 - [x] <!-- workspace:id=work:d1adb6bf-84b9-5e95-9e13-3ff8def95114 --> **LF-6: Settings leads with the OpenRouter key card** *(done 2026-07-13)*
-      — reordered so local/appearance settings (Theme, Conversation, Desktop,
+      reordered so local/appearance settings (Theme, Conversation, Desktop,
       OfflineLibrary) render ABOVE the OpenRouter credential card; order-only,
       no behavior change; DOM-position regression test added (SettingsSection
       5/5 green on master @92cb7ce). (screen-menu-settings.png)
 - [x] <!-- workspace:id=work:72d42baf-156a-582b-b93a-fa4221be7b0b --> **LF-7: Local runtimes panel hardcodes Windows placeholders** *(done 2026-07-11)*
-      (C:\Users paths, ollama.exe copy) + cramped error column — platform-
+      (C:\Users paths, ollama.exe copy) + cramped error column, platform-
       aware copy + layout fix. (screen-menu-local.png)
 - [x] <!-- workspace:id=work:ac7af5de-b8a7-5a22-99ac-9045dfdbbb1e --> **LF-8: gallery thumbnails/lightbox render black** *(fixed 2026-07-16, codex lane: image-source resolution corrected for desktop+Web Lite, regression tests added; merged after gate pass, full suite 1220/1220)* while captions
-      render — image blobs not displayed. May share a root with the
-      bridge.spec gallery fix (2026-07-11) — re-capture first. (screen-menu-gallery.png)
+      render, image blobs not displayed. May share a root with the
+      bridge.spec gallery fix (2026-07-11): re-capture first. (screen-menu-gallery.png)
 - [x] <!-- workspace:id=work:eabc6150-8ca6-57f1-a78c-e14a50c9326d --> **LF-9: tool-activity screen never actually captured** (byte-identical
-      to chat-active) *(done 2026-07-31 — `npm run screens:activity` captures
+      to chat-active) *(done 2026-07-31, `npm run screens:activity` captures
       12 distinct activity states from deterministic fixture threads; corpus in
-      docs/screens/activity/)* — fix the tour step to expand the activity panel
+      docs/screens/activity/)*, fix the tour step to expand the activity panel
       and re-audit that surface.
 
       **Note 2026-08-13** (owner ruling S4 `q-batch-notes` = `notes_and_fix`,
@@ -468,21 +468,21 @@ dated plan doc before implementation. Order matters (5→4→1→2→3 in the do
 - [x] <!-- workspace:id=work:fe864a83-6edc-5f8d-8ba9-9801a5110b54 --> **LF-1: Local menu section breaks in Web Lite.** *(done 2026-07-16, codex lane a13-weblite-local-menu-20260716: Local panel gated on a semantic desktop-capability check in core/runtime.ts, friendly desktop-only explainer in Web Lite, screens-tour asserts explainer + zero console errors; vitest green.)* Found by the screen
       audit 2026-07-11: `/#/menu/local` throws unhandled
       "Cannot read local runtime status outside the GatesAI desktop app"
-      (localRuntimeService.ensureTauri) instead of degrading gracefully —
+      (localRuntimeService.ensureTauri) instead of degrading gracefully,
       violates the Web-Lite rule in CLAUDE.md. Gate the panel on
       `core/runtime.ts`, show a friendly desktop-only explainer, no thrown
       rejections. *Accept:* /#/menu/local renders an explainer in Web Lite
       with zero console errors; screens-tour asserts it again.
-- [x] <!-- workspace:id=work:8263fd50-a572-52b8-82ce-e0f9e686464e --> **Local-first screen audit.** *(done 2026-07-11 — 22/22 screens captured + assessed: 13 GOOD / 8 GAP / 1 BLOCKED; findings LF-1..LF-9 filed as items; corpus in docs/audits/screens-2026-07/)* Extend `scripts/screens-tour.mjs` to
+- [x] <!-- workspace:id=work:8263fd50-a572-52b8-82ce-e0f9e686464e --> **Local-first screen audit.** *(done 2026-07-11: 22/22 screens captured + assessed: 13 GOOD / 8 GAP / 1 BLOCKED; findings LF-1..LF-9 filed as items; corpus in docs/audits/screens-2026-07/)* Extend `scripts/screens-tour.mjs` to
       screenshot EVERY screen/panel/modal in the app, then audit each from a
-      local-first user's perspective (Ollama-only, offline, no cloud keys —
+      local-first user's perspective (Ollama-only, offline, no cloud keys,
       a major user segment): what breaks, what nags for keys, what degrades
       silently. File each gap as a concrete roadmap item with its screenshot.
       *Acceptance:* full screenshot set under docs/audits/screens-2026-07/,
       audit doc with per-screen verdicts, gaps filed as checkboxes. (Added
       2026-07-11, Ethan directive.)
 
-**Local-model UX + composer polish (Ethan, 2026-07-12)** — batch filed from a
+**Local-model UX + composer polish (Ethan, 2026-07-12)**: batch filed from a
 live session on the RTX box running `phi4:latest`. Group focus: make the
 local-first path feel first-class (its own copy, its own knobs) and make the
 composer quieter.
@@ -491,18 +491,18 @@ composer quieter.
       a ring.** (Done 2026-08-09.) Replaced the outer 2px outline + ring glow
       on `.composer-row:has(.composer-textarea:focus[-visible])` with a
       background warming: the fill shifts a few percent toward `--accent` and a
-      wide low-alpha inset halo blooms inward — no crisp accent ring. Keyboard
+      wide low-alpha inset halo blooms inward, no crisp accent ring. Keyboard
       `:focus-visible` keeps a real, WCAG-legible affordance (stronger fill
       warming + firmer accent border), token-derived so it holds in light and
       dark. See the `/* CB-1 */` marker in `src/styles/editorial.css`.
       Today `.composer-row:has(.composer-textarea:focus-visible)`
       draws a crisp 2px `--focus-ring` outline + 5px glow
       (`src/styles/editorial.css` ~1519–1530); Ethan finds the ring too loud.
-      Replace it with a subtle *background* glow — e.g. shift the composer
+      Replace it with a subtle *background* glow, e.g. shift the composer
       fill toward `--accent` a few percent and/or a wide, low-alpha inset/blur
-      halo — so focus reads as a gentle warming of the field rather than a
+      halo, so focus reads as a gentle warming of the field rather than a
       hard border. Keep a real `:focus-visible` affordance for keyboard users
-      (WCAG) — soften, don't delete. *Acceptance:* focused composer has no
+      (WCAG): soften, don't delete. *Acceptance:* focused composer has no
       hard accent ring in the default theme; keyboard focus still visibly
       distinct from blur in both light and dark; screenshot before/after in
       the PR; `npm run ci` green.
@@ -513,7 +513,7 @@ composer quieter.
       `streamingRoundExecutor.ts`, `PROVIDER_STREAM_INITIAL_STALL_MS = 180s`)
       are provider-framed and read wrong for an Ollama model loading locally.
       Add local-aware messaging keyed off `providerId === 'ollama'` (and other
-      local runtimes): e.g. "Loading <model> into memory…", "Running locally —
+      local runtimes): e.g. "Loading <model> into memory…", "Running locally,
       first token can take a moment on a cold model", "Warming up the local
       runtime…", cycling/curated rather than the single remote-provider line.
       Distinguish cold-start (model not resident) from mid-stream idle if the
@@ -530,7 +530,7 @@ composer quieter.
       and `ChatStore.ts:486`) with no user surface. Add a settings-level
       custom system prompt (global default + optional per-thread override),
       persisted via the normal persistence slots (migration + schemaVersion
-      bump per CLAUDE.md), composed *with* — not silently replacing — the
+      bump per CLAUDE.md), composed *with*, not silently replacing, the
       safety/tool-contract portions of the built-in prompt. Web Lite parity.
       *Acceptance:* setting round-trips through persistence with a migration +
       tests; the custom text reaches the wire prompt for both Ollama and
@@ -543,7 +543,7 @@ composer quieter.
       `num_ctx`), pushing out the actual conversation and causing garbage or
       truncated output. Introduce a "slim" prompt profile selected when the
       model's effective context is below a threshold (context length is
-      already tracked — `core/localModelMeta.ts`, `modelFormatProfiles.ts`):
+      already tracked, `core/localModelMeta.ts`, `modelFormatProfiles.ts`):
       drop non-essential prose, prune/curtail tool schemas to the enabled set,
       keep only load-bearing instructions. Should compose with SP-1.
       *Acceptance:* for a model tagged small-context, the assembled prompt is
@@ -553,7 +553,7 @@ composer quieter.
 
 - [ ] <!-- workspace:id=work:482a384e-6ebb-5123-b8d2-68717a62f501 --> **QW-1: Investigate the Qwen local-model failures.** Recent local
       sessions with Qwen models (`qwen2.5:7b` / `qwen2.5-coder:14b`, offered
-      in `components/menu/sections/Local.tsx`) failed — reproduce and root-
+      in `components/menu/sections/Local.tsx`) failed, reproduce and root-
       cause before fixing. Candidate causes to rule out: system-prompt/tool-
       schema overflow on Qwen's default `num_ctx` (ties to SP-2), Qwen chat-
       template / stop-token handling in `services/llm/ollama.ts`
@@ -566,12 +566,12 @@ composer quieter.
 
 - [ ] <!-- workspace:id=work:eab46e44-b697-5cb2-93e1-13b636ddc76d --> **QA-1: Automated settings walkthrough + settings de-bloat (Playwright,
       codex lane).** Dispatch a codex session (per the workspace orchestrator
-      flow) to drive a Playwright pass over **every** settings/menu control —
+      flow) to drive a Playwright pass over **every** settings/menu control,
       toggle each, change each select, save/reload, assert it persists and has
-      real effect — reusing the `scripts/screens-tour.mjs` harness and the
+      real effect, reusing the `scripts/screens-tour.mjs` harness and the
       2026-07-11 screen audit as the map. Output: (a) a coverage report of
       which settings work / are dead / are confusing, and (b) a proposal to
-      **slim settings we don't need** — remove or consolidate dead, redundant,
+      **slim settings we don't need**, remove or consolidate dead, redundant,
       or never-changed options so the surface is smaller and clearer. Removal
       of any setting is a separate reviewed PR, not done blind by the lane.
       *Acceptance:* Playwright spec exercising all settings added under the
@@ -596,16 +596,16 @@ composer quieter.
       non-deterministically, fix or quarantine it with a linked issue/note in
       this file. *Acceptance:* 3 consecutive fully-green runs of both suites;
       a short report of what was flaky and what changed.
-      *Report: 5×995-unit + 3×20-e2e consecutive runs on Linux, all exit 0 —
+      *Report: 5×995-unit + 3×20-e2e consecutive runs on Linux, all exit 0,
       zero non-deterministic failures observed; nothing to fix or quarantine.*
 - [x] <!-- workspace:id=work:e5813520-068f-531f-8453-50b78139b2c9 --> **Windows e2e job in CI + Playwright traces.** *(done 2026-07-10)* Add a windows-latest e2e
       job to `.github/workflows/ci.yml` and upload traces on failure (backlog
       item). *Acceptance:* CI green with the new job; a forced failure shows a
       downloadable trace artifact.
-- [ ] <!-- workspace:id=work:f2bfe466-5c75-5fe2-a8d8-9be88263e782 --> **Signed / trusted release builds — path chosen.** *(Decided 2026-07-20 on
+- [ ] <!-- workspace:id=work:f2bfe466-5c75-5fe2-a8d8-9be88263e782 --> **Signed / trusted release builds, path chosen.** *(Decided 2026-07-20 on
       card-FRGRJGAABJE0DVCH9PXYB2G8FS: ship unsigned Windows builds with
       `SHA256SUMS` now; defer paid signing. [ETHAN] marker dropped 2026-08-01,
-      Ethan-approved — the decision is done, the build work below is not.)*
+      Ethan-approved, the decision is done, the build work below is not.)*
       Remaining work: add the README note about the SmartScreen warning and
       checksums (`SHA256SUMS` published per release). *Acceptance:* release
       workflow emits checksums; the deferral decision recorded in an ADR under
@@ -627,12 +627,12 @@ composer quieter.
 
 ### Later
 
-- [x] <!-- workspace:id=work:ce1f51d5-598b-5d91-8e98-1f06908c7c17 --> Opt-in auto-updater — promoted to Next as W-5 (2026-07-12); tracked there.
+- [x] <!-- workspace:id=work:ce1f51d5-598b-5d91-8e98-1f06908c7c17 --> Opt-in auto-updater, promoted to Next as W-5 (2026-07-12); tracked there.
 - [ ] <!-- workspace:id=work:5b20c8a4-b0f4-51bc-bcd9-a3edc654602c --> Portable mode (zip, data beside exe).
-- [ ] <!-- workspace:id=work:a08c8414-d401-599f-9b5d-4d2a4a908657 --> Agent eval harness — see `docs/IDEAS.md` #1; promotes to Next once the
+- [ ] <!-- workspace:id=work:a08c8414-d401-599f-9b5d-4d2a4a908657 --> Agent eval harness, see `docs/IDEAS.md` #1; promotes to Next once the
       open-source track is done.
-- [x] <!-- workspace:id=work:435c5575-1944-53b1-abff-a59f89b341f9 --> <!-- closed 2026-08-12: pointer-only duplicate — the Cowork mode moonshot item work:af244cfb holds the content and stays open --> Cowork mode (designed, see Moonshots below) — its own wave when picked.
-- [x] <!-- workspace:id=work:f53c5e30-1008-53a7-a95e-164b263b3bf1 --> Content-parts message model unification (pre-req for several ideas). *(done 2026-07-11 — schema v3 stores ordered text/tool/image/artifact parts; legacy snapshots migrate on read; selectors preserve old read semantics across wire formatting, RAG, exports, and tests; streaming writes parts incrementally)*
+- [x] <!-- workspace:id=work:435c5575-1944-53b1-abff-a59f89b341f9 --> <!-- closed 2026-08-12: pointer-only duplicate, the Cowork mode moonshot item work:af244cfb holds the content and stays open --> Cowork mode (designed, see Moonshots below): its own wave when picked.
+- [x] <!-- workspace:id=work:f53c5e30-1008-53a7-a95e-164b263b3bf1 --> Content-parts message model unification (pre-req for several ideas). *(done 2026-07-11, schema v3 stores ordered text/tool/image/artifact parts; legacy snapshots migrate on read; selectors preserve old read semantics across wire formatting, RAG, exports, and tests; streaming writes parts incrementally)*
 - [ ] <!-- workspace:id=work:12d246aa-9761-55e7-923f-95d5e69de8aa --> LAN companion / phone access (bridge serves Web Lite with pairing code).
 
 ---
@@ -646,24 +646,24 @@ not by itself imply acceptance of every proposed implementation detail.
 
 > **2026-07-19 note:** the partially built AP-2/AP-3/AP-4 domain scaffolding
 > (schedule/outcome ledgers, sub-agent tree, policy modules) was removed in the
-> foundation sweep — it was never wired into the app. The stories below remain
+> foundation sweep, it was never wired into the app. The stories below remain
 > valid as designs; a future implementation starts clean from the plan docs
 > (or `archive/pre-descope-2026-07-19` for reference).
 
-- [ ] <!-- workspace:id=work:d435ebbf-030d-5582-8720-93191e86b7d2 --> **AP-1 — Downloadable database plugins.** Ship versioned, data-only
+- [ ] <!-- workspace:id=work:d435ebbf-030d-5582-8720-93191e86b7d2 --> **AP-1. Downloadable database plugins.** Ship versioned, data-only
       knowledge/database bundles that users can inspect, explicitly install
       and enable; agents can initiate the approval-gated install flow and query
       enabled bundles through bounded read-only operations with stable
       citations. Carry forward the Offline Library plugin's typed lifecycle,
       fixed authority, privacy states, and no-remote-fallback rules.
       See [Story AP-1](plans/07-16-agentic-platform-design.md#story-ap-1--downloadable-database-plugins).
-- [ ] <!-- workspace:id=work:1d198b22-7973-5afc-ac6c-a56e568c74e1 --> **AP-2 — Background sub-agents on TaskStore.** Make agent runs durable
+- [ ] <!-- workspace:id=work:1d198b22-7973-5afc-ac6c-a56e568c74e1 --> **AP-2. Background sub-agents on TaskStore.** Make agent runs durable
       first-class tasks using W-3's existing two-agent cap, linked threads,
       task-center progress, cancel/retry/interruption, exact provider/model,
-      tool/data grants, result, and round/time/token/spend caps—without a
+      tool/data grants, result, and round/time/token/spend caps, without a
       parallel queue or silent provider switching. See
       [Story AP-2](plans/07-16-agentic-platform-design.md#story-ap-2--background-sub-agents-on-taskstore).
-- [ ] <!-- workspace:id=work:9081b621-b5c5-52bb-80d3-6615158d67cc --> **AP-3 — User-controlled self-scheduling.** Let agents propose one-shot,
+- [ ] <!-- workspace:id=work:9081b621-b5c5-52bb-80d3-6615158d67cc --> **AP-3. User-controlled self-scheduling.** Let agents propose one-shot,
       delayed, interval, and daily wakes that become ordinary TaskStore runs
       only after visible user consent, with pause/edit/run-now/archive, exact
       route, wake/overlap/catch-up/spend caps, and honest app-open-only V1
@@ -676,7 +676,7 @@ not by itself imply acceptance of every proposed implementation detail.
       names or reverses it; the later "valid as designs" prose was an
       agent-authored sweep, not an owner reversal. Any different
       self-improvement mechanism needs its own separately scoped owner
-      decision. Original item: **AP-4 — Outcome-driven self-improvement.** Add a local outcome/feedback
+      decision. Original item: **AP-4. Outcome-driven self-improvement.** Add a local outcome/feedback
       journal and reviewable, scoped memory/prompt/skill proposals that can
       improve future task context with provenance and rollback; do not claim
       client-side weight training or permit hidden prompt, tool, provider,
@@ -727,7 +727,7 @@ not by itself imply acceptance of every proposed implementation detail.
 - [x] <!-- workspace:id=work:fcf9e867-0add-5907-88af-73ef6c54190d --> Prepare local image-gen finalization: SDXL quick draft lane, reusable
       final ComfyUI workflow templates, and winner selection script
 - [x] <!-- workspace:id=work:e4f29eba-7d88-57d7-a4f8-9a938d9fd925 --> Add FLUX.2 Klein FP8 wide recovery benchmark for final workflow selection
-- [x] <!-- workspace:id=work:aff9f24c-cc8b-583d-b4ee-3eae993946c3 --> Ollama provider — local LLMs in the model picker via the Ollama runtime
+- [x] <!-- workspace:id=work:aff9f24c-cc8b-583d-b4ee-3eae993946c3 --> Ollama provider, local LLMs in the model picker via the Ollama runtime
       (native NDJSON `/api/chat`, catalog refresh, status pill, per-model
       `supportsTools` allowlist, global tool-calls toggle)
 - [x] <!-- workspace:id=work:9028709c-0a43-5d70-9629-195d3443df84 --> Add local image-generation size controls: named aspect ratios plus
@@ -773,7 +773,7 @@ not by itself imply acceptance of every proposed implementation detail.
       assistant can read its own logs, and a full `console.*` → logger migration
 - [x] <!-- workspace:id=work:31719833-4ea7-56ca-9686-0f54dbd0b51b --> Maxed-out lint enforcement: `no-console`, `consistent-type-imports`,
       no `fetch` in stores, no `localStorage` in stores/UI, `import/no-cycle`,
-      and `mobx/*-make-observable` correctness rules — with the surfaced
+      and `mobx/*-make-observable` correctness rules, with the surfaced
       violations refactored through services/facades
 - [x] <!-- workspace:id=work:91ed412e-4f63-5b4d-bd5c-3f7d1d03b04e --> Sidebar body search across thread titles and message bodies, real
       persisted user-togglable model favorites, and a broad Playwright UI suite
@@ -794,7 +794,7 @@ not by itself imply acceptance of every proposed implementation detail.
       Gallery, and an API-key-forward Settings page
 
 ## Near-term
-- [x] <!-- workspace:id=work:a195bb57-d50e-5521-b2aa-b84d24a306e0 --> **Multimodal + image-gen, phased** — see `docs/plans/2026-04-26-multimodal-and-imagegen.md`
+- [x] <!-- workspace:id=work:a195bb57-d50e-5521-b2aa-b84d24a306e0 --> **Multimodal + image-gen, phased**: see `docs/plans/2026-04-26-multimodal-and-imagegen.md`
       - [x] <!-- workspace:id=work:a54e9586-4ebf-58e5-90d1-d124419b3009 --> Phase 1: Vision input (cloud + local), content-parts at the wire boundary
       - [x] <!-- workspace:id=work:97b8047a-c341-5bd0-b792-ce1bcaad2032 --> Phase 2: Historical fal.ai cloud image generation; later removed from the foundation
       - [x] <!-- workspace:id=work:0e670164-757b-52fa-acb7-49cee1cbea1c --> Phase 3: Local image-gen backend (ComfyUI) behind same `image_generate` tool
@@ -832,10 +832,10 @@ not by itself imply acceptance of every proposed implementation detail.
 - [x] <!-- workspace:id=work:094d7210-c8bc-5051-b9de-7fad04215b39 --> Wave D refactor: `TurnRunner` extraction from ChatStore, shared LLM
       stream-parsing core (openaiCompat/ollama), `useEditorial()` store facade,
       message-list windowing, ModelPopover memo consolidation
-      *(done 2026-07-10 — TurnRunner, shared stream core, useEditorial facade, list windowing, ModelPopover memo)*
-- [x] <!-- workspace:id=work:5b9b18c4-45cf-55b0-8d9b-162eb8e595df --> Add basic unit tests around `ChatStore` (send, stream, switch, stop) —
+      *(done 2026-07-10. TurnRunner, shared stream core, useEditorial facade, list windowing, ModelPopover memo)*
+- [x] <!-- workspace:id=work:5b9b18c4-45cf-55b0-8d9b-162eb8e595df --> Add basic unit tests around `ChatStore` (send, stream, switch, stop),
       covered by `tests/stores/ChatStore.test.ts` and the full Vitest suite
-- [x] <!-- workspace:id=work:cabc99db-cf21-5eb7-ab7c-9e518e59e5f4 --> **Audit follow-ups** — see `docs/audits/2026-06-07-comprehensive-audit.md`
+- [x] <!-- workspace:id=work:cabc99db-cf21-5eb7-ab7c-9e518e59e5f4 --> **Audit follow-ups**: see `docs/audits/2026-06-07-comprehensive-audit.md`
       - [x] <!-- workspace:id=work:75a45bcd-9ac3-5fe5-bc12-74fc660d2312 --> Multi-tab localStorage warning banner + save pause on chat key conflict
       - [x] <!-- workspace:id=work:f09623c4-e6c3-5657-8131-b6de96e46245 --> Chat-history protection across tool paths + mirror scope (Batch A)
       - [x] <!-- workspace:id=work:23c1dcd4-b05b-5451-88af-78b4112104e3 --> Image-job cancel serialization + stale turn finalization guards (C2/C4)
@@ -845,7 +845,7 @@ not by itself imply acceptance of every proposed implementation detail.
       - [x] <!-- workspace:id=work:bd558aaf-7a0f-562a-8d60-8d2fc11f2677 --> Batch C–E: Models copy, context-aware banners, setup checklist, image UX polish, notes limits/quarantine, Web Lite clear reload
       - [x] <!-- workspace:id=work:e8ef8734-86fc-5e66-b8ca-683b63c4b214 --> Audit documentation: test coverage matrix + implementation guide (`docs/audits/2026-06-07-*.md`)
 
-## Wave F — agentic capabilities (shipped 2026-07-03)
+## Wave F: agentic capabilities (shipped 2026-07-03)
 - [x] <!-- workspace:id=work:c1d04c8c-0e5c-52a9-a18d-36fab0f6a1ac --> Local semantic memory (RAG): Ollama embeddings + IndexedDB vectors over
       chats/notes/memories, `recall` tool, optional auto-context injection
 - [x] <!-- workspace:id=work:4db482c0-c65e-5e70-a594-6968663c8be7 --> `fetch_page` tool: Rust-side reqwest fetch + readable-text extraction
@@ -855,7 +855,7 @@ not by itself imply acceptance of every proposed implementation detail.
 - [x] <!-- workspace:id=work:b972961f-ecdc-5ddc-bd18-89106aaccca0 --> Sub-agents v1: `spawn_task` tool running a scoped background TurnRunner
       loop (one concurrent, round-capped), status surface, results linked back
 
-## Wave G — agentic depth (shipped 2026-07-05)
+## Wave G: agentic depth (shipped 2026-07-05)
 - [x] <!-- workspace:id=work:73fa547c-6a75-5ca3-885f-73ebc390dc79 --> Sub-agents v2: multiple parallel tasks, model-customizable model/system
       prompt/delayed start per task
 - [x] <!-- workspace:id=work:a1628333-9f8c-53d1-855e-608e309b8c6f --> Screenshot tour harness: Playwright script capturing every screen/menu
@@ -865,7 +865,7 @@ not by itself imply acceptance of every proposed implementation detail.
 - [x] <!-- workspace:id=work:e0351841-1e7a-5329-9409-77d85ce13299 --> Scheduled tasks v1 (app-open scheduler + schedule_task tool)
 - [x] <!-- workspace:id=work:ac8a1100-e210-54b7-95d7-840351c7a41c --> MCP stdio transport (user-configured local server processes, Rust-managed)
 
-## Wave I — daily-feel + loop depth (shipped 2026-07-06)
+## Wave I: daily-feel + loop depth (shipped 2026-07-06)
 - [x] <!-- workspace:id=work:fe22051e-7687-508e-ae59-3dac40652fb9 --> Light theme ("paper") with dark/light/system modes, contrast unit tests,
       and a committed light-theme screenshot set
 - [x] <!-- workspace:id=work:2b390c52-d26b-5e0b-b3e5-40c58b148209 --> Global summon shortcut (configurable, default Ctrl+Shift+Space), tray
@@ -875,25 +875,25 @@ not by itself imply acceptance of every proposed implementation detail.
       guidance, soft stale-tests warning on Run build, test state in the
       model's runtime context
 
-## Open-models-first audit (DONE 2026-07-05 — see docs/audits/2026-07-05-open-models-audit.md; Wave H shipped fixes)
-- [x] <!-- workspace:id=work:a63eb481-ae0d-5f5a-8d72-91ea8c1ace1c --> *(verified already-done, 2026-07-10 truth pass — audit doc `docs/audits/2026-07-05-open-models-audit.md` exists; section header records Wave H shipped the fixes)* Walk EVERY screen with the lens "what do I do if I'm running open/local
-      models only?" — the app currently reads API-first in many surfaces
+## Open-models-first audit (DONE 2026-07-05: see docs/audits/2026-07-05-open-models-audit.md; Wave H shipped fixes)
+- [x] <!-- workspace:id=work:a63eb481-ae0d-5f5a-8d72-91ea8c1ace1c --> *(verified already-done, 2026-07-10 truth pass, audit doc `docs/audits/2026-07-05-open-models-audit.md` exists; section header records Wave H shipped the fixes)* Walk EVERY screen with the lens "what do I do if I'm running open/local
+      models only?", the app currently reads API-first in many surfaces
       (model picker defaults, usage panel framing, onboarding order, error
       copy, thinking-effort controls that are OpenRouter-only, catalog
       language). Use the docs/screens/ corpus + user-story review per screen.
 
 ## Future ideas backlog (2026-07-03 analysis)
 
-> Backlog / aspirational — not scheduled (truth pass 2026-07-10)
+> Backlog / aspirational, not scheduled (truth pass 2026-07-10)
 
 ### UI/UX
-- [x] <!-- workspace:id=work:b2aef68d-e40b-5c13-b9f2-42bb69277c29 --> Fix pre-existing e2e failure: artifactContract.spec.ts "opens a registry artifact from the palette in the dock" — dock-panel iframe [title="Preview of Status board"] never appears (fails identically on pre-merge master 7fbac5c; not a Wave-D regression; found 2026-07-18) *(no longer reproduces 2026-07-26 — passes 3/3 under `--repeat-each=3`, and in every full `test:e2e` run that session. Fixed somewhere between 07-18 and then by other work; the cause was not bisected, so if it returns, reopen rather than assuming flake. Note recorded at the taste-pass merge, 2026-08-15.)*
+- [x] <!-- workspace:id=work:b2aef68d-e40b-5c13-b9f2-42bb69277c29 --> Fix pre-existing e2e failure: artifactContract.spec.ts "opens a registry artifact from the palette in the dock", dock-panel iframe [title="Preview of Status board"] never appears (fails identically on pre-merge master 7fbac5c; not a Wave-D regression; found 2026-07-18) *(no longer reproduces 2026-07-26, passes 3/3 under `--repeat-each=3`, and in every full `test:e2e` run that session. Fixed somewhere between 07-18 and then by other work; the cause was not bisected, so if it returns, reopen rather than assuming flake. Note recorded at the taste-pass merge, 2026-08-15.)*
 
-- [x] <!-- workspace:id=work:9683527f-7989-51cf-b8a9-7db1dfe8914c --> Light theme + follow-system (`prefers-color-scheme`); "paper" palette *(verified already-done, 2026-07-10 truth pass — Wave I; dark/light/system `ThemeMode` in `src/components/menu/sections/Settings.tsx`)*
-- [x] <!-- workspace:id=work:2a9701d2-4521-58dc-9d4c-fed23ead2d8d --> Sidebar date grouping (Today / Yesterday / Previous 7 days) *(done 2026-07-10, burndown w1 — `groupThreadsByDate` in `src/core/threadSelectors.ts`; sidebar history now splits under Today / Yesterday / Previous 7 days / Previous 30 days / by-month headers)*
-- [x] <!-- workspace:id=work:ae5fd319-443d-5f92-a3a6-742b633ebde9 --> Inline thread rename (F2 / right-click) and drag-to-reorder pins *(done 2026-07-11 — keyboard/context-menu rename with commit/cancel semantics; persisted user-defined pinned ordering)*
-- [x] <!-- workspace:id=work:fd4ccf0c-f08c-5f3d-bbc4-44ec234ea9b3 --> Global summon shortcut + tray icon (Tauri global shortcut) *(verified already-done, 2026-07-10 truth pass — Wave I; tray in `src-tauri/src/desktop.rs`)*
-- [x] <!-- workspace:id=work:56bf7225-4717-5363-9de5-2d329d468190 --> Jump-to-bottom pill with new-tokens indicator; sticky date separators *(done 2026-07-11 — history-aware follow-stream pill with live-response pulse; local-day message groups with sticky viewport headers)*
+- [x] <!-- workspace:id=work:9683527f-7989-51cf-b8a9-7db1dfe8914c --> Light theme + follow-system (`prefers-color-scheme`); "paper" palette *(verified already-done, 2026-07-10 truth pass. Wave I; dark/light/system `ThemeMode` in `src/components/menu/sections/Settings.tsx`)*
+- [x] <!-- workspace:id=work:2a9701d2-4521-58dc-9d4c-fed23ead2d8d --> Sidebar date grouping (Today / Yesterday / Previous 7 days) *(done 2026-07-10, burndown w1, `groupThreadsByDate` in `src/core/threadSelectors.ts`; sidebar history now splits under Today / Yesterday / Previous 7 days / Previous 30 days / by-month headers)*
+- [x] <!-- workspace:id=work:ae5fd319-443d-5f92-a3a6-742b633ebde9 --> Inline thread rename (F2 / right-click) and drag-to-reorder pins *(done 2026-07-11, keyboard/context-menu rename with commit/cancel semantics; persisted user-defined pinned ordering)*
+- [x] <!-- workspace:id=work:fd4ccf0c-f08c-5f3d-bbc4-44ec234ea9b3 --> Global summon shortcut + tray icon (Tauri global shortcut) *(verified already-done, 2026-07-10 truth pass. Wave I; tray in `src-tauri/src/desktop.rs`)*
+- [x] <!-- workspace:id=work:56bf7225-4717-5363-9de5-2d329d468190 --> Jump-to-bottom pill with new-tokens indicator; sticky date separators *(done 2026-07-11, history-aware follow-stream pill with live-response pulse; local-day message groups with sticky viewport headers)*
 - [x] <!-- workspace:id=work:ad1e0f75-76e5-53d1-be20-73d9d2d15d8c --> Composer: up-arrow recall, paste-image, window-wide drag-drop *(done 2026-07-11)*
 - [x] <!-- workspace:id=work:4ee08fe2-d8e1-583a-a11d-175e930d52c4 --> Auto-collapse tool outputs over ~40 lines *(done 2026-07-10, burndown w2)*
 - [x] <!-- workspace:id=work:8bba4e41-b3d4-56dd-bfef-1678335e5c15 --> What's-new panel on version change *(done 2026-07-11)*
@@ -901,28 +901,28 @@ not by itself imply acceptance of every proposed implementation detail.
 
 ### Architecture
 - [x] <!-- workspace:id=work:ee679d03-c2e8-5588-b952-89dcb548b864 --> Unify message model into content-parts (text/tool/image/artifact parts)
-      *(done 2026-07-11 — ordered part model, versioned legacy migration,
+      *(done 2026-07-11, ordered part model, versioned legacy migration,
       centralized compatibility selectors/render dispatch, incremental streaming,
       and ordering/migration/round-trip coverage)*
 - [x] <!-- workspace:id=work:edc5d8eb-c809-5e1c-96b3-6755deb24f91 --> Split EditorialComposer (~840 lines) into Input/AttachmentTray/
-      ModelControls/SendPipeline *(done 2026-07-10, burndown w11 — pure refactor;
+      ModelControls/SendPipeline *(done 2026-07-10, burndown w11, pure refactor;
       `EditorialComposer.tsx` is now a ~270-line orchestrator delegating to
       `components/editorial/composer/`: `ComposerInput`, `AttachmentTray`,
       `ComposerMeta` (model/skill pickers + context/thinking selects), `ContextMeter`,
       `ComposerBanners`, `SkillPopover`, the `useComposerDraft` send/draft pipeline,
       and shared `composerStyles`/`composerAttachments`. Public props unchanged;
       DOM/classes byte-identical so the existing unit+e2e suites stay green)*
-- [x] <!-- workspace:id=work:a36b5968-8512-5c16-a502-eef6e4a90a09 --> <!-- closed 2026-08-12: superseded by landed work — both halves already [x] in this file (version handshake done 2026-07-10, protocol spec done 2026-07-16; docs/bridge-protocol.md exists) --> Bridge protocol doc + version handshake (fail loud on mismatch)
+- [x] <!-- workspace:id=work:a36b5968-8512-5c16-a502-eef6e4a90a09 --> <!-- closed 2026-08-12: superseded by landed work, both halves already [x] in this file (version handshake done 2026-07-10, protocol spec done 2026-07-16; docs/bridge-protocol.md exists) --> Bridge protocol doc + version handshake (fail loud on mismatch)
 - [x] <!-- workspace:id=work:4a7c74f1-3d0e-5b4d-abfe-c7083e6884d2 --> Headless core entry (boot RootStore without React) → CLI mode, scripted
       smokes, scheduler runner *(done 2026-07-11)*
 - [ ] <!-- workspace:id=work:cefdd360-33cf-5cb2-880c-28bde875271e --> Decide deliberately: Go bridge vs folding into a Rust sidecar
-- [ ] <!-- workspace:id=work:21c30c49-4ffc-5b1d-8937-c3e9f5ff8587 --> **Declarative bridge sandbox policy** *(deep research 2026-07-23 — see
+- [ ] <!-- workspace:id=work:21c30c49-4ffc-5b1d-8937-c3e9f5ff8587 --> **Declarative bridge sandbox policy** *(deep research 2026-07-23: see
       IDEAS #19)*: ADR on replacing the hardcoded path-jail + exec-allowlist
       with a declarative policy file (OpenShell pattern: hot-reloadable network
       policy, creation-locked filesystem policy). Apache-2.0 → pattern-first,
       not a casual copy.
 - [ ] <!-- workspace:id=work:401169b1-1191-516d-a835-2525ca9d956e --> **`proxy_localhost` Rust command to retire the ComfyUI CORS workaround**
-      *(deep research 2026-07-23 — see IDEAS #20)*: route localhost calls
+      *(deep research 2026-07-23, see IDEAS #20)*: route localhost calls
       through Rust (pattern from a same-stack MIT peer), removing the
       `--enable-cors-header` requirement for ComfyUI/Ollama.
 - [ ] <!-- workspace:id=work:50c11853-92d5-5d49-8196-08971f492963 --> **`LocalBackends` process-lifecycle manager** *(IDEAS #20)*: auto-start +
@@ -940,15 +940,15 @@ not by itself imply acceptance of every proposed implementation detail.
 - [x] <!-- workspace:id=work:cd58ee40-b39a-5acb-9ef3-b4dffa975714 --> Web Locks API leader election for multi-tab (replace pause-on-conflict) *(done 2026-07-11)*
 - [ ] <!-- workspace:id=work:f8866426-ae5e-5c01-88e4-d9cde1d58a9d --> Generalized undo (command pattern) for destructive ops
 - [ ] <!-- workspace:id=work:057a4e48-cd89-532f-82fe-5e0a274a2fa8 --> Per-thread system-prompt presets (Coding / Writing / Research) *(UX
-      reference: Cherry Studio's browsable assistant/preset library — AGPL-3.0,
+      reference: Cherry Studio's browsable assistant/preset library. AGPL-3.0,
       borrowable; deep research 2026-07-23)*
 - [ ] <!-- workspace:id=work:d66f1361-2a67-5378-9732-4ec1f31aec05 --> **RAG refinement: workspace-isolation + hybrid retrieval** *(deep research
-      2026-07-23 — IDEAS borrow map)*: evaluate AnythingLLM's collection
+      2026-07-23. IDEAS borrow map)*: evaluate AnythingLLM's collection
       isolation (no cross-contamination) + HNSW+BM25 hybrid retrieval against
       our current local RAG. AnythingLLM is MIT → retrieval code is copyable.
 
 ### Platforms & compatibility
-- [x] <!-- workspace:id=work:6add9d9e-c14f-572b-9b98-7d6eb3421199 --> <!-- closed 2026-08-12: duplicate — the stamped macOS-build item with acceptance criteria (work:9afa188d) stays open; this was the bare restatement --> macOS build (keyring apple-native already enabled; needs signing)
+- [x] <!-- workspace:id=work:6add9d9e-c14f-572b-9b98-7d6eb3421199 --> <!-- closed 2026-08-12: duplicate, the stamped macOS-build item with acceptance criteria (work:9afa188d) stays open; this was the bare restatement --> macOS build (keyring apple-native already enabled; needs signing)
 - [x] <!-- workspace:id=work:1ae784a1-7046-5c20-b91e-9bb18ea88309 --> <!-- closed 2026-08-12: shipped as W-5 auto-updater 2026-07-12 (changelog; roadmap W-5 [x]) --> Opt-in Tauri auto-updater (signed, OFF by default)
 - [x] <!-- workspace:id=work:97449968-7744-50df-8336-52572d61e987 --> <!-- closed 2026-08-12: exact duplicate of the open portable-mode item work:5b20c8a4 --> Portable mode (zip, data beside exe)
 - [x] <!-- workspace:id=work:f312b871-9879-5b58-9d9d-c53af696b2bb --> <!-- closed 2026-08-12: duplicate of the open LAN-companion item work:12d246aa --> LAN companion: bridge serves Web Lite on LAN with pairing code (phone
@@ -967,13 +967,13 @@ not by itself imply acceptance of every proposed implementation detail.
 
 ### Tooling & release
 - [x] <!-- workspace:id=work:b0b0c98a-fe9b-57c1-837f-e9bb7c1fa43c --> Changelog automation from commits *(local script half done 2026-07-16: scripts/generate-changelog.mjs drafts grouped entries from conventional commits, --write inserts a marked DRAFT section; nightly channel deferred until GitHub Actions billing is fixed)*
-- [x] <!-- workspace:id=work:a4f4a67a-0870-5b88-ba8f-71c9ea94d814 --> <!-- closed 2026-08-12: duplicate of the [x] 'Windows e2e job in CI + Playwright traces (done 2026-07-10)'; ci.yml has the e2e-windows job and trace upload. Only the trailing word 'coverage' was unlanded — re-file a coverage item if still wanted --> Windows e2e job in CI; upload Playwright traces on failure; coverage
+- [x] <!-- workspace:id=work:a4f4a67a-0870-5b88-ba8f-71c9ea94d814 --> <!-- closed 2026-08-12: duplicate of the [x] 'Windows e2e job in CI + Playwright traces (done 2026-07-10)'; ci.yml has the e2e-windows job and trace upload. Only the trailing word 'coverage' was unlanded, re-file a coverage item if still wanted --> Windows e2e job in CI; upload Playwright traces on failure; coverage
 - [ ] <!-- workspace:id=work:9132ce85-9bfd-52c6-b536-861b06a5b9a9 --> Settings-only config profile export
 
 ### Moonshots / new directions
-- [ ] <!-- workspace:id=work:af244cfb-149d-5113-9787-651a6c5b0ec6 --> **Cowork mode** (designed, not scheduled): the first *push* capability —
+- [ ] <!-- workspace:id=work:af244cfb-149d-5113-9787-651a6c5b0ec6 --> **Cowork mode** (designed, not scheduled): the first *push* capability,
       opt-in per-folder file watching (Rust `notify`) that surfaces a
-      dismissible SUGGESTION chip when a watched file changes ("new CSV — want a
+      dismissible SUGGESTION chip when a watched file changes ("new CSV, want a
       summary?"); one click spawns a background agent task with the file as
       context. Turns the app from "one you open" into "a coworker who's around,"
       composing with global summon + tray. Hard constraints: suggests, never
@@ -981,30 +981,30 @@ not by itself imply acceptance of every proposed implementation detail.
       (instruction-source boundary); rare + rate-limited + easy to mute; opt-in,
       off by default; fully local. Its own wave when picked.
 - [ ] <!-- workspace:id=work:561797dc-acd2-5ca1-a559-b09fc402a7b4 --> Duel mode: two models side-by-side or cross-reviewing *(prior art:
-      Cherry Studio multi-model simultaneous chat — AGPL-3.0, same license, so
+      Cherry Studio multi-model simultaneous chat. AGPL-3.0, same license, so
       code is borrowable; deep research 2026-07-23, IDEAS #7)*
-- [ ] <!-- workspace:id=work:9df8a381-2c45-51db-bb06-4625ff07e6df --> **Spatial branching-conversation canvas** *(deep research 2026-07-23 —
+- [ ] <!-- workspace:id=work:9df8a381-2c45-51db-bb06-4625ff07e6df --> **Spatial branching-conversation canvas** *(deep research 2026-07-23,
       IDEAS #15)*: merge branching threads + Canvas artifact into one React
       Flow node graph (branch/merge/modify visually). GitChat is the pattern
       reference (unlicensed → study only, no code copy).
 - [ ] <!-- workspace:id=work:524be83b-60df-5c12-bb8f-1f8686d3f3ac --> **Async approval inbox + approve/redirect gate** *(Ethan 2026-07-23, from
-      OpenWorker comparison — see IDEAS #17)*: consequential agent asks
+      OpenWorker comparison, see IDEAS #17)*: consequential agent asks
       (write/send/shell) park in an inbox instead of blocking, turning
       spawn_task + the Task center into a real async-agent surface; the gate
       adds edit-before-run "redirect" alongside approve/deny. Highest-value of
       the OpenWorker borrowings; upgrades a subsystem we already own.
-- [ ] <!-- workspace:id=work:0bd46075-655b-55cf-94d0-ebb68d4c9c8e --> **Deliverables as a first-class object** *(Ethan 2026-07-23 — see
+- [ ] <!-- workspace:id=work:0bd46075-655b-55cf-94d0-ebb68d4c9c8e --> **Deliverables as a first-class object** *(Ethan 2026-07-23: see
       IDEAS #18)*: promote a task/turn's output to an openable/shareable
       workspace file with provenance back to the chat; composition of existing
       artifact/workspace/libraryExport primitives, framed for our chat-first
       identity.
-- [ ] <!-- workspace:id=work:c6794eac-fe52-592b-ac8d-bb2b44d584e2 --> **Local-first voice pipeline** *(Ethan 2026-07-23 — see expanded
+- [ ] <!-- workspace:id=work:c6794eac-fe52-592b-ac8d-bb2b44d584e2 --> **Local-first voice pipeline** *(Ethan 2026-07-23: see expanded
       IDEAS #9)*: `STT → LlmProvider → TTS` sidecar (whisper.cpp/Moonshine +
       Silero VAD + Piper), STT-input-only first; native realtime stays an
       optional cloud toggle, never v1.
 - [ ] <!-- workspace:id=work:da06e3fb-2586-5dfe-9937-9fe9fe9500cc --> **External-tool add-on via plugin packs / MCP-stdio** *(Ethan 2026-07-23
-      — see IDEAS #2)*: let users add tools without forking, as an opt-in
-      add-on on the sanctioned plugin-pack path — NOT a revival of the
+      see IDEAS #2)*: let users add tools without forking, as an opt-in
+      add-on on the sanctioned plugin-pack path. NOT a revival of the
       de-scoped always-on MCP client.
 - [ ] <!-- workspace:id=work:07087be8-2752-51de-9d15-bace97a5a9ec --> Canvas/whiteboard artifact type for planning sessions *(2026-07-18,
       lane `canvas-whiteboard-artifact`; plan landed at
@@ -1030,8 +1030,8 @@ not by itself imply acceptance of every proposed implementation detail.
       plan landed at
       `docs/plans/unblock-extend-inspect-file-to-document-formats--20260718/`;
       implementation dispatch pending.)*
-- [ ] <!-- workspace:id=work:918a0bf6-513c-5397-ac07-5dce20efb539 --> Release pipeline: publish the macOS .dmg (+sig) as a stable public asset alongside win/linux — v4.6.1 shipped win+linux only (2026-07-14)
-- [ ] <!-- workspace:id=work:cfbfe9f5-0430-5f71-b77a-73a25de6a70a --> Adopt headless `@shadcn/react/message-scroller` (MIT, unstyled) to replace hand-rolled chat scroll logic — owns streamed-reply anchoring, thread restore, jump-to-message (we already patched one scroll-follow bug, LF-4). Keep GatesAI's own styles; also mirror shadcn's Marker slot pattern for tool-activity/streaming rows. Ref: https://ui.shadcn.com/docs/changelog/2026-06-chat-components (Ethan design-input packet, 2026-07-14)
+- [ ] <!-- workspace:id=work:918a0bf6-513c-5397-ac07-5dce20efb539 --> Release pipeline: publish the macOS .dmg (+sig) as a stable public asset alongside win/linux, v4.6.1 shipped win+linux only (2026-07-14)
+- [ ] <!-- workspace:id=work:cfbfe9f5-0430-5f71-b77a-73a25de6a70a --> Adopt headless `@shadcn/react/message-scroller` (MIT, unstyled) to replace hand-rolled chat scroll logic, owns streamed-reply anchoring, thread restore, jump-to-message (we already patched one scroll-follow bug, LF-4). Keep GatesAI's own styles; also mirror shadcn's Marker slot pattern for tool-activity/streaming rows. Ref: https://ui.shadcn.com/docs/changelog/2026-06-chat-components (Ethan design-input packet, 2026-07-14)
 
 ## Expired (backlog audit, 2026-08-25)
 
@@ -1039,19 +1039,19 @@ Ethan's packet reply, planning/reports/backlog-audit-packet-20260825. Reversible
 
 - Manually test the foundation surface before rebuilding optional integrations <!-- workspace:id=work:d44276ce-f85a-54b7-9678-2d2af968dfe7 -->
 
-- [x] <!-- workspace:id=work:579da006-4a50-5acc-a647-f903bdef2460 --> 2026-09-05 — A34 stop blanket pruning of readable chat-library files; retain foreign/stale bytes while the index follows active conversations. Focused retention regression and combined A33 release gates passed (1,358 unit tests, typecheck/lint, 144 E2E).
+- [x] <!-- workspace:id=work:579da006-4a50-5acc-a647-f903bdef2460 --> 2026-09-05. A34 stop blanket pruning of readable chat-library files; retain foreign/stale bytes while the index follows active conversations. Focused retention regression and combined A33 release gates passed (1,358 unit tests, typecheck/lint, 144 E2E).
 
-- [x] <!-- workspace:id=work:3c7d230b-501f-5d98-8dfd-70cce89205cc --> 2026-09-05 — A33 reuse unchanged readable conversation pairs using exact rendering, complete file presence, and bridge connection lifecycle; global index stays fresh. Collision, failure, missing-file, and lifecycle regressions verified; 1,358 unit tests and 144 E2E passed.
+- [x] <!-- workspace:id=work:3c7d230b-501f-5d98-8dfd-70cce89205cc --> 2026-09-05. A33 reuse unchanged readable conversation pairs using exact rendering, complete file presence, and bridge connection lifecycle; global index stays fresh. Collision, failure, missing-file, and lifecycle regressions verified; 1,358 unit tests and 144 E2E passed.
 
-- [x] <!-- workspace:id=work:ef2ebdc7-6fb1-576b-ab9b-35bd9105a229 --> 2026-09-05 — A23 first slice: download a completed assistant response as Markdown with exact text and separate source provenance. Browser offline/reload/repeat-download acceptance passed. The broader deliverables item remains open: this is download initiation, not workspace persistence or native-save verification.
+- [x] <!-- workspace:id=work:ef2ebdc7-6fb1-576b-ab9b-35bd9105a229 --> 2026-09-05. A23 first slice: download a completed assistant response as Markdown with exact text and separate source provenance. Browser offline/reload/repeat-download acceptance passed. The broader deliverables item remains open: this is download initiation, not workspace persistence or native-save verification.
 
 - [x] <!-- workspace:id=work:c2620a36-ac11-5137-9297-dbdd093229be --> A25 Handles starting-route consumer (2026-09-05): combined A25+A38 candidate verified with CI 1361, all 146 E2E checks, 22 explicit spike tests and spike TypeScript passing. Installed plugin /run smoke and 105-journey byte parity passed. Historical full 145 passed / 1 lightbox failure and unchanged focused pass remain recorded separately in docs/design-handles-route-consumer-20260905.md; no cause is established. Supported default-branch landing remains with the coordinating session.
 
 - [x] <!-- workspace:id=work:330ae3b8-68f7-5b0f-aac2-57e2e56e92f7 --> A38 verify and repair isolated D20 spike correctness (2026-09-05): real concurrent-turn refusal, SSE framing/cancellation and terminal evidence; corrected non-equivalent architecture comparisons. 22 spike tests and spike TypeScript pass. Actual public-runtime before/after evidence in `spike-v5/FINDINGS.md`; no production v5 adoption.
 
-- [x] <!-- workspace:id=work:dad7d043-ca59-5581-a85a-93ffa4e1fbf8 --> A53 — Coalesce deep autosave observation with the existing 250 ms persistence throttle. Completed source candidate 2026-09-05; combined 21 focused lifecycle/trigger tests, same-input operation-count proof, CI (1,370 tests/type/lint), and full E2E (146 passed) are green. Parent source review passed. [Design/evidence](design-autosave-scheduling-20260905.md).
+- [x] <!-- workspace:id=work:dad7d043-ca59-5581-a85a-93ffa4e1fbf8 --> A53. Coalesce deep autosave observation with the existing 250 ms persistence throttle. Completed source candidate 2026-09-05; combined 21 focused lifecycle/trigger tests, same-input operation-count proof, CI (1,370 tests/type/lint), and full E2E (146 passed) are green. Parent source review passed. [Design/evidence](design-autosave-scheduling-20260905.md).
 
-- [x] <!-- workspace:id=work:89a4ee4f-1f0b-5a13-a615-3d67464d14c8 --> A54 — Suppress coordinator workspace enqueue/drain while paused and drop stale pending snapshots without replay on resume. Completed alongside A53 on 2026-09-05; combined focused tests, CI, and all 146 E2E tests passed. Already in-flight and caller-owned hydration writes remain outside this scope. [Design/evidence](design-autosave-scheduling-20260905.md).
+- [x] <!-- workspace:id=work:89a4ee4f-1f0b-5a13-a615-3d67464d14c8 --> A54. Suppress coordinator workspace enqueue/drain while paused and drop stale pending snapshots without replay on resume. Completed alongside A53 on 2026-09-05; combined focused tests, CI, and all 146 E2E tests passed. Already in-flight and caller-owned hydration writes remain outside this scope. [Design/evidence](design-autosave-scheduling-20260905.md).
 
 - [x] <!-- workspace:id=work:732e328a-99a4-5b4b-95a1-d55ebf71f96c --> 2026-09-06: Dogfood Explorer against fictional desktop streaming,
   cancellation, thread switching, edit/resend and failure recovery; correct

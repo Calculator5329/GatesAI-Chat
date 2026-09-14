@@ -1,4 +1,4 @@
-# GatesAI owner feedback session — 2026-07-20
+# GatesAI owner feedback session: 2026-07-20
 
 ## What this is
 
@@ -26,9 +26,9 @@ Start with the rich Forge packet from Comms Deck (`Super+I`) and choose one of
 the three `review-flow` options. If you are opening the repository directly,
 use one of these files:
 
-1. [A — Guided missions](../../internal/owner-feedback-session-20260720/guided-missions.html)
-2. [B — Evidence board](../../internal/owner-feedback-session-20260720/evidence-board.html)
-3. [C — Speech-first challenge deck](../../internal/owner-feedback-session-20260720/speech-first.html)
+1. [A. Guided missions](../../internal/owner-feedback-session-20260720/guided-missions.html)
+2. [B. Evidence board](../../internal/owner-feedback-session-20260720/evidence-board.html)
+3. [C. Speech-first challenge deck](../../internal/owner-feedback-session-20260720/speech-first.html)
 
 Then spend a short pass in the *other two*. The point is not to repeat a full
 QA run three times; it is to notice which route gets you to high-quality
@@ -39,17 +39,17 @@ guides: they do not call GatesAI, launch a build, or submit feedback.
 
 ## The three modes
 
-### A — Guided missions
+### A: Guided missions
 
 Best for verifying behavior. It gives seven ordered “do this / look for this /
 react to this” missions and a visible completion trail.
 
-### B — Evidence board
+### B: Evidence board
 
 Best for fast comparative judgment. It lays the seven areas out at once with
 the product claim, implementation evidence, trust question, and a local rating.
 
-### C — Speech-first challenge deck
+### C: Speech-first challenge deck
 
 Best for nuance and taste. It shows one provocation at a time, gives a short
 prompt to say aloud, and builds a copyable spoken-review transcript.
@@ -59,7 +59,7 @@ navigation, and feedback affordances are intentionally different.
 
 ## Coverage map
 
-| Review area | A — mission | B — evidence | C — spoken challenge | Current evidence |
+| Review area | A, mission | B, evidence | C, spoken challenge | Current evidence |
 | --- | --- | --- | --- | --- |
 | Agent feel | Complete a real turn | Judge the agent-loop claim | Describe where it feels mechanical | `chatTurnEngine.ts`, `agentTaskLifecycle.ts` |
 | Composer + activity | Trigger a tool step | Rate intent transparency | React to the visible purpose phrase | `activityProjection.ts`, `activityDisplay.ts` |
@@ -101,9 +101,9 @@ Score 1–5 after trying the modes.
 
 | Mode | Speed | Clarity | Trust | Taste feedback | Completion effort |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| A — Guided missions |  |  |  |  |  |
-| B — Evidence board |  |  |  |  |  |
-| C — Speech-first challenge deck |  |  |  |  |  |
+| A. Guided missions |  |  |  |  |  |
+| B. Evidence board |  |  |  |  |  |
+| C. Speech-first challenge deck |  |  |  |  |  |
 | Standard Forge review packet |  |  |  |  |  |
 | Visions structured input |  |  |  |  |  |
 | In-chat spoken review |  |  |  |  |  |

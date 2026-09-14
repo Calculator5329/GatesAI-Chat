@@ -1,6 +1,6 @@
-# AP-2 — background sub-agents on TaskStore (execution plan)
+# AP-2: background sub-agents on TaskStore (execution plan)
 
-*Roadmap Item: "AP-2 — Background sub-agents on TaskStore. Make agent runs
+*Roadmap Item: "AP-2. Background sub-agents on TaskStore. Make agent runs
 durable." Ethan's decision: **APPROVED** (authoritative, verbatim). Story
 context: [`../07-16-agentic-platform-design.md`](../07-16-agentic-platform-design.md#story-ap-2--background-sub-agents-on-taskstore).
 Foundation: W-3 unified TaskStore, [`../2026-07-12-unified-tasks.md`](../2026-07-12-unified-tasks.md).*
@@ -15,21 +15,21 @@ Background agent runs become **durable, first-class tasks** backed by a
 persisted spec + policy snapshot, with a **fail-closed exact route** (no silent
 provider/model substitution), **live budget enforcement** (round / token /
 runtime / spend), and full task-center visibility of route, grants, budget, and
-consent — all inside W-3's existing two-slot cap, linked threads, and
+consent, all inside W-3's existing two-slot cap, linked threads, and
 cancel/retry/interruption. No parallel queue, no second timer.
 
-## Corrected baseline — two disjoint systems exist today
+## Corrected baseline: two disjoint systems exist today
 
 The single most important fact driving this plan: the repo already contains
 **two systems**, and AP-2 is mostly **wiring**, not green-field authoring.
 
-- **System A — LIVE (thread-based).** Agent tasks are `Thread`s flagged
+- **System A. LIVE (thread-based).** Agent tasks are `Thread`s flagged
   `agentTask: true`, run by `ChatStore` + `TurnRunner`, projected read-only by
   the strangler-facade `TaskStore`. This is what executes today.
   - `ChatStore.spawnTask` (`src/stores/ChatStore.ts:581`) writes loose thread
     fields (`agentTaskStatus`, `agentTaskMaxRounds`, `agentTaskSystemPrompt`,
     `agentTaskScheduledStartAt`, `agentTaskOriginThreadId`). Threads persist, so
-    live agent tasks **are durable across restart** — but only as loose fields.
+    live agent tasks **are durable across restart**, but only as loose fields.
   - `resolveAgentTaskModelId` (`ChatStore.ts:710`) **falls through** an
     unavailable requested model → origin model → background/default model. This
     is exactly the silent substitution AP-2 forbids.
@@ -39,7 +39,7 @@ The single most important fact driving this plan: the repo already contains
   - Two-slot cap `MAX_CONCURRENT_AGENT_TASKS = 2` (`agentTasks.ts:4`), enforced
     at spawn/retry/schedule. Origin↔result linking and boot recovery
     (`reconcileAgentTasksOnBoot`, `ChatStore.ts:1442`) work.
-- **System B — SCAFFOLDED, UNWIRED (`src/services/tasks/` + `src/core/`).**
+- **System B. SCAFFOLDED, UNWIRED (`src/services/tasks/` + `src/core/`).**
   `createAgentTaskSpec`/`AgentTaskAttempt` (`agentTaskSpec.ts`),
   `AgentTaskPolicy` + `evaluateAgentTaskLaunch` (`core/agentTaskPolicy.ts`),
   `AgentTaskLedgerEntry` + `fifoPending`/`pendingReason`/`projectAttemptUsage`/
@@ -52,7 +52,7 @@ The single most important fact driving this plan: the repo already contains
 enforce budgets live, persist the spec/attempt ledger with a schema bump, add
 two missing fields, and surface everything in the task center.
 
-## Design decisions (all decidable now — APPROVED covers scope)
+## Design decisions (all decidable now: APPROVED covers scope)
 
 ### D1. Wire the ledger; keep ChatStore/TurnRunner as the runner
 
@@ -60,9 +60,9 @@ Per the Story: "Keep `TaskStore` as the shared ledger and `ChatStore`/
 `TurnRunner` as the agent runner for V1. Add a persisted `AgentTaskSpec`/policy
 snapshot rather than a second queue." Each agent task becomes:
 
-- **one `AgentTaskLedgerEntry`** (durable spec + policy snapshot + attempts) —
+- **one `AgentTaskLedgerEntry`** (durable spec + policy snapshot + attempts),
   the authoritative source of route, grants, budgets, consent, and lifecycle;
-- **one linked runner `Thread`** — unchanged as the transcript/result surface.
+- **one linked runner `Thread`**: unchanged as the transcript/result surface.
 
 The ledger lives on `ChatStore` (the persistence authority; avoids a second
 store and cross-store race). `TaskStore` projects from it. This preserves the
@@ -105,7 +105,7 @@ Add an `agentTasks` ledger array (specs + attempts) to the chat snapshot.
 - `src/services/persistence.ts`: serialize/parse the ledger alongside threads.
 - `src/services/persistence/migrations.ts`: additive `3→4` that initializes
   `agentTasks: []`; bump `CURRENT_CHAT_SCHEMA_VERSION`. The migration is
-  **non-destructive** — it does not fabricate policy for pre-AP-2 agent threads.
+  **non-destructive**, it does not fabricate policy for pre-AP-2 agent threads.
 - **Legacy reconciliation:** on boot, an agent-task thread with no matching
   ledger spec (pre-upgrade run) is reconciled `interrupted` (existing
   `reconcileAgentTasksOnBoot` behavior) and shown as a retryable legacy task;
@@ -115,11 +115,11 @@ Add an `agentTasks` ledger array (specs + attempts) to the chat snapshot.
 
 - Add `created_by: 'user' | 'agent'` to `AgentTaskSpec`. V1: direct delegation =
   `'user'` (launch consent). Agent-suggested follow-on tasks require a visible
-  proposal and are **out of V1 scope** — the field exists for AP-4/AP-3 to fill.
+  proposal and are **out of V1 scope**, the field exists for AP-4/AP-3 to fill.
 - Add `skill_id?: string | null` to `AgentTaskPolicy`; thread the selected
   skill's tool allowlist through `evaluateAgentTaskLaunch` so the child gets the
   **intersection** of requested tools ∩ skill allowlist ∩ runtime availability ∩
-  parent policy — never broader authority than the parent.
+  parent policy, never broader authority than the parent.
 
 Because schema-1 policy/spec were **never persisted** (System B is unwired),
 these fields are added to schema 1 directly; no policy-schema bump is needed.
@@ -159,7 +159,7 @@ state, pending_reason, attempts[]`. Add `result_thread_id` link to the runner
 thread (V1: the runner thread *is* the result thread).
 
 `TaskView` (extend, optional): `route?, grants?, budget?, consentRef?,
-pendingReason?` — projection only; the ledger stays authoritative.
+pendingReason?`, projection only; the ledger stays authoritative.
 
 ## Implementation slices (ordered; may be dispatched sequentially)
 
@@ -202,7 +202,7 @@ verified increments. Each slice is independently green.
 - **e2e (desktop):** an agent task shows its route + budget and cancels from the
   task center.
 
-## Non-goals (V1) — carried from the Story
+## Non-goals (V1): carried from the Story
 
 Nested/child task spawning (one level of delegation only); unattended scheduled
 runs of unknown-price models (AP-3); task DAGs/dependencies; remote workers;
@@ -224,7 +224,7 @@ unattended.
 2. Fail-closed route, live budget enforcement, durable ledger + `3→4` migration,
    `created_by`/`skill_id`, and task-center surfacing all shipped and wired.
 3. Docs true: `docs/architecture.md` agent-task section updated (including the
-   two-slot correction — the Story flags that architecture.md currently says
+   two-slot correction, the Story flags that architecture.md currently says
    three); `docs/changelog.md` entry; roadmap checkbox left for the harvesting
    session (this lane does not edit the roadmap).
 4. No parallel queue, no second timer, no silent provider switching, no secrets,

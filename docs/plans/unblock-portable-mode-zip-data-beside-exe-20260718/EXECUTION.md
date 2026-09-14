@@ -49,7 +49,7 @@ excerpt mechanically.
 Do not run `npm run test:models`; it is live and paid. Do not publish a release
 from an implementation lane.
 
-## Step 1 — give the bridge an explicit portable data root
+## Step 1: give the bridge an explicit portable data root
 
 1. Add `--data-dir` parsing in `cmd/gatesai-bridge/main.go`. Keep `--listen`
    behavior unchanged.
@@ -70,7 +70,7 @@ from an implementation lane.
 `--data-dir`. An invocation without the option still reports the normal home
 workspace.
 
-## Step 2 — route portable app state and isolate the bridge
+## Step 2: route portable app state and isolate the bridge
 
 1. Add the pure Rust portable-mode/path model and tests in
    `src-tauri/src/portable.rs`. Marker activation is Windows-only.
@@ -99,7 +99,7 @@ workspace.
 malformed marker cannot fall back to installed storage and a workspace mismatch
 causes zero WebSocket or workspace requests.
 
-## Step 3 — stage, publish, and verify the ZIP
+## Step 3: stage, publish, and verify the ZIP
 
 1. Add the dependency-free staging helper and fixture-based tests specified in
    `DESIGN.md`.

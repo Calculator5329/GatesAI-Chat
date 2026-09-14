@@ -1,4 +1,4 @@
-# Readable library retention and incremental projection — 2026-09-05
+# Readable library retention and incremental projection: 2026-09-05
 
 ## A34 design before source
 

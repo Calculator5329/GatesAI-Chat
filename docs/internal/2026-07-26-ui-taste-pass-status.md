@@ -1,4 +1,4 @@
-# Archived: STATUS — v2 UI taste-pass lane
+# Archived: STATUS, v2 UI taste-pass lane
 
 > Archived 2026-08-26. This was the repository's root `STATUS.md`. The lane it
 > tracked, `ui/taste-pass-20260726`, merged to `master` on 2026-08-15 (commit
@@ -159,7 +159,7 @@ changes.
       workspace save queue (no overlapping saves; intermediates coalesce to the
       newest; a rejected save clears the in-flight flag instead of ending
       workspace persistence for the session), and `trackSnapshotDeep`, whose
-      failure mode is silent — no exception, the autosave just stops and a
+      failure mode is silent, no exception, the autosave just stops and a
       conversation is lost on reload. Both key assertions were mutation-checked
       red before being trusted. `modelPickerSelectors` is still uncovered.
 
@@ -198,7 +198,7 @@ Two side effects worth knowing:
   applied in lexical order and later files win, so after a reboot the ceiling
   returns to 2,097,152 and the new file has no effect. Live value and persisted
   intent currently disagree.
-- 524,288 is in fact plenty **once the leakers are gone** — a vite dev server
+- 524,288 is in fact plenty **once the leakers are gone**, a vite dev server
   needs a few thousand watches. The ceiling was never the real problem.
 
 **The fix is still to restart the two apps**, not to change the number:

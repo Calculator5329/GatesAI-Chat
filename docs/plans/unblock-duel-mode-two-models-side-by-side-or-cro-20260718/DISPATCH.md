@@ -1,14 +1,14 @@
-# DISPATCH — implement Duel mode v1 (side-by-side compare)
+# DISPATCH: implement Duel mode v1 (side-by-side compare)
 
 This task is immediately dispatchable. Read `PLAN.md` in this folder first; it
 is the authoritative design and records the approved decision (`APPROVED`,
 Ethan). This spec implements **v1 only**: side-by-side compare of two models
-with pick-a-winner. Cross-review is a **separate** later dispatch — do not fold
+with pick-a-winner. Cross-review is a **separate** later dispatch, do not fold
 it in.
 
 ## Task spec
 
-- **title:** Duel mode v1 — side-by-side compare with pick-a-winner
+- **title:** Duel mode v1: side-by-side compare with pick-a-winner
 - **model tier:** smart
 - **goal:** |
     Implement
@@ -18,7 +18,7 @@ it in.
     Let a user answer one prompt with two models at once and keep the one they
     prefer. Candidates run on transient in-memory scratch threads (each pinned to
     its own model, built with the existing `branchThreadFrom` clone logic),
-    driven by the unchanged `TurnRunner` — the same concurrent-turns-across-
+    driven by the unchanged `TurnRunner`, the same concurrent-turns-across-
     threads shape background agent tasks already use. Only the chosen answer is
     committed to the real thread, as a normal `AssistantMessage` (its existing
     `model` field records the winner). Do NOT add candidate/variant fields to the
@@ -95,7 +95,7 @@ it in.
 ## Open implementation choice (pick the least invasive; document it)
 
 `TurnRunner.run` takes a `threadId` and looks the thread up through its host.
-Two viable ways to run candidates on transient threads — the implementer picks
+Two viable ways to run candidates on transient threads, the implementer picks
 one and records the choice in the changelog/architecture note:
 
 1. **Transient-thread tier in `ChatStore`.** Register the two scratch threads in
@@ -136,7 +136,7 @@ not a fork of the runner.
 7. Dismiss leaves the real thread unchanged (no message appended, model
    unchanged).
 8. A committed duel winner round-trips through the existing snapshot/export path
-   and reloads as an ordinary assistant message — no new field, no migration.
+   and reloads as an ordinary assistant message, no new field, no migration.
    `CURRENT_CHAT_SCHEMA_VERSION` is unchanged.
 9. Duel affordance is offered only with ≥2 ready models; with <2 it is
    hidden/disabled with truthful copy. Model B defaults to a distinct ready
@@ -153,7 +153,7 @@ not a fork of the runner.
 - No `candidates`/`variants`/`turnId` field is added to `AssistantMessage`; the
   message model and `streamingByThread` keying are unchanged.
 - `CURRENT_CHAT_SCHEMA_VERSION` stays 3 (unless an unrelated already-merged lane
-  moved it — do not add a duel-specific bump either way) and no duel migration is
+  moved it, do not add a duel-specific bump either way) and no duel migration is
   registered.
 - `TurnRunner` gains no model-override parameter; candidate model selection is
   entirely via each scratch thread's `modelId`.
@@ -167,7 +167,7 @@ not a fork of the runner.
 - No Ethan gate remains; `APPROVED` is authoritative.
 - v1 is compare-only. Cross-review ("or cross-reviewing") is a **separate** later
   dispatch that reuses `DuelStore` with a `mode: 'compare' | 'cross-review'` flag
-  and a review-prompt template — see PLAN.md §v2. Do not implement it here.
+  and a review-prompt template, see PLAN.md §v2. Do not implement it here.
 - Respect the layer boundaries (UI → stores → services → core) and the existing
   hard rules in `CLAUDE.md`: no raw `console.*`/`fetch`/`localStorage` in
   stores/components; React↔store wiring goes through `stores/context.tsx`.

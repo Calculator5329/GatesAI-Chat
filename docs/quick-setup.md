@@ -1,6 +1,6 @@
-# GatesAI Chat — Quick Setup
+# GatesAI Chat: Quick Setup
 
-Ship this file next to **`GatesAI Chat_<version>_x64-setup.exe`**. Following it end‑to‑end gets you working **local image generation** with **zero accounts and no API keys** — just the app + ComfyUI + a few model files.
+Ship this file next to **`GatesAI Chat_<version>_x64-setup.exe`**. Following it end‑to‑end gets you working **local image generation** with **zero accounts and no API keys**, just the app + ComfyUI + a few model files.
 
 > Optional bits (Ollama for local chat, cloud LLM keys) are at the bottom. Skip them if you only want pictures.
 
@@ -11,17 +11,17 @@ Ship this file next to **`GatesAI Chat_<version>_x64-setup.exe`**. Following it 
 1. Run **`GatesAI Chat_<version>_x64-setup.exe`** and complete the installer.
 2. Launch **GatesAI Chat** from the Start menu.
 
-The companion **bridge** process (`gatesai-bridge.exe`) is bundled and starts automatically. Open **Menu → Workspace** — you should see **Bridge online**. If not, close and re‑open the app.
+The companion **bridge** process (`gatesai-bridge.exe`) is bundled and starts automatically. Open **Menu → Workspace**, you should see **Bridge online**. If not, close and re‑open the app.
 
 ---
 
 ## 2. Install ComfyUI (one time)
 
-GatesAI talks to a local ComfyUI server for image generation. Use the official **portable Windows build** — no Python install required.
+GatesAI talks to a local ComfyUI server for image generation. Use the official **portable Windows build**, no Python install required.
 
 1. Download **ComfyUI Windows Portable** from the project's releases page (search "ComfyUI windows portable").
 2. Unzip to a permanent folder, e.g. `C:\Tools\ComfyUI_windows_portable`.
-3. Done. **Do not start it manually** — GatesAI will start and stop it for you.
+3. Done. **Do not start it manually**. GatesAI will start and stop it for you.
 
 ---
 
@@ -42,7 +42,7 @@ New-Item -ItemType Directory -Force -Path `
 
 Change `$models` if you installed ComfyUI somewhere else.
 
-### Draft mode — SDXL Lightning
+### Draft mode: SDXL Lightning
 
 Fast preview lane, native size, no upscale.
 
@@ -61,11 +61,11 @@ curl -L -C - -o "$models\vae\sdxl_vae_fp16_fix.safetensors" `
   "https://huggingface.co/madebyollin/sdxl-vae-fp16-fix/resolve/main/sdxl_vae.safetensors"
 ```
 
-### Normal mode — FLUX.2 Klein
+### Normal mode: FLUX.2 Klein
 
 Default quality lane, native size, no upscale.
 
-### Upscale mode — FLUX.2 Klein 2x
+### Upscale mode: FLUX.2 Klein 2x
 
 Same files as Normal, plus a built-in 2x hires-fix refinement pass. No extra upscaler model is required.
 
@@ -102,7 +102,7 @@ Inside the app:
 4. Under **Local image generation**:
    - Leave **Default local mode** on **Normal** for FLUX.2 Klein without upscale.
    - Pick **Draft** for SDXL Lightning previews, or set **Flux upscale** to **2x** for Upscale-quality FLUX renders.
-   - **Prompt enhancement: Off** (no LLM rewrite) is the simplest path — your text goes straight to the model.
+   - **Prompt enhancement: Off** (no LLM rewrite) is the simplest path: your text goes straight to the model.
    - Click **Set image_generate to ComfyUI**.
 
 That's the entire setup.
@@ -116,14 +116,14 @@ You have two ways to produce images. Pick whichever fits.
 **Direct image mode (no chat, no API key, fully offline):**
 
 1. In the **header model picker**, choose one of:
-   - **Draft image — SDXL**
-   - **Normal image — Flux 2 Klein**
-   - **Upscale image — Flux 2 Klein 2x**
-2. Type your prompt in the composer and send. Your message is the prompt — no LLM round‑trip.
+   - **Draft image. SDXL**
+   - **Normal image. Flux 2 Klein**
+   - **Upscale image. Flux 2 Klein 2x**
+2. Type your prompt in the composer and send. Your message is the prompt, no LLM round‑trip.
 
 **Chat‑driven (via a chat model that can call tools):**
 
-1. Pick any chat model (cloud or Ollama — see optional sections below).
+1. Pick any chat model (cloud or Ollama, see optional sections below).
 2. Ask: *"draw a glass cathedral at golden hour"*. The model calls the `image_generate` tool; the render appears inline with progress.
 
 Finished images also collect under **Menu → Gallery**. Files land in `ComfyUI\output\gatesai\`.
@@ -161,7 +161,7 @@ Add API keys under **Menu → Settings → API** (OpenRouter, OpenAI, Anthropic,
 
 ---
 
-## For developers — building the installer
+## For developers: building the installer
 
 ```powershell
 cd "<path-to-this-repo>"

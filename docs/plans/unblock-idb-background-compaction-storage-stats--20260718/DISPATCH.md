@@ -1,4 +1,4 @@
-# DISPATCH — implementation follow-up
+# DISPATCH: implementation follow-up
 
 This lane produced the design ([`PLAN.md`](./PLAN.md)) only. The following is an
 exact spec for the implementation lane that makes the source changes.
@@ -40,7 +40,7 @@ Two shippable pieces:
      `readStorageStats(): Promise<StorageStats>` (`usageBytes`, `quotaBytes`
      from `navigator.storage.estimate()`; `snapshotBytes`; `archivedThreadCount`
      from `listThreadIds()`; `supported`). Guard `navigator?.storage?.estimate`
-     — return `supported:false` and never throw when absent.
+     return `supported:false` and never throw when absent.
    - Expose `chatSnapshotByteSize()` from `persistence.ts` (reads
      `CHAT_SNAPSHOT_STORAGE_KEY` via the existing `KeyValuePersistence` provider)
      so the component never touches `localStorage` directly.
@@ -48,7 +48,7 @@ Two shippable pieces:
    - Add a "Storage" block to `src/components/menu/sections/Usage.tsx`: used/quota
      + percent bar, chat-snapshot size, archived-thread count, and a graceful
      "estimate unavailable" line when `supported:false`. Load stats via a
-     minimal `useStorageStats()` hook/store (view stays observer-only) — do not
+     minimal `useStorageStats()` hook/store (view stays observer-only): do not
      call the async service directly in render. No "Compact now" button in v1.
 
    Both runtimes: desktop and Web Lite behave identically (IDB +
@@ -71,7 +71,7 @@ Two shippable pieces:
 - `docs/architecture.md` (compaction rule note), `docs/changelog.md`
 
 **test-cmd:** `npm run ci && npm run test:e2e`
-(`cargo test` not required — no `src-tauri/` change.)
+(`cargo test` not required, no `src-tauri/` change.)
 
 **acceptance:** the checklist in `PLAN.md` §6. Concretely:
 - Unit tests prove compaction deletes orphans + hydrated-back duplicates, keeps
@@ -102,6 +102,6 @@ Two shippable pieces:
   `:95-100`).
 - Runtime guard reference: `src/core/runtime.ts` (`isHeadless`, `isWebLite`).
 
-**adapter:** claude or codex (either — mechanical + well-scoped).
+**adapter:** claude or codex (either, mechanical + well-scoped).
 **model tier:** smart.
 **est. size:** one focused session (~$15–25 cap).

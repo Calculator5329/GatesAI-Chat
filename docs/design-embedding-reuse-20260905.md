@@ -1,4 +1,4 @@
-# Exact embedding reuse — 2026-09-05
+# Exact embedding reuse: 2026-09-05
 
 A11 preserves the existing RagIndexer interface and puts reuse inside its generation implementation. Baseline is master 2315387. User intent: reduce repeated local embedding work while preserving semantic-memory correctness and explicit rebuild.
 

@@ -8,7 +8,7 @@
 
 **Tech Stack:** TypeScript / React 19 / MobX 6 stores, Vitest 3 (jsdom env). Existing chat code conventions: stores in `src/stores/`, services in `src/services/`, tests in `tests/` mirroring source paths.
 
-**Design doc:** `docs/plans/2026-04-25-fresh-install-ux-design.md` — read it first if any decision needs context.
+**Design doc:** `docs/plans/2026-04-25-fresh-install-ux-design.md`, read it first if any decision needs context.
 
 **Working tree note:** Before starting Task 1, working-tree should be clean modulo the user's in-progress icon/favicon work (see `git status`). The plan deliberately keeps Task 5 (icon swap) self-contained so it interleaves cleanly with that work.
 
@@ -21,12 +21,12 @@
 **Files:**
 - Modify: `src/services/llm/router.ts`
 - Modify: `src/stores/ProviderStore.ts`
-- Test: `tests/services/llmRouter.test.ts` (existing — add new cases)
-- Test: `tests/stores/ProviderStore.test.ts` (create if absent — check first)
+- Test: `tests/services/llmRouter.test.ts` (existing, add new cases)
+- Test: `tests/stores/ProviderStore.test.ts` (create if absent, check first)
 
 **Step 1: Read current state**
 
-Read `src/services/llm/router.ts` and `src/stores/ProviderStore.ts` end-to-end. Note: `LlmRouter.providers` is `Record<ProviderId, LlmProvider>`, where every provider has a `ready(): boolean`. The `'fake'` provider always returns `true` from `ready()` — so a naive `Object.values(...).some(p => p.ready())` would always be true. The check must exclude `'fake'`.
+Read `src/services/llm/router.ts` and `src/stores/ProviderStore.ts` end-to-end. Note: `LlmRouter.providers` is `Record<ProviderId, LlmProvider>`, where every provider has a `ready(): boolean`. The `'fake'` provider always returns `true` from `ready()`, so a naive `Object.values(...).some(p => p.ready())` would always be true. The check must exclude `'fake'`.
 
 **Step 2: Write failing test for `canRoute()`**
 
@@ -58,7 +58,7 @@ describe('LlmRouter.canRoute', () => {
 });
 ```
 
-`makeRegistry()` already exists at the top of this test file — reuse it. If it doesn't, factor a 5-line helper that returns a `ModelCatalog` with one model per provider.
+`makeRegistry()` already exists at the top of this test file, reuse it. If it doesn't, factor a 5-line helper that returns a `ModelCatalog` with one model per provider.
 
 **Step 3: Run test, expect failure**
 
@@ -75,7 +75,7 @@ In `src/services/llm/router.ts`, add a method on `LlmRouter`:
 ```ts
 /**
  * Whether any non-fake provider is ready (has a key, or for `local`, a base
- * URL). When false, the UI must prevent sending — there's nothing real to
+ * URL). When false, the UI must prevent sending, there's nothing real to
  * route to and we no longer fall back to the fake provider.
  */
 canRoute(): boolean {
@@ -102,7 +102,7 @@ In `src/stores/ProviderStore.ts`, add a derived getter:
 ```ts
 /** True iff the router can dispatch a request to a real provider. Drives
  *  the "Add an API key to start chatting" banner and the disabled send
- *  button. Reactive — flips as soon as the user pastes a key (autorun
+ *  button. Reactive, flips as soon as the user pastes a key (autorun
  *  in the constructor calls `router.updateConfigs`, which is what
  *  `canRoute` reads from). */
 get hasUsableProvider(): boolean {
@@ -134,7 +134,7 @@ describe('ProviderStore.hasUsableProvider', () => {
 });
 ```
 
-`makeRegistryStub()`: simplest is `{ all: [], findById: () => undefined } as ModelRegistry` — `canRoute` doesn't need the registry contents.
+`makeRegistryStub()`: simplest is `{ all: [], findById: () => undefined } as ModelRegistry`, `canRoute` doesn't need the registry contents.
 
 **Step 8: Verify**
 
@@ -160,7 +160,7 @@ git commit -m "feat: add canRoute / hasUsableProvider for no-provider state"
 
 **Files:**
 - Modify: `src/components/editorial/EditorialComposer.tsx`
-- Test: `tests/components/editorial/EditorialComposer.test.ts` (create if absent — quick check first)
+- Test: `tests/components/editorial/EditorialComposer.test.ts` (create if absent, quick check first)
 
 **Step 1: Read current state**
 
@@ -190,7 +190,7 @@ with:
 const canSend = (hasText || hasAttachments) && providers.hasUsableProvider;
 ```
 
-Also update the send-button `onClick`/visual disabled condition (lines ~263–274). The existing pattern uses `streaming || canSend` to decide cursor + opacity — that already covers the new disabled case because `canSend` now factors in `hasUsableProvider`.
+Also update the send-button `onClick`/visual disabled condition (lines ~263–274). The existing pattern uses `streaming || canSend` to decide cursor + opacity, that already covers the new disabled case because `canSend` now factors in `hasUsableProvider`.
 
 **Step 4: Render the banner above the composer**
 
@@ -202,7 +202,7 @@ Inside the existing `<div style={{ width: 'min(750px, 70%)', ... }}>` wrapper at
 )}
 ```
 
-Define `ApiKeyBanner` at the bottom of this file (or hoist to a sibling file if the component is already long — judgment call):
+Define `ApiKeyBanner` at the bottom of this file (or hoist to a sibling file if the component is already long, judgment call):
 
 ```tsx
 const ApiKeyBanner = observer(function ApiKeyBanner() {
@@ -241,13 +241,13 @@ const ApiKeyBanner = observer(function ApiKeyBanner() {
 });
 ```
 
-The button calls `router.goMenu('api')` — `RouterStore.goMenu` already exists and accepts a `MenuSectionKey` (see `src/stores/RouterStore.ts:32`). Confirm `'api'` is a valid `MenuSectionKey` by reading `src/core/types.ts`; if the existing key is something different (e.g. `'apiKeys'`), use that string instead.
+The button calls `router.goMenu('api')`, `RouterStore.goMenu` already exists and accepts a `MenuSectionKey` (see `src/stores/RouterStore.ts:32`). Confirm `'api'` is a valid `MenuSectionKey` by reading `src/core/types.ts`; if the existing key is something different (e.g. `'apiKeys'`), use that string instead.
 
 Add `useRouterStore` and `useProviderStore` imports alongside the existing store-hook imports at the top of the file.
 
 **Step 5: Test the banner conditional**
 
-Create `tests/components/editorial/EditorialComposer.test.ts` (or extend if it exists). Write a render test using the existing test patterns (look at `tests/components/editorial/EditorialMessage.test.ts` for the established style — it uses jsdom + the existing store-context pattern). At minimum:
+Create `tests/components/editorial/EditorialComposer.test.ts` (or extend if it exists). Write a render test using the existing test patterns (look at `tests/components/editorial/EditorialMessage.test.ts` for the established style, it uses jsdom + the existing store-context pattern). At minimum:
 
 ```ts
 it('shows the API-key banner when no provider is configured', () => {
@@ -346,7 +346,7 @@ Remove:
 (a) Throw `NoProviderConfiguredError` when no real provider is ready.
 (b) Return a sentinel like `{ provider: null, providerModelId: '' }` and make callers check.
 
-Pick **(a)** — it matches how `ChatStore.runTurn` already wraps `provider.stream` in `try/catch`. Define the error class in `src/services/llm/router.ts`:
+Pick **(a)**, it matches how `ChatStore.runTurn` already wraps `provider.stream` in `try/catch`. Define the error class in `src/services/llm/router.ts`:
 
 ```ts
 export class NoProviderConfiguredError extends Error {
@@ -357,9 +357,9 @@ export class NoProviderConfiguredError extends Error {
 }
 ```
 
-Throw from `resolve()` when neither the direct provider nor an OpenRouter slug is ready. The existing code path in `ChatStore.runTurn` will catch this and surface `lastError` — same as any other provider error.
+Throw from `resolve()` when neither the direct provider nor an OpenRouter slug is ready. The existing code path in `ChatStore.runTurn` will catch this and surface `lastError`, same as any other provider error.
 
-Also: the `canRoute()` method from Task 1 must still work (`fake` is gone, so don't `continue` past it — just iterate). Update the loop:
+Also: the `canRoute()` method from Task 1 must still work (`fake` is gone, so don't `continue` past it, just iterate). Update the loop:
 
 ```ts
 canRoute(): boolean {
@@ -374,18 +374,18 @@ Remove `'fake'` from the `ProviderId` union. The comment about "canned offline r
 **Step 6: Update `src/stores/ChatStore.ts`**
 
 Remove the two `if (...provider.id === 'fake')` checks:
-- Line ~552 in `compactToolResultWithModel`: the `fallbackToFake: false` option no longer exists; the corresponding null check is now "did `resolve()` throw?" — wrap it in try/catch and return null on `NoProviderConfiguredError`.
-- Line ~611 in `maybeAutoName`: same treatment — wrap `resolve()` in try/catch, return early on error.
+- Line ~552 in `compactToolResultWithModel`: the `fallbackToFake: false` option no longer exists; the corresponding null check is now "did `resolve()` throw?", wrap it in try/catch and return null on `NoProviderConfiguredError`.
+- Line ~611 in `maybeAutoName`: same treatment, wrap `resolve()` in try/catch, return early on error.
 
-Also remove the `fallbackToFake: false` option in `pickCompactionModel` (line ~591) — it's no longer a valid option type.
+Also remove the `fallbackToFake: false` option in `pickCompactionModel` (line ~591): it's no longer a valid option type.
 
 **Step 7: Update tests**
 
 - `tests/services/fakeProvider.test.ts`: `git rm` it.
-- `tests/helpers/mockProvider.ts`: change `readonly id: ProviderId = 'fake'` → `readonly id: ProviderId = 'openai'` (it's just a stub, and the tests that use it inject it directly into stores — the id is essentially unused).
+- `tests/helpers/mockProvider.ts`: change `readonly id: ProviderId = 'fake'` → `readonly id: ProviderId = 'openai'` (it's just a stub, and the tests that use it inject it directly into stores, the id is essentially unused).
 - `tests/services/llmRouter.test.ts`: any test that asserted `provider.id === 'fake'` after calling `resolve()` with no keys set should now assert `expect(() => router.resolve(...)).toThrow(NoProviderConfiguredError)`. Keep the `canRoute()` tests from Task 1.
 - `tests/services/tools.test.ts:146`: change `modelId: 'fake'` to a real model id present in the test's registry. If the test set up its own registry, pick one from there; otherwise use `DEFAULT_MODEL_ID` from `src/core/models.ts`.
-- `tests/stores/toolLoop.test.ts:17`: the inline mock provider's `id` — same treatment as `mockProvider.ts`. Use `'openai'` or whatever's already valid in that test's registry.
+- `tests/stores/toolLoop.test.ts:17`: the inline mock provider's `id`, same treatment as `mockProvider.ts`. Use `'openai'` or whatever's already valid in that test's registry.
 
 **Step 8: Run the full check**
 
@@ -393,7 +393,7 @@ Also remove the `fallbackToFake: false` option in `pickCompactionModel` (line ~5
 npm run ci
 ```
 
-Expected: typecheck + lint + tests all pass. If any test outside the enumerated list breaks, that test was relying on FakeProvider too — fix using the same patterns above.
+Expected: typecheck + lint + tests all pass. If any test outside the enumerated list breaks, that test was relying on FakeProvider too, fix using the same patterns above.
 
 **Step 9: Commit**
 
@@ -410,8 +410,8 @@ git commit -m "feat: remove FakeProvider; route errors when no provider configur
 
 **Files:**
 - Delete: `src/core/seed.ts`
-- Modify: `src/stores/ChatStore.ts` (constructor — replace `buildSeedThreads()` with `createThread()` semantics on cold start)
-- Test: `tests/stores/ChatStore.test.ts` (existing — extend; if absent, the `tests/stores/` directory has the pattern)
+- Modify: `src/stores/ChatStore.ts` (constructor, replace `buildSeedThreads()` with `createThread()` semantics on cold start)
+- Test: `tests/stores/ChatStore.test.ts` (existing, extend; if absent, the `tests/stores/` directory has the pattern)
 
 **Step 1: Read current cold-start logic**
 
@@ -447,7 +447,7 @@ describe('ChatStore cold start', () => {
 });
 ```
 
-`makeChatStore()`: if a helper already exists in this file or in `tests/helpers/`, reuse it. Otherwise build the minimum: `new ChatStore(providerStub, registryStub, profileStub)` — see `tests/services/tools.test.ts` or similar for the pattern. None of the stubs need to do anything for this test.
+`makeChatStore()`: if a helper already exists in this file or in `tests/helpers/`, reuse it. Otherwise build the minimum: `new ChatStore(providerStub, registryStub, profileStub)`, see `tests/services/tools.test.ts` or similar for the pattern. None of the stubs need to do anything for this test.
 
 **Step 3: Run test, expect failure**
 
@@ -501,7 +501,7 @@ git rm src/core/seed.ts
 npm run ci
 ```
 
-Expected: clean pass. If anything else imported `seed.ts`, fix it (the grep from Task 3 step 1 already enumerated this — should be just ChatStore).
+Expected: clean pass. If anything else imported `seed.ts`, fix it (the grep from Task 3 step 1 already enumerated this, should be just ChatStore).
 
 **Step 7: Manual verification**
 
@@ -534,7 +534,7 @@ git commit -m "feat: start fresh with one empty thread instead of seed data"
 - (a) Stage their existing modified icons as-is and skip the regen step (their work is already correct)
 - (b) Re-run the regen from scratch (overwrites their work)
 
-Default to **(a)** — don't overwrite their work. If after inspection the existing icons in the working tree match what `npx tauri icon assets/icon-source.png` would produce, just commit the existing tree.
+Default to **(a)**, don't overwrite their work. If after inspection the existing icons in the working tree match what `npx tauri icon assets/icon-source.png` would produce, just commit the existing tree.
 
 **Step 1: Verify the source exists**
 
@@ -552,15 +552,15 @@ git status --short -- src-tauri/icons/
 
 If lots of icon files are already modified/untracked: those are the user's prior work. Inspect a couple visually (or check file sizes against typical Tauri-default sizes) to decide whether to keep them or regen.
 
-**Step 3 (option A — keep existing): stage and verify**
+**Step 3 (option A, keep existing): stage and verify**
 
 ```bash
 git add -A src-tauri/icons/ assets/ scripts/build-icon.py public/favicon-*.png public/favicon.ico public/apple-touch-icon.png
 ```
 
-Adjust the staged set to whatever the user actually has. Do NOT stage unrelated `index.html` / `src-tauri/Cargo.toml` modifications if they're present — those are out-of-scope and belong in a separate commit.
+Adjust the staged set to whatever the user actually has. Do NOT stage unrelated `index.html` / `src-tauri/Cargo.toml` modifications if they're present, those are out-of-scope and belong in a separate commit.
 
-**Step 3 (option B — regen): run tauri icon**
+**Step 3 (option B, regen): run tauri icon**
 
 ```bash
 cd "C:/Users/et2bo/Desktop/Projects/GatesAI Chat"
@@ -578,7 +578,7 @@ npm run tauri:build
 
 Expected: build succeeds in ~2–3 min (cache warm). Output: `src-tauri/target/release/bundle/nsis/GatesAI Chat_0.1.0_x64-setup.exe`.
 
-Open `src-tauri/target/release/gatesai-chat.exe` in File Explorer — preview pane should show the new icon. If still showing Tauri default: either the regen didn't update `icon.ico`, or Windows Explorer's icon cache is stale (run `ie4uinit.exe -show` or just trust the build and verify on the installed copy).
+Open `src-tauri/target/release/gatesai-chat.exe` in File Explorer, preview pane should show the new icon. If still showing Tauri default: either the regen didn't update `icon.ico`, or Windows Explorer's icon cache is stale (run `ie4uinit.exe -show` or just trust the build and verify on the installed copy).
 
 Run the installer. Confirm the Start menu shortcut and the running app's title bar both show the new icon.
 
@@ -588,7 +588,7 @@ Run the installer. Confirm the Start menu shortcut and the running app's title b
 git commit -m "feat: replace placeholder Tauri icons with brand artwork"
 ```
 
-If the user had unrelated favicon/asset work staged in the same commit, mention it in the commit body — those go together since they share the same source artwork.
+If the user had unrelated favicon/asset work staged in the same commit, mention it in the commit body, those go together since they share the same source artwork.
 
 ---
 
@@ -602,12 +602,12 @@ If the user had unrelated favicon/asset work staged in the same commit, mention 
 Read `docs/changelog.md` to match its format (see the existing 2026-04-25 desktop-app entry as a reference). Add an entry under today's date (or whatever the existing convention is):
 
 ```markdown
-## 2026-04-25 — Fresh-install UX
+## 2026-04-25: Fresh-install UX
 
 Removed the demo-mode feel from a fresh install:
-- No more 11 seed threads at first launch — users land in one empty
+- No more 11 seed threads at first launch, users land in one empty
   untitled thread.
-- No more fake responses when chatting without an API key — the
+- No more fake responses when chatting without an API key, the
   composer is disabled and a banner above it links to the API
   settings panel until a real provider is configured.
 - New installer ships with the brand icon instead of the Tauri

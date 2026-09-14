@@ -1,4 +1,4 @@
-# Semantic-memory baseline — 2026-07-19
+# Semantic-memory baseline: 2026-07-19
 
 Status: **COMPLETE**.
 

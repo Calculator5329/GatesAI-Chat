@@ -1,11 +1,11 @@
-# DISPATCH — implement Coding/Writing/Research per-thread system-prompt presets
+# DISPATCH: implement Coding/Writing/Research per-thread system-prompt presets
 
 This is execution-ready. Read `PLAN.md` in this folder first; it is the authoritative
 design and decision context.
 
 ## Task spec
 
-- **title:** SP-2 — per-thread system-prompt presets (Coding / Writing / Research)
+- **title:** SP-2: per-thread system-prompt presets (Coding / Writing / Research)
 - **model tier:** smart
 - **goal:** |
     Implement `docs/plans/unblock-per-thread-system-prompt-presets-coding--20260718/PLAN.md`

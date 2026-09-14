@@ -1,7 +1,7 @@
-# DISPATCH — follow-up implementation tasks
+# DISPATCH: follow-up implementation tasks
 
 Source changes are required in **two repos**; this lane's lease covered only
-the plan folder. `design.md` (same folder) is the authoritative design —
+the plan folder. `design.md` (same folder) is the authoritative design,
 read it first. Dispatch order matters:
 
 1. **Hold both tasks** until the concurrent decision lane
@@ -13,18 +13,18 @@ read it first. Dispatch order matters:
    can be developed against a mocked bridge but must smoke against the real
    binary before done.
 
-## Task spec 1 — bridge repo (SIBLING REPO: `~/projects/ai/gatesai-bridge`)
+## Task spec 1: bridge repo (SIBLING REPO: `~/projects/ai/gatesai-bridge`)
 
 This is a separate repo per this repo's hard rule ("Don't touch sibling
 repos"); dispatch it as its own orchestrator task rooted there.
 
-- **title**: LAN companion listener — pairing, sessions, Web Lite static serving (bridge side)
+- **title**: LAN companion listener, pairing, sessions, Web Lite static serving (bridge side)
 - **model tier**: smart
 - **suggested cap**: $25 (complex multi-file, security-sensitive)
 - **goal**: |
     Implement the bridge side of the LAN companion per the app repo's
     docs/plans/unblock-lan-companion-bridge-serves-web-lite-on--20260718/design.md
-    (§4 bridge side, §5 pairing flow, §3 threat model — read it first).
+    (§4 bridge side, §5 pairing flow, §3 threat model, read it first).
 
     Scope (slices A+B; slice C Ollama proxy is cuttable):
     1. New `internal/companion` package: second `http.Server` (default port
@@ -64,15 +64,15 @@ repos"); dispatch it as its own orchestrator task rooted there.
     persistence, tests, README)
 - **test-cmd**: `go test ./...`
 
-## Task spec 2 — this repo (app side)
+## Task spec 2: this repo (app side)
 
-- **title**: LAN companion app side — settings/pairing UI, dist-web resource, companion ops wiring
+- **title**: LAN companion app side, settings/pairing UI, dist-web resource, companion ops wiring
 - **model tier**: smart
 - **suggested cap**: $25 (complex multi-file)
 - **goal**: |
     Implement the app side of the LAN companion per
     docs/plans/unblock-lan-companion-bridge-serves-web-lite-on--20260718/design.md
-    (§4 app side, §5, §7, §8 — read it first). Bridge-side ops land in the
+    (§4 app side, §5, §7, §8, read it first). Bridge-side ops land in the
     sibling-repo task; develop against mocks mirroring the design's op
     contracts, and do not edit ../gatesai-bridge from this lane.
 
@@ -85,7 +85,7 @@ repos"); dispatch it as its own orchestrator task rooted there.
        layer boundaries): wraps lan.start/stop/status/pair/revoke via the
        existing bridge client as normal non-privileged requests; maps
        `operation_failed` on lan.* from an older bridge to a distinct
-       "companion unsupported — update the bridge" state.
+       "companion unsupported, update the bridge" state.
     3. Store slice (BridgeStore or a small CompanionStore wired through
        stores/context.tsx): running/url/devices/pairingCode observables,
        start/stop/pair/revoke actions, status refresh while the settings
@@ -99,12 +99,12 @@ repos"); dispatch it as its own orchestrator task rooted there.
        decision for Ethan.
     5. Insecure-context audit per design §4: verify Web Lite paths never
        assume crypto.randomUUID/subtle or navigator.locks exist (locks
-       fallback already exists — add/keep a regression test).
+       fallback already exists, add/keep a regression test).
     6. Slice C (cuttable, only if the bridge task shipped its proxy):
        Web Lite offers <origin>/companion/ollama as an Ollama base URL when
        served from a companion origin, using the pairing token from
        localStorage as a bearer header. If cut, add a roadmap checkbox.
-    7. New ADR in docs/adr/: "LAN companion listener — moving a bridge
+    7. New ADR in docs/adr/: "LAN companion listener, moving a bridge
        surface off loopback, opt-in", capturing the design's §1 invariant,
        §3 threat model, §6 TLS decision + revisit trigger.
     8. Tests per design §7: vitest for service+store (incl. unsupported-
@@ -136,6 +136,6 @@ repos"); dispatch it as its own orchestrator task rooted there.
   with the app-side task.
 - The bridge-vs-Rust-fold decision lane is the only sequencing blocker;
   check its plan folder for the decision before dispatching task 1.
-- Done-done for the feature (after both tasks): the design §7 manual smoke —
+- Done-done for the feature (after both tasks): the design §7 manual smoke,
   a real phone pairs over a real LAN and, if slice C shipped, chats with
   local Ollama with the router's internet disconnected.

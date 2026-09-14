@@ -1,4 +1,4 @@
-# DISPATCH — implement LF-2 distinct mobile-topbar labels
+# DISPATCH: implement LF-2 distinct mobile-topbar labels
 
 Follow-up implementation task for the approved LF-2 accessibility bug. The
 design and roadmap discrepancy are recorded in [PLAN.md](./PLAN.md).

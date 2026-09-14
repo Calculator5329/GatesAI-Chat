@@ -30,7 +30,7 @@ draws a **crisp 2px accent outline plus a 5px glow** on the rounded wrapper:
 
 The textarea's own outline is already suppressed (`.composer-textarea:focus{outline:none}`,
 editorial.css ~1468) and focus is intentionally drawn on the rounded
-`.composer-row` container — that container choice stays. Only the *appearance*
+`.composer-row` container, that container choice stays. Only the *appearance*
 of the affordance changes: a hard border -> a gentle warming of the field.
 
 ## 2. Goal / acceptance (verbatim from roadmap)
@@ -38,7 +38,7 @@ of the affordance changes: a hard border -> a gentle warming of the field.
 - Focused composer has **no hard accent ring** in the default theme.
 - Focus reads as a **subtle background glow**: shift the composer fill toward
   `--accent` a few percent and/or a wide, low-alpha inset/blur halo.
-- Keep a **real `:focus-visible` affordance for keyboard users (WCAG)** —
+- Keep a **real `:focus-visible` affordance for keyboard users (WCAG)**,
   soften, don't delete.
 - Keyboard focus still **visibly distinct from blur in both light and dark**.
 - Screenshot before/after in the PR; `npm run ci` green.
@@ -62,7 +62,7 @@ of the affordance changes: a hard border -> a gentle warming of the field.
 2. **`.composer-row` border-radius is 10px** (from `ROW_STYLE`, plus per-runtime
    overrides in `responsive.css`). Inset box-shadows respect `border-radius`, so
    the wash gets rounded corners for free. Outer halo (`0 0 Npx ...`) also
-   respects radius. `overflow: visible` is already set — fine for the outer halo.
+   respects radius. `overflow: visible` is already set, fine for the outer halo.
 
 3. **`.composer-row` transition currently only animates `border-color`**
    (editorial.css ~1482, and `ROW_STYLE` inline). Add `box-shadow` to the
@@ -71,7 +71,7 @@ of the affordance changes: a hard border -> a gentle warming of the field.
 4. **`:focus-visible` on a `<textarea>` matches on *any* focus** (mouse or
    keyboard), because text-entry controls always show a focus-visible
    indicator. So the current `:focus` vs `:focus-visible` split does **not**
-   distinguish input method here — both effectively fire on focus. That's fine:
+   distinguish input method here, both effectively fire on focus. That's fine:
    we keep both rules (focus-visible slightly stronger) so the affordance still
    degrades correctly on browsers without `:focus-visible`, and the "no hard
    ring" requirement is met by removing the `2px var(--focus-ring)` layer from
@@ -110,7 +110,7 @@ Replace the three `.composer-row:has(...)` focus rules and extend the
     inset 0 0 0 200px color-mix(in srgb, var(--accent) 4%, transparent),
     0 0 18px 2px color-mix(in srgb, var(--accent) 8%, transparent);
 }
-/* Keyboard/AT users get a slightly stronger — still soft — affordance. */
+/* Keyboard/AT users get a slightly stronger, still soft, affordance. */
 .composer-row:has(.composer-textarea:focus-visible) {
   border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
   box-shadow:
@@ -127,20 +127,20 @@ Notes on the numbers (tune during implementation against real screenshots):
 
 - The old ring used `--focus-ring` = accent @ 56% and `--focus-ring-glow` =
   accent @ 18%. The new outer halo is accent @ 8-12% and *blurred* (18-22px)
-  rather than a 0-blur spread — that is the difference between "ring" and
+  rather than a 0-blur spread, that is the difference between "ring" and
   "glow." No `0 0 0 2px`/`0 0 0 3px` zero-blur layers remain.
-- The inset wash is 4-6% accent — enough to read as a warm tint, low enough to
+- The inset wash is 4-6% accent, enough to read as a warm tint, low enough to
   keep text contrast intact (text sits above the wash and is unaffected).
 - The `focus-visible` state is deliberately stronger than plain `focus`
   (border 42% vs 24%, halo 12% vs 8%) so the affordance ladder is preserved.
 
 ## 5. WCAG rationale (why this still passes "soften, don't delete")
 
-- **2.4.7 Focus Visible (AA):** focus produces a clearly perceptible change —
+- **2.4.7 Focus Visible (AA):** focus produces a clearly perceptible change,
   a border-color shift from `--border` toward accent (24-42%) plus a warm fill
   and halo. Focused != blurred is unambiguous in both themes.
 - **Both themes:** accent is `#3ecf8e` on `#181818` panel (dark) and `#0f6b46`
-  on `#faf8f3` panel (light) — the border shift toward accent yields a visible
+  on `#faf8f3` panel (light): the border shift toward accent yields a visible
   contrast delta against the adjacent panel in both. Verify on screenshots.
 - The requirement is explicitly to *soften, not remove* the affordance; the
   border-color change is the load-bearing indicator, the wash/halo are
@@ -151,15 +151,15 @@ Notes on the numbers (tune during implementation against real screenshots):
 ## 6. Runtime coverage (desktop + Web Lite)
 
 Pure CSS on `.composer-row`, which exists in both runtimes. `responsive.css`
-only overrides `min-height`/`border-radius`/`padding` per runtime — none of the
-focus box-shadow — so the glow applies identically in desktop and Web Lite. No
+only overrides `min-height`/`border-radius`/`padding` per runtime, none of the
+focus box-shadow, so the glow applies identically in desktop and Web Lite. No
 `core/runtime.ts` gating needed.
 
 ## 7. Verification plan
 
-1. `npm run ci` (vitest + typecheck + lint) — green. CSS-only, no unit-test
+1. `npm run ci` (vitest + typecheck + lint): green. CSS-only, no unit-test
    surface changes; the existing `polish.spec.ts` guard still holds.
-2. `npm run test:e2e` — the composer-focus e2e test must stay green
+2. `npm run test:e2e`: the composer-focus e2e test must stay green
    (`box-shadow !== 'none'` still true).
 3. **Manual before/after screenshots** (required by acceptance): focused
    composer in **dark** and **light** themes, keyboard-focused, confirming
@@ -168,7 +168,7 @@ focus box-shadow — so the glow applies identically in desktop and Web Lite. No
 
 ## 8. Out of scope
 
-- Redesigning the global `--focus-ring` used elsewhere (buttons, inputs) — CB-1
+- Redesigning the global `--focus-ring` used elsewhere (buttons, inputs): CB-1
   is scoped to the composer only. Leave `:root` focus tokens untouched.
 - Changing where focus is drawn (still the `.composer-row` container).
-- Touching `composerStyles.ts` — avoided by the inset-wash approach.
+- Touching `composerStyles.ts`, avoided by the inset-wash approach.

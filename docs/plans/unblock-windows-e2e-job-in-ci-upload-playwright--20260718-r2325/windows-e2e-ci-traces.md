@@ -1,4 +1,4 @@
-# Windows E2E CI and Playwright traces — implementation audit
+# Windows E2E CI and Playwright traces: implementation audit
 
 **Task:** `unblock-windows-e2e-job-in-ci-upload-playwright--20260718-r2325`  
 **Roadmap item:** Tooling & release → “Windows e2e job in CI; upload

@@ -1,4 +1,4 @@
-# DISPATCH — follow-up task spec
+# DISPATCH: follow-up task spec
 
 Ready-to-run source task that closes the one remaining gap for roadmap item
 `docs/roadmap.md:662` ("Bridge protocol doc + version handshake (fail loud on
@@ -12,18 +12,18 @@ delivered).
 
 ## Task spec
 
-- **Title:** Bridge protocol handshake — unit tests for fail-loud version mismatch
+- **Title:** Bridge protocol handshake: unit tests for fail-loud version mismatch
 - **Model tier:** smart (mechanical test authoring; existing harness)
 - **Owns (lease these paths, edit only these):**
   - `tests/services/bridge/client.test.ts`
   - `tests/stores/BridgeStore.test.ts`
 - **Do NOT touch:** any `src/**` production file, `docs/bridge-protocol.md`,
-  `docs/roadmap.md`. No production behavior change — this is coverage only. If a
+  `docs/roadmap.md`. No production behavior change, this is coverage only. If a
   test cannot be written without a production change, stop and report; that would
   mean the audit missed something.
 - **Test command (must be green):** `npm run ci`
   (= `npm test` + `npm run typecheck` + `npm run lint`). The two edited files are
-  covered by `npm test` (vitest). No e2e/cargo needed — no `src-tauri/`, UI, or
+  covered by `npm test` (vitest). No e2e/cargo needed, no `src-tauri/`, UI, or
   Playwright surface changes.
 
 ### Goal
@@ -33,12 +33,12 @@ mismatch path, so a future refactor of `negotiateProtocol()` or `BridgeStore.pol
 cannot silently regress the "update the bridge" behavior.
 
 All target code already exists and is unchanged by this task:
-- `src/services/bridge/client.ts` — `negotiateProtocol()`, `BRIDGE_PROTOCOL_VERSION = 2`,
+- `src/services/bridge/client.ts`: `negotiateProtocol()`, `BRIDGE_PROTOCOL_VERSION = 2`,
   `LEGACY_BRIDGE_PROTOCOL_VERSION = 0`, hello routing in `handleMessage`.
-- `src/stores/BridgeStore.ts` — `poll()`, `BridgeProtocolMismatchError`, the
+- `src/stores/BridgeStore.ts`: `poll()`, `BridgeProtocolMismatchError`, the
   `'incompatible'` transition, and the `"Bridge update required"` activity event.
 
-### Part A — `tests/services/bridge/client.test.ts`
+### Part A: `tests/services/bridge/client.test.ts`
 
 Add a `describe('negotiateProtocol()')` block. The file already has the harness
 you need: `FakeWebSocket` (with `.open()`, `.message(data)`, `.serverClose()`,
@@ -79,20 +79,20 @@ Notes for the implementer:
   ignored (waiter is cleared). One assertion of that idempotence is nice-to-have,
   not required.
 
-### Part B — `tests/stores/BridgeStore.test.ts`
+### Part B: `tests/stores/BridgeStore.test.ts`
 
 Add a `describe('BridgeStore.poll() protocol handshake')` block. `poll()` depends
-on three collaborators — mock them:
+on three collaborators, mock them:
 
-- `probeBridgeHealth` from `src/services/bridge/health` — mock the module so it
+- `probeBridgeHealth` from `src/services/bridge/health`: mock the module so it
   resolves a minimal healthy payload, e.g.
   `{ version: '0.2.0', workspace_root: '/ws', platform: 'linux', allowlist: [] }`.
   Use `vi.mock('../../src/services/bridge/health', () => ({ probeBridgeHealth: vi.fn() }))`
   and set the resolved value per test.
-- `bridge.client.connect` — `vi.spyOn(...).mockResolvedValue(undefined)`.
-- `bridge.client.negotiateProtocol` — `vi.spyOn(...).mockResolvedValue(<version>)`
+- `bridge.client.connect`: `vi.spyOn(...).mockResolvedValue(undefined)`.
+- `bridge.client.negotiateProtocol`: `vi.spyOn(...).mockResolvedValue(<version>)`
   per case.
-- `bridge.client.disconnect` — `vi.spyOn(...)` to assert it is/ isn't called.
+- `bridge.client.disconnect`: `vi.spyOn(...)` to assert it is/ isn't called.
 
 The online-success case additionally reaches `ensureDefaultWorkspaceGuide` and
 `openUserGuideOnFirstInstall`; mock those two modules
@@ -107,14 +107,14 @@ Cases (each: construct `new BridgeStore()`, wire mocks, `await bridge.poll()`):
    undefined, and an activity event with `verb: 'Workspace ready'`.
 2. **Mismatched version → incompatible (fail loud).** `negotiateProtocol` resolves
    `1`. Assert: `bridge.state === 'incompatible'`; `bridge.isOnline === false`;
-   `bridge.lastError === 'Bridge speaks v1, app needs v2 — update the bridge.'`;
+   `bridge.lastError === 'Bridge speaks v1, app needs v2, update the bridge.'`;
    `client.disconnect` was called; an activity event exists with
    `verb: 'Bridge update required'` and `state: 'failed'`.
 3. **Legacy silent bridge (v0) → incompatible.** `negotiateProtocol` resolves `0`.
    Assert `state === 'incompatible'` and
-   `lastError === 'Bridge speaks v0, app needs v2 — update the bridge.'`.
+   `lastError === 'Bridge speaks v0, app needs v2, update the bridge.'`.
 4. **(Optional) Higher version (v3) → incompatible.** Symmetric to (2) with `3`,
-   asserting the `v3` message — cheap extra guard against an accidental
+   asserting the `v3` message, cheap extra guard against an accidental
    `bridge < app` style comparison replacing the strict `!==`.
 
 Notes for the implementer:

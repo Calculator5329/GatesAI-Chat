@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** First-class local LLMs in the model picker via Ollama — install Ollama, pull a model, see it in the picker, chat with it (tool calls + vision included).
+**Goal:** First-class local LLMs in the model picker via Ollama, install Ollama, pull a model, see it in the picker, chat with it (tool calls + vision included).
 
 **Architecture:** New dedicated `OllamaProvider` (speaks Ollama's native `/api/chat` NDJSON, not the OpenAI-compat shim) parallel to the existing `local` provider. `OllamaStore` owns base URL, optional auth, status polling, and the `/api/tags` catalog feed into `ModelRegistry`. New `OllamaCard` UI sits in `Settings → API` next to the existing provider cards. The existing "Local endpoint" provider stays untouched for LM Studio / vLLM / llama.cpp.
 
@@ -22,9 +22,9 @@ Bottom-up so each task is independently testable: types → catalog mapping → 
 
 **Files:**
 - Modify: `src/core/llm.ts:12-18` (ProviderId union)
-- Modify: `src/core/llm.ts:114-120` (ProviderConfig — no shape change needed; baseUrl already covers it)
+- Modify: `src/core/llm.ts:114-120` (ProviderConfig, no shape change needed; baseUrl already covers it)
 - Modify: `src/stores/ModelRegistry.ts:52-57` (`byProvider()` initializer must list every ProviderId)
-- Modify: `src/services/llm/router.ts:26-35` (`buildProviders` will eventually return an OllamaProvider — for this task, stub with the existing `LocalProvider` to keep the type happy; replaced in Task 6)
+- Modify: `src/services/llm/router.ts:26-35` (`buildProviders` will eventually return an OllamaProvider, for this task, stub with the existing `LocalProvider` to keep the type happy; replaced in Task 6)
 
 **Step 1: Extend the type**
 
@@ -56,7 +56,7 @@ byProvider(): Record<ProviderId, Model[]> {
 **Step 3: Stub Ollama provider in `buildProviders`**
 
 ```typescript
-// src/services/llm/router.ts — temporary stub, replaced in Task 6
+// src/services/llm/router.ts: temporary stub, replaced in Task 6
 export function buildProviders(configs: ProviderConfigs): Record<ProviderId, LlmProvider> {
   return {
     openrouter: new OpenRouterProvider(configs.openrouter?.apiKey),
@@ -89,12 +89,12 @@ if (model.providerId === 'openrouter' || model.providerId === 'local' || model.p
 **Step 4: Run typecheck**
 
 Run: `npm run typecheck`
-Expected: clean. The `Record<ProviderId, ...>` exhaustiveness pushes us to update every place a ProviderId map appears — fix any remaining ones the compiler flags.
+Expected: clean. The `Record<ProviderId, ...>` exhaustiveness pushes us to update every place a ProviderId map appears, fix any remaining ones the compiler flags.
 
 **Step 5: Run tests**
 
 Run: `npm test`
-Expected: all pass (no behavior change yet — `'ollama'` is just routed to a `LocalProvider` stub).
+Expected: all pass (no behavior change yet, `'ollama'` is just routed to a `LocalProvider` stub).
 
 **Step 6: Commit**
 
@@ -105,7 +105,7 @@ git commit -m "feat(ollama): add 'ollama' provider id with stub"
 
 ---
 
-## Task 2: Catalog mapper — `/api/tags` JSON → Model[]
+## Task 2: Catalog mapper, `/api/tags` JSON → Model[]
 
 **Files:**
 - Create: `src/services/llm/ollamaCatalog.ts`
@@ -166,15 +166,15 @@ describe('mapOllamaTagsToModels', () => {
 **Step 2: Run test to verify it fails**
 
 Run: `npm test -- tests/services/llm/ollamaCatalog.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 **Step 3: Add `supportsTools` to the Model interface**
 
 ```typescript
-// src/core/types.ts — alongside supportsVision near line 167
+// src/core/types.ts: alongside supportsVision near line 167
 /**
  * Whether this model is known to handle tool calls reliably. When unset,
- * callers should default to "yes" — false means the catalog flagged it as
+ * callers should default to "yes", false means the catalog flagged it as
  * known-bad. Used today for Ollama models where tool support varies wildly
  * between families.
  */
@@ -184,12 +184,12 @@ supportsTools?: boolean;
 **Step 4: Extend the vision heuristic**
 
 ```typescript
-// src/core/modelCapabilities.ts — extend the existing pattern list
+// src/core/modelCapabilities.ts: extend the existing pattern list
 // Add Ollama-specific vision tags:
 //   llava, *-vision, llama3.2-vision, bakllava, moondream, minicpm-v
 ```
 
-(Read the existing file first — append to the matchers it already has rather than duplicating logic.)
+(Read the existing file first, append to the matchers it already has rather than duplicating logic.)
 
 **Step 5: Implement the mapper**
 
@@ -211,7 +211,7 @@ interface OllamaTagsResponse {
 
 /**
  * Tag families we know don't handle tool calls well in Ollama as of
- * Ollama 0.3+. Conservative — false positives just mean a working tool
+ * Ollama 0.3+. Conservative, false positives just mean a working tool
  * model is briefly mis-flagged, which the user can override globally.
  */
 const TOOL_BLOCKLIST = [/^gemma/i, /^phi[0-9]?:/i, /^codellama/i];
@@ -262,13 +262,13 @@ git commit -m "feat(ollama): catalog mapper for /api/tags"
 
 ---
 
-## Task 3: OllamaProvider — request shape
+## Task 3: OllamaProvider, request shape
 
 **Files:**
 - Create: `src/services/llm/ollama.ts`
 - Test: `tests/services/llm/ollama.test.ts`
 
-This task covers the request side only — building the body and headers. Streaming response parsing comes in Task 4.
+This task covers the request side only, building the body and headers. Streaming response parsing comes in Task 4.
 
 **Step 1: Write the failing test**
 
@@ -294,7 +294,7 @@ function emptyStream(): ReadableStream<Uint8Array> {
   return new ReadableStream({ start(c) { c.close(); } });
 }
 
-describe('OllamaProvider — request shape', () => {
+describe('OllamaProvider, request shape', () => {
   it('POSTs to <baseUrl>/api/chat with stream:true', async () => {
     const { fetchMock, getBody } = captureRequest();
     vi.stubGlobal('fetch', fetchMock);
@@ -383,7 +383,7 @@ describe('OllamaProvider — request shape', () => {
 **Step 2: Run test to verify it fails**
 
 Run: `npm test -- tests/services/llm/ollama.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 **Step 3: Implement the request side**
 
@@ -475,7 +475,7 @@ export class OllamaProvider implements LlmProvider {
     return out;
   }
 
-  // Stub — replaced in Task 4.
+  // Stub: replaced in Task 4.
   private async *parseNdjson(_body: ReadableStream<Uint8Array>, _signal: AbortSignal): AsyncIterable<LlmChunk> {
     yield { type: 'done', finishReason: 'stop' };
   }
@@ -503,7 +503,7 @@ git commit -m "feat(ollama): provider request shape (no streaming yet)"
 
 ---
 
-## Task 4: OllamaProvider — NDJSON streaming response
+## Task 4: OllamaProvider. NDJSON streaming response
 
 **Files:**
 - Modify: `src/services/llm/ollama.ts` (replace `parseNdjson` stub)
@@ -543,7 +543,7 @@ function ndjsonResponse(lines: string[]): Response {
   } as unknown as Response;
 }
 
-describe('OllamaProvider — streaming response', () => {
+describe('OllamaProvider, streaming response', () => {
   it('emits text chunks as message.content arrives', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([
       JSON.stringify({ message: { role: 'assistant', content: 'Hello' }, done: false }),
@@ -627,7 +627,7 @@ Expected: 4 new tests FAIL (parseNdjson stub returns done:'stop' immediately).
 **Step 3: Implement NDJSON parsing**
 
 ```typescript
-// src/services/llm/ollama.ts — replace the parseNdjson stub
+// src/services/llm/ollama.ts: replace the parseNdjson stub
 
 private async *parseNdjson(body: ReadableStream<Uint8Array>, signal: AbortSignal): AsyncIterable<LlmChunk> {
   const reader = body.getReader();
@@ -728,7 +728,7 @@ git commit -m "feat(ollama): NDJSON streaming with tool calls and errors"
 
 ---
 
-## Task 5: OllamaStore — config, status, catalog
+## Task 5: OllamaStore, config, status, catalog
 
 **Files:**
 - Create: `src/services/ollamaStorage.ts` (localStorage adapter)
@@ -865,7 +865,7 @@ describe('OllamaStore', () => {
 **Step 3: Run test to verify it fails**
 
 Run: `npm test -- tests/stores/OllamaStore.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 **Step 4: Implement the store**
 
@@ -887,7 +887,7 @@ export type OllamaState = 'unknown' | 'online' | 'offline';
  * Owns the Ollama base URL, optional auth, status state, and the locally-
  * pulled model catalog (fed into ModelRegistry under providerId 'ollama').
  *
- * Status polling is driven externally — the OllamaCard mounts a hook that
+ * Status polling is driven externally, the OllamaCard mounts a hook that
  * calls startStatusPoll on mount and stopStatusPoll on unmount. We don't
  * poll from the constructor because the user might not be on the API
  * panel and we don't want to spam a (possibly off) local server.
@@ -1021,7 +1021,7 @@ export function useOllamaStore(): OllamaStore {
 ```
 
 ```typescript
-// src/stores/RootStore.ts — add field, instantiate after openrouter
+// src/stores/RootStore.ts: add field, instantiate after openrouter
 readonly ollama: OllamaStore;
 // …
 this.ollama = new OllamaStore(this.registry);
@@ -1048,8 +1048,8 @@ git commit -m "feat(ollama): OllamaStore with status, catalog, persistence"
 
 **Files:**
 - Modify: `src/services/llm/router.ts:26-35` (replace stub with real `OllamaProvider`)
-- Modify: `src/services/llm/index.ts` (re-export `OllamaProvider` if anything else references named exports — check first)
-- Modify: `src/stores/ProviderStore.ts` (no change expected, but the autorun must still run when ollama config changes — verify)
+- Modify: `src/services/llm/index.ts` (re-export `OllamaProvider` if anything else references named exports, check first)
+- Modify: `src/stores/ProviderStore.ts` (no change expected, but the autorun must still run when ollama config changes, verify)
 - Test: existing `tests/services/llm/ollama.test.ts` already covers the provider; `tests/stores/ProviderStore.test.ts` covers the wiring.
 
 The catch: today `LlmRouter` reads provider config from `ProviderConfigs`. Ollama's base URL / key live in `OllamaStore`, not in `gatesai.providers.v1`. We have two options:
@@ -1063,7 +1063,7 @@ Implementing A:
 **Step 1: Mirror Ollama config into ProviderConfigs**
 
 ```typescript
-// src/stores/RootStore.ts — after `this.ollama = new OllamaStore(this.registry);`
+// src/stores/RootStore.ts: after `this.ollama = new OllamaStore(this.registry);`
 // Mirror Ollama config into ProviderConfigs so LlmRouter sees baseUrl/apiKey
 // updates without knowing about OllamaStore directly.
 autorun(() => {
@@ -1086,10 +1086,10 @@ ollama: new OllamaProvider({
 
 **Step 3: Drop tools when toolsEnabled is false**
 
-The Ollama "tools off" toggle and the per-model `supportsTools: false` need to suppress `LlmRequest.tools` for Ollama turns. The cleanest seam is in `ChatStore.runTurn` where the request is composed — but that file is large. Instead, gate it at the provider:
+The Ollama "tools off" toggle and the per-model `supportsTools: false` need to suppress `LlmRequest.tools` for Ollama turns. The cleanest seam is in `ChatStore.runTurn` where the request is composed, but that file is large. Instead, gate it at the provider:
 
 ```typescript
-// src/services/llm/ollama.ts — inside stream(), before building the body:
+// src/services/llm/ollama.ts: inside stream(), before building the body:
 const tools = req.tools ?? [];
 const honored = this.toolsAllowed(req.modelId) ? tools : [];
 // then use `honored` instead of `req.tools` when building body.
@@ -1107,12 +1107,12 @@ export interface OllamaProviderOptions {
 }
 ```
 
-And the per-model flag is read by `ChatStore` via the registry — but to keep this task small and avoid touching ChatStore, **scope the per-model `supportsTools: false` enforcement to a follow-up** (Task 8). For Task 6, only the global toggle ships.
+And the per-model flag is read by `ChatStore` via the registry, but to keep this task small and avoid touching ChatStore, **scope the per-model `supportsTools: false` enforcement to a follow-up** (Task 8). For Task 6, only the global toggle ships.
 
 To pipe `toolsEnabled` through the router:
 
 ```typescript
-// src/core/llm.ts — extend ProviderConfig
+// src/core/llm.ts: extend ProviderConfig
 export interface ProviderConfig {
   apiKey?: string;
   baseUrl?: string;
@@ -1122,7 +1122,7 @@ export interface ProviderConfig {
 ```
 
 ```typescript
-// src/stores/RootStore.ts — extend the mirror autorun
+// src/stores/RootStore.ts: extend the mirror autorun
 autorun(() => {
   this.providers.configs.ollama = {
     baseUrl: this.ollama.config.baseUrl,
@@ -1146,7 +1146,7 @@ ollama: new OllamaProvider({
 **Step 4: Add a test for the toolsEnabled override**
 
 ```typescript
-// tests/services/llm/ollama.test.ts — append
+// tests/services/llm/ollama.test.ts: append
 it('drops tools from the request when toolsEnabled is false', async () => {
   const { fetchMock, getBody } = captureRequest();
   vi.stubGlobal('fetch', fetchMock);
@@ -1333,7 +1333,7 @@ import { OllamaCard } from './OllamaCard';
 
 **Step 3: Verify Toggle exists**
 
-Quick check: `npm run typecheck` will flag a missing import if `Toggle` isn't exported from `components/ui`. It is — see `src/components/ui/index.ts:1`.
+Quick check: `npm run typecheck` will flag a missing import if `Toggle` isn't exported from `components/ui`. It is, see `src/components/ui/index.ts:1`.
 
 **Step 4: Run tests + typecheck + lint**
 
@@ -1365,7 +1365,7 @@ Expected: one site that assigns `tools` on the `LlmRequest` (search for `toolDef
 **Step 2: Write the failing test**
 
 ```typescript
-// tests/stores/ChatStore.test.ts — add to existing describe
+// tests/stores/ChatStore.test.ts: add to existing describe
 it('omits tools from the request when the active model has supportsTools: false', async () => {
   // Build a registry with a no-tools model, send a turn, assert the captured
   // LlmRequest had `tools: undefined` or `[]`. Use the existing fake provider
@@ -1378,7 +1378,7 @@ it('omits tools from the request when the active model has supportsTools: false'
 **Step 3: Implement**
 
 ```typescript
-// src/stores/ChatStore.ts — at the request-build site:
+// src/stores/ChatStore.ts: at the request-build site:
 const model = this.registry.findById(thread.modelId);
 const toolsAllowed = model?.supportsTools !== false;
 const request: LlmRequest = {
@@ -1409,12 +1409,12 @@ git commit -m "feat(ollama): honor model.supportsTools=false at request build"
 **Files:**
 - Modify: `docs/changelog.md` (new dated entry)
 - Modify: `docs/roadmap.md` (mark Ollama integration done under Near-term)
-- Modify: `docs/architecture.md` (Tools section — add Ollama provider line; Persistence table — add `gatesai.ollama.v1`)
-- Modify: `docs/tech_spec.md` (Storage table — add `gatesai.ollama.v1`)
+- Modify: `docs/architecture.md` (Tools section, add Ollama provider line; Persistence table, add `gatesai.ollama.v1`)
+- Modify: `docs/tech_spec.md` (Storage table, add `gatesai.ollama.v1`)
 
 **Step 1: Manual smoke checklist**
 
-Don't run yet — record what to test:
+Don't run yet, record what to test:
 
 1. `ollama serve` is running on `127.0.0.1:11434`.
 2. `ollama pull llama3.1:8b`.
@@ -1422,14 +1422,14 @@ Don't run yet — record what to test:
 4. Composer model picker has `llama3.1:8b` listed under "Ollama" vendor.
 5. Send "what's 2+2" → streamed text response.
 6. Send "list the files in /workspace via the workspace tool" → tool call fires, result renders.
-7. Pull `gemma2:9b`, click Refresh. Send a tool-requiring prompt — request goes out without tools (no error, model responds in text).
+7. Pull `gemma2:9b`, click Refresh. Send a tool-requiring prompt, request goes out without tools (no error, model responds in text).
 8. `ollama stop` (or kill the server). Within ~30s the pill flips to `○ Not running`. Sending a turn surfaces a clear error.
 9. Restart Ollama → pill flips back to `● Connected` on the next poll tick.
 
 **Step 2: Update changelog**
 
 ```markdown
-## 2026-04-26 — Feature: Ollama provider
+## 2026-04-26: Feature: Ollama provider
 
 Local LLMs via Ollama are now first-class in the model picker. New
 **Ollama** card under Settings → API takes the base URL (default
@@ -1453,7 +1453,7 @@ otherwise the pill is fixed at last-known state. Persistence under
 
 ```markdown
 # under Near-term, mark done:
-- [x] Ollama provider — local LLMs in the model picker via the Ollama runtime
+- [x] Ollama provider, local LLMs in the model picker via the Ollama runtime
 ```
 
 **Step 4: Update architecture.md persistence table**
@@ -1488,9 +1488,9 @@ Walk the checklist above. Note any deviations and either fix forward (new task) 
 
 ## Verification (full plan)
 
-- `npm run typecheck` — clean
-- `npm run lint` — no new errors
-- `npm test` — all green; new files: `tests/services/llm/ollamaCatalog.test.ts`, `tests/services/llm/ollama.test.ts`, `tests/stores/OllamaStore.test.ts`
+- `npm run typecheck`: clean
+- `npm run lint`: no new errors
+- `npm test`: all green; new files: `tests/services/llm/ollamaCatalog.test.ts`, `tests/services/llm/ollama.test.ts`, `tests/stores/OllamaStore.test.ts`
 - Manual smoke per Task 9.
 
 ## Out of scope (deferred)
@@ -1501,8 +1501,8 @@ Walk the checklist above. Note any deviations and either fix forward (new task) 
 - `/api/embeddings`.
 - Lazy `/api/show` for context length.
 - Onboarding flow ("install Ollama, pull `llama3.1`, you're done").
-- Single recommended vision model — TBD when vision matters more.
-- Auto-detect Ollama under the existing "Local endpoint" provider — explicitly rejected during design.
+- Single recommended vision model. TBD when vision matters more.
+- Auto-detect Ollama under the existing "Local endpoint" provider, explicitly rejected during design.
 
 ## Forward-compat hooks
 

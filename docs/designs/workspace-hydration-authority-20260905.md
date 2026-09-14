@@ -1,4 +1,4 @@
-# A55 — workspace hydration authority, 2026-09-05
+# A55: workspace hydration authority, 2026-09-05
 
 Adopted and implemented in isolated lane astra-hydration-authority-20260905, base 51ade7e7. Required verification passed; root integration remains separate. No release or native runtime claim. Historical pre-source proposal, source copies and synthetic evidence are retained at /home/ethan/.cache/tmp/astra-audit-20260905/gates-hydration-audit/.
 

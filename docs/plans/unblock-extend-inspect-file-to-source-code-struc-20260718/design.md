@@ -15,8 +15,8 @@
 
 When the user asks about a source file ("what's in `main.py`?", "which
 functions does this module export?", "show me the `handleTurn` function"),
-the assistant should get a compact structural outline — imports, functions,
-classes/methods, types, exports, with line numbers — instead of dumping the
+the assistant should get a compact structural outline, imports, functions,
+classes/methods, types, exports, with line numbers, instead of dumping the
 whole file into context via `fs.read`. Then it can `extract` exactly the line
 range or symbol it needs.
 
@@ -27,7 +27,7 @@ Add a pure-TypeScript outline parser, not an AST. Rationale:
 - **Dependency policy.** CLAUDE.md: "Adding a dependency is a decision, not a
   default." Real parsers (tree-sitter WASM, @babel/parser, go AST via bridge)
   are heavy, and the payoff is small: the consumer is an LLM that tolerates
-  imperfect outlines fine — it only needs names + line numbers good enough to
+  imperfect outlines fine, it only needs names + line numbers good enough to
   aim a follow-up `extract`.
 - **Consistency.** The existing CSV/JSON/text inspectors in
   `src/services/tools/inspectFile.ts` are deterministic hand-rolled parsers in
@@ -40,7 +40,7 @@ Add a pure-TypeScript outline parser, not an AST. Rationale:
 Known limitation (documented in the tool description and accepted): the
 outliner is regex/line/brace-depth based. Minified bundles, deeply unusual
 formatting, or code-in-strings can produce missing or spurious entries. That
-degrades to "outline is incomplete — model falls back to preview/search/
+degrades to "outline is incomplete, model falls back to preview/search/
 extract", never to a crash or a wrong-file read. Nothing security-relevant
 consumes the outline.
 
@@ -48,7 +48,7 @@ consumes the outline.
 
 | File | Change |
 | --- | --- |
-| `src/services/tools/codeOutline.ts` | **New.** Pure functions: `parseCodeOutline(content, lang)` → `CodeSymbol[]`, plus `findSymbolRange(...)`. No imports from stores/bridge — service-layer leaf, unit-testable without a fake bridge. |
+| `src/services/tools/codeOutline.ts` | **New.** Pure functions: `parseCodeOutline(content, lang)` → `CodeSymbol[]`, plus `findSymbolRange(...)`. No imports from stores/bridge, service-layer leaf, unit-testable without a fake bridge. |
 | `src/services/tools/inspectFile.ts` | Extend `InspectFormat`, `detectFormat`, add `inspectCode(...)` dispatcher + `symbol` parameter; update tool description. |
 | `tests/services/codeOutline.test.ts` | **New.** Per-language parser unit tests (pure, no bridge). |
 | `tests/services/inspectFileTool.test.ts` | Extend with end-to-end cases through the fake-bridge `makeCtx` helper. |
@@ -86,7 +86,7 @@ Extend `detectFormat` (explicit `format` arg keeps priority):
 
 The `format` enum in the tool def parameters grows to
 `['csv','json','txt','py','js','ts','go']`. Unknown extensions keep today's
-behavior (error listing supported formats — now including the four new ones).
+behavior (error listing supported formats, now including the four new ones).
 Files that fail `decodeFsRead` (binary) keep today's rejection.
 
 ## Parsing rules per language
@@ -133,21 +133,21 @@ output), tracking block-comment / triple-quote state across lines.
 
 ## Action mapping for code formats
 
-Reuses today's five actions — **no new action names**, one new optional
+Reuses today's five actions, **no new action names**, one new optional
 parameter `symbol` (string):
 
-- **`profile`** — the headline feature. Header (`path`, `format`,
+- **`profile`**: the headline feature. Header (`path`, `format`,
   `detected_encoding`, `size`, `lines`) + counts line
   (`imports: N, functions: N, classes: N, methods: N, exported: N`) + outline
   listing, one line per symbol:
-  `  12-48  function handleTurn(ctx, msg) [exported] — doc first line`
+  `  12-48  function handleTurn(ctx, msg) [exported]: doc first line`
   Methods render indented under their parent. Outline capped at 200 entries
   with an explicit `truncated: true (showing 200 of N symbols)` marker;
   existing `resultPolicy.maxChars: 16_000` stays the hard backstop.
-- **`preview`** — numbered first-N lines, identical to text handling (reuse
+- **`preview`**: numbered first-N lines, identical to text handling (reuse
   `renderNumberedLines`).
-- **`search`** — text-line search with line numbers (reuse `searchText`).
-- **`extract`** — two modes:
+- **`search`**: text-line search with line numbers (reuse `searchText`).
+- **`extract`**: two modes:
   - `start_line`/`end_line`: exactly the text behavior (reuse).
   - `symbol: "name"` or `"Parent.name"`: locate via the outline
     (case-sensitive first, case-insensitive fallback; ambiguous match →
@@ -156,7 +156,7 @@ parameter `symbol` (string):
     by `limit`-independent `MAX` guards (a >400-line body returns the first
     400 lines + truncation marker telling the model to page with
     `start_line`).
-- **`aggregate`** — explicit error: `action "aggregate" is not supported for
+- **`aggregate`**: explicit error: `action "aggregate" is not supported for
   source files.` (mirrors the JSON pattern).
 
 Tool description updates from
@@ -209,9 +209,9 @@ unaffected.
 11. Unknown-symbol extract returns the actionable error listing symbols.
 12. Outline cap: file with >200 symbols shows truncation marker.
 
-Verify: `npm run ci` (vitest + typecheck + lint — the mandatory gate).
+Verify: `npm run ci` (vitest + typecheck + lint, the mandatory gate).
 `npm run test:e2e` should stay at its current baseline (note: a pre-existing
-`artifactContract` e2e failure is already filed — see changelog commit
+`artifactContract` e2e failure is already filed, see changelog commit
 c8778b2; it is not related to this change). No Rust touched → no `cargo test`.
 
 ## Docs updates (same lane as implementation)
@@ -227,7 +227,7 @@ c8778b2; it is not related to this change). No Rust touched → no `cargo test`.
 
 - `pdf`/`docx`/`xlsx` (the next roadmap checkbox; needs bridge-side parsers).
 - Bridge/Go-side AST endpoints; any new npm dependency.
-- Cross-file analysis (call graphs, references) — `query_script`/`terminal`
+- Cross-file analysis (call graphs, references): `query_script`/`terminal`
   territory.
-- Languages beyond the four named (rs, java, c…) — the parser table makes
+- Languages beyond the four named (rs, java, c…): the parser table makes
   adding one cheap later, but the roadmap item names exactly four.

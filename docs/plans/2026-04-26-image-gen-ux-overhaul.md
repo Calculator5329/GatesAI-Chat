@@ -42,13 +42,13 @@ Each task ends with a green test run, typecheck pass, and one commit.
 - Delete: `src/services/image/fluxClient.ts`
 - Delete: `tests/services/image/fluxClient.test.ts`
 - Modify: `src/services/image/types.ts` (remove `'fal'` and `'bfl'` from `ImageBackendId`, drop `FluxVariant` if only flux uses it)
-- Modify: `src/services/image/imageBackend.ts` (drop `'fal'` and `'bfl'` cases in `resolveBackend`; drop the cloud-fallback path in `dispatchImageGenerate` — on local failure, throw)
+- Modify: `src/services/image/imageBackend.ts` (drop `'fal'` and `'bfl'` cases in `resolveBackend`; drop the cloud-fallback path in `dispatchImageGenerate`, on local failure, throw)
 - Modify: `src/services/imageGenStorage.ts` (drop `falApiKey`, `bflApiKey`, `defaultVariant` fields and from `OLLAMA_DEFAULTS`/`DEFAULT_IMAGE_GEN_CONFIG`; storage key migration: stale fields are simply ignored on load)
-- Modify: `src/services/tools/types.ts` (drop `falApiKey`, `bflApiKey`, `defaultVariant` from `ImageBackendSnapshot` re-export — actually they live in image/types.ts)
+- Modify: `src/services/tools/types.ts` (drop `falApiKey`, `bflApiKey`, `defaultVariant` from `ImageBackendSnapshot` re-export, actually they live in image/types.ts)
 - Modify: `src/stores/ImageGenStore.ts` (drop `setFalKey`, `setBflKey`, `setDefaultVariant`, `setFallbackBackend`; update `toBackendConfig` accordingly)
 - Modify: `src/services/tools/imageGenerate.ts` (drop `variant` arg from schema; update description)
 - Modify: `src/components/menu/sections/api/ImageGenCard.tsx` (delete `FalBackendFields`, drop the `bfl` `<option>`, drop the cloud-fallback row)
-- Modify: `src/components/menu/sections/api/ApiSection.tsx` (the section currently sits in API panel — confirm whether to leave it there or move it; for now leave it but only show local backends)
+- Modify: `src/components/menu/sections/api/ApiSection.tsx` (the section currently sits in API panel, confirm whether to leave it there or move it; for now leave it but only show local backends)
 
 Note: the user's WIP may have already moved image-gen settings into the Local menu. Read both `ApiSection.tsx` and `Local.tsx` first; whichever currently renders `ImageGenCard` is the one to update.
 
@@ -63,7 +63,7 @@ export type ImageBackendId = 'fal' | 'bfl' | 'local-comfy' | 'local-a1111';
 export type ImageBackendId = 'local-comfy' | 'local-a1111';
 
 // Drop the entire FluxVariant export (search for usages first; if any
-// non-fal callers reference it, keep but rename — they shouldn't).
+// non-fal callers reference it, keep but rename, they shouldn't).
 ```
 
 Drop `falApiKey`, `bflApiKey`, `defaultVariant` from `ImageBackendSnapshot`.
@@ -79,7 +79,7 @@ git rm src/services/image/fluxClient.ts tests/services/image/fluxClient.test.ts
 Edit `src/services/image/imageBackend.ts`:
 - Remove `import { FluxClient }`
 - Remove `case 'fal':` and `case 'bfl':` from `resolveBackend`
-- Remove the entire fallback path in `dispatchImageGenerate` — when the primary backend throws, just rethrow. The `fallbackNote` and `runFallback` helpers can go too, along with `isLocalBackend` and `shouldAttemptFallback` if they have no other callers.
+- Remove the entire fallback path in `dispatchImageGenerate`, when the primary backend throws, just rethrow. The `fallbackNote` and `runFallback` helpers can go too, along with `isLocalBackend` and `shouldAttemptFallback` if they have no other callers.
 
 **Step 4: Update storage + store + tool schema**
 
@@ -96,7 +96,7 @@ Edit `src/services/image/imageBackend.ts`:
 
 In whichever file currently renders `ImageGenCard`:
 - Remove the `<option value="fal">` and `<option value="bfl" disabled>`
-- Default `backend` to `'local-comfy'` if a stale config still has `'fal'` (handled in `loadImageGenConfig`'s merge — set the default to `'local-comfy'`)
+- Default `backend` to `'local-comfy'` if a stale config still has `'fal'` (handled in `loadImageGenConfig`'s merge, set the default to `'local-comfy'`)
 - Delete the entire `FalBackendFields` component
 - Delete the cloud-fallback `<SettingsRow label="Cloud fallback" last>` block
 
@@ -173,7 +173,7 @@ export interface ImageJob extends ImageJobInput {
 
 /**
  * Subset of {@link ImageJob} that survives across app restarts. Pending /
- * running jobs are dropped on save — only terminal states (done, failed,
+ * running jobs are dropped on save, only terminal states (done, failed,
  * cancelled) make it to disk.
  */
 export interface CompletedJob extends ImageJob {
@@ -243,7 +243,7 @@ describe('imageJobsStorage', () => {
 **Step 3: Run test to verify it fails**
 
 Run: `NODE_OPTIONS="--max-old-space-size=12288" npm test -- tests/services/imageJobsStorage.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 **Step 4: Implement**
 
@@ -406,7 +406,7 @@ describe('ImageJobStore', () => {
 **Step 2: Run, see failure**
 
 Run: `NODE_OPTIONS="--max-old-space-size=12288" npm test -- tests/stores/ImageJobStore.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 **Step 3: Implement (with stub runner)**
 
@@ -430,7 +430,7 @@ const HISTORY_LIMIT = 200;
 
 /**
  * Owns the image-generation queue, the active job, and the persisted
- * completed-job history. Only completed (terminal-state) jobs persist —
+ * completed-job history. Only completed (terminal-state) jobs persist,
  * if the user closes the app mid-render, the in-flight work is lost.
  *
  * The runner method drives one job at a time. Task 5 of the plan
@@ -503,7 +503,7 @@ export class ImageJobStore {
     clearImageJobsHistory();
   }
 
-  /** Stub runner — Task 5 replaces this. */
+  /** Stub runner. Task 5 replaces this. */
   private async runNext(): Promise<void> {
     if (this.active) return;
     const next = this.queue.shift();
@@ -625,7 +625,7 @@ export interface JobProgress {
 `tests/services/image/jobs/comfyProgress.test.ts` should mock the global `WebSocket` constructor and assert:
 - The adapter opens `ws://<host>/ws?clientId=<...>`
 - A `progress` frame `{type:'progress', data:{value, max}}` calls the listener
-- `cancel()` POSTs to `<baseUrl>/queue` with `{clear: true}` (and/or POSTs `<baseUrl>/interrupt` — Comfy accepts both)
+- `cancel()` POSTs to `<baseUrl>/queue` with `{clear: true}` (and/or POSTs `<baseUrl>/interrupt`. Comfy accepts both)
 - `dispose()` closes the socket
 
 Use a small test double for `WebSocket`:
@@ -757,7 +757,7 @@ export function createA1111Progress(opts: A1111ProgressOptions): JobProgress {
       const value = Math.max(0, Math.min(1, p));
       for (const fn of listeners) fn({ value: Math.round(value * 100), max: 100 });
     } catch {
-      // ignore — progress is best-effort
+      // ignore: progress is best-effort
     }
   };
   timer = setInterval(() => { void tick(); }, interval);
@@ -828,7 +828,7 @@ In `runNext`:
 4. Create the progress adapter (Comfy or A1111). Subscribe to update `next.progress`.
 5. Loop `count` times. For each iteration:
    a. Compute `seed = next.seed != null ? next.seed + i : Math.floor(Math.random() * 2**31)`
-   b. Call `dispatchImageGenerate({ prompt, width, height, seed }, config)`. This now respects the inflight `AbortController` — pass `signal` through (will need a small extension to `dispatchImageGenerate` to accept a signal).
+   b. Call `dispatchImageGenerate({ prompt, width, height, seed }, config)`. This now respects the inflight `AbortController`, pass `signal` through (will need a small extension to `dispatchImageGenerate` to accept a signal).
    c. Compute filename from prompt + index. Write via `bridge.client.request('fs.write', { path, content: base64, encoding: 'base64' })`.
    d. Push the resulting path onto `next.results`.
 6. On success: `next.status = 'done'`, `moveToHistory(next, 'done')`.
@@ -962,7 +962,7 @@ In `ChatStore.buildTurnRequest`, when `image_generate` is in the tools list, app
 When you call image_generate, don't repeat the tool result back. The user already sees the image inline. Just say briefly what you made.
 ```
 
-The cleanest place is `services/tools/registry.ts` — expose a `systemPromptAddendumForTurn(ctx: ToolSelectionContext): string | undefined` and call it from ChatStore. But to keep this task small: hardcode a check in `ChatStore.buildTurnRequest` that, if `tools.some(t => t.name === 'image_generate')`, appends the line to systemPrompt.
+The cleanest place is `services/tools/registry.ts`, expose a `systemPromptAddendumForTurn(ctx: ToolSelectionContext): string | undefined` and call it from ChatStore. But to keep this task small: hardcode a check in `ChatStore.buildTurnRequest` that, if `tools.some(t => t.name === 'image_generate')`, appends the line to systemPrompt.
 
 **Step 5: Wire imageJobs into the tool context**
 
@@ -1059,7 +1059,7 @@ export const ImageJobCard = observer(function ImageJobCard({ jobId, expectedCoun
 });
 ```
 
-`toInput` is a tiny helper that narrows an `ImageJob` back down to `ImageJobInput` (only the fields `enqueue` accepts) — spreading the full job would carry along `id`, `status`, `results`, `progress`, etc. and trip strict object-literal checks:
+`toInput` is a tiny helper that narrows an `ImageJob` back down to `ImageJobInput` (only the fields `enqueue` accepts): spreading the full job would carry along `id`, `status`, `results`, `progress`, etc. and trip strict object-literal checks:
 
 ```ts
 const toInput = (j: ImageJob | CompletedJob): ImageJobInput => ({
@@ -1068,7 +1068,7 @@ const toInput = (j: ImageJob | CompletedJob): ImageJobInput => ({
 });
 ```
 
-Sub-components (all in the same file or split — implementer's choice):
+Sub-components (all in the same file or split, implementer's choice):
 - `RunningCard`: thin progress bar at the bottom of a placeholder rect, label like `generating · 47% · ComfyUI`, `✕` cancel button
 - `BigImage`: clickable, max-width 600px, native aspect from `aspect` prop
 - `ImageGrid`: 2-column on count<=4, 3-column on count>=5; uniform tile heights
@@ -1089,7 +1089,7 @@ it('shows running state with progress', () => {
 });
 ```
 
-If `@testing-library/react` isn't already wired, the alternative is to test by checking which sub-component would render for each state — e.g. extract a pure `pickCardVariant(job)` helper and unit-test that. The implementer should pick whichever pattern is already used elsewhere in `tests/components/`.
+If `@testing-library/react` isn't already wired, the alternative is to test by checking which sub-component would render for each state, e.g. extract a pure `pickCardVariant(job)` helper and unit-test that. The implementer should pick whichever pattern is already used elsewhere in `tests/components/`.
 
 **Step 4: Verify + commit**
 
@@ -1126,11 +1126,11 @@ In `EditorialMessage`, where the existing `image` artifact is rendered, dispatch
 })}
 ```
 
-The card looks up the job by id and reads `width`/`height` itself; if the lookup misses (history pruned, etc.) it falls back to a square placeholder. Drop the `aspect` prop from `ImageJobCard`'s signature — the artifact only carries `{ jobId, count }` and the dims live on the job.
+The card looks up the job by id and reads `width`/`height` itself; if the lookup misses (history pruned, etc.) it falls back to a square placeholder. Drop the `aspect` prop from `ImageJobCard`'s signature, the artifact only carries `{ jobId, count }` and the dims live on the job.
 
 **Step 2: "generating" pre-token label**
 
-The label needs to be reactive — at the moment the assistant message is appended, the tool hasn't run yet and `imageJobs.active` is null, so a one-shot snapshot in `ChatStore.runTurn` is wrong. Derive it where the label is rendered.
+The label needs to be reactive, at the moment the assistant message is appended, the tool hasn't run yet and `imageJobs.active` is null, so a one-shot snapshot in `ChatStore.runTurn` is wrong. Derive it where the label is rendered.
 
 Add `'generating'` to the `preTokenLabel` union in `core/types.ts`. Then in `EditorialMessage` (or wherever the pre-token spinner label is read), wrap the read in `observer` and substitute when there's a running job for this thread:
 
@@ -1162,7 +1162,7 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 **Files:**
 - Modify: `src/core/types.ts` (`MenuSectionKey` adds `'gallery'`)
 - Modify: `src/services/router.ts` (`MENU_SECTIONS` adds `'gallery'`)
-- Modify: `src/stores/ImageJobStore.ts` (add `deleteResult(jobId, index)` — see Step 0 below)
+- Modify: `src/stores/ImageJobStore.ts` (add `deleteResult(jobId, index)`, see Step 0 below)
 - Create: `src/components/menu/sections/Gallery.tsx`
 - Modify: `src/components/menu/GatesMenu.tsx` (add the Gallery entry to the sidebar nav and route to the section)
 
@@ -1301,12 +1301,12 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
 **Step 1: Changelog entry**
 
 ```markdown
-## 2026-04-26 — Feature: Image-gen UX overhaul
+## 2026-04-26: Feature: Image-gen UX overhaul
 
 `image_generate` is now a background job. The tool returns immediately with a
 job id; the chat message renders a live progress card that fills in with the
 final image when the render completes. Switching threads, sending more turns,
-or kicking off a second image-gen call works fine — jobs run serially in the
+or kicking off a second image-gen call works fine, jobs run serially in the
 background.
 
 - New `ImageJobStore` owns the queue, the active job, and a persisted

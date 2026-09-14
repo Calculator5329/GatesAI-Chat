@@ -1,4 +1,4 @@
-# Unused helper cleanup — 2026-09-04
+# Unused helper cleanup: 2026-09-04
 
 Original source files are retained byte-for-byte as `.ts.txt` beneath this folder. Base: `655fd62bc98ef31fda9eaf85ce474cc2ef6ff797`.
 

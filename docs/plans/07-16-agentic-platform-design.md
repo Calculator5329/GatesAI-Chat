@@ -2,7 +2,7 @@
 
 *Product direction mandated by Ethan on 2026-07-16. This document proposes
 the implementation contracts; it does not imply that any roadmap Item is
-accepted or complete. Design only—no runtime changes are part of this lane.*
+accepted or complete. Design only, no runtime changes are part of this lane.*
 
 ## Vision and vocabulary
 
@@ -81,7 +81,7 @@ localStorage. New persisted shapes use the normal provider/migration path.
    automation are desktop-only in V1. Web Lite can inspect exported metadata
    where safe, but does not pretend to install, wake, or access loopback hosts.
 
-## Story AP-1 — downloadable database plugins
+## Story AP-1: downloadable database plugins
 
 ### User stories
 
@@ -136,12 +136,12 @@ wraps typed Tauri operations such as `plugin_list`, `plugin_inspect`,
 `plugin_install`, `plugin_set_enabled`, `plugin_search`, and `plugin_lookup`.
 Model-facing tools receive a narrower facade:
 
-- `database_plugins.list` — metadata and available datasets;
-- `database_plugins.search` — bounded text query, dataset enum, limit;
-- `database_plugins.lookup` — named lookup plus typed scalar parameters;
-- `database_plugins.schema` — published field descriptions, never private
+- `database_plugins.list`: metadata and available datasets;
+- `database_plugins.search`: bounded text query, dataset enum, limit;
+- `database_plugins.lookup`: named lookup plus typed scalar parameters;
+- `database_plugins.schema`: published field descriptions, never private
   SQLite internals or rows beyond a bounded projection;
-- `database_plugins.propose_install` — creates a user-visible install proposal;
+- `database_plugins.propose_install`: creates a user-visible install proposal;
   it does not download or enable by itself.
 
 Results are size- and row-capped before entering a transcript. Each evidence
@@ -192,7 +192,7 @@ SDK/publishing service; encrypted private bundles; Web Lite import of small
 in-memory public bundles. Executable plugins, arbitrary SQL, mutations, and
 remote plugin processes require their own ADR and are not implied by “later.”
 
-## Story AP-2 — background sub-agents on TaskStore
+## Story AP-2: background sub-agents on TaskStore
 
 ### User stories
 
@@ -205,7 +205,7 @@ remote plugin processes require their own ADR and are not implied by “later.�
   before a run and see why a limit stopped it.
 - As an agent, I can use enabled database plugins and allowed skills/tools in
   a child run without gaining broader authority than the parent.
-- As a recovering user, I see an app-interrupted run as retryable—not silently
+- As a recovering user, I see an app-interrupted run as retryable, not silently
   resumed with stale context or billed twice.
 
 ### Architecture
@@ -279,7 +279,7 @@ priority/fair scheduling, provider-specific reservation estimates, and safe
 checkpoint/resume. None may bypass the two-slot/user cap until separately
 designed and accepted.
 
-## Story AP-3 — self-scheduling with visible wakes
+## Story AP-3: self-scheduling with visible wakes
 
 ### User stories
 
@@ -343,7 +343,7 @@ off or logged-out machine.
   secret access, or OS-critical actions are not schedulable in V1.
 - Default cap is 4 wakes per schedule per rolling 24 hours and 24 wakes global
   per rolling 24 hours. A user can explicitly raise a schedule up to the hard
-  global limit—for example to approve an hourly schedule. Missed and slot-
+  global limit, for example to approve an hourly schedule. Missed and slot-
   retry ticks do not multiply wakes.
 - Default cloud cap is `$0.50` per wake, also subject to the `$5.00` daily
   agent cap and `$100` hard per-run ceiling. A cap exhaustion disables future
@@ -368,7 +368,7 @@ trusted recurring mutation grants, and encrypted schedule sync to user-owned
 storage. A background service or OS wake is a separate threat model and must
 not be implied by V1 copy.
 
-## Story AP-4 — self-improvement through outcomes and feedback
+## Story AP-4: self-improvement through outcomes and feedback
 
 ### User stories
 
@@ -510,30 +510,30 @@ composition are deliberately reserved for integration Items instead of being
 touched opportunistically. A lane's run/evidence proves its Item; it does not
 add a planning level or imply product acceptance.
 
-### Phase 0 — contracts
+### Phase 0: contracts
 
-1. **Item C1 — package schema and ADR**
+1. **Item C1, package schema and ADR**
    - `owns`: `docs/adr/2026-07-xx-database-plugin-packages.md`,
      `src/core/databasePlugins.ts`, `tests/core/databasePlugins.test.ts`.
    - Sub-items: pin manifest/schema-1 types and bounds; write transport/data-
      policy threat model; add hostile manifest fixtures; decide signature
      display versus enforcement honestly.
    - Verify: pure parser tests plus fixture corpus; no Tauri or UI wiring.
-2. **Item C2 — task policy/budget core**
+2. **Item C2, task policy/budget core**
    - `owns`: `src/core/agentTaskPolicy.ts`,
      `tests/core/agentTaskPolicy.test.ts`, `src/services/tasks/policy.ts`,
      `tests/services/tasks/policy.test.ts`.
    - Sub-items: exact-route, tool/data intersection, round/time/token/spend
      math, daily accounting, and fail-closed reason codes.
-3. **Item C3 — outcome contracts**
+3. **Item C3, outcome contracts**
    - `owns`: `src/core/agentOutcomes.ts`,
      `tests/core/agentOutcomes.test.ts`.
    - Sub-items: versioned record/proposal/applied-lesson schemas, redaction and
      scope rules, deterministic outcome metrics.
 
-### Phase 1 — downloadable data and durable task policy
+### Phase 1: downloadable data and durable task policy
 
-4. **Item D1 — Tauri database package engine** *(depends C1)*
+4. **Item D1. Tauri database package engine** *(depends C1)*
    - `owns`: `src-tauri/src/database_plugins.rs`, `src-tauri/src/lib.rs`,
      `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`,
      `src-tauri/tests/database_plugins.rs`, `tests/fixtures/database-plugins/`.
@@ -541,14 +541,14 @@ add a planning level or imply product acceptance.
      bomb/digest defenses, immutable SQLite query builders, atomic versions,
      and Tauri command registration.
    - Verify: Rust unit/integration tests with hostile archives; no bridge edits.
-5. **Item D2 — database plugin service/store** *(depends C1; parallel D1)*
+5. **Item D2, database plugin service/store** *(depends C1; parallel D1)*
    - `owns`: `src/services/databasePlugins/`,
      `src/stores/DatabasePluginStore.ts`,
      `tests/services/databasePlugins/`,
      `tests/stores/DatabasePluginStore.test.ts`.
    - Sub-items: typed states, lifecycle, version pins, citation projection,
      Web Lite no-invoke facade, persisted enablement.
-6. **Item B1 — TaskStore policy and attempt ledger** *(depends C2; parallel D1/D2)*
+6. **Item B1. TaskStore policy and attempt ledger** *(depends C2; parallel D1/D2)*
    - `owns`: `src/services/tasks/agentTaskSpec.ts`,
      `src/services/tasks/budgets.ts`, `src/stores/TaskStore.ts`,
      `tests/services/tasks/agentTaskSpec.test.ts`,
@@ -556,7 +556,7 @@ add a planning level or imply product acceptance.
    - Sub-items: pending reasons, immutable policy snapshots, FIFO/attempt
      linkage, budget/cost projection, two-slot tests.
 
-7. **Item X1 — Phase-1 platform wiring** *(depends D1, D2, B1)*
+7. **Item X1. Phase-1 platform wiring** *(depends D1, D2, B1)*
    - `owns`: `src/stores/RootStore.ts`, `src/stores/context.tsx`,
      `src/services/tools/registry.ts`,
      `src/services/chat/contextModes.ts`, `src/services/persistence/migrations.ts`,
@@ -564,60 +564,60 @@ add a planning level or imply product acceptance.
    - Sub-items: register stores and the narrow tool facade; migrate persisted
      shapes; enforce the local-data/cloud-route block before prompt assembly.
 
-### Phase 2 — user-facing plugins and background agents
+### Phase 2: user-facing plugins and background agents
 
-8. **Item D3 — plugin lifecycle and query surfaces** *(depends X1)*
+8. **Item D3, plugin lifecycle and query surfaces** *(depends X1)*
    - `owns`: `src/services/tools/databasePlugins.ts`,
      `src/components/menu/sections/DatabasePlugins.tsx`,
      `src/components/dock/DatabasePluginPanel.tsx`, and focused tests.
    - Sub-items: inspect/propose/install confirmation, enable/update/archive,
      permissions/data-policy display, bounded tool result and citations.
-9. **Item B2 — strict-route agent runner** *(depends B1/X1; parallel D3)*
+9. **Item B2, strict-route agent runner** *(depends B1/X1; parallel D3)*
    - `owns`: `src/services/chat/agentTasks.ts`,
      `src/services/tools/spawnTask.ts`, `src/stores/ChatStore.ts`, and focused
      agent-task tests.
    - Sub-items: exact route pin, pre-round budget enforcement, DB/tool policy
      injection, no nested tasks, interruption and attempt-aware retry.
-10. **Item B3 — task-center agent controls** *(depends B1; parallel D3/B2)*
+10. **Item B3, task-center agent controls** *(depends B1; parallel D3/B2)*
     - `owns`: `src/components/dock/TaskCenterPanel.tsx`, agent-task-specific
       task-center child components, and focused component tests.
     - Sub-items: route/grants/budgets/pending reasons, cancel/retry, partial
       result and spend-cap states; preserve image-task rendering.
 
-### Phase 3 — self-scheduling
+### Phase 3: self-scheduling
 
-11. **Item S1 — schedule-v2 domain and persistence** *(depends C2/B1)*
+11. **Item S1, schedule-v2 domain and persistence** *(depends C2/B1)*
     - `owns`: `src/core/schedules.ts`, `src/services/schedulesStorage.ts`,
       `src/stores/SchedulesStore.ts`, and their focused tests.
     - Sub-items: triggers/timezones/DST, proposal/consent state, wake caps,
       one catch-up, overlap/coalescing, TaskSpec enqueue facade, v1 migration.
-12. **Item S2 — schedule proposal and controls** *(depends S1/B2)*
+12. **Item S2, schedule proposal and controls** *(depends S1/B2)*
     - `owns`: `src/services/tools/schedules.ts`, schedule-specific menu
       components, notification adapters, and focused tests.
     - Sub-items: approval card, exact route/grant/cap summary, pause/edit/run-
       now/archive, renewed-consent rules, honest app-open copy.
 
-### Phase 4 — outcome learning
+### Phase 4: outcome learning
 
-13. **Item I1 — local outcome journal** *(depends C3/B2)*
+13. **Item I1, local outcome journal** *(depends C3/B2)*
     - `owns`: `src/services/outcomes/`, `src/stores/OutcomeStore.ts`,
       `tests/services/outcomes/`, `tests/stores/OutcomeStore.test.ts`.
     - Sub-items: IndexedDB journal/hot index, redaction, task completion
       ingestion, feedback mutation, export/retention, deterministic metrics.
-14. **Item I2 — lesson proposal and retrieval** *(depends I1; parallel UI below)*
+14. **Item I2, lesson proposal and retrieval** *(depends I1; parallel UI below)*
     - `owns`: `src/services/learning/`, `src/stores/LearningStore.ts`,
       `tests/services/learning/`, `tests/stores/LearningStore.test.ts`.
     - Sub-items: bounded local evaluator, scoped evidence-linked proposal,
       accepted-lesson semantic source, injection delimiter, regression disable.
-15. **Item I3 — feedback/review UI** *(depends C3; parallel I2)*
+15. **Item I3, feedback/review UI** *(depends C3; parallel I2)*
     - `owns`: task-feedback components, learning menu/dock components, diff
       adapters dedicated to learning, and focused component tests.
     - Sub-items: feedback capture, evidence view, accept/reject, prompt/skill
       diff, version activation, disable/rollback, privacy controls.
 
-### Phase 5 — composition and evidence
+### Phase 5: composition and evidence
 
-16. **Item X2 — integration, truth docs, and acceptance** *(depends all prior Items)*
+16. **Item X2, integration, truth docs, and acceptance** *(depends all prior Items)*
     - `owns`: shared prompt assembly/wiring files not already assigned,
       `tests/e2e/agentic-platform.spec.ts`, `docs/architecture.md`,
       `docs/handbook/capabilities.md`, `docs/changelog.md`, `docs/roadmap.md`,

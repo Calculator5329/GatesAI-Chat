@@ -1,4 +1,4 @@
-# DISPATCH — implement AP-3 consented self-scheduling
+# DISPATCH: implement AP-3 consented self-scheduling
 
 Read [PLAN.md](./PLAN.md) first; it is the authoritative approved execution
 contract. This task replaces the live legacy scheduler by wiring the already-
@@ -7,7 +7,7 @@ task ledger and adding the selected proposal/management surfaces.
 
 ## Task spec
 
-- **title:** AP-3 — consented self-scheduling on the AP-2 task ledger
+- **title:** AP-3: consented self-scheduling on the AP-2 task ledger
 - **model tier:** smart
 - **depends on:** AP-2 source implementation merged and green. Do not dispatch
   concurrently with AP-2; rebase onto its verified result before claiming the

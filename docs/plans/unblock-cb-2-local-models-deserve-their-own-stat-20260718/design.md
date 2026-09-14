@@ -1,6 +1,6 @@
 # CB-2: Local models deserve their own status copy, not "Waiting on provider…"
 
-**Status:** design complete — ready to dispatch source lane
+**Status:** design complete, ready to dispatch source lane
 **Roadmap item:** `docs/roadmap.md` CB-2 (Visions / Copy & Behavior)
 **Ethan's decision:** APPROVED (verbatim, authoritative)
 **Owned lease path:** `docs/plans/unblock-cb-2-local-models-deserve-their-own-stat-20260718/`
@@ -15,14 +15,14 @@ socket. When the model is an Ollama model running on the user's own machine,
 that copy is simply wrong and slightly alarming:
 
 - A cold Ollama model can take 10–120s to load its weights into RAM/VRAM before
-  the first token. During that window the UI says **"waiting for provider…"** —
+  the first token. During that window the UI says **"waiting for provider…"**,
   there is no provider; the delay is a local memory load the user's own box is
   doing.
 - If the 180s initial-stall timer fires, the turn is aborted with
   **"No provider data arrived for Ns, so GatesAI stopped the stalled stream."**
   For a big local model on a slow machine this is a false alarm framed as a
   remote failure.
-- The composer footer shows **"provider stalled"** — again, no provider.
+- The composer footer shows **"provider stalled"**, again, no provider.
 
 The roadmap asks: local-aware messaging keyed off `providerId === 'ollama'`
 (and other local runtimes), curated/cycling rather than the single
@@ -37,7 +37,7 @@ Ground truth from the current tree (all citations verified this session):
 |---|---------|----------|--------------|--------------|
 | A | Composer streaming footer | `src/components/editorial/composer/ComposerMeta.tsx:202` `streamFooterLabel()` | `connecting → "waiting for provider..."`, `stalled → "provider stalled"`, `streaming → "streaming..."` | Same string for local + remote |
 | B | Text-turn stall abort reason | `src/services/chat/streamingRoundExecutor.ts:214` | `"No provider data arrived for {n}s, so GatesAI stopped the stalled stream."` | Same string for local + remote |
-| C | Image job "waiting" overlay | `src/components/editorial/ImageJobCard.tsx:125` | `"Waiting on provider..."` | **Gated to remote only** — see §5 |
+| C | Image job "waiting" overlay | `src/components/editorial/ImageJobCard.tsx:125` | `"Waiting on provider..."` | **Gated to remote only**, see §5 |
 
 Key enabler already in place: **`StreamActivity` already carries `providerId`
 and `providerModelId`** (`src/core/types.ts:219-228`), populated in
@@ -48,15 +48,15 @@ can branch on the provider with zero new plumbing. Surface **B** has
 
 Canonical local-model detection already exists: `isLocalChatModel(model)` in
 `src/core/localModelRules.ts:33` keys off `providerId === 'ollama'`. There is no
-`providerId`-only predicate yet — this design adds a tiny one so both the
+`providerId`-only predicate yet, this design adds a tiny one so both the
 Model-shaped and the activity-shaped call sites agree.
 
 ## 3. Design
 
-### 3.1 One home for the copy — `src/core/streamStatusCopy.ts` (new)
+### 3.1 One home for the copy: `src/core/streamStatusCopy.ts` (new)
 
 All status strings move behind pure functions in a single new core module.
-No React, no MobX — trivially unit-testable, importable from both the component
+No React, no MobX, trivially unit-testable, importable from both the component
 (A/C) and the service (B). Layer-legal: `core/` is the lowest layer.
 
 ```ts
@@ -98,7 +98,7 @@ The executor already distinguishes the two timers:
 `state.receivedContent` (line 190/232) is the exact signal. Thread it into the
 stall reason: `coldStart = !state.receivedContent`. For the footer (surface A),
 `phase === 'connecting'` **is** the cold-start window and `phase === 'stalled'`
-after streaming is mid-stream idle — no extra state needed.
+after streaming is mid-stream idle, no extra state needed.
 
 ### 3.3 Curated / cycling copy
 
@@ -107,16 +107,16 @@ than repeats one line. Remote branch is unchanged (single line each).
 
 **Footer (A), local, `connecting`** (cold start), cycled ~every 6s:
 1. `loading {model} into memory…`
-2. `running locally — first token can take a moment on a cold model`
+2. `running locally, first token can take a moment on a cold model`
 3. `warming up the local runtime…`
 
-**Footer (A), local, `stalled`:** `local model went quiet — still waiting…`
+**Footer (A), local, `stalled`:** `local model went quiet, still waiting…`
 **Footer (A), local, `streaming`:** `streaming locally…`
 **Footer (A), local, `tooling`:** `running tools locally…`
 
 **Stall reason (B), local, cold start:**
 `{model} took longer than {n}s to load and respond locally, so GatesAI stopped
-waiting. Cold local models can be slow to load — try again, or pick a smaller
+waiting. Cold local models can be slow to load, try again, or pick a smaller
 model.`
 
 **Stall reason (B), local, mid-stream:**
@@ -138,19 +138,19 @@ Remote turns never start the interval → no behavior/perf change for cloud.
 
 ## 4. Call-site changes
 
-1. **`ComposerMeta.tsx`** — delete the local `streamFooterLabel` (lines
+1. **`ComposerMeta.tsx`**: delete the local `streamFooterLabel` (lines
    202-210), import it from `core/streamStatusCopy`, pass
    `{ phase, providerId, providerModelId, elapsedMs }` from `streamActivity`.
    Add the `useElapsedNow` tick gated on local + streaming + no typed text.
-2. **`streamingRoundExecutor.ts`** — replace the inline template at line 214
+2. **`streamingRoundExecutor.ts`**: replace the inline template at line 214
    with `streamStallReason({ idleSeconds, providerId: options.providerId,
    providerModelId: options.providerModelId, coldStart: !state.receivedContent })`.
-3. **`ImageJobCard.tsx`** — see §5; low-risk copy alignment only.
+3. **`ImageJobCard.tsx`**: see §5; low-risk copy alignment only.
 
 No type changes to `StreamActivity` are needed. No persistence/schema changes.
 No new dependency.
 
-## 5. Image job card (surface C) — scope note
+## 5. Image job card (surface C): scope note
 
 `ImageJobCard.tsx` gates the literal **"Waiting on provider…"** behind
 `remote = job.backend === 'openrouter-image'` (line 119-121); the local image
@@ -172,7 +172,7 @@ New unit test `src/core/streamStatusCopy.test.ts` (Vitest), covering:
   lines across `elapsedMs` buckets and interpolates `providerModelId`.
 - `streamFooterLabel` **remote** returns the exact current strings for every
   phase (regression guard).
-- `streamStallReason` local cold-start vs local mid-stream vs remote — asserts
+- `streamStallReason` local cold-start vs local mid-stream vs remote, asserts
   the word "provider" never appears in any **local** output, and that the
   remote sentence is byte-identical to today's.
 - Missing `providerModelId` falls back to `"the local model"`.
@@ -187,7 +187,7 @@ lint) green; `npm run test:e2e` unaffected but must stay green.
 Copy selection is pure and runtime-agnostic. Web Lite can still surface an
 Ollama provider if the user points at a local endpoint, so the local branch is
 correct in both runtimes; no `core/runtime.ts` gating required. Nothing
-degrades in Web Lite because no new capability is introduced — only string
+degrades in Web Lite because no new capability is introduced, only string
 selection.
 
 ## 8. Acceptance (from roadmap, mapped)
@@ -204,6 +204,6 @@ selection.
 Pure copy + one small UI interval; no schema, no protocol, no security surface.
 Rollback = revert the lane commit. The only behavioral change beyond strings is
 a 1 Hz interval that runs *only* during a local, no-text, streaming footer and
-is torn down on unmount — negligible.
+is torn down on unmount, negligible.
 
 See `DISPATCH.md` in this folder for the exact follow-up task spec.

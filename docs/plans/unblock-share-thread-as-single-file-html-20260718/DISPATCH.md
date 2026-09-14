@@ -1,4 +1,4 @@
-# Follow-up source dispatch — Share thread as single-file HTML
+# Follow-up source dispatch: Share thread as single-file HTML
 
 This roadmap item requires source changes. Execute the task below after reading
 [DESIGN.md](./DESIGN.md) and [EXECUTION.md](./EXECUTION.md).

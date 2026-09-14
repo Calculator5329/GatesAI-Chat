@@ -1,11 +1,11 @@
 # Decision: keep the Go bridge as a separate sidecar (do not fold into Rust)
 
 - Task: `unblock-decide-deliberately-go-bridge-vs-folding-20260718`
-- Roadmap item: `docs/roadmap.md:665` — "Decide deliberately: Go bridge vs
+- Roadmap item: `docs/roadmap.md:665`, "Decide deliberately: Go bridge vs
   folding into a Rust sidecar" (Architecture section)
-- Ethan's decision gate: **APPROVED — "You choose best option"** (verbatim)
+- Ethan's decision gate: **APPROVED, "You choose best option"** (verbatim)
 - Date: 2026-07-18
-- Verdict: **Option A — keep the Go bridge as-is**, formalized in an ADR, with
+- Verdict: **Option A, keep the Go bridge as-is**, formalized in an ADR, with
   two cheap hardening follow-ups that capture most of the security benefit the
   fold would have bought.
 
@@ -47,11 +47,11 @@ sidecar at all; workspace ops become Tauri IPC like `source_workspace_*`.
    exactly the code where a regression is most expensive.
 3. **The roadmap leans on a standalone server binary.** Two future items assume
    the bridge is an independent network-capable process:
-   - `docs/roadmap.md:683` — "LAN companion: bridge serves Web Lite on LAN with
+   - `docs/roadmap.md:683`: "LAN companion: bridge serves Web Lite on LAN with
      pairing code (phone access, data never leaves the network)". A standalone
      HTTP/WS server is exactly what the Go binary already is; a folded-in Tauri
      command surface cannot serve a phone.
-   - `docs/roadmap.md:181` — richer terminal is "blocked on a bridge pty op";
+   - `docs/roadmap.md:181`: richer terminal is "blocked on a bridge pty op";
      Go's pty story (`creack/pty`) is mature and the change is additive.
 4. **Process isolation matters for model-driven exec.** `exec.run` executes
    model-chosen commands. In a sidecar, a hung/crashed/leaking child process
@@ -63,7 +63,7 @@ sidecar at all; workspace ops become Tauri IPC like `source_workspace_*`.
    via `GATESAI_BRIDGE_REPOSITORY` (`docs/architecture.md:82`), the Jordy
    worker and installs use `bin/gatesai-bridge.exe` (CLAUDE.md), and the
    self-improvement build loop rebuilds the app around the existing bridge
-   binary — no user or contributor needs Go installed to build the app.
+   binary, no user or contributor needs Go installed to build the app.
    Binary size (~10 MB) is a one-time installer cost already accepted.
 6. **The real weaknesses of the status quo are cheap to fix without a
    rewrite.** `docs/bridge-protocol.md` documents both honestly:
@@ -73,8 +73,8 @@ sidecar at all; workspace ops become Tauri IPC like `source_workspace_*`.
    - `src-tauri/src/lib.rs:126` **reuses any process** answering
      `GET /health` on 7331 without verifying it is our bridge or a compatible
      version (the WS hello gate does catch protocol mismatch afterward, so
-     this is a smaller gap than it looks — but identity is still unverified).
-   - Cross-repo protocol drift — the historical pain — is now controlled by
+     this is a smaller gap than it looks, but identity is still unverified).
+   - Cross-repo protocol drift, the historical pain, is now controlled by
      the v2 hello handshake (fail-loud, shipped) plus the audited spec.
 
 ## Analysis
@@ -88,14 +88,14 @@ dev flow where a source-run bridge (`go run ./cmd/gatesai-bridge`) is reused by
 of the cost.
 
 **Option B buys almost nothing.** A Rust rewrite keeps the same topology, the
-same loopback surface, the same protocol — its only durable win is dropping Go
+same loopback surface, the same protocol, its only durable win is dropping Go
 from the *bridge repo's* toolchain (nobody else needs it, per evidence 5) and
 one fewer language for maintainers. Against that: days of work re-implementing
 and re-testing the path jail, allowlist, protected paths, streaming exec, and
 WS server; a security-regression window in exactly the wrong layer; and a
 frozen feature roadmap in both repos while the port is in flight. The project's
 own heuristic applies: this is a rewrite with **zero user-visible payoff**.
-"Simpler is better" cuts the other way here — the *simplest* action is the one
+"Simpler is better" cuts the other way here, the *simplest* action is the one
 that changes nothing that works.
 
 **Option A wins on every driver except language count:**
@@ -174,7 +174,7 @@ Reasons, in order of weight:
    awkward if folded into the app.
 3. Model-driven exec belongs in a separate, independently killable process,
    not the WebView host process.
-4. The Go toolchain is invisible to users, contributors, and CI — all consume
+4. The Go toolchain is invisible to users, contributors, and CI, all consume
    prebuilt binaries (release CI via GATESAI_BRIDGE_REPOSITORY; Windows via
    bin/gatesai-bridge.exe). Language consolidation would benefit only bridge
    maintainers, at the cost of a multi-day freeze and a re-verification burden
@@ -182,8 +182,8 @@ Reasons, in order of weight:
 5. Cross-repo protocol drift, the historical cost of the split, is controlled
    by the fail-loud protocol v2 hello handshake and the audited spec.
 
-The known weakness of the sidecar topology — an unauthenticated loopback
-WebSocket with a caller-asserted privileged flag — is addressed by additive
+The known weakness of the sidecar topology, an unauthenticated loopback
+WebSocket with a caller-asserted privileged flag, is addressed by additive
 hardening (spawn-time shared token; health identity check before reusing a
 process on 7331), not by changing the topology.
 
@@ -205,7 +205,7 @@ process on 7331), not by changing the topology.
 
 - Does not edit `docs/roadmap.md` (harvesting session ticks item 665 from
   this folder).
-- Does not create `docs/adr/2026-07-18-bridge-language-go-sidecar.md` — that
+- Does not create `docs/adr/2026-07-18-bridge-language-go-sidecar.md`, that
   path is outside this task's lease; DISPATCH.md specs the task that lands it.
 - Does not touch `../gatesai-bridge` (hard rule; both hardening items that
   involve the bridge are spec'd as separate future tasks).

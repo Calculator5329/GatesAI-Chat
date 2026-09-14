@@ -1,6 +1,6 @@
-# DISPATCH — implement AP-2 background sub-agents on TaskStore
+# DISPATCH: implement AP-2 background sub-agents on TaskStore
 
-Immediately dispatchable. Read `PLAN.md` in this folder first — it is the
+Immediately dispatchable. Read `PLAN.md` in this folder first, it is the
 authoritative design and records the approved decision. The core work is
 **wiring the already-built-but-unwired System B** (`src/services/tasks/` +
 `src/core/agentTaskPolicy.ts`) into the live agent-task path, replacing the
@@ -9,7 +9,7 @@ ledger, and surfacing route/grants/budget/consent in the task center.
 
 ## Task spec
 
-- **title:** AP-2 — durable background sub-agents (spec ledger, fail-closed route, live budgets)
+- **title:** AP-2: durable background sub-agents (spec ledger, fail-closed route, live budgets)
 - **model tier:** smart
 - **goal:** |
     Implement
@@ -24,7 +24,7 @@ ledger, and surfacing route/grants/budget/consent in the task center.
 
     Fail-closed route (replaces `resolveAgentTaskModelId`): resolve the route
     once at creation and persist `route{model_id, provider_id, locality}` on the
-    spec. An explicitly requested model that is unavailable BLOCKS — no
+    spec. An explicitly requested model that is unavailable BLOCKS, no
     fall-through to the origin model or background/background-default model. With
     no model requested, pin the configured background default; if it is
     unavailable, block. A pinned route that becomes unavailable at launch enters
@@ -45,7 +45,7 @@ ledger, and surfacing route/grants/budget/consent in the task center.
     `AgentTaskSpec` (direct delegation = `'user'`), and `skill_id?: string|null`
     on `AgentTaskPolicy` threaded through `evaluateAgentTaskLaunch` so the child
     receives the intersection of requested tools ∩ skill allowlist ∩ runtime
-    availability ∩ parent policy — never broader authority than the parent.
+    availability ∩ parent policy, never broader authority than the parent.
     Because schema-1 spec/policy were never persisted, add these to schema 1
     without a policy-schema bump.
 
@@ -137,5 +137,5 @@ ledger, and surfacing route/grants/budget/consent in the task center.
   user-visible release.
 - Playwright may need the orchestrator's outside-sandbox verifier because the
   sandbox cannot bind the Vite listener. Do not weaken the command.
-- Reuse System B modules — they are already unit-tested. Prefer extending them
+- Reuse System B modules, they are already unit-tested. Prefer extending them
   over reauthoring; delete no passing test without a stated reason.

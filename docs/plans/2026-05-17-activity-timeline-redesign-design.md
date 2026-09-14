@@ -1,12 +1,12 @@
-# Activity Timeline Redesign — Design
+# Activity Timeline Redesign: Design
 
 **Date:** 2026-05-17
 **Status:** Approved (Approach C, current palette)
-**Inspiration:** Claude's own assistant UI — interleaved row design where tool calls, thinking, and prose share one cohesive visual language.
+**Inspiration:** Claude's own assistant UI, interleaved row design where tool calls, thinking, and prose share one cohesive visual language.
 
 ## Goal
 
-Bring the assistant activity timeline up to a consistent, well-designed standard. Today, each activity row is a single-line ASCII glyph stamp; tool calls, thinking, and prose feel like three different products glued together. After this change, every event type (thinking, tool call, image job, bridge event, edits with diff stats) renders through one row primitive with shared icons, typography, slots, and expand behavior — and the stream as a whole can be introduced by an optional muted section header. Thinking becomes a first-class, expandable artifact rather than a transient pre-token pill.
+Bring the assistant activity timeline up to a consistent, well-designed standard. Today, each activity row is a single-line ASCII glyph stamp; tool calls, thinking, and prose feel like three different products glued together. After this change, every event type (thinking, tool call, image job, bridge event, edits with diff stats) renders through one row primitive with shared icons, typography, slots, and expand behavior, and the stream as a whole can be introduced by an optional muted section header. Thinking becomes a first-class, expandable artifact rather than a transient pre-token pill.
 
 We are explicitly **not** doing true prose-interleaving in this pass. Events still sit above the assistant prose. Interleaving is tracked as a follow-up that becomes much smaller once the row primitive exists.
 
@@ -48,7 +48,7 @@ ActivityStream
 | `state` | Visual treatment for running / done / failed / cancelled | `item.state` |
 | `detail` | Expandable body (markdown / terminal / nested rows / artifacts) | `item.detail`, `item.artifacts`, children for groups |
 
-A row is expandable iff it has a detail body, artifacts, or — for groups — children. The chevron renders only when expandable, with the existing opacity-on-hover treatment.
+A row is expandable iff it has a detail body, artifacts, or, for groups, children. The chevron renders only when expandable, with the existing opacity-on-hover treatment.
 
 ### Data model additions
 
@@ -62,7 +62,7 @@ export type ActivityKind =
   | 'image-job'
   | 'exec-tail'
   | 'bridge'
-  | 'reasoning';        // NEW — drives the Thinking row
+  | 'reasoning';        // NEW, drives the Thinking row
 
 export interface ActivityItem {
   // ...existing fields...
@@ -80,7 +80,7 @@ export interface ActivityStats {
 }
 ```
 
-The thinking row is synthesized at render time from `message.workNotes` and `message.preTokenLabel`. It is not persisted into `activityEvents` — keeping the data model untouched and avoiding double-storage.
+The thinking row is synthesized at render time from `message.workNotes` and `message.preTokenLabel`. It is not persisted into `activityEvents`, keeping the data model untouched and avoiding double-storage.
 
 ### Stream composition (pseudo)
 
@@ -112,7 +112,7 @@ Add to [src/components/ui/icons.tsx](src/components/ui/icons.tsx):
 | `Plug` | `bridge` | Connectivity |
 | `Wrench` | `tool` (generic fallback) | Generic |
 
-Icon picked by `(kind, toolName)` with a small lookup table. State colors come from the existing `--accent` / failure-red tokens — no new palette work.
+Icon picked by `(kind, toolName)` with a small lookup table. State colors come from the existing `--accent` / failure-red tokens, no new palette work.
 
 ### CSS
 
@@ -142,7 +142,7 @@ All changes inside the `.activity-*` block in [src/index.css](src/index.css). No
 4. Failed group: a group containing one failed child renders state=`failed` and opens expanded.
 5. Backwards compatibility: an `ActivityItem` with no `stats` and no `groupKey` renders identically to today (snapshot or DOM assertions).
 
-No new e2e tests in this pass — the existing manual smoke (send a message that triggers tool calls, expand each row, confirm thinking expands) is enough.
+No new e2e tests in this pass, the existing manual smoke (send a message that triggers tool calls, expand each row, confirm thinking expands) is enough.
 
 ## Rollout
 

@@ -1,4 +1,4 @@
-# Image-gen UX overhaul — design
+# Image-gen UX overhaul: design
 
 ## Goal
 
@@ -11,10 +11,10 @@ cloud image-gen through OpenRouter later).
 ## Architecture
 
 Image generation detaches from the chat turn. The tool no longer waits for
-pixels — it enqueues a job, returns immediately, and the chat message renders
+pixels, it enqueues a job, returns immediately, and the chat message renders
 a live placeholder card that observes the job and flips to the final image
 when done. Switching threads, sending more turns, or even kicking off a second
-image-gen call is fine — the queue just lines them up.
+image-gen call is fine, the queue just lines them up.
 
 ```
 ChatStore.runTurn → tool: image_generate
@@ -37,12 +37,12 @@ ImageJobCard observes the job, renders progress / final image
 
 MobX store under `src/stores/`. Owns:
 
-- `queue: ImageJob[]` — pending jobs, FIFO
-- `active: ImageJob | null` — the one currently rendering
-- `history: CompletedJob[]` — completed (incl. failed) jobs, sorted newest-first, persisted
-- `enqueue(input): { jobId, count }` — adds a job, kicks the runner if idle
-- `cancel(jobId)` — aborts the active job (if it matches), removes from queue otherwise
-- `delete(jobId)` — removes from history (doesn't delete the file)
+- `queue: ImageJob[]`: pending jobs, FIFO
+- `active: ImageJob | null`: the one currently rendering
+- `history: CompletedJob[]`: completed (incl. failed) jobs, sorted newest-first, persisted
+- `enqueue(input): { jobId, count }`: adds a job, kicks the runner if idle
+- `cancel(jobId)`: aborts the active job (if it matches), removes from queue otherwise
+- `delete(jobId)`: removes from history (doesn't delete the file)
 - `findById(jobId): ImageJob | CompletedJob | null`
 
 Strict serial: one runner. The runner pulls the head of the queue, dispatches,
@@ -75,10 +75,10 @@ interface ImageJob {
 
 ### Per-backend progress adapters (new)
 
-- `services/image/jobs/comfyProgress.ts` — opens a WebSocket to ComfyUI's
+- `services/image/jobs/comfyProgress.ts`: opens a WebSocket to ComfyUI's
   `/ws`, listens for `progress` events (`{value, max}`), forwards them to the
   runner. Closes when the prompt completes. Cancel calls `/queue` interrupt.
-- `services/image/jobs/a1111Progress.ts` — polls `/sdapi/v1/progress` every
+- `services/image/jobs/a1111Progress.ts`: polls `/sdapi/v1/progress` every
   500ms while the job is in flight. Cancel calls `/sdapi/v1/interrupt`.
 
 Both implement a small `JobProgress` interface so the runner doesn't care
@@ -97,7 +97,7 @@ type ToolResultArtifact =
 `image_generate` now returns an `image-job` artifact (jobId + expected count).
 The renderer observes `imageJobs.findById(jobId)` and dispatches on status.
 
-The legacy `'image'` kind stays — it's still useful for tools that produce
+The legacy `'image'` kind stays, it's still useful for tools that produce
 images synchronously and don't want to go through the job queue.
 
 ### `ImageJobCard` (new component)
@@ -161,7 +161,7 @@ just removes from queue. Job moves to `history` with `status='cancelled'`.
 
 **Switching threads mid-render:**
 
-Nothing happens — the runner is store-owned. The card on the *other* thread
+Nothing happens, the runner is store-owned. The card on the *other* thread
 keeps observing the job and updates regardless.
 
 ## Markdown anchor interceptor
@@ -206,7 +206,7 @@ land later as the cloud backend.
 | --------------------------- | ------------------------------ | ---------------- |
 | `gatesai.imagejobs.v1`      | `{ history: CompletedJob[] }`  | `ImageJobStore`  |
 
-Only `history` persists. Pending and active jobs disappear on restart — if
+Only `history` persists. Pending and active jobs disappear on restart, if
 the user closes the app mid-render, the local backend already lost the
 request and trying to resume is fragile.
 
@@ -223,17 +223,17 @@ request and trying to resume is fragile.
 
 ## Testing
 
-- `tests/stores/ImageJobStore.test.ts` — enqueue, runner serial behavior,
+- `tests/stores/ImageJobStore.test.ts`: enqueue, runner serial behavior,
   cancel (active and pending), persistence rehydrate.
-- `tests/services/image/jobs/comfyProgress.test.ts` — WS frame parsing,
+- `tests/services/image/jobs/comfyProgress.test.ts`: WS frame parsing,
   progress event mapping, interrupt.
-- `tests/services/image/jobs/a1111Progress.test.ts` — polling cadence,
+- `tests/services/image/jobs/a1111Progress.test.ts`: polling cadence,
   interrupt.
-- `tests/services/tools/imageGenerate.test.ts` — verify tool now enqueues
+- `tests/services/tools/imageGenerate.test.ts`: verify tool now enqueues
   instead of awaiting; result content + artifacts shape.
-- `tests/components/editorial/ImageJobCard.test.ts` — running / done /
+- `tests/components/editorial/ImageJobCard.test.ts`: running / done /
   failed / cancelled states.
-- `tests/components/menu/sections/Gallery.test.ts` — empty state, populated
+- `tests/components/menu/sections/Gallery.test.ts`: empty state, populated
   state, delete.
 - Existing `flux*` tests deleted as part of the fal removal.
 

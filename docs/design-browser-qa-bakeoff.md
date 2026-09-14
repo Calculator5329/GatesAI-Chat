@@ -96,7 +96,7 @@ stores its raw evidence under its disjoint
 `artifacts/browser-qa-bakeoff/raw/<variant>/` ownership; the packet assembly
 step copies the judge-facing selection to its separate packet path.
 
-## Option A — plain Playwright, codegen-assisted
+## Option A: plain Playwright, codegen-assisted
 
 ### How tests are authored
 
@@ -125,7 +125,7 @@ existing stable test id exists.
 - **Maintenance profile:** good for one-off smoke coverage, weaker if future
   agents repeatedly regenerate rather than understand the behavior contract.
 
-## Option B — accessibility-tree-driven agent authoring
+## Option B: accessibility-tree-driven agent authoring
 
 ### How tests are authored
 
@@ -157,13 +157,13 @@ code during the experiment.
   intentional. Failures can reveal real accessibility regressions rather than
   merely test-selector drift.
 
-## Option C — contract-first Playwright flow fixture
+## Option C: contract-first Playwright flow fixture
 
 ### How tests are authored
 
 The lane begins from the three behavior contracts, inspects existing e2e
 fixtures and app source, and creates a **lane-local thin fixture/helper** that
-names product actions and state invariants—for example `openBakeoffApp`,
+names product actions and state invariants, for example `openBakeoffApp`,
 `sendPrompt`, `bottomDistance`, `openWorkspaceFile`, and
 `exposeAvailableUpdate`. The spec remains Playwright TypeScript and should read
 as a short user story; the helper contains mocking and low-level DOM mechanics.
@@ -297,10 +297,10 @@ outside-sandbox verification** instead of retrying, changing global setup, or
 weakening acceptance. The three scored runs and packet assembly remain
 outside-sandbox verification requirements.
 
-### Lane A — codegen-assisted baseline
+### Lane A: codegen-assisted baseline
 
 ```text
-Title: Browser QA bake-off A — codegen-assisted Playwright
+Title: Browser QA bake-off A, codegen-assisted Playwright
 Owns: tests/e2e/bakeoff/option-a.spec.ts
        artifacts/browser-qa-bakeoff/raw/option-a/
 Goal: Implement exactly the three common flow contracts in
@@ -319,10 +319,10 @@ Acceptance: the isolated command passes three consecutive times; the spec has
             and all required screenshots/traces/run metadata exist.
 ```
 
-### Lane B — accessibility-tree-driven authoring
+### Lane B: accessibility-tree-driven authoring
 
 ```text
-Title: Browser QA bake-off B — accessibility-tree-driven Playwright
+Title: Browser QA bake-off B, accessibility-tree-driven Playwright
 Owns: tests/e2e/bakeoff/option-b.spec.ts
        artifacts/browser-qa-bakeoff/raw/option-b/
 Goal: Implement exactly the three common flow contracts in
@@ -343,10 +343,10 @@ Acceptance: the isolated command passes three consecutive times; the spec has
             screenshots/traces/outlines/run metadata exist.
 ```
 
-### Lane C — contract-first thin fixture
+### Lane C: contract-first thin fixture
 
 ```text
-Title: Browser QA bake-off C — contract-first Playwright fixture
+Title: Browser QA bake-off C, contract-first Playwright fixture
 Owns: tests/e2e/bakeoff/option-c.spec.ts
        tests/e2e/bakeoff/option-c.fixture.ts
        artifacts/browser-qa-bakeoff/raw/option-c/
@@ -372,7 +372,7 @@ If only two execution slots are available, dispatch B and C and use the
 existing e2e suite as context for A; do not serialize three lanes unless Ethan
 wants the full controlled baseline.
 
-### Packet assembly — serialized after all lanes
+### Packet assembly: serialized after all lanes
 
 ```text
 Title: Assemble browser QA bake-off judge packet

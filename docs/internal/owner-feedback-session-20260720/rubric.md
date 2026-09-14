@@ -5,9 +5,9 @@ which mode you would actually choose for the next feature review.
 
 | Mode | Speed | Clarity | Trust | Taste feedback | Completion effort |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| A — Guided missions |  |  |  |  |  |
-| B — Evidence board |  |  |  |  |  |
-| C — Speech-first challenge deck |  |  |  |  |  |
+| A. Guided missions |  |  |  |  |  |
+| B. Evidence board |  |  |  |  |  |
+| C. Speech-first challenge deck |  |  |  |  |  |
 | Standard Forge review packet |  |  |  |  |  |
 | Visions structured input |  |  |  |  |  |
 | In-chat spoken review |  |  |  |  |  |

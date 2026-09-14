@@ -1,4 +1,4 @@
-# DISPATCH — Portable mode (ZIP, data beside EXE)
+# DISPATCH: Portable mode (ZIP, data beside EXE)
 
 The approved design requires a small bridge prerequisite and one app/release
 implementation. Dispatch in order. Both executors must read
@@ -6,7 +6,7 @@ implementation. Dispatch in order. Both executors must read
 `EXECUTION.md` from `ai/gatesai-chat` before editing. Do not reopen the decided
 marker, port, data layout, secret, update, or packaging policies.
 
-## Task 1 — bridge portable data-root option
+## Task 1: bridge portable data-root option
 
 - **title:** `Bridge: add explicit portable data root with movable relative workspace`
 - **repo:** `ai/gatesai-bridge`
@@ -44,7 +44,7 @@ marker, port, data layout, secret, update, or packaging policies.
   - Changelog/tracking docs are true; no secrets or personal paths enter
     fixtures.
 
-## Task 2 — app portable runtime and Windows ZIP release asset
+## Task 2: app portable runtime and Windows ZIP release asset
 
 - **title:** `Ship Windows portable ZIP with all non-secret data beside the EXE`
 - **repo:** `ai/gatesai-chat`

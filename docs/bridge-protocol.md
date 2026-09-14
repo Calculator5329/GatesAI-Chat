@@ -101,7 +101,7 @@ causes `BridgeStore` to disconnect the socket, enter `incompatible`, keep
 bridge-backed tools unavailable, and show:
 
 ```text
-Bridge speaks v<bridge>, app needs v2 — update the bridge.
+Bridge speaks v<bridge>, app needs v2, update the bridge.
 ```
 
 There is no range negotiation or downgrade path.

@@ -1,4 +1,4 @@
-# Agent Handles adoption prompt — gatesai-chat
+# Agent Handles adoption prompt: gatesai-chat
 
 You are the project-specific editor. Deterministic Agent Handles code owns
 detection and verification; you own source inspection, identity naming, and
@@ -14,7 +14,7 @@ Measured project facts:
 - control candidates: 223 total, 195 definite, 28 review-required, 223 unresolved
 - invalid or legacy identities requiring migration: 27
 
-## Phase 1 — identity
+## Phase 1: identity
 
 Edit vite.config.ts:
 - import { agentHandles } from "agent-handles/vite";
@@ -70,41 +70,41 @@ proposal. Such a scope reduction remains needs-owner-verdict until the owner
 records a choice.
 
 Review-required candidates:
-- candidate:06856809e99ebf09 — src/components/dock/DockPanel.tsx:87 <div> (handler:onPointerDown)
-- candidate:f8652316cd16ec28 — src/components/dock/DockPanel.tsx:106 <div> (handler:onPointerDown)
-- candidate:c897fe674ea75351 — src/components/dock/TaskCenterPanel.tsx:80 <article> (tabIndex, handler:onClick, handler:onKeyDown)
-- candidate:6ea5145af0fbea78 — src/components/editorial/BridgeStatusPill.tsx:51 <div> (tabIndex, handler:onClick, handler:onKeyDown)
-- candidate:20fa72c70f84ccc8 — src/components/editorial/composer/ComposerInput.tsx:74 <AttachButton> (handler:onClick)
-- candidate:051da806b6368e3f — src/components/editorial/composer/SkillPopover.tsx:48 <SkillRow> (handler:onClick)
-- candidate:ad6ed8e830da209c — src/components/editorial/composer/SkillPopover.tsx:56 <SkillRow> (handler:onClick)
-- candidate:aa670016417f9500 — src/components/editorial/EditorialComposer.tsx:238 <ComposerInput> (handler:onKeyDown)
-- candidate:9c20d38c378f3c97 — src/components/editorial/EditorialMessage.tsx:191 <div> (handler:onClick)
-- candidate:3d9a5205562012c7 — src/components/editorial/EditorialMessage.tsx:225 <div> (handler:onClick)
-- candidate:6c29291ada8edb4d — src/components/editorial/EditorialMessage.tsx:270 <div> (handler:onClick)
-- candidate:26c5a378b22eb01b — src/components/editorial/EditorialMessage.tsx:307 <div> (handler:onClick)
-- candidate:609772c70f598469 — src/components/editorial/EditorialSidebar.tsx:277 <div> (role:button, tabIndex, handler:onClick, handler:onKeyDown)
-- candidate:e5600e3f9be0de48 — src/components/editorial/EditorialSidebar.tsx:448 <div> (role:button, tabIndex, handler:onClick, handler:onKeyDown)
-- candidate:1d03a94aff783269 — src/components/editorial/EditorialSidebar.tsx:575 <div> (handler:onClick)
-- candidate:846e1589569e340f — src/components/editorial/EditorialSidebar.tsx:619 <div> (handler:onClick)
-- candidate:405530ea36bdaa37 — src/components/editorial/HtmlArtifactPreview.tsx:170 <span> (role:button, tabIndex, handler:onClick, handler:onKeyDown)
-- candidate:3fdb1da7f7d72cfe — src/components/editorial/ImageJobCard.tsx:282 <GridTile> (handler:onClick)
-- candidate:5d38b206a4783f6d — src/components/editorial/ModelPopover.tsx:226 <div> (role:option, handler:onClick)
-- candidate:2e1bd7333d815317 — src/components/editorial/ModelPopover.tsx:386 <div> (handler:onKeyDown)
-- candidate:0c8a1b5395761d75 — src/components/editorial/PromptCards.tsx:71 <form> (handler:onSubmit)
-- candidate:194be6858582aef4 — src/components/editorial/SidebarSettingsButton.tsx:45 <span> (tabIndex, handler:onClick, handler:onKeyDown)
-- candidate:2ff88ac3bc6ecd0d — src/components/editorial/UpdatePill.tsx:46 <span> (tabIndex, handler:onClick, handler:onKeyDown)
-- candidate:a20b6b158501520b — src/components/media/Lightbox.tsx:57 <div> (handler:onClick)
-- candidate:a0b1c1d9a2e1276a — src/components/media/Lightbox.tsx:122 <div> (handler:onClick)
-- candidate:567d4ff2d1e9c073 — src/components/palette/CommandPalette.tsx:227 <div> (handler:onClick, legacy-id:command-palette-backdrop)
-- candidate:bde9964b1d1e5842 — src/components/palette/CommandPalette.tsx:235 <div> (handler:onClick, handler:onKeyDown)
-- candidate:585aa3d5bf5451c8 — src/components/whats-new/WhatsNewPanel.tsx:50 <div> (handler:onMouseDown)
+- candidate:06856809e99ebf09, src/components/dock/DockPanel.tsx:87 <div> (handler:onPointerDown)
+- candidate:f8652316cd16ec28, src/components/dock/DockPanel.tsx:106 <div> (handler:onPointerDown)
+- candidate:c897fe674ea75351, src/components/dock/TaskCenterPanel.tsx:80 <article> (tabIndex, handler:onClick, handler:onKeyDown)
+- candidate:6ea5145af0fbea78, src/components/editorial/BridgeStatusPill.tsx:51 <div> (tabIndex, handler:onClick, handler:onKeyDown)
+- candidate:20fa72c70f84ccc8, src/components/editorial/composer/ComposerInput.tsx:74 <AttachButton> (handler:onClick)
+- candidate:051da806b6368e3f, src/components/editorial/composer/SkillPopover.tsx:48 <SkillRow> (handler:onClick)
+- candidate:ad6ed8e830da209c, src/components/editorial/composer/SkillPopover.tsx:56 <SkillRow> (handler:onClick)
+- candidate:aa670016417f9500, src/components/editorial/EditorialComposer.tsx:238 <ComposerInput> (handler:onKeyDown)
+- candidate:9c20d38c378f3c97, src/components/editorial/EditorialMessage.tsx:191 <div> (handler:onClick)
+- candidate:3d9a5205562012c7, src/components/editorial/EditorialMessage.tsx:225 <div> (handler:onClick)
+- candidate:6c29291ada8edb4d, src/components/editorial/EditorialMessage.tsx:270 <div> (handler:onClick)
+- candidate:26c5a378b22eb01b, src/components/editorial/EditorialMessage.tsx:307 <div> (handler:onClick)
+- candidate:609772c70f598469, src/components/editorial/EditorialSidebar.tsx:277 <div> (role:button, tabIndex, handler:onClick, handler:onKeyDown)
+- candidate:e5600e3f9be0de48, src/components/editorial/EditorialSidebar.tsx:448 <div> (role:button, tabIndex, handler:onClick, handler:onKeyDown)
+- candidate:1d03a94aff783269, src/components/editorial/EditorialSidebar.tsx:575 <div> (handler:onClick)
+- candidate:846e1589569e340f, src/components/editorial/EditorialSidebar.tsx:619 <div> (handler:onClick)
+- candidate:405530ea36bdaa37, src/components/editorial/HtmlArtifactPreview.tsx:170 <span> (role:button, tabIndex, handler:onClick, handler:onKeyDown)
+- candidate:3fdb1da7f7d72cfe, src/components/editorial/ImageJobCard.tsx:282 <GridTile> (handler:onClick)
+- candidate:5d38b206a4783f6d, src/components/editorial/ModelPopover.tsx:226 <div> (role:option, handler:onClick)
+- candidate:2e1bd7333d815317, src/components/editorial/ModelPopover.tsx:386 <div> (handler:onKeyDown)
+- candidate:0c8a1b5395761d75, src/components/editorial/PromptCards.tsx:71 <form> (handler:onSubmit)
+- candidate:194be6858582aef4, src/components/editorial/SidebarSettingsButton.tsx:45 <span> (tabIndex, handler:onClick, handler:onKeyDown)
+- candidate:2ff88ac3bc6ecd0d, src/components/editorial/UpdatePill.tsx:46 <span> (tabIndex, handler:onClick, handler:onKeyDown)
+- candidate:a20b6b158501520b, src/components/media/Lightbox.tsx:57 <div> (handler:onClick)
+- candidate:a0b1c1d9a2e1276a, src/components/media/Lightbox.tsx:122 <div> (handler:onClick)
+- candidate:567d4ff2d1e9c073, src/components/palette/CommandPalette.tsx:227 <div> (handler:onClick, legacy-id:command-palette-backdrop)
+- candidate:bde9964b1d1e5842, src/components/palette/CommandPalette.tsx:235 <div> (handler:onClick, handler:onKeyDown)
+- candidate:585aa3d5bf5451c8, src/components/whats-new/WhatsNewPanel.tsx:50 <div> (handler:onMouseDown)
 
 Run npx agent-handles scan check and npx agent-handles ratchet check
 until every candidate is resolved. Do not remove handlers, roles, routes, or
 controls to improve the denominator. Do not weaken the predicate or raise a
 ratchet floor.
 
-## Phase 2 — journeys
+## Phase 2: journeys
 
 Start only after phase 1 is clean. Explore the running app and author meaningful
 control-path journeys plus any explicitly labeled URL-path journeys. Runtime

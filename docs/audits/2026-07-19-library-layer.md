@@ -1,4 +1,4 @@
-# Local knowledge library — implementation evidence
+# Local knowledge library: implementation evidence
 
 Date: 2026-07-19
 
@@ -35,7 +35,7 @@ Focused tests cover workspace containment, document bounds, schema-only SQLite,
 source persistence and reversible controls, safe export/import, library RAG
 provenance, read-only tool behavior, registry availability, and Agent UI state.
 
-- `env -u NODE_ENV npm run ci`: **pass** — 162 files, 1,174 tests,
+- `env -u NODE_ENV npm run ci`: **pass**, 162 files, 1,174 tests,
   TypeScript, and ESLint.
-- `env -u NODE_ENV npm run test:e2e`: **pass** — 28 desktop-mocked and
+- `env -u NODE_ENV npm run test:e2e`: **pass**, 28 desktop-mocked and
   Web Lite browser tests.

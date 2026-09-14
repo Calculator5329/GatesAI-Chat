@@ -1,4 +1,4 @@
-# Workbench vision — right dock, unified tasks, artifact contract, updater
+# Workbench vision: right dock, unified tasks, artifact contract, updater
 
 *Direction from Ethan, 2026-07-12. This is the design frame; each phase below
 should get its own dated plan doc before implementation. Nothing here is
@@ -22,13 +22,13 @@ three-region **workbench**:
 - Chat stays the center of gravity; the dock is where *things the chat
   produces or works on* live (artifacts, files, tasks, terminals).
 
-## Phase 1 — Dock shell + panel framework
+## Phase 1: Dock shell + panel framework
 
 The enabler for everything else. Build the dock as a generic panel host, not
 five bespoke sidebars.
 
 - `DockStore` (MobX): `cells: [PanelRef | null, PanelRef | null]`, split
-  ratio, collapsed flag — persisted per… app, not per thread (v1).
+  ratio, collapsed flag, persisted per… app, not per thread (v1).
 - `PanelRef = { kind: PanelKind, params }`; a registry maps `PanelKind` →
   component + title + icon, same shape as the tool registry pattern.
 - Panels are openable from: chat content (e.g. "open in dock" on a file
@@ -41,19 +41,19 @@ Panel kinds, roughly in build order:
 | Panel | v1 scope | Backing |
 |---|---|---|
 | **File viewer** | md (rendered), html (sandboxed iframe, same policy as artifact preview), json (pretty/collapsible), txt | existing `fs.read` bridge op |
-| **Code viewer/editor** | syntax highlight + edit + save for js/ts/json/md/html; *simple* — CodeMirror 6, no LSP, no tabs-inside-panel | `fs.read`/`fs.write`; dependency decision: CodeMirror is the one new dep this program should buy |
+| **Code viewer/editor** | syntax highlight + edit + save for js/ts/json/md/html; *simple*. CodeMirror 6, no LSP, no tabs-inside-panel | `fs.read`/`fs.write`; dependency decision: CodeMirror is the one new dep this program should buy |
 | **File explorer** | single-root workspace tree, expand/collapse, click→opens viewer/editor panel, no drag-drop/rename in v1 | new `fs.list` recursive bridge op (or iterate existing) |
 | **Media viewer** | images (incl. generated), video/audio via native elements | existing `/view`-style bridge file serving |
 | **Task center** | see Phase 3 | TaskStore |
-| **Terminal** | see Phase 3 (cmd tasks) — read-only log view first, interactive pty later | bridge pty op (new, bridge repo task) |
+| **Terminal** | see Phase 3 (cmd tasks): read-only log view first, interactive pty later | bridge pty op (new, bridge repo task) |
 | **Artifact panel** | pinned HTML artifact from the registry (Phase 2) | ArtifactStore |
 
 Web Lite: dock exists but only panels whose backing works browser-side
 (artifact panel, viewers for content already in memory). Feature-gate via
-`core/runtime.ts` as usual — degrade by hiding panel kinds, never
+`core/runtime.ts` as usual, degrade by hiding panel kinds, never
 half-rendering them.
 
-## Phase 2 — HTML artifacts as a first-class contract
+## Phase 2: HTML artifacts as a first-class contract
 
 Today: `artifact` tool (`validate_html` / `create_html_artifact`) +
 `HtmlArtifactPreview` render. What's missing is the **contract**:
@@ -72,7 +72,7 @@ Today: `artifact` tool (`validate_html` / `create_html_artifact`) +
   the error trail (`/workspace/logs/errors-*.jsonl`) with the artifact id.
 - Artifacts open in the dock's artifact panel by default; fullscreen stays.
 
-## Phase 3 — Background tasks as one framework
+## Phase 3: Background tasks as one framework
 
 Insight: **image gen is already the template.** `ImageJobStore` has the
 queue/active/history/persist/recover/cancel/retry lifecycle; `spawnTask` +
@@ -81,10 +81,10 @@ a third bespoke system:
 
 - `Task` abstraction: `{ id, kind, title, threadId?, status:
   pending|running|done|failed|cancelled, progress?, results[], error?,
-  createdAt/startedAt/completedAt, costUsd? }` — deliberately the ImageJob
+  createdAt/startedAt/completedAt, costUsd? }`, deliberately the ImageJob
   shape, promoted.
 - `TaskKind` v1: `image` (adapt ImageJobStore behind it), `agent`
-  (background subagent runs — the big one), `command` (a live-running shell
+  (background subagent runs, the big one), `command` (a live-running shell
   command via the bridge exec/pty path; none exist yet, design for it now).
 - One **TaskStore** owning the ledger + persistence + boot recovery (reuse
   the interrupted-job recovery pattern); per-kind runners plug in. Failures
@@ -93,13 +93,13 @@ a third bespoke system:
   cost, click-through to the producing thread. Replaces "scroll the chat to
   find the image card" as the way to see what's at work.
 - Concurrency: per-kind caps (images serial as today; agents N=2?; commands
-  user-approved individually — exec allowlist and path jail still apply).
+  user-approved individually, exec allowlist and path jail still apply).
 
 Migration note: keep `ImageJobStore`'s public surface stable for the UI
 during the refactor (it has 22 tests that should keep passing), introduce
 TaskStore around it, then fold.
 
-## Phase 4 — Fullscreen + window polish (small, do early)
+## Phase 4: Fullscreen + window polish (small, do early)
 
 - `fullscreen: false` in `tauri.conf.json` is only the initial state; there
   is currently **no** toggle wired. Add `F11` (Linux/Windows convention) via
@@ -107,15 +107,15 @@ TaskStore around it, then fold.
 - Discoverability: list it in the command palette ("Toggle fullscreen"),
   the keyboard-shortcuts help, and the What's New note.
 - The existing `.html-artifact-fullscreen` (artifact maximize) is a
-  different feature — keep the naming distinct in UI copy.
+  different feature, keep the naming distinct in UI copy.
 
-## Phase 5 — Updates that reach users (releases repo)
+## Phase 5: Updates that reach users (releases repo)
 
 Today users must notice a new release and re-download. Fix with Tauri's
 official updater against the **existing public releases repo**:
 
 1. Add `tauri-plugin-updater` + `tauri-plugin-process`; generate a signing
-   keypair (`npm run tauri signer generate`) — private key becomes a GitHub
+   keypair (`npm run tauri signer generate`): private key becomes a GitHub
    Actions secret, public key goes in `tauri.conf.json`. **The private key
    never enters either repo.**
 2. Release workflow (`tauri-action` already builds on tag push) additionally
@@ -123,13 +123,13 @@ official updater against the **existing public releases repo**:
    to `Calculator5329/GatesAI-Chat-releases`.
 3. Updater endpoint:
    `https://github.com/Calculator5329/GatesAI-Chat-releases/releases/latest/download/latest.json`
-   — works unauthenticated because the releases repo is public.
-4. In-app UX: check on launch (+ every ~6h), non-blocking "v4.6 available —
+   works unauthenticated because the releases repo is public.
+4. In-app UX: check on launch (+ every ~6h), non-blocking "v4.6 available,
    Restart to update" pill; download/install via the plugin; respect an
    opt-out setting. Linux: auto-update applies to the **AppImage** build
-   (deb/rpm users get a "new version" notice + link instead — plugin
+   (deb/rpm users get a "new version" notice + link instead, plugin
    limitation). Web Lite already updates itself by being a website.
-5. Keep release asset names stable (hard rule) — `latest.json` is additive.
+5. Keep release asset names stable (hard rule): `latest.json` is additive.
 
 This is the cheapest phase with the highest user impact; it can ship
 independently of the workbench.

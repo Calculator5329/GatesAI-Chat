@@ -1,11 +1,11 @@
-# HTML Artifacts — Design
+# HTML Artifacts: Design
 
 Date: 2026-04-27
 
 ## Goal
 
 Let the model return self-contained, interactive HTML/CSS/JS artifacts that
-render inline in the chat — Claude.ai-style Artifacts, scoped to the local
+render inline in the chat. Claude.ai-style Artifacts, scoped to the local
 Tauri app. Mini-tools, calculators, visualizations, demos. Eventually these
 become saveable/reusable assets in their own gallery (deferred).
 
@@ -13,8 +13,8 @@ become saveable/reusable assets in their own gallery (deferred).
 
 One registry tool with two modes:
 
-- `create` — `{ title, html, summary? }` → `{ artifact_id, version: 1 }`
-- `update` — `{ artifact_id, html, change_note? }` → bumps version
+- `create`: `{ title, html, summary? }` → `{ artifact_id, version: 1 }`
+- `update`: `{ artifact_id, html, change_note? }` → bumps version
 
 Single-file HTML only. Inline `<style>` / `<script>` allowed; external CDN
 imports allowed (we run local, no offline constraint). Size cap **1 MB**.
@@ -24,7 +24,7 @@ Always-on in `toolDefsForTurn` (no keyword gating).
 
 `ArtifactCard` component, modeled on `ImageJobCard`:
 
-- `<iframe srcdoc=…>` with `sandbox="allow-scripts allow-popups"` — no
+- `<iframe srcdoc=…>` with `sandbox="allow-scripts allow-popups"`, no
   `allow-same-origin`, so the artifact is isolated from host cookies /
   localStorage. External CDN scripts still work.
 - Default height ~420px, "Expand" → full-screen modal (Lightbox shell).
@@ -67,7 +67,7 @@ New `ArtifactStore` (Zustand, mirrors `ImageJobStore`) + `artifactStorage.ts`
 
 Tool returns immediately with `{ artifact_id, version }`. Thread message
 content carries an artifact ref `{ kind: 'artifact', id, version }`, not
-the HTML blob — keeps history small and lets `update` re-render the same
+the HTML blob, keeps history small and lets `update` re-render the same
 card cleanly.
 
 ## Out of scope (deferred)

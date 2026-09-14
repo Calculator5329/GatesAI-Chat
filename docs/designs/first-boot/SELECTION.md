@@ -2,7 +2,7 @@
 
 Append only. Record each round’s pick, keeps, kills, and Ethan’s exact nitpicks verbatim. Do not convert feedback into a summary or infer acceptance from workflow state.
 
-## Seed feedback — before round 1
+## Seed feedback: before round 1
 
 No `docs/taste.md` or prior first-boot `SELECTION.md` exists in this checkout, and the owned-path board context reported no notes. The relevant owner-recorded roadmap feedback is quoted below.
 

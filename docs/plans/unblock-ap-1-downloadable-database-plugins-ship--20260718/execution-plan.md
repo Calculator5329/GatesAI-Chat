@@ -1,6 +1,6 @@
-# AP-1 — Downloadable database plugins — execution plan
+# AP-1: Downloadable database plugins, execution plan
 
-**Roadmap item:** "AP-1 — Downloadable database plugins. Ship versioned,
+**Roadmap item:** "AP-1. Downloadable database plugins. Ship versioned,
 data-only knowledge/database bundles that users can inspect, explicitly install
 and enable; agents can initiate the approval-gated install flow and query
 enabled bundles through bounded read-only operations with stable citations."
@@ -30,7 +30,7 @@ AP-1 as written spans a Rust Tauri package engine, a TypeScript service+store,
 core parser contracts, root-store/tool-registry/persistence wiring, and a
 user-facing lifecycle UI. The accepted design already decomposes this into
 **Items C1, D1, D2, X1, D3** across Phases 0-2 of the platform plan. Those
-Items are the correct unit of dispatch — each is sized for one session and has
+Items are the correct unit of dispatch, each is sized for one session and has
 a literal `owns` set. This plan's job is to (a) confirm those boundaries against
 the current tree, (b) sequence them with real dependencies, (c) map them to the
 AP-1 slice of the V1 acceptance envelope, and (d) hand off the first Item.
@@ -60,7 +60,7 @@ What already exists in this worktree, confirmed by inspection:
   `src/core/agentTaskPolicy.ts`, `src/core/agentOutcomes.ts` (+
   `tests/core/agentOutcomes.test.ts`), `src/core/agentSchedules.ts`,
   `src/core/subAgentPolicy.ts`. **`src/core/databasePlugins.ts` does NOT yet
-  exist** — that is Item C1, the first AP-1 Item and the content of `DISPATCH.md`.
+  exist**, that is Item C1, the first AP-1 Item and the content of `DISPATCH.md`.
 - **No `.gatesdb` engine exists**: no `src-tauri/src/database_plugins.rs`, no
   `src/services/databasePlugins/`, no `src/stores/DatabasePluginStore.ts`, no
   `tests/fixtures/database-plugins/`.
@@ -84,7 +84,7 @@ blocking edges.
 
 | Item | Title | Depends on | `owns` (literal) | Verify |
 | --- | --- | --- | --- | --- |
-| **C1** | Package schema + ADR (pure parser) | — (unblocked now) | `docs/adr/2026-07-18-database-plugin-packages.md`, `src/core/databasePlugins.ts`, `tests/core/databasePlugins.test.ts` | `npm run test -- databasePlugins && npm run typecheck && npm run lint` |
+| **C1** | Package schema + ADR (pure parser) |, (unblocked now) | `docs/adr/2026-07-18-database-plugin-packages.md`, `src/core/databasePlugins.ts`, `tests/core/databasePlugins.test.ts` | `npm run test -- databasePlugins && npm run typecheck && npm run lint` |
 | **D1** | Tauri `.gatesdb` package engine | C1 | `src-tauri/src/database_plugins.rs`, `src-tauri/src/lib.rs`, `src-tauri/Cargo.toml`, `src-tauri/Cargo.lock`, `src-tauri/tests/database_plugins.rs`, `tests/fixtures/database-plugins/` | `cargo test --manifest-path src-tauri/Cargo.toml` |
 | **D2** | DB plugin service + store | C1 (parallel D1) | `src/services/databasePlugins/`, `src/stores/DatabasePluginStore.ts`, `tests/services/databasePlugins/`, `tests/stores/DatabasePluginStore.test.ts` | `npm run test -- databasePlugins DatabasePluginStore && npm run typecheck && npm run lint` |
 | **X1** | Phase-1 platform wiring (AP-1 slice) | D1, D2 | `src/stores/RootStore.ts`, `src/stores/context.tsx`, `src/services/tools/registry.ts`, `src/services/chat/contextModes.ts`, `src/services/persistence/migrations.ts`, their corresponding tests | `npm run ci` |
@@ -98,7 +98,7 @@ Notes on boundaries:
   migration + bump schema version; and enforce the **local-data/cloud-route
   block before prompt assembly** in `contextModes.ts`. If B1 (AP-2) has not
   landed when X1 runs, X1 wires only the DB-plugin half and leaves TaskStore
-  policy wiring to AP-2's own integration — the `owns` files overlap, so X1 and
+  policy wiring to AP-2's own integration, the `owns` files overlap, so X1 and
   AP-2's B1-wiring must be sequenced, not parallel (flagged as a cross-Story
   coordination point for the harvesting session).
 - D3 registers the five model-facing tools as **one file + registry lines +
@@ -109,12 +109,12 @@ Notes on boundaries:
 Downstream Items implement, but the contract is fixed by the design so C1's
 types must anticipate it:
 
-- `database_plugins.list` — installed/enabled metadata + available datasets.
-- `database_plugins.search` — bounded text query, dataset enum, `limit`.
-- `database_plugins.lookup` — named lookup + typed scalar parameters only.
-- `database_plugins.schema` — published field descriptions; never raw SQLite
+- `database_plugins.list`: installed/enabled metadata + available datasets.
+- `database_plugins.search`: bounded text query, dataset enum, `limit`.
+- `database_plugins.lookup`: named lookup + typed scalar parameters only.
+- `database_plugins.schema`: published field descriptions; never raw SQLite
   internals or rows beyond a bounded projection.
-- `database_plugins.propose_install` — creates a user-visible install proposal;
+- `database_plugins.propose_install`: creates a user-visible install proposal;
   never downloads or enables by itself.
 
 Every evidence row carries an opaque citation
@@ -124,7 +124,7 @@ the Offline Library `kiwix://`/`db://` citation guarantee, already tested).
 
 ## 5. Non-negotiable rails inherited by every AP-1 Item
 
-From design "Privacy and safety rails" and the shared invariants — each Item's
+From design "Privacy and safety rails" and the shared invariants, each Item's
 tests must encode the ones it touches:
 
 1. **Data-only, no code.** V1 bundles contain no scripts, native libs, HTML,
@@ -142,7 +142,7 @@ tests must encode the ones it touches:
 5. **local_only vs cloud_allowed.** Manifest `data_policy` is a *ceiling*;
    default is local-only; user may tighten, never loosen past the author's
    declaration. `local_only` data + cloud route **blocks before context
-   assembly** — no provider request, no fallback, no model switch.
+   assembly**, no provider request, no fallback, no model switch.
 6. **Integrity != identity.** `checksums.json` proves payload integrity; an
    optional signature is *displayed* with its key fingerprint and only called
    "trusted" after the user trusts that key/catalog. Mandatory trust roots and
@@ -183,26 +183,26 @@ four Stories land.
 
 - **X1 file overlap with AP-2.** `RootStore.ts`, `context.tsx`, `registry.ts`,
   `migrations.ts` are shared integration surfaces. AP-1's X1 and AP-2's B1
-  wiring both want them. Sequence them (one merges, the next rebases) — do not
+  wiring both want them. Sequence them (one merges, the next rebases): do not
   dispatch as parallel lanes. Flag in the integration Item.
 - **Schema-version bump race.** Any concurrent lane that adds a migration bumps
   `CURRENT_CHAT_SCHEMA_VERSION`. Whichever of X1 / AP-2 / AP-3 lands first takes
   the next integer; the rest rebase their migration onto it. Not parallel-safe.
 - **`Cargo.lock` churn.** D1 adds a Rust dep for archive/SQLite handling (e.g.
   bounded zip + `rusqlite` immutable open). Adding a dependency is a deliberate
-  decision (repo rule) — D1's ADR/PR must justify it and keep the list short;
+  decision (repo rule): D1's ADR/PR must justify it and keep the list short;
   prefer crates already in the tree if they suffice.
 - **Offline Library must not regress.** The adapter-registry change (design's
   built-in `loopback_service`) is a *display/registry* change only; D2/D3 tests
   must assert the Offline Library transport and its ADR-governed commands are
   untouched.
 - **Signature scope creep.** V1 is *display only* for signatures. Any lane
-  tempted to enforce trust roots/revocation must stop and route a new ADR — it
+  tempted to enforce trust roots/revocation must stop and route a new ADR, it
   is explicitly later scope.
 
 ## 8. Dispatch sequence
 
-1. **Now:** `DISPATCH.md` (Item C1) — pure core parser + ADR, unblocked,
+1. **Now:** `DISPATCH.md` (Item C1): pure core parser + ADR, unblocked,
    self-contained, no Tauri/UI. Green on `npm run test -- databasePlugins`,
    `typecheck`, `lint`.
 2. **After C1 merges:** dispatch D1 and D2 in parallel (disjoint `owns`).

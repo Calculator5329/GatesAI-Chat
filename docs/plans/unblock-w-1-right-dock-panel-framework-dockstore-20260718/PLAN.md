@@ -1,4 +1,4 @@
-# W-1 completion plan — right-dock code editor
+# W-1 completion plan: right-dock code editor
 
 Date: 2026-07-18  
 Decision input: **APPROVED**  
@@ -113,7 +113,7 @@ rail only when something needs attention:
 ```
 
 At 11pm, when Ethan is tired, the editor should feel like a sheet of code that
-happens to be editable—not an IDE asking to be managed. The file path is quiet,
+happens to be editable, not an IDE asking to be managed. The file path is quiet,
 `Save` is the only persistent command, clean state recedes, dirty state uses a
 small amber word, success uses muted emerald briefly, and red appears only for
 an actionable failure.

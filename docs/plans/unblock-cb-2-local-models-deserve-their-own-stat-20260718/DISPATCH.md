@@ -1,4 +1,4 @@
-# DISPATCH — CB-2 source lane
+# DISPATCH: CB-2 source lane
 
 Follow-up implementation task spec for the design in `design.md` (this folder).
 The design lane owns only planning; this dispatch implements the source change.
@@ -13,29 +13,29 @@ remote-provider-framed strings, per `docs/plans/unblock-cb-2-local-models-deserv
 Concretely:
 
 1. Create `src/core/streamStatusCopy.ts` (pure, no React/MobX) exporting:
-   - `isLocalProviderId(providerId?: string): boolean` — `true` only for `'ollama'`.
-   - `streamFooterLabel({ phase, providerId, providerModelId, elapsedMs })` — the
+   - `isLocalProviderId(providerId?: string): boolean`: `true` only for `'ollama'`.
+   - `streamFooterLabel({ phase, providerId, providerModelId, elapsedMs })`: the
      composer footer label; remote branch returns today's exact strings
      (`connecting → "waiting for provider..."`, `stalled → "provider stalled"`,
      `tooling → "running tools..."`, `streaming → "streaming..."`), local branch
      returns curated copy (cold-start cycling through the 3 lines in design §3.3,
      interpolating a trimmed `providerModelId`, falling back to `"the local model"`).
-   - `streamStallReason({ idleSeconds, providerId, providerModelId, coldStart })` —
+   - `streamStallReason({ idleSeconds, providerId, providerModelId, coldStart })`,
      the stall abort sentence; remote branch byte-identical to today's
      `"No provider data arrived for {n}s, so GatesAI stopped the stalled stream."`,
      local branch uses the cold-start vs mid-stream sentences in design §3.3 and
      never contains the word "provider".
-2. `src/components/editorial/composer/ComposerMeta.tsx` — remove the inline
+2. `src/components/editorial/composer/ComposerMeta.tsx`: remove the inline
    `streamFooterLabel` (lines ~202-210), import from `core/streamStatusCopy`, pass
    `phase/providerId/providerModelId/elapsedMs` off `streamActivity`. Add a minimal
    `useElapsedNow` 1 Hz tick active ONLY while
    `streaming && !hasText && isLocalProviderId(streamActivity?.providerId)`, torn
    down on unmount; feed `elapsedMs = now - streamActivity.startedAt`.
-3. `src/services/chat/streamingRoundExecutor.ts` — replace the inline stall
+3. `src/services/chat/streamingRoundExecutor.ts`: replace the inline stall
    template (line ~214) with
    `streamStallReason({ idleSeconds, providerId: options.providerId,
    providerModelId: options.providerModelId, coldStart: !state.receivedContent })`.
-4. `src/components/editorial/ImageJobCard.tsx` — VERIFY ONLY that no `local-comfy`
+4. `src/components/editorial/ImageJobCard.tsx`: VERIFY ONLY that no `local-comfy`
    job reaches the `"Waiting on provider..."` overlay (it is gated behind
    `remote = job.backend === 'openrouter-image'`). Optional cosmetic: change the
    remote overlay label to `"waiting on {backendLabel}…"`. Do NOT alter the
