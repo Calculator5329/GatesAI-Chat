@@ -173,14 +173,9 @@ const MemorySection = observer(function MemorySection() {
 
 const KnowledgeLibrarySection = observer(function KnowledgeLibrarySection() {
   const { library, bridge } = useRootStore();
-  if (isWebLite()) {
-    return (
-      <div style={semanticBlockStyle}>
-        <div style={subsectionTitleStyle}>Knowledge library</div>
-        <div style={detailStyle}>Local documents and databases are available in the desktop app.</div>
-      </div>
-    );
-  }
+  // Desktop-only: Web Lite has no local documents to index, so the block is
+  // absent there rather than shown as an explanation of what it cannot do.
+  if (isWebLite()) return null;
   return (
     <div style={semanticBlockStyle}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
@@ -239,16 +234,9 @@ const SemanticRecallSection = observer(function SemanticRecallSection() {
   const [previewStatus, setPreviewStatus] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState(false);
 
-  if (isWebLite()) {
-    return (
-      <div style={semanticBlockStyle}>
-        <div style={subsectionTitleStyle}>Semantic recall</div>
-        <div style={detailStyle}>
-          Semantic recall needs the desktop app and a local Ollama embedding model. Web Lite keeps saved facts only.
-        </div>
-      </div>
-    );
-  }
+  // Desktop-only: recall needs a local Ollama embedding model. Web Lite keeps
+  // saved facts only, so the block is absent there.
+  if (isWebLite()) return null;
 
   const threads = chat.threads.filter(thread => thread.deletedAt == null);
   const sourceGroups = [

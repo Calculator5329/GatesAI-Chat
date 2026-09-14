@@ -25,13 +25,18 @@ test.describe('chat interaction polish', () => {
     });
     const composerFocus = await page.locator('.composer-row').evaluate(element => {
       const style = getComputedStyle(element);
-      return { radius: parseFloat(style.borderRadius), shadow: style.boxShadow };
+      return { radius: parseFloat(style.borderRadius), shadow: style.boxShadow, border: style.borderColor };
     });
+    await textarea.blur();
+    const composerBlur = await page.locator('.composer-row').evaluate(element => getComputedStyle(element).borderColor);
 
     expect(textareaFocus.outline).toBe('none');
     expect(textareaFocus.shadow).toBe('none');
     expect(composerFocus.radius).toBeGreaterThan(8);
-    expect(composerFocus.shadow).not.toBe('none');
+    // Focus is a border tint on the rounded row, never an inner glow
+    // (the glow was retired 2026-09-13 as a distracting green halo).
+    expect(composerFocus.shadow).toBe('none');
+    expect(composerFocus.border).not.toBe(composerBlur);
   });
 
   test('wheel intent over the message column disengages follow and bottom re-engages it', async ({ page }) => {

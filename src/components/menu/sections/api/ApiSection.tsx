@@ -38,7 +38,7 @@ export const ApiSection = observer(function ApiSection() {
   );
 });
 
-const SearchCard = observer(function SearchCard() {
+export const SearchCard = observer(function SearchCard() {
   const search = useSearchStore();
   return (
     <Card style={{ marginBottom: 12 }} data-testid="settings.models.search-card">
@@ -46,7 +46,7 @@ const SearchCard = observer(function SearchCard() {
         <ProviderAvatar name="Brave" />
         <div style={{ flex: 1 }}>
           <div style={cardTitleStyle}>Web search</div>
-          <div style={cardDescStyle}>Brave grounding for quick answers and background deep research</div>
+          <div style={cardDescStyle}>Brave grounding for web answers</div>
         </div>
         {search.braveReady ? <Pill>● Connected</Pill> : <Pill tone="muted">Not connected</Pill>}
       </div>
@@ -60,7 +60,7 @@ const SearchCard = observer(function SearchCard() {
           getKeyUrl={search.braveReady ? undefined : 'https://api.search.brave.com/app/keys'}
         />
         <div style={hintStyle}>
-          Quick answers use a compact search budget. Research runs broader multi-pass searches in a visible background task.
+          Web answers use a compact search budget per turn.
         </div>
       </div>
     </Card>

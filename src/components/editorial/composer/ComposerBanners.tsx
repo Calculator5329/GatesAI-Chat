@@ -3,6 +3,7 @@
 // is the generic dismissable notice used for persistence/compaction messages.
 import { observer } from 'mobx-react-lite';
 import { useEditorial } from '../../../stores/context';
+import { isWebLite } from '../../../core/runtime';
 
 export const ModelsKeyBanner = observer(function ModelsKeyBanner() {
   const { router } = useEditorial();
@@ -19,7 +20,7 @@ export const ModelsKeyBanner = observer(function ModelsKeyBanner() {
       fontSize: 13,
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
     }}>
-      <span>Add an OpenRouter key in Models to start chatting.</span>
+      <span>Please enter an OpenRouter API key to chat.</span>
       <button data-testid="workspace.composer-banners.open-models"
         type="button"
         className="editorial-banner-action"
@@ -35,7 +36,7 @@ export const ModelsKeyBanner = observer(function ModelsKeyBanner() {
           fontFamily: 'inherit',
         }}
       >
-        Open models
+        {isWebLite() ? 'Open settings' : 'Open models'}
       </button>
     </div>
   );

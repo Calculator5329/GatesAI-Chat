@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:12.817Z",
+  "measuredAt": "2026-09-14T00:20:07.351Z",
   "journeyName": "agent-library-and-index",
   "lastStep": 13,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/menu/agent",

@@ -129,6 +129,10 @@
     "workspace.image-job-card.cancel-pending": {
       "removedAt": "2026-09-04",
       "reason": "Cancel is now scoped per job (workspace.image-job-card.cancel-pending-<jobId>) so two pending renders no longer share one identity."
+    },
+    "workspace.composer-meta.start-deep-research": {
+      "removedAt": "2026-09-13",
+      "reason": "Deep research was removed from the composer meta row; the standalone research route was glitchy and had no place in Web Lite."
     }
   }
 }

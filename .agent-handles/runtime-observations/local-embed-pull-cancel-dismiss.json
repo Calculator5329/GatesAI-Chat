@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:17.425Z",
+  "measuredAt": "2026-09-14T00:20:09.830Z",
   "journeyName": "local-embed-pull-cancel-dismiss",
   "lastStep": 7,
   "pageUrl": "http://localhost:5273/?scenario=local-no-embed#/thread/local-empty",
@@ -8,7 +8,6 @@
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.local-context-mode",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
     "workspace.composer.draft",
@@ -31,5 +30,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "22 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "21 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

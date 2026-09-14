@@ -1,15 +1,12 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:32.683Z",
+  "measuredAt": "2026-09-14T00:20:30.183Z",
   "journeyName": "web-lite-open-model-settings",
-  "lastStep": 4,
-  "pageUrl": "http://localhost:5274/?scenario=desktop-ready#/menu/models",
+  "lastStep": 3,
+  "pageUrl": "http://localhost:5274/?scenario=desktop-ready#/menu/settings",
   "observedTestIds": [
     "settings.gates-menu.tab-agent",
-    "settings.gates-menu.tab-models",
     "settings.gates-menu.tab-settings",
-    "settings.models-api-section.commit",
-    "settings.models-api-section.http-127-0-0-1-11434",
     "settings.models-open-router-catalog-row.clear",
     "settings.models-open-router-catalog-row.refresh",
     "settings.preferences.button",
@@ -19,7 +16,6 @@
     "settings.preferences.export-json",
     "settings.preferences.import-mode-merge",
     "settings.preferences.import-mode-replace",
-    "settings.preferences.toggle",
     "settings.secret-key.connect-brave",
     "settings.secret-key.get-key-brave",
     "settings.secret-key.input-brave",
@@ -29,8 +25,6 @@
     "settings.segmented.option-theme-dark",
     "settings.segmented.option-theme-light",
     "settings.segmented.option-theme-system",
-    "settings.segmented.option-ui-pack-aurora",
-    "settings.segmented.option-ui-pack-classic",
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
     "workspace.editorial-sidebar.delete-active",
@@ -45,5 +39,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "36 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "30 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

@@ -1,7 +1,7 @@
 {
   "schema": "agent-handles/adoption-state/v1",
   "startedAt": "2026-08-26T02:27:58.557Z",
-  "updatedAt": "2026-09-04T17:31:33.003Z",
+  "updatedAt": "2026-09-14T00:20:31.132Z",
   "passCount": 1,
   "status": "verified",
   "initialBaseline": {
@@ -81,6 +81,7 @@
       "candidate:07e8c4d8af487dc4",
       "candidate:082ea1c0c286eca5",
       "candidate:08e25c94a93bcab4",
+      "candidate:0a5a31393c87d687",
       "candidate:0b91b7c86c5d8fa4",
       "candidate:0bb1ab64da88d816",
       "candidate:0c5af31386463afd",
@@ -281,7 +282,6 @@
       "candidate:e89dc437491e84e4",
       "candidate:e94487ac7d4f3a05",
       "candidate:e9e4a2093825ad70",
-      "candidate:ec4e5f8fa8a81b3f",
       "candidate:ec8434bffd6f2972",
       "candidate:ecf82e9cf980ec4b",
       "candidate:ecfa1a69c2121c03",

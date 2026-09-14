@@ -1108,16 +1108,33 @@
     width: 100%;
   }
 
+  /* Touch-sized buttons. Toggles and segmented options keep their own
+     geometry: a 32x18 switch inflated to 112x40 is a green slab, and the
+     three-way theme control overflowed its card once every option grew. */
   .runtime-web-lite .settings-action-controls > button,
-  .runtime-web-lite .settings-row__content button {
+  .runtime-web-lite .settings-action-row > .ui-button,
+  .runtime-web-lite .settings-row__content button:not(.ui-toggle):not(.ui-segmented__button) {
     min-height: 40px;
     border-radius: 10px !important;
     padding: 0 12px !important;
     font-size: 12.5px !important;
   }
 
-  .runtime-web-lite .settings-row__content > div > button {
+  .runtime-web-lite .settings-row__content > div > button:not(.ui-toggle):not(.ui-segmented__button) {
     min-width: 112px;
+  }
+
+  .runtime-web-lite .settings-action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .runtime-web-lite .settings-action-row > .ui-button,
+  .runtime-web-lite .settings-action-row .settings-action-controls {
+    width: 100%;
+  }
+  .runtime-web-lite .settings-action-row .settings-action-controls > button {
+    flex: 1 1 auto;
   }
 
   .runtime-web-lite .settings-data-summary {

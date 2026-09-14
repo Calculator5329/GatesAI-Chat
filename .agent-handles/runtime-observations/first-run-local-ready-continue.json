@@ -1,9 +1,9 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:25.950Z",
+  "measuredAt": "2026-09-14T00:20:22.833Z",
   "journeyName": "first-run-local-ready-continue",
   "lastStep": 4,
-  "pageUrl": "http://localhost:5273/?scenario=first-run-local-ready#/thread/t-mtn8dh8cachr",
+  "pageUrl": "http://localhost:5273/?scenario=first-run-local-ready#/thread/t-mu0hy1yzf2gt",
   "observedTestIds": [
     "settings.secret-key.connect-onboarding-openrouter",
     "settings.secret-key.get-key-onboarding-openrouter",
@@ -11,7 +11,6 @@
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.local-context-mode",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
     "workspace.composer.draft",
@@ -19,16 +18,16 @@
     "workspace.editorial-chat.look-around",
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
-    "workspace.editorial-sidebar.delete-t-mtn8dh8cachr",
-    "workspace.editorial-sidebar.pin-t-mtn8dh8cachr",
-    "workspace.editorial-sidebar.rename-t-mtn8dh8cachr",
+    "workspace.editorial-sidebar.delete-t-mu0hy1yzf2gt",
+    "workspace.editorial-sidebar.pin-t-mu0hy1yzf2gt",
+    "workspace.editorial-sidebar.rename-t-mu0hy1yzf2gt",
     "workspace.editorial-sidebar.settings-amp-menu-live-here",
-    "workspace.editorial-sidebar.thread-t-mtn8dh8cachr",
+    "workspace.editorial-sidebar.thread-t-mu0hy1yzf2gt",
     "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu"
   ],
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "21 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "20 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

@@ -1,7 +1,8 @@
 // The composer meta row beneath the input: model picker, workspace-skill
-// picker (desktop only), the per-provider context/thinking selects, the
-// context-usage meter, and the streaming status label. Presentational — the
-// active model/thread/skill state and mutation callbacks come from
+// picker (desktop only) and the per-provider context/thinking select on the
+// left; the context-usage meter on the right, which the streaming status
+// label replaces while a turn is in flight. Presentational: the active
+// model/thread/skill state and mutation callbacks come from
 // EditorialComposer; ContextMeter keeps its own observer for token/spend.
 import { lazy, Suspense } from 'react';
 import { Icons } from '../../ui/icons';
@@ -13,7 +14,7 @@ import {
 import type { Model, StreamActivity, Thread } from '../../../core/types';
 import type { WorkspaceSkill } from '../../../stores/SkillsStore';
 import { tokens } from '../../../core/styleTokens';
-import { ACCENT_DOT_STYLE, LOCAL_CONTEXT_SELECT_STYLE, META_ROW_STYLE, MODEL_LABEL_STYLE, SEP_STYLE } from './composerStyles';
+import { ACCENT_DOT_STYLE, LOCAL_CONTEXT_SELECT_STYLE, META_ROW_STYLE, MODEL_LABEL_STYLE } from './composerStyles';
 import { ContextMeter } from './ContextMeter';
 import { SkillPopover } from './SkillPopover';
 import { streamFooterLabelForActivity } from '../../../core/statusCopy';
@@ -45,10 +46,6 @@ interface ComposerMetaProps {
   streaming: boolean;
   hasText: boolean;
   streamActivity: StreamActivity | undefined;
-  researchDisabled: boolean;
-  researchConfigured: boolean;
-  researchRouteReady: boolean;
-  onResearch: () => void;
 }
 
 export function ComposerMeta({
@@ -75,18 +72,7 @@ export function ComposerMeta({
   streaming,
   hasText,
   streamActivity,
-  researchDisabled,
-  researchConfigured,
-  researchRouteReady,
-  onResearch,
 }: ComposerMetaProps) {
-  const researchTitle = researchDisabled
-    ? 'Write a research question first'
-    : !researchConfigured
-      ? 'Add a Brave Search key in Models'
-      : !researchRouteReady
-        ? 'Connect a chat model before starting research'
-        : 'Research this question in the background';
   return (
     <div className="editorial-composer__meta" style={META_ROW_STYLE}>
       <div style={{ position: 'relative' }}>
@@ -152,36 +138,12 @@ export function ComposerMeta({
           )}
         </div>
       )}
-      {activeThread && activeThread.agentTask !== true && (
-        <button data-testid="workspace.composer-meta.start-deep-research"
-          type="button"
-          className="composer-research-label"
-          onClick={onResearch}
-          disabled={researchDisabled}
-          title={researchTitle}
-          aria-label="Start deep research"
-          style={{
-            ...MODEL_LABEL_STYLE,
-            border: 'none',
-            background: 'transparent',
-            font: 'inherit',
-            color: researchConfigured ? 'var(--accent)' : 'var(--text-faint)',
-            cursor: researchDisabled ? 'default' : 'pointer',
-            opacity: researchDisabled ? 0.55 : 1,
-            flex: 'none',
-          }}
-        >
-          <Icons.Search />
-          <span>Research</span>
-        </button>
-      )}
       {/* Local context / thinking controls stay tucked away until the
           composer is hovered or focused, then slide out (see .composer-reveal
           in index.css). On touch devices the reveal media query never
           matches, so they remain visible. */}
       {activeThread && currentModel?.providerId === 'ollama' && (
         <span className="composer-reveal">
-          <span style={SEP_STYLE}>·</span>
           <select data-testid="workspace.composer-meta.local-context-mode"
             className="composer-local-select"
             value={localContextMode}
@@ -198,7 +160,6 @@ export function ComposerMeta({
       )}
       {activeThread && currentModel?.providerId === 'openrouter' && (
         <span className="composer-reveal">
-          <span style={SEP_STYLE}>·</span>
           <select data-testid="workspace.composer-meta.thinking-effort"
             className="composer-local-select"
             value={thinkingEffort}
@@ -214,26 +175,28 @@ export function ComposerMeta({
           </select>
         </span>
       )}
-      <span className="composer-meta__sep" style={{ color: 'var(--accent)', opacity: 0.5, flex: 'none' }}>·</span>
-      <ContextMeter draftText={draftText} />
-      <span
-        className="composer-stream-label"
-        aria-live="polite"
-        style={{
-        marginLeft: 'auto',
-        flex: 'none',
-        fontFamily: '"Geist Mono", monospace',
-        color: 'var(--accent)',
-        opacity: streaming ? 0.85 : 0,
-        transition: `opacity ${tokens.motion.fade}`,
-        letterSpacing: '0.06em',
-        minHeight: 18,
-        minWidth: '20ch',
-        textAlign: 'right',
-        whiteSpace: 'nowrap',
-      }}>
-        {streaming ? (hasText ? 'Enter to interrupt' : streamFooterLabelForActivity(streamActivity)) : ''}
-      </span>
+      {streaming ? (
+        <span
+          className="composer-stream-label"
+          aria-live="polite"
+          style={{
+            marginLeft: 'auto',
+            flex: 'none',
+            fontFamily: '"Geist Mono", monospace',
+            color: 'var(--accent)',
+            opacity: 0.85,
+            transition: `opacity ${tokens.motion.fade}`,
+            letterSpacing: '0.06em',
+            minHeight: 18,
+            textAlign: 'right',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {hasText ? 'Enter to interrupt' : streamFooterLabelForActivity(streamActivity)}
+        </span>
+      ) : (
+        <ContextMeter draftText={draftText} />
+      )}
     </div>
   );
 }

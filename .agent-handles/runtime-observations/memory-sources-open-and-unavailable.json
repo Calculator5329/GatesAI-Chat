@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:13.469Z",
+  "measuredAt": "2026-09-14T00:20:08.424Z",
   "journeyName": "memory-sources-open-and-unavailable",
   "lastStep": 13,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/menu/agent",
@@ -34,7 +34,6 @@
     "settings.gates-menu.tab-settings",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -43,6 +42,7 @@
     "workspace.editorial-message.branch-memory-user",
     "workspace.editorial-message.copy-memory-assistant",
     "workspace.editorial-message.copy-memory-user",
+    "workspace.editorial-message.download-memory-assistant",
     "workspace.editorial-message.edit-memory-user",
     "workspace.editorial-message.regenerate-memory-assistant",
     "workspace.editorial-sidebar.begin-a-new-conversation",

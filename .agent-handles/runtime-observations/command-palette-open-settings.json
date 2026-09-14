@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:21.801Z",
+  "measuredAt": "2026-09-14T00:20:14.088Z",
   "journeyName": "command-palette-open-settings",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/settings",
@@ -41,7 +41,6 @@
     "settings.segmented.option-ui-pack-classic",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -50,6 +49,7 @@
     "workspace.editorial-message.branch-active-user",
     "workspace.editorial-message.copy-active-assistant",
     "workspace.editorial-message.copy-active-user",
+    "workspace.editorial-message.download-active-assistant",
     "workspace.editorial-message.edit-active-user",
     "workspace.editorial-message.regenerate-active-assistant",
     "workspace.editorial-sidebar.begin-a-new-conversation",

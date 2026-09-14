@@ -119,49 +119,12 @@ afterEach(() => {
 });
 
 describe('EditorialComposer API-key banner', () => {
-  it('keeps the question and opens Models when Research needs a Brave key', () => {
-    store = buildStore();
-    store.providers.setKey('openrouter', 'sk-test');
-    const rendered = render(store);
-    act(() => store!.ui.setDraft('Compare the two approaches'));
-
-    const research = rendered.querySelector('button[aria-label="Start deep research"]') as HTMLButtonElement;
-    expect(research.disabled).toBe(false);
-    act(() => research.click());
-
-    expect(store.router.menuSection).toBe('models');
-    expect(store.ui.draft).toBe('Compare the two approaches');
-  });
-
-  it('launches configured research as a visible background task and clears the draft', () => {
-    store = buildStore();
-    store.providers.setKey('openrouter', 'sk-test');
-    store.search.setBraveKey('brv-test');
-    const start = vi.spyOn(store.chat, 'startDeepResearch').mockReturnValue({
-      ok: true,
-      message: "Task 'Research' started in background.",
-      threadId: 'research-1',
-    });
-    const rendered = render(store);
-    act(() => store!.ui.setDraft('What should we build next?'));
-
-    act(() => {
-      (rendered.querySelector('button[aria-label="Start deep research"]') as HTMLButtonElement).click();
-    });
-
-    expect(start).toHaveBeenCalledWith('What should we build next?', store.chat.activeThreadId);
-    expect(store.ui.draft).toBe('');
-    expect(store.dock.cells[0]?.kind).toBe('task-center');
-    expect(rendered.textContent).toContain("Task 'Research' started in background.");
-    expect(rendered.textContent).toContain('Open research');
-  });
-
   it('shows the API-key banner and disables send when no provider is configured', () => {
     store = buildStore();
     store.ui.setOnboardingDismissed(true);
     const rendered = render(store);
 
-    expect(rendered.textContent).toContain('Add an OpenRouter key in Models to start chatting.');
+    expect(rendered.textContent).toContain('Please enter an OpenRouter API key to chat.');
 
     // Send button is the last visual control inside the composer row. The
     // wrapper div has cursor + opacity inline styles tied to canSend.
@@ -186,7 +149,7 @@ describe('EditorialComposer API-key banner', () => {
     act(() => store!.ui.setDraft('hello'));
 
     // Pre-condition: banner present, send disabled.
-    expect(rendered.textContent).toContain('Add an OpenRouter key in Models to start chatting.');
+    expect(rendered.textContent).toContain('Please enter an OpenRouter API key to chat.');
     let sendWrapper = sendControl(rendered);
     expect(sendWrapper.disabled).toBe(true);
     expect(sendWrapper.style.opacity).toBe('0.45');
@@ -197,7 +160,7 @@ describe('EditorialComposer API-key banner', () => {
     await flush(2);
 
     // Post-condition: banner gone, send enabled.
-    expect(rendered.textContent).not.toContain('Add an OpenRouter key in Models to start chatting.');
+    expect(rendered.textContent).not.toContain('Please enter an OpenRouter API key to chat.');
     sendWrapper = sendControl(rendered);
     expect(sendWrapper.disabled).toBe(false);
     expect(sendWrapper.style.opacity).toBe('1');
@@ -240,7 +203,7 @@ describe('EditorialComposer API-key banner', () => {
 
     expect(rendered.textContent).toContain('Nemotron 3 Ultra free');
     expect(rendered.textContent).not.toContain('Select model');
-    expect(rendered.textContent).not.toContain('Add an OpenRouter key in Models to start chatting.');
+    expect(rendered.textContent).not.toContain('Please enter an OpenRouter API key to chat.');
     const sendWrapper = sendControl(rendered);
     expect(sendWrapper.disabled).toBe(false);
     expect(sendWrapper.style.opacity).toBe('1');
@@ -273,7 +236,7 @@ describe('EditorialComposer API-key banner', () => {
 
     act(() => store!.ui.setDraft('a neon greenhouse at night'));
 
-    expect(rendered.textContent).not.toContain('Add an OpenRouter key in Models to start chatting.');
+    expect(rendered.textContent).not.toContain('Please enter an OpenRouter API key to chat.');
     expect(rendered.textContent).not.toContain('Start and connect ComfyUI');
     const sendWrapper = sendControl(rendered);
     expect(sendWrapper.disabled).toBe(false);

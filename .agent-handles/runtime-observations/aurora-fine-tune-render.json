@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:07.001Z",
+  "measuredAt": "2026-09-14T00:20:00.155Z",
   "journeyName": "aurora-fine-tune-render",
   "lastStep": 12,
   "pageUrl": "http://localhost:5273/?scenario=aurora-pack#/thread/aurora-active",
@@ -20,7 +20,6 @@
     "workspace.aurora-fine-tune-card.toggle",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -29,6 +28,7 @@
     "workspace.editorial-message.branch-aurora-user",
     "workspace.editorial-message.copy-aurora-assistant",
     "workspace.editorial-message.copy-aurora-user",
+    "workspace.editorial-message.download-aurora-assistant",
     "workspace.editorial-message.edit-aurora-user",
     "workspace.editorial-message.regenerate-aurora-assistant",
     "workspace.editorial-sidebar.begin-a-new-conversation",

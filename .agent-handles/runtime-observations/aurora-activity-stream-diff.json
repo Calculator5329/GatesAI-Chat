@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:26.867Z",
+  "measuredAt": "2026-09-14T00:20:24.866Z",
   "journeyName": "aurora-activity-stream-diff",
   "lastStep": 8,
   "pageUrl": "http://localhost:5273/?scenario=aurora-pack#/thread/aurora-active",
@@ -15,16 +15,15 @@
     "workspace.aurora-fine-tune-card.toggle",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
     "workspace.composer.draft",
-    "workspace.editorial-chat.editorial-jump-to-bottom",
     "workspace.editorial-message.branch-aurora-assistant",
     "workspace.editorial-message.branch-aurora-user",
     "workspace.editorial-message.copy-aurora-assistant",
     "workspace.editorial-message.copy-aurora-user",
+    "workspace.editorial-message.download-aurora-assistant",
     "workspace.editorial-message.edit-aurora-user",
     "workspace.editorial-message.regenerate-aurora-assistant",
     "workspace.editorial-sidebar.begin-a-new-conversation",
@@ -49,5 +48,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "40 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "39 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

@@ -50,7 +50,7 @@ export const ROW_STYLE: CSSProperties = {
 };
 
 export const META_ROW_STYLE: CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 8, marginTop: 8,
+  display: 'flex', alignItems: 'center', gap: 10, marginTop: 8,
   fontSize: 11.5, color: 'var(--accent)',
   position: 'relative',
   minHeight: 18,
@@ -67,10 +67,6 @@ export const MODEL_LABEL_STYLE: CSSProperties = {
 
 export const ACCENT_DOT_STYLE: CSSProperties = {
   width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)',
-};
-
-export const SEP_STYLE: CSSProperties = {
-  color: 'var(--accent)', opacity: 0.5, flex: 'none',
 };
 
 export const LOCAL_CONTEXT_SELECT_STYLE: CSSProperties = {

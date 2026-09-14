@@ -20,9 +20,19 @@ export function formatProviderErrorRecovery(message: AssistantMessage, error: st
   ].join('\n\n');
 }
 
+export const OPENROUTER_KEY_REJECTED_MESSAGE = "Looks like your OpenRouter key isn't working. Enter a valid key in Settings.";
+
 export function normalizeProviderErrorMessage(message: string): string {
   const trimmed = message.trim();
   const lower = trimmed.toLowerCase();
+  if (
+    lower.includes('openrouter 401')
+    || (lower.includes('"code":401') && lower.includes('openrouter'))
+    || (lower.includes('user not found') && lower.includes('openrouter'))
+    || (lower.includes('no auth credentials') && lower.includes('openrouter'))
+  ) {
+    return OPENROUTER_KEY_REJECTED_MESSAGE;
+  }
   if (
     lower.includes('openrouter 402')
     || (lower.includes('"code":402') && lower.includes('openrouter'))
