@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:23.055Z",
+  "measuredAt": "2026-09-14T00:20:20.179Z",
   "journeyName": "image-job-retry-failed-and-cancelled",
   "lastStep": 7,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/images",
@@ -10,16 +10,15 @@
     "workspace.activity-row.toggle-call-img-tour:0",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
     "workspace.composer.draft",
-    "workspace.editorial-chat.editorial-jump-to-bottom",
     "workspace.editorial-message.branch-images-assistant-1",
     "workspace.editorial-message.branch-images-user",
     "workspace.editorial-message.copy-images-assistant-1",
     "workspace.editorial-message.copy-images-user",
+    "workspace.editorial-message.download-images-assistant-1",
     "workspace.editorial-message.edit-images-user",
     "workspace.editorial-message.regenerate-images-assistant-1",
     "workspace.editorial-sidebar.begin-a-new-conversation",
@@ -54,5 +53,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "45 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "44 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

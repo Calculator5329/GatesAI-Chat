@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:15.604Z",
+  "measuredAt": "2026-09-14T00:20:11.173Z",
   "journeyName": "memory-source-open-thread",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/tool",
@@ -9,7 +9,6 @@
     "workspace.activity-row.toggle-tool-assistant:work-note:0",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -22,6 +21,8 @@
     "workspace.editorial-message.copy-memory-user",
     "workspace.editorial-message.copy-tool-assistant",
     "workspace.editorial-message.copy-tool-user",
+    "workspace.editorial-message.download-memory-assistant",
+    "workspace.editorial-message.download-tool-assistant",
     "workspace.editorial-message.edit-memory-user",
     "workspace.editorial-message.edit-tool-user",
     "workspace.editorial-message.regenerate-memory-assistant",
@@ -60,5 +61,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "51 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "52 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

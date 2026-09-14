@@ -106,10 +106,12 @@ describe('Agent semantic-memory management', () => {
     expect(rendered.host.textContent).toContain('Include');
   });
 
-  it('keeps Web Lite honest and hides unusable Ollama controls', () => {
+  it('keeps Web Lite to instructions and memory, with no desktop-only blocks', () => {
     const rendered = renderAgent(true);
-    expect(rendered.host.textContent).toContain('Local documents and databases are available in the desktop app');
-    expect(rendered.host.textContent).toContain('needs the desktop app and a local Ollama embedding model');
+    expect(rendered.host.textContent).toContain('Instructions');
+    expect(rendered.host.textContent).toContain('Saved facts');
+    expect(rendered.host.textContent).not.toContain('Knowledge library');
+    expect(rendered.host.textContent).not.toContain('Semantic recall');
     expect(rendered.host.textContent).not.toContain('Try recall');
     expect(rendered.host.querySelectorAll('[role="switch"]')).toHaveLength(0);
   });

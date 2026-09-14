@@ -7,6 +7,7 @@ import {
   type Route,
   formatHash,
   readRoute,
+  resolveMenuSection,
   subscribeRoute,
   writeRoute,
 } from '../services/router';
@@ -22,8 +23,13 @@ export class RouterStore {
   constructor() {
     this.route = readRoute();
     makeAutoObservable<this, 'dispose'>(this, { dispose: false });
+    // A retired or runtime-folded hash (`#/menu/gallery`, `#/menu/models` in
+    // Web Lite) parses to its new home; rewrite the address bar to match so
+    // reloads and shared links carry the canonical section.
+    writeRoute(this.route);
     this.dispose = subscribeRoute(next => {
       runInAction(() => { this.route = next; });
+      writeRoute(next);
     });
   }
 
@@ -34,7 +40,8 @@ export class RouterStore {
     writeRoute(next);
   }
 
-  goMenu(section: MenuSectionKey = 'settings'): void {
+  goMenu(requested: MenuSectionKey = 'settings'): void {
+    const section = resolveMenuSection(requested);
     if (this.route.kind === 'menu' && this.route.section === section) return;
     const next: Route = { kind: 'menu', section };
     this.route = next;

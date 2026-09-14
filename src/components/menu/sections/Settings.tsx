@@ -11,10 +11,28 @@ import { useRootStore, useUiStore } from '../../../stores/context';
 import { isWebLite } from '../../../core/runtime';
 import { DEFAULT_GLOBAL_SUMMON_CHORD } from '../../../core/shortcutChord';
 import { ChordRecorder } from './ChordRecorder';
+import { ProviderCard, OPENROUTER_PROVIDER_INFO } from './api/ProviderCard';
+import { SearchCard } from './api/ApiSection';
 
 type DataImportMode = 'merge' | 'replace';
 
 export const SettingsSection = observer(function SettingsSection() {
+  // Web Lite has no Models tab, so the provider keys live here, right after
+  // the theme. Presentation packs and thread titling are desktop-only knobs
+  // in the browser build: nothing in Web Lite reads them.
+  if (isWebLite()) {
+    return (
+      <div className="settings-page">
+        <h1 style={tokens.h1}>Settings</h1>
+        <div className="settings-page__kicker" style={tokens.kicker}>theme · keys · app data · danger zone</div>
+
+        <ThemeBlock />
+        <KeysBlock />
+        <ExportImportBlock />
+        <DangerZone />
+      </div>
+    );
+  }
   return (
     <div className="settings-page">
       <h1 style={tokens.h1}>Settings</h1>
@@ -26,6 +44,21 @@ export const SettingsSection = observer(function SettingsSection() {
       <DesktopBlock />
       <ExportImportBlock />
       <DangerZone />
+    </div>
+  );
+});
+
+const KeysBlock = observer(function KeysBlock() {
+  const root = useRootStore();
+  return (
+    <div className="settings-section settings-keys" style={{ ...tokens.section, marginBottom: 28 }}>
+      <div className="settings-section-title" style={tokens.sectionTitle}>Keys</div>
+      <div className="settings-muted-copy" style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 12, lineHeight: 1.55 }}>
+        Chat uses your own OpenRouter key; web answers use Brave Search. Keys stay in this
+        browser and are sent only as the request header each provider requires.
+      </div>
+      <ProviderCard info={OPENROUTER_PROVIDER_INFO} providers={root.providers} />
+      <SearchCard />
     </div>
   );
 });
@@ -185,52 +218,58 @@ const ExportImportBlock = observer(function ExportImportBlock() {
   return (
     <div className="settings-section settings-export-import" style={{ ...tokens.section, marginBottom: 28 }}>
       <div className="settings-section-title" style={tokens.sectionTitle}>Export & import</div>
+      <div className="settings-muted-copy" style={{ fontSize: 12.5, color: 'var(--text-dim)', marginBottom: 12, lineHeight: 1.55 }}>
+        One JSON file holds conversations, memories, notes, summaries, the system prompt and UI preferences.
+      </div>
       {status && (
-        <div style={{ fontSize: 12, color: statusKind === 'error' ? 'var(--danger)' : 'var(--accent)', marginBottom: 8 }}>
+        <div role="status" style={{ fontSize: 12, color: statusKind === 'error' ? 'var(--danger)' : 'var(--accent)', marginBottom: 10 }}>
           {status}
         </div>
       )}
-      <SettingsRow label="Export app data">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+      <div className="settings-action-list">
+        <div className="settings-action-row">
+          <div className="settings-action-row__text">
+            <div className="settings-action-row__title">Export</div>
+            <div className="settings-row-detail" style={detailStyle}>Download everything this app has saved as one JSON file.</div>
+          </div>
           <Button data-testid="settings.preferences.export-json" variant="accent" onClick={handleExport}>Export JSON</Button>
-          <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
-            Saves conversations, memories, notes, summaries, system prompt, and UI preferences.
-          </div>
         </div>
-      </SettingsRow>
-      <SettingsRow label="Import mode">
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {(['merge', 'replace'] as const).map(value => (
-            <label key={value} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text-dim)' }}>
-              <input data-testid={`settings.preferences.import-mode-${value}`}
-                type="radio"
-                name="settings-data-import-mode"
-                value={value}
-                checked={mode === value}
-                onChange={() => setMode(value)}
-              />
-              {value === 'merge' ? 'Merge' : 'Replace'}
-            </label>
-          ))}
-        </div>
-      </SettingsRow>
-      {mode === 'replace' && (
-        <SettingsRow label="Replace confirm">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-            <div style={{ fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.45 }}>
-              Type <code style={tokens.mono}>{root.replaceImportConfirmation}</code>
+        <div className="settings-action-row">
+          <div className="settings-action-row__text">
+            <div className="settings-action-row__title">Import</div>
+            <div className="settings-row-detail" style={detailStyle}>
+              {mode === 'merge'
+                ? 'Merge keeps what is here and adds what the file has. Existing threads win on duplicate IDs.'
+                : 'Replace wipes the current app state first, then loads the file.'}
             </div>
-            <Input data-testid="settings.preferences.input"
-              value={replaceConfirm}
-              onChange={event => setReplaceConfirm(event.currentTarget.value)}
-              placeholder={root.replaceImportConfirmation}
-              style={{ maxWidth: 320 }}
-            />
+            <div className="settings-action-row__options" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
+              {(['merge', 'replace'] as const).map(value => (
+                <label key={value} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--text-dim)' }}>
+                  <input data-testid={`settings.preferences.import-mode-${value}`}
+                    type="radio"
+                    name="settings-data-import-mode"
+                    value={value}
+                    checked={mode === value}
+                    onChange={() => setMode(value)}
+                  />
+                  {value === 'merge' ? 'Merge' : 'Replace'}
+                </label>
+              ))}
+            </div>
+            {mode === 'replace' && (
+              <div className="settings-action-row__confirm" style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+                <div style={{ fontSize: 12, color: replaceReady ? 'var(--text-dim)' : 'var(--danger)', lineHeight: 1.45 }}>
+                  Type <code style={tokens.mono}>{root.replaceImportConfirmation}</code> to confirm the wipe.
+                </div>
+                <Input data-testid="settings.preferences.input"
+                  value={replaceConfirm}
+                  onChange={event => setReplaceConfirm(event.currentTarget.value)}
+                  placeholder={root.replaceImportConfirmation}
+                  style={{ maxWidth: 320 }}
+                />
+              </div>
+            )}
           </div>
-        </SettingsRow>
-      )}
-      <SettingsRow label="Import file" last>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <Button data-testid="settings.preferences.button"
             disabled={busy || !replaceReady}
             variant={mode === 'replace' ? 'danger' : 'default'}
@@ -245,15 +284,8 @@ const ExportImportBlock = observer(function ExportImportBlock() {
             onChange={event => { void handleImportFile(event); }}
             style={{ display: 'none' }}
           />
-          {mode === 'merge' ? (
-            <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>Existing threads win on duplicate IDs.</span>
-          ) : (
-            <span style={{ fontSize: 12, color: replaceReady ? 'var(--text-faint)' : 'var(--danger)' }}>
-              Existing app state will be replaced.
-            </span>
-          )}
         </div>
-      </SettingsRow>
+      </div>
     </div>
   );
 });
@@ -320,19 +352,23 @@ const DangerZone = observer(function DangerZone() {
         These actions only affect local GatesAI data. Workspace files are never touched from here.
       </div>
       {status && (
-        <div style={{ fontSize: 12, color: status.includes('offline') || status.includes('Error') ? 'var(--danger)' : 'var(--accent)', marginBottom: 8 }}>
+        <div role="status" style={{ fontSize: 12, color: status.includes('offline') || status.includes('Error') ? 'var(--danger)' : 'var(--accent)', marginBottom: 10 }}>
           {status}
         </div>
       )}
-      {actions.map((action, index) => (
-        <SettingsRow key={action.id} label={action.label} last={index === actions.length - 1}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-            <div className="settings-row-detail" style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 }}>
-              {action.detail}
+      <div className="settings-action-list settings-action-list--danger">
+        {actions.map(action => (
+          <div key={action.id} className="settings-action-row" data-confirming={confirming === action.id || undefined}>
+            <div className="settings-action-row__text">
+              <div className="settings-action-row__title">{action.label}</div>
+              <div className="settings-row-detail" style={detailStyle}>{action.detail}</div>
+              {confirming === action.id && (
+                <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 6, lineHeight: 1.45 }}>{action.confirm}</div>
+              )}
             </div>
             {confirming === action.id ? (
-              <div className="settings-action-controls" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{action.confirm}</span>
+              <div className="settings-action-controls" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <Button data-testid="settings.preferences.cancel" disabled={busy === action.id} onClick={() => setConfirming(null)}>Cancel</Button>
                 <Button data-testid="settings.preferences.run"
                   variant="danger"
                   disabled={busy === action.id}
@@ -340,7 +376,6 @@ const DangerZone = observer(function DangerZone() {
                 >
                   {busy === action.id ? 'Working...' : 'Confirm'}
                 </Button>
-                <Button data-testid="settings.preferences.cancel" disabled={busy === action.id} onClick={() => setConfirming(null)}>Cancel</Button>
               </div>
             ) : (
               <Button data-testid={`settings.preferences.delete-${action.id}`}
@@ -352,8 +387,10 @@ const DangerZone = observer(function DangerZone() {
               </Button>
             )}
           </div>
-        </SettingsRow>
-      ))}
+        ))}
+      </div>
     </div>
   );
 });
+
+const detailStyle = { fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.45, maxWidth: 520 } as const;

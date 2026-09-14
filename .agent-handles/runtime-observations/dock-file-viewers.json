@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:10.785Z",
+  "measuredAt": "2026-09-14T00:20:04.835Z",
   "journeyName": "dock-file-viewers",
   "lastStep": 19,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/html",
@@ -29,7 +29,6 @@
     "app.command-palette.search-commands-and-threads",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -44,6 +43,7 @@
     "workspace.editorial-message.branch-html-user",
     "workspace.editorial-message.copy-html-assistant",
     "workspace.editorial-message.copy-html-user",
+    "workspace.editorial-message.download-html-assistant",
     "workspace.editorial-message.edit-html-user",
     "workspace.editorial-message.regenerate-html-assistant",
     "workspace.editorial-sidebar.begin-a-new-conversation",
@@ -99,11 +99,12 @@
     "workspace.markdown-chunk.set-copy-state",
     "workspace.markdown-chunk.set-html-view",
     "workspace.markdown-chunk.set-wrapped",
+    "workspace.markdown-fallback.a",
     "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu"
   ],
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "96 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "97 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

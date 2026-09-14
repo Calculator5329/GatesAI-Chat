@@ -1496,7 +1496,7 @@
     {
       "name": "web-lite-open-workspace",
       "title": "Web Lite: open the workspace",
-      "description": "The browser build loads with attachments and deep research disabled, and the composer idle.",
+      "description": "The browser build loads with attachments disabled and the composer idle.",
       "kind": "control-path",
       "context": {
         "path": "/?scenario=desktop-ready#/workspace"
@@ -1510,11 +1510,6 @@
         {
           "action": "expect",
           "testId": "workspace.composer.attach",
-          "predicate": "disabled"
-        },
-        {
-          "action": "expect",
-          "testId": "workspace.composer-meta.start-deep-research",
           "predicate": "disabled"
         },
         {
@@ -1558,8 +1553,8 @@
     },
     {
       "name": "web-lite-open-model-settings",
-      "title": "Web Lite: reach model settings",
-      "description": "Settings open from the sidebar and the Models tab renders the web-search card.",
+      "title": "Web Lite: reach the provider keys",
+      "description": "Settings open from the sidebar and carry the web-search card; the browser build has no Models tab.",
       "kind": "control-path",
       "context": {
         "path": "/?scenario=desktop-ready#/workspace"
@@ -1573,10 +1568,6 @@
           "action": "expect",
           "testId": "settings.gates-menu.tab-settings",
           "predicate": "visible"
-        },
-        {
-          "action": "click",
-          "testId": "settings.gates-menu.tab-models"
         },
         {
           "action": "expect",

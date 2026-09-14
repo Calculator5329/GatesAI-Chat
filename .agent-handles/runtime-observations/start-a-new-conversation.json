@@ -1,13 +1,12 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:08.153Z",
+  "measuredAt": "2026-09-14T00:20:01.925Z",
   "journeyName": "start-a-new-conversation",
   "lastStep": 3,
-  "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/t-mtn8d3jt4w2f",
+  "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/t-mu0hxlxicus3",
   "observedTestIds": [
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -15,14 +14,14 @@
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
     "workspace.editorial-sidebar.delete-active",
-    "workspace.editorial-sidebar.delete-t-mtn8d3jt4w2f",
+    "workspace.editorial-sidebar.delete-t-mu0hxlxicus3",
     "workspace.editorial-sidebar.pin-active",
-    "workspace.editorial-sidebar.pin-t-mtn8d3jt4w2f",
+    "workspace.editorial-sidebar.pin-t-mu0hxlxicus3",
     "workspace.editorial-sidebar.rename-active",
-    "workspace.editorial-sidebar.rename-t-mtn8d3jt4w2f",
+    "workspace.editorial-sidebar.rename-t-mu0hxlxicus3",
     "workspace.editorial-sidebar.thread-active",
     "workspace.editorial-sidebar.thread-agent-task",
-    "workspace.editorial-sidebar.thread-t-mtn8d3jt4w2f",
+    "workspace.editorial-sidebar.thread-t-mu0hxlxicus3",
     "workspace.editorial-sidebar.thread-tool",
     "workspace.editorial-sidebar.thread-usage",
     "workspace.sidebar-settings-button.dot",
@@ -31,5 +30,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "22 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "21 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

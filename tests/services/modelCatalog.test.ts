@@ -38,7 +38,6 @@ describe('curated model catalog', () => {
         '~anthropic/claude-sonnet-latest',
         '~anthropic/claude-haiku-latest',
         'anthropic/claude-opus-4.8',
-        'anthropic/claude-opus-4.7',
         '~anthropic/claude-sonnet-latest',
         '~anthropic/claude-haiku-latest',
         '~google/gemini-pro-latest',
@@ -50,9 +49,16 @@ describe('curated model catalog', () => {
         'nvidia/nemotron-3-ultra-550b-a55b:free',
         'nvidia/nemotron-3-super-120b-a12b',
         'nvidia/nemotron-3-super-120b-a12b:free',
-        'nvidia/nemotron-3-nano-30b-a3b:free',
-        'deepseek/deepseek-v4-pro',
-        'moonshotai/kimi-k2.6',
+        'nvidia/nemotron-3-nano-30b-a3b',
+        'deepseek/deepseek-v4-pro-0813',
+        'moonshotai/kimi-k3',
+        'openai/gpt-6-astra',
+        'openai/gpt-5.6-sol',
+        'anthropic/claude-fable-5.1',
+        'anthropic/claude-opus-5',
+        'anthropic/claude-sonnet-5',
+        'google/gemini-3.8-flash',
+        'x-ai/grok-4.6',
       ]));
   });
 
@@ -63,7 +69,9 @@ describe('curated model catalog', () => {
     expect(byId.get('or-nemotron-3-ultra-free')?.pricing).toEqual({ prompt: 0, completion: 0 });
     expect(byId.get('or-nemotron-3-super')?.providerModelId).toBe('nvidia/nemotron-3-super-120b-a12b');
     expect(byId.get('or-nemotron-3-super-free')?.pricing).toEqual({ prompt: 0, completion: 0 });
-    expect(byId.get('or-nemotron-3-nano-free')?.contextLength).toBe(256_000);
+    // The free Nano route left OpenRouter; the id survives on the paid route.
+    expect(byId.get('or-nemotron-3-nano-free')?.providerModelId).toBe('nvidia/nemotron-3-nano-30b-a3b');
+    expect(byId.get('or-nemotron-3-nano-omni-free')?.pricing).toEqual({ prompt: 0, completion: 0 });
     expect(byId.get('or-nemotron-3.5-content-safety')).toEqual(expect.objectContaining({
       providerModelId: 'nvidia/nemotron-3.5-content-safety:free',
       supportsTools: false,

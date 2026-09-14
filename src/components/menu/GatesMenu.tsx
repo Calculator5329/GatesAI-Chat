@@ -4,13 +4,14 @@
 import { Suspense } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useRouterStore } from '../../stores/context';
-import { MENU_SECTIONS } from './menuSectionMeta';
+import { menuSections } from './menuSectionMeta';
 import { tokens } from '../../core/styleTokens';
 
 export const GatesMenu = observer(function GatesMenu() {
   const router = useRouterStore();
-  const meta = MENU_SECTIONS.find(s => s.key === router.menuSection);
-  const ActiveSection = meta?.component ?? MENU_SECTIONS[0].component;
+  const sections = menuSections();
+  const meta = sections.find(s => s.key === router.menuSection);
+  const ActiveSection = meta?.component ?? sections[0].component;
 
   return (
     <div className="gates-menu" style={{
@@ -25,7 +26,7 @@ export const GatesMenu = observer(function GatesMenu() {
         borderBottom: '1px solid var(--border)',
         overflowX: 'auto',
       }}>
-        {MENU_SECTIONS.map(s => {
+        {sections.map(s => {
           const active = router.menuSection === s.key;
           const onSelect = () => router.goMenu(s.key);
           return (

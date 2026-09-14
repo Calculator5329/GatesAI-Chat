@@ -101,6 +101,7 @@ const ChatEmptyState = observer(function ChatEmptyState() {
           Your conversations are saved locally in this browser.
         </div>
       )}
+      {webLite && <WebLiteDownloadCue />}
 
     </div>
   );
@@ -403,42 +404,20 @@ function formatModelCount(count: number): string {
 }
 
 /**
- * Web Lite → desktop upsell. Web Lite can't touch local files, run tools, or
+ * Web Lite to desktop upsell. Web Lite can't touch local files, run tools, or
  * generate images; the desktop app can. We recommend the build that matches the
  * visitor's detected platform (the x64 Windows installer for Windows users) and
  * fall back to the GitHub repo for everything we don't ship a binary for, always
- * stating what the download runs on.
+ * stating what the download runs on. Rendered in flow inside the empty state
+ * (never fixed): a floating toast covered the Send control at laptop widths
+ * and the hero heading at desktop widths, whichever corner it was pinned to.
  */
 function WebLiteDownloadCue() {
   const { os, arch } = clientPlatform();
   const rec = recommendedDownload(os, arch);
   const isSource = rec.kind === 'source';
-  // Self-dismiss once the fade-out completes so the toast never lingers — an
-  // invisible fixed element would keep covering the composer. The timer is a
-  // fallback for environments that suppress CSS transitions.
-  const [dismissed, setDismissed] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-  useEffect(() => {
-    const show = requestAnimationFrame(() => setVisible(true));
-    const leave = setTimeout(() => setLeaving(true), 10_840);
-    const dismiss = setTimeout(() => setDismissed(true), 11_000);
-    return () => {
-      cancelAnimationFrame(show);
-      clearTimeout(leave);
-      clearTimeout(dismiss);
-    };
-  }, []);
-  if (dismissed) return null;
   return (
-    <div
-      className="web-lite-download-cue"
-      data-visible={visible || undefined}
-      data-leaving={leaving || undefined}
-      onTransitionEnd={event => {
-        if (leaving && event.target === event.currentTarget) setDismissed(true);
-      }}
-    >
+    <div className="web-lite-download-cue">
       <div className="web-lite-download-cue__copy">
         Want local files, tools, and image generation? Get the desktop app.
       </div>
@@ -819,7 +798,6 @@ export const EditorialChat = observer(function EditorialChat() {
           <span className="editorial-jump-to-bottom__arrow" aria-hidden="true"><Icons.ArrowUp /></span>
         </button>
       )}
-      {isWebLite() && messages.length === 0 && <WebLiteDownloadCue />}
       <PromptCards threadId={activeThreadId} />
       <EditorialComposer textareaRef={textareaRef} />
     </div>

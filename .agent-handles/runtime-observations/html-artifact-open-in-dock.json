@@ -1,13 +1,12 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:15.951Z",
+  "measuredAt": "2026-09-14T00:20:11.224Z",
   "journeyName": "html-artifact-open-in-dock",
   "lastStep": 7,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/html",
   "observedTestIds": [
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -18,6 +17,7 @@
     "workspace.editorial-message.branch-html-user",
     "workspace.editorial-message.copy-html-assistant",
     "workspace.editorial-message.copy-html-user",
+    "workspace.editorial-message.download-html-assistant",
     "workspace.editorial-message.edit-html-user",
     "workspace.editorial-message.regenerate-html-assistant",
     "workspace.editorial-sidebar.begin-a-new-conversation",

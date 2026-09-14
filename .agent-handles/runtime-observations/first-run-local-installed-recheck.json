@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:11.285Z",
+  "measuredAt": "2026-09-14T00:20:04.404Z",
   "journeyName": "first-run-local-installed-recheck",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=first-run-local-installed#/menu/models",
@@ -22,7 +22,6 @@
     "settings.secret-key.input-openrouter",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -32,15 +31,15 @@
     "workspace.editorial-chat.start-ollama",
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
-    "workspace.editorial-sidebar.delete-t-mtn8d5crzkkk",
-    "workspace.editorial-sidebar.pin-t-mtn8d5crzkkk",
-    "workspace.editorial-sidebar.rename-t-mtn8d5crzkkk",
-    "workspace.editorial-sidebar.thread-t-mtn8d5crzkkk",
+    "workspace.editorial-sidebar.delete-t-mu0hxnex75ys",
+    "workspace.editorial-sidebar.pin-t-mu0hxnex75ys",
+    "workspace.editorial-sidebar.rename-t-mu0hxnex75ys",
+    "workspace.editorial-sidebar.thread-t-mu0hxnex75ys",
     "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu"
   ],
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "33 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "32 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

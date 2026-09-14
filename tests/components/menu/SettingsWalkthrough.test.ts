@@ -3,7 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { StoreProvider } from '../../../src/stores/context';
 import { GatesMenu } from '../../../src/components/menu/GatesMenu';
-import { MENU_SECTIONS } from '../../../src/components/menu/menuSectionMeta';
+import { menuSections } from '../../../src/components/menu/menuSectionMeta';
 import { RootStore } from '../../../src/stores/RootStore';
 import type { GatesRuntimeMode } from '../../../src/core/runtime';
 import type { MenuSectionKey } from '../../../src/core/types';
@@ -94,13 +94,15 @@ describe('settings surface walkthrough', () => {
     clearAppStorage();
     const rendered = renderMenu(buildStore(mode));
 
-    expect(MENU_SECTIONS.map(section => section.key)).toEqual(SURFACES.map(surface => surface.key));
+    // Web Lite has no Models tab: its keys live under Settings.
+    const surfaces = mode === 'web-lite' ? SURFACES.filter(surface => surface.key !== 'models') : SURFACES;
+    expect(menuSections().map(section => section.key)).toEqual(surfaces.map(surface => surface.key));
 
-    for (const surface of SURFACES) {
+    for (const surface of surfaces) {
       await selectSurface(surface.key);
 
       const activeTab = rendered.querySelector<HTMLButtonElement>(`.gates-menu__tab[data-active="true"]`);
-      expect(activeTab?.textContent?.trim()).toBe(MENU_SECTIONS.find(section => section.key === surface.key)?.label);
+      expect(activeTab?.textContent?.trim()).toBe(menuSections().find(section => section.key === surface.key)?.label);
       expect(store!.router.menuSection).toBe(surface.key);
       expect(window.location.hash).toBe(`#/menu/${surface.key}`);
       expect(rendered.textContent).toContain(surface.marker);
@@ -113,7 +115,16 @@ describe('settings surface walkthrough', () => {
 
     await selectSurface('settings');
     expect(rendered.querySelector('.settings-desktop')).toBeNull();
+    expect(rendered.querySelector('.settings-ui-pack')).toBeNull();
+    expect(rendered.querySelector('.settings-conversation')).toBeNull();
     expect(rendered.textContent).toContain('Danger zone');
+    // Order: theme, keys, export/import, danger.
+    const order = Array.from(rendered.querySelectorAll('.settings-page > .settings-section')).map(el => el.className);
+    expect(order.map(name => name.replace('settings-section ', ''))).toEqual([
+      'settings-theme', 'settings-keys', 'settings-export-import', 'settings-danger-zone',
+    ]);
+    expect(rendered.textContent).toContain('OpenRouter');
+    expect(rendered.textContent).toContain('Web search');
   });
 
   it('renders desktop settings without Web Lite copy', async () => {

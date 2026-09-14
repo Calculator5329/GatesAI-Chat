@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:19.817Z",
+  "measuredAt": "2026-09-14T00:20:13.343Z",
   "journeyName": "agent-settings-install-embedding",
   "lastStep": 7,
   "pageUrl": "http://localhost:5273/?scenario=local-no-embed#/menu/agent",

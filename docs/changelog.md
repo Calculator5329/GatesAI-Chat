@@ -1,5 +1,48 @@
 # Changelog
 
+## 2026-09-13: Web Lite polish, research removed, catalog refresh
+
+- **Research removed.** The deep-research button and its route left the composer
+  meta row; `workspace.composer-meta.start-deep-research` is tombstoned in
+  `agent-handles.json` and the journey step is gone. The row below the chat bar
+  now reads model, skill, context and effort with one shared gap and the
+  context meter on the right, no dot separators.
+- **Composer focus.** The focused composer no longer paints an inner accent
+  glow; focus is a border tint only (`.composer-row:has(.composer-textarea:focus)`).
+- **Settings icon** is a gear (`Gear` in `components/ui/icons.tsx`), not a sun.
+- **Friendlier key errors.** A rejected OpenRouter key (401, "User not found",
+  "No auth credentials") renders as "Looks like your OpenRouter key isn't
+  working. Enter a valid key in Settings." and the missing-key banner reads
+  "Please enter an OpenRouter API key to chat." with an Open settings button in
+  Web Lite (`turnFormatting.ts`, `ComposerBanners.tsx`).
+- **Model catalog refreshed** from the live OpenRouter listing (2026-09-13):
+  GPT-6 Astra/Pro, GPT-5.6 Sol/Terra/Luna, Claude Fable 5.1 and 5, Opus 5,
+  Sonnet 5, Gemini 3.8/3.7 Flash, Grok 4.6/4.5, DeepSeek V4.1 Flash, Kimi K3,
+  Qwen 3.8, GLM 5.3, MiniMax M3, Mistral Medium 3.5, Nemotron 3.5 Lightning;
+  pricing and context windows updated for every existing entry; Auto now
+  routes through `~google/gemini-flash-latest`. `DEFAULT_OPENROUTER_CATALOG_MODEL_IDS`
+  drops superseded generations.
+- **Web Lite settings reordered:** Color mode, then keys (OpenRouter and Brave
+  search cards moved out of the removed Models tab), then Export and import,
+  then Danger zone, the last two rebuilt as `.settings-action-list` rows.
+  Presentation and automatic thread titles are desktop-only. `menuSections()`
+  replaces the `MENU_SECTIONS` constant so the tab set follows the runtime;
+  `#/menu/models` resolves to Settings in Web Lite (`resolveMenuSection`).
+- **Web Lite agent tab** shows only what it can use: instructions and saved
+  facts. Knowledge library and Semantic recall no longer render there.
+- **Fixes from the 2026-09-13 QA pass:** the Web Lite download cue is now an
+  in-flow card under the empty-state copy instead of a fixed toast (it covered
+  Send at laptop widths and the hero heading at desktop widths, whichever
+  corner it sat in); toggles and segmented buttons are excluded from the
+  mobile settings-button inflation rule. Retired and runtime-folded hashes
+  are rewritten in the address bar (`RouterStore` canonicalises on load).
+- The removed research button's interaction site was dropped from
+  `testid-ratchet.json` and the sealed ratchet by hand: the source removal is
+  this entry's owner request, and `ratchet rebaseline` on a sealed project
+  drops zero floors the seal then refuses (finding for ai/agent-handles).
+- Verification: `npm run ci` 1385 tests plus typecheck and lint; `build:web`;
+  journeys recompiled (105); `npm run test:e2e` 146 passed; `adopt verify`
+  reported adoption verified.
 
 ## 2026-09-05 — Tool-loop test store disposal
 

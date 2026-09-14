@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:25.170Z",
+  "measuredAt": "2026-09-14T00:20:22.406Z",
   "journeyName": "activity-rows-toggle",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/images",
@@ -10,7 +10,6 @@
     "workspace.activity-row.toggle-call-img-tour:0",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -20,6 +19,7 @@
     "workspace.editorial-message.branch-images-user",
     "workspace.editorial-message.copy-images-assistant-1",
     "workspace.editorial-message.copy-images-user",
+    "workspace.editorial-message.download-images-assistant-1",
     "workspace.editorial-message.edit-images-user",
     "workspace.editorial-message.regenerate-images-assistant-1",
     "workspace.editorial-sidebar.begin-a-new-conversation",

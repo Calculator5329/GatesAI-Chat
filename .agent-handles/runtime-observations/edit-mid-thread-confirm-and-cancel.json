@@ -1,13 +1,12 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:09.470Z",
+  "measuredAt": "2026-09-14T00:20:03.587Z",
   "journeyName": "edit-mid-thread-confirm-and-cancel",
   "lastStep": 9,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/middle",
   "observedTestIds": [
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -20,6 +19,8 @@
     "workspace.editorial-message.copy-middle-assistant-2",
     "workspace.editorial-message.copy-middle-user-1",
     "workspace.editorial-message.copy-middle-user-2",
+    "workspace.editorial-message.download-middle-assistant-1",
+    "workspace.editorial-message.download-middle-assistant-2",
     "workspace.editorial-message.edit-cancel-middle-user-1",
     "workspace.editorial-message.edit-confirm-cancel-middle-user-1",
     "workspace.editorial-message.edit-confirm-save-middle-user-1",
@@ -54,5 +55,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "45 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "46 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

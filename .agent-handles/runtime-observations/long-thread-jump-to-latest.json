@@ -1,13 +1,12 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:29.785Z",
+  "measuredAt": "2026-09-14T00:20:26.026Z",
   "journeyName": "long-thread-jump-to-latest",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/long",
   "observedTestIds": [
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -62,6 +61,18 @@
     "workspace.editorial-message.copy-long-user-7",
     "workspace.editorial-message.copy-long-user-8",
     "workspace.editorial-message.copy-long-user-9",
+    "workspace.editorial-message.download-long-assistant-10",
+    "workspace.editorial-message.download-long-assistant-11",
+    "workspace.editorial-message.download-long-assistant-12",
+    "workspace.editorial-message.download-long-assistant-61",
+    "workspace.editorial-message.download-long-assistant-62",
+    "workspace.editorial-message.download-long-assistant-63",
+    "workspace.editorial-message.download-long-assistant-64",
+    "workspace.editorial-message.download-long-assistant-65",
+    "workspace.editorial-message.download-long-assistant-66",
+    "workspace.editorial-message.download-long-assistant-7",
+    "workspace.editorial-message.download-long-assistant-8",
+    "workspace.editorial-message.download-long-assistant-9",
     "workspace.editorial-message.edit-long-user-10",
     "workspace.editorial-message.edit-long-user-11",
     "workspace.editorial-message.edit-long-user-12",
@@ -111,5 +122,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "102 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "113 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

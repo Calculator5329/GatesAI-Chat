@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:11.136Z",
+  "measuredAt": "2026-09-14T00:20:05.770Z",
   "journeyName": "grouped-activity-timeline",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/grouped",
@@ -10,7 +10,6 @@
     "workspace.activity-timeline-group.button",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -19,6 +18,7 @@
     "workspace.editorial-message.branch-grouped-user",
     "workspace.editorial-message.copy-grouped-assistant",
     "workspace.editorial-message.copy-grouped-user",
+    "workspace.editorial-message.download-grouped-assistant",
     "workspace.editorial-message.edit-grouped-user",
     "workspace.editorial-message.regenerate-grouped-assistant",
     "workspace.editorial-sidebar.begin-a-new-conversation",

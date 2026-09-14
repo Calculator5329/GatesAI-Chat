@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:15.918Z",
+  "measuredAt": "2026-09-14T00:20:09.984Z",
   "journeyName": "replace-openrouter-key",
   "lastStep": 8,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/models",

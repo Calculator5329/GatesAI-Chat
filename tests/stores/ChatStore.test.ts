@@ -1408,14 +1408,16 @@ describe('ChatStore', () => {
     expect(usage.used).toBeGreaterThan(20_000);
   });
 
+  // These three use Claude Haiku 4.5 (200k window) so the oversized payloads
+  // below overflow a real curated context, not the provider default.
   it('does not call the provider when the preflight payload still exceeds the model context', async () => {
     const { chat, mock, profile } = setup([
       { type: 'text', delta: 'should-not-stream' },
       { type: 'done', finishReason: 'stop' },
     ]);
     const id = chat.createThread();
-    chat.setThreadModel(id, 'or-deepseek-v4-flash');
-    profile.setDefaultSystemPrompt('z'.repeat(600_000));
+    chat.setThreadModel(id, 'or-claude-haiku-4.5');
+    profile.setDefaultSystemPrompt('z'.repeat(1_000_000));
 
     chat.sendMessage('hi');
     await flush(20);
@@ -1433,7 +1435,7 @@ describe('ChatStore', () => {
       { type: 'done', finishReason: 'stop' },
     ]);
     const id = chat.createThread();
-    chat.setThreadModel(id, 'or-deepseek-v4-flash');
+    chat.setThreadModel(id, 'or-claude-haiku-4.5');
     const unavailableProvider: LlmProvider = {
       id: 'openrouter',
       ready: () => false,
@@ -1443,7 +1445,7 @@ describe('ChatStore', () => {
       resolve: (modelId: string) => { provider: LlmProvider; providerModelId: string };
     };
     router.resolve = (modelId: string) => {
-      if (modelId === 'or-deepseek-v4-flash') return { provider: mock, providerModelId: modelId };
+      if (modelId === 'or-claude-haiku-4.5') return { provider: mock, providerModelId: modelId };
       return { provider: unavailableProvider, providerModelId: modelId };
     };
     runInAction(() => {
@@ -1462,7 +1464,7 @@ describe('ChatStore', () => {
         toolResults: [{
           toolCallId: 'call-big',
           toolName: 'fs',
-          content: 'path: /workspace/artifacts/huge.json\n' + 'd'.repeat(550_000),
+          content: 'path: /workspace/artifacts/huge.json\n' + 'd'.repeat(1_000_000),
           ranAt: Date.now(),
         }],
       });
@@ -1510,7 +1512,7 @@ describe('ChatStore', () => {
     };
 
     const id = chat.createThread();
-    chat.setThreadModel(id, 'or-deepseek-v4-flash');
+    chat.setThreadModel(id, 'or-claude-haiku-4.5');
     runInAction(() => {
       chat.activeThread!.messages.push({
         id: 'u-cheap-compact',
@@ -1527,7 +1529,7 @@ describe('ChatStore', () => {
         toolResults: [{
           toolCallId: 'call-cheap',
           toolName: 'fs',
-          content: 'path: /workspace/artifacts/huge.json\n' + 'e'.repeat(550_000),
+          content: 'path: /workspace/artifacts/huge.json\n' + 'e'.repeat(1_000_000),
           ranAt: Date.now(),
         }],
       });

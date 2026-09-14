@@ -10,6 +10,8 @@ import type { MenuSectionKey } from './types';
  * opens to it by default. The landing section should be the leftmost tab.
  */
 export const MENU_SECTION_ORDER: readonly MenuSectionKey[] = ['settings', 'models', 'agent'] as const;
+// Web Lite has no Models tab (its keys live under Settings); consumers that
+// render tabs read components/menu/menuSectionMeta.ts, which applies that.
 
 export const MENU_SECTION_LABELS: Record<MenuSectionKey, string> = {
   settings: 'Settings',

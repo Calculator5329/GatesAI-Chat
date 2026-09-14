@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:06.702Z",
+  "measuredAt": "2026-09-14T00:19:59.915Z",
   "journeyName": "first-run-menu-hint",
   "lastStep": 2,
   "pageUrl": "http://localhost:5273/?scenario=first-run-local-ready#/menu/settings",
@@ -27,7 +27,7 @@
     "settings.segmented.option-ui-pack-classic",
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
-    "workspace.editorial-sidebar.thread-t-mtn8d1vgqo95",
+    "workspace.editorial-sidebar.thread-t-mu0hxjh1ugxg",
     "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu"
   ],

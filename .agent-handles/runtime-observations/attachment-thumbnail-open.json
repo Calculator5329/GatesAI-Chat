@@ -1,13 +1,12 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:17.705Z",
+  "measuredAt": "2026-09-14T00:20:13.641Z",
   "journeyName": "attachment-thumbnail-open",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/attached",
   "observedTestIds": [
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.thinking-effort",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
@@ -17,6 +16,7 @@
     "workspace.editorial-message.branch-attached-user",
     "workspace.editorial-message.copy-attached-assistant",
     "workspace.editorial-message.copy-attached-user",
+    "workspace.editorial-message.download-attached-assistant",
     "workspace.editorial-message.edit-attached-user",
     "workspace.editorial-message.regenerate-attached-assistant",
     "workspace.editorial-sidebar.begin-a-new-conversation",

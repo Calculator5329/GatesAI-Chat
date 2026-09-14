@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-04T17:31:24.268Z",
+  "measuredAt": "2026-09-14T00:20:18.490Z",
   "journeyName": "banner-local-image-offline",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=local-image-model#/menu/models",
@@ -21,7 +21,6 @@
     "workspace.composer-banners.open-local-image-settings",
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
-    "workspace.composer-meta.start-deep-research",
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
     "workspace.composer.draft",
@@ -44,5 +43,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "35 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "34 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }
