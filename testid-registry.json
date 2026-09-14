@@ -3,9 +3,9 @@
   "predicateVersion": 4,
   "grammar": "area.component.element[.qualifier]",
   "generatedFrom": "src/**/*.{tsx,jsx} and journeys/manifest.json",
-  "sourceDigest": "sha256:ed034f3819d54560eb4a1b81dcbabfebbc3990e4807e95fe878bf6799a8194d8",
+  "sourceDigest": "sha256:067a8f2c078f0e6bc5770cf17df56158a07923d7936a9df131e828ab796937c2",
   "journeyCoverage": {
-    "controlPath": 103,
+    "controlPath": 102,
     "urlPath": 2
   },
   "coverage": {
@@ -24,7 +24,7 @@
   },
   "interactionFingerprint": {
     "algorithm": "candidate-site-sha256/v1",
-    "digest": "sha256:7248e56ceeab6666476b0ba08565ced5c6a66d175065954dc63a6c9fde7ed308",
+    "digest": "sha256:38c7140e68583999843a09cbae401d5ba01e6e8f33d2e07ad12b32e52145586d",
     "sites": [
       "candidate:0301d7966ea101ce",
       "candidate:03cf1f812fd795ba",
@@ -88,7 +88,6 @@
       "candidate:4629b70c56799440",
       "candidate:464965ac2d729e33",
       "candidate:46b657cad4db1772",
-      "candidate:4b878bb1bc32d9ee",
       "candidate:4fe2b5e5ac94f799",
       "candidate:50533289a9a7fa4c",
       "candidate:514cd51770bf85cb",
@@ -106,7 +105,6 @@
       "candidate:5baa4ad827e66650",
       "candidate:5d38b206a4783f6d",
       "candidate:6000a6980c375635",
-      "candidate:609772c70f598469",
       "candidate:6250ffba7af48e1a",
       "candidate:629c61d5103cd3f2",
       "candidate:62b8dcffa867ccd7",
@@ -178,6 +176,7 @@
       "candidate:a09db5abc0cfda12",
       "candidate:a0b1c1d9a2e1276a",
       "candidate:a17e590e986ca3bf",
+      "candidate:a1debdf6e6a16ed0",
       "candidate:a20b6b158501520b",
       "candidate:a2d66f5441843dc3",
       "candidate:a5a1f208188907e2",
@@ -246,6 +245,7 @@
       "candidate:edf938cc9d366faf",
       "candidate:f50e2e8dd7810184",
       "candidate:f8652316cd16ec28",
+      "candidate:f8a59ccc9b9db2f3",
       "candidate:f8e68c78f26d8faa",
       "candidate:ff3bb6f7708bdf6d",
       "candidate:ff607b4e26576269"
@@ -384,6 +384,7 @@
     "workspace.editorial-chat.cancel",
     "workspace.editorial-chat.continue-with",
     "workspace.editorial-chat.dismiss",
+    "workspace.editorial-chat.dismiss-download-cue",
     "workspace.editorial-chat.editorial-jump-to-bottom",
     "workspace.editorial-chat.install-ollama",
     "workspace.editorial-chat.link",
@@ -441,7 +442,6 @@
     "workspace.editorial-sidebar.pin-agent-task",
     "workspace.editorial-sidebar.rename-input-agent-task",
     "workspace.editorial-sidebar.row-actions-agent-task",
-    "workspace.editorial-sidebar.settings-amp-menu-live-here",
     "workspace.editorial-sidebar.thread-active",
     "workspace.editorial-sidebar.thread-agent-task",
     "workspace.editorial-sidebar.thread-tool",
@@ -1164,9 +1164,16 @@
       "attribute": "data-testid"
     },
     {
+      "id": "workspace.editorial-chat.dismiss-download-cue",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 423,
+      "element": "jsx-prop",
+      "attribute": "data-testid"
+    },
+    {
       "id": "workspace.editorial-chat.editorial-jump-to-bottom",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 789,
+      "line": 800,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1180,7 +1187,7 @@
     {
       "id": "workspace.editorial-chat.link",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 424,
+      "line": 435,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1229,7 +1236,7 @@
     {
       "id": "workspace.editorial-chat.show",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 739,
+      "line": 750,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1243,7 +1250,7 @@
     {
       "id": "workspace.editorial-chat.stream",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 731,
+      "line": 742,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1257,77 +1264,70 @@
     {
       "id": "workspace.editorial-sidebar.begin-a-new-conversation",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 323,
+      "line": 293,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.editorial-sidebar.brand",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 277,
+      "line": 262,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.editorial-sidebar.button",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 197,
+      "line": 182,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.editorial-sidebar.close-mobile-sidebar",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 296,
+      "line": 279,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.editorial-sidebar.close-sidebar",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 263,
+      "line": 248,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.editorial-sidebar.copy-link",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 241,
+      "line": 226,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.editorial-sidebar.menu-and-settings",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 339,
+      "line": 309,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.editorial-sidebar.new-conversation",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 229,
+      "line": 214,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.editorial-sidebar.open-sidebar",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 250,
-      "element": "jsx-prop",
-      "attribute": "data-testid"
-    },
-    {
-      "id": "workspace.editorial-sidebar.settings-amp-menu-live-here",
-      "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 310,
+      "line": 235,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
     {
       "id": "workspace.editorial-sidebar.title",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 218,
+      "line": 203,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -1740,7 +1740,7 @@
     {
       "id": "workspace.sidebar-settings-button.dot",
       "file": "src/components/editorial/SidebarSettingsButton.tsx",
-      "line": 45,
+      "line": 41,
       "element": "jsx-prop",
       "attribute": "data-testid"
     },
@@ -2082,49 +2082,49 @@
     {
       "pattern": "workspace.editorial-sidebar.context-menu-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 619,
+      "line": 589,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-sidebar.context-rename-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 637,
+      "line": 607,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-sidebar.delete-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 605,
+      "line": 575,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-sidebar.pin-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 595,
+      "line": 565,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-sidebar.rename-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 584,
+      "line": 554,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-sidebar.rename-input-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 508,
+      "line": 478,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-sidebar.row-actions-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 575,
+      "line": 545,
       "attribute": "data-testid"
     },
     {
       "pattern": "workspace.editorial-sidebar.thread-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 448,
+      "line": 418,
       "attribute": "data-testid"
     },
     {
@@ -2667,6 +2667,11 @@
         "id": "workspace.composer-meta.start-deep-research",
         "removedAt": "2026-09-13",
         "reason": "Deep research was removed from the composer meta row; the standalone research route was glitchy and had no place in Web Lite."
+      },
+      {
+        "id": "workspace.editorial-sidebar.settings-amp-menu-live-here",
+        "removedAt": "2026-09-13",
+        "reason": "The first-run coachmark taught that the brand mark opens the menu; the brand mark now always goes home and Settings is the labeled button at the foot of the sidebar."
       }
     ]
   },
@@ -3348,9 +3353,21 @@
       "disposition": "identified"
     },
     {
+      "id": "candidate:a1debdf6e6a16ed0",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 423,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
       "id": "candidate:a87adc15ddeb58a3",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 424,
+      "line": 435,
       "element": "a",
       "classification": "definite",
       "evidence": [
@@ -3362,7 +3379,7 @@
     {
       "id": "candidate:a0169c41be9e322c",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 739,
+      "line": 750,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3374,7 +3391,7 @@
     {
       "id": "candidate:0301d7966ea101ce",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 789,
+      "line": 800,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3614,7 +3631,7 @@
     {
       "id": "candidate:8129bff8bc7ea29e",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 197,
+      "line": 182,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3626,7 +3643,7 @@
     {
       "id": "candidate:054aec8427f17fbf",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 218,
+      "line": 203,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3638,7 +3655,7 @@
     {
       "id": "candidate:b06a6295477f295e",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 229,
+      "line": 214,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3650,7 +3667,7 @@
     {
       "id": "candidate:6250ffba7af48e1a",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 241,
+      "line": 226,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3662,7 +3679,7 @@
     {
       "id": "candidate:7c9e0735cb352dc0",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 250,
+      "line": 235,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3674,7 +3691,7 @@
     {
       "id": "candidate:5704dd09a42dab74",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 263,
+      "line": 248,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3684,9 +3701,9 @@
       "disposition": "identified"
     },
     {
-      "id": "candidate:609772c70f598469",
+      "id": "candidate:f8a59ccc9b9db2f3",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 277,
+      "line": 262,
       "element": "div",
       "classification": "review-required",
       "evidence": [
@@ -3701,19 +3718,7 @@
     {
       "id": "candidate:e5ba68b016107721",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 296,
-      "element": "button",
-      "classification": "definite",
-      "evidence": [
-        "native:button"
-      ],
-      "identified": true,
-      "disposition": "identified"
-    },
-    {
-      "id": "candidate:28b7c32e8761f6ea",
-      "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 310,
+      "line": 279,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3725,7 +3730,7 @@
     {
       "id": "candidate:066fb5985bf5ffa1",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 323,
+      "line": 293,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3735,9 +3740,9 @@
       "disposition": "identified"
     },
     {
-      "id": "candidate:4b878bb1bc32d9ee",
+      "id": "candidate:28b7c32e8761f6ea",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 339,
+      "line": 309,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3749,7 +3754,7 @@
     {
       "id": "candidate:e5600e3f9be0de48",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 448,
+      "line": 418,
       "element": "div",
       "classification": "review-required",
       "evidence": [
@@ -3764,7 +3769,7 @@
     {
       "id": "candidate:1758020d6aa8e51e",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 508,
+      "line": 478,
       "element": "input",
       "classification": "definite",
       "evidence": [
@@ -3776,7 +3781,7 @@
     {
       "id": "candidate:1d03a94aff783269",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 575,
+      "line": 545,
       "element": "div",
       "classification": "review-required",
       "evidence": [
@@ -3788,7 +3793,7 @@
     {
       "id": "candidate:c06ee99d41c3c373",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 584,
+      "line": 554,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3800,7 +3805,7 @@
     {
       "id": "candidate:cca477a36626ae0a",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 595,
+      "line": 565,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3812,7 +3817,7 @@
     {
       "id": "candidate:b01ceec0f1af4443",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 605,
+      "line": 575,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3824,7 +3829,7 @@
     {
       "id": "candidate:846e1589569e340f",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 619,
+      "line": 589,
       "element": "div",
       "classification": "review-required",
       "evidence": [
@@ -3836,7 +3841,7 @@
     {
       "id": "candidate:694843188610a517",
       "file": "src/components/editorial/EditorialSidebar.tsx",
-      "line": 637,
+      "line": 607,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4476,7 +4481,7 @@
     {
       "id": "candidate:194be6858582aef4",
       "file": "src/components/editorial/SidebarSettingsButton.tsx",
-      "line": 45,
+      "line": 41,
       "element": "span",
       "classification": "review-required",
       "evidence": [

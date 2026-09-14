@@ -4,7 +4,7 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type WheelEvent } from 'react';
 import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
-import { useEditorial } from '../../stores/context';
+import { useEditorial, useUiStore } from '../../stores/context';
 import { isTauri, isWebLite } from '../../core/runtime';
 import { clientPlatform } from '../../core/clientPlatform';
 import { recommendedDownload } from '../../core/downloads';
@@ -412,12 +412,23 @@ function formatModelCount(count: number): string {
  * (never fixed): a floating toast covered the Send control at laptop widths
  * and the hero heading at desktop widths, whichever corner it was pinned to.
  */
-function WebLiteDownloadCue() {
+const WebLiteDownloadCue = observer(function WebLiteDownloadCue() {
+  const ui = useUiStore();
   const { os, arch } = clientPlatform();
   const rec = recommendedDownload(os, arch);
   const isSource = rec.kind === 'source';
+  if (ui.webLiteCueDismissed) return null;
   return (
     <div className="web-lite-download-cue">
+      <button data-testid="workspace.editorial-chat.dismiss-download-cue"
+        type="button"
+        className="web-lite-download-cue__dismiss"
+        aria-label="Dismiss download cue"
+        title="Dismiss"
+        onClick={() => ui.dismissWebLiteCue()}
+      >
+        <Icons.Close />
+      </button>
       <div className="web-lite-download-cue__copy">
         Want local files, tools, and image generation? Get the desktop app.
       </div>
@@ -440,7 +451,7 @@ function WebLiteDownloadCue() {
       )}
     </div>
   );
-}
+});
 
 export const EditorialChat = observer(function EditorialChat() {
   const { chat, registry, router, ui } = useEditorial();

@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:24.866Z",
+  "measuredAt": "2026-09-14T01:02:54.096Z",
   "journeyName": "aurora-activity-stream-diff",
   "lastStep": 8,
   "pageUrl": "http://localhost:5273/?scenario=aurora-pack#/thread/aurora-active",

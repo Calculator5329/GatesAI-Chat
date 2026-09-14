@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:17.402Z",
+  "measuredAt": "2026-09-14T01:02:49.613Z",
   "journeyName": "image-lightbox-navigation",
   "lastStep": 11,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/images",

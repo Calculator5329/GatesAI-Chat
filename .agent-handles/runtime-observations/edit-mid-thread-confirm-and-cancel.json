@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:03.587Z",
+  "measuredAt": "2026-09-14T01:02:41.564Z",
   "journeyName": "edit-mid-thread-confirm-and-cancel",
   "lastStep": 9,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/middle",

@@ -2765,7 +2765,7 @@
     {
       "name": "first-run-local-ready-continue",
       "title": "Continue with a detected local model",
-      "description": "Ollama has models: the local card offers to continue with the selected one, and the sidebar hint points at the menu.",
+      "description": "Ollama has models: the local card offers to continue with the selected one.",
       "kind": "control-path",
       "context": {
         "path": "/?scenario=first-run-local-ready#/workspace"
@@ -2777,37 +2777,12 @@
           "predicate": "visible"
         },
         {
-          "action": "expect",
-          "testId": "workspace.editorial-sidebar.settings-amp-menu-live-here",
-          "predicate": "visible"
-        },
-        {
           "action": "click",
           "testId": "workspace.editorial-chat.continue-with"
         },
         {
           "action": "expect",
           "testId": "workspace.composer.draft",
-          "predicate": "visible"
-        }
-      ]
-    },
-    {
-      "name": "first-run-menu-hint",
-      "title": "Follow the sidebar menu hint",
-      "description": "The one-time hint on the brand mark opens the menu.",
-      "kind": "control-path",
-      "context": {
-        "path": "/?scenario=first-run-local-ready#/workspace"
-      },
-      "steps": [
-        {
-          "action": "click",
-          "testId": "workspace.editorial-sidebar.settings-amp-menu-live-here"
-        },
-        {
-          "action": "expect",
-          "testId": "settings.gates-menu.tab-settings",
           "predicate": "visible"
         }
       ]
@@ -4089,13 +4064,18 @@
     },
     {
       "name": "sidebar-brand-and-bridge-dot",
-      "title": "Brand mark and bridge dot",
-      "description": "Clicking the brand mark opens the menu; the settings dot re-polls the bridge.",
+      "title": "Brand mark goes home; bridge dot re-polls",
+      "description": "The settings dot re-polls the bridge; clicking the brand mark from the menu returns to the conversation.",
       "kind": "control-path",
       "context": {
-        "path": "/?scenario=desktop-ready#/workspace"
+        "path": "/?scenario=desktop-ready#/menu/settings"
       },
       "steps": [
+        {
+          "action": "expect",
+          "testId": "settings.gates-menu.tab-settings",
+          "predicate": "visible"
+        },
         {
           "action": "expect",
           "testId": "workspace.sidebar-settings-button.dot",
@@ -4111,7 +4091,7 @@
         },
         {
           "action": "expect",
-          "testId": "settings.gates-menu.tab-settings",
+          "testId": "workspace.composer.draft",
           "predicate": "visible"
         }
       ]
@@ -4253,7 +4233,7 @@
     {
       "name": "web-lite-download-cue",
       "title": "Web Lite: download cue on an empty conversation",
-      "description": "An empty conversation in Web Lite shows the desktop download cue; the link is hovered, never followed.",
+      "description": "An empty conversation in Web Lite shows the desktop download cue; the link is hovered, never followed, and the x closes the card.",
       "kind": "control-path",
       "context": {
         "path": "/?scenario=desktop-ready#/workspace"
@@ -4271,6 +4251,10 @@
         {
           "action": "hover",
           "testId": "workspace.editorial-chat.link"
+        },
+        {
+          "action": "click",
+          "testId": "workspace.editorial-chat.dismiss-download-cue"
         },
         {
           "action": "expect",

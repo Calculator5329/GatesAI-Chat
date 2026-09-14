@@ -13,7 +13,7 @@ test.describe('web lite (no bridge)', () => {
 
   test('shows the web lite status and disables attachments', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('web lite')).toBeVisible();
+    await expect(page.getByRole('status', { name: 'Web Lite' })).toBeVisible();
     await expect(page.locator('button.composer-attach-btn')).toBeDisabled();
   });
 

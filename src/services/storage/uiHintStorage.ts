@@ -4,6 +4,7 @@
 import { logger } from '../diagnostics/logger';
 
 const MENU_HINT_KEY = 'gatesai.menuHintSeen.v1';
+const WEB_LITE_CUE_KEY = 'gatesai.webLiteCueDismissed.v1';
 
 /** True once the user has opened the menu via the brand wordmark at least once. */
 export function loadMenuHintSeen(): boolean {
@@ -23,5 +24,25 @@ export function saveMenuHintSeen(): void {
     localStorage.setItem(MENU_HINT_KEY, '1');
   } catch (err) {
     logger.warn('persistence', 'Menu hint flag save failed', { key: MENU_HINT_KEY, err });
+  }
+}
+
+/** True once the visitor closed the Web Lite desktop download cue. */
+export function loadWebLiteCueDismissed(): boolean {
+  if (typeof localStorage === 'undefined') return false;
+  try {
+    return localStorage.getItem(WEB_LITE_CUE_KEY) === '1';
+  } catch (err) {
+    logger.warn('persistence', 'Web Lite cue flag load failed', { key: WEB_LITE_CUE_KEY, err });
+    return false;
+  }
+}
+
+export function saveWebLiteCueDismissed(): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(WEB_LITE_CUE_KEY, '1');
+  } catch (err) {
+    logger.warn('persistence', 'Web Lite cue flag save failed', { key: WEB_LITE_CUE_KEY, err });
   }
 }

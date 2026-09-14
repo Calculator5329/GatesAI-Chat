@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:21.054Z",
+  "measuredAt": "2026-09-14T01:03:22.278Z",
   "journeyName": "banner-no-model-open-models",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=first-run#/menu/models",
@@ -26,10 +26,10 @@
     "workspace.composer.draft",
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
-    "workspace.editorial-sidebar.delete-t-mu0hy09w4g64",
-    "workspace.editorial-sidebar.pin-t-mu0hy09w4g64",
-    "workspace.editorial-sidebar.rename-t-mu0hy09w4g64",
-    "workspace.editorial-sidebar.thread-t-mu0hy09w4g64",
+    "workspace.editorial-sidebar.delete-t-mu0jhbryne2q",
+    "workspace.editorial-sidebar.pin-t-mu0jhbryne2q",
+    "workspace.editorial-sidebar.rename-t-mu0jhbryne2q",
+    "workspace.editorial-sidebar.thread-t-mu0jhbryne2q",
     "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu"
   ],

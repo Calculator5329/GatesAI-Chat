@@ -1,9 +1,9 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:16.504Z",
+  "measuredAt": "2026-09-14T01:03:58.361Z",
   "journeyName": "sidebar-brand-and-bridge-dot",
-  "lastStep": 4,
-  "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/settings",
+  "lastStep": 5,
+  "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",
   "observedTestIds": [
     "settings.chord-recorder.global-summon-shortcut",
     "settings.chord-recorder.reset",

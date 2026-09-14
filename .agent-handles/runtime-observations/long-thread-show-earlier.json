@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:23.784Z",
+  "measuredAt": "2026-09-14T01:02:36.352Z",
   "journeyName": "long-thread-show-earlier",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/long",

@@ -290,7 +290,8 @@
 }
 
 /* Keep the brand's generous hit target without painting the whole header as
-   a button. Hover/focus feedback stays on the wordmark itself. */
+   a button. The wordmark is a plain home link: no hover tint, no accent dot;
+   only keyboard focus draws a ring on the wordmark itself. */
 .editorial-sidebar__brand:hover,
 .editorial-sidebar__brand:focus-visible {
   background: transparent !important;
@@ -303,19 +304,6 @@
 }
 .editorial-sidebar__brand > div {
   border-radius: 8px;
-  transition: color var(--motion-fast), box-shadow var(--motion-fast), transform var(--motion-fast);
-}
-.editorial-sidebar__brand:hover > div {
-  transform: translateY(-1px);
-}
-.editorial-sidebar__brand:hover .editorial-sidebar__brand-text,
-.editorial-sidebar__brand:focus-visible .editorial-sidebar__brand-text {
-  color: color-mix(in srgb, var(--accent) 72%, var(--text)) !important;
-}
-.editorial-sidebar__brand:hover .editorial-sidebar__brand-dot,
-.editorial-sidebar__brand:focus-visible .editorial-sidebar__brand-dot {
-  transform: scale(1.35);
-  box-shadow: 0 0 8px var(--accent-glow);
 }
 .editorial-sidebar__brand:focus-visible > div {
   box-shadow: 0 0 0 2px var(--focus-ring), 0 0 0 5px var(--focus-ring-glow);
@@ -1142,57 +1130,6 @@
    leave it calm and drop a soft coachmark beneath it pointing back up, so it
    reads as "the menu / settings live here". It fades in on first open, then
    dismisses itself after a few seconds (or the moment the user clicks it). */
-@keyframes gatesCoachIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.editorial-sidebar__menu-coach {
-  position: relative;
-  margin: 2px 16px 14px;
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: 600 12px "Geist", ui-sans-serif, system-ui, sans-serif;
-  text-align: left;
-  color: var(--text);
-  background: color-mix(in srgb, var(--accent) 20%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
-  border-radius: 9px;
-  cursor: pointer;
-  animation: gatesCoachIn var(--motion-fade-dur) var(--motion-ease) both;
-}
-.editorial-sidebar__menu-coach:hover {
-  background: color-mix(in srgb, var(--accent) 30%, var(--panel));
-  border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
-}
-/* Up-caret pointing at the wordmark above. */
-.editorial-sidebar__menu-coach::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 22px;
-  width: 9px;
-  height: 9px;
-  background: color-mix(in srgb, var(--accent) 20%, var(--panel));
-  border-left: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
-  border-top: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
-  transform: rotate(45deg);
-}
-.editorial-sidebar__menu-coach-dot {
-  flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 6px var(--accent-glow);
-}
-/* While the cue is live, the wordmark's accent dot breathes to draw the eye
-   to the actual button (the coachmark just below explains what it opens). */
-.editorial-sidebar__brand[data-hint="true"] .editorial-sidebar__brand-dot {
-  box-shadow: 0 0 8px 1px var(--accent-glow);
-}
-
 .thinking-dots {
   display: inline-flex;
   align-items: center;
@@ -1433,12 +1370,41 @@
   border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel) 94%, var(--stage-bg-static) 6%);
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
   font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
   text-align: left;
+}
+
+/* Dismiss control in the card's top-right corner. Once closed the card stays
+   closed on this browser (UiStore.webLiteCueDismissed). */
+.web-lite-download-cue__dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.web-lite-download-cue__dismiss:hover,
+.web-lite-download-cue__dismiss:focus-visible {
+  background: var(--hover-wash);
+  color: var(--text);
+}
+.web-lite-download-cue__dismiss svg {
+  width: 14px;
+  height: 14px;
 }
 
 .undo-toast {
@@ -1490,6 +1456,7 @@
 
 .web-lite-download-cue__copy {
   max-width: 100%;
+  padding-right: 24px;
   color: var(--text-dim);
   font-size: 12px;
   line-height: 1.5;
@@ -1780,15 +1747,6 @@
 .sidebar-settings-button:hover {
   background: var(--hover-wash);
   color: var(--text);
-}
-.sidebar-settings-button__mode {
-  margin-left: auto;
-  font: 10.5px "Geist Mono", ui-monospace, monospace;
-  letter-spacing: 0.02em;
-  color: var(--status-blue-text);
-}
-.sidebar-settings-button__mode + .sidebar-settings-button__dot {
-  margin-left: 0;
 }
 .sidebar-settings-button__dot {
   width: 7px;

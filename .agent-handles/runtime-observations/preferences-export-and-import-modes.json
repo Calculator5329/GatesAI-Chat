@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:19.421Z",
+  "measuredAt": "2026-09-14T01:03:38.244Z",
   "journeyName": "preferences-export-and-import-modes",
   "lastStep": 11,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/settings",

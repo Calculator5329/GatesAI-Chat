@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:18.938Z",
+  "measuredAt": "2026-09-14T01:03:59.660Z",
   "journeyName": "whats-new-dismiss",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=whats-new#/thread/active",

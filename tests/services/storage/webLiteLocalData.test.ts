@@ -21,11 +21,13 @@ describe('webLiteLocalData (Batch E)', () => {
   it('keeps the web search API key (credential slot)', () => {
     localStorage.setItem('gatesai.search.v1', JSON.stringify({ brave: { apiKey: 'keep-me-too' } }));
     localStorage.setItem('gatesai.menuHintSeen.v1', '1');
+    localStorage.setItem('gatesai.webLiteCueDismissed.v1', '1');
 
     clearLocalDataExceptCredentials();
 
     expect(localStorage.getItem('gatesai.search.v1')).toContain('keep-me-too');
     expect(localStorage.getItem('gatesai.menuHintSeen.v1')).toBeNull();
+    expect(localStorage.getItem('gatesai.webLiteCueDismissed.v1')).toBeNull();
   });
 
   it('sweeps quarantined corrupt snapshot keys', () => {

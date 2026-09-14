@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-09-13: Brand mark goes home, coachmark gone, download cue dismissible
+
+- **Download cue has an x.** The Web Lite "want local" cue renders a dismiss
+  button (`workspace.editorial-chat.dismiss-download-cue`); the flag persists in
+  `gatesai.webLiteCueDismissed.v1` and is cleared by the local-data wipe.
+- **Brand mark.** The sidebar wordmark lost its green dot and the green hover
+  tint. Clicking it always returns to the conversation (toggles the drawer on
+  the mobile shell). Settings live only behind the labeled button at the foot
+  of the sidebar; the "web lite" text there is gone (the status dot stays).
+- **Coachmark removed.** The first-run "Settings and menu live here" hint is
+  gone; `workspace.editorial-sidebar.settings-amp-menu-live-here` is tombstoned
+  in `agent-handles.json` and the `first-run-menu-hint` journey deleted.
+  `sidebar-brand-and-bridge-dot` now checks that the brand mark goes home.
+- **Ratchet reconciliation.** The previous verify had sealed a candidate site
+  that the ratchet never recorded, so sealed builds would have failed on the
+  next change. `testid-ratchet.json` now matches the registry, and the seal
+  drops the two removed candidates. Gates: `npm run ci`, `npm run build:web`,
+  journeys compile (104), `npm run test:e2e` (145), `adopt verify` (verified,
+  run with `CI=1` after two parallel-load flakes that pass in isolation).
+
 ## 2026-09-13: Web Lite polish, research removed, catalog refresh
 
 - **Research removed.** The deep-research button and its route left the composer

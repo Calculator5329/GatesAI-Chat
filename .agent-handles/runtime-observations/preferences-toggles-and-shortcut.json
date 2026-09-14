@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:16.037Z",
+  "measuredAt": "2026-09-14T01:03:36.111Z",
   "journeyName": "preferences-toggles-and-shortcut",
   "lastStep": 15,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/settings",

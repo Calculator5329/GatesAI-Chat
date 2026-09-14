@@ -133,6 +133,10 @@
     "workspace.composer-meta.start-deep-research": {
       "removedAt": "2026-09-13",
       "reason": "Deep research was removed from the composer meta row; the standalone research route was glitchy and had no place in Web Lite."
+    },
+    "workspace.editorial-sidebar.settings-amp-menu-live-here": {
+      "removedAt": "2026-09-13",
+      "reason": "The first-run coachmark taught that the brand mark opens the menu; the brand mark now always goes home and Settings is the labeled button at the foot of the sidebar."
     }
   }
 }

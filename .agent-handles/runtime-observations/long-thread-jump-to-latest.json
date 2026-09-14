@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:26.026Z",
+  "measuredAt": "2026-09-14T01:02:38.000Z",
   "journeyName": "long-thread-jump-to-latest",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/long",
@@ -28,7 +28,6 @@
     "workspace.editorial-message.branch-long-user-10",
     "workspace.editorial-message.branch-long-user-11",
     "workspace.editorial-message.branch-long-user-12",
-    "workspace.editorial-message.branch-long-user-61",
     "workspace.editorial-message.branch-long-user-62",
     "workspace.editorial-message.branch-long-user-63",
     "workspace.editorial-message.branch-long-user-64",
@@ -52,7 +51,6 @@
     "workspace.editorial-message.copy-long-user-10",
     "workspace.editorial-message.copy-long-user-11",
     "workspace.editorial-message.copy-long-user-12",
-    "workspace.editorial-message.copy-long-user-61",
     "workspace.editorial-message.copy-long-user-62",
     "workspace.editorial-message.copy-long-user-63",
     "workspace.editorial-message.copy-long-user-64",
@@ -76,7 +74,6 @@
     "workspace.editorial-message.edit-long-user-10",
     "workspace.editorial-message.edit-long-user-11",
     "workspace.editorial-message.edit-long-user-12",
-    "workspace.editorial-message.edit-long-user-61",
     "workspace.editorial-message.edit-long-user-62",
     "workspace.editorial-message.edit-long-user-63",
     "workspace.editorial-message.edit-long-user-64",
@@ -122,5 +119,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "113 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "110 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

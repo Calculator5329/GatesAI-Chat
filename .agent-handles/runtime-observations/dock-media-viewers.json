@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:01.387Z",
+  "measuredAt": "2026-09-14T01:03:49.544Z",
   "journeyName": "dock-media-viewers",
   "lastStep": 16,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/html",

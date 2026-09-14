@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:04.404Z",
+  "measuredAt": "2026-09-14T01:03:12.212Z",
   "journeyName": "first-run-local-installed-recheck",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=first-run-local-installed#/menu/models",
@@ -31,10 +31,10 @@
     "workspace.editorial-chat.start-ollama",
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
-    "workspace.editorial-sidebar.delete-t-mu0hxnex75ys",
-    "workspace.editorial-sidebar.pin-t-mu0hxnex75ys",
-    "workspace.editorial-sidebar.rename-t-mu0hxnex75ys",
-    "workspace.editorial-sidebar.thread-t-mu0hxnex75ys",
+    "workspace.editorial-sidebar.delete-t-mu0jh424uojl",
+    "workspace.editorial-sidebar.pin-t-mu0jh424uojl",
+    "workspace.editorial-sidebar.rename-t-mu0jh424uojl",
+    "workspace.editorial-sidebar.thread-t-mu0jh424uojl",
     "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu"
   ],

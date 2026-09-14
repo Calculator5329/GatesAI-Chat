@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:13.343Z",
+  "measuredAt": "2026-09-14T01:03:56.944Z",
   "journeyName": "local-context-mode",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=local-ollama#/thread/local-active",

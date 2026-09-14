@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:00.408Z",
+  "measuredAt": "2026-09-14T01:01:46.532Z",
   "journeyName": "choose-a-local-model",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

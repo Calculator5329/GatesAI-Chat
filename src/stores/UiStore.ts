@@ -13,7 +13,7 @@ import type {
 } from '../core/types';
 import { coerceUiPack, type UiPackKey } from '../core/uiPacks';
 import { loadUiPrefs, saveUiPrefs, type UiPrefsSnapshot } from '../services/uiPrefsStorage';
-import { loadMenuHintSeen, saveMenuHintSeen } from '../services/storage/uiHintStorage';
+import { loadMenuHintSeen, loadWebLiteCueDismissed, saveMenuHintSeen, saveWebLiteCueDismissed } from '../services/storage/uiHintStorage';
 import { logger } from '../services/diagnostics/logger';
 import { toggleFullscreen } from '../services/window/fullscreen';
 import {
@@ -73,6 +73,8 @@ export class UiStore {
   globalShortcutUnavailableReason: string | null = null;
   /** First-run cue: pulse the brand wordmark until the user opens the menu. */
   menuHintSeen = loadMenuHintSeen();
+  /** Web Lite: the desktop download cue on an empty conversation was closed. */
+  webLiteCueDismissed = loadWebLiteCueDismissed();
   /**
    * True while the viewport matches {@link MOBILE_SHELL_QUERY} (fixed topbar
    * + drawer sidebar layout). Single matchMedia subscription for the app;
@@ -395,6 +397,13 @@ export class UiStore {
     if (this.menuHintSeen) return;
     this.menuHintSeen = true;
     saveMenuHintSeen();
+  }
+
+  /** Close the Web Lite download cue for good on this browser. */
+  dismissWebLiteCue(): void {
+    if (this.webLiteCueDismissed) return;
+    this.webLiteCueDismissed = true;
+    saveWebLiteCueDismissed();
   }
 
   // ── Web Lite browser-data maintenance (facade over services/storage) ──

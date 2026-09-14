@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:23.935Z",
+  "measuredAt": "2026-09-14T01:03:24.245Z",
   "journeyName": "task-center-cancel-and-retry",
   "lastStep": 10,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/images",

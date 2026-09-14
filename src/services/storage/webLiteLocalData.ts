@@ -29,6 +29,7 @@ export const LOCAL_DATA_SLOTS: LocalDataSlot[] = [
   { key: 'gatesai.modelPicker.favorites.v1', label: 'Favorite models' },
   { key: 'gatesai.userGuide.opened.v1', label: 'Guide opened flag' },
   { key: 'gatesai.menuHintSeen.v1', label: 'Menu hint seen flag' },
+  { key: 'gatesai.webLiteCueDismissed.v1', label: 'Download cue dismissed flag' },
   { key: 'gatesai.providers.v1', label: 'Provider API keys', credential: true },
   { key: 'gatesai.search.v1', label: 'Web search API key', credential: true },
 ];

@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:05.770Z",
+  "measuredAt": "2026-09-14T01:02:42.847Z",
   "journeyName": "grouped-activity-timeline",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/grouped",

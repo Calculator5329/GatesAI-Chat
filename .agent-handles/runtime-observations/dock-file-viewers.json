@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:04.835Z",
+  "measuredAt": "2026-09-14T01:03:52.011Z",
   "journeyName": "dock-file-viewers",
   "lastStep": 19,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/html",
@@ -99,12 +99,11 @@
     "workspace.markdown-chunk.set-copy-state",
     "workspace.markdown-chunk.set-html-view",
     "workspace.markdown-chunk.set-wrapped",
-    "workspace.markdown-fallback.a",
     "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu"
   ],
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "97 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "96 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

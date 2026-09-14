@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:06.706Z",
+  "measuredAt": "2026-09-14T01:03:00.445Z",
   "journeyName": "prompt-cards-skip-and-option",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=prompt-cards#/thread/active",

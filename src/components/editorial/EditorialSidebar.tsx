@@ -12,7 +12,6 @@ import { UpdatePill } from './UpdatePill';
 import { ThreadTitle } from './ThreadTitle';
 
 // First-run menu coach: show it briefly, then bow out on its own so it never nags.
-const MENU_HINT_TIMEOUT_MS = 9000;
 const HISTORY_ROW_LIMIT = 20;
 function scheduledAgentTaskLabel(thread: Thread): string {
   const dueAt = thread.agentTaskScheduledStartAt ?? Date.now();
@@ -106,9 +105,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   // Single source of truth for the breakpoint lives in UiStore (matchMedia
   // on MOBILE_SHELL_QUERY), shared with src/styles/responsive.css.
   const mobileShell = ui.mobileShell;
-  // First-run cue: surface the menu coachmark until the user opens the menu.
-  // State + persistence live in UiStore (no direct storage here).
-  const showMenuHint = !ui.menuHintSeen && !onMenu;
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const mobileMenuTitle = MENU_SECTION_LABELS[router.menuSection] ?? 'Menu';
   const mobileTitle = onMenu
@@ -119,14 +115,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
   useEffect(() => {
     if (!mobileShell) setMobileOpen(false);
   }, [mobileShell]);
-
-  // Let the first-run menu coach linger just long enough to be noticed, then
-  // dismiss itself. Clicking it (or opening the menu) marks it seen sooner.
-  useEffect(() => {
-    if (!showMenuHint) return;
-    const timer = setTimeout(() => ui.markMenuHintSeen(), MENU_HINT_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, [showMenuHint, ui]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -177,17 +165,14 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     />
   );
 
+  // The wordmark is the way home: it always returns to the conversation.
+  // Settings live behind the button at the foot of the sidebar.
   const activateBrand = (): void => {
     if (mobileShell) {
-      ui.markMenuHintSeen();
       setMobileOpen(open => !open);
       return;
     }
-    if (onMenu) router.goThread(chat.activeThreadId);
-    else {
-      ui.markMenuHintSeen();
-      router.goMenu();
-    }
+    router.goThread(chat.activeThreadId);
   };
 
   return (
@@ -276,7 +261,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
     >
       <div data-testid="workspace.editorial-sidebar.brand"
         className="editorial-sidebar__brand"
-        data-hint={showMenuHint && !mobileShell ? 'true' : undefined}
         style={S.head as CSSProperties}
         onClick={activateBrand}
         onKeyDown={event => {
@@ -286,11 +270,10 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
         }}
         role="button"
         tabIndex={0}
-        title={mobileShell ? (mobileOpen ? 'Collapse sidebar' : 'Expand sidebar') : (onMenu ? 'Back to chat' : 'Open menu')}
+        title={mobileShell ? (mobileOpen ? 'Collapse sidebar' : 'Expand sidebar') : 'Back to chat'}
       >
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline' }}>
           <div className="editorial-sidebar__brand-text" style={{ fontFamily: '"Source Serif 4", Georgia, serif', fontSize: 22, fontWeight: 500, color: 'var(--text)', letterSpacing: '-0.02em' }}>GatesAI</div>
-          <div className="editorial-sidebar__brand-dot" style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', alignSelf: 'center', marginBottom: 2 }} />
         </div>
         {mobileShell && (
           <button data-testid="workspace.editorial-sidebar.close-mobile-sidebar"
@@ -306,19 +289,6 @@ export const EditorialSidebar = observer(function EditorialSidebar() {
           </button>
         )}
       </div>
-      {showMenuHint && !mobileShell && (
-        <button data-testid="workspace.editorial-sidebar.settings-amp-menu-live-here"
-          type="button"
-          className="editorial-sidebar__menu-coach"
-          onClick={() => {
-            ui.markMenuHintSeen();
-            router.goMenu();
-          }}
-        >
-          <span className="editorial-sidebar__menu-coach-dot" />
-          Settings &amp; menu live here
-        </button>
-      )}
       <div className="editorial-sidebar__action-slot">
         <button data-testid="workspace.editorial-sidebar.begin-a-new-conversation"
           type="button"

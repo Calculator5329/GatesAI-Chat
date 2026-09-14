@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:22.406Z",
+  "measuredAt": "2026-09-14T01:02:52.481Z",
   "journeyName": "activity-rows-toggle",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/images",
@@ -14,7 +14,6 @@
     "workspace.composer-meta.workspace-skill",
     "workspace.composer.attach",
     "workspace.composer.draft",
-    "workspace.editorial-chat.editorial-jump-to-bottom",
     "workspace.editorial-message.branch-images-assistant-1",
     "workspace.editorial-message.branch-images-user",
     "workspace.editorial-message.copy-images-assistant-1",
@@ -52,5 +51,5 @@
   "unidentified": [],
   "unknownTestIds": [],
   "duplicateTestIds": [],
-  "statement": "43 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
+  "statement": "42 controls observed during this journey; runtime evidence is path-bound, and unvisited states remain uncovered."
 }

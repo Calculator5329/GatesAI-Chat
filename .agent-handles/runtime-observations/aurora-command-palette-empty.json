@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:13.110Z",
+  "measuredAt": "2026-09-14T01:03:03.663Z",
   "journeyName": "aurora-command-palette-empty",
   "lastStep": 8,
   "pageUrl": "http://localhost:5273/?scenario=aurora-pack#/thread/aurora-active",

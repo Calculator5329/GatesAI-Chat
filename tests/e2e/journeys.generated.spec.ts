@@ -1423,28 +1423,15 @@ test("persistence-notice-reload: The conflict notice's Reload action reloads the
   await recordFinalPageState(page, "persistence-notice-reload");
 });
 
-test("first-run-local-ready-continue: Ollama has models: the local card offers to continue with the selected one, and the sidebar hint points at the menu.", async ({
-  page,
-}) => {
+test("first-run-local-ready-continue: Ollama has models: the local card offers to continue with the selected one.", async ({ page }) => {
   await page.goto("/?scenario=first-run-local-ready#/workspace");
   await expect(page.getByTestId("workspace.editorial-chat.continue-with")).toBeVisible();
   await reconcileRuntime(page, "first-run-local-ready-continue", 1);
-  await expect(page.getByTestId("workspace.editorial-sidebar.settings-amp-menu-live-here")).toBeVisible();
-  await reconcileRuntime(page, "first-run-local-ready-continue", 2);
   await page.getByTestId("workspace.editorial-chat.continue-with").click();
-  await reconcileRuntime(page, "first-run-local-ready-continue", 3);
+  await reconcileRuntime(page, "first-run-local-ready-continue", 2);
   await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
-  await reconcileRuntime(page, "first-run-local-ready-continue", 4);
+  await reconcileRuntime(page, "first-run-local-ready-continue", 3);
   await recordFinalPageState(page, "first-run-local-ready-continue");
-});
-
-test("first-run-menu-hint: The one-time hint on the brand mark opens the menu.", async ({ page }) => {
-  await page.goto("/?scenario=first-run-local-ready#/workspace");
-  await page.getByTestId("workspace.editorial-sidebar.settings-amp-menu-live-here").click();
-  await reconcileRuntime(page, "first-run-menu-hint", 1);
-  await expect(page.getByTestId("settings.gates-menu.tab-settings")).toBeVisible();
-  await reconcileRuntime(page, "first-run-menu-hint", 2);
-  await recordFinalPageState(page, "first-run-menu-hint");
 });
 
 test("first-run-local-empty-starter-pull: Ollama runs with no models: the primary action pulls a starter and the secondary opens Local settings.", async ({
@@ -2049,16 +2036,20 @@ test("local-context-mode: With a local model selected the composer offers a cont
   await recordFinalPageState(page, "local-context-mode");
 });
 
-test("sidebar-brand-and-bridge-dot: Clicking the brand mark opens the menu; the settings dot re-polls the bridge.", async ({ page }) => {
-  await page.goto("/?scenario=desktop-ready#/workspace");
-  await expect(page.getByTestId("workspace.sidebar-settings-button.dot")).toBeVisible();
-  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 1);
-  await page.getByTestId("workspace.sidebar-settings-button.dot").click();
-  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 2);
-  await page.getByTestId("workspace.editorial-sidebar.brand").click();
-  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 3);
+test("sidebar-brand-and-bridge-dot: The settings dot re-polls the bridge; clicking the brand mark from the menu returns to the conversation.", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=desktop-ready#/menu/settings");
   await expect(page.getByTestId("settings.gates-menu.tab-settings")).toBeVisible();
+  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 1);
+  await expect(page.getByTestId("workspace.sidebar-settings-button.dot")).toBeVisible();
+  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 2);
+  await page.getByTestId("workspace.sidebar-settings-button.dot").click();
+  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 3);
+  await page.getByTestId("workspace.editorial-sidebar.brand").click();
   await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 4);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "sidebar-brand-and-bridge-dot", 5);
   await recordFinalPageState(page, "sidebar-brand-and-bridge-dot");
 });
 
@@ -2126,7 +2117,7 @@ test("mobile-new-conversation-and-copy-link: The top bar starts a new conversati
   await recordFinalPageState(page, "mobile-new-conversation-and-copy-link");
 });
 
-test("web-lite-download-cue: An empty conversation in Web Lite shows the desktop download cue; the link is hovered, never followed.", async ({
+test("web-lite-download-cue: An empty conversation in Web Lite shows the desktop download cue; the link is hovered, never followed, and the x closes the card.", async ({
   page,
 }) => {
   await page.goto("/?scenario=desktop-ready#/workspace");
@@ -2136,7 +2127,9 @@ test("web-lite-download-cue: An empty conversation in Web Lite shows the desktop
   await reconcileRuntime(page, "web-lite-download-cue", 2);
   await page.getByTestId("workspace.editorial-chat.link").hover();
   await reconcileRuntime(page, "web-lite-download-cue", 3);
-  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await page.getByTestId("workspace.editorial-chat.dismiss-download-cue").click();
   await reconcileRuntime(page, "web-lite-download-cue", 4);
+  await expect(page.getByTestId("workspace.composer.draft")).toBeVisible();
+  await reconcileRuntime(page, "web-lite-download-cue", 5);
   await recordFinalPageState(page, "web-lite-download-cue");
 });

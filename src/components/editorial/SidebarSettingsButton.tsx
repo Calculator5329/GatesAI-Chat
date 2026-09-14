@@ -38,10 +38,6 @@ export const SidebarSettingsButton = observer(function SidebarSettingsButton() {
     >
       <span className="sidebar-settings-button__icon"><Icons.Gear /></span>
       <span>Settings</span>
-      {/* Web Lite is a permanent runtime mode, not a transient status, so it
-          stays stated in words. Bridge polling on desktop is transient and
-          rides on the dot alone. */}
-      {webLite && <span className="sidebar-settings-button__mode">web lite</span>}
       <span data-testid="workspace.sidebar-settings-button.dot"
         className="sidebar-settings-button__dot"
         style={{ background: dotColor }}

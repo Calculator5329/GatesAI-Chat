@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:11.173Z",
+  "measuredAt": "2026-09-14T01:02:46.397Z",
   "journeyName": "memory-source-open-thread",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/tool",

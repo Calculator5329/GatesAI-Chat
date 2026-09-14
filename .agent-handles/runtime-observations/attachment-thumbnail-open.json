@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T00:20:13.641Z",
+  "measuredAt": "2026-09-14T01:02:47.698Z",
   "journeyName": "attachment-thumbnail-open",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/attached",
