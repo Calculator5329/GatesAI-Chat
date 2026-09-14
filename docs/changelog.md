@@ -64,15 +64,15 @@
   journeys recompiled (105); `npm run test:e2e` 146 passed; `adopt verify`
   reported adoption verified.
 
-## 2026-09-05 — Tool-loop test store disposal
+## 2026-09-05: Tool-loop test store disposal
 
 `tests/stores/toolLoop.test.ts` now tracks each `ChatStore` it builds and disposes them in its existing `afterEach`, before `clearAppStorage()`, reusing the `trackChat`/`disposeActiveChats` pattern from `tests/stores/ChatStore.test.ts`. `setupScripted` was the file's only construction site and nothing released the persistence autorun or the `pagehide`/`beforeunload` listeners that `ChatPersistenceCoordinator.start()` installs. Test-only change; no production edit, all original titles and assertions retained. No memory/CPU measurement and no cross-test pollution repro is claimed. Parent verification: all23original test bodies/assertions unchanged; CI passed1385tests plus typecheck/lint, and all146browser tests passed. Details in `designs/tool-loop-test-disposal-20260905.md`.
 
-## 2026-09-05 — Workspace hydration authority
+## 2026-09-05: Workspace hydration authority
 
 Workspace hydration keeps current follower reads in memory while guarding shared publication with the current lifetime/leadership generation. Each privileged mutation rechecks permission, and RootStore reconciles changed contexts without retrying unchanged failures. Stale completions cannot change memory. Verification: CI passed 1385 tests plus typecheck/lint; full E2E passed 146 tests. Details in `designs/workspace-hydration-authority-20260905.md`.
 
-## 2026-09-04 — v5 architecture spike (`spike-v5/`)
+## 2026-09-04: v5 architecture spike (`spike-v5/`)
 
 - Built one vertical slice of the incubator's v5 design in a new `spike-v5/`
   directory: a single chat turn through transport (OpenAI-wire SSE over an
@@ -83,32 +83,32 @@ Workspace hydration keeps current follower reads in memory while guarding shared
   application code, dependency or config was touched, and nothing under `src/`
   imports it.
 - `spike-v5/tests/turnRoundTrip.test.ts` covers seven behaviors through the
-  public seam — happy-path stream, deltas split across byte boundaries, HTTP
+  public seam, happy-path stream, deltas split across byte boundaries, HTTP
   429, mid-stream abort keeping the partial reply, an extension decorating the
   request, a v1 record migrated and continued, and a rejected concurrent turn.
   Run it with `npx vitest run --config spike-v5/vitest.config.ts`; it uses the
   installed vitest under `environment: 'node'` and adds no dependency. **The
-  suite was not executed in the authoring lane** — every runner invocation was
-  refused by that run's command sandbox — so no timing is claimed on either
+  suite was not executed in the authoring lane**, every runner invocation was
+  refused by that run's command sandbox, so no timing is claimed on either
   side.
 - `spike-v5/FINDINGS.md` records the measured comparison against the v4 turn
   path (`ChatStore` → `ChatTurnEngine` → `TurnRunner` →
   `StreamingRoundExecutor` → `OpenAiCompatProvider` → `parseSse` →
   `ChatPersistenceCoordinator`): 25 files / 6,733 lines and 53 interface
   members across 8 seams, against 9 files / 1,050 lines and 10 members across
-  6 ports. Verdict is **adapt** — adopt the layering, drop the design's
+  6 ports. Verdict is **adapt**, adopt the layering, drop the design's
   "extract the core and keep the tests" premise, and spike the tool round
   before committing. The spike is disposable and should be deleted or archived
   once the decision is recorded.
 
-## 2026-09-05 — Artifact registry preservation
+## 2026-09-05: Artifact registry preservation
 
 - Verification: 1,347 tests, typecheck, lint and all 144 browser checks passed after merging A30; two browser workers and zero retries.
 
 - Failed registry reads no longer initialize empty metadata. Complete folder or parent listings must prove absence; unavailable, malformed or truncated listings preserve files.
 - Empty existing indexes now require recovery. Explicit versioned empty JSON remains valid. Legacy migration retains canonical filenames and refuses unsafe name-to-ID mappings without renaming files.
 
-## 2026-09-05 — Journey verification artifacts (A30)
+## 2026-09-05: Journey verification artifacts (A30)
 
 - Refreshed `vendor/agent-handles-0.0.0.tgz` from delivered Handles core
   `bf64ba9f75227f94c95090be67603bcab79fd50e`, updated its lock integrity, and
@@ -288,7 +288,7 @@ Workspace hydration keeps current follower reads in memory while guarding shared
   84 e2e). Known pre-existing red: `tests/e2e/polish.spec.ts` "announces a
   complete fenced HTML document" fails identically on the previous commit.
 
-## 2026-08-26 — Public-repo presentation: real README hero, process docs filed
+## 2026-08-26: Public-repo presentation: real README hero, process docs filed
 
 - `README.md`: the hero image pointed at `docs/media/demo.gif`, which has never
   been recorded, so the top of the public README rendered a broken image. It now
@@ -327,7 +327,7 @@ Workspace hydration keeps current follower reads in memory while guarding shared
   was ruled against. Deciding which behavior is correct is a product call, not a
   cleanup. The other 38 e2e tests pass.
 
-## 2026-08-26 — Agent Handles clean adoption trial
+## 2026-08-26: Agent Handles clean adoption trial
 
 - Installed the packed Agent Handles package as a development dependency and
   followed its generated adoption prompt without changing the package during
@@ -355,7 +355,7 @@ Workspace hydration keeps current follower reads in memory while guarding shared
   baseline source-view implementation does not render until its Preview action
   is selected. The adoption journey suite itself remains green.
 
-## 2026-08-15 — Merged ui/taste-pass-20260726 (owner ruling merge-now)
+## 2026-08-15: Merged ui/taste-pass-20260726 (owner ruling merge-now)
 
 - Merged the July 26 taste-pass branch into master. One deliberate exception:
   in `src/components/editorial/MarkdownChunk.tsx` the branch's
@@ -394,7 +394,7 @@ finding 12). Note only; no code was restored and the stash was not touched.
   did not know. The flip back to private is owner-only and is now an open
   roadmap item with the exact commands in the ADR.
 
-## 2026-08-11 — Switchable UI packs and the Aurora pack
+## 2026-08-11: Switchable UI packs and the Aurora pack
 
 - Added `src/core/uiPacks.ts`: the pack registry (`classic`, `aurora`), with
   `coerceUiPack` so a persisted pack a build no longer ships degrades to
@@ -422,7 +422,7 @@ finding 12). Note only; no code was restored and the stash was not touched.
   pack coverage. Fixed a date-dependent flake in the sidebar history test
   (calendar landmarks → day offsets).
 
-## 2026-08-09 — Local model turn status copy
+## 2026-08-09: Local model turn status copy
 
 - Added `src/copy/localStatus.ts` and routed local-runtime stall/cold-start
   messaging through it for Ollama and local runtimes.
@@ -433,7 +433,7 @@ finding 12). Note only; no code was restored and the stash was not touched.
 - Added unit coverage for local vs remote stall branches in
   `tests/services/chat/streamingRoundExecutor.test.ts` and updated the
   `ImageJobCard` assertion for the new open-image waiting copy.
-## 2026-07-26 — Cover the persistence coordinator
+## 2026-07-26: Cover the persistence coordinator
 
 - `chatPersistenceCoordinator` (230 lines deciding whether your conversations
   reach disk) had no tests. Twelve now cover the parts where data loss lives:
@@ -441,18 +441,18 @@ finding 12). Note only; no code was restored and the stash was not touched.
   leader's state), the serialized workspace save queue, and `trackSnapshotDeep`.
 - The queue tests pin two properties that are easy to regress silently: saves
   never overlap and intermediate snapshots coalesce to the newest rather than
-  queueing, and a **rejected save clears the in-flight flag** — without that,
+  queueing, and a **rejected save clears the in-flight flag**, without that,
   one dropped bridge connection would end workspace persistence for the rest
   of the session with no error surfaced.
 - `trackSnapshotDeep` exists only to register MobX dependencies, so when it
-  stops covering a field there is no exception — the autosave just never fires
+  stops covering a field there is no exception, the autosave just never fires
   and a conversation vanishes on reload. Tests assert the signature moves on
   append, streamed growth, rename, pin, summary and context changes.
 - Each assertion was mutation-checked rather than trusted for being green:
   removing the in-flight reset, and dropping title tracking, each turn the
   suite red.
 
-## 2026-07-26 — v2 UI taste pass: the animations were dead, and the artifact card was a white hole
+## 2026-07-26: v2 UI taste pass: the animations were dead, and the artifact card was a white hole
 
 Branch `ui/taste-pass-20260726`. Not merged.
 
@@ -503,10 +503,10 @@ Branch `ui/taste-pass-20260726`. Not merged.
   `docs/plans/2026-07-26-follow-up-while-streaming.md`.
 
 
-## 2026-07-26 — The screenshot corpus was one surface short, and the copy hint was unreadable
+## 2026-07-26: The screenshot corpus was one surface short, and the copy hint was unreadable
 
 - **LF-9 closed.** `screen-chat-tool-activity.png` was byte-identical to
-  `screen-chat-active.png` — same sha256 — because the tour step re-opened the
+  `screen-chat-active.png`, same sha256, because the tour step re-opened the
   same thread and captured it without expanding anything. The corpus advertised
   17 surfaces and held 16. The step now expands the `data-kind="tool"` activity
   row (not `.activity-row__button` first, which is the Thinking row) and asserts
@@ -515,17 +515,17 @@ Branch `ui/taste-pass-20260726`. Not merged.
   weeks because "the file exists" and "the manifest lists it" were both true;
   nothing checked that two entries weren't the same image.
 - **The one-time copy hint was unreadable.** `.message-copy-hint` was absolutely
-  positioned at `top: 20px; right: 0` — the exact slot `.message-actions`
+  positioned at `top: 20px; right: 0`, the exact slot `.message-actions`
   occupies. Both appear on hover/focus-within, so they always appeared together
   and the hint always rendered clipped behind the buttons. It is now in flow,
   hugging the actions. Verified against a running build: the full
   "Ctrl/Cmd + click to copy" chip now sits beside the buttons.
 
-## 2026-07-26 — Toggle knob and focus-ring defects
+## 2026-07-26: Toggle knob and focus-ring defects
 
 - The toggle's press animation had never once run. `.ui-toggle:active` set a
   `scale(0.92)` on the thumb, but the thumb's `transform` was an inline style,
-  which beats an ordinary stylesheet rule — and had it applied, a bare
+  which beats an ordinary stylesheet rule, and had it applied, a bare
   `scale()` would have replaced `translateX(14px)` and snapped the knob to the
   left edge mid-press. Presentation moved out of `Toggle.tsx` into
   `.ui-toggle`, and the pressed-and-on state composes both transforms.
@@ -540,26 +540,26 @@ Branch `ui/taste-pass-20260726`. Not merged.
 - Removed six dead focus declarations: two rules in `markdown.css` that
   reinvented the focus ring with their own accent mix and offset, and four
   `outline: none` lines inside `:focus-visible` rules. All were already
-  overridden by the global `!important` ring — code that read as intent while
+  overridden by the global `!important` ring, code that read as intent while
   doing nothing.
 - Recorded the taste rules behind this pass and the transcript work in
   `docs/taste.md`, which had nothing about either.
 - Closed the roadmap's pre-existing e2e failure (artifactContract "opens a
   registry artifact from the palette in the dock", open since 2026-07-18). It
-  no longer reproduces — 3/3 green under `--repeat-each=3` and in every full
+  no longer reproduces: 3/3 green under `--repeat-each=3` and in every full
   suite run. Fixed by other work in the interim; cause not bisected, so it is
   marked to reopen rather than be dismissed as flake if it returns.
 
-## 2026-07-26 — Transcript HTML: announce and hand off, never embed
+## 2026-07-26: Transcript HTML: announce and hand off, never embed
 
 - Wired the compact `inline` artifact card into the transcript. The `variant`
   prop existed but no call site passed it, so mentioning a workspace HTML path
-  still built a `clamp(260px, 44vw, 420px)` white wall in a dark thread —
+  still built a `clamp(260px, 44vw, 420px)` white wall in a dark thread,
   visible at the top of `docs/audits/screens-2026-07/screen-chat-tool-activity.png`.
   All four transcript entry points (`MarkdownChunk` inline code and links,
   `MarkdownFallback`'s two equivalents) now render the card; the dock keeps the
   full `panel` variant.
-- The compact card always offers **View** (the full-screen modal — the one
+- The compact card always offers **View** (the full-screen modal: the one
   surface both runtimes have) and adds **Open in dock** on desktop. Web Lite
   has no dock, so it gets the modal rather than a button that does nothing.
   View renders disabled until the read lands, so it can't shift the layout
@@ -568,11 +568,11 @@ Branch `ui/taste-pass-20260726`. Not merged.
   fixed-height sandboxed frame is replaced by an `.html-document-card` naming
   the document (from its `<title>`), its line count, and offering Open /
   Download, with the source still readable below. The Preview/Source toggle is
-  gone — there is no second mode left to toggle to.
+  gone: there is no second mode left to toggle to.
 - `InlineHtmlDocument` and its sandbox policy are unchanged and now render only
   in the dock's file viewer, which already sized them to the cell.
 
-## 2026-07-20 — Multi-surface owner feedback session
+## 2026-07-20: Multi-surface owner feedback session
 
 - Added one durable, plain-English runbook covering the recent GatesAI depth
   pass: agent feel, tool activity, local models and instructions, semantic
@@ -586,7 +586,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
   added a shared rubric for comparing Forge, Comms Deck, Visions, and in-chat
   review on speed, clarity, trust, taste feedback, and completion effort.
 
-## 2026-07-19 — Approved local knowledge library
+## 2026-07-19: Approved local knowledge library
 
 - Added a quiet Knowledge library section under Agent → Memory where desktop
   users can approve text/Markdown/structured-text documents and SQLite files
@@ -602,7 +602,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
 - Added path-jail, size-limit, read-only SQLite, persistence, import, indexing,
   tool, registry, and Agent UI coverage. Web Lite remains honest and inert.
 
-## 2026-07-19 — Automated curated-model compatibility
+## 2026-07-19: Automated curated-model compatibility
 
 - Added a policy-driven OpenRouter catalog audit that automatically discovers
   every active Claude since Sonnet 4, Gemini since 2.0, and OpenAI GPT-5 route,
@@ -617,7 +617,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
   explicit reported limitation because Cursor's in-house models are not
   exposed through GatesAI's three supported routes.
 
-## 2026-07-19 — Brave search and visible deep research
+## 2026-07-19: Brave search and visible deep research
 
 - Restored Brave Search setup to Models with one clear explanation of quick
   web answers versus background research; desktop keys continue to use the OS
@@ -632,7 +632,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
 - Added focused client/store/tool/prompt/UI/Rust coverage and verified the
   production composer and Models layouts in a real Chromium session.
 
-## 2026-07-19 — Transparent, controllable semantic memory
+## 2026-07-19: Transparent, controllable semantic memory
 
 - Shipped Ethan's Option 2 interaction: compact source chips beneath recalled
   answers expand to the exact supplied excerpt, provenance, source destination,
@@ -645,7 +645,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
   component, store, full CI, Playwright, and desktop/mobile screenshot evidence
   cover the selected behavior.
 
-## 2026-07-19 — Plain-English tool activity intent
+## 2026-07-19: Plain-English tool activity intent
 
 - Every model-visible tool schema now offers a shared `display_text` field for
   a short plain-English explanation of what the step is trying to accomplish.
@@ -654,7 +654,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
   for older or noncompliant models, and strips the UI-only field before local
   execution.
 
-## 2026-07-19 — Semantic-memory trust boundary and controls backend
+## 2026-07-19: Semantic-memory trust boundary and controls backend
 
 - Historical recall is now supplied as bounded, explicitly untrusted
   user-role evidence instead of being promoted into the system prompt; bare
@@ -666,7 +666,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
 - The visible disclosure and Agent → Memory manager remain intentionally
   paused until the required selection from six durable UI options.
 
-## 2026-07-19 — Evaluated hybrid semantic recall
+## 2026-07-19: Evaluated hybrid semantic recall
 
 - Added dependency-free BM25, identifier-preserving tokens, lexical-weighted
   rank fusion, source diversity, active-thread/source-policy filtering, stable
@@ -675,7 +675,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
   reached 94.6% Recall@5, 0.909 MRR@5, 100% exact-ID and durable-fact Recall@5,
   zero false injections/forbidden hits, and 19.7 ms p95 at 10,000 chunks.
 
-## 2026-07-19 — Complete, atomic semantic indexing
+## 2026-07-19: Complete, atomic semantic indexing
 
 - Archived conversation stubs now resolve through a bounded source repository,
   keeping all retained chats recallable without loading them into `ChatStore`.
@@ -684,7 +684,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
   pause/failure/progress state. A chat start cancels indexing while preserving
   the last complete generation.
 
-## 2026-07-19 — Semantic-memory evaluation contract
+## 2026-07-19: Semantic-memory evaluation contract
 
 - Added the v2 trust/quality ADR, a frozen 40-case synthetic corpus, and a
   dependency-free local evaluation runner with retrieval, safety, duplication,
@@ -692,7 +692,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
 - The offline metric suite is CI-safe; the live Ollama baseline is recorded as
   blocked until it can run outside the sandbox with an already-installed model.
 
-## 2026-07-19 — ChatStore extraction + remaining foundation leftovers
+## 2026-07-19: ChatStore extraction + remaining foundation leftovers
 
 - **ChatTurnEngine:** moved send/start/interrupt/streaming bookkeeping out of
   `ChatStore` into `src/services/chat/chatTurnEngine.ts`. The store stays the
@@ -706,7 +706,7 @@ Branch `ui/taste-pass-20260726`. Not merged.
 - `ChatStore.ts` ~1687 → ~1318 lines. Focused unit tests for both new modules;
   existing ChatStore / agent-task suites remain the integration coverage.
 
-## 2026-07-19 — Foundation sweep (architecture pass after the de-scope)
+## 2026-07-19: Foundation sweep (architecture pass after the de-scope)
 
 Full-repo audit for refactoring/centralization opportunities before resuming
 roadmap work; everything found was either fixed or recorded on the roadmap.
@@ -716,7 +716,7 @@ roadmap work; everything found was either fixed or recorded on the roadmap.
   `scripts/create-source-snapshot.mjs`, its test, the `source:snapshot` npm
   script, the `tauri.conf.json` resources entry, and the three release-workflow
   snapshot steps.
-- **Dead scaffolding:** removed the dormant agentic AP-2/3/4 cluster —
+- **Dead scaffolding:** removed the dormant agentic AP-2/3/4 cluster:
   `core/{agentSchedules,agentOutcomes,subAgentPolicy,agentTaskPolicy}.ts` and
   `services/tasks/{subAgents,scheduleLedger,outcomeLedger,agentTaskSpec,budgets}.ts`
   (~3.4k lines + 9 test files). It was imported only by its own tests; the live
@@ -738,7 +738,7 @@ roadmap work; everything found was either fixed or recorded on the roadmap.
 - Verified: `npm run ci` green (147 files / 1109 tests + typecheck + lint),
   screens tours green.
 
-## 2026-07-19 — Depth-over-breadth de-scope pass
+## 2026-07-19: Depth-over-breadth de-scope pass
 
 Aggressively narrowed the product to what it should do exceedingly well.
 Routing now centers on three destinations only: **OpenRouter** (cloud LLM +
@@ -762,17 +762,17 @@ subsystems are recoverable from git history.
 - **Removed** the user-configurable custom OpenAI-compatible endpoint provider:
   its store, dynamic catalog probe, `'openai-compat'` provider id, secret slot,
   and token/usage/model-picker special cases. The shared `OpenAiCompatProvider`
-  transport stays — OpenRouter still extends it for OpenAI wire format.
+  transport stays, OpenRouter still extends it for OpenAI wire format.
 - **Persistence:** added a one-time boot purge of retired localStorage slots
   (`gatesai.mcp.v1`, `gatesai.offlineLibrary.v1`, `gatesai.schedules.v1/v2`);
   the provider-config parser already drops the legacy `openai-compat` config.
   Chat snapshot schema is unchanged, so `CURRENT_CHAT_SCHEMA_VERSION` stays 3.
 - CI green (156 files / 1223 tests + typecheck + lint), `cargo test` green
-  (25 passed); e2e 25/26 — the one failure is the pre-existing
+  (25 passed); e2e 25/26, the one failure is the pre-existing
   `artifactContract` palette→dock iframe test (verified failing identically on
   pre-session baseline `3659518`).
 
-## 2026-07-19 — Settings trim: 7 tabs → 3
+## 2026-07-19: Settings trim: 7 tabs → 3
 
 - Cut the GatesMenu to three tabs (Settings / Models / Agent) to restore the
   narrow-scope feel; retired Usage, Local, Workspace, and Gallery sections
@@ -781,7 +781,7 @@ subsystems are recoverable from git history.
   Export & import, and a 3-action danger zone (threads, memories, provider keys).
 - Models = OpenRouter provider card + a minimal Ollama card (status, base URL,
   refresh). Removed compat test suite, Brave Search, and cloud-image cards from
-  the menu (stores/services untouched — features still work, only config UI cut).
+  the menu (stores/services untouched, features still work, only config UI cut).
 - Agent = Instructions + Memory. Removed semantic memory, schedules, MCP,
   skills, recent conversations, and capabilities blocks from the menu UI.
 - Deleted orphaned `McpSettings.tsx` / `OllamaPullStatus.tsx`; moved pure
@@ -789,11 +789,11 @@ subsystems are recoverable from git history.
   UI→services lint violations.
 - All persisted state (`gatesai.*` slots) is preserved; re-adding a trimmed
   section later is a registry + component restore from git history.
-- CI green (183 files / 1384 tests + typecheck + lint); e2e 25/26 — the one
+- CI green (183 files / 1384 tests + typecheck + lint); e2e 25/26: the one
   failure is the artifactContract palette→dock iframe test already filed as
   pre-existing on master (verified failing identically on stashed HEAD).
 
-## 2026-07-18 — Unblock plan lane handoffs
+## 2026-07-18: Unblock plan lane handoffs
 
 - Recorded four unblock-plan lanes in the roadmap and queued implementation
   dispatches: `w-1-right-dock-panel-framework`,
@@ -805,7 +805,7 @@ subsystems are recoverable from git history.
   - `docs/plans/unblock-extend-inspect-file-to-document-formats--20260718/`
   - `docs/plans/unblock-canvas-whiteboard-artifact-type-for-plan-20260718/`
 
-## 2026-07-18 — Wave-D harvest close-out (session:fable-visions-loop-20260718)
+## 2026-07-18: Wave-D harvest close-out (session:fable-visions-loop-20260718)
 
 - Landed w1-gatesai-sidebar-dates (last unlanded Wave-D lane): 20-row sidebar
   history cap via `groupThreadsByDate(..., limit)`; merged-branch tests
@@ -817,7 +817,7 @@ subsystems are recoverable from git history.
   (artifactContract palette→dock iframe, fails identically on pre-merge
   master) filed in roadmap.
 
-## 2026-07-18 — v4.7.0
+## 2026-07-18: v4.7.0
 
 - Release rollup since v4.6.1: local-first first-boot (LF-4), plugins
   bounds/typecheck fix, Windows build-script spawn fix, artifact preview
@@ -825,21 +825,21 @@ subsystems are recoverable from git history.
   by the Geordi Windows worker before tagging (full CI + native Tauri
   build).
 
-## 2026-07-18 — Typecheck fix (plugins bounds literals)
+## 2026-07-18: Typecheck fix (plugins bounds literals)
 
 - `tsc -b` was red on master: `as const` bounds made `str()`'s default `max`
   and policy's `candidates` array infer literal types (`128`/`50`), rejecting
   every explicit override. Annotated both as `number`. First verified green on
   both Linux and the new Geordi Windows worker (1388 tests pass there).
 
-## 2026-07-16 — Local-first first-boot (LF-4)
+## 2026-07-16: Local-first first-boot (LF-4)
 
 - The first-boot hero now leads with the local path: detected Ollama models
   default the composer on untouched chats, the Local card precedes Cloud, and
   offline states link Local settings instead of nagging for cloud keys.
   Providers never switch silently; explicit choices stay put.
 
-## 2026-07-16 — Linux compatibility pair (A13)
+## 2026-07-16: Linux compatibility pair (A13)
 
 - NVIDIA + Wayland white-screen fixed in the app itself: Linux-only NVIDIA
   detection (no shelling out) sets `WEBKIT_DISABLE_DMABUF_RENDERER=1` before
@@ -849,7 +849,7 @@ subsystems are recoverable from git history.
   semantic desktop-capability check and renders a desktop-only explainer;
   screens-tour asserts the explainer and zero console errors.
 
-## 2026-07-15 — W-1 basic dock file explorer
+## 2026-07-15: W-1 basic dock file explorer
 
 - Added a compact, read-only File Explorer panel to the existing dock registry.
   It navigates one jailed workspace directory at a time, sorts folders first,
@@ -861,7 +861,7 @@ subsystems are recoverable from git history.
   No write, terminal, network, dependency, bridge protocol, or filesystem
   authority was added.
 
-## 2026-07-14 — v4.6.1: bridge v2 sidecar release
+## 2026-07-14: v4.6.1: bridge v2 sidecar release
 
 - Release bundling the protocol-v2 bridge sidecar so the shipped app matches
   its own bundled bridge (v4.6.0 pinned protocol 2 but shipped the v1
@@ -870,28 +870,28 @@ subsystems are recoverable from git history.
 - Cross-platform release build validated green (linux/windows/macos) on
   workflow run 29303417151 before tagging.
 
-## 2026-07-13 — LF-6: Settings leads with local/appearance, not the cloud key
+## 2026-07-13: LF-6: Settings leads with local/appearance, not the cloud key
 
 - `SettingsSection` (`src/components/menu/sections/Settings.tsx`) now renders
   the local/appearance blocks (Theme, Conversation, Desktop, OfflineLibrary)
-  ABOVE the OpenRouter API-key credential card — a local-first surface should
+  ABOVE the OpenRouter API-key credential card, a local-first surface should
   lead with local settings, not cloud credentials. Order-only, no behavior
   change.
 - Added a DOM-position regression test asserting the theme block precedes the
   API-key card (`compareDocumentPosition`). SettingsSection 5/5 green.
 
-## 2026-07-13 — LF-5: no more "December 1969" sidebar date bucket
+## 2026-07-13: LF-5: no more "December 1969" sidebar date bucket
 
 - `groupThreadsByDate` (`src/core/threadSelectors.ts`) now resolves a sane
   timestamp per thread: prefer `updatedAt`, fall back to `createdAt`, and park
   a thread with no sane timestamp at all in a shared "Older" bucket at the
-  bottom of the list — never dropping it (EditorialSidebar renders every
+  bottom of the list, never dropping it (EditorialSidebar renders every
   thread) and never minting a spurious pre-2000/epoch-0 month label.
 - Regression tests cover `updatedAt` of 0, negative, NaN, and absent, asserting
   the thread stays present and no pre-app date label appears. threadSelectors
   (19) + EditorialSidebar (7) green.
 
-## 2026-07-12 — Super+G Offline Knowledge
+## 2026-07-12: Super+G Offline Knowledge
 
 - Added a fixed desktop `Super+G` shortcut, independent from the configurable
   summon chord, with its own registration status in Settings.
@@ -902,7 +902,7 @@ subsystems are recoverable from git history.
   runtime routes to Local. Neither path creates a thread or silently selects a
   remote provider.
 
-## 2026-07-12 — Offline Library cross-repository acceptance (G6)
+## 2026-07-12: Offline Library cross-repository acceptance (G6)
 
 - Completed the pinned plugin 1.3.0 acceptance matrix across host contract
   tests, GatesAI CI/E2E/Rust gates, and the actual trusted desktop request path.
@@ -913,7 +913,7 @@ subsystems are recoverable from git history.
   citation; local-ai-lab `083fef6` now emits opaque `library://` identities.
   The verified record is in `docs/acceptance/offline-library-2026-07-12.md`.
 
-## 2026-07-12 — Offline Library benchmark explorer (G5)
+## 2026-07-12: Offline Library benchmark explorer (G5)
 
 - Added a compact, bridge-independent right-dock panel for the sanitized
   Knowledge Arena summary, opened from the existing Offline Library Settings
@@ -926,7 +926,7 @@ subsystems are recoverable from git history.
   otherwise healthy search/tools; raw answers, evidence passages, private
   database metadata, and factual-hallucination claims remain excluded.
 
-## 2026-07-12 — Offline Library task-aware profiles (G4)
+## 2026-07-12: Offline Library task-aware profiles (G4)
 
 - Loaded the host's versioned, local-only routing profiles alongside lifecycle
   discovery and kept its public-schema, document-quality, and balanced
@@ -938,7 +938,7 @@ subsystems are recoverable from git history.
   active chat; unavailable tags remain disabled. Cited document search follows
   the effective local retrieval profile, with no automatic remote fallback.
 
-## 2026-07-12 — Offline Library read-only tools (G3)
+## 2026-07-12: Offline Library read-only tools (G3)
 
 - Added four bounded, read-only model tools for cited library search, source
   inventory, public database schemas, and Knowledge Arena benchmark/profile
@@ -952,10 +952,10 @@ subsystems are recoverable from git history.
   tool results, rendered Markdown, exported/imported chats, and persisted
   snapshots while retaining the existing unsafe-URL sanitizer.
 
-## 2026-07-12 — Offline Library lifecycle and settings (G2)
+## 2026-07-12: Offline Library lifecycle and settings (G2)
 
 - Added a default-disabled, explicitly enabled Offline Library lifecycle with
-  a minimal versioned local preference containing only the enable flag—no
+  a minimal versioned local preference containing only the enable flag, no
   secret, configurable host, cloud dependency, or background remote fallback.
 - Compatible manifest and health discovery now surface distinct checking,
   healthy, offline, incompatible, and error states plus the host-declared
@@ -964,7 +964,7 @@ subsystems are recoverable from git history.
   manual health check. Web Lite shows a desktop-only explanation, disables the
   switch, and never invokes the local transport.
 
-## 2026-07-12 — Offline Library trusted client (G1)
+## 2026-07-12: Offline Library trusted client (G1)
 
 - Added dedicated `offline_library_read` and `offline_library_search` Tauri
   commands. Rust owns the exact loopback base URL and fixed operation map;
@@ -980,7 +980,7 @@ subsystems are recoverable from git history.
   portability hole: Windows drive, backslash/UNC, and leading-slash absolute
   paths are rejected consistently even when GatesAI runs on Unix.
 
-## 2026-07-12 — Offline Library consumer boundary (G0)
+## 2026-07-12: Offline Library consumer boundary (G0)
 
 - Accepted a dedicated, fixed-authority Tauri proxy design for the optional
   Offline Library addon. It is loopback-only, read-only, redirect-free,
@@ -995,7 +995,7 @@ subsystems are recoverable from git history.
   interaction instead of a synthetic `scrollTop` write that could be consumed
   by programmatic-pin bookkeeping; the user-behavior assertions are unchanged.
 
-## 2026-07-12 — build: NO_STRIP wrapper for Linux AppImage packaging
+## 2026-07-12: build: NO_STRIP wrapper for Linux AppImage packaging
 
 - `npm run tauri:build` now goes through `scripts/tauri-build.mjs`, which sets
   `NO_STRIP=1` on Linux (only when unset): linuxdeploy's bundled strip cannot
@@ -1003,7 +1003,7 @@ subsystems are recoverable from git history.
   AppImage packaging. Other platforms and explicit `NO_STRIP` values are
   untouched.
 
-## 2026-07-12 — Release v4.6.0
+## 2026-07-12: Release v4.6.0
 
 First self-updating release. Rollup of the entries below: signed auto-updater
 (W-5) with sidebar update pill and `latest.json` on the public releases repo,
@@ -1013,12 +1013,12 @@ code-block stability fixes, default model → Nemotron 3 Ultra free, e2e
 foreign-server port guard. Versions bumped in `package.json` +
 `tauri.conf.json`; what's-new panel entry added.
 
-## 2026-07-12 — W-1 slice 1+2: right dock panel framework
+## 2026-07-12: W-1 slice 1+2: right dock panel framework
 
 - New right dock column (desktop only): `DockStore` (one column × 1–2 cells,
   split/width ratios, collapse rail, persisted to `gatesai.dock.v1` with
   corrupt-snapshot fallback), `components/dock/` shell + panel registry, and
-  the first two read-only panels — `FileViewerPanel` (markdown via the
+  the first two read-only panels, `FileViewerPanel` (markdown via the
   existing markdown renderer, JSON per-key `<details>`, HTML in the same
   sandboxed iframe policy as `HtmlArtifactPreview`, plain text) and
   `MediaViewerPanel` (workspace images via the shared image machinery,
@@ -1033,13 +1033,13 @@ foreign-server port guard. Versions bumped in `package.json` +
   file in the dock via the palette (open → render → collapse → reopen →
   close).
 - Fixed pre-existing red e2e (all three `polish.spec.ts` failures from the
-  UI/UX polish lane): (1) real bug — `EditorialChat`'s unmount cleanup
+  UI/UX polish lane): (1) real bug, `EditorialChat`'s unmount cleanup
   cancelled the pending scroll rAF without resetting the guard ref, so
   StrictMode's dev double-mount permanently disabled scroll-follow;
-  (2) real bug — unstable renderer identities (`bind(ui)` prop + inline
+  (2) real bug, unstable renderer identities (`bind(ui)` prop + inline
   `components` map in `MarkdownChunk`) remounted code blocks on message
   re-renders, wiping copy/preview state (now a bound store action + memoized
-  components map); (3) test bugs — the copy assertion's `hasText: 'Copy'`
+  components map); (3) test bugs, the copy assertion's `hasText: 'Copy'`
   locator stops matching once the label flips to "Copied", the wheel test
   aimed at the off-screen `.editorial-stream` box, and the paused-scroll
   assertion now checks distance-from-bottom instead of a scrollTop that
@@ -1049,17 +1049,17 @@ foreign-server port guard. Versions bumped in `package.json` +
 - Slice 3 (CodeMirror editor, file explorer, terminal panel) intentionally
   not in this lane; W-1 stays open on the roadmap.
 
-## 2026-07-12 — e2e: foreign-server guard on the dev-server ports
+## 2026-07-12: e2e: foreign-server guard on the dev-server ports
 
 - `globalSetup` now verifies that whatever answers on the e2e ports is
   actually GatesAI Chat (`<title>` marker) before reusing it, and fails fast
-  with a clear message otherwise — previously an unrelated dev server
+  with a clear message otherwise, previously an unrelated dev server
   squatting the port (concurrent agent sessions) made 19 specs fail with
   cryptic element-not-found errors against the wrong app. Ports moved to a
   shared `tests/e2e/ports.ts`, overridable via `GATESAI_E2E_DESKTOP_PORT` /
   `GATESAI_E2E_WEB_LITE_PORT`.
 
-## 2026-07-12 — Deterministic UI review screenshots
+## 2026-07-12: Deterministic UI review screenshots
 
 - Added `npm run screenshots`, a headless Playwright pipeline that captures
   seven fixed 1440×900 app states under `screenshots/<git-short-sha>/` with
@@ -1067,7 +1067,7 @@ foreign-server port guard. Versions bumped in `package.json` +
   model calls. Each run emits a versioned `manifest.json` and asserts that
   every declared PNG was produced.
 
-## 2026-07-12 — W-5: Auto-updater (signed, via the public releases repo)
+## 2026-07-12: W-5: Auto-updater (signed, via the public releases repo)
 
 - Desktop builds now self-update: `tauri-plugin-updater` + `tauri-plugin-process`
   registered (Rust + capabilities), updater artifacts signed in CI
@@ -1076,23 +1076,23 @@ foreign-server port guard. Versions bumped in `package.json` +
   URLs + signatures) and publishes it to `GatesAI-Chat-releases`. Installed
   apps poll `releases/latest/download/latest.json` on launch and every 6h.
 - New `UpdateStore` (+ `services/updates/appUpdater.ts`, Web Lite no-op) and a
-  sidebar `UpdatePill`: "vX available — update" → background download with
+  sidebar `UpdatePill`: "vX available, update" → background download with
   progress → "restart to finish updating"; dismissible; failures land in the
   error trail and offer retry. 6 store tests; release checklist gains signing
   guardrails and an auto-update smoke test.
 
-## 2026-07-12 — W-4: Fullscreen toggle (F11 + palette)
+## 2026-07-12: W-4: Fullscreen toggle (F11 + palette)
 
 - New `services/window/fullscreen.ts`: F11 (no modifier, works from any
   focus) toggles true OS fullscreen on desktop via the Tauri window API
   (`core:window:allow-set/is-fullscreen` capabilities added); Web Lite
-  falls back to the browser Fullscreen API. Never throws — failures log
+  falls back to the browser Fullscreen API. Never throws: failures log
   to the `window` scope.
 - Command palette gains "Toggle fullscreen" (routed through a new
   `UiStore.toggleFullscreen()` facade to respect layer rules). Dispatcher
   + service tests added.
 
-## 2026-07-12 — ComfyUI "Load failed" root-caused + persistent error trail
+## 2026-07-12: ComfyUI "Load failed" root-caused + persistent error trail
 
 - Root cause: a ComfyUI started by `local-ai-lab`'s launcher (without
   `--enable-cors-header`) 403s the Tauri webview's cross-origin `/prompt`
@@ -1110,7 +1110,7 @@ foreign-server port guard. Versions bumped in `package.json` +
   preview) so recurring failures are diagnosable after the fact. New
   `tests/services/diagnostics/logger.test.ts`; `npm run ci` green.
 
-## 2026-07-12 — Chat interaction and artifact polish
+## 2026-07-12: Chat interaction and artifact polish
 
 - Replaced the composer's square textarea focus outline with an accessible,
   rounded accent ring on the composer shell, and changed sidebar-brand hover
@@ -1129,7 +1129,7 @@ foreign-server port guard. Versions bumped in `package.json` +
 - Added unit and Playwright coverage for focus appearance, follow pause/re-arm,
   code copy feedback, and HTML preview toggling.
 
-## 2026-07-12 — Default chat model → Nemotron 3 Ultra free (OpenRouter)
+## 2026-07-12: Default chat model → Nemotron 3 Ultra free (OpenRouter)
 
 - `DEFAULT_MODEL_ID` is now `or-nemotron-3-ultra-free`
   (`nvidia/nemotron-3-ultra-550b-a55b:free`), so fresh installs and unresolved
@@ -1137,17 +1137,17 @@ foreign-server port guard. Versions bumped in `package.json` +
   Flash. Keyless-with-Ollama still prefers the best local model; the composer
   banner still prompts for an OpenRouter key otherwise.
 - Updated picker tags (`modelPicker.ts`), catalog descriptions, and the unit
-  tests that pinned the old default. No provider or persistence changes —
+  tests that pinned the old default. No provider or persistence changes,
   the key still lives in Menu → Models → OpenRouter (keychain on desktop,
   browser storage in Web Lite).
 
-## 2026-07-10 — Flaky-test sweep: clean bill of health
+## 2026-07-10: Flaky-test sweep: clean bill of health
 
 - Ran the unit suite 5× (995 tests) and the Playwright e2e suite 3× (20
   tests) consecutively on Linux; every run exited green. No flaky tests
   found, nothing quarantined. Roadmap item closed with the report inline.
 
-## 2026-07-10 — Repository hygiene and release checklist
+## 2026-07-10: Repository hygiene and release checklist
 
 - Retired the tracked Firebase-mode environment file after verifying its full
   history contained only the public Web Lite flag. Web Lite now uses an
@@ -1158,7 +1158,7 @@ foreign-server port guard. Versions bumped in `package.json` +
 - Added `docs/release-checklist.md` with the version, changelog, tag, workflow,
   Web Lite, and stable release-asset verification steps.
 
-## 2026-07-10 — Roadmap/TODO truth pass
+## 2026-07-10: Roadmap/TODO truth pass
 
 - Checked off **Wave D refactor** in `docs/roadmap.md` (TurnRunner, streamCore,
   `useEditorial`, message windowing, ModelPopover memo).
@@ -1168,13 +1168,13 @@ foreign-server port guard. Versions bumped in `package.json` +
   (badge 995+20 vs `vitest list` 641 / Playwright 19), CONTRIBUTING, bridge
   version-mismatch UX, inline thread rename.
 
-## 2026-06-10 — Pin default chat to Gemini 3 Flash (not latest alias)
+## 2026-06-10: Pin default chat to Gemini 3 Flash (not latest alias)
 
 - `or-gemini-3-flash` (and the Auto picker row) now route to the pinned
   OpenRouter slug `google/gemini-3-flash` instead of `~google/gemini-flash-latest`,
   so new threads stay on Gemini 3 Flash rather than whatever Google marks "latest".
 
-## 2026-06-10 — Remove sidebar thread search
+## 2026-06-10: Remove sidebar thread search
 
 - Removed the "Search threads" input from `EditorialSidebar`; the "Begin a new
   conversation" button (and mobile new-chat control) remain. History still shows
@@ -1182,7 +1182,7 @@ foreign-server port guard. Versions bumped in `package.json` +
 - Dropped search-specific CSS in `editorial.css` / `responsive.css`; updated
   sidebar unit test and removed the desktop e2e search spec.
 
-## 2026-06-09 — Test hardening: BridgeClient unit tests, two-tab e2e, deterministic waits
+## 2026-06-09: Test hardening: BridgeClient unit tests, two-tab e2e, deterministic waits
 
 - **`tests/services/bridge/client.test.ts` (new, 13 tests):** full coverage of
   the previously untested `BridgeClient` WebSocket protocol via an injected
@@ -1193,7 +1193,7 @@ foreign-server port guard. Versions bumped in `package.json` +
   all pending, the new `options.privileged` envelope flag (present only when
   requested), and malformed-frame tolerance.
 - **`tests/e2e/multiTab.spec.ts` (new, 2 tests):** two pages in one browser
-  context exercise the real cross-tab `storage` event — tab B's chat write
+  context exercise the real cross-tab `storage` event, tab B's chat write
   raises the "Another browser tab updated chat history" banner in tab A;
   Reload adopts B's snapshot; Dismiss clears the banner and resumes autosave
   (verified by A's next write raising the banner in B).
@@ -1207,12 +1207,12 @@ foreign-server port guard. Versions bumped in `package.json` +
   debounce; sidebar clicks blur-flush the draft). Intentional fixture delays
   are commented as such.
 - Verified: typecheck green; e2e 21/21 (multiTab/desktop also 3x repeat-each);
-  unit 715 passing — the only failures are 3-4 model-picker tests in
+  unit 715 passing: the only failures are 3-4 model-picker tests in
   `EditorialComposer.test.ts` that fail identically on the unmodified baseline
-  (concurrent ModelPopover work in flight; fixed in the same session — the
+  (concurrent ModelPopover work in flight; fixed in the same session, the
   picker tests now await the lazy popover mount).
 
-## 2026-06-09 — Repo-improvement plan: CI gate, strict TS, ChatStore decomposition, bridge security, picker/persistence extraction
+## 2026-06-09: Repo-improvement plan: CI gate, strict TS, ChatStore decomposition, bridge security, picker/persistence extraction
 
 Remaining items from the repo-wide improvement plan (the test-hardening,
 CSS/mobile, and requireBridge/UI-bridge entries nearby were the same session's
@@ -1249,13 +1249,13 @@ parallel tracks).
   presentation; export remains best-effort).
 - **ModelPopover slimmed + lazy:** all section/filter/badge/copy logic moved
   to `core/modelPicker` (pure, unit-testable); the popover is now
-  `React.lazy`-loaded from the composer; Vite `manualChunks` (function form —
+  `React.lazy`-loaded from the composer; Vite `manualChunks` (function form,
   rolldown-vite) splits the markdown/KaTeX/highlight stack (~597 kB) out of
   the eager main chunk.
 - Verified: typecheck, lint, production build, unit suite green (composer
   picker tests updated to await the lazy popover mount).
 
-## 2026-06-09 — CSS consolidation + mobile-shell breakpoint unification
+## 2026-06-09: CSS consolidation + mobile-shell breakpoint unification
 
 - **Split `src/index.css` (~3,000 lines) into layered files** under
   `src/styles/`: `base.css` (keyframes, resets, utilities), `editorial.css`
@@ -1267,7 +1267,7 @@ parallel tracks).
   blocks are one block; the two mobile-shell blocks
   (`max-width: 640px / 960px×480px`) are one block, with the earlier
   `.runtime-web-lite` variable rule (topbar 50px, drawer 82vw, reserve 162px,
-  gutter 18px) deleted — the later `:is(.runtime-web-lite, .runtime-desktop)`
+  gutter 18px) deleted, the later `:is(.runtime-web-lite, .runtime-desktop)`
   values (48px / 84vw / 118px / 16px) already won the cascade, so behavior is
   unchanged.
 - **Removed brittle `[style*=...]` selectors:** composer meta separator now
@@ -1281,11 +1281,11 @@ parallel tracks).
 - Verified: typecheck, lint (only the pre-existing ModelPopover useMemo
   warning), 706/706 unit tests, production build.
 
-## 2026-06-09 — requireBridge tool middleware + bridge calls out of UI
+## 2026-06-09: requireBridge tool middleware + bridge calls out of UI
 
 Refactor-plan tasks A/B. Full suite green (typecheck, lint, 706 unit).
 
-- **`services/tools/requireBridge.ts` (new):** shared bridge guard middleware —
+- **`services/tools/requireBridge.ts` (new):** shared bridge guard middleware:
   `requireBridge(ctx, messages?)` (discriminated `{ ok: true, bridge } |
   { ok: false, error }`), `requireBridgeOutcome(ctx)` for `ToolOutcome`-shaped
   tools, and `bridgeErrorMessage` / `describeBridgeError` for catch blocks.
@@ -1293,11 +1293,11 @@ Refactor-plan tasks A/B. Full suite green (typecheck, lint, 706 unit).
   artifact, image_generate, and describe_image to use it; all guard/error
   strings preserved byte-for-byte (per-tool wording via the `messages` param).
 - **Bridge orchestration moved out of UI components (facade rule):**
-  - `BridgeStore.resetWorkspaceDirectory(path, children)` — Settings danger
+  - `BridgeStore.resetWorkspaceDirectory(path, children)`: Settings danger
     zone no longer issues raw `fs.delete`/`fs.mkdir` requests.
-  - `BridgeStore.listWorkspaceDir(path, recursive)` — Workspace section file
+  - `BridgeStore.listWorkspaceDir(path, recursive)`: Workspace section file
     explorer goes through the store.
-  - `services/bridge/artifactPreview.ts` (new) — the HTML artifact
+  - `services/bridge/artifactPreview.ts` (new): the HTML artifact
     stat/read/asset-inlining preview pipeline (plus its LRU cache and inflight
     dedupe) extracted from `HtmlArtifactPreview.tsx`; exposed via
     `BridgeStore.loadHtmlArtifactPreview` / `peekHtmlArtifactPreview`.
@@ -1305,7 +1305,7 @@ Refactor-plan tasks A/B. Full suite green (typecheck, lint, 706 unit).
     component for existing importers). Cache test hooks now live in
     `__artifactPreviewTestApi` on the service.
 
-## 2026-06-07 — Polish pass: sub-agent double-check + correctness hardening
+## 2026-06-07: Polish pass: sub-agent double-check + correctness hardening
 
 Ran three parallel audit sub-agents (dead-code, architecture, correctness) and
 acted on the verified findings. Full suite green (typecheck, lint, 688 unit, e2e).
@@ -1322,7 +1322,7 @@ acted on the verified findings. Full suite green (typecheck, lint, 688 unit, e2e
   on a cross-tab reload, so an abandoned `runTurn` can't keep mutating/re-saving
   the freshly-loaded state.
 - **Path protection is now case-insensitive:** `isProtectedChatHistoryScope`
-  lower-cases the comparison, matching the command-text scanner — `Chat-History`
+  lower-cases the comparison, matching the command-text scanner, `Chat-History`
   / `.GatesAI/chat` are blocked on case-insensitive (Windows/macOS) filesystems.
 - **Dead code / consistency:** removed the unreachable `'offline'` model-picker
   badge branches and the now-unused `ollamaOnline`/`comfyReady` props (offline
@@ -1337,7 +1337,7 @@ acted on the verified findings. Full suite green (typecheck, lint, 688 unit, e2e
   guard; the model-picker `auto`-source branches flagged as dead are reachable
   when `recommended` is empty.
 
-## 2026-06-07 — Audit hardening: critical/high fixes + production polish
+## 2026-06-07: Audit hardening: critical/high fixes + production polish
 
 Verified all comprehensive-audit findings with sub-agents, then fixed the
 confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
@@ -1355,13 +1355,13 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
     other tab's write (C1).
   - `reloadFromStorage` now adopts an empty conversation (rather than re-saving
     stale threads) when another tab cleared storage, and drops per-thread errors.
-- **Image jobs (critical):** confirmed the C2 runner-lock fix — `cancel()` no
+- **Image jobs (critical):** confirmed the C2 runner-lock fix: `cancel()` no
   longer drives `runNext()`, and the runner's `finally` only clears the
   controller it owns, so the next job stays cancellable. Gallery supports
   single-image deletion (`removeImage`) and shows an explicit "image file
   missing" tile.
 - **Image UX (I1):** assistant prose is always rendered alongside an image job
-  card — direct image turns no longer collapse to a bare gray chip.
+  card, direct image turns no longer collapse to a bare gray chip.
 - **Security (C3):** chat-history protection now covers the readable
   `/workspace/chat-history` mirror (case-insensitive, relative-path aware),
   canonicalizes `..` segments to block traversal, filters protected entries from
@@ -1376,10 +1376,10 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - **Deslop:** removed the now-dead `disabledReasonForModel` and its call sites
   (model availability is handled entirely by `isModelAvailable`).
 
-## 2026-06-07 — Audit test gap fill (B–E coverage)
+## 2026-06-07: Audit test gap fill (B–E coverage)
 
 - **Tests (+13 Vitest):** closed all section-9 gaps except two documented
-  partials — soft-delete streaming interrupt; first-run checklist; Ollama offline
+  partials, soft-delete streaming interrupt; first-run checklist; Ollama offline
   banner; model picker + menu a11y; persistence/conflict composer banners;
   `ActivityRow` image-job layout; cancelled partial + missing-file `ImageJobCard`
   renders; notes title/body truncation; Web Lite credential-preserving clear.
@@ -1387,7 +1387,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   covered / 2 partial / 0 gap). README test badge → 683 unit.
 - **Comments:** `lastErrorByThread` JSDoc on `ChatStore`.
 
-## 2026-06-07 — Audit documentation: coverage matrix + implementation guide
+## 2026-06-07: Audit documentation: coverage matrix + implementation guide
 
 - Added `docs/audits/2026-06-07-test-coverage-matrix.md` (Batch A–E items →
   implementation files, test names, covered/partial/gap status).
@@ -1396,9 +1396,9 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - Linked both from comprehensive audit section 9; marked audit follow-ups
   complete in `docs/roadmap.md`.
 
-## 2026-06-07 — Diagnostics pass: logging coverage, inline docs, architecture notes
+## 2026-06-07: Diagnostics pass: logging coverage, inline docs, architecture notes
 
-- **Logging:** expanded ring-buffer coverage across batches A–E — multi-tab
+- **Logging:** expanded ring-buffer coverage across batches A–E: multi-tab
   pause/reload/dismiss, compaction notice, protected chat-history denials
   (`security`), dropped threads on load, bridge connect/offline, catalog/runtime
   failures, attachments/search/tools/LLM stream errors, model-picker and Web Lite
@@ -1409,22 +1409,22 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - **Docs:** `architecture.md` scope table, multi-tab/compaction/per-thread state;
   `tech_spec.md` persistence durability matrix and logging scopes.
 
-## 2026-06-07 — Audit batches C–E: clarity, image UX, storage durability
+## 2026-06-07: Audit batches C–E: clarity, image UX, storage durability
 
-- **Batch C — User clarity:** context-aware composer banners (Models key, Ollama
+- **Batch C: User clarity:** context-aware composer banners (Models key, Ollama
   offline, Comfy offline); persistence conflict + compaction notices; first-run
   setup checklist in chat empty state; model picker as accessible button; Menu
   affordance; OpenRouter copy unified to “Models”.
-- **Batch D — Image polish:** image job cards render outside collapsed activity
+- **Batch D: Image polish:** image job cards render outside collapsed activity
   rows; partial results on failed/cancelled cards; missing-file failed state;
   `prompt_file` batch returns `{ content, artifacts[] }` with terminal notify on
   last job.
-- **Batch E — Storage:** notes quarantine + body/title size limits; Web Lite
+- **Batch E: Storage:** notes quarantine + body/title size limits; Web Lite
   clear-data reloads after credential-preserving wipe.
 - **Tests:** updated `ImageJobStore` cancel-chain and `imageGenerate` batch
   expectations; Playwright banner/menu e2e. Vitest + Playwright green.
 
-## 2026-06-07 — Hardening continuation: background streams, reload, e2e
+## 2026-06-07: Hardening continuation: background streams, reload, e2e
 
 - **Bridge activity on background streams:** `recordActivityEvent` targets the
   streaming thread when the sidebar-active thread differs.
@@ -1434,7 +1434,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - **Playwright:** per-thread draft e2e rewritten; per-thread error banner e2e added;
   menu/gallery specs hardened with explicit waits. **19** e2e / **670** Vitest.
 
-## 2026-06-07 — Batch B hardening: per-thread state, multi-tab pause, notes quarantine
+## 2026-06-07: Batch B hardening: per-thread state, multi-tab pause, notes quarantine
 
 - **Per-thread composer draft + attachments:** `UiStore.bindDraftThread` (wired from
   `RootStore` on `activeThreadId` changes) isolates draft text and staged files per
@@ -1454,7 +1454,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   coverage; Playwright per-thread draft + per-thread error e2e. Vitest: **669+**;
   Playwright: **19** e2e tests.
 
-## 2026-06-07 — Hardening pass: audit Batch A fixes + regression tests + Playwright
+## 2026-06-07: Hardening pass: audit Batch A fixes + regression tests + Playwright
 
 - **Image cancel race (C2):** `ImageJobStore.runNext` only clears `inflight` when
   the settling job still owns the active `AbortController`.
@@ -1475,7 +1475,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - **Docs:** README, architecture, tech_spec storage tables, roadmap audit
   checkoffs reconciled with current counts and layout.
 
-## 2026-06-07 — Logging hardening + audit cross-links + stale-turn guard
+## 2026-06-07: Logging hardening + audit cross-links + stale-turn guard
 
 - **Smarter diagnostics coverage:** `createJsonPersistenceProvider` now logs
   load/save/clear failures (notes, profile, image jobs, UI prefs, provider keys).
@@ -1494,20 +1494,20 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   and stale-turn error-finalization regression tests. Full suite green: 661 unit,
   18 e2e, typecheck, lint.
 
-## 2026-06-07 — Comprehensive read-only audit
+## 2026-06-07: Comprehensive read-only audit
 
 - Added `docs/audits/2026-06-07-comprehensive-audit.md`: six parallel code
   walkthroughs, user-story reference, 4 Critical / ~11 High findings.
 - No code changes from the audit itself; findings feed near-term roadmap work.
 
-## 2026-06-07 — Web Lite persistence fix + UX/onboarding pass
+## 2026-06-07: Web Lite persistence fix + UX/onboarding pass
 
 - **Critical autosave fix (data loss on reload):** a freshly created conversation
-  could be lost on refresh — most visibly in the deployed Web Lite demo, where a
+  could be lost on refresh, most visibly in the deployed Web Lite demo, where a
   brand-new thread's messages never reached `localStorage` even though the API key
   did. Root cause: the `ChatStore` autosave `autorun` read only `snapshot`
   (`{ threads, activeThreadId }`), which subscribes to the `threads` array
-  identity and `activeThreadId` — but `appendMessage` and token streaming mutate
+  identity and `activeThreadId`, but `appendMessage` and token streaming mutate
   `thread.messages` / `message.content` **in place**. Those nested mutations never
   invalidated the reaction, so only thread-list operations (create/select/delete/
   rename) incidentally flushed deep state. Fix: the reaction now calls a
@@ -1521,7 +1521,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   thread titles to a single line with ellipsis, widened the nav (240→270), and
   replaced the pin/delete controls with smaller, cleaner pin + trash icons.
 - **First-run onboarding:** the cryptic "A blank page. Say something." empty state
-  is now an intuitive panel — what GatesAI is, a clear "Add your OpenRouter API
+  is now an intuitive panel: what GatesAI is, a clear "Add your OpenRouter API
   key to start" CTA when no provider is usable, and a Web Lite "saved locally in
   this browser" note.
 - **Web Lite disabled-capability clarity:** Workspace and Gallery now early-return
@@ -1544,7 +1544,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   (`npm run typecheck`, `npm run lint`, `npm run test`, `npm run test:e2e`). Note:
   `npx playwright install chromium` is required before the e2e suite can run.
 
-## 2026-06-07 — Model picker redesign + runtime availability gating + image verification
+## 2026-06-07: Model picker redesign + runtime availability gating + image verification
 
 - **Runtime availability is now a first-class, pure concept:** new
   `src/core/modelPickerAvailability.ts` exposes `availableSources()`,
@@ -1579,7 +1579,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   `EditorialComposer` expectations (offline Ollama rows are now hidden rather
   than shown with an offline badge).
 
-## 2026-06-07 — Sidebar previews + body search, model favorites, Playwright e2e
+## 2026-06-07: Sidebar previews + body search, model favorites, Playwright e2e
 
 - **Sidebar message previews + search:** the sidebar thread row now derives its
   preview line from the latest message with text (attachment footers stripped on
@@ -1612,7 +1612,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - Verified green: full Vitest suite (627 tests), typecheck, lint, and the
   Playwright suite (11 e2e tests across both projects).
 
-## 2026-06-07 — OpenRouter default catalog + thinking controls
+## 2026-06-07: OpenRouter default catalog + thinking controls
 
 - Rebuilt the curated OpenRouter catalog around the current leading model
   families: GPT-5.5 / GPT Mini, Claude Opus/Sonnet/Haiku latest, Gemini
@@ -1636,7 +1636,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   live OpenRouter compatibility suite (197 tests) using
   `OPENROUTER_API_KEY`.
 
-## 2026-06-07 — Central logging + maxed-out lint enforcement
+## 2026-06-07: Central logging + maxed-out lint enforcement
 
 - Added a central logger (`services/diagnostics/logger.ts`): leveled
   `debug/info/warn/error`, a 500-entry in-memory ring buffer, a level-filtered
@@ -1657,7 +1657,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - Added the three-sentence project pitch to the top of `README.md`.
 - Verified green: typecheck, lint (all new rules), and the 608-test suite.
 
-## 2026-06-07 — Architecture audit, boundary enforcement, and showcase pass
+## 2026-06-07: Architecture audit, boundary enforcement, and showcase pass
 
 - Rewrote `README.md` as a recruiter-facing project showcase (highlights,
   layered-architecture overview, tech stack, dev/build/quality-gate commands,
@@ -1710,7 +1710,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - Added an HTML Arch Linux AppImage install guide covering runtime packages,
   launcher setup, bridge verification, and troubleshooting.
 
-## 2026-05-15 — Unified assistant activity timeline
+## 2026-05-15: Unified assistant activity timeline
 
 - Added a typed `ActivityItem` model and a single ambient `ActivityStream`
   renderer for thinking notes, tool calls/results, terminal tails, image jobs,
@@ -1722,7 +1722,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   stream, then removed `ToolCallRender`, `LiveExecTail`, thinking/working
   indicator forks, and the obsolete `toolCallStyle` preference.
 
-## 2026-05-14 — Workspace chat history and web search
+## 2026-05-14: Workspace chat history and web search
 
 - Added workspace-backed chat persistence at `/workspace/.gatesai/chat` plus a
   readable `/workspace/chat-history` HTML/Markdown library for conversations.
@@ -1748,7 +1748,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   branching, regeneration, composer debounce, markdown chunking, and message
   action behavior.
 
-## 2026-05-10 — Mobile sidebar cleanup
+## 2026-05-10: Mobile sidebar cleanup
 
 - Removed redundant in-drawer "Back to chat" / "Menu and settings" buttons; the
   fixed top bar already handles those navigations.
@@ -1758,7 +1758,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   with the existing accent rail for the active thread, and tightened spacing
   for the New conversation button and search input.
 
-## 2026-05-10 — Firebase Hosting default project
+## 2026-05-10: Firebase Hosting default project
 
 - Added `.firebaserc` with default project `ethan-488900` so Firebase CLI picks
   a project automatically and `npm run deploy:firebase` does not stop with “No
@@ -1771,7 +1771,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   diagnostics, HTML artifact preview, default workspace guide, user guide, and
   image generation flow improvements.
 
-## 2026-05-09 — Settings menu UX trim
+## 2026-05-09: Settings menu UX trim
 
 - Consolidated Profile into Agent, so instructions, durable memory facts,
   recent summaries, and capability status now live in one assistant-focused
@@ -1788,7 +1788,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - Built the Firebase web bundle and deployed web mode to
   `https://ethan-488900.web.app`.
 
-## 2026-05-09 — Foundation trim follow-up
+## 2026-05-09: Foundation trim follow-up
 
 - Removed the unfinished HTML artifact tool/store/storage path and its README
   prompt injection, keeping workspace artifacts as file outputs for images and
@@ -1808,7 +1808,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   unresolved active model before sending, covering already-mounted sessions
   whose thread model has gone stale.
 
-## 2026-05-09 — Model menu favorites
+## 2026-05-09: Model menu favorites
 
 - Added a top Favorites model-picker section for Gemini 3 Flash, DeepSeek V4
   Flash, GPT-5.5, Claude Opus 4.7, Gemini 3.1 Pro, and Normal FLUX.2 Klein
@@ -1816,7 +1816,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - Added relative cost labels (`$`, `$$`, `$$$`, `LOCAL`) to favorite rows and
   grouped the remaining OpenRouter catalog by underlying provider.
 
-## 2026-05-08 — Foundation polish
+## 2026-05-08: Foundation polish
 
 - Set normal chat to Gemini 3 Flash via OpenRouter and summary/title helpers
   to Gemini 3.1 Flash Lite via OpenRouter.
@@ -1826,7 +1826,7 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - Trimmed stale UI metadata and removed retired OpenAI image helper code.
 - Marked older image-generation plans as superseded by the foundation trim.
 
-## 2026-05-08 — Foundation trim
+## 2026-05-08: Foundation trim
 
 - Reduced the shippable foundation to OpenRouter cloud chat, Ollama local chat,
   ComfyUI local image generation, memory/notes/thread context, and the existing
@@ -1837,34 +1837,34 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - Added migration hygiene so old provider keys, retired image backends, and
   saved direct-provider model ids normalize to the supported foundation.
 
-## 2026-04-27 — Harden Linux AppImage tool downloads
+## 2026-04-27: Harden Linux AppImage tool downloads
 
 - **`.github/workflows/build-linux.yml`:** Prefetches Tauri AppImage helper tools into **`~/.cache/tauri`** with retry/backoff before bundling. This avoids failing a successful Rust/Tauri build when GitHub returns a transient **502** for **`AppRun-x86_64`**.
 - **`.github/workflows/build-linux.yml`:** Caches **`~/.cache/tauri`** along with Cargo artifacts so later Linux builds can reuse the AppImage helper binaries.
 - **`src-tauri/src/local_runtime.rs`:** Removed the unused **`RuntimeKind::id`** method so release builds no longer emit that warning.
 
-## 2026-04-27 — Linux AppImage CI readiness
+## 2026-04-27: Linux AppImage CI readiness
 
 - **`tauri.conf.json`:** **`bundle.targets`** lists **`nsis`** and **`appimage`** so Linux releases declare AppImage alongside Windows NSIS (each OS still builds only compatible formats).
 - **`.github/workflows/build-linux.yml`:** **`build-essential`** for toolchain parity; **`mkdir -p src-tauri/binaries`** before compiling the stub bridge; removed empty **`TAURI_SIGNING_PRIVATE_KEY`** env line.
 - **`ArtifactStorage` / `ArtifactStore`:** Replaced constructor parameter properties with explicit fields so **`erasableSyntaxOnly`** passes (**required for `npm run build`** inside Tauri **`beforeBuildCommand`**).
 - **Artifact tests:** Typed **`BridgeFacade`** / **`ToolContext`** stand-ins instead of **`any`** for ESLint compliance.
 
-## 2026-04-27 — Fix Linux CI: Comfy Windows bootstrap isolation
+## 2026-04-27: Fix Linux CI: Comfy Windows bootstrap isolation
 
 - **`src-tauri/src/local_runtime.rs`:** Moved the embedded Python bootstrap string and Windows-only Comfy args into **`#[cfg(windows)] fn comfy_windows_python_args`** (and **`#[cfg(not(windows))] fn comfy_unix_python_args`**). Non-Windows builds no longer resolve the Windows bootstrap symbol, fixing **`cargo`/Tauri builds on Linux** (e.g. AppImage CI).
 
-## 2026-04-27 — Merge `feature/html-artifacts` to `master`
+## 2026-04-27: Merge `feature/html-artifacts` to `master`
 
 - Fast-forward merged **`feature/html-artifacts`** into **`master`** and pushed to **`origin`**. **`.github/workflows/build-linux.yml`** is now on the default branch so GitHub Actions shows **Build Linux AppImage** (manual `workflow_dispatch` or push tags matching `v*`).
 
-## 2026-04-27 — Unsupported settings states
+## 2026-04-27: Unsupported settings states
 
 - Unsupported settings tabs (Profile, Agent, Usage) are now visibly dimmed and non-interactive, with a "Coming soon" badge.
 - Placeholder controls inside live sections (Routing card in API, Model defaults and Voice & tone in Agent) use the same muted treatment.
-- Live sections — Local, API provider keys, Appearance, Workspace, Gallery, Settings — remain fully interactive.
+- Live sections: Local, API provider keys, Appearance, Workspace, Gallery, Settings, remain fully interactive.
 
-## 2026-04-27 — Local image mode picker
+## 2026-04-27: Local image mode picker
 
 - Direct local image generation now appears as three model-picker choices:
   **Draft** (SDXL Lightning), **Normal** (FLUX.2 Klein with no upscale), and
@@ -1875,14 +1875,14 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
 - Root **`DIRECTIONS.md`** now embeds the ComfyUI model download checklist and
   resumable `curl` commands directly instead of only linking to deeper docs.
 
-## 2026-04-27 — v0.2.0 — Ship-ready setup guide
+## 2026-04-27: v0.2.0, Ship-ready setup guide
 
 - Rewrote root **`DIRECTIONS.md`** as a self-contained one-page setup guide
   meant to ship next to the NSIS installer. Covers install, ComfyUI portable
   + model placement, Ollama (optional), API keys (optional), and a single
   troubleshooting table. Mirrors what the bundled app actually does.
 
-## 2026-04-27 — Desktop release hygiene + setup guide
+## 2026-04-27: Desktop release hygiene + setup guide
 
 - Finished the ComfyUI `full` workflow path: `ImageGenStore` now persists and
   passes the hires-fix upscale factor, `ComfyClient` feeds it into the FLUX.2
@@ -1904,16 +1904,16 @@ confirmed issues. Full suite green (typecheck, lint, 683 unit, e2e).
   rendering. The image viewer now shows the full prompt in a selectable field
   with a one-click copy button.
 - Fixed TypeScript drift (`ModelRegistry.byProvider` includes `local-image`; removed unused Comfy import; tests use `quick` / `full` presets).
-- **`ChatStore.setThreadModel`** now replaces the thread object so MobX observes model changes — **ComfyUI (direct, no chat)** correctly clears the API-key banner and enables send.
+- **`ChatStore.setThreadModel`** now replaces the thread object so MobX observes model changes, **ComfyUI (direct, no chat)** correctly clears the API-key banner and enables send.
 - Added root **`DIRECTIONS.md`**: end-user steps for bridge, Ollama vs API “Local”, ComfyUI **Quick** / **Full** image flow, direct-image mode, and build artifact paths.
 - Verified **`npm run ci`** and **`npm run tauri:build`** produce `GatesAI Chat_0.1.0_x64-setup.exe`.
 
-## 2026-04-26 — Feature: Image-gen UX overhaul
+## 2026-04-26: Feature: Image-gen UX overhaul
 
 `image_generate` is now a background job. The tool returns immediately with a
 job id; the chat message renders a live progress card that fills in with the
 final image when the render completes. Switching threads, sending more turns,
-or kicking off a second image-gen call works fine — jobs run serially in the
+or kicking off a second image-gen call works fine, jobs run serially in the
 background.
 
 - New `ImageJobStore` owns the queue, the active job, and a persisted
@@ -1933,7 +1933,7 @@ background.
   OpenRouter when that lands. `image_generate` is local-only for now
   (ComfyUI / AUTOMATIC1111).
 
-## 2026-04-26 — Refactor: Local runtime single source of truth
+## 2026-04-26: Refactor: Local runtime single source of truth
 
 `LocalRuntimeStore` is now the only owner of the Ollama and ComfyUI base URLs.
 `OllamaStore.baseUrl`, `ImageGenConfig.comfyBaseUrl`, the legacy-migration
@@ -1951,7 +1951,7 @@ templates moved into `src/services/image/workflows/`. On the Rust side,
 `http_health::probe_health` with the bridge sidecar check, and recovers from
 mutex poisoning via `into_inner()` with a logged warning.
 
-## 2026-04-26 — Feature: Local runtime setup
+## 2026-04-26: Feature: Local runtime setup
 
 GatesAI now has a dedicated **Local** menu for setup and day-to-day control of
 Ollama, ComfyUI, and local vision. The app can auto-detect common install paths,
@@ -1970,7 +1970,7 @@ through the bridge and sends it to the selected Ollama vision model. This lets a
 non-vision chat model ask a local vision model to inspect screenshots or image
 artifacts without changing the active chat model.
 
-## 2026-04-26 — Feature: Ollama provider
+## 2026-04-26: Feature: Ollama provider
 
 Local LLMs via Ollama are now first-class in the model picker. The **Local**
 menu owns Ollama setup: install path, managed Start/Stop, base URL (default
@@ -1990,9 +1990,9 @@ catalog and optional auth persist under `gatesai.ollama.v1`, separate from the
 LLM-provider config; local runtime paths and management flags persist under
 `gatesai.local.v1`.
 
-## 2026-04-26 — Image-gen quality overhaul
+## 2026-04-26: Image-gen quality overhaul
 
-Local ComfyUI now ships two opinionated lanes — a fast SDXL Lightning **Draft**
+Local ComfyUI now ships two opinionated lanes, a fast SDXL Lightning **Draft**
 preset for prototypes (built into `comfyClient.ts`) and a tuned FLUX.2 Klein
 FP8 **Final** workflow at `scripts/comfy-workflows/current-final-workflow.json`.
 `image_generate` accepts explicit `width`/`height` for local backends and an
@@ -2019,7 +2019,7 @@ off by default for prompt adherence).
 - Settings copy frames ComfyUI as two lanes: Draft for SDXL prototypes and
   Final for the selected workflow template.
 
-## 2026-04-26 — Refactor: Multimodal feature cleanup
+## 2026-04-26: Refactor: Multimodal feature cleanup
 
 Architectural cleanup of the seams introduced by multimodal + image-gen.
 No user-visible behavior change except that the unwired Routing card is
@@ -2056,7 +2056,7 @@ now clearly disabled with a Coming-soon pill.
   open-coded `/^image\//i.test(...)` scattered across the composer,
   ChatStore, the resolver, and the legacy attachment renderer.
 
-## 2026-04-26 — Feature: SDXL Lightning draft image preset
+## 2026-04-26: Feature: SDXL Lightning draft image preset
 
 Added a ComfyUI quality preset for fast prototype images. `Draft` is now the
 default ComfyUI preset and uses a built-in SDXL Lightning 4-step workflow
@@ -2064,21 +2064,21 @@ targeting `sdxl_lightning_4step.safetensors` in ComfyUI's checkpoints folder.
 `Final` keeps using the custom FLUX workflow path. The public `image_generate`
 tool contract stays unchanged.
 
-## 2026-04-26 — Bugfix: ComfyUI workflow metadata and background prompts
+## 2026-04-26: Bugfix: ComfyUI workflow metadata and background prompts
 
 ComfyUI crashed with `'str' object has no attribute 'get'` when the custom
 workflow JSON contained a top-level `_comment` string. The Comfy client now
 strips top-level underscore metadata before POSTing to `/prompt`, and tool
 selection treats "background" / "wallpaper" as image-generation requests.
 
-## 2026-04-26 — Bugfix: image `fetch` Illegal invocation (Tauri WebView)
+## 2026-04-26: Bugfix: image `fetch` Illegal invocation (Tauri WebView)
 
 The FLUX / ComfyUI / A1111 clients kept `this.fetchImpl = fetch` and later
 called it as a method, so the native `fetch` received the wrong `this` and
 threw `Failed to execute 'fetch' on 'Window': Illegal invocation`. Storing
 a wrapper from `wrapGlobalFetch()` in `src/services/image/types.ts` fixes it.
 
-## 2026-04-26 — Phase 3: Local image generation (ComfyUI + A1111)
+## 2026-04-26: Phase 3: Local image generation (ComfyUI + A1111)
 
 Closes the multimodal + image-gen plan. The same `image_generate`
 tool can now route to three backends behind one contract, with a
@@ -2086,17 +2086,17 @@ cloud fallback so local GPU failures don't silently break things.
 
 Architecture:
 
-- **`ImageBackend` interface** (`src/services/image/types.ts`) —
+- **`ImageBackend` interface** (`src/services/image/types.ts`):
   shared `{prompt, aspectRatio, seed, variant}` request and
   `{base64, mime, width, height, seed, endpoint, backend}` response
   shape. Extracted shared helpers (`dimsForAspect`, `bytesToBase64`,
   `mimeFromUrl`, `safeText`) out of `fluxClient.ts` so every backend
   speaks the same vocabulary.
-- **`A1111Client`** (`src/services/image/a1111Client.ts`) — wraps
+- **`A1111Client`** (`src/services/image/a1111Client.ts`): wraps
   AUTOMATIC1111's `POST /sdapi/v1/txt2img`. Returns base64 images
   synchronously, parses the resolved seed from the `info` JSON
   blob, supports optional `--api-auth` Bearer tokens.
-- **`ComfyClient`** (`src/services/image/comfyClient.ts`) — full
+- **`ComfyClient`** (`src/services/image/comfyClient.ts`): full
   `/prompt → /history/<id> → /view` flow. Ships a built-in SDXL
   txt2img workflow with `{{PROMPT}}`, `{{WIDTH}}`, `{{HEIGHT}}`,
   `{{SEED}}` token substitution; users with non-SDXL checkpoints
@@ -2104,45 +2104,45 @@ Architecture:
   JSON (e.g. a FLUX.1-schnell graph) and the tool will load and
   substitute it. Polling is injectable (`sleep`, `fetch`,
   `maxPollAttempts`, `pollIntervalMs`) for deterministic tests.
-- **`dispatchImageGenerate`** (`src/services/image/imageBackend.ts`)
-  — single entry point the tool calls. Resolves the `primary`
+- **`dispatchImageGenerate`** (`src/services/image/imageBackend.ts`):
+  single entry point the tool calls. Resolves the `primary`
   backend, runs it, and on local failure (or un-instantiable local
   backend) automatically retries against the configured cloud
   `fallback` with usable credentials. Cloud primaries never
-  auto-fall-back — a 402 / 429 there is signal, not noise. The
+  auto-fall-back, a 402 / 429 there is signal, not noise. The
   fallback emits a short note the tool prepends to its return
   string so the model can mention the degraded state.
-- **Settings UI** — single "Image generation" card now hosts a
+- **Settings UI**: single "Image generation" card now hosts a
   backend dropdown (fal.ai / ComfyUI / A1111, with BFL reserved).
   Selecting a backend swaps in only the fields it needs: API key
   for fal, base URL + optional workflow path for ComfyUI, base URL
   + optional API key for A1111. A "Cloud fallback" row shows only
   for local backends.
-- **Store surface** — `ImageGenStore.toBackendConfig()` returns a
+- **Store surface**: `ImageGenStore.toBackendConfig()` returns a
   plain snapshot the dispatcher accepts. The facade
   (`ImageGenFacade` in `services/tools/types.ts`) exposes only the
   snapshot + workflow-path getter so the tool stays decoupled from
   the store.
 
 Bundling note (for the distributed `.exe`): the **client code**
-bundles fine — it's just TypeScript. The **backend** (Python +
+bundles fine, it's just TypeScript. The **backend** (Python +
 PyTorch + CUDA runtime + 7-24GB model weights) cannot reasonably
 be bundled. The current Phase-3 implementation assumes the user
 brings their own ComfyUI / A1111 install. A future polish could
 ship a first-run helper that downloads ComfyUI into
-`~/GatesAI/comfyui/` and boots it as a sidecar — same pattern as
+`~/GatesAI/comfyui/` and boots it as a sidecar, same pattern as
 the existing bridge.
 
 Tests (18 new, 229 total):
 
-- `tests/services/image/a1111Client.test.ts` — 4 cases: request
+- `tests/services/image/a1111Client.test.ts`: 4 cases: request
   shape + aspect-ratio dims, error-body surfacing, Bearer auth,
   missing-images guard.
-- `tests/services/image/comfyClient.test.ts` — 7 cases:
+- `tests/services/image/comfyClient.test.ts`: 7 cases:
   `substituteWorkflow` type-preservation + substring semantics,
   full submit-poll-fetch flow, workflow token wiring, timeout
   path, /prompt rejection path.
-- `tests/services/image/imageBackend.test.ts` — 7 cases:
+- `tests/services/image/imageBackend.test.ts`: 7 cases:
   primary-ok, unconfigured-primary, local→cloud fallback on
   failure, cloud-never-auto-falls-back, local→cloud on
   missing-base-URL, double-failure reporting, identical
@@ -2150,7 +2150,7 @@ Tests (18 new, 229 total):
 
 Typecheck + lint clean.
 
-## 2026-04-26 — Phase 2: Image generation via fal.ai (FLUX 2.x)
+## 2026-04-26: Phase 2: Image generation via fal.ai (FLUX 2.x)
 
 Second phase of the multimodal + image-gen plan. The model can now
 produce images with a single tool call: `image_generate` takes a
@@ -2160,50 +2160,50 @@ the last session lets the user open the full-resolution result.
 
 Architecture:
 
-- `ImageGenStore` (`src/stores/ImageGenStore.ts`) — new MobX store
+- `ImageGenStore` (`src/stores/ImageGenStore.ts`): new MobX store
   backed by `services/imageGenStorage.ts`, persisted under
   `gatesai.imagegen.v1` separately from `gatesai.providers.v1`.
   Holds `{backend, falApiKey, bflApiKey, defaultVariant}`; backend
   switcher is ready for Phase 3 (local ComfyUI / A1111) without
   churning the schema.
-- `FluxClient` (`src/services/image/fluxClient.ts`) — stateless
+- `FluxClient` (`src/services/image/fluxClient.ts`): stateless
   service wrapper around fal.ai's synchronous POST endpoints
   (`https://fal.run/fal-ai/flux-pro/v2`, `/flux/v2/flex`,
   `/flux/v2/dev`). Maps aspect-ratio strings to concrete
   `image_size` dims, fetches the returned image bytes, and returns
   `{base64, mime, width, height, seed, endpoint}`. Injectable `fetch`
   for tests; surfaces fal error bodies in the thrown `Error`.
-- `image_generate` tool (`src/services/tools/imageGenerate.ts`) —
+- `image_generate` tool (`src/services/tools/imageGenerate.ts`):
   registered in the tool registry, gated into the per-turn toolset
   by intent keywords (`draw`, `render`, `generate image`, `flux`,
   `dall-e`, etc.). Writes base64 bytes through `fs.write`, so
   artifacts flow through the same bridge jail as everything else.
   Returns a concise `Saved: /workspace/artifacts/<file>.png
   (WxH, seed=N, variant=...)` so the model never ingests raw base64.
-- Settings UI — the cloud image-generation section in API exposes the fal.ai
+- Settings UI: the cloud image-generation section in API exposes the fal.ai
   key + default-variant selector. The field
   re-uses the same masked/revealed key pattern as LLM providers.
-- Inline preview — when a message has an `image_generate` tool
+- Inline preview: when a message has an `image_generate` tool
   result, `EditorialMessage` renders a `WorkspaceImage` thumbnail
   right below the tool-result box so the generated artwork lands
   visibly in the chat flow, not just as a path string.
-- `ToolContext.imageGen` facade — `ImageGenFacade` exposes only the
+- `ToolContext.imageGen` facade: `ImageGenFacade` exposes only the
   minimum surface (`backend`, `getCredential`, `toBackendConfig`),
   keeping the tool decoupled from the full store.
 
 Tests:
 
-- `tests/services/image/fluxClient.test.ts` — 4 cases covering auth
+- `tests/services/image/fluxClient.test.ts`: 4 cases covering auth
   header, image_size per aspect ratio, endpoint selection per
   variant, error-body surfacing, `endpointOverride`.
-- `tests/services/tools/imageGenerate.test.ts` — 6 cases covering
+- `tests/services/tools/imageGenerate.test.ts`: 6 cases covering
   prompt validation, missing-key / offline-bridge error paths,
   filename defaulting, filename sanitization against path
   traversal, and the fs.write payload shape.
 
 All 211 tests pass; typecheck clean.
 
-## 2026-04-26 — Phase 1: Vision input (multimodal wire format)
+## 2026-04-26: Phase 1: Vision input (multimodal wire format)
 
 First phase of the multimodal + image-gen plan
 (`docs/plans/2026-04-26-multimodal-and-imagegen.md`). Users can now drop
@@ -2214,19 +2214,19 @@ just the file footer.
 
 Architecture:
 
-- `UserMessage.attachments: MessageAttachmentRef[]` — structured refs
+- `UserMessage.attachments: MessageAttachmentRef[]`: structured refs
   (path + mime + size) live alongside the legacy markdown footer in
   `content`, so older persisted messages still parse via
   `splitAttachmentFooter` while new turns use the authoritative field.
-- `BridgeStore.readAttachmentBase64()` — facade method (pure service
+- `BridgeStore.readAttachmentBase64()`: facade method (pure service
   helper in `services/bridge/readAttachmentBytes.ts`) that fetches a
   workspace file's bytes as base64, returning `null` when offline or on
   failure so callers can degrade instead of throwing.
-- `modelSupportsVision(model)` — pattern-matches provider + model id
+- `modelSupportsVision(model)`: pattern-matches provider + model id
   (with an explicit `Model.supportsVision` override), centralizing the
   capability check so the composer, provider adapters, and future
   tools all agree.
-- `LlmMessage.images?: LlmImagePart[]` — inline base64 on the wire. A
+- `LlmMessage.images?: LlmImagePart[]`: inline base64 on the wire. A
   new `resolveWireImages()` resolver runs just before `provider.stream`
   (gated on `hasAnyImageAttachment`, so the zero-image fast path stays
   synchronous and time-sensitive streaming tests still pass).
@@ -2239,12 +2239,12 @@ Architecture:
   the file in the OS default handler. The composer shows a small
   "text-only model" hint when the active model can't consume images.
 
-## 2026-04-25 — Clickable workspace paths in chat
+## 2026-04-25: Clickable workspace paths in chat
 
 Inline code in assistant messages that looks like a `/workspace/...` path now
 renders as a clickable link. Click resolves the model-facing path against the
 bridge's reported `workspaceRoot` (platform-aware path joining via
-`core/workspacePaths.ts`) and opens the file with the OS default handler — so
+`core/workspacePaths.ts`) and opens the file with the OS default handler, so
 a `/workspace/artifacts/pi.html` artifact opens in the browser, a `.py` in
 the user's editor, etc. Implementation: a new `open_path` Tauri command
 (backed by the `open` crate), an `openExternal` service wrapper that no-ops
@@ -2254,7 +2254,7 @@ keeps UI code free of path manipulation, and a `<code>` override in
 markdown stream. Block code (anything with a syntax-highlight class) is left
 alone.
 
-## 2026-04-25 — Quieter `fs.read` and tougher CSV header parsing
+## 2026-04-25: Quieter `fs.read` and tougher CSV header parsing
 
 `fs.read` no longer dumps base64 blobs into model context when the bridge
 returns binary-coded content. Responses are now decoded through a shared
@@ -2267,24 +2267,24 @@ decoder and auto-names empty CSV header columns as `column_N` instead of
 hard-erroring on Excel-exported sparse headers, so attached `.csv` files
 stop falling through to the gross `fs.read` path.
 
-## 2026-04-25 — Fresh-install UX
+## 2026-04-25: Fresh-install UX
 
 Removed the demo-mode feel from a fresh install. New installs land in one
 empty untitled thread instead of eleven seeded fakes. Sending a message
-without a configured provider no longer falls back to canned responses —
+without a configured provider no longer falls back to canned responses,
 the composer's send button is disabled and a banner above it links to the
 API settings panel until a real provider is configured. `FakeProvider` and
 `src/core/seed.ts` are gone; the router throws `NoProviderConfiguredError`
 when no real provider can serve a request. The installer now ships with
 the brand icon instead of the Tauri placeholder.
 
-## 2026-04-25 — Desktop app
+## 2026-04-25: Desktop app
 
 GatesAI Chat now ships as a native Windows installer that bundles the Go
 bridge automatically. The previous `Start GatesAI Chat.cmd` launcher has been
 removed.
 
-## 2026-04-25 — Architecture cleanup sprint
+## 2026-04-25: Architecture cleanup sprint
 
 Moved shared tool-call/result rendering into `components/ui/` so editorial and
 menu surfaces no longer import from each other. Removed React type dependencies
@@ -2302,12 +2302,12 @@ longer import bridge services directly. Extracted ChatStore helper logic for
 runtime context, artifact README loading, and tool failure logging into focused
 service modules with regression tests.
 
-## 2026-04-25 — Streaming markdown rendering and scroll UX fix
+## 2026-04-25: Streaming markdown rendering and scroll UX fix
 
 `EditorialChat` no longer forces the scroll container to the bottom on every
 streaming token. The `useEffect` dependency on `chat.streamingMessageId` was
 removed so the viewport only scrolls when a new message row appears or the
-active thread switches — users can now freely scroll while the assistant streams.
+active thread switches, users can now freely scroll while the assistant streams.
 
 `EditorialMessage` now routes active assistant stream content through the same
 `ReactMarkdown` / remark-gfm / rehype pipeline used for finalized messages.
@@ -2316,7 +2316,7 @@ deduplicates the plugin configuration. The `WorkingIndicator` remains visible
 outside the markdown tree during streaming. Tests updated to reflect markdown
 rendering during active streams.
 
-## 2026-04-25 — Architecture boundary cleanup, P0
+## 2026-04-25: Architecture boundary cleanup, P0
 
 Moved the shared SVG icon set from `core/` into `components/ui/` so the core
 layer no longer owns React components. Removed unused icon exports and the
@@ -2332,7 +2332,7 @@ attachment import is tracked as a warning until the attachment store lands.
 Made `FakeProvider` response rotation instance-local and moved duplicated
 provider JSON parsing into a shared `services/llm/json.ts` helper.
 
-## 2026-04-25 — Inspect workflow and query-script guidance
+## 2026-04-25: Inspect workflow and query-script guidance
 
 `inspect_file` now handles common uploaded data encodings instead of rejecting
 binary/base64 bridge reads. It decodes UTF-8/BOM, UTF-16LE/BE, and
@@ -2346,7 +2346,7 @@ workspace discovery using bridge `fs.list` and optional `fs.search`, plus a
 `/workspace/notes/query_scripts/` and final JSON outputs under
 `/workspace/artifacts/`.
 
-## 2026-04-25 — Scoped Python and SQLite wrappers
+## 2026-04-25: Scoped Python and SQLite wrappers
 
 Added scoped `python_inline` and `sqlite_query` tools so the model can run
 short Python snippets and read-only SQLite queries without broad shell access.
@@ -2359,7 +2359,7 @@ paths, rejects dot-commands and multiple statements, and returns compact
 JSON-shaped row output. Docs now mark broad shells as power-user escape hatches,
 not default-safe workflow tools.
 
-## 2026-04-25 — Emergency persistence for oversized tool results
+## 2026-04-25: Emergency persistence for oversized tool results
 
 Root cause for lost recent chat state: `ChatStore` saved snapshots to
 `localStorage`, but `saveSnapshot` silently ignored quota failures. Large
@@ -2372,7 +2372,7 @@ while replacing oversized tool result bodies and large tool-call payload
 arguments with head/tail snippets and explicit compaction markers. Added
 quota-style regression tests.
 
-## 2026-04-25 — Runtime context in system prompt
+## 2026-04-25: Runtime context in system prompt
 
 Every provider request now includes a fresh `Runtime context` system section
 with local time, timezone, ISO timestamp, bridge state, workspace path layout,
@@ -2383,7 +2383,7 @@ The `time` tool remains registered for compatibility, but ordinary turns no
 longer advertise it because the current time is already present in the system
 prompt.
 
-## 2026-04-25 — Artifact README system context
+## 2026-04-25: Artifact README system context
 
 Artifact README files now act as global instructions. Before each provider
 round, `ChatStore` reads `/workspace/artifacts/**/README.md` files through the
@@ -2393,7 +2393,7 @@ the composed system prompt under `Artifact instructions`.
 This keeps generated artifact guidance available across all threads without
 duplicating file contents into persisted chat state.
 
-## 2026-04-25 — Tool harness guidance and failure logging
+## 2026-04-25: Tool harness guidance and failure logging
 
 Updated the always-on bridge harness prompt to steer models toward
 command-style tool use: choose a narrow action, pass explicit arguments, read
@@ -2411,7 +2411,7 @@ reason, result previews, redacted argument previews, bridge-online state,
 read-only classification, duration, and timestamp for harness improvement.
 Non-zero `terminal` and `git` exits are logged as failures too.
 
-## 2026-04-25 — Chat-side guard for stale bridge empty results
+## 2026-04-25: Chat-side guard for stale bridge empty results
 
 Confirmed a live bridge process was still returning `entries: null` for an
 empty `fs.list` response, even though the bridge source now returns empty
@@ -2419,7 +2419,7 @@ arrays. Updated the chat-side `fs` tool formatter to treat legacy `null`
 `entries`/`hits` values as empty arrays so stale bridge processes no longer
 surface `Cannot read properties of null (reading 'length')` to the model.
 
-## 2026-04-25 — Semantic file inspection tool
+## 2026-04-25: Semantic file inspection tool
 
 Added a read-only `inspect_file` tool for compact CSV, JSON, and text
 inspection. The assistant can now profile, preview, search, extract, and
@@ -2429,7 +2429,7 @@ into model context.
 Added focused regression coverage for CSV profiling/extraction, JSON shape
 profiling, text line extraction, and tool registry selection.
 
-## 2026-04-25 — Idempotent Windows launcher
+## 2026-04-25: Idempotent Windows launcher
 
 Updated `Start GatesAI Chat.cmd` to probe the bridge health endpoint before
 starting `gatesai-bridge`. If a bridge is already listening on
@@ -2437,7 +2437,7 @@ starting `gatesai-bridge`. If a bridge is already listening on
 avoiding the duplicate-socket `bind: Only one usage of each socket address`
 error.
 
-## 2026-04-25 — Working indicator during streamed text
+## 2026-04-25: Working indicator during streamed text
 
 Active assistant messages now keep a subtle `working` indicator under streamed
 plain text after the first token arrives, matching the existing pre-token
@@ -2445,7 +2445,7 @@ plain text after the first token arrives, matching the existing pre-token
 rows also hide their bottom divider until the response is complete, so the UI
 doesn't imply the answer has finished early.
 
-## 2026-04-25 — Context accounting and auto-compaction
+## 2026-04-25: Context accounting and auto-compaction
 
 Made the context meter use the same provider payload shape as `runTurn`,
 including the composed system prompt, expanded tool results, tool schemas, and
@@ -2459,7 +2459,7 @@ summarize old bulky tool output, falls back to deterministic path/size
 summaries when needed, then retries the original model request. Empty assistant
 rows can now show `compacting` during that pre-token step.
 
-## 2026-04-25 — Windows chat + bridge launcher
+## 2026-04-25: Windows chat + bridge launcher
 
 Added `Start GatesAI Chat.cmd`, a double-click Windows launcher that starts
 the sibling `gatesai-bridge` process and the Vite chat dev server in separate
@@ -2470,7 +2470,7 @@ and falls back to `go run ./cmd/gatesai-bridge`.
 The launcher also supports `Start GatesAI Chat.cmd /check` for a non-launching
 sanity check.
 
-## 2026-04-25 — Smoother assistant text streaming
+## 2026-04-25: Smoother assistant text streaming
 
 Reduced choppy assistant text loading by batching streamed text deltas before
 writing them into MobX state. The batcher flushes on a short frame-sized timer
@@ -2481,7 +2481,7 @@ Active assistant streams now render as lightweight pre-wrapped text and switch
 back to full markdown once finalized. This avoids reparsing the entire markdown
 tree on every small token update while preserving final markdown formatting.
 
-## 2026-04-25 — Bridge empty-list response fix
+## 2026-04-25: Bridge empty-list response fix
 
 Fixed a bridge protocol edge case where empty `fs.list` and no-match
 `fs.search` responses marshaled Go nil slices as JSON `null`. The chat-side
@@ -2492,7 +2492,7 @@ turns that probed empty workspace folders before reading an attachment.
 The bridge now initializes those response slices so empty results are sent as
 `entries: []` and `hits: []`. Added Go regression coverage for both cases.
 
-## 2026-04-25 — Harness accuracy and performance
+## 2026-04-25: Harness accuracy and performance
 
 Added a model-facing `workspace` tool so the assistant can query bridge runtime
 facts instead of relying only on prompt prose. The tool reports bridge state,
@@ -2509,7 +2509,7 @@ them and throttling streamed `exec.run` events once the output budget is spent.
 Added TS/Go regression tests for workspace info, schema selection, result
 compaction, token accounting, wire-format ordering, and bridge read/stream caps.
 
-## 2026-04-25 — Responding indicator after interrupt
+## 2026-04-25: Responding indicator after interrupt
 
 Added a context-aware pre-token label for interrupted-and-replaced replies.
 Fresh empty assistant streams still show `thinking`, while a replacement turn
@@ -2519,7 +2519,7 @@ first token arrives.
 Added regressions for the `responding` indicator and for continued streaming
 after an interrupted turn starts its replacement response.
 
-## 2026-04-25 — Remove orphan streaming caret
+## 2026-04-25: Remove orphan streaming caret
 
 Removed the post-markdown streaming caret from assistant messages. React
 Markdown renders paragraphs as block elements, so the inline caret could fall
@@ -2529,7 +2529,7 @@ was still streaming. Pre-token responses still use the `thinking` indicator.
 Added a renderer regression test so streamed markdown content does not render
 the orphan caret.
 
-## 2026-04-25 — Extended visible tool-loop cap
+## 2026-04-25: Extended visible tool-loop cap
 
 Raised `ChatStore`'s per-turn tool round cap from 6 to 16 so larger file and
 artifact workflows can complete without premature interruption. If a model
@@ -2538,7 +2538,7 @@ instead of ending with blank content and only setting `lastError`.
 
 Added a regression test covering extended tool work and the visible cap message.
 
-## 2026-04-25 — User attachment chip rendering
+## 2026-04-25: User attachment chip rendering
 
 Changed user messages with uploaded files to render only the model-facing
 attachment footer as a compact green chip. The visible message now shows a
@@ -2549,7 +2549,7 @@ Added a renderer regression test so attachment footers stay separate from the
 user's prose and do not leak workspace paths or tool reminders into the
 visible message body.
 
-## 2026-04-25 — Markdown and code Appearance tweaker
+## 2026-04-25: Markdown and code Appearance tweaker
 
 Added a hybrid Appearance tweaker for assistant output: markdown preset cards
 (`Editorial`, `Technical`, `Compact`), code-block preset cards (`Obsidian`,
@@ -2560,7 +2560,7 @@ The choices persist through `gatesai.uiprefs.v1` and apply live via root
 classes plus `.md-body` CSS variables, keeping rendering in the UI layer and
 leaving chat data unchanged.
 
-## 2026-04-25 — Currency-safe markdown math
+## 2026-04-25: Currency-safe markdown math
 
 Fixed assistant message rendering where ordinary currency prose like
 `$120,000 gross/$85,700 take-home` could be parsed as inline KaTeX math.
@@ -2571,7 +2571,7 @@ double-dollar delimiters, preserving single-dollar currency formatting.
 Added a renderer regression test covering financial-plan prose with multiple
 dollar amounts and bold currency text.
 
-## 2026-04-25 — Local-only Git tool
+## 2026-04-25: Local-only Git tool
 
 Added a dedicated `git` tool that wraps safe local Git porcelain through the
 bridge instead of asking the model to use raw terminal commands. The first
@@ -2584,7 +2584,7 @@ merge, or force operations. Regression tests cover bridge-offline handling,
 command argv construction, required commit messages, guarded restore behavior,
 and rejection of unsupported remote/destructive actions.
 
-## 2026-04-25 — Minimalist message copy gesture
+## 2026-04-25: Minimalist message copy gesture
 
 Added a low-chrome copy affordance to chat messages: Ctrl/Cmd-click a rendered
 user or assistant message to copy its raw text. A one-time hover hint teaches
@@ -2594,7 +2594,7 @@ briefly reports `copied` or `copy failed`.
 The interaction lives entirely in the editorial UI layer. A small helper keeps
 the gesture rules testable without involving stores or services.
 
-## 2026-04-25 — Bridge harness prompt
+## 2026-04-25: Bridge harness prompt
 
 Added an always-on bridge harness section to the composed system prompt so
 models get the local workspace contract every turn before user-editable
@@ -2609,7 +2609,7 @@ covering bridge path semantics, script execution from the workspace root,
 sequential write-then-run flows, artifact placement under `/workspace/artifacts`,
 and timeout/final-result handling for async terminal work.
 
-## 2026-04-25 — Tool-call error handling for OpenRouter Claude
+## 2026-04-25: Tool-call error handling for OpenRouter Claude
 
 Fixed a two-part tool loop failure seen with OpenRouter-routed Claude models:
 malformed `fs` tool calls with empty arguments now return a clear
@@ -2622,7 +2622,7 @@ Added regression coverage for empty `fs` actions, `fs` calls flowing through
 `ChatStore`'s tool loop, and scoped OpenRouter formatting so non-Anthropic
 OpenRouter models keep the standard OpenAI-compatible `tool` message shape.
 
-## 2026-04-25 — Bridge large-request read limit
+## 2026-04-25: Bridge large-request read limit
 
 Fixed a `gatesai-bridge` WebSocket disconnect where requests larger than the
 `coder/websocket` default 32 KiB read limit logged
@@ -2634,7 +2634,7 @@ existing `fs.write` size cap as the source of truth.
 Added a Go regression test that sends a >32 KiB `fs.write` request through the
 real WebSocket route and verifies it receives a normal `result` response.
 
-## 2026-04-25 — GPT-5.5 catalog refresh
+## 2026-04-25: GPT-5.5 catalog refresh
 
 Verified the new OpenAI and OpenRouter model slugs from provider pages, then
 added the supported GPT-5.5 entries to the curated catalog:
@@ -2648,13 +2648,13 @@ models instead. The model picker metadata and Agent default-model dropdown now
 include GPT-5.5 and GPT-5.5 Pro, with a regression test guarding the catalog
 slugs.
 
-## 2026-04-23 — Workspace + terminal via the `gatesai-bridge` companion
+## 2026-04-23: Workspace + terminal via the `gatesai-bridge` companion
 
 Introduced a second product alongside the chat app: a small Go companion
 process (`../gatesai-bridge/`) that owns a workspace folder and exposes
 filesystem + shell ops over a single WebSocket. Pairing the chat app with
-a local process unlocks two long-pending capabilities — real file
-read/write and real terminal commands — without compromising the
+a local process unlocks two long-pending capabilities, real file
+read/write and real terminal commands, without compromising the
 "chat-app stays a static SPA" property.
 
 ### Bridge (Go)
@@ -2673,29 +2673,29 @@ read/write and real terminal commands — without compromising the
   (`ls, tree, cat, head, tail, grep, find, wc, stat, mkdir, mv, cp, rm,
   touch, echo, pwd, date, whoami`). Edit + restart to add more. Rejects
   before fork.
-- **Listen**: `127.0.0.1:7331` only. No auth — loopback is the entire
+- **Listen**: `127.0.0.1:7331` only. No auth: loopback is the entire
   trust boundary for v1.
 - **Endpoints**: `GET /health` (poll target) + `WS /ws` (everything else).
 
 ### Chat (TS)
 
-- **`core/workspace.ts`** — typed shapes mirroring the bridge's response
+- **`core/workspace.ts`**: typed shapes mirroring the bridge's response
   structs (`FsReadResp`, `ExecRunResp`, etc.). Single source of truth
   for the wire types.
-- **`services/bridge/client.ts`** — `BridgeClient` keeps one WebSocket,
+- **`services/bridge/client.ts`**: `BridgeClient` keeps one WebSocket,
   routes `result | event | error` envelopes back to per-call promises by
   id. `BridgeOfflineError` is the one error tools translate into a
   friendly string for the model.
-- **`stores/BridgeStore.ts`** — owns the connection lifecycle. Polls
+- **`stores/BridgeStore.ts`**: owns the connection lifecycle. Polls
   `/health` every 5s; on offline → online it opens the socket; on
   online → offline it tears it down (in-flight requests reject cleanly).
-- **`stores/ExecStreamStore.ts`** — keeps a "last 10 lines" tail of each
+- **`stores/ExecStreamStore.ts`**: keeps a "last 10 lines" tail of each
   in-flight `terminal` job purely for the UI. The model never sees the
   live stream; it gets the full captured output as the tool result.
 - **Two new tools, both registered always-on**:
-  - `fs` — `read | write | append | list | delete | move | copy |
+  - `fs`: `read | write | append | list | delete | move | copy |
     mkdir | stat | search` over the workspace.
-  - `terminal` — runs allowlisted shell commands; emits live updates
+  - `terminal`: runs allowlisted shell commands; emits live updates
     into `ExecStreamStore`.
 - **Composer**: paperclip + drag-drop. Files upload to
   `/workspace/attachments/<safe-name>` via `fs.write` and become chips
@@ -2705,11 +2705,11 @@ read/write and real terminal commands — without compromising the
     - /workspace/attachments/foo.csv · 12.3KB · text/csv
   ```
   The model reads them on demand instead of inflating every prompt.
-- **Bridge status pill** at the bottom of the sidebar — green/red dot +
+- **Bridge status pill** at the bottom of the sidebar: green/red dot +
   click-to-repoll. Hover for the workspace root, version, allowlist
   size, and last error.
 - **Live exec tail** beneath any `terminal` tool call that's still
-  running — accent left-rule + last 10 stdout/stderr lines + caret.
+  running, accent left-rule + last 10 stdout/stderr lines + caret.
   Replaced by the real `ToolResultView` once the bridge sends `result`.
 - **Workspace settings page** under `#/menu/workspace` showing the
   status, root path, allowlist (as chips), and a recursive `fs.list` of
@@ -2728,7 +2728,7 @@ gemini-2.5-flash-lite  →  gpt-5.4-nano  →  gemini-3-flash
 Each candidate is checked for `provider.ready()` before we waste a
 request. `Thread.autoNamed` flips true once a title lands so we don't
 re-run; `Thread.naming` is a transient flag (stripped on save) that
-drives a `<ThreadTitle>` component in the sidebar — quiet `…` while
+drives a `<ThreadTitle>` component in the sidebar, quiet `…` while
 naming, then a one-shot 22ms/char typewriter animation when the new
 title arrives.
 
@@ -2751,25 +2751,25 @@ title arrives.
 - `Thread.naming` is intentionally non-persisted. If a tab closes
   mid-name, the title falls back to "first 40 chars of opener" until
   the next turn (which won't re-run the namer because the auto-named
-  flag isn't set — small UX bug, logged in TODO).
+  flag isn't set, small UX bug, logged in TODO).
 
-## 2026-04-23 — Three new tools: `time`, `notes`, `thread`
+## 2026-04-23: Three new tools: `time`, `notes`, `thread`
 
 Expanded the tool catalog from one (`memory`) to four. The picks were
-chosen to play to the architecture's strengths — every tool runs in the
+chosen to play to the architecture's strengths, every tool runs in the
 browser with no backend, and each one works with every model the user
 plugs in (Claude, GPT, Gemini, OpenRouter, local).
 
-- **`time`** — single-action tool. Returns ISO + human-readable + tz +
+- **`time`**: single-action tool. Returns ISO + human-readable + tz +
   unix_ms. Five-line implementation; closes the "what day is it" gap
   every model has.
-- **`notes`** — six-verb tool (`create | read | update | delete |
+- **`notes`**: six-verb tool (`create | read | update | delete |
   search | list`) backed by a new `NotesStore` and `gatesai.notes.v1`
   localStorage key. The companion to `memory`: short atomic facts go in
   `memory` (and the system prompt every turn); long-form documents go in
   `notes` (and are read on demand). Notes never leak into the system
   prompt automatically, keeping cost predictable as the corpus grows.
-- **`thread`** — six-verb meta-tool (`rename | set_context |
+- **`thread`**: six-verb meta-tool (`rename | set_context |
   get_context | summarize_now | switch_to | list`). Finally gives
   `Thread.threadContext` a way to be set end-to-end (it's been in the
   data model with no UI for weeks). The model can also force-summarize
@@ -2780,9 +2780,9 @@ Wiring touched:
 - `ToolContext` gained `notes: NotesStore` and `summary: SummaryStore`.
   These are injected lazily via `ChatStore.setToolStoresProvider(...)`
   so existing tests that don't use those tools didn't need updating.
-- `SummaryStore.summarizeNow(threadId)` added — public force-summarize
+- `SummaryStore.summarizeNow(threadId)` added: public force-summarize
   for the `thread` tool, ignoring the lazy scheduler's filters.
-- `ChatStore.renameThread(id, title)` added — the `thread` tool's
+- `ChatStore.renameThread(id, title)` added: the `thread` tool's
   `rename` verb routes through it.
 - `Agent` settings page lists the four live tools and adjusted
   "planned" set: `web_search`, `web_fetch`, `code_run`.
@@ -2790,12 +2790,12 @@ Wiring touched:
 Tests: 12 new tool tests (`tests/services/tools.test.ts`) covering each
 verb's success and error paths. Total now 70 passing.
 
-## 2026-04-23 — One assistant message per turn (collapsed multi-round tool work)
+## 2026-04-23: One assistant message per turn (collapsed multi-round tool work)
 
 The previous refactor put tool results on the assistant message that
 called them, but each model→tool round trip was still its own assistant
 message. That meant a single user turn ("forget jazz") could produce two
-stacked assistant rows — the tool round and the prose round — each with
+stacked assistant rows, the tool round and the prose round, each with
 its own kicker, requiring `hideKicker` / `isOpener` / `isContinuation`
 gymnastics in the renderer to make them look like one reply. The fix
 was to collapse them at the storage layer, not the rendering layer.
@@ -2805,7 +2805,7 @@ was to collapse them at the storage layer, not the rendering layer.
   accumulate across rounds; `content` holds the model's final closing
   prose. The renderer sees one speaker boundary per turn.
 - **`flattenForWire` does the round-splitting** when sending to
-  providers — one stored message expands to `[assistant(toolCalls),
+  providers, one stored message expands to `[assistant(toolCalls),
   tool, tool, ..., assistant(text)]` if needed. All wire-format
   knowledge stays in this one helper.
 - **Renderer dropped 60% of its conditional logic.** No more `hideKicker`
@@ -2813,7 +2813,7 @@ was to collapse them at the storage layer, not the rendering layer.
   border tricks, no calls-only bare-frame branch. One frame, one kicker,
   always. Tools render above the prose because chronologically that's
   what happened: the model used tools first, then composed its reply.
-- **`EditorialChat` simplified** — no longer compares `messages[i-1]` to
+- **`EditorialChat` simplified**: no longer compares `messages[i-1]` to
   detect runs; it just maps each message to a renderer.
 - **Persistence migration extended** to also fold consecutive assistant
   messages from the same turn (legacy snapshots may have one row per
@@ -2821,15 +2821,15 @@ was to collapse them at the storage layer, not the rendering layer.
   references survive, accumulates calls/results, and uses the last
   non-empty `content` as the final prose. Idempotent.
 
-## 2026-04-23 — Tool results live on the assistant message that called them
+## 2026-04-23: Tool results live on the assistant message that called them
 
 Restructured the chat domain so a tool result is no longer its own
-"message" — it's metadata on the assistant message that triggered the
+"message", it's metadata on the assistant message that triggered the
 call. One assistant message per round trip, with `toolCalls` and a
 parallel `toolResults` array on the same object. The renderer became
 trivial (no pairing, no calls-only suppression hack), persistence got
 cleaner (one row per round), and the data model now matches the mental
-model — nobody "said" the tool result; it's the function's return value
+model: nobody "said" the tool result; it's the function's return value
 the model reads on its next round.
 
 - **`Message` discriminated union shrinks to `UserMessage |
@@ -2847,7 +2847,7 @@ the model reads on its next round.
 - **Forward migration in `loadSnapshot`.** Old snapshots stored tool
   results as `role: 'tool'` rows. On load we walk each thread, fold
   every tool message into the preceding assistant's `toolResults`, and
-  drop the row. Idempotent — clean snapshots round-trip unchanged.
+  drop the row. Idempotent, clean snapshots round-trip unchanged.
   Test: `tests/services/persistence.test.ts`.
 - **`ChatStore.runTurn` rewritten.** Each round appends exactly one
   assistant message and mutates it in place: text streams into
@@ -2861,14 +2861,14 @@ the model reads on its next round.
   "Memory · Saved …" line appears below the model's prose, under its
   own kicker, where it belongs. (`src/components/editorial/EditorialMessage.tsx`)
 - **`ToolCallRender` now takes `ToolResult` directly** instead of a
-  `ToolMessage`. Variants are unchanged in look — `whisper`, `dot`,
-  `aside`, `mark`, `hidden` — just bound to a cleaner data type.
+  `ToolMessage`. Variants are unchanged in look, `whisper`, `dot`,
+  `aside`, `mark`, `hidden`, just bound to a cleaner data type.
 - **`SummaryStore` transcript renderer updated.** Indents `[tool name
   → result]` under the assistant line that produced it, so the
   summarizer correctly attributes tool activity rather than treating
   it as a separate speaker.
 
-## 2026-04-23 — Memory v2: unified `memory` tool + cross-thread summaries + Profile UI
+## 2026-04-23: Memory v2: unified `memory` tool + cross-thread summaries + Profile UI
 
 Memory caught up to what the leading labs do. Three structural changes:
 the `add_memory` tool became the broader `memory` tool with `add | remove |
@@ -2889,10 +2889,10 @@ what the assistant remembers.
   `removeFactAt`, `removeFactMatching`, `updateFactAt`, `updateFactMatching`,
   `clearFacts`. `addFact` is case-insensitive-deduped so the model's
   occasional re-fires don't grow the bio.
-- **`SummaryStore` — lazy cross-thread digests.** A `setInterval`-driven
+- **`SummaryStore`: lazy cross-thread digests.** A `setInterval`-driven
   scheduler that scans threads every 15s and picks the most-recently-touched
   one that meets the criteria (≥ 4 messages, not the active thread,
-  either no summary or ≥ 4 new messages since the last one) — but only
+  either no summary or ≥ 4 new messages since the last one), but only
   fires when the user has been idle for ≥ 60s. Mirrors what ChatGPT
   appears to do: lazy, debounced, off the hot path. (`src/stores/SummaryStore.ts`)
 - **Cheap-fast summarizer routing.** Tries `gemini-3-flash` →
@@ -2916,7 +2916,7 @@ what the assistant remembers.
 - **Thread fields for summary tracking.** `Thread.summary?: string`,
   `summaryUpdatedAt?: number`, `summaryMessageCount?: number`. All
   optional so existing snapshots round-trip. The message-count field is
-  the staleness lever — re-summarize only when the thread has grown by
+  the staleness lever, re-summarize only when the thread has grown by
   ≥ 4 messages since the last write.
 - **Profile section is now the home for memory.** Account info, an
   editable list of bio facts (add/edit/delete inline + clear-all), and
@@ -2932,20 +2932,20 @@ what the assistant remembers.
   behavior. The existing toolLoop tests were updated for the new
   `memory` tool name and `composeSystemPrompt({ ... })` shape.
 
-## 2026-04-23 — Tool calling (add_memory) + per-thread context
+## 2026-04-23: Tool calling (add_memory) + per-thread context
 
 The model can now persist things you tell it. First tool: `add_memory`. Works
-across every direct provider — OpenAI, Anthropic, Gemini — and through
+across every direct provider, OpenAI, Anthropic, Gemini, and through
 OpenRouter for everything else. Architecture is set up to add more tools by
 dropping a file in `src/services/tools/` and registering it.
 
 - **Discriminated `Message` union by `role`.** Added `'tool'` as a third
   message kind alongside `'user'` and `'assistant'`. Existing stored messages
-  already have valid `role` values so no migration is needed — they just
+  already have valid `role` values so no migration is needed, they just
   become two of three union members. Assistant messages can now carry an
   optional `toolCalls: ToolCall[]`. (`src/core/types.ts`)
 - **`Thread.threadContext?: string`.** Per-thread context that's appended to
-  the system prompt under `## About this conversation:`. No editor UI yet —
+  the system prompt under `## About this conversation:`. No editor UI yet,
   written by the model (eventually) and exposed via `chat.setThreadContext()`
   for programmatic use. Persists with the thread snapshot.
 - **`composeSystemPrompt` reorganized.** Now follows the same structure
@@ -2963,7 +2963,7 @@ dropping a file in `src/services/tools/` and registering it.
   the model sees on its next round so it can acknowledge the save in its
   reply. (`src/services/tools/addMemory.ts`)
 - **Tool execution loop in `ChatStore`.** A user turn is no longer one
-  round trip — `runTurn` cycles through model→tools→model rounds until the
+  round trip, `runTurn` cycles through model→tools→model rounds until the
   model produces a round with no tool calls. Each round writes into a fresh
   assistant message, so multi-turn tool use renders inline as
   `assistant(text + tool_call) → tool(result) → assistant(final reply)`. Hard
@@ -2983,7 +2983,7 @@ dropping a file in `src/services/tools/` and registering it.
       go back as `parts[].functionResponse: { name, response: { result } }`.
 - **`LlmChunk` union grows by one variant.** New `{ type: 'tool_call', call }`
   for fully-buffered tool calls (we don't surface argument-deltas to the
-  store/UI — keeps the contract small and matches how tool JSON arrives in
+  store/UI, keeps the contract small and matches how tool JSON arrives in
   practice). `finishReason` gains `'tool_use'`.
 - **Inline tool UI.** Tool-call badges render below the assistant message
   that called them (compact mono row: `↳ add_memory(fact: "…")`). Tool
@@ -2992,30 +2992,30 @@ dropping a file in `src/services/tools/` and registering it.
   just visual transparency in the conversation flow.
 - **No tool toggles.** Per the user's call: tools are always-on. Adding more
   tools later means dropping a file in `services/tools/` and one
-  `toolRegistry.register()` line — no UI plumbing.
+  `toolRegistry.register()` line, no UI plumbing.
 - **Tests.** Seven new tests covering the tool loop happy path, multi-round
   message-history shape, threadContext composition, the round cap, and the
   `composeSystemPrompt` ordering / `appendBioFact` formatting. 49 tests pass.
 
-## 2026-04-23 — Per-thread streaming, interrupt-and-send, better thinking state
+## 2026-04-23: Per-thread streaming, interrupt-and-send, better thinking state
 
 Made the chat actually behave like a chat. Previously, switching threads or
 tabs aborted the in-flight reply and partial messages just sat there mute.
-And — embarrassingly — text was *technically* streaming on the wire but
+And, embarrassingly, text was *technically* streaming on the wire but
 appearing to land all at once because the leaf message component had been
 un-`observer`'d in a recent refactor.
 
 - **Streaming actually streams again.** Re-wrapped
   `EditorialMessage` in `observer`. Without this, `message.content`
   mutations during streaming weren't being tracked at the leaf, so the
-  parent only re-rendered on length/id changes — making the assistant's
+  parent only re-rendered on length/id changes, making the assistant's
   reply appear to land in one chunk on `done`. One-line regression, immediate
   fix. (`src/components/editorial/EditorialMessage.tsx`)
 - **Per-thread streams.** `ChatStore` now tracks
   `streamingByThread: Record<threadId, messageId>` and
   `controllersByThread: Map<threadId, AbortController>`. The old
   single `streamingMessageId` field is now a derived getter that reads
-  the active thread's slot — preserves the existing UI contract.
+  the active thread's slot, preserves the existing UI contract.
   Switching threads no longer aborts the reply on the previous one, so
   you can fire off a long prompt, jump to another conversation, and
   come back to a finished message.
@@ -3046,16 +3046,16 @@ un-`observer`'d in a recent refactor.
 
 Architecture stayed honest. `streamingByThread` is a plain `Record`
 (not an `observable.map`) so `makeAutoObservable` can deep-convert it
-cleanly — initial attempts using `observable.map` silently broke
+cleanly, initial attempts using `observable.map` silently broke
 persistence because MobX double-wrapped the field. Lesson: when in doubt
 with `makeAutoObservable`, use plain JS containers and let MobX wrap them.
 
-## 2026-04-23 — Memory wiring + context meter + equal voices
+## 2026-04-23: Memory wiring + context meter + equal voices
 
 Three small, compounding wins.
 
 - **Equal message font sizes.** User and assistant both render at 16px Source
-  Serif 4 — same family, same size. Role distinction now lives in the kicker
+  Serif 4, same family, same size. Role distinction now lives in the kicker
   (color-coded `YOU` vs `CLAUDE SONNET 4.6`) instead of size + family swap.
   One file: `src/components/editorial/EditorialMessage.tsx`.
 - **Live context-window meter.** Replaced the static
@@ -3088,7 +3088,7 @@ Three small, compounding wins.
 lint warnings are pre-existing fast-refresh advisories on co-located helper
 components in `ModelPopover.tsx`, `Api.tsx`, and `core/icons.tsx`.
 
-## 2026-04-23 — Live OpenRouter model catalog
+## 2026-04-23: Live OpenRouter model catalog
 
 Wired the model picker to OpenRouter's live `/api/v1/models` so users see the
 real, current set of routable models (~350 on launch day) instead of just the
@@ -3125,11 +3125,11 @@ real, current set of routable models (~350 on launch day) instead of just the
   suites; updated `LlmRouter` and `ChatStore` tests to inject a registry.
   39/39 green, 0 lint errors.
 
-## 2026-04-23 — Gemini 3 catalog refresh + model picker restyle
+## 2026-04-23: Gemini 3 catalog refresh + model picker restyle
 
 - **Gemini**: replaced the stale 2.5 Pro / 2.5 Flash entries with the current
   Gemini 3 series. Direct Gemini API now exposes `gemini-3.1-pro`
-  (`gemini-3.1-pro-preview` — note the original `gemini-3-pro-preview` was
+  (`gemini-3.1-pro-preview`, note the original `gemini-3-pro-preview` was
   shut down 2026-03-09 and now resolves to 3.1), `gemini-3-flash`
   (`gemini-3-flash-preview`), `gemini-3.1-flash-image`
   (`gemini-3.1-flash-image-preview`, aka Nano Banana 2), and the still-
@@ -3141,14 +3141,14 @@ real, current set of routable models (~350 on launch day) instead of just the
 - Updated demo references in `Agent.tsx`, `Usage.tsx`, and `seed.ts` to use
   the new Gemini ids.
 - **Restyled the model popover to match the editorial theme.** Dropped the
-  glassmorphic `--palette-*` tokens, big shadows, and 12px radius — the
+  glassmorphic `--palette-*` tokens, big shadows, and 12px radius, the
   popover now uses solid `var(--panel)` with a 1px `var(--border)` outline,
   2px corners, and an accent left-bar for the selected row (mirroring the
   sidebar). Section labels are uppercase Geist Mono with 0.12em tracking,
   and the per-model tag line is rendered in italic Source Serif 4 to echo
   the sidebar previews. No more visual mismatch with the rest of the app.
 
-## 2026-04-22 — Model catalog audit
+## 2026-04-22: Model catalog audit
 
 Verified every `providerModelId` against live provider docs and OpenRouter's
 `/api/v1/models` response (348 models on 2026-04-22). Findings + fixes:
@@ -3174,10 +3174,10 @@ Verified every `providerModelId` against live provider docs and OpenRouter's
 - `ModelPopover` META, `Usage`, `Agent`, and seed threads all refreshed to
   reference the new ids.
 - Pre-existing `react-hooks/set-state-in-effect` lint error in
-  `ModelPopover` fixed as a bonus — `setActiveIdx(0)` now happens in the
+  `ModelPopover` fixed as a bonus, `setActiveIdx(0)` now happens in the
   search input's `onChange` handler instead of a `useEffect`.
 
-## 2026-04-22 — Model picker overhaul
+## 2026-04-22: Model picker overhaul
 
 - Rebuilt `components/editorial/ModelPopover.tsx` as a richer, search-first
   command-palette-style picker while preserving all theme tokens
@@ -3188,9 +3188,9 @@ Verified every `providerModelId` against live provider docs and OpenRouter's
 - Local-only `META` map in `ModelPopover.tsx` powers descriptions/capabilities;
   no changes to `core/models.ts` so thread-persisted `modelId`s stay stable
 - Selected model now shows an accent rail on the left edge instead of a tinted
-  background — reads better on every accent palette
+  background, reads better on every accent palette
 
-## 2026-04-22 — Phase 4: tests + CI gates
+## 2026-04-22: Phase 4: tests + CI gates
 
 - Added Vitest in a top-level `tests/` folder, fully separate from `src/`
 - 26 tests across 5 files: `ChatStore`, `ProviderStore`, `persistence`,
@@ -3202,38 +3202,38 @@ Verified every `providerModelId` against live provider docs and OpenRouter's
 - ESLint config split into `src/` and `tests/` blocks; tests get node globals
 - New `tsconfig.test.json` with `vitest/globals + node + vite/client` types
 
-## 2026-04-22 — Phase 3: hash router
+## 2026-04-22: Phase 3: hash router
 
-- Added `services/router.ts` — pure `parseHash` / `formatHash` + side-effecting
+- Added `services/router.ts`: pure `parseHash` / `formatHash` + side-effecting
   `read/write/subscribeRoute`
-- Added `stores/RouterStore.ts` — observable two-way binding to
+- Added `stores/RouterStore.ts`: observable two-way binding to
   `window.location.hash`
 - `RootStore` now wires the router to `ChatStore.activeThreadId` so deep
   links and back/forward buttons work
 - `App` reads `router.isMenu` instead of `ui.menuOpen`
 - `EditorialSidebar` clicks now navigate via `router.goThread` / `router.goMenu`
 - Removed `menuOpen`, `menuSection`, and the `open/close/toggleMenu` API from
-  `UiStore` — surface routing is fully owned by `RouterStore`
+  `UiStore`, surface routing is fully owned by `RouterStore`
 - Routes: `#/`, `#/thread/<id>`, `#/menu/<section>`
 
-## 2026-04-22 — Phase 2: LLM provider abstraction
+## 2026-04-22: Phase 2: LLM provider abstraction
 
-- Added `core/llm.ts` — provider-agnostic contract (`LlmProvider`,
+- Added `core/llm.ts`: provider-agnostic contract (`LlmProvider`,
   `LlmRequest`, `LlmChunk`, `ProviderId`, `ProviderConfig`)
-- Added `core/providers.ts` — `PROVIDERS` info table for the API menu
-- Expanded `core/models.ts` — every `Model` now declares its `providerId`
+- Added `core/providers.ts`: `PROVIDERS` info table for the API menu
+- Expanded `core/models.ts`: every `Model` now declares its `providerId`
   and `providerModelId`; added v1 catalog entries for Anthropic, OpenAI,
   Google, Groq, OpenRouter, and Local
 - Added `services/llm/`:
-  - `sse.ts` — minimal SSE parser shared by all HTTP providers
-  - `openaiCompat.ts` — base class for OpenAI-shaped `/chat/completions`
-  - `openai.ts`, `groq.ts`, `openrouter.ts`, `local.ts` — thin wrappers
-  - `anthropic.ts`, `gemini.ts` — bespoke request/response shapes
-  - `fake.ts` — offline canned responder (always ready)
-  - `router.ts` — `LlmRouter.resolve(modelId)` with fake fallback
+  - `sse.ts`: minimal SSE parser shared by all HTTP providers
+  - `openaiCompat.ts`: base class for OpenAI-shaped `/chat/completions`
+  - `openai.ts`, `groq.ts`, `openrouter.ts`, `local.ts`: thin wrappers
+  - `anthropic.ts`, `gemini.ts`: bespoke request/response shapes
+  - `fake.ts`: offline canned responder (always ready)
+  - `router.ts`: `LlmRouter.resolve(modelId)` with fake fallback
   - `index.ts` barrel
-- Added `services/providerStorage.ts` — `gatesai.providers.v1` localStorage
-- Added `stores/ProviderStore.ts` — owns API keys + the long-lived `LlmRouter`
+- Added `services/providerStorage.ts`: `gatesai.providers.v1` localStorage
+- Added `stores/ProviderStore.ts`: owns API keys + the long-lived `LlmRouter`
 - `ChatStore.sendMessage` rewritten to use `for await ... of stream` with
   `AbortController`. New `lastError` field surfaces provider failures.
 - `ApiSection` is fully wired: paste a key, see the provider connect; reveal,
@@ -3241,14 +3241,14 @@ Verified every `providerModelId` against live provider docs and OpenRouter's
 - Removed the old callback-based `services/fakeLlm.ts` (replaced by
   `services/llm/fake.ts` which implements the same `LlmProvider` interface)
 
-## 2026-04-22 — Phase 1: UI primitives
+## 2026-04-22: Phase 1: UI primitives
 
 Extracted recurring inline-style patterns into a dedicated design-system layer.
 
 ### Added
-- `src/components/ui/` — `Toggle`, `Pill`, `Card`, `Button`, `Input`, `Select`,
+- `src/components/ui/`: `Toggle`, `Pill`, `Card`, `Button`, `Input`, `Select`,
   `Textarea`, `SettingsRow`, `SegmentedControl`, plus an `index.ts` barrel
-- `src/core/styleTokens.ts` — typography & layout tokens that don't have a
+- `src/core/styleTokens.ts`: typography & layout tokens that don't have a
   natural component shape (`h1`, `kicker`, `section`, `sectionTitle`, `mono`,
   `number`, `numberLabel`)
 
@@ -3262,15 +3262,15 @@ Extracted recurring inline-style patterns into a dedicated design-system layer.
   three places)
 
 ### Removed
-- `src/components/menu/shared.tsx` — fully replaced
+- `src/components/menu/shared.tsx`: fully replaced
 
 ### Architecture
-- New layer rule: `components/ui/` may only import from `core/` — no stores,
+- New layer rule: `components/ui/` may only import from `core/`: no stores,
   no features. Feature folders (`editorial/`, `menu/`) compose primitives.
 
 ---
 
-## 2026-04-22 — Cleanup & restructure
+## 2026-04-22: Cleanup & restructure
 
 Full refactor to TypeScript, MobX object models, and a clean three-layer
 architecture. UI is pixel-identical to the previous build.
@@ -3286,13 +3286,13 @@ architecture. UI is pixel-identical to the previous build.
 - `src/assets/` (unused Vite template assets)
 
 ### Added
-- `src/core/` — `types.ts`, `models.ts`, `theme.ts`, `seed.ts`, `icons.tsx`
-- `src/services/` — `persistence.ts`, `fakeLlm.ts`
-- `src/stores/` — `ChatStore.ts`, `UiStore.ts`, `RootStore.ts`, `context.tsx`
-- `src/components/editorial/` — sidebar, chat panel, message, composer, etc.
-- `src/components/menu/` — menu shell + six sections
-- `src/app/App.tsx` — composition root
-- `docs/` — this folder
+- `src/core/`: `types.ts`, `models.ts`, `theme.ts`, `seed.ts`, `icons.tsx`
+- `src/services/`: `persistence.ts`, `fakeLlm.ts`
+- `src/stores/`: `ChatStore.ts`, `UiStore.ts`, `RootStore.ts`, `context.tsx`
+- `src/components/editorial/`: sidebar, chat panel, message, composer, etc.
+- `src/components/menu/`: menu shell + six sections
+- `src/app/App.tsx`: composition root
+- `docs/`: this folder
 
 ### Dependencies
 - Added `mobx`, `mobx-react-lite`
@@ -3304,33 +3304,33 @@ architecture. UI is pixel-identical to the previous build.
 - `localStorage` key is unchanged (`gatesai.state.v1`), so existing user
   state survives the refactor
 
-### 2026-09-05 — A34 readable library retention
+### 2026-09-05: A34 readable library retention
 
 Stopped deleting unrecognized and stale HTML/Markdown files during readable-library saves. Current exports and index still update normally; retired or renamed files remain in place. Archived the removed helper in `docs/design-readable-library-20260905.md`.
 
-### 2026-09-05 — A33 incremental readable library writes
+### 2026-09-05: A33 incremental readable library writes
 
 Unchanged conversation HTML/Markdown pairs now retain their last successful write timestamp and skip bridge writes after complete presence checks. The index remains current. Reconnects, new workspace instances, acquisition failures, and partial writes invalidate cached reuse; colliding filenames retain ordered full writes. In a measured 100-thread synthetic corpus, unchanged saves fell from 201 writes / 3,134,818 bytes to 1 / 319,098; one same-timestamp message edit needed 3 writes / 347,264 bytes. No render CPU or disk-integrity claim. CI passed 1,358 tests plus typecheck/lint; full desktop/Web Lite/mobile E2E passed 144 checks with two workers and zero retries after the collision correction.
 
-### 2026-09-05 — Download a response with its origin
+### 2026-09-05: Download a response with its origin
 
 Completed assistant messages now offer Download response (.md) beside existing message actions. Files retain the exact response text and a separate provenance section with thread/message identity and timestamps. Streaming and empty responses cannot download; failures appear inline. Downloads need no Bridge or workspace write. Browser download bytes were verified offline after reload in desktop-mode Chromium and Web Lite; native WebView completion remains unverified.
 
-### 2026-09-05 — Handles starting-route consumer migration
+### 2026-09-05: Handles starting-route consumer migration
 
 Updated the vendored Handles runtime so live journey replay initializes its declared starting route before the first control. Verified the actual lane-installed package against the approved tarball, unchanged generated journeys, and real Gates /run browser behavior. No application schema or UI change. The earlier checkpoint's changelog hold ended after D20 completed; its source and documentation were preserved by merging current master into the consumer lane. Final combined A25+A38 candidate passed 1361 unit tests, typecheck/lint, all 146 browser tests, 22 explicit spike tests and spike TypeScript. The earlier full run with one lightbox failure and its unchanged focused pass remain historical evidence; the fresh full pass does not establish a cause.
 
-## 2026-09-05 — A38 isolated architecture spike correctness
+## 2026-09-05: A38 isolated architecture spike correctness
 
 The D20 spike now refuses same-conversation overlapping sends, handles split SSE line endings and stalled-read cancellation, and requires explicit stream completion evidence. Partial error replies persist. Corrected findings distinguish text-only static counts from unproven production equivalence or rewrite cost. 22 spike tests and spike TypeScript pass; the original public-runtime probe now observes one provider call with the first reply preserved, matching LF/CRLF output, and honest error outcomes for provider errors and premature EOF. No production code or architecture adoption changed.
 
-## 2026-09-05 — Autosave observation scheduling candidate
+## 2026-09-05: Autosave observation scheduling candidate
 
 Autosave now coalesces deep history observation within its existing 250 ms window, preserving immediate startup and synchronous latest-state saves on teardown. The synthetic same-input probe reduced repeated tool-argument serialization from 40,000 to 1,000 operations; this is not a browser frame measurement. Combined A53/A54 focused lifecycle/trigger checks passed; CI passed 1,370 tests/type/lint and the full E2E suite passed all 146 tests. Parent source review passed. [Design/evidence](design-autosave-scheduling-20260905.md).
 
 A54 separately closes coordinator-owned paused attachment and queued-drain writes. Resume only re-enables scheduling; already in-flight writes and direct hydration saves are not claimed cancellable or follower-gated. Combined CI passed 1,370 tests, typecheck, and lint; full E2E passed 146 tests in 1.7 minutes.
 
-## 2026-09-06 — Explorer interruption dogfood
+## 2026-09-06: Explorer interruption dogfood
 
 - Dev scenario streams now stop pending body reads when their request is
   aborted, and recognize signals carried by Request objects. This makes

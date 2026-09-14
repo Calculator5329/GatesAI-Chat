@@ -29,7 +29,7 @@ Call log:
 
 ```ts
   1  | // Web Lite build assertions: the bridge is intentionally absent, so the UI must
-  2  | // degrade gracefully — the status pill, disabled attachments, and the notices
+  2  | // degrade gracefully, the status pill, disabled attachments, and the notices
   3  | // on the bridge-dependent menu sections.
   4  | import { test, expect } from '@playwright/test';
   5  | import { mockOpenRouter, seedReadyProvider } from './fixtures/harness';

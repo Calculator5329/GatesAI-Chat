@@ -30,7 +30,7 @@ Call log:
 ```ts
   1   | // QA-1's walkthrough half: drive every persisted settings control, change it,
   2   | // reload, and assert it survived. This is the check that source reading cannot
-  3   | // do — a control can look correctly wired and still not persist, because the
+  3   | // do, a control can look correctly wired and still not persist, because the
   4   | // store setter, the storage slot and the boot-time rehydrate are three separate
   5   | // pieces and only the round trip proves all three are connected.
   6   | //
