@@ -1,7 +1,7 @@
 # GatesAI Chat
 
 [![CI](https://github.com/Calculator5329/GatesAI-Chat/actions/workflows/ci.yml/badge.svg)](https://github.com/Calculator5329/GatesAI-Chat/actions/workflows/ci.yml)
-[![Live demo](https://img.shields.io/badge/Live%20demo-Web%20Lite-e8a948?style=flat-square)](https://gatesai.site/)
+[![Live demo](https://img.shields.io/badge/Live%20demo-Web%20Lite-e8a948?style=flat-square)](https://gatesai.web.app/)
 [![React 19](https://img.shields.io/badge/React-19-20232a?style=flat-square&logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Tauri 2](https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&logo=tauri&logoColor=white)](https://tauri.app/)
@@ -39,7 +39,7 @@ generation uses OpenRouter or a local ComfyUI install you configure yourself.
 
 ## Try it in the browser
 
-[gatesai.site](https://gatesai.site/) runs the browser **Web Lite** build. The full UI is
+[gatesai.web.app](https://gatesai.web.app/) runs the browser **Web Lite** build. The full UI is
 interactive, and chatting uses your own OpenRouter API key, which you paste into the Models menu and
 which never leaves your browser. Desktop features that need the local bridge (files, shell, image
 generation) are deliberately disabled there, and the app points you at the matching download above.
