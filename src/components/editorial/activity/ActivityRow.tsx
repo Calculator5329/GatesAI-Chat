@@ -6,13 +6,19 @@ import type { ActivityItem, ActivityStats } from '../../../core/types';
 import { useEditorial } from '../../../stores/context';
 import { WorkspaceImage } from '../WorkspaceImage';
 import { ImageJobCard } from '../ImageJobCard';
+import { GeneratedUi } from '../GeneratedUi';
 import { MarkdownFallback } from '../MarkdownFallback';
 import { iconForActivity } from './iconForActivity';
 
 const ActivityMarkdown = lazy(() => import('./ActivityMarkdown').then(m => ({ default: m.ActivityMarkdown })));
 const AUTO_COLLAPSE_LINE_THRESHOLD = 40;
 
-function ImageJobArtifacts({ artifacts }: { artifacts: NonNullable<ActivityItem['artifacts']> }) {
+/** Artifacts that render in the message itself, outside the collapsible activity chip. */
+function isInlineArtifact(artifact: NonNullable<ActivityItem['artifacts']>[number]): boolean {
+  return artifact.kind === 'image-job' || artifact.kind === 'image' || artifact.kind === 'ui';
+}
+
+function InlineArtifacts({ artifacts }: { artifacts: NonNullable<ActivityItem['artifacts']> }) {
   return (
     <div className="activity-row__image-jobs">
       {artifacts.map((artifact, index) => {
@@ -21,6 +27,9 @@ function ImageJobArtifacts({ artifacts }: { artifacts: NonNullable<ActivityItem[
         }
         if (artifact.kind === 'image-job') {
           return <ImageJobCard key={`job-${artifact.jobId}-${index}`} jobId={artifact.jobId} expectedCount={artifact.count} />;
+        }
+        if (artifact.kind === 'ui') {
+          return <GeneratedUi key={`ui-${index}`} spec={artifact.spec} title={artifact.title} />;
         }
         return null;
       })}
@@ -74,13 +83,11 @@ function ActivityRowContent({
   onOpenChange?: (open: boolean) => void;
   onOpenThread?: (threadId: string) => void;
 }) {
-  const imageJobArtifacts = item.artifacts?.filter(
-    a => a.kind === 'image-job' || a.kind === 'image',
-  ) ?? [];
-  const hasImageJobArtifacts = imageJobArtifacts.length > 0;
+  const inlineArtifacts = item.artifacts?.filter(isInlineArtifact) ?? [];
+  const hasInlineArtifacts = inlineArtifacts.length > 0;
   const [open, setOpen] = useState(initialOpen);
   const elapsed = useElapsedLabel(item.state === 'running', item.startedAt);
-  const expandable = Boolean(item.detail || (item.artifacts?.length && !hasImageJobArtifacts));
+  const expandable = Boolean(item.detail || (item.artifacts?.length && !hasInlineArtifacts));
   const lineCount = toolOutputLineCount(item);
   const autoCollapsed = lineCount > AUTO_COLLAPSE_LINE_THRESHOLD;
   const navigable = Boolean(item.linkThreadId && onOpenThread);
@@ -98,10 +105,10 @@ function ActivityRowContent({
 
   return (
     <div className="activity-row" data-state={item.state} data-kind={item.kind}>
-      {/* Image-job cards render outside the collapsible row so direct/local
-          generation is not hidden behind a gray activity chip (audit Batch D). */}
-      {hasImageJobArtifacts && <ImageJobArtifacts artifacts={imageJobArtifacts} />}
-      {(expandable || !hasImageJobArtifacts) && (
+      {/* Image-job cards and generated UI render outside the collapsible row so
+          they are not hidden behind a gray activity chip (audit Batch D). */}
+      {hasInlineArtifacts && <InlineArtifacts artifacts={inlineArtifacts} />}
+      {(expandable || !hasInlineArtifacts) && (
       <button data-testid={`workspace.activity-row.toggle-${item.id}`}
         type="button"
         aria-label={autoCollapsed ? `${label} · ${lineCount} lines · ${open ? 'Collapse' : 'Expand'} output` : label}
@@ -158,7 +165,6 @@ function ActivityRowContent({
             if (artifact.kind === 'image') {
               return <WorkspaceImage key={`image-${artifact.path}`} path={artifact.path} alt="Generated image" kind="image" />;
             }
-            if (artifact.kind === 'image-job') return null;
             return null;
           })}
         </div>

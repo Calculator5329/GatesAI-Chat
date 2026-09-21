@@ -36,6 +36,8 @@
     "check:dev-bundle": "node scripts/check-dev-bundle.mjs dist"
   },
   "dependencies": {
+    "@json-render/core": "^0.21.0",
+    "@json-render/react": "^0.21.0",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.1",
     "highlight.js": "^11.11.1",

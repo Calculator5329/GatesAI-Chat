@@ -352,7 +352,16 @@ Static tool list generated from `src/services/tools/registry.ts`:
 `memory`, `recall`, `time`, `logs`, `notes`, `thread`, `chat_history`,
 `workspace`, `fs`, `inspect_file`, `artifact`, `terminal`, `python_inline`,
 `sqlite_query`, `query_script`, `git`, `image_generate`, `describe_image`,
-`web_search`, `fetch_page`, `spawn_task`.
+`web_search`, `fetch_page`, `spawn_task`, `render_ui`.
+
+`render_ui` takes a json-render spec (as a JSON string) limited to the catalog
+in `src/core/uiCatalog.ts` (Stack, Heading, Text, Stat, Table, List, Badge,
+Callout, Progress, Button, Divider; one action, `send_message`). The tool
+validates the spec strictly (per-component props, child and root references,
+event bindings) and returns it as a `ui` artifact; `GeneratedUi.tsx` draws it
+inline with `@json-render/react`, and a Button bound to `send_message` posts a
+new user message into the thread. It is selected for UI-shaped turns
+(dashboard, table, comparison, checklist, options, and similar words).
 
 ## Persistence
 

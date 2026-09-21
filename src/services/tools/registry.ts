@@ -28,6 +28,7 @@ import { fetchPageTool } from './fetchPage';
 import { artifactTool } from './artifact';
 import { spawnTaskDescription, spawnTaskTool } from './spawnTask';
 import { askUserTool } from './askUser';
+import { renderUiTool } from './renderUi';
 
 export interface ToolSelectionContext {
   userText: string;
@@ -134,6 +135,7 @@ export class ToolRegistry {
       selected.add('fs');
       selected.add('describe_image');
     }
+    if (isRenderUiRelevant(text)) selected.add('render_ui');
     const out = this.filterToolDefsForAllowlist(
       this.list().filter(t => selected.has(t.def.name)).map(t => t.def),
       ctx.toolAllowlist,
@@ -473,6 +475,10 @@ function requiredHint(name: string, key: string): string {
   return '';
 }
 
+function isRenderUiRelevant(text: string): boolean {
+  return /\b(?:dashboard|table|compare|comparison|summary|overview|breakdown|stats?|status|checklist|options|show me|visual(?:ly|i[sz]e)?|chart|cards?|list)\b/i.test(text);
+}
+
 function isFetchPageRelevant(text: string): boolean {
   return /\b(?:url|link|website|webpage|web page|page|article|fetch|browse)\b|https?:\/\//i.test(text);
 }
@@ -511,3 +517,4 @@ toolRegistry.register(describeImageTool);
 toolRegistry.register(webSearchTool);
 toolRegistry.register(fetchPageTool);
 toolRegistry.register(spawnTaskTool);
+toolRegistry.register(renderUiTool);
