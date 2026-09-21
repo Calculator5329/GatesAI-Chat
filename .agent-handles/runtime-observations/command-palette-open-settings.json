@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:01:54.599Z",
+  "measuredAt": "2026-09-21T03:53:26.344Z",
   "journeyName": "command-palette-open-settings",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/settings",

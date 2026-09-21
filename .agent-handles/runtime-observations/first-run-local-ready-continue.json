@@ -1,9 +1,9 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:09.012Z",
+  "measuredAt": "2026-09-21T03:53:37.038Z",
   "journeyName": "first-run-local-ready-continue",
   "lastStep": 3,
-  "pageUrl": "http://localhost:5273/?scenario=first-run-local-ready#/thread/t-mu0jh1u61vck",
+  "pageUrl": "http://localhost:5273/?scenario=first-run-local-ready#/thread/t-muapn8mhsrzs",
   "observedTestIds": [
     "settings.secret-key.connect-onboarding-openrouter",
     "settings.secret-key.get-key-onboarding-openrouter",
@@ -18,10 +18,10 @@
     "workspace.editorial-chat.look-around",
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
-    "workspace.editorial-sidebar.delete-t-mu0jh1u61vck",
-    "workspace.editorial-sidebar.pin-t-mu0jh1u61vck",
-    "workspace.editorial-sidebar.rename-t-mu0jh1u61vck",
-    "workspace.editorial-sidebar.thread-t-mu0jh1u61vck",
+    "workspace.editorial-sidebar.delete-t-muapn8mhsrzs",
+    "workspace.editorial-sidebar.pin-t-muapn8mhsrzs",
+    "workspace.editorial-sidebar.rename-t-muapn8mhsrzs",
+    "workspace.editorial-sidebar.thread-t-muapn8mhsrzs",
     "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu"
   ],

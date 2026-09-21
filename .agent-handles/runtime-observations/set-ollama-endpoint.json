@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:02:13.198Z",
+  "measuredAt": "2026-09-21T03:53:28.175Z",
   "journeyName": "set-ollama-endpoint",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/models",

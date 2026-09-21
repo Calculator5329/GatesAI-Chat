@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:01:08.935Z",
+  "measuredAt": "2026-09-21T03:53:11.603Z",
   "journeyName": "open-workspace-directly",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:42.994Z",
+  "measuredAt": "2026-09-21T03:53:36.826Z",
   "journeyName": "models-catalog-refresh-and-clear",
   "lastStep": 10,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/models",

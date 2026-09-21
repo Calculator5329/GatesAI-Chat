@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:25.894Z",
+  "measuredAt": "2026-09-21T03:53:39.212Z",
   "journeyName": "task-center-empty",
   "lastStep": 6,
   "pageUrl": "http://localhost:5273/?scenario=desktop-bare#/thread/usage",

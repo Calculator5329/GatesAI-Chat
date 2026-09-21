@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:45.278Z",
+  "measuredAt": "2026-09-21T03:53:41.094Z",
   "journeyName": "dock-two-cells-swap-and-resize",
   "lastStep": 15,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/html",

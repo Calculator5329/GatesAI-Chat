@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:01:41.216Z",
+  "measuredAt": "2026-09-21T03:53:29.132Z",
   "journeyName": "inspect-memory-disclosure",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

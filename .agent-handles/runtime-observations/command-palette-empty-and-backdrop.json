@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:01.997Z",
+  "measuredAt": "2026-09-21T03:53:24.787Z",
   "journeyName": "command-palette-empty-and-backdrop",
   "lastStep": 8,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:10.595Z",
+  "measuredAt": "2026-09-21T03:53:14.556Z",
   "journeyName": "first-run-local-empty-starter-pull",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=first-run-local-empty#/menu/models",
@@ -31,10 +31,10 @@
     "workspace.editorial-chat.primary",
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
-    "workspace.editorial-sidebar.delete-t-mu0jh2tjgb3n",
-    "workspace.editorial-sidebar.pin-t-mu0jh2tjgb3n",
-    "workspace.editorial-sidebar.rename-t-mu0jh2tjgb3n",
-    "workspace.editorial-sidebar.thread-t-mu0jh2tjgb3n",
+    "workspace.editorial-sidebar.delete-t-muapmr0p7qgx",
+    "workspace.editorial-sidebar.pin-t-muapmr0p7qgx",
+    "workspace.editorial-sidebar.rename-t-muapmr0p7qgx",
+    "workspace.editorial-sidebar.thread-t-muapmr0p7qgx",
     "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu"
   ],

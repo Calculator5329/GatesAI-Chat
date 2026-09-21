@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:01:31.400Z",
+  "measuredAt": "2026-09-21T03:53:14.609Z",
   "journeyName": "pin-thread-from-row-actions",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

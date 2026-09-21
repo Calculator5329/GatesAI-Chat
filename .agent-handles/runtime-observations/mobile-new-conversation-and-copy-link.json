@@ -1,9 +1,9 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:04:05.393Z",
+  "measuredAt": "2026-09-21T03:53:50.420Z",
   "journeyName": "mobile-new-conversation-and-copy-link",
   "lastStep": 4,
-  "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/t-mu0ji9n1tw5q",
+  "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/t-muapnj04qq23",
   "observedTestIds": [
     "workspace.composer-input.composer-send-control",
     "workspace.composer-meta.model",
@@ -21,7 +21,7 @@
     "workspace.editorial-sidebar.open-sidebar",
     "workspace.editorial-sidebar.thread-active",
     "workspace.editorial-sidebar.thread-agent-task",
-    "workspace.editorial-sidebar.thread-t-mu0ji9n1tw5q",
+    "workspace.editorial-sidebar.thread-t-muapnj04qq23",
     "workspace.editorial-sidebar.thread-tool",
     "workspace.editorial-sidebar.thread-usage",
     "workspace.editorial-sidebar.title",

@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:02:02.117Z",
+  "measuredAt": "2026-09-21T03:53:38.381Z",
   "journeyName": "open-settings-and-switch-theme",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/settings",
