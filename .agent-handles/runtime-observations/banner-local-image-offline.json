@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:20.613Z",
+  "measuredAt": "2026-09-21T03:53:29.746Z",
   "journeyName": "banner-local-image-offline",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=local-image-model#/menu/models",

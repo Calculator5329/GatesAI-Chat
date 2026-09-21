@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:01:51.149Z",
+  "measuredAt": "2026-09-21T03:53:21.269Z",
   "journeyName": "command-palette-find-thread",
   "lastStep": 8,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/usage",

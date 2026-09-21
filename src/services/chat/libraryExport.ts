@@ -435,6 +435,9 @@ function renderToolArtifactsHtml(artifacts: ToolResultArtifact[]): string {
     if (artifact.kind === 'diff') {
       return `<div class="file-ref"><div><b>Edited</b><span>${escapeHtml(artifact.path)} · +${artifact.added} −${artifact.removed}</span></div></div>`;
     }
+    if (artifact.kind === 'ui') {
+      return `<div class="file-ref"><div><b>Rendered view</b><span>${escapeHtml(artifact.title ?? 'untitled')} · ${Object.keys(artifact.spec.elements).length} elements</span></div></div>`;
+    }
     return `<div class="file-ref"><div><b>Image job</b><span>${escapeHtml(artifact.jobId)} · ${artifact.count} expected image${artifact.count === 1 ? '' : 's'}</span></div></div>`;
   }).join('');
   return `<section class="files"><h3>Generated files</h3>${items}</section>`;
@@ -494,6 +497,7 @@ function formatThreadPlainText(thread: Thread): string {
         lines.push(...artifacts.map(artifact => {
           if (artifact.kind === 'image') return `- ${artifact.path} (${artifact.mime})`;
           if (artifact.kind === 'diff') return `- edited ${artifact.path} (+${artifact.added} −${artifact.removed})`;
+          if (artifact.kind === 'ui') return `- rendered view ${artifact.title ?? 'untitled'} (${Object.keys(artifact.spec.elements).length} elements)`;
           return `- image job ${artifact.jobId} (${artifact.count} expected image${artifact.count === 1 ? '' : 's'})`;
         }));
       }

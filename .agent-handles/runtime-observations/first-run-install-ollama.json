@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:13.879Z",
+  "measuredAt": "2026-09-21T03:53:19.637Z",
   "journeyName": "first-run-install-ollama",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=first-run#/menu/models",
@@ -31,10 +31,10 @@
     "workspace.editorial-chat.secondary",
     "workspace.editorial-sidebar.begin-a-new-conversation",
     "workspace.editorial-sidebar.brand",
-    "workspace.editorial-sidebar.delete-t-mu0jh5aj60xu",
-    "workspace.editorial-sidebar.pin-t-mu0jh5aj60xu",
-    "workspace.editorial-sidebar.rename-t-mu0jh5aj60xu",
-    "workspace.editorial-sidebar.thread-t-mu0jh5aj60xu",
+    "workspace.editorial-sidebar.delete-t-muapmuydynfv",
+    "workspace.editorial-sidebar.pin-t-muapmuydynfv",
+    "workspace.editorial-sidebar.rename-t-muapmuydynfv",
+    "workspace.editorial-sidebar.thread-t-muapmuydynfv",
     "workspace.sidebar-settings-button.dot",
     "workspace.sidebar-settings-button.settings-and-menu"
   ],

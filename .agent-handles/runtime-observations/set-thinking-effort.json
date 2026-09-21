@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:01:49.549Z",
+  "measuredAt": "2026-09-21T03:53:18.063Z",
   "journeyName": "set-thinking-effort",
   "lastStep": 2,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

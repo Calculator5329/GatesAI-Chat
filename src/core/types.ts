@@ -2,6 +2,7 @@
 // Called by stores, services, components, and tests; depends on stable TypeScript data shapes.
 // Invariant: core modules stay side-effect free except for explicit cache helpers.
 import type { LlmUsage, ToolCall } from './llm';
+import type { UiSpec } from './uiCatalog';
 
 export type AssistantFinishReason = 'stop' | 'length' | 'tool_use' | 'cancelled' | 'content_filter' | 'error';
 
@@ -191,6 +192,12 @@ export type ToolResultArtifact =
       rows: DiffRow[];
       /** True when `rows` omits part of the change. */
       truncated?: boolean;
+    }
+  | {
+      /** A validated json-render spec from `render_ui`, drawn inline by GeneratedUi. */
+      kind: 'ui';
+      title?: string;
+      spec: UiSpec;
     };
 
 /**

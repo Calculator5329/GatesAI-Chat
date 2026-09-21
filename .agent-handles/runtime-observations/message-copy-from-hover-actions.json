@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:02:34.782Z",
+  "measuredAt": "2026-09-21T03:53:33.309Z",
   "journeyName": "message-copy-from-hover-actions",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/html",

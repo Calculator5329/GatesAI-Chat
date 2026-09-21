@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:02:06.348Z",
+  "measuredAt": "2026-09-21T03:53:18.268Z",
   "journeyName": "light-theme-preselected",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=light-theme#/menu/settings",

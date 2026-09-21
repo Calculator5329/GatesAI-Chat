@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:04:02.060Z",
+  "measuredAt": "2026-09-21T03:53:50.105Z",
   "journeyName": "mobile-open-sidebar-and-menu",
   "lastStep": 7,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

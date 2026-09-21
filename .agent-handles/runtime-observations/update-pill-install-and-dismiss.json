@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:04.996Z",
+  "measuredAt": "2026-09-21T03:53:30.242Z",
   "journeyName": "update-pill-install-and-dismiss",
   "lastStep": 4,
   "pageUrl": "http://localhost:5273/?scenario=update-available#/thread/active",

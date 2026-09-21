@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:19.045Z",
+  "measuredAt": "2026-09-21T03:53:27.239Z",
   "journeyName": "banner-ollama-offline",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=local-ollama-offline#/menu/models",

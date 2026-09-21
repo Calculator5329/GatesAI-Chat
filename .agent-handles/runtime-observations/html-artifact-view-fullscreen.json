@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:02:28.332Z",
+  "measuredAt": "2026-09-21T03:53:21.799Z",
   "journeyName": "html-artifact-view-fullscreen",
   "lastStep": 7,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/html",

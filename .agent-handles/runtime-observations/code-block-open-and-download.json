@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:02:26.815Z",
+  "measuredAt": "2026-09-21T03:53:18.815Z",
   "journeyName": "code-block-open-and-download",
   "lastStep": 5,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/html",

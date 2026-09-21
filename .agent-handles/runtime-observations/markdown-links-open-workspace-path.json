@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:02:33.164Z",
+  "measuredAt": "2026-09-21T03:53:30.808Z",
   "journeyName": "markdown-links-open-workspace-path",
   "lastStep": 3,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/html",

@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:02:00.232Z",
+  "measuredAt": "2026-09-21T03:53:35.469Z",
   "journeyName": "collapse-a-dock-cell",
   "lastStep": 9,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/thread/active",

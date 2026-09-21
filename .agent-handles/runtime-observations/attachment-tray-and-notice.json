@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:06.513Z",
+  "measuredAt": "2026-09-21T03:53:32.858Z",
   "journeyName": "attachment-tray-and-notice",
   "lastStep": 8,
   "pageUrl": "http://localhost:5273/?scenario=attachments-drafted#/thread/active",

@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:03:33.744Z",
+  "measuredAt": "2026-09-21T03:53:23.837Z",
   "journeyName": "agent-facts-edit-and-clear",
   "lastStep": 13,
   "pageUrl": "http://localhost:5273/?scenario=desktop-ready#/menu/agent",

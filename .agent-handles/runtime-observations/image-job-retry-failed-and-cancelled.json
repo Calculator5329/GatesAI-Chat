@@ -1,6 +1,6 @@
 {
   "schema": "agent-handles/runtime-journey-observation/v1",
-  "measuredAt": "2026-09-14T01:02:51.114Z",
+  "measuredAt": "2026-09-21T03:53:33.879Z",
   "journeyName": "image-job-retry-failed-and-cancelled",
   "lastStep": 7,
   "pageUrl": "http://localhost:5273/?scenario=rich-transcript#/thread/images",

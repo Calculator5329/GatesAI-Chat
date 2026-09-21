@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-09-21: The assistant can answer with a small live UI
+
+- **What changed for you.** When a reply is really a handful of numbers, a
+  comparison, a checklist, or a choice, the assistant can now draw it inline
+  as a compact view (stats, a table, a list, badges, a progress bar, a
+  callout) instead of prose alone. Buttons inside the view continue the
+  conversation: pressing one sends the follow-up message the assistant wrote
+  for it, so "Show me the open ones" is one click. The view sits above the
+  reply text, always visible, and follows the app tokens (dark, plain, no
+  gradients).
+- **Mechanism.** A new `render_ui` tool (`src/services/tools/renderUi.ts`)
+  accepts a Vercel json-render spec as a JSON string, validates it against the
+  catalog in `src/core/uiCatalog.ts` (per-component zod props, child and root
+  references, event bindings; the library's own validator only checks tree
+  shape and drops `on` bindings), and returns it as a `ui` artifact on the
+  tool result. `GeneratedUi.tsx` renders the artifact with `@json-render/react`
+  (`defineRegistry` + `Renderer` inside `JSONUIProvider`), and the
+  `send_message` handler calls `ChatStore.sendMessage`. The tool is offered on
+  UI-shaped turns (dashboard, table, comparison, checklist, options, chart,
+  and similar). New dependencies: `@json-render/core` and `@json-render/react`
+  at 0.21.0. Tests: `tests/services/tools/renderUi.test.ts`,
+  `tests/components/editorial/GeneratedUi.test.ts`.
+
 ## 2026-09-13: Brand mark goes home, coachmark gone, download cue dismissible
 
 - **Download cue has an x.** The Web Lite "want local" cue renders a dismiss
