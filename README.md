@@ -11,15 +11,16 @@
 
 ![GatesAI Chat on the desktop: a chat thread where the assistant runs npm test through the local bridge, with the tool activity timeline, the agent-task sidebar group, and the live token and cost readout](docs/screens/desktop-mocked/03-chat-tool-activity.png)
 
-GatesAI Chat is an AI chat app you install on your own machine. You bring the models, either
-OpenRouter in the cloud or Ollama running locally, and the conversations, settings, and files stay
-on your device. There is no GatesAI account and no subscription in the middle.
+GatesAI Chat is a local-first AI chat app with a desktop app and a browser build. It runs cloud
+models through OpenRouter or, on desktop, fully local models through Ollama. There is no GatesAI
+account or subscription in the middle.
 
-The other half of the app is a companion process called the bridge. It gives the assistant a real
-workspace folder it can read and write, plus allowlisted shell, Python, SQLite, and git commands,
-web search, and image generation through ComfyUI. Everything the bridge does is scoped to a path
-jail and a command allowlist, and it shows up in an activity timeline as it happens, so you can see
-what the model touched.
+The desktop app includes a local bridge for controlled tool use. The model can read and write files
+in the workspace, run allowlisted commands such as npm, Node, Go, and git, use Python, query SQLite,
+and create artifacts. Every path is checked against the configured workspace root. By default, the
+bridge listens only on loopback. The activity timeline shows each tool call, live terminal output,
+result, and failure. Path escapes, commands outside the allowlist, and access to protected chat
+storage are refused.
 
 It is meant to feel like a quiet writing room rather than a SaaS dashboard: paper-like dark and
 light themes, serif chat prose, and operational controls kept small and out of the way.
