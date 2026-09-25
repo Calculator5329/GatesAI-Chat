@@ -67,7 +67,7 @@ const { registry } = defineRegistry(uiCatalog, {
       );
     },
     Button: ({ props, emit }) => (
-      <Button type="button" className="generated-ui__button" onClick={() => emit('press')}>{props.label}</Button>
+      <Button data-testid="workspace.generated-ui.button" type="button" className="generated-ui__button" onClick={() => emit('press')}>{props.label}</Button>
     ),
     Divider: () => <hr className="generated-ui__divider" />,
   },
