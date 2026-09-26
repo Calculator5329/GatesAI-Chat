@@ -3,28 +3,28 @@
   "predicateVersion": 4,
   "grammar": "area.component.element[.qualifier]",
   "generatedFrom": "src/**/*.{tsx,jsx} and journeys/manifest.json",
-  "sourceDigest": "sha256:067a8f2c078f0e6bc5770cf17df56158a07923d7936a9df131e828ab796937c2",
+  "sourceDigest": "sha256:378315ca829453c7e5c8188c7c6802c6d7f0dca918e9e8e6fffc1166b7ecf572",
   "journeyCoverage": {
     "controlPath": 102,
     "urlPath": 2
   },
   "coverage": {
-    "controlCandidates": 223,
-    "definiteCandidates": 195,
+    "controlCandidates": 224,
+    "definiteCandidates": 196,
     "reviewRequiredCandidates": 28,
-    "identifiedCandidates": 223,
+    "identifiedCandidates": 224,
     "nonInteractiveCandidates": 0,
     "unreachableCandidates": 0,
     "unresolvedCandidates": 0,
     "invalidIdentityMigrations": 0,
-    "interactiveElements": 223,
-    "identifiedInteractive": 223,
+    "interactiveElements": 224,
+    "identifiedInteractive": 224,
     "unidentifiedInteractive": 0,
     "maximumUnidentifiedInteractive": 0
   },
   "interactionFingerprint": {
     "algorithm": "candidate-site-sha256/v1",
-    "digest": "sha256:38c7140e68583999843a09cbae401d5ba01e6e8f33d2e07ad12b32e52145586d",
+    "digest": "sha256:0da53abbc7e2dd9c1ec2b9a38e0401b03719f6b87a9bb3396271811286bb8782",
     "sites": [
       "candidate:0301d7966ea101ce",
       "candidate:03cf1f812fd795ba",
@@ -84,6 +84,7 @@
       "candidate:440075359532b5e0",
       "candidate:443946a250f5143e",
       "candidate:4519659f776625f3",
+      "candidate:45b3c2016ec64a02",
       "candidate:45caa626d09c2f8b",
       "candidate:4629b70c56799440",
       "candidate:464965ac2d729e33",
@@ -552,1260 +553,1973 @@
       "file": "src/components/palette/CommandPalette.tsx",
       "line": 229,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.command-palette.command-palette",
       "file": "src/components/palette/CommandPalette.tsx",
       "line": 235,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.command-palette.empty",
       "file": "src/components/palette/CommandPalette.tsx",
       "line": 290,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "app.command-palette.empty-classic",
       "file": "src/components/palette/CommandPalette.tsx",
       "line": 262,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "app.command-palette.search-commands-and-threads",
       "file": "src/components/palette/CommandPalette.tsx",
       "line": 248,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "app.lightbox.close",
       "file": "src/components/media/Lightbox.tsx",
       "line": 78,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.lightbox.copy-prompt",
       "file": "src/components/media/Lightbox.tsx",
       "line": 189,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.lightbox.div",
       "file": "src/components/media/Lightbox.tsx",
       "line": 122,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.lightbox.full-prompt",
       "file": "src/components/media/Lightbox.tsx",
       "line": 181,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "textarea",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "app.lightbox.image-viewer",
       "file": "src/components/media/Lightbox.tsx",
       "line": 57,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.lightbox.next-image",
       "file": "src/components/media/Lightbox.tsx",
       "line": 113,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.lightbox.open-in-os",
       "file": "src/components/media/Lightbox.tsx",
       "line": 192,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.lightbox.open-in-os-no-prompt",
       "file": "src/components/media/Lightbox.tsx",
       "line": 200,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.lightbox.previous-image",
       "file": "src/components/media/Lightbox.tsx",
       "line": 105,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.whats-new.dismiss-what-s-new",
       "file": "src/components/whats-new/WhatsNewPanel.tsx",
       "line": 70,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.whats-new.got-it",
       "file": "src/components/whats-new/WhatsNewPanel.tsx",
       "line": 92,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "app.whats-new.presentation",
       "file": "src/components/whats-new/WhatsNewPanel.tsx",
       "line": 50,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.add",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 147,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.add-source",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 188,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.cancel-pull",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 297,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.clear-all",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 152,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.clear-derived-index",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 382,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.new-fact",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 140,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "settings.agent.re-include-all-excluded-sources",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 347,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.rebuild-index",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 381,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.refresh-all",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 193,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.run-preview",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 365,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.search",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 330,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "settings.agent.semantic-recall",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 281,
       "element": "jsx-prop",
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "Toggle",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.agent.system-prompt",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 31,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Textarea",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "settings.agent.what-should-gates-ai-remember",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 358,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "settings.chord-recorder.global-summon-shortcut",
       "file": "src/components/menu/sections/ChordRecorder.tsx",
       "line": 32,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "settings.chord-recorder.reset",
       "file": "src/components/menu/sections/ChordRecorder.tsx",
       "line": 57,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.models-api-section.commit",
       "file": "src/components/menu/sections/api/ApiSection.tsx",
       "line": 108,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.models-api-section.http-127-0-0-1-11434",
       "file": "src/components/menu/sections/api/ApiSection.tsx",
       "line": 101,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "settings.models-open-router-catalog-row.clear",
       "file": "src/components/menu/sections/api/OpenRouterCatalogRow.tsx",
       "line": 42,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.models-open-router-catalog-row.refresh",
       "file": "src/components/menu/sections/api/OpenRouterCatalogRow.tsx",
       "line": 38,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.models.search-card",
       "file": "src/components/menu/sections/api/ApiSection.tsx",
       "line": 44,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Card"
     },
     {
       "id": "settings.preferences.button",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 273,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.preferences.cancel",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 371,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.preferences.close-hides-to-tray",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 166,
       "element": "jsx-prop",
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "Toggle",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.preferences.export-json",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 235,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.preferences.file-input",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 280,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "input",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.preferences.global-summon",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 145,
       "element": "jsx-prop",
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "Toggle",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.preferences.input",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 264,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "settings.preferences.run",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 372,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "settings.preferences.toggle",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 73,
       "element": "jsx-prop",
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "Toggle",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "ui.button.unscoped",
       "file": "src/components/ui/Button.tsx",
       "line": 33,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "ui.input.unscoped",
       "file": "src/components/ui/Input.tsx",
       "line": 21,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "ui.select.unscoped",
       "file": "src/components/ui/Select.tsx",
       "line": 6,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "select",
+      "actions": [
+        "select"
+      ]
     },
     {
       "id": "ui.textarea.unscoped",
       "file": "src/components/ui/Textarea.tsx",
       "line": 6,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "textarea",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "ui.toggle.unscoped",
       "file": "src/components/ui/Toggle.tsx",
       "line": 22,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.activity-timeline-group.button",
       "file": "src/components/editorial/activity/TimelineGroup.tsx",
       "line": 28,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.attachment-tray.remove",
       "file": "src/components/editorial/composer/AttachmentTray.tsx",
       "line": 39,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.attachment-tray.remove-path",
       "file": "src/components/editorial/composer/AttachmentTray.tsx",
       "line": 78,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.aurora-aurora-activity-stream.chips",
       "file": "src/components/editorial/aurora/AuroraActivityStream.tsx",
       "line": 40,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.aurora-aurora-reply-footer.aurora-chip-muted",
       "file": "src/components/editorial/aurora/AuroraReplyFooter.tsx",
       "line": 28,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.aurora-diff-card.show",
       "file": "src/components/editorial/aurora/DiffCard.tsx",
       "line": 37,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.aurora-fine-tune-card.render-again",
       "file": "src/components/editorial/aurora/FineTuneCard.tsx",
       "line": 68,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.aurora-fine-tune-card.reset",
       "file": "src/components/editorial/aurora/FineTuneCard.tsx",
       "line": 69,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.aurora-fine-tune-card.toggle",
       "file": "src/components/editorial/aurora/FineTuneCard.tsx",
       "line": 49,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.aurora.diff-card",
       "file": "src/components/editorial/aurora/DiffCard.tsx",
       "line": 20,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.bridge-status-pill.bridge-status-pill",
       "file": "src/components/editorial/BridgeStatusPill.tsx",
       "line": 51,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer-banners.dismiss-notice",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
       "line": 97,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer-banners.editorial-banner-action",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
       "line": 93,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer-banners.open-local-image-settings",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
       "line": 119,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer-banners.open-local-settings",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
       "line": 61,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer-banners.open-models",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
       "line": 24,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer-input.composer-send-control",
       "file": "src/components/editorial/composer/ComposerInput.tsx",
       "line": 105,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer-input.file-input",
       "file": "src/components/editorial/composer/ComposerInput.tsx",
       "line": 69,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "input",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer-meta.local-context-mode",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
       "line": 147,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "select",
+      "actions": [
+        "select"
+      ]
     },
     {
       "id": "workspace.composer-meta.model",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
       "line": 79,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer-meta.thinking-effort",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
       "line": 163,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "select",
+      "actions": [
+        "select"
+      ]
     },
     {
       "id": "workspace.composer-meta.workspace-skill",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
       "line": 109,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer.attach",
       "file": "src/components/editorial/composer/ComposerInput.tsx",
       "line": 77,
       "element": "jsx-prop",
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "AttachButton",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer.attach-unscoped",
       "file": "src/components/editorial/composer/ComposerInput.tsx",
       "line": 136,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer.draft",
       "file": "src/components/editorial/EditorialComposer.tsx",
       "line": 213,
       "element": "jsx-prop",
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "ComposerInput",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.composer.draft-unscoped",
       "file": "src/components/editorial/composer/ComposerInput.tsx",
       "line": 83,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "textarea",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "workspace.dock-panel.expand-dock",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 76,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.dock-panel.resize-dock",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 87,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.dock-panel.resize-dock-cells",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 106,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.dock.collapsed-rail",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 68,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.dock.file-explorer",
       "file": "src/components/dock/FileExplorerPanel.tsx",
       "line": 89,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.dock.html-artifact",
       "file": "src/components/dock/HtmlArtifactPanel.tsx",
       "line": 18,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.dock.panel",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 68,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.editorial-chat.cancel",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 131,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.continue-with",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 337,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.dismiss",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 140,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.dismiss-download-cue",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 423,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.editorial-jump-to-bottom",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 800,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.install-ollama",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 368,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.link",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 435,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "a",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.look-around",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 292,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.open-local-settings",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 361,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.primary",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 344,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.pull-nomic-embed-text",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 136,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.recheck-ollama",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 381,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.secondary",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 371,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.show",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 750,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.start-ollama",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 378,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-chat.stream",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 742,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.editorial-composer.dismiss-chat-error",
       "file": "src/components/editorial/EditorialComposer.tsx",
       "line": 202,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-sidebar.begin-a-new-conversation",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 293,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-sidebar.brand",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 262,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-sidebar.button",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 182,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-sidebar.close-mobile-sidebar",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 279,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-sidebar.close-sidebar",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 248,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-sidebar.copy-link",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 226,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-sidebar.menu-and-settings",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 309,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-sidebar.new-conversation",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 214,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-sidebar.open-sidebar",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 235,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.editorial-sidebar.title",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 203,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.file-explorer-panel.parent-directory",
       "file": "src/components/dock/FileExplorerPanel.tsx",
       "line": 91,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.file-explorer-panel.refresh-directory",
       "file": "src/components/dock/FileExplorerPanel.tsx",
       "line": 111,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.file-viewer.html",
       "file": "src/components/dock/FileViewerPanel.tsx",
       "line": 79,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.file-viewer.json",
       "file": "src/components/dock/FileViewerPanel.tsx",
       "line": 72,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.file-viewer.markdown",
       "file": "src/components/dock/FileViewerPanel.tsx",
       "line": 60,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.file-viewer.notice",
       "file": "src/components/dock/FileViewerPanel.tsx",
       "line": 51,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.file-viewer.text",
       "file": "src/components/dock/FileViewerPanel.tsx",
       "line": 85,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
+    },
+    {
+      "id": "workspace.generated-ui.button",
+      "file": "src/components/editorial/GeneratedUi.tsx",
+      "line": 70,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
+    },
+    {
+      "id": "workspace.generated-ui.view",
+      "file": "src/components/editorial/GeneratedUi.tsx",
+      "line": 94,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.html-artifact-panel.html-artifact-preview",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 175,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "span",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-panel.open-in-os",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 234,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.close-html-preview",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 307,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.download",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 96,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.download-file",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 229,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.fullscreen-open-in-os",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 306,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.html-artifact-preview",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 175,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "span",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.open",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 93,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.open-file",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 226,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.open-in-dock",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 196,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.open-in-os",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 234,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.toggle-source",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 219,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-artifact-preview.view",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 208,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.html-preview.document-card",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 84,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.html-preview.inline",
       "file": "src/components/editorial/HtmlArtifactPreview.tsx",
       "line": 27,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.image-job-card.action",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 213,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.image-job-card.cancel-render",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 142,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.image-job-card.image",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 251,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.image-job-card.retry",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 212,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.image-job-card.retry-cancelled",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 242,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.image-job.fine-tune",
       "file": "src/components/editorial/aurora/FineTuneCard.tsx",
       "line": 44,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.image-job.open-unscoped",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 291,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.markdown-chunk.a",
       "file": "src/components/editorial/MarkdownChunk.tsx",
       "line": 264,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "a",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.markdown-chunk.download",
       "file": "src/components/editorial/MarkdownChunk.tsx",
       "line": 163,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.markdown-chunk.lines",
       "file": "src/components/editorial/MarkdownChunk.tsx",
       "line": 139,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.markdown-chunk.open",
       "file": "src/components/editorial/MarkdownChunk.tsx",
       "line": 162,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.markdown-chunk.open-workspace-path",
       "file": "src/components/editorial/MarkdownChunk.tsx",
       "line": 269,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.markdown-chunk.set-copy-state",
       "file": "src/components/editorial/MarkdownChunk.tsx",
       "line": 150,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.markdown-chunk.set-html-view",
       "file": "src/components/editorial/MarkdownChunk.tsx",
       "line": 135,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.markdown-chunk.set-wrapped",
       "file": "src/components/editorial/MarkdownChunk.tsx",
       "line": 147,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.markdown-fallback.a",
       "file": "src/components/editorial/MarkdownFallback.tsx",
       "line": 58,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "a",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.markdown-fallback.open",
       "file": "src/components/editorial/MarkdownFallback.tsx",
       "line": 63,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.media-viewer.av-error",
       "file": "src/components/dock/MediaViewerPanel.tsx",
       "line": 60,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.media-viewer.av-loading",
       "file": "src/components/dock/MediaViewerPanel.tsx",
       "line": 63,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.media-viewer.empty",
       "file": "src/components/dock/MediaViewerPanel.tsx",
       "line": 14,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.media-viewer.image",
       "file": "src/components/dock/MediaViewerPanel.tsx",
       "line": 32,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.media-viewer.image-error",
       "file": "src/components/dock/MediaViewerPanel.tsx",
       "line": 26,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.media-viewer.image-loading",
       "file": "src/components/dock/MediaViewerPanel.tsx",
       "line": 29,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.memory-disclosure.cancel",
       "file": "src/components/editorial/MemoryDisclosure.tsx",
       "line": 84,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.memory-disclosure.don-apos-t-use-this-source",
       "file": "src/components/editorial/MemoryDisclosure.tsx",
       "line": 95,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.memory-disclosure.exclude",
       "file": "src/components/editorial/MemoryDisclosure.tsx",
       "line": 85,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.memory-disclosure.open-in-memory",
       "file": "src/components/editorial/MemoryDisclosure.tsx",
       "line": 76,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.memory-disclosure.open-library",
       "file": "src/components/editorial/MemoryDisclosure.tsx",
       "line": 74,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.memory-disclosure.open-source",
       "file": "src/components/editorial/MemoryDisclosure.tsx",
       "line": 70,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.memory-disclosure.source-unavailable",
       "file": "src/components/editorial/MemoryDisclosure.tsx",
       "line": 72,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.memory-disclosure.undo-exclusion",
       "file": "src/components/editorial/MemoryDisclosure.tsx",
       "line": 80,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.memory-disclosure.why-was-this-used",
       "file": "src/components/editorial/MemoryDisclosure.tsx",
       "line": 78,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.model-popover.clear-model-search",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 451,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.model-popover.model-popover",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 388,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.model-popover.search-models",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 438,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "id": "workspace.prompt-card.container",
       "file": "src/components/editorial/PromptCards.tsx",
       "line": 19,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.sidebar-settings-button.dot",
       "file": "src/components/editorial/SidebarSettingsButton.tsx",
       "line": 41,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "span",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.sidebar-settings-button.settings-and-menu",
       "file": "src/components/editorial/SidebarSettingsButton.tsx",
       "line": 33,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.skill-picker.option-none",
       "file": "src/components/editorial/composer/SkillPopover.tsx",
       "line": 49,
       "element": "jsx-prop",
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "SkillRow",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.skill-picker.option-unscoped",
       "file": "src/components/editorial/composer/SkillPopover.tsx",
       "line": 114,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.task-center.empty",
       "file": "src/components/dock/TaskCenterPanel.tsx",
       "line": 25,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.task-center.ledger",
       "file": "src/components/dock/TaskCenterPanel.tsx",
       "line": 33,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "id": "workspace.undo-toast.undo",
       "file": "src/components/editorial/UndoToast.tsx",
       "line": 59,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.update-pill.dismiss-update-notice",
       "file": "src/components/editorial/UpdatePill.tsx",
       "line": 60,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.update-pill.on-click",
       "file": "src/components/editorial/UpdatePill.tsx",
       "line": 46,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "span",
+      "actions": [
+        "click"
+      ]
     },
     {
       "id": "workspace.workspace-image.open",
       "file": "src/components/editorial/WorkspaceImage.tsx",
       "line": 29,
       "element": "jsx-prop",
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     }
   ],
   "patterns": [
@@ -1813,451 +2527,760 @@
       "pattern": "app.command-palette.row-*",
       "file": "src/components/palette/CommandPalette.tsx",
       "line": 332,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.agent.fact-cancel-*",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 124,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.agent.fact-delete-*",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 129,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.agent.fact-edit-*",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 128,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.agent.fact-input-*",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 105,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "pattern": "settings.agent.fact-save-*",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 123,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.agent.library-source-*",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 210,
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "Toggle",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.agent.source-group-*",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 313,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.agent.source-toggle-*",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 341,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.agent.source-type-*",
       "file": "src/components/menu/sections/Agent.tsx",
       "line": 326,
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "Toggle",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.gates-menu.tab-*",
       "file": "src/components/menu/GatesMenu.tsx",
       "line": 33,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.preferences.delete-*",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 381,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.preferences.import-mode-*",
       "file": "src/components/menu/sections/Settings.tsx",
       "line": 248,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "input",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.secret-key.connect-*",
       "file": "src/components/ui/SecretKeyField.tsx",
       "line": 113,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.secret-key.get-key-*",
       "file": "src/components/ui/SecretKeyField.tsx",
       "line": 119,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "a",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.secret-key.input-*",
       "file": "src/components/ui/SecretKeyField.tsx",
       "line": 98,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "pattern": "settings.secret-key.remove-*",
       "file": "src/components/ui/SecretKeyField.tsx",
       "line": 67,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.secret-key.reveal-*",
       "file": "src/components/ui/SecretKeyField.tsx",
       "line": 65,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "settings.secret-key.stored-*",
       "file": "src/components/ui/SecretKeyField.tsx",
       "line": 60,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "Input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "pattern": "settings.segmented.option-*",
       "file": "src/components/ui/SegmentedControl.tsx",
       "line": 18,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.activity-row.toggle-*",
       "file": "src/components/editorial/activity/ActivityRow.tsx",
-      "line": 105,
-      "attribute": "data-testid"
+      "line": 112,
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.aurora-aurora-activity-stream.head-*",
       "file": "src/components/editorial/aurora/AuroraActivityStream.tsx",
       "line": 106,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.aurora-aurora-reply-footer.aurora-followup-*",
       "file": "src/components/editorial/aurora/AuroraReplyFooter.tsx",
       "line": 48,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.aurora-fine-tune-card.number-input-*",
       "file": "src/components/editorial/aurora/FineTuneCard.tsx",
       "line": 107,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "input",
+      "actions": [
+        "fill",
+        "press"
+      ]
     },
     {
       "pattern": "workspace.dock-panel.close-*",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 138,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.dock-panel.collapse-*",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 130,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.dock-panel.swap-*",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 121,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.dock.cell-*",
       "file": "src/components/dock/DockPanel.tsx",
       "line": 102,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "pattern": "workspace.editorial-message.actions-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 229,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.attachment-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 587,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.branch-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 275,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.confirm-cancel-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 292,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.confirm-panel-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 290,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.confirm-regenerate-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 293,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.copy-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 230,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.download-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 234,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.edit-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 261,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.edit-cancel-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 355,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.edit-confirm-cancel-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 350,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.edit-confirm-save-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 351,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.edit-input-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 328,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "textarea",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.edit-panel-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 327,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.edit-save-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 356,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.message-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 194,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-message.regenerate-*",
       "file": "src/components/editorial/EditorialMessage.tsx",
       "line": 250,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-sidebar.context-menu-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 589,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-sidebar.context-rename-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 607,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-sidebar.delete-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 575,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-sidebar.pin-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 565,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-sidebar.rename-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 554,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-sidebar.rename-input-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 478,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "pattern": "workspace.editorial-sidebar.row-actions-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 545,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.editorial-sidebar.thread-*",
       "file": "src/components/editorial/EditorialSidebar.tsx",
       "line": 418,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.file-explorer-panel.entry-*",
       "file": "src/components/dock/FileExplorerPanel.tsx",
       "line": 133,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.file-explorer-panel.set-path-*",
       "file": "src/components/dock/FileExplorerPanel.tsx",
       "line": 107,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.file-viewer-panel.summary-*",
       "file": "src/components/dock/FileViewerPanel.tsx",
       "line": 110,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "summary",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.image-job-card.cancel-pending-*",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 163,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.image-job.open-*",
       "file": "src/components/editorial/ImageJobCard.tsx",
       "line": 282,
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "GridTile",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.media-viewer.content-*",
       "file": "src/components/dock/MediaViewerPanel.tsx",
       "line": 66,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": []
     },
     {
       "pattern": "workspace.memory-disclosure.chip-*",
       "file": "src/components/editorial/MemoryDisclosure.tsx",
       "line": 41,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.model-popover.cap-filter-*",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 465,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.model-popover.favorite-*",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 242,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.model-popover.favorites-favorite-*",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 242,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.model-popover.favorites-row-*",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 228,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.model-popover.row-*",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 228,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "div",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.model-popover.segment-*",
       "file": "src/components/editorial/ModelPopover.tsx",
       "line": 411,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.prompt-cards.answer-*",
       "file": "src/components/editorial/PromptCards.tsx",
       "line": 80,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "input",
+      "actions": [
+        "type",
+        "fill",
+        "press"
+      ]
     },
     {
       "pattern": "workspace.prompt-cards.free-*",
       "file": "src/components/editorial/PromptCards.tsx",
       "line": 71,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "form",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.prompt-cards.option-*",
       "file": "src/components/editorial/PromptCards.tsx",
       "line": 58,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.prompt-cards.send-*",
       "file": "src/components/editorial/PromptCards.tsx",
       "line": 87,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.prompt-cards.skip-*",
       "file": "src/components/editorial/PromptCards.tsx",
       "line": 91,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.skill-picker.option-*",
       "file": "src/components/editorial/composer/SkillPopover.tsx",
       "line": 58,
-      "attribute": "testId"
+      "attribute": "testId",
+      "tag": "SkillRow",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.task-center-panel.cancel-*",
       "file": "src/components/dock/TaskCenterPanel.tsx",
       "line": 125,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.task-center-panel.retry-*",
       "file": "src/components/dock/TaskCenterPanel.tsx",
       "line": 128,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
     },
     {
       "pattern": "workspace.task-center-panel.task-*",
       "file": "src/components/dock/TaskCenterPanel.tsx",
       "line": 80,
-      "attribute": "data-testid"
+      "attribute": "data-testid",
+      "tag": "article",
+      "actions": [
+        "click"
+      ]
     }
   ],
   "invalidIdentities": [],
@@ -2849,7 +3872,7 @@
     {
       "id": "candidate:6cca4f5a366bc6a0",
       "file": "src/components/editorial/activity/ActivityRow.tsx",
-      "line": 105,
+      "line": 112,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -3846,6 +4869,18 @@
       "classification": "definite",
       "evidence": [
         "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:45b3c2016ec64a02",
+      "file": "src/components/editorial/GeneratedUi.tsx",
+      "line": 70,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
       ],
       "identified": true,
       "disposition": "identified"

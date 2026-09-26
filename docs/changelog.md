@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-09-26: The handles registry caught up and says how to use each control
+
+- **What changed for you.** `testid-registry.json` had missed the two
+  identities from the 2026-09-21 inline UI (`workspace.generated-ui.view` and
+  `.button`) because nothing regenerated it. It is current again, and while
+  `npm run dev` runs the dev server now rewrites it on every save, so it stays
+  that way. Each entry also says which drive verbs its control takes: 139
+  click, 13 type/fill, 3 select, 26 display-only, and one custom component
+  (`settings.models.search-card`) the scanner cannot see into.
+- **Mechanism.** `vendor/agent-handles-0.0.0.tgz` is repacked from
+  agent-handles `2f2b040` (it was the 2026-09-04 build); the lockfile carries
+  the new integrity. The journey spec is recompiled on the current compiler.
+  That compiler's first cut failed this repo's strict `tsc` on a nullable
+  `role`; it was fixed in agent-handles with a strict-typecheck test.
+- **Evidence.** `npm run ci` green (1397 unit tests, lint, typecheck). `npm run
+  test:e2e`: 142 passed, 3 failed. The 3 (`bridge.spec.ts:19`,
+  `desktop.spec.ts:27` and `:114`) failed identically on the old vendored
+  build, as did 4 `web-lite.spec.ts` tests that passed on this run; all 7 are
+  outside agent-handles and tracked separately.
+
 ## 2026-09-21: The assistant can answer with a small live UI
 
 - **What changed for you.** When a reply is really a handful of numbers, a
