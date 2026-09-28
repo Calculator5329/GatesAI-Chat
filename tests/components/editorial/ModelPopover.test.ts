@@ -87,7 +87,7 @@ describe('ModelPopover verified prominence', () => {
     const h = buildHarness();
     const rendered = render(h);
     expect(rendered.textContent).toContain('Verified');
-    expect(rendered.querySelector('[data-model-row="or-gpt-5.5"]')).toBeTruthy();
+    expect(rendered.querySelector('[data-model-row="or-gpt-6-sol"]')).toBeTruthy();
     expect(rendered.querySelector('[data-model-row="or-claude-opus-latest"]')).toBeTruthy();
   });
 });
@@ -160,7 +160,7 @@ describe('ModelPopover capability filters', () => {
     click(rendered, '[data-source-filter="cloud"]');
     click(rendered, '[data-cap-filter="free"]');
     expect(rendered.querySelector('[data-model-row="or-nemotron-3-ultra-free"]')).toBeTruthy();
-    expect(rendered.querySelector('[data-model-row="or-gpt-5.5-pro"]')).toBeNull();
+    expect(rendered.querySelector('[data-model-row="or-gpt-6-sol"]')).toBeNull();
     expect(rendered.querySelector('[data-model-row="auto-gemini-3-flash"]')).toBeNull();
   });
 });

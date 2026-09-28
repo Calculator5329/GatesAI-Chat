@@ -8,6 +8,8 @@ describe('modelSupportsVision', () => {
     expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'google/gemini-3-flash' })).toBe(true);
     expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: '~google/gemini-pro-latest' })).toBe(true);
     expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'openai/gpt-5.5' })).toBe(true);
+    expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'openai/gpt-6-sol' })).toBe(true);
+    expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: '~openai/gpt-luna-latest' })).toBe(true);
     expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'x-ai/grok-4.3' })).toBe(true);
     expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'meta-llama/llama-4-maverick' })).toBe(true);
   });
@@ -15,6 +17,7 @@ describe('modelSupportsVision', () => {
   it('rejects text-only OpenRouter models', () => {
     expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'deepseek/deepseek-v4-pro' })).toBe(false);
     expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'moonshotai/kimi-k2.6' })).toBe(false);
+    expect(modelSupportsVision({ providerId: 'openrouter', providerModelId: 'openai/gpt-oss-120b' })).toBe(false);
   });
 
   it('detects Ollama vision models by name pattern', () => {

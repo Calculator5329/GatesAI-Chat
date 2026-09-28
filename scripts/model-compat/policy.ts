@@ -50,10 +50,11 @@ const FAMILY_POLICIES: FamilyPolicy[] = [
   },
   {
     id: 'openai-gpt-5-plus',
-    label: 'Every active OpenAI GPT-5 family text route',
+    label: 'Every active OpenAI GPT-5 or newer text route',
     selection: 'all-since-floor',
     minimumCount: 2,
-    matches: model => model.id.startsWith('openai/gpt-5'),
+    // Numbered generations only, so GPT-6 and later join without a policy edit.
+    matches: model => /^openai\/gpt-(?:[5-9]|\d{2})(?:[.-]|$)/.test(model.id),
   },
   recent('meta-recent', 'Recent Meta models', model => (
     model.id.startsWith('meta/') || model.id.startsWith('meta-llama/')

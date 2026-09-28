@@ -143,7 +143,7 @@ async function recordFinalPageState(page: import("@playwright/test").Page, journ
 
 const observationRunText = process.env.AGENT_HANDLES_OBSERVATION_RUN;
 const observationRun = observationRunText ? JSON.parse(observationRunText) : null;
-const manifestDigest = "95a2bbbedf3b09ca5b66a9476875f286923c3d6c85ae4abea6dda267c8ecf1e6";
+const manifestDigest = "333775823c0151498d1d0c5dac84111324976c2698806cbf385e555ead648458";
 const sha256 = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
 const artifactIdentity = (testInfo: import("@playwright/test").TestInfo) => ({
   testId: testInfo.testId, project: testInfo.project.name, retry: testInfo.retry, repeatEachIndex: testInfo.repeatEachIndex,
@@ -2088,21 +2088,21 @@ test("favorite-a-model: Starring a model adds it to the Favorites section; unsta
   await page.goto("/?scenario=desktop-ready#/workspace");
   await page.getByTestId("workspace.composer-meta.model").click();
   await reconcileRuntime(page, "favorite-a-model", 1, testInfo);
-  await expect(page.getByTestId("workspace.model-popover.favorite-or-gpt-5.5")).toBeVisible();
+  await expect(page.getByTestId("workspace.model-popover.favorite-or-gpt-6-sol")).toBeVisible();
   await reconcileRuntime(page, "favorite-a-model", 2, testInfo);
-  await page.getByTestId("workspace.model-popover.favorite-or-gpt-5.5").click();
+  await page.getByTestId("workspace.model-popover.favorite-or-gpt-6-sol").click();
   await reconcileRuntime(page, "favorite-a-model", 3, testInfo);
-  await expect(page.getByTestId("workspace.model-popover.favorites-favorite-or-gpt-5.5")).toBeVisible();
+  await expect(page.getByTestId("workspace.model-popover.favorites-favorite-or-gpt-6-sol")).toBeVisible();
   await reconcileRuntime(page, "favorite-a-model", 4, testInfo);
-  await page.getByTestId("workspace.model-popover.favorites-row-or-gpt-5.5").click();
+  await page.getByTestId("workspace.model-popover.favorites-row-or-gpt-6-sol").click();
   await reconcileRuntime(page, "favorite-a-model", 5, testInfo);
-  await expect(page.getByTestId("workspace.composer-meta.model")).toContainText("GPT-5.5");
+  await expect(page.getByTestId("workspace.composer-meta.model")).toContainText("GPT-6 Sol");
   await reconcileRuntime(page, "favorite-a-model", 6, testInfo);
   await page.getByTestId("workspace.composer-meta.model").click();
   await reconcileRuntime(page, "favorite-a-model", 7, testInfo);
-  await page.getByTestId("workspace.model-popover.favorites-favorite-or-gpt-5.5").click();
+  await page.getByTestId("workspace.model-popover.favorites-favorite-or-gpt-6-sol").click();
   await reconcileRuntime(page, "favorite-a-model", 8, testInfo);
-  await expect(page.getByTestId("workspace.model-popover.favorite-or-gpt-5.5")).toBeVisible();
+  await expect(page.getByTestId("workspace.model-popover.favorite-or-gpt-6-sol")).toBeVisible();
   await reconcileRuntime(page, "favorite-a-model", 9, testInfo);
   await expect(page.getByTestId("workspace.model-popover.search-models")).toBeVisible();
   await reconcileRuntime(page, "favorite-a-model", 10, testInfo);

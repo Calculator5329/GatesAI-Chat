@@ -63,7 +63,7 @@ async function ollamaInstalledStopped(store: AfterBootStore): Promise<void> {
 }
 
 const MOCK_CATALOG = [
-  { id: 'openai/gpt-5.5', name: 'OpenAI: GPT-5.5', context_length: 400000, pricing: { prompt: '0.00000125', completion: '0.00001' }, architecture: { output_modalities: ['text'] } },
+  { id: 'openai/gpt-6-sol', name: 'OpenAI: GPT-6 Sol', context_length: 1050000, pricing: { prompt: '0.000002', completion: '0.00001' }, architecture: { output_modalities: ['text'] } },
   { id: 'google/gemini-3-flash', name: 'Google: Gemini 3 Flash', context_length: 1000000, pricing: { prompt: '0.0000003', completion: '0.0000025' }, architecture: { output_modalities: ['text'] } },
 ];
 

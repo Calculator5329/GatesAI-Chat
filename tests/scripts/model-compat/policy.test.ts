@@ -26,6 +26,8 @@ function viableCatalog(): OpenRouterCatalogModel[] {
     model('openai/gpt-5', 100),
     model('openai/gpt-5-mini', 110),
     model('openai/gpt-5.5', 120),
+    model('openai/gpt-6-sol', 130),
+    model('openai/gpt-oss-120b', 130),
     model('meta-llama/llama-4-scout', 100),
     model('meta-llama/llama-4-maverick', 110),
     model('meta/muse-spark-1.1', 120),
@@ -55,6 +57,8 @@ describe('model compatibility catalog policy', () => {
     expect(audit.families.find(family => family.id === 'claude-sonnet-4-plus')?.models.map(item => item.id))
       .toEqual(['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4', 'anthropic/claude-sonnet-4']);
     expect(audit.families.find(family => family.id === 'gemini-2-plus')?.models).toHaveLength(3);
+    expect(audit.families.find(family => family.id === 'openai-gpt-5-plus')?.models.map(item => item.id))
+      .toEqual(['openai/gpt-6-sol', 'openai/gpt-5.5', 'openai/gpt-5-mini', 'openai/gpt-5']);
     expect(audit.families.find(family => family.id === 'meta-recent')?.models).toHaveLength(3);
     expect(audit.selected.some(item => item.id === 'anthropic/claude-3.7-sonnet')).toBe(false);
   });

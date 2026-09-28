@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-09-28: v4.8.0, current models, and GPT-6 can see images again
+
+- **What changed for you.** The model menu was two weeks stale and missed
+  this month's releases. It now has Claude Opus 5.5 (2026-09-22) and Sonnet 5.5
+  (2026-09-28), GPT-6 Sol and Luna with their Pro modes (2026-09-22), and Grok
+  4.7. They lead the Verified list, and the models they replace are marked
+  prior. Fifteen prices or context windows had drifted from OpenRouter's live
+  listing and now match it. GPT-6 models and the OpenAI "latest" aliases were
+  treated as text-only, so attached images were flagged and never sent. They
+  now go through.
+- **Mechanism.** `core/models.ts` was refreshed from `/api/v1/models`. Its
+  drifted numbers were rewritten by script from the feed, not by hand. The
+  Verified matrix drops the generation two back (GPT-5.5 and 5.5 Pro, GPT-5.4
+  mini and nano, Opus 4.8, Grok 4.5). Those stay in `MODELS` for saved threads.
+  `modelSupportsVision` matched `openai/gpt-5*` only and now matches numbered
+  GPT-5 and later plus the family aliases. The model-compat policy had the same
+  prefix, so the daily catalog audit never selected a GPT-6 route. It now
+  matches any numbered generation from 5 on, and today's audit selects 55
+  OpenAI routes, GPT-6 included.
+- **Release.** Version 4.8.0 in `package.json`, `package-lock.json` and
+  `tauri.conf.json`. The v4.7.0 tag built on 2026-09-26 but failed to publish
+  with "Bad credentials": `RELEASES_TOKEN` was set 2026-06-14 and has expired.
+  v4.8.0 carries everything since v4.6.1
+  (`docs/release-notes/v4.8.0.md`, renamed from `next.md`).
+- **Tests.** The vision and policy cases were watched failing on the old code,
+  then passing. Two picker tests that used GPT-5.5 as their example verified
+  model now use GPT-6 Sol.
+
 ## 2026-09-26: The handles registry caught up and says how to use each control
 
 - **What changed for you.** `testid-registry.json` had missed the two

@@ -11,12 +11,12 @@ import type { Model } from '../../src/core/types';
 describe('ModelRegistry verified resolution under live supersession', () => {
   it('recovers a curated verified id even after a dynamic entry supersedes it', () => {
     const registry = new ModelRegistry();
-    const curated = registry.curated.find(m => m.id === 'or-gpt-5.5');
+    const curated = registry.curated.find(m => m.id === 'or-gpt-6-sol');
     expect(curated).toBeDefined();
 
     const dynamicTwin: Model = {
-      id: 'dyn-openai-gpt-5.5',
-      name: 'GPT-5.5 (live)',
+      id: 'dyn-openai-gpt-6-sol',
+      name: 'GPT-6 Sol (live)',
       vendor: 'OpenAI',
       providerId: 'openrouter',
       providerModelId: curated!.providerModelId, // same slug => supersedes
@@ -25,13 +25,13 @@ describe('ModelRegistry verified resolution under live supersession', () => {
     registry.setDynamicForProvider('openrouter', [dynamicTwin]);
 
     // The curated id is gone from `all` (deduped by providerId::providerModelId)…
-    expect(registry.all.some(m => m.id === 'or-gpt-5.5')).toBe(false);
+    expect(registry.all.some(m => m.id === 'or-gpt-6-sol')).toBe(false);
     // …but findById still resolves it, hydrated with the live data.
-    const resolved = registry.findById('or-gpt-5.5');
+    const resolved = registry.findById('or-gpt-6-sol');
     expect(resolved).toBeDefined();
-    expect(resolved!.id).toBe('or-gpt-5.5');
-    expect(resolved!.name).toBe('GPT-5.5 (live)');
-    expect(isVerifiedModelId('or-gpt-5.5')).toBe(true);
+    expect(resolved!.id).toBe('or-gpt-6-sol');
+    expect(resolved!.name).toBe('GPT-6 Sol (live)');
+    expect(isVerifiedModelId('or-gpt-6-sol')).toBe(true);
   });
 
   it('resolves the whole verified catalog when every entry is superseded live', () => {

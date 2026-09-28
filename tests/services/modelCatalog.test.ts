@@ -31,13 +31,14 @@ describe('curated model catalog', () => {
       .toEqual(DEFAULT_OPENROUTER_CATALOG_MODEL_IDS.map(() => 'openrouter'));
     expect(DEFAULT_OPENROUTER_CATALOG_MODEL_IDS.map(id => byId.get(id)?.providerModelId))
       .toEqual(expect.arrayContaining([
-        'openai/gpt-5.5',
-        'openai/gpt-5.5-pro',
+        'openai/gpt-6-sol',
+        'openai/gpt-6-luna',
         '~openai/gpt-mini-latest',
         '~anthropic/claude-opus-latest',
         '~anthropic/claude-sonnet-latest',
         '~anthropic/claude-haiku-latest',
-        'anthropic/claude-opus-4.8',
+        'anthropic/claude-opus-5.5',
+        'anthropic/claude-sonnet-5.5',
         '~anthropic/claude-sonnet-latest',
         '~anthropic/claude-haiku-latest',
         '~google/gemini-pro-latest',
@@ -58,6 +59,7 @@ describe('curated model catalog', () => {
         'anthropic/claude-opus-5',
         'anthropic/claude-sonnet-5',
         'google/gemini-3.8-flash',
+        'x-ai/grok-4.7',
         'x-ai/grok-4.6',
       ]));
   });

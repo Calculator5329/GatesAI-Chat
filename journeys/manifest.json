@@ -3994,27 +3994,27 @@
         },
         {
           "action": "expect",
-          "testId": "workspace.model-popover.favorite-or-gpt-5.5",
+          "testId": "workspace.model-popover.favorite-or-gpt-6-sol",
           "predicate": "visible"
         },
         {
           "action": "click",
-          "testId": "workspace.model-popover.favorite-or-gpt-5.5"
+          "testId": "workspace.model-popover.favorite-or-gpt-6-sol"
         },
         {
           "action": "expect",
-          "testId": "workspace.model-popover.favorites-favorite-or-gpt-5.5",
+          "testId": "workspace.model-popover.favorites-favorite-or-gpt-6-sol",
           "predicate": "visible"
         },
         {
           "action": "click",
-          "testId": "workspace.model-popover.favorites-row-or-gpt-5.5"
+          "testId": "workspace.model-popover.favorites-row-or-gpt-6-sol"
         },
         {
           "action": "expect",
           "testId": "workspace.composer-meta.model",
           "predicate": "contains-text",
-          "value": "GPT-5.5"
+          "value": "GPT-6 Sol"
         },
         {
           "action": "click",
@@ -4022,11 +4022,11 @@
         },
         {
           "action": "click",
-          "testId": "workspace.model-popover.favorites-favorite-or-gpt-5.5"
+          "testId": "workspace.model-popover.favorites-favorite-or-gpt-6-sol"
         },
         {
           "action": "expect",
-          "testId": "workspace.model-popover.favorite-or-gpt-5.5",
+          "testId": "workspace.model-popover.favorite-or-gpt-6-sol",
           "predicate": "visible"
         },
         {

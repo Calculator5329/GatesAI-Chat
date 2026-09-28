@@ -25,7 +25,8 @@ export function modelSupportsVision(model: Pick<Model, 'providerId' | 'providerM
     case 'openrouter':
       return (
         id.startsWith('anthropic/claude-') ||
-        id.startsWith('openai/gpt-5') ||
+        // GPT-5 and newer, plus the family aliases (`~openai/gpt-sol-latest`).
+        /^openai\/gpt-(?:[5-9]|\d{2}|astra|sol|terra|luna|mini)/.test(id) ||
         id.startsWith('openai/gpt-4o') ||
         id.startsWith('openai/gpt-4.1') ||
         id.startsWith('openai/o1') ||
