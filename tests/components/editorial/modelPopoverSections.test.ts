@@ -3,6 +3,7 @@ import { DEFAULT_MODEL_ID } from '../../../src/core/models';
 import { ModelRegistry } from '../../../src/stores/ModelRegistry';
 import { computeModelSections } from '../../../src/components/editorial/modelPopoverSections';
 import type { CapabilityFilter, SourceFilter } from '../../../src/core/modelPicker';
+import type { Model } from '../../../src/core/types';
 
 function compute(opts: {
   query?: string;
@@ -32,6 +33,27 @@ function compute(opts: {
     },
     opts.favoriteIds ?? [],
   );
+}
+
+// A row's identity is its route; Auto is a routing choice that shares Gemini
+// Flash's route but is its own row.
+function routeOf(model: Model): string {
+  return model.id === 'auto-gemini-3-flash' ? model.id : `${model.providerId}::${model.providerModelId}`;
+}
+
+function sectionIds(result: ReturnType<typeof compute>, title: string): string[] | undefined {
+  return result.displaySections.find(section => section.title === title)?.models.map(model => model.id);
+}
+
+function liveTwin(slug: string): Model {
+  return {
+    id: `or-live-${slug.replace(/[^a-zA-Z0-9_.-]/g, '_')}`,
+    name: slug,
+    vendor: 'OpenRouter',
+    providerId: 'openrouter',
+    providerModelId: slug,
+    dynamic: true,
+  };
 }
 
 describe('computeModelSections', () => {
@@ -110,5 +132,38 @@ describe('computeModelSections', () => {
       models: [expect.objectContaining({ id: 'ollama-qwen2.5-coder:14b' })],
     });
     expect(result.displaySections.map(section => section.title)).toContain('Local');
+  });
+
+  it('lists each model once outside Favorites, even when it is also a recent pick', () => {
+    const result = compute({ recentIds: ['or-gpt-6-sol', 'or-kimi-k2.5'] });
+    const routes = result.displaySections
+      .filter(section => section.title !== 'Favorites')
+      .flatMap(section => section.models.map(routeOf));
+
+    expect(routes).toEqual([...new Set(routes)]);
+    expect(sectionIds(result, 'Recent')).toEqual(['or-kimi-k2.5']);
+  });
+
+  it('treats a curated recent pick and its live catalog twin as one model', () => {
+    const registry = new ModelRegistry();
+    // GPT-5.5 is curated but not Verified; GPT-6 Sol is Verified. The second
+    // recent id is the live row someone picked before GPT-6 Sol was curated.
+    registry.setDynamicForProvider('openrouter', [liveTwin('openai/gpt-5.5'), liveTwin('openai/gpt-6-sol')]);
+    const result = compute({ registry, recentIds: ['or-gpt-5.5', 'or-live-openai_gpt-6-sol'] });
+
+    expect(sectionIds(result, 'Recent')).toEqual(['or-gpt-5.5']);
+    expect(sectionIds(result, 'Verified')).toContain('or-gpt-6-sol');
+  });
+
+  it('shows recent picks in a source tab once, above the browse list', () => {
+    const browseFirst = sectionIds(compute({ source: 'cloud' }), 'Cloud')?.[0];
+    expect(browseFirst).toBeDefined();
+    // or-kimi-k2.5 sits past the browse limit, so Recent is its only row.
+    const result = compute({ source: 'cloud', recentIds: [browseFirst!, 'or-kimi-k2.5'] });
+    const titles = result.displaySections.map(section => section.title);
+
+    expect(sectionIds(result, 'Recent')).toEqual([browseFirst, 'or-kimi-k2.5']);
+    expect(sectionIds(result, 'Cloud')).not.toContain(browseFirst);
+    expect(titles.indexOf('Recent')).toBeLessThan(titles.indexOf('Cloud'));
   });
 });

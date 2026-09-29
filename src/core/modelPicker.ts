@@ -155,9 +155,11 @@ export function metaFor(model: Model): ModelMeta | null {
   return META[model.id] ?? META_BY_PROVIDER_MODEL_ID[model.providerModelId] ?? null;
 }
 
-// Keeps picker order stable: recommended/current choices first, then source
-// and recents, because keyboard navigation assumes rows do not jump while
-// local runtimes or catalog refreshes update in the background.
+// Keeps picker order stable: recommended/current choices first, then verified,
+// recents, and the source browse list last, because keyboard navigation
+// assumes rows do not jump while local runtimes or catalog refreshes update in
+// the background. Each model gets one row, in the first section that lists it
+// (see removeDuplicateRowsAcrossSections); Favorites is the only repeat.
 export function buildPickerSections(args: {
   all: readonly Model[];
   verifiedModels: readonly Model[];
@@ -165,13 +167,13 @@ export function buildPickerSections(args: {
   query: string;
   caps: ReadonlySet<CapabilityFilter>;
   source: SourceFilter;
-  recentIds: string[];
+  /** Recent picks, newest first, resolved by the caller like favorites. */
+  recentModels: readonly Model[];
   favoriteModels: readonly Model[];
 }): PickerSection[] {
   const normalizedQuery = args.query.trim().toLowerCase();
   const matches = (model: Model): boolean =>
     (!normalizedQuery || matchesQuery(model, normalizedQuery)) && matchesCaps(model, args.caps);
-  const allById = new Map(args.all.map(model => [model.id, model]));
   const sourceModels = args.all.filter(model => sourceMatches(model, args.source));
   const base = normalizedQuery ? args.all.filter(matches) : sourceModels.filter(matches);
   const sections: PickerSection[] = [];
@@ -205,11 +207,8 @@ export function buildPickerSections(args: {
   if (args.source === 'auto' && recommended.length) {
     sections.push({ title: 'Recommended', models: recommended, favorite: true });
     if (verified.length) sections.push({ title: VERIFIED_SECTION_TITLE, models: verified, favorite: true });
-    const recent = args.recentIds
-      .map(id => allById.get(id))
-      .filter((model): model is Model => Boolean(model))
-      .filter(matches);
-    if (recent.length) sections.push({ title: 'Recent', models: dedupeModels(recent) });
+    const recent = dedupeModels([...args.recentModels]).filter(matches);
+    if (recent.length) sections.push({ title: 'Recent', models: recent });
     return removeDuplicateRowsAcrossSections(sections);
   }
 
@@ -221,24 +220,17 @@ export function buildPickerSections(args: {
     sections.push({ title: VERIFIED_SECTION_TITLE, models: verified, favorite: true });
   }
 
-  // A verified row resolves to its curated id, while the browse list carries the
-  // live-catalog twin under a different id (same providerModelId). Dedupe by
-  // provider+slug so a verified model isn't also listed plainly below.
-  const verifiedKeys = new Set(verified.map(model => `${model.providerId}::${model.providerModelId}`));
-  const sourceTitle = titleForSource(args.source);
-  const sourceSectionModels = base
-    .filter(model => sourceMatches(model, args.source))
-    .filter(model => !verifiedKeys.has(`${model.providerId}::${model.providerModelId}`));
-  if (sourceSectionModels.length) {
-    sections.push({ title: sourceTitle, models: sourceSectionModels });
-  }
-
-  const recent = args.recentIds
-    .map(id => allById.get(id))
-    .filter((model): model is Model => Boolean(model))
+  // Recent sits above the browse list so a pick past the browse limit keeps its
+  // row; the browse list then skips it along with the verified models.
+  const recent = dedupeModels([...args.recentModels])
     .filter(model => sourceMatches(model, args.source))
     .filter(matches);
-  if (recent.length) sections.push({ title: 'Recent', models: dedupeModels(recent) });
+  if (recent.length) sections.push({ title: 'Recent', models: recent });
+
+  const sourceSectionModels = base.filter(model => sourceMatches(model, args.source));
+  if (sourceSectionModels.length) {
+    sections.push({ title: titleForSource(args.source), models: sourceSectionModels });
+  }
 
   return removeDuplicateRowsAcrossSections(sections);
 }
@@ -277,12 +269,22 @@ function dedupeModels(models: Array<Model | undefined>): Model[] {
   return out;
 }
 
+// A model is its route: a curated entry, its live-catalog twin (`or-live-*`)
+// and legacy alias ids that keep old threads working all send the same
+// providerModelId, so they share one row. Auto shares Gemini Flash's route but
+// is a routing choice with its own row. Favorites is a pinned shortcut shelf
+// that repeats rows by design (its rows carry their own test ids), so it
+// neither claims nor loses rows.
+function rowKey(model: Model): string {
+  return model.id === AUTO_MODEL.id ? model.id : `${model.providerId}::${model.providerModelId}`;
+}
+
 function removeDuplicateRowsAcrossSections(sections: PickerSection[]): PickerSection[] {
   const seen = new Set<string>();
   return sections.map(section => {
-    if (section.title === 'Recent' || section.title === 'Favorites') return section;
+    if (section.title === 'Favorites') return section;
     const models = section.models.filter(model => {
-      const key = model.id;
+      const key = rowKey(model);
       if (seen.has(key)) return false;
       seen.add(key);
       return true;

@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-09-28: Each model gets one row in the model menu
+
+- **What changed for you.** A model you had just picked could show twice:
+  once in Recommended or Verified, and again under Recent. Verified also
+  listed "Claude Sonnet latest" and "Claude Haiku latest" twice each, because
+  two ids point at each route. And Recent silently dropped a pick once
+  OpenRouter's live list had a twin of it, which is why the old GPT-5.5
+  example never showed the duplicate. Now a model appears once, in the
+  highest section that lists it. Recent keeps every pick that is not already
+  above it, and in the Cloud and Local tabs it sits above the browse list, so
+  a pick past the first eight rows is still one click away. Favorites still
+  repeats models on purpose as your pinned shelf.
+- **Mechanism.** `removeDuplicateRowsAcrossSections` in `core/modelPicker.ts`
+  keys rows by route (`providerId` + `providerModelId`) instead of id, so a
+  curated entry, its `or-live-*` twin and legacy alias ids count as one model.
+  Auto keeps its own key: it shares Gemini Flash's route but is a routing
+  choice. Recent no longer skips the dedupe; only Favorites does. The picker
+  selector resolves recent ids through `registry.findById`, the same way it
+  resolves favorites, so a curated id still resolves after its live twin
+  replaced it in `all`. The browse list's own verified-route filter is gone
+  because the shared dedupe covers it.
+- **Tests.** Three cases in `modelPopoverSections.test.ts` were watched
+  failing on the old code, then passing. They cover: one row per route across
+  the menu, a curated pick with a live twin, and Recent above the Cloud list.
+  Found on 2026-09-28 when the favorite-a-model journey hit duplicate test
+  ids; that day the mock catalog was given a GPT-6 Sol twin to get past it.
+  With that twin removed, the journey still fails at step 7 on the old picker
+  and passes on the new one. The twin stays, so the scenario keeps a live twin
+  of a Verified model as it had before v4.8.0.
+
 ## 2026-09-28: v4.8.0, current models, and GPT-6 can see images again
 
 - **What changed for you.** The model menu was two weeks stale and missed

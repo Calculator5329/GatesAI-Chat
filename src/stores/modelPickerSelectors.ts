@@ -95,11 +95,15 @@ function computeModelSectionsFromArgs(args: SelectorArgs): ComputedModelSections
     ? currentModel
     : undefined;
 
+  // Favorites and recents are stored ids. `findById` resolves a curated id even
+  // after its live-catalog twin replaced it in `all`.
   const byId = new Map(registryAll.map(model => [model.id, model]));
-  const favoriteModels = favorites
+  const resolveStored = (ids: readonly string[]): Model[] => ids
     .map(id => byId.get(id) ?? registry.findById(id))
     .filter((model): model is Model => Boolean(model))
     .filter(model => isModelAvailable(model, filters.runtime));
+  const favoriteModels = resolveStored(favorites);
+  const recentModels = resolveStored(filters.recentIds);
 
   const verifiedModels = DEFAULT_OPENROUTER_CATALOG_MODEL_IDS
     .map(id => registry.findById(id))
@@ -113,7 +117,7 @@ function computeModelSectionsFromArgs(args: SelectorArgs): ComputedModelSections
     query,
     caps: filters.caps,
     source: effectiveSource,
-    recentIds: [...filters.recentIds],
+    recentModels,
     favoriteModels,
   });
   const displaySections = limitModelSections(sections, query);
