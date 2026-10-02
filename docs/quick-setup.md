@@ -38,7 +38,8 @@ have a cloud key. Turn that off with **Start new chats on a local model** in
 
 If Ollama stops or starts later, GatesAI notices on its next check: right
 away when you switch back to its window, otherwise within five minutes.
-**Check again** checks now. There is nothing to start or toggle by hand.
+**Check again** on the first screen or the composer banner, or **Check now**
+in Settings, checks right away. There is nothing to start or toggle by hand.
 
 ### Ollama on another machine
 
