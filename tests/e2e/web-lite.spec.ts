@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 // Web Lite build assertions: the bridge is intentionally absent, so the UI must
 // degrade gracefully — the status pill, disabled attachments, and the notices
 // on the bridge-dependent menu sections.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 import { makeThread, seedThreads, mockOpenRouter, seedReadyProvider } from './fixtures/harness';
 
 test.describe('web lite (no bridge)', () => {
@@ -79,13 +79,19 @@ test.describe('web lite without a configured provider', () => {
   test('shows OpenRouter onboarding without local runtimes', async ({ page }) => {
     await page.goto('/');
 
-    // First boot shows the local-first hero (redesigned 2026-07-11); Web
-    // Lite offers the OpenRouter CTA and no local-runtime affordances.
+    // First boot shows the local-first hero (redesigned 2026-07-11) and the
+    // setup panel; the read-only welcome tour does not count as having
+    // chatted. Web Lite offers the OpenRouter key and no local-runtime card.
     await expect(page.getByText('LOCAL-FIRST AI WORKSPACE')).toBeVisible();
-    await expect(page.getByText('Please enter an OpenRouter API key to chat.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Open settings' })).toBeVisible();
+    await expect(page.getByTestId('settings.secret-key.input-onboarding-openrouter')).toBeVisible();
+    await expect(page.locator('[data-onboarding-path="local"]')).toHaveCount(0);
     await expect(page.getByText('Use local models')).toHaveCount(0);
     await expect(page.locator('button.composer-send-control[aria-label="Send"]')).toBeDisabled();
+
+    // Hiding the panel leaves the composer's own pointer to the key.
+    await page.getByTestId('workspace.editorial-chat.look-around').click();
+    await expect(page.getByText('Please enter an OpenRouter API key to chat.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open settings' })).toBeVisible();
   });
 
   test('the models hash lands on Settings with the OpenRouter key connect form', async ({ page }) => {

@@ -44,12 +44,17 @@ export function imageFailureAdvice(job: CompletedJob): string {
   if (error.includes('timed out') || error.includes('timeout') || error.includes('abort')) {
     return 'The render timed out before the backend returned an image. Retry with a simpler prompt or smaller batch.';
   }
+  // Setup gaps from imageBackend read "has no image model" / "no backend can
+  // make images"; check them before the generic missing-image-data case.
+  if (error.includes('has no image model') || error.includes('no backend can make images')) {
+    return 'Nothing is set up to make images yet. Settings > Models > Local shows what is missing.';
+  }
   if (error.includes('no generated image') || error.includes('no image')) {
     return 'The provider answered, but did not include image data. Retry, or switch image backend.';
   }
   if (error.includes('base url') || error.includes('fetch') || error.includes('network') || error.includes('failed to fetch')) {
     return job.backend === 'local-comfy'
-      ? 'Check that ComfyUI is online and reachable from Local settings.'
+      ? 'Check that ComfyUI is running. Settings > Models > Local shows what GatesAI sees.'
       : 'Check network/provider availability, then retry.';
   }
   return 'The backend rejected or failed the render. Review the error, then retry or switch backend.';

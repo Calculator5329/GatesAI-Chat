@@ -1,3 +1,5 @@
+import { localFetch } from '../local/localHttp';
+
 export const DEFAULT_RAG_EMBEDDING_MODEL = 'nomic-embed-text';
 export const RAG_EMBED_BATCH_SIZE = 16;
 export const RAG_EMBED_TIMEOUT_MS = 15_000;
@@ -21,7 +23,7 @@ export interface RagEmbedder {
 export interface OllamaEmbeddingClientOptions {
   getBaseUrl(): string;
   getApiKey?(): string | undefined;
-  fetchImpl?: typeof fetch;
+  fetchImpl?: typeof localFetch;
   timeoutMs?: number;
   batchSize?: number;
 }
@@ -29,14 +31,14 @@ export interface OllamaEmbeddingClientOptions {
 export class OllamaEmbeddingClient implements RagEmbedder {
   private readonly getBaseUrl: () => string;
   private readonly getApiKey: () => string | undefined;
-  private readonly fetchImpl: typeof fetch;
+  private readonly fetchImpl: typeof localFetch;
   private readonly timeoutMs: number;
   private readonly batchSize: number;
 
   constructor(options: OllamaEmbeddingClientOptions) {
     this.getBaseUrl = options.getBaseUrl;
     this.getApiKey = options.getApiKey ?? (() => undefined);
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.fetchImpl = options.fetchImpl ?? localFetch;
     this.timeoutMs = options.timeoutMs ?? RAG_EMBED_TIMEOUT_MS;
     this.batchSize = options.batchSize ?? RAG_EMBED_BATCH_SIZE;
   }

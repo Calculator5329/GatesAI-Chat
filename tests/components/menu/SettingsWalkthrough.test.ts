@@ -26,7 +26,7 @@ const SURFACES: ReadonlyArray<{
   marker: string;
 }> = [
   { key: 'settings', marker: 'Danger zone' },
-  { key: 'models', marker: 'Local models' },
+  { key: 'models', marker: 'Start new chats on a local model' },
   { key: 'agent', marker: 'Instructions' },
 ];
 
@@ -71,7 +71,7 @@ function buildStore(mode: Exclude<GatesRuntimeMode, 'headless'>): RootStore {
   // is component composition rather than exercising Tauri commands. Keep
   // mount-time probes deterministic and prove that the surfaces can render
   // around stable unavailable snapshots.
-  vi.spyOn(nextStore.localRuntime, 'refreshAll').mockImplementation(() => undefined);
+  vi.spyOn(nextStore.localRuntime, 'probe').mockResolvedValue(undefined);
   return nextStore;
 }
 

@@ -15,34 +15,47 @@ import { createJsonPersistenceProvider } from './storage/persistenceProvider';
 
 export type { ImageBackendId, ComfyQualityPreset, UpscaleFactor };
 
+/**
+ * `auto` (the default) picks ComfyUI when it is running with a model a
+ * built-in workflow can use or with a custom workflow set, else OpenRouter
+ * when there is a key. With no key, a running ComfyUI still wins so its error
+ * names the missing model; with neither, the OpenRouter no-key error points
+ * at both fixes. A backend id is an explicit pick that wins while it can run;
+ * the other backend covers for it while it cannot.
+ */
+export type ImageBackendChoice = 'auto' | ImageBackendId;
+
 export interface ImageGenConfig {
-  backend: ImageBackendId;
+  backendChoice: ImageBackendChoice;
 
   /**
    * Optional path inside `/workspace/` to a custom ComfyUI workflow
    * JSON template. `{{PROMPT}}`, `{{WIDTH}}`, `{{HEIGHT}}`, `{{SEED}}`
-   * get substituted before submission. Empty = use built-in SDXL
-   * default.
+   * get substituted before submission. Used for `full` renders outside
+   * direct image mode. Empty = the built-in workflow discovery picks.
    */
   comfyWorkflowPath?: string;
 
   /**
-   * ComfyUI workflow preset. `full` runs the bundled FLUX.2 Klein FP8
-   * quality workflow (with optional hires-fix); `quick` runs the SDXL
-   * Lightning draft workflow at native resolution. Sampling is configurable.
+   * Built-in ComfyUI workflow preset; what it runs depends on discovery.
+   * With FLUX.2 Klein installed, `full` runs Klein (optional hires-fix) and
+   * `quick` runs SDXL Lightning when its checkpoint is there too, else Klein
+   * at draft steps. With only SDXL Lightning or a generic checkpoint, both
+   * run that model.
    */
   comfyQualityPreset?: ComfyQualityPreset;
 
   /**
-   * Hires-fix multiplier applied in `full` mode. `1` (default) renders at
-   * the workflow's native resolution and skips the second pass entirely.
-   * Larger values pixel-upscale the decoded image and run a low-denoise
-   * refinement pass at the new resolution.
+   * Hires-fix multiplier for the FLUX.2 Klein workflow in `full` mode. `1`
+   * (default) renders at the workflow's native resolution and skips the
+   * second pass entirely. Larger values pixel-upscale the decoded image and
+   * run a low-denoise refinement pass at the new resolution.
    */
   comfyUpscaleFactor?: UpscaleFactor;
 
-  /** Sampling controls for built-in local workflows. Study-backed defaults:
-   * quality 12 steps, draft 8 steps, CFG 1.0. */
+  /** Sampling controls for the Klein and Lightning workflows (the generic
+   * checkpoint workflow sets its own). Study-backed defaults: quality 12
+   * steps, draft 8 steps, CFG 1.0. */
   comfyQualitySteps?: number;
   comfyDraftSteps?: number;
   comfyCfg?: number;
@@ -50,7 +63,7 @@ export interface ImageGenConfig {
 }
 
 export const DEFAULT_IMAGE_GEN_CONFIG: ImageGenConfig = {
-  backend: 'openrouter-image',
+  backendChoice: 'auto',
   comfyQualityPreset: 'full',
   comfyUpscaleFactor: 1,
   comfyQualitySteps: 12,
@@ -84,9 +97,13 @@ function normalizeImageGenConfig(config: ImageGenConfig): ImageGenConfig {
   if (next.comfyWorkflowPath === 'notes/flux2-workflow.json') {
     delete next.comfyWorkflowPath;
   }
-  if (!isImageBackendId(next.backend)) {
-    next.backend = 'openrouter-image';
+  if (next.backendChoice !== 'auto' && !isImageBackendId(next.backendChoice)) {
+    next.backendChoice = 'auto';
   }
+  // The old `backend` field was saved on every write, so a default and a pick
+  // look the same, and no UI has set it since the July 2026 settings slim-down.
+  // Treat it as `auto`.
+  delete (next as Partial<ImageGenConfig> & { backend?: unknown }).backend;
   delete (next as Partial<ImageGenConfig> & { promptEnhancement?: unknown }).promptEnhancement;
   delete (next as Partial<ImageGenConfig> & { promptEnhancementOptIn?: unknown }).promptEnhancementOptIn;
   delete (next as Partial<ImageGenConfig> & { promptStylePreset?: unknown }).promptStylePreset;

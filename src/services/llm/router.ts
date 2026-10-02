@@ -3,6 +3,7 @@
 // Invariant: providers stream normalized LlmChunk events and do not mutate chat state.
 import type { LlmProvider, ProviderConfigs, ProviderId } from '../../core/llm';
 import type { Model } from '../../core/types';
+import { missingLocalModelMessage, OLLAMA_MODEL_ID_PREFIX } from '../../core/localModelMeta';
 import { OpenRouterProvider } from './openrouter';
 import { OllamaProvider, DEFAULT_OLLAMA_BASE_URL } from './ollama';
 import { LocalImageProvider } from './localImage';
@@ -17,6 +18,19 @@ export class NoProviderConfiguredError extends Error {
   constructor() {
     super('No API provider configured. Add an OpenRouter key in Models.');
     this.name = 'NoProviderConfiguredError';
+  }
+}
+
+/**
+ * Thrown by `LlmRouter.resolve` for an Ollama model the configured Ollama
+ * cannot serve: it is down, or no longer lists the model. Its message names
+ * the model and the address, so a regenerate or scheduled task explains
+ * itself instead of asking for an OpenRouter key.
+ */
+export class LocalModelUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LocalModelUnavailableError';
   }
 }
 
@@ -43,16 +57,19 @@ export interface ModelCatalog {
 
 export class LlmRouter {
   private providers: Record<ProviderId, LlmProvider>;
+  private ollamaBaseUrl: string;
   private readonly registry: ModelCatalog;
 
   constructor(registry: ModelCatalog, configs: ProviderConfigs = {}) {
     this.registry = registry;
     this.providers = buildProviders(configs);
+    this.ollamaBaseUrl = configs.ollama?.baseUrl ?? DEFAULT_OLLAMA_BASE_URL;
   }
 
   /** Hot-swap configs (e.g. when the user pastes a new key). */
   updateConfigs(configs: ProviderConfigs): void {
     this.providers = buildProviders(configs);
+    this.ollamaBaseUrl = configs.ollama?.baseUrl ?? DEFAULT_OLLAMA_BASE_URL;
   }
 
   /**
@@ -74,11 +91,13 @@ export class LlmRouter {
   }
 
   /**
-   * Throws `NoProviderConfiguredError` if neither path is available.
+   * Throws `LocalModelUnavailableError` for an Ollama model that cannot run
+   * right now, and `NoProviderConfiguredError` for anything else unroutable.
    */
   resolve(modelId: string): { provider: LlmProvider; providerModelId: string } {
     const model = this.registry.findById(modelId);
     if (!model) {
+      if (modelId.startsWith(OLLAMA_MODEL_ID_PREFIX)) throw this.localModelUnavailable(modelId.slice(OLLAMA_MODEL_ID_PREFIX.length));
       throw new NoProviderConfiguredError();
     }
 
@@ -87,7 +106,14 @@ export class LlmRouter {
       return { provider: direct, providerModelId: model.providerModelId };
     }
 
+    if (model.providerId === 'ollama') throw this.localModelUnavailable(model.providerModelId);
     throw new NoProviderConfiguredError();
+  }
+
+  private localModelUnavailable(tag: string): LocalModelUnavailableError {
+    return new LocalModelUnavailableError(this.providers.ollama.ready()
+      ? missingLocalModelMessage(tag, this.ollamaBaseUrl)
+      : `The Ollama at ${this.ollamaBaseUrl} is not answering, so ${tag} cannot run. Start Ollama, or pick another model for this chat.`);
   }
 
   get(providerId: ProviderId): LlmProvider {

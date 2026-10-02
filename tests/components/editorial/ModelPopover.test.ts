@@ -23,7 +23,7 @@ interface Harness {
 
 function buildHarness(): Harness {
   const registry = new ModelRegistry();
-  const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
+  const localRuntime = new LocalRuntimeStore({ probesEnabled: false });
   const store = {
     registry,
     localRuntime,
@@ -117,7 +117,7 @@ describe('ModelPopover runtime gating', () => {
     expect(rendered.querySelector('[data-source-filter="local"]')).toBeTruthy();
     click(rendered, '[data-source-filter="local"]');
     expect(rendered.querySelector('[data-model-row="ollama-llama3"]')).toBeNull();
-    expect(rendered.textContent).toContain('Start Ollama in Local settings');
+    expect(rendered.textContent).toContain('No local models yet. Start Ollama');
   });
 
   it('shows the local tab and ollama rows once Ollama is online', () => {
@@ -141,7 +141,16 @@ describe('ModelPopover runtime gating', () => {
     root = null;
     host?.remove();
 
-    runInAction(() => { h.localRuntime.runtimes.comfyui.status = 'online'; });
+    runInAction(() => {
+      h.localRuntime.runtimes.comfyui.status = 'online';
+      h.localRuntime.comfyDiscovery = {
+        baseUrl: 'http://127.0.0.1:8188',
+        online: true,
+        checkpoints: ['sdxl_lightning_4step.safetensors'],
+        diffusionModels: [],
+        preset: { kind: 'sdxl-lightning' },
+      };
+    });
     const picked: string[] = [];
     const rendered2 = render(h, { onPick: id => picked.push(id) });
     expect(rendered2.querySelector('[data-source-filter="image"]')).toBeTruthy();

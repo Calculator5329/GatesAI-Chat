@@ -1,281 +1,361 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LocalRuntimeStore, STARTING_WATCHDOG_MS } from '../../src/stores/LocalRuntimeStore';
+import { observable, runInAction } from 'mobx';
+import type { ComfyDiscovery } from '../../src/services/image/comfyDiscovery';
+import { localRuntimeService } from '../../src/services/local/localRuntimeService';
+import {
+  LocalRuntimeStore,
+  PROBE_INTERVAL_ONLINE_MS,
+  type LocalRuntimeStoreDeps,
+} from '../../src/stores/LocalRuntimeStore';
 import { clearAppStorage } from '../helpers/storage';
 
-describe('LocalRuntimeStore', () => {
-  beforeEach(() => clearAppStorage());
-  afterEach(() => {
+const TAGS = { models: [{ name: 'qwen3.5:4b', capabilities: ['completion', 'tools'] }] };
+const UNREACHABLE = async (): Promise<never> => { throw new TypeError('Failed to fetch'); };
+
+type FetchTags = (baseUrl: string, apiKey?: string) => Promise<unknown>;
+type FindComfy = NonNullable<LocalRuntimeStoreDeps['findComfy']>;
+
+function comfyResult(patch: Partial<ComfyDiscovery> = {}): ComfyDiscovery {
+  const baseUrl = patch.baseUrl ?? 'http://127.0.0.1:8188';
+  return {
+    baseUrl,
+    online: false,
+    error: `Nothing is answering at ${baseUrl}`,
+    checkpoints: [],
+    diffusionModels: [],
+    preset: null,
+    ...patch,
+  };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (err: unknown) => void;
+  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
+
+/** Asserts the next scheduled call to `fn` lands exactly `ms` from now. */
+async function expectNextCallAfter(fn: { mock: { calls: unknown[] } }, ms: number): Promise<void> {
+  const before = fn.mock.calls.length;
+  await vi.advanceTimersByTimeAsync(ms - 1);
+  expect(fn.mock.calls).toHaveLength(before);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(fn.mock.calls).toHaveLength(before + 1);
+}
+
+function harness(options: { fetchOllamaTags?: FetchTags; findComfy?: FindComfy; probesEnabled?: boolean } = {}) {
+  let onWake: () => void = () => {};
+  const fetchOllamaTags = vi.fn<FetchTags>(options.fetchOllamaTags ?? (async () => TAGS));
+  const findComfy = vi.fn<FindComfy>(options.findComfy ?? (async url => comfyResult({ baseUrl: url })));
+  const apiKey = observable.box<string | undefined>(undefined);
+  const applied: unknown[] = [];
+  const store = new LocalRuntimeStore({
+    service: { fetchOllamaTags },
+    findComfy,
+    subscribeToWake: listener => {
+      onWake = listener;
+      return () => { onWake = () => {}; };
+    },
+    probesEnabled: options.probesEnabled,
+  });
+  store.attachOllamaCatalog({ apiKey: () => apiKey.get(), applyTags: raw => applied.push(raw), catalog: () => [] });
+  return {
+    store,
+    fetchOllamaTags,
+    findComfy,
+    applied,
+    wake: () => onWake(),
+    setKey: (key: string | undefined) => runInAction(() => apiKey.set(key)),
+  };
+}
+
+describe('LocalRuntimeStore reachability', () => {
+  beforeEach(() => {
     clearAppStorage();
-    vi.restoreAllMocks();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    clearAppStorage();
   });
 
-  it('ignores legacy URL fields on the Ollama / image-gen storage keys', () => {
-    localStorage.setItem('gatesai.ollama.v1', JSON.stringify({
-      baseUrl: 'http://10.0.0.12:11434',
-      toolsEnabled: true,
-      catalog: [],
-      lastRefreshAt: null,
-    }));
-    localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({
-      backend: 'local-comfy',
-      comfyBaseUrl: 'http://10.0.0.13:8188',
-    }));
+  it('finds an Ollama that GatesAI did not start, with no user action', async () => {
+    const { store, fetchOllamaTags, applied } = harness();
 
-    const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService() });
+    store.startMonitoring();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(fetchOllamaTags).toHaveBeenCalledWith('http://127.0.0.1:11434', undefined);
+    expect(store.runtimes.ollama.status).toBe('online');
+    expect(store.runtimes.ollama.lastError).toBeUndefined();
+    expect(applied).toEqual([TAGS]);
+    store.dispose();
+  });
+
+  it('notices Ollama going away and coming back on the 60 s and 10 s schedule', async () => {
+    let up = true;
+    const { store, fetchOllamaTags } = harness({
+      fetchOllamaTags: async () => {
+        if (!up) throw new TypeError('Failed to fetch');
+        return TAGS;
+      },
+    });
+    store.startMonitoring();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.runtimes.ollama.status).toBe('online');
+
+    up = false;
+    await vi.advanceTimersByTimeAsync(PROBE_INTERVAL_ONLINE_MS);
+    expect(store.runtimes.ollama.status).toBe('offline');
+    expect(store.runtimes.ollama.lastError).toBe('Nothing is answering at http://127.0.0.1:11434.');
+
+    up = true;
+    await expectNextCallAfter(fetchOllamaTags, 10_000);
+    expect(store.runtimes.ollama.status).toBe('online');
+    store.dispose();
+  });
+
+  it('backs off while nothing answers: 10 s, 30 s, 60 s, then every 5 min', async () => {
+    const { store, fetchOllamaTags, findComfy } = harness({ fetchOllamaTags: UNREACHABLE });
+    store.startMonitoring();
+    await vi.advanceTimersByTimeAsync(0);
+
+    for (const gap of [10_000, 30_000, 60_000, 300_000, 300_000]) {
+      await expectNextCallAfter(fetchOllamaTags, gap);
+    }
+    expect(findComfy).toHaveBeenCalledTimes(fetchOllamaTags.mock.calls.length);
+    store.dispose();
+  });
+
+  it('still probes at once on wake while backed off, and starts over after answering', async () => {
+    let up = false;
+    const { store, fetchOllamaTags, wake } = harness({
+      fetchOllamaTags: async () => {
+        if (!up) throw new TypeError('Failed to fetch');
+        return TAGS;
+      },
+    });
+    store.startMonitoring();
+    await vi.advanceTimersByTimeAsync(10_000 + 30_000 + 60_000);
+
+    up = true;
+    wake();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.runtimes.ollama.status).toBe('online');
+
+    up = false;
+    await vi.advanceTimersByTimeAsync(PROBE_INTERVAL_ONLINE_MS);
+    expect(store.runtimes.ollama.status).toBe('offline');
+    await expectNextCallAfter(fetchOllamaTags, 10_000);
+    store.dispose();
+  });
+
+  it.each([
+    ['the address changes', (store: LocalRuntimeStore) => { store.setBaseUrl('ollama', 'gpu-box'); }],
+    ['someone asks to check again', (store: LocalRuntimeStore) => { void store.probe('ollama', { fresh: true }); }],
+  ])('returns to the 10 s cadence when %s', async (_trigger, restart) => {
+    const { store, fetchOllamaTags } = harness({ fetchOllamaTags: UNREACHABLE });
+    store.startMonitoring();
+    await vi.advanceTimersByTimeAsync(10_000 + 30_000 + 60_000);
+    expect(fetchOllamaTags).toHaveBeenCalledTimes(4);
+
+    restart(store);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(fetchOllamaTags).toHaveBeenCalledTimes(5);
+    await expectNextCallAfter(fetchOllamaTags, 10_000);
+    store.dispose();
+  });
+
+  it('probes again when the window wakes', async () => {
+    const { store, fetchOllamaTags, findComfy, wake } = harness();
+    store.startMonitoring();
+    await vi.advanceTimersByTimeAsync(0);
+
+    wake();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(fetchOllamaTags).toHaveBeenCalledTimes(2);
+    expect(findComfy).toHaveBeenCalledTimes(2);
+    store.dispose();
+  });
+
+  it('probes the new address as soon as it changes', async () => {
+    const { store, fetchOllamaTags } = harness();
+    store.startMonitoring();
+    await vi.advanceTimersByTimeAsync(0);
+
+    store.setBaseUrl('ollama', '192.168.1.20');
+
+    expect(store.ollamaBaseUrl).toBe('http://192.168.1.20:11434');
+    expect(fetchOllamaTags).toHaveBeenLastCalledWith('http://192.168.1.20:11434', undefined);
+    store.dispose();
+  });
+
+  it('probes again with the key as soon as the Ollama API key changes', async () => {
+    const { store, fetchOllamaTags, setKey } = harness();
+    store.startMonitoring();
+    await vi.advanceTimersByTimeAsync(0);
+
+    setKey('remote-test-key');
+
+    expect(fetchOllamaTags).toHaveBeenLastCalledWith('http://127.0.0.1:11434', 'remote-test-key');
+    store.dispose();
+  });
+
+  it('never runs two probes for one runtime at once', async () => {
+    const pending = deferred<unknown>();
+    const { store, fetchOllamaTags, wake } = harness({ fetchOllamaTags: () => pending.promise });
+    store.startMonitoring();
+
+    void store.probe('ollama');
+    wake();
+    await vi.advanceTimersByTimeAsync(PROBE_INTERVAL_ONLINE_MS * 3);
+
+    expect(fetchOllamaTags).toHaveBeenCalledTimes(1);
+    expect(store.runtimes.ollama.checking).toBe(true);
+    pending.resolve(TAGS);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.runtimes.ollama.status).toBe('online');
+    expect(store.runtimes.ollama.checking).toBe(false);
+    store.dispose();
+  });
+
+  it('drops an answer for an address that changed while the probe was in flight', async () => {
+    const first = deferred<unknown>();
+    const second = deferred<unknown>();
+    const answers = [first.promise, second.promise];
+    const { store, fetchOllamaTags, applied } = harness({ fetchOllamaTags: () => answers.shift() ?? Promise.resolve(TAGS) });
+    store.startMonitoring();
+
+    store.setBaseUrl('ollama', 'gpu-box');
+    first.resolve(TAGS);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(applied).toEqual([]);
+    expect(fetchOllamaTags).toHaveBeenLastCalledWith('http://gpu-box:11434', undefined);
+    second.reject(new Error('Ollama 401'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(store.runtimes.ollama.status).toBe('offline');
+    expect(store.runtimes.ollama.lastError).toContain('Check the Ollama API key');
+    store.dispose();
+  });
+
+  it('says so when something other than Ollama answers', async () => {
+    const { store } = harness({ fetchOllamaTags: async () => ({ hello: 'world' }) });
+
+    await store.probe('ollama');
+
+    expect(store.runtimes.ollama.status).toBe('offline');
+    expect(store.runtimes.ollama.lastError).toBe("http://127.0.0.1:11434 answered, but it isn't Ollama.");
+  });
+
+  it('points at port 11434 when a web page answers on the default web port', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('<!DOCTYPE html><title>Router admin</title>', {
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+    })));
+    const { store } = harness({ fetchOllamaTags: (baseUrl, apiKey) => localRuntimeService.fetchOllamaTags(baseUrl, apiKey) });
+    store.setBaseUrl('ollama', 'http://gpu-box');
+
+    await store.probe('ollama');
+
+    expect(store.runtimes.ollama.status).toBe('offline');
+    expect(store.runtimes.ollama.lastError).toBe(
+      "http://gpu-box answered, but it isn't Ollama. Ollama usually listens on port 11434, for example http://gpu-box:11434.",
+    );
+  });
+
+  it('sends nothing for a fresh probe that was still waiting when the store was disposed', async () => {
+    const pending = deferred<unknown>();
+    const { store, fetchOllamaTags } = harness({ fetchOllamaTags: () => pending.promise });
+    void store.probe('ollama');
+    const fresh = store.probe('ollama', { fresh: true });
+
+    store.dispose();
+    pending.resolve(TAGS);
+    await fresh;
+
+    expect(fetchOllamaTags).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops probing after dispose', async () => {
+    const { store, fetchOllamaTags } = harness({ fetchOllamaTags: async () => { throw new Error('down'); } });
+    store.startMonitoring();
+    await vi.advanceTimersByTimeAsync(0);
+
+    store.dispose();
+    await vi.advanceTimersByTimeAsync(PROBE_INTERVAL_ONLINE_MS * 2);
+
+    expect(fetchOllamaTags).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the ComfyUI that discovery finds and remembers its address', async () => {
+    const { store, findComfy } = harness({
+      findComfy: async () => comfyResult({
+        baseUrl: 'http://127.0.0.1:8000',
+        online: true,
+        error: undefined,
+        checkpoints: ['sdxl_lightning_4step.safetensors'],
+        preset: { kind: 'sdxl-lightning' },
+      }),
+    });
+
+    await store.probe('comfyui');
+
+    expect(findComfy).toHaveBeenCalledWith('http://127.0.0.1:8188');
+    expect(store.comfyReady).toBe(true);
+    expect(store.comfyBaseUrl).toBe('http://127.0.0.1:8000');
+    expect(store.runtimes.comfyui.status).toBe('online');
+    expect(harness().store.comfyBaseUrl).toBe('http://127.0.0.1:8000');
+  });
+
+  it('is not image-ready when ComfyUI runs without a usable model', async () => {
+    const { store } = harness({ findComfy: async url => comfyResult({ baseUrl: url, online: true, error: undefined }) });
+
+    await store.probe('comfyui');
+
+    expect(store.runtimes.comfyui.status).toBe('online');
+    expect(store.comfyReady).toBe(false);
+    expect(store.runtimes.comfyui.lastError).toContain('no image model');
+  });
+
+  it('stays off in Web Lite', async () => {
+    const { store, fetchOllamaTags, findComfy } = harness({ probesEnabled: false });
+
+    store.startMonitoring();
+    await store.probe('ollama');
+    await vi.advanceTimersByTimeAsync(PROBE_INTERVAL_ONLINE_MS);
+
+    expect(fetchOllamaTags).not.toHaveBeenCalled();
+    expect(findComfy).not.toHaveBeenCalled();
+    expect(store.runtimes.ollama.status).toBe('offline');
+    expect(store.runtimes.ollama.lastError).toBe('Local models need the GatesAI desktop app.');
+  });
+});
+
+describe('LocalRuntimeStore settings', () => {
+  beforeEach(() => clearAppStorage());
+  afterEach(() => clearAppStorage());
+
+  it('ignores legacy URL fields on the Ollama and image-gen storage keys', () => {
+    localStorage.setItem('gatesai.ollama.v1', JSON.stringify({ baseUrl: 'http://10.0.0.12:11434', toolsEnabled: true, catalog: [] }));
+    localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({ backend: 'local-comfy', comfyBaseUrl: 'http://10.0.0.13:8188' }));
+
+    const { store } = harness();
 
     expect(store.ollamaBaseUrl).toBe('http://127.0.0.1:11434');
     expect(store.comfyBaseUrl).toBe('http://127.0.0.1:8188');
   });
 
-  it('starts a runtime, polls it online, and exposes logs from status', async () => {
-    const service = fakeService({
-      startRuntime: vi.fn(async () => undefined),
-      getRuntimeStatus: vi.fn(async () => ({
-        running: true,
-        pid: 42,
-        uptimeMs: 100,
-        status: 'online' as const,
-        logs: ['ready'],
-      })),
-    });
-    const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
-    store.setInstallPath('ollama', 'C:\\Ollama\\ollama.exe');
+  it('prefers local models by default and persists the setting', () => {
+    const { store } = harness();
+    expect(store.preferLocalModels).toBe(true);
 
-    await store.start('ollama');
+    store.setPreferLocalModels(false);
 
-    expect(service.startRuntime).toHaveBeenCalledWith('ollama', {
-      installPath: 'C:\\Ollama\\ollama.exe',
-    });
-    expect(store.runtimes.ollama.status).toBe('online');
-    expect(store.runtimes.ollama.pid).toBe(42);
-    expect(store.runtimes.ollama.logs).toEqual(['ready']);
-  });
-
-  it('treats an address-in-use start error as online when the existing server responds', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('{"version":"0.12.0"}', { status: 200 }),
-    );
-    const service = fakeService({
-      startRuntime: vi.fn(async () => {
-        throw new Error('listen tcp 127.0.0.1:11434: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted');
-      }),
-      probeHttp: vi.fn(async () => undefined),
-    });
-    const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
-    store.setInstallPath('ollama', 'C:\\Ollama\\ollama.exe');
-
-    await store.start('ollama');
-
-    expect(store.runtimes.ollama.status).toBe('online');
-    expect(store.runtimes.ollama.lastError).toContain('already running');
-    expect(store.runtimes.ollama.lastError).toContain('127.0.0.1:11434');
-  });
-
-  it('keeps an address-in-use start error as crashed when the existing server does not respond', async () => {
-    const service = fakeService({
-      startRuntime: vi.fn(async () => {
-        throw new Error('bind: address already in use');
-      }),
-      probeHttp: vi.fn(async () => { throw new Error('connection refused'); }),
-    });
-    const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
-    store.setInstallPath('ollama', 'C:\\Ollama\\ollama.exe');
-
-    await store.start('ollama');
-
-    expect(store.runtimes.ollama.status).toBe('crashed');
-    expect(store.runtimes.ollama.lastError).toBe('bind: address already in use');
-  });
-
-  it('auto-detect stores discovered install paths without duplicating runtime state', async () => {
-    const store = new LocalRuntimeStore({
-      autoDetect: async () => ({
-        ollama: { installPath: 'C:\\Ollama\\ollama.exe' },
-        comfyui: { installPath: 'C:\\ComfyUI_windows_portable' },
-      }),
-      service: fakeService(),
-    });
-
-    await store.autoDetect();
-
-    expect(store.runtimes.ollama.installPath).toBe('C:\\Ollama\\ollama.exe');
-    expect(store.runtimes.comfyui.installPath).toBe('C:\\ComfyUI_windows_portable');
-    expect(store.runtimes.ollama.status).toBe('stopped');
-  });
-
-  it('only treats ComfyUI as ready when it is managed and online', async () => {
-    const store = new LocalRuntimeStore({
-      autoDetect: async () => ({}),
-      service: fakeService({
-        getRuntimeStatus: vi.fn(async () => ({ running: true, status: 'online' as const, logs: [] })),
-      }),
-    });
-
-    expect(store.comfyReady).toBe(false);
-    await store.refreshStatus('comfyui');
-    expect(store.comfyReady).toBe(true);
-    store.setManaged('comfyui', false);
-    expect(store.comfyReady).toBe(false);
-  });
-
-  it('records autoDetectAt on a successful auto-detect run', async () => {
-    const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService() });
-    expect(store.autoDetectAt).toBeUndefined();
-    const before = Date.now();
-    await store.autoDetect();
-    expect(store.autoDetectAt).toBeGreaterThanOrEqual(before);
-  });
-
-  describe('testConnection', () => {
-    it('returns ok when the probe responds 200', async () => {
-      const probeHttp = vi.fn(async () => undefined);
-      const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service: fakeService({ probeHttp }) });
-      const r = await store.testConnection('ollama');
-      expect(r.ok).toBe(true);
-      expect(probeHttp).toHaveBeenCalledWith('http://127.0.0.1:11434/api/version');
-    });
-
-    it('reports an HTTP error when the probe responds non-2xx', async () => {
-      const store = new LocalRuntimeStore({
-        autoDetect: async () => ({}),
-        service: fakeService({ probeHttp: vi.fn(async () => { throw new Error('HTTP 503 from http://127.0.0.1:8188/system_stats'); }) }),
-      });
-      const r = await store.testConnection('comfyui');
-      expect(r.ok).toBe(false);
-      if (!r.ok) expect(r.error).toMatch(/HTTP 503/);
-    });
-
-    it('reports the error verbatim when probe rejects (network unreachable)', async () => {
-      const store = new LocalRuntimeStore({
-        autoDetect: async () => ({}),
-        service: fakeService({ probeHttp: vi.fn(async () => { throw new Error('connect ECONNREFUSED'); }) }),
-      });
-      const r = await store.testConnection('ollama');
-      expect(r.ok).toBe(false);
-      if (!r.ok) expect(r.error).toMatch(/ECONNREFUSED/);
-    });
-  });
-
-  describe('starting watchdog', () => {
-    it('flips a stuck "starting" runtime to "crashed" after the watchdog timeout', async () => {
-      vi.useFakeTimers();
-      try {
-        // Service start resolves but the status snapshot keeps reporting
-        // "starting" — simulating a process that came up but never became
-        // healthy (port collision, model load wedged, etc.).
-        const service = fakeService({
-          startRuntime: vi.fn(async () => undefined),
-          getRuntimeStatus: vi.fn(async () => ({ running: true, status: 'starting' as const, logs: [] })),
-        });
-        const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
-        store.setInstallPath('ollama', 'C:\\Ollama\\ollama.exe');
-        const startPromise = store.start('ollama');
-        // Drain awaited microtasks inside start() so we settle into 'starting'.
-        await vi.advanceTimersByTimeAsync(0);
-        await startPromise;
-        expect(store.runtimes.ollama.status).toBe('starting');
-
-        // Roll the wall clock past the watchdog threshold.
-        await vi.advanceTimersByTimeAsync(STARTING_WATCHDOG_MS + 100);
-
-        expect(store.runtimes.ollama.status).toBe('crashed');
-        expect(store.runtimes.ollama.lastError).toMatch(/did not become healthy/);
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    it('keeps showing "starting" while in the start window even if the host reports "offline"', async () => {
-      // ComfyUI's bring-up sequence is "process spawned → CUDA init →
-      // model load → HTTP server up". During the model-load window the
-      // Rust host returns 'offline' (process exists, health endpoint
-      // not answering yet). Without the sticky-starting gate the UI
-      // would flick to "Offline" and the Start button would re-appear,
-      // making the user think nothing happened.
-      vi.useFakeTimers();
-      try {
-        const service = fakeService({
-          startRuntime: vi.fn(async () => undefined),
-          getRuntimeStatus: vi.fn(async () => ({ running: true, status: 'offline' as const, logs: [], pid: 7 })),
-        });
-        const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
-        store.setInstallPath('comfyui', 'C:\\ComfyUI');
-
-        await store.start('comfyui');
-
-        // The sticky gate: even though the host snapshot is 'offline',
-        // we're inside the watchdog window so the user sees 'starting'.
-        expect(store.runtimes.comfyui.status).toBe('starting');
-
-        // Subsequent polls during the same window keep showing 'starting'.
-        await store.refreshStatus('comfyui');
-        expect(store.runtimes.comfyui.status).toBe('starting');
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    it('breaks out of "starting" once the host reports "online"', async () => {
-      vi.useFakeTimers();
-      try {
-        let nextStatus: 'offline' | 'online' = 'offline';
-        const service = fakeService({
-          startRuntime: vi.fn(async () => undefined),
-          getRuntimeStatus: vi.fn(async () => ({ running: true, status: nextStatus, logs: [], pid: 1 })),
-        });
-        const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
-        store.setInstallPath('comfyui', 'C:\\ComfyUI');
-
-        await store.start('comfyui');
-        expect(store.runtimes.comfyui.status).toBe('starting');
-
-        // Health probe finally answers — UI flips to online and the
-        // watchdog clears.
-        nextStatus = 'online';
-        await store.refreshStatus('comfyui');
-        expect(store.runtimes.comfyui.status).toBe('online');
-
-        // Watchdog cleared: rolling time forward must NOT flip to crashed.
-        await vi.advanceTimersByTimeAsync(STARTING_WATCHDOG_MS + 100);
-        expect(store.runtimes.comfyui.status).toBe('online');
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    it('cancels the watchdog when status becomes online', async () => {
-      vi.useFakeTimers();
-      try {
-        const service = fakeService({
-          startRuntime: vi.fn(async () => undefined),
-          getRuntimeStatus: vi.fn(async () => ({ running: true, status: 'online' as const, logs: [], pid: 1 })),
-        });
-        const store = new LocalRuntimeStore({ autoDetect: async () => ({}), service });
-        store.setInstallPath('ollama', 'C:\\Ollama\\ollama.exe');
-        await store.start('ollama');
-        expect(store.runtimes.ollama.status).toBe('online');
-
-        // Advance past the watchdog window — status must stay online, not flip to crashed.
-        await vi.advanceTimersByTimeAsync(STARTING_WATCHDOG_MS + 100);
-        expect(store.runtimes.ollama.status).toBe('online');
-      } finally {
-        vi.useRealTimers();
-      }
-    });
+    expect(harness().store.preferLocalModels).toBe(false);
   });
 });
-
-function fakeService(overrides: Partial<LocalRuntimeStore['service']> = {}): LocalRuntimeStore['service'] {
-  return {
-    startRuntime: vi.fn(async () => undefined),
-    stopRuntime: vi.fn(async () => undefined),
-    getRuntimeStatus: vi.fn(async () => ({ running: false, status: 'stopped' as const, logs: [] })),
-    probeHttp: vi.fn(async () => undefined),
-    fetchOllamaTags: vi.fn(async () => ({ models: [] })),
-    pathExists: vi.fn(async () => false),
-    pickDirectory: vi.fn(async () => null),
-    pickFile: vi.fn(async () => null),
-    getCandidatePaths: vi.fn(async () => null),
-    ...overrides,
-  };
-}

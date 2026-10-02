@@ -676,7 +676,7 @@ export class TurnRunner {
     }
     if (!comfyReady) {
       this.host.updateAssistantMessage(thread.id, assistantMessage.id, message => {
-        setMessageText(message, '_Direct image mode: ComfyUI is not running. Start and connect it in Local settings, then try again._');
+        setMessageText(message, '_Direct image mode: ComfyUI is not ready. Start ComfyUI or ComfyUI Desktop with an image model in it, then try again. Settings > Models > Local shows what is missing._');
       }, { touch: true });
       this.host.clearStreamingState(thread.id, assistantMessage.id);
       return;

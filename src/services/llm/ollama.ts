@@ -5,12 +5,15 @@ import type { LlmChunk, LlmMessage, LlmProvider, LlmRequest, LlmUsage, ToolCall,
 import { ensureOk } from './sse';
 import { finiteNumber, isRecord, normalizeFinishReason, normalizeToolCallArguments, readUtf8Lines, type StreamFinishReason } from './streamCore';
 import { logger } from '../diagnostics/logger';
+import { localFetch } from '../local/localHttp';
 import { resolveModelFormatProfile } from './modelFormatProfiles';
 
 /**
- * Default base URL for a local Ollama daemon. Single source of truth — used
- * by `ollamaStorage` (defaults), `OllamaStore.setBaseUrl` (empty fallback),
- * and `buildProviders` in the router (config absent fallback).
+ * Loopback address of a default Ollama install. `buildProviders` in the router
+ * falls back to it when no address is configured; the store side
+ * (LocalRuntimeStore, localRuntimeStorage) uses the same value from
+ * core/localUrls. GatesAI only connects to an Ollama that is already running;
+ * every request goes through localFetch.
  */
 export const DEFAULT_OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
 
@@ -109,7 +112,7 @@ export class OllamaProvider implements LlmProvider {
 
     let response: Response;
     try {
-      response = await fetch(`${this.baseUrl}/api/chat`, {
+      response = await localFetch(`${this.baseUrl}/api/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),

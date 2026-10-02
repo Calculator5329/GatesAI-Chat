@@ -1,7 +1,7 @@
 // Owns observable OllamaStore state and actions for the app runtime.
 // Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { autorun, makeAutoObservable, reaction, runInAction, toJS } from 'mobx';
+import { autorun, comparer, makeAutoObservable, reaction, runInAction, toJS } from 'mobx';
 import type { Model } from '../core/types';
 import { extractOllamaTagNames, mapOllamaTagsToModels } from '../services/llm/ollamaCatalog';
 import {
@@ -28,21 +28,19 @@ export interface OllamaPullState {
 
 /**
  * Owns Ollama auth, tool-call settings, and the locally pulled model catalog.
- * LocalRuntimeStore owns the server URL; this store reads that facade at
- * request time so the URL has one source of truth.
+ * LocalRuntimeStore owns the server URL and the reachability probe; each
+ * successful probe hands the /api/tags body to applyTags, so the model list
+ * and the online status always come from the same answer.
  */
 export class OllamaStore {
   config: { apiKey: string | undefined; toolsEnabled: boolean };
   tagNames: string[] = [];
   lastRefreshAt: number | null = null;
-  fetching = false;
-  lastError: string | undefined;
   pulls = new Map<string, OllamaPullState>();
 
   private readonly registry: ModelRegistry;
   private readonly localRuntime: LocalRuntimeStore;
   private readonly useKeychainSecrets: boolean;
-  private inflight: AbortController | null = null;
   private activePull: { model: string; controller: AbortController } | null = null;
   private configPersistenceDisposer: (() => void) | null = null;
   private secretPersistenceDisposer: (() => void) | null = null;
@@ -64,7 +62,6 @@ export class OllamaStore {
       'registry'
       | 'localRuntime'
       | 'useKeychainSecrets'
-      | 'inflight'
       | 'activePull'
       | 'configPersistenceDisposer'
       | 'secretPersistenceDisposer'
@@ -72,12 +69,16 @@ export class OllamaStore {
       registry: false,
       localRuntime: false,
       useKeychainSecrets: false,
-      inflight: false,
       activePull: false,
       configPersistenceDisposer: false,
       secretPersistenceDisposer: false,
     });
 
+    localRuntime.attachOllamaCatalog({
+      apiKey: () => this.config.apiKey,
+      applyTags: raw => this.applyTags(raw),
+      catalog: () => this.catalog,
+    });
     if (options.autoPersist ?? true) this.startPersistence();
   }
 
@@ -113,6 +114,10 @@ export class OllamaStore {
 
   get count(): number { return this.catalog.length; }
   get online(): boolean { return this.localRuntime.runtimes.ollama.status === 'online'; }
+  /** A reachability probe (which also refreshes the catalog) is in flight. */
+  get fetching(): boolean { return this.localRuntime.runtimes.ollama.checking; }
+  /** Why the last probe failed; undefined after a successful one. */
+  get lastError(): string | undefined { return this.localRuntime.runtimes.ollama.lastError; }
   get activePullModel(): string | null { return this.activePull?.model ?? null; }
   get catalog(): Model[] {
     return this.registry.dynamicForProvider('ollama');
@@ -233,48 +238,34 @@ export class OllamaStore {
     }
   }
 
-  async refresh(): Promise<void> {
-    if (this.inflight) this.inflight.abort();
-    const ctrl = new AbortController();
-    this.inflight = ctrl;
-    runInAction(() => { this.fetching = true; this.lastError = undefined; });
+  /** Probes Ollama now; a successful answer refreshes the catalog through applyTags. */
+  refresh(): Promise<void> {
+    return this.localRuntime.probe('ollama', { fresh: true });
+  }
 
-    try {
-      const json = await this.localRuntime.fetchOllamaTags(this.config.apiKey);
-      if (ctrl.signal.aborted) return;
-      const tagNames = extractOllamaTagNames(json);
-      const models = mapOllamaTagsToModels(json);
-      runInAction(() => {
-        this.tagNames = tagNames;
-        this.catalog = models;
-        this.lastRefreshAt = Date.now();
-        this.fetching = false;
-      });
-    } catch (err) {
-      if (ctrl.signal.aborted) return;
-      logger.warn('models', 'Ollama catalog fetch failed', { err });
-      runInAction(() => {
-        this.lastError = err instanceof Error ? err.message : String(err);
-        this.fetching = false;
-      });
-    } finally {
-      if (this.inflight === ctrl) this.inflight = null;
-    }
+  /**
+   * Called by LocalRuntimeStore with the body of a successful GET /api/tags.
+   * An answer that maps to the same tags and models changes nothing, so the
+   * periodic probe does not re-render registry observers or rewrite storage.
+   */
+  applyTags(raw: unknown): void {
+    const tagNames = extractOllamaTagNames(raw);
+    const catalog = mapOllamaTagsToModels(raw);
+    if (comparer.structural(tagNames, this.tagNames) && comparer.structural(catalog, this.catalog)) return;
+    this.tagNames = tagNames;
+    this.catalog = catalog;
+    this.lastRefreshAt = Date.now();
   }
 
   clearCatalog(): void {
-    if (this.inflight) { this.inflight.abort(); this.inflight = null; }
     if (this.activePull) { this.activePull.controller.abort(); this.activePull = null; }
     this.catalog = [];
     this.tagNames = [];
     this.lastRefreshAt = null;
-    this.lastError = undefined;
-    this.fetching = false;
-    this.catalog = [];
   }
 
   private pullGuardMessage(model: string): string | null {
-    if (!this.online) return 'Start Ollama first.';
+    if (!this.online) return 'Ollama is not answering yet. Start it, then try again.';
     if (this.hasModelTag(model)) return `${model} is already installed.`;
     if (this.activePull?.model === model) return `${model} is already pulling.`;
     if (this.activePull) return `Finish or cancel ${this.activePull.model} before pulling another model.`;

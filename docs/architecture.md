@@ -24,8 +24,9 @@ Go bridge** that lives in the sibling repository
 reached over a single loopback WebSocket.
 
 Stack: React 19 · TypeScript (strict) · Vite 8 · MobX 6 · Tauri 2 (Rust) ·
-Go bridge (separate repo) · Vitest (1,290 unit/component tests) + Playwright
-(144 e2e tests, 105 of them generated from journeys/manifest.json) · ESLint 9 with architecture-boundary rules. Verified against
+Go bridge (separate repo) · Vitest (1,532 unit/component tests) + Playwright
+(145 e2e tests, 104 of them generated from journeys/manifest.json; counts from
+2026-10-02) · ESLint 9 with architecture-boundary rules. Verified against
 the tree at v4.7.0, 2026-07-19.
 
 ```
@@ -60,7 +61,7 @@ Verify (the gates CI enforces, run before committing):
 
 ```powershell
 npm run ci                  # npm test + npm run typecheck + npm run lint
-npm run test:e2e            # Playwright: desktop-mocked, web-lite, web-lite-journeys, mobile-journeys projects (144 tests)
+npm run test:e2e            # Playwright: desktop-mocked, web-lite, web-lite-journeys, mobile-journeys projects (145 tests)
 cargo test --manifest-path src-tauri/Cargo.toml   # Rust command layer
 npm run model-compat:catalog # Free OpenRouter catalog-policy audit
 npm run test:models         # OPTIONAL capped live OpenRouter probes (needs API key)
@@ -146,7 +147,7 @@ src/
     ModelRegistry.ts              # curated + dynamic model catalog
     OpenRouterStore.ts            # live OpenRouter model catalog
     OllamaStore.ts                # Ollama auth, tool setting, catalog, pulls/deletes
-    LocalRuntimeStore.ts          # Ollama/ComfyUI process config, probing, auto-detect
+    LocalRuntimeStore.ts          # Ollama/ComfyUI addresses, probing, ComfyUI discovery
     ImageGenStore.ts              # image backend selection and credentials
     ImageJobStore.ts              # queued/active/completed image jobs
     SearchStore.ts                # Brave key and web search facade
@@ -164,7 +165,7 @@ src/
     bridge/                       # app-side bridge client, attachments, previews, guide installers
     rag/                          # embeddings, indexer, vector store, RagStore
     image/                        # image backend dispatch, ComfyUI client/progress/workflows
-    local/                        # local runtime storage/service/auto-detect
+    local/                        # local runtime storage, localFetch pass-through
     persistence/                  # chat schema migrations, retired-slot purge, IndexedDB thread archive
     storage/                      # localStorage slot facades
     secretStorage.ts              # Tauri keychain/localStorage secret abstraction
@@ -216,7 +217,7 @@ and auxiliary stores, then one-way providers are injected into `ChatStore`.
 | `UserProfileStore` | User bio, durable facts, and base system prompt sections. | `src/stores/UserProfileStore.ts`, `src/services/profileStorage.ts` | Tools mutate facts; `TurnRunner` reads composed prompt text through the profile facade. |
 | `UiStore` | Drafts, view prefs, palette state, onboarding flags, local data usage facade. | `src/stores/UiStore.ts`, `src/services/uiPrefsStorage.ts`, `src/services/storage/webLiteLocalData.ts` | Components mutate UI state; persistence slots store durable prefs. |
 | `RouterStore` | Observable hash route. | `src/stores/RouterStore.ts`, `src/services/router.ts` | `RootStore.bindRouterToChat()` syncs `#/thread/<id>` with `ChatStore.activeThreadId` and keeps menu routes explicit. |
-| `LocalRuntimeStore` | Local Ollama/ComfyUI paths, managed process state, base URLs, vision model. | `src/stores/LocalRuntimeStore.ts`, `src/services/local/localRuntimeService.ts` | Tauri commands start/probe runtimes; Ollama/Image stores read base URLs and readiness. |
+| `LocalRuntimeStore` | Ollama/ComfyUI base URLs, reachability, ComfyUI discovery, vision model, local-first preference. | `src/stores/LocalRuntimeStore.ts`, `src/services/local/localRuntimeStorage.ts`, `src/services/image/comfyDiscovery.ts` | Probes through `localFetch`; Ollama/Image stores read base URLs and readiness. |
 | `SearchStore` | Brave API key and standard/deep web-search facade. | `src/stores/SearchStore.ts`, `src/services/searchStorage.ts`, `src/services/search/braveClient.ts` | `web_search` calls through this store with a depth-specific cache/budget; secrets hydrate at boot. |
 | `OllamaStore` | Ollama catalog, API key, tool-call setting, pull/delete state. | `src/stores/OllamaStore.ts`, `src/services/llm/ollamaCatalog.ts`, `src/services/llm/ollamaPull.ts` | Reads `LocalRuntimeStore` base URL/status; writes dynamic Ollama models to the registry. |
 | `ProviderStore` | Provider configs and the live `LlmRouter`. | `src/stores/ProviderStore.ts`, `src/services/providerStorage.ts`, `src/services/llm/router.ts` | Config reactions update provider instances; chat resolves each thread model through the router. |
@@ -268,7 +269,10 @@ Data flow:
    mode, recent summaries, semantic context, active skill instructions, runtime
    context, attachments, and selected tools.
 4. `LlmRouter.resolve()` maps the thread model to a ready provider and provider
-   model id. Providers implement `LlmProvider.stream(req, signal)`.
+   model id. Providers implement `LlmProvider.stream(req, signal)`. An
+   `ollama-` model the configured Ollama cannot serve (down, or not listed)
+   throws `LocalModelUnavailableError` naming the model and address; anything
+   else unroutable throws `NoProviderConfiguredError`.
 5. `StreamingRoundExecutor` runs one provider round. It emits connecting,
    streaming, stalled, text, tool calls, finish reason, usage, and typed errors.
 6. Provider adapters normalize vendor output into `LlmChunk` events.
@@ -459,10 +463,31 @@ browser build functional. Key modules are `src/stores/LocalRuntimeStore.ts`,
 `src/services/llm/openaiCompat.ts` (the shared OpenAI-compatible transport
 that `OpenRouterProvider` extends).
 
+Transport: every Ollama and ComfyUI HTTP call (chat, catalog, pulls, renders,
+ComfyUI `/interrupt`) goes through `localFetch`
+(`src/services/local/localHttp.ts`). On desktop it hands the request to the
+Rust `local_http_request` command, which makes the call itself and streams
+the response back over a Tauri channel into a real `Response`. CORS and the
+webview Origin never apply, so a running Ollama needs no `OLLAMA_ORIGINS`,
+ComfyUI's HTTP API needs no `--enable-cors-header`, and the Ollama base URL
+can be any http(s) host without widening the CSP. The ComfyUI progress
+WebSocket is not HTTP and stays in the webview, so live step progress still
+needs `--enable-cors-header`; without it a render completes through polling
+and shows no percentage. Web Lite uses `window.fetch`. See
+`docs/adr/2026-10-01-local-http-passthrough.md`.
+
 Ollama:
 
-- `LocalRuntimeStore` owns install path, managed toggle, base URL, process
-  status, logs, auto-detection, and health probes.
+- `LocalRuntimeStore` owns the Ollama and ComfyUI base URLs (normalized by
+  `src/core/localUrls.ts`, so `192.168.1.20` becomes
+  `http://192.168.1.20:11434`), reachability (`unknown | online | offline`),
+  the ComfyUI discovery result, the vision model and the "start new chats on a
+  local model" preference. It probes on boot, on window focus, every 60 s
+  while a runtime answers, and while it does not after 10 s, 30 s, 60 s, then
+  every 5 min; an address or key change, or "Check again", starts the
+  backoff over. On desktop, RootStore starts it once the keychain answers or
+  after 3 s (`KEYCHAIN_WAIT_MS`). GatesAI no longer starts or stops Ollama or
+  ComfyUI; it finds them.
 - `OllamaStore` owns API key, `toolsEnabled`, `/api/tags` catalog hydration,
   dynamic model registration, model pulls, cancellation, and deletion.
 - `OllamaProvider` streams local chat responses and emits local usage with
@@ -470,8 +495,14 @@ Ollama:
 
 ComfyUI image jobs:
 
-- `ImageGenStore` chooses `openrouter-image` or `local-comfy`, stores backend
-  credentials/settings, and exposes backend config.
+- `comfyDiscovery.ts` finds ComfyUI on the saved address, then 8188 and 8000
+  (ComfyUI Desktop), reads `/object_info` for the loader nodes, and picks a
+  preset: FLUX.2 Klein when its unet, text encoder and VAE are all present,
+  else SDXL Lightning, else the first suitable SDXL-family checkpoint through
+  the generic `workflows/checkpoint.ts` graph.
+- `ImageGenStore` stores `backendChoice` (`auto` by default). `auto` resolves
+  to `local-comfy` when ComfyUI is online with a preset or a custom workflow,
+  otherwise to `openrouter-image`.
 - `image_generate` enqueues an `ImageJob`; the tool returns immediately with an
   `image-job` artifact.
 - `ImageJobStore` drains one job at a time, opens ComfyUI progress WebSocket
@@ -574,7 +605,8 @@ Generated from the `tauri::generate_handler!` registration in
 | `brave_search.rs` | `brave_llm_context` |
 | `fetch_page.rs` | `fetch_page` |
 | `secrets.rs` | `secret_set`, `secret_get`, `secret_delete` |
-| `local_runtime.rs` | `spawn_runtime`, `stop_runtime`, `runtime_status`, `probe_http`, `ollama_tags`, `path_exists`, `pick_directory`, `pick_file`, `runtime_candidate_paths` |
+| `local_runtime.rs` | `pick_file` |
+| `local_http.rs` | `local_http_request`, `local_http_cancel` |
 
 Other Rust modules:
 
@@ -756,6 +788,13 @@ validated IPs, not re-resolving), follows at most 5 redirects with the same
 validation per hop, and caps bodies at 2 MB. `brave_search.rs` talks only to
 the Brave API with the user's key.
 
+**Local runtime pass-through (`src-tauri/src/local_http.rs`).** App code
+(never a model-supplied URL) reaches Ollama and ComfyUI through
+`local_http_request`: http or https to any host, no userinfo, the normalized
+path must be on a fixed Ollama/ComfyUI API allowlist, only `Content-Type`,
+`Accept` and `Authorization` headers pass, and redirects are not followed.
+Rationale in `docs/adr/2026-10-01-local-http-passthrough.md`.
+
 **Secrets.** On desktop, API keys live in the OS credential store via the
 `keyring` crate (Tauri commands `secret_set`/`secret_get`/`secret_delete`);
 Web Lite falls back to localStorage. Known secrets: OpenRouter key, Brave key,
@@ -796,7 +835,10 @@ Test layers:
   sections, image job cards, command palette, and ranking.
 - E2E tests under `tests/e2e` run mocked desktop and Web Lite flows, including
   bridge behavior, multi-tab persistence, screens tour, and degraded Web Lite
-  surfaces.
+  surfaces. Hand-written specs import `test` from `tests/e2e/fixtures/test.ts`,
+  which refuses connections to 127.0.0.1 and localhost on 11434, 8188 and
+  8000, so the developer's own Ollama or ComfyUI never answers a spec; a spec
+  that wants Ollama mocks it with `mockOllama` (page routes win).
 - Journeys under `journeys/manifest.json` are compiled by agent-handles into
   `tests/e2e/journeys.generated.spec.ts` (never edited by hand). Each journey
   names a scenario in its context path (`/?scenario=tool-turn#/workspace`) and
@@ -805,7 +847,7 @@ Test layers:
   any identity absent from `testid-registry.json`, and any duplicated visible
   identity. Journeys named `web-lite-*` run on the `web-lite-journeys`
   Playwright project against the browser build, and journeys named `mobile-*`
-  run on `mobile-journeys` at a 390x844 viewport. 23 scenarios back 105
+  run on `mobile-journeys` at a 390x844 viewport. 23 scenarios back 104
   journeys; the catalog is documented in `docs/handbook/journeys.md`, and the
   identities no journey can reach (hidden file inputs, never-rendered
   fallbacks, transient loading states) are listed there too.
@@ -813,6 +855,8 @@ Test layers:
   patches `fetch` and `WebSocket` before the stores boot so OpenRouter (chat,
   conversation naming, image generation), Ollama, the bridge (`/health` plus
   the request/result socket envelope) and Brave answer deterministically.
+  A scenario that names no Ollama plan gets an offline Ollama, and ComfyUI's
+  ports always answer as offline, so the machine's real servers never leak in.
   `?scenario=<name>` selects one, `&persist=1` keeps the previous page's
   storage for reload journeys, and `window.__gatesaiScenario` exposes the
   recorded calls. `src/main.tsx` imports it only behind `import.meta.env.DEV`

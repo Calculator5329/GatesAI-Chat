@@ -1,7 +1,7 @@
 // Public Node/headless entry for the complete GatesAI store graph.
 // Called by scripts and CLI adapters; depends on stores/core without React or DOM globals.
 // Invariant: messages use ChatStore's normal turn pipeline and every boot is disposable.
-import { autorun, runInAction } from 'mobx';
+import { autorun } from 'mobx';
 import { messageText } from './core/messageParts';
 import type { AssistantMessage, Model } from './core/types';
 import { RootStore } from './stores/RootStore';
@@ -45,14 +45,11 @@ export function bootHeadlessCore(): HeadlessCore {
       if (options.baseUrl !== undefined) store.localRuntime.setBaseUrl('ollama', options.baseUrl);
       if (options.apiKey !== undefined) store.ollama.setKey(options.apiKey);
 
-      const probe = await store.localRuntime.testConnection('ollama');
-      if (!probe.ok) throw new Error(`Unable to connect to Ollama: ${probe.error}`);
-
-      // Populate the catalog before marking the provider online. This avoids
-      // RootStore's online autorun launching a duplicate catalog request.
+      // One probe both checks reachability and loads the catalog.
       await store.ollama.refresh();
-      if (store.ollama.lastError) throw new Error(store.ollama.lastError);
-      runInAction(() => { store.localRuntime.runtimes.ollama.status = 'online'; });
+      if (!store.ollama.online) {
+        throw new Error(`Unable to connect to Ollama: ${store.ollama.lastError ?? 'no answer'}`);
+      }
       return store.ollama.catalog;
     },
     async sendMessage(text, options = {}) {

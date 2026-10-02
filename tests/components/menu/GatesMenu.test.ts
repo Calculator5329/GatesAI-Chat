@@ -1,6 +1,6 @@
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { makeAutoObservable } from 'mobx';
 import { StoreProvider } from '../../../src/stores/context';
 import { UserProfileStore } from '../../../src/stores/UserProfileStore';
@@ -52,15 +52,32 @@ function buildStore(section: MenuSectionKey = 'settings'): { store: RootStore; r
     chat,
     notes: { notes: [], clear: () => {} },
     imageJobs: { history: [], clearHistory: () => {} },
-    ollama: { config: { apiKey: '' }, count: 0, fetching: false, lastError: null, setKey: () => {}, clearCatalog: () => {}, refresh: async () => {} },
+    ollama: {
+      config: { apiKey: '' as string | undefined },
+      count: 0,
+      online: false,
+      fetching: false,
+      lastError: undefined,
+      pulls: new Map(),
+      activePullModel: null,
+      isPulling: () => false,
+      hasModelTag: () => false,
+      startPull: async () => true,
+      cancelPull: () => {},
+      setKey: () => {},
+      clearCatalog: () => {},
+      refresh: async () => {},
+    },
     localRuntime: {
       runtimes: {
-        ollama: { status: 'stopped', installPath: '', managed: true, baseUrl: 'http://127.0.0.1:11434', logs: [] },
-        comfyui: { status: 'stopped', installPath: '', managed: true, baseUrl: 'http://127.0.0.1:8188', logs: [] },
+        ollama: { status: 'offline', checking: false, baseUrl: 'http://127.0.0.1:11434', lastError: 'Nothing is answering at http://127.0.0.1:11434.' },
+        comfyui: { status: 'offline', checking: false, baseUrl: 'http://127.0.0.1:8188', lastError: 'Nothing is answering at http://127.0.0.1:8188.' },
       },
+      comfyDiscovery: null,
+      preferLocalModels: true,
       ollamaBaseUrl: 'http://127.0.0.1:11434',
       setBaseUrl: () => {},
-      resetConfig: () => {},
+      setPreferLocalModels: () => {},
     },
     bridge: { isOnline: false, client: { request: async () => ({}) } },
     search: { braveReady: false, braveApiKey: '', setBraveKey: () => {}, clearBraveKey: () => {} },
@@ -101,11 +118,15 @@ async function preloadApiSection(): Promise<void> {
   });
 }
 
-afterEach(() => {
+function cleanupRendered(): void {
   if (root) act(() => root?.unmount());
   root = null;
   host?.remove();
   host = null;
+}
+
+afterEach(() => {
+  cleanupRendered();
   while (builtStores.length > 0) builtStores.pop()?.ui.dispose();
 });
 
@@ -143,8 +164,9 @@ describe('GatesMenu tab strip', () => {
 
     expect(rendered.textContent).toContain('Models');
     expect(rendered.textContent).toContain('OpenRouter');
-    expect(rendered.textContent).toContain('Local models');
-    expect(rendered.textContent).toContain('Ollama not running');
+    expect(rendered.textContent).toContain('Local');
+    expect(rendered.textContent).toContain('Nothing is answering at http://127.0.0.1:11434.');
+    expect(rendered.querySelector('[data-testid="settings.local-card.install-ollama"]')).not.toBeNull();
     expect(rendered.textContent).toContain('Web search');
     expect(rendered.textContent).toContain('Brave grounding');
     expect(rendered.textContent).not.toContain('Compatibility test suite');
@@ -156,13 +178,44 @@ describe('GatesMenu tab strip', () => {
     await preloadApiSection();
     const { store } = buildStore('models');
     (store.localRuntime as unknown as { runtimes: { ollama: { status: string } } }).runtimes.ollama.status = 'online';
-    (store.ollama as unknown as { count: number }).count = 2;
+    Object.assign(store.ollama, { online: true, count: 2 });
     const rendered = renderMenu(store);
     await flushLazySections();
 
-    expect(rendered.textContent).toContain('Ollama online · 2 models');
-    const refresh = Array.from(rendered.querySelectorAll('button'))
-      .find(item => item.textContent === 'Refresh models');
-    expect(refresh).toBeDefined();
+    expect(rendered.textContent).toContain('Ollama · 2 chat models');
+    expect(rendered.textContent).not.toContain('Install Ollama');
+    const check = Array.from(rendered.querySelectorAll('button'))
+      .find(item => item.textContent === 'Check now');
+    expect(check).toBeDefined();
+  });
+
+  it('asks for a server key only when Ollama is on another machine', async () => {
+    await preloadApiSection();
+    const local = buildStore('models').store;
+    const onThisComputer = renderMenu(local);
+    await flushLazySections();
+    expect(onThisComputer.querySelector('[data-testid="settings.secret-key.input-ollama"]')).toBeNull();
+    cleanupRendered();
+
+    const remote = buildStore('models').store;
+    Object.assign(remote.localRuntime, { ollamaBaseUrl: 'http://192.168.1.20:11434' });
+    const onServer = renderMenu(remote);
+    await flushLazySections();
+    expect(onServer.querySelector('[data-testid="settings.secret-key.input-ollama"]')).not.toBeNull();
+    expect(onServer.textContent).toContain('OLLAMA_HOST=0.0.0.0:11434');
+  });
+
+  it('toggles local-first new chats from the Local card', async () => {
+    await preloadApiSection();
+    const { store } = buildStore('models');
+    const setPreferLocalModels = vi.fn();
+    Object.assign(store.localRuntime, { setPreferLocalModels });
+    const rendered = renderMenu(store);
+    await flushLazySections();
+
+    const toggle = rendered.querySelector<HTMLButtonElement>('[data-testid="settings.local-card.prefer-local"]');
+    expect(toggle?.getAttribute('aria-checked')).toBe('true');
+    act(() => { toggle?.click(); });
+    expect(setPreferLocalModels).toHaveBeenCalledWith(false);
   });
 });

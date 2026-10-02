@@ -13,7 +13,7 @@ it.each(['root', 'batched-authority'] as const)('coalesces %s while loading and 
   vi.spyOn(root.bridge, 'start').mockImplementation(() => {});
   vi.spyOn(root.summary, 'start').mockImplementation(() => {});
   vi.spyOn(root.rag, 'start').mockImplementation(() => {});
-  vi.spyOn(root.localRuntime, 'init').mockResolvedValue(undefined);
+  vi.spyOn(root.localRuntime, 'startMonitoring').mockImplementation(() => {});
   vi.spyOn(root.updates, 'startBackgroundChecks').mockImplementation(() => {});
   vi.spyOn(root.bridge.client, 'request').mockRejectedValue(new Error('offline synthetic fixture'));
   vi.spyOn(root.bridge.client, 'connect').mockResolvedValue(undefined);

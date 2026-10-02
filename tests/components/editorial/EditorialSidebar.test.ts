@@ -37,7 +37,7 @@ function buildStore(): RootStore {
   const router = new RouterStore();
   const bridge = new BridgeStore();
   const execStream = new ExecStreamStore();
-  const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
+  const localRuntime = new LocalRuntimeStore({ probesEnabled: false });
   const imageJobs = new ImageJobStore();
   const skills = new SkillsStore(bridge, () => ['thread']);
   const prompts = new PromptStore();

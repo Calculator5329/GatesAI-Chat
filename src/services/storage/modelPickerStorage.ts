@@ -30,6 +30,8 @@ export function saveModelPickerSource(next: ModelPickerSource): void {
 }
 
 export function loadRecentModelIds(): string[] {
+  // Headless boots (CLI, scheduler) have no localStorage and no recents.
+  if (typeof localStorage === 'undefined') return [];
   try {
     const parsed = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
     if (Array.isArray(parsed)) {

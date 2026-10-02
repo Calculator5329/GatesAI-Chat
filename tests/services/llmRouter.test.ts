@@ -41,6 +41,25 @@ describe('LlmRouter', () => {
     expect(() => router.resolve('nope-9000')).toThrow(NoProviderConfiguredError);
   });
 
+  it('names a local model the configured Ollama does not list, instead of asking for a key', () => {
+    const router = new LlmRouter(reg(), { openrouter: { apiKey: 'sk-x' }, ollama: { baseUrl: 'http://10.0.0.7:11434', available: true } });
+
+    expect(() => router.resolve('ollama-gemma4:12b'))
+      .toThrow('gemma4:12b is not on the Ollama at http://10.0.0.7:11434. Pull it there, or pick another model for this chat.');
+  });
+
+  it('says Ollama is not answering when a local chat runs while it is down', () => {
+    const r = reg();
+    r.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3', name: 'llama3', vendor: 'Ollama', providerId: 'ollama', providerModelId: 'llama3', dynamic: true,
+    }]);
+    const router = new LlmRouter(r, { openrouter: { apiKey: 'sk-x' }, ollama: { baseUrl: 'http://127.0.0.1:11434', available: false } });
+
+    expect(() => router.resolve('ollama-llama3'))
+      .toThrow('The Ollama at http://127.0.0.1:11434 is not answering, so llama3 cannot run. Start Ollama, or pick another model for this chat.');
+    expect(() => router.resolve('ollama-gone:1b')).toThrow(/is not answering, so gone:1b cannot run/);
+  });
+
   describe('canRoute', () => {
     it('returns false with no configs (defaulted local does not count)', () => {
       const router = new LlmRouter(reg(), {});

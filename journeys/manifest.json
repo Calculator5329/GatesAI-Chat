@@ -1266,7 +1266,7 @@
     {
       "name": "set-ollama-endpoint",
       "title": "Set the Ollama endpoint",
-      "description": "Enter the local Ollama URL under Models and commit it.",
+      "description": "Enter the Ollama address in the Local card under Models and check it.",
       "kind": "control-path",
       "context": {
         "path": "/?scenario=desktop-ready#/workspace"
@@ -2790,7 +2790,7 @@
     {
       "name": "first-run-local-empty-starter-pull",
       "title": "Pull a starter model",
-      "description": "Ollama runs with no models: the primary action pulls a starter and the secondary opens Local settings.",
+      "description": "Ollama runs with no models: the primary action pulls the starter model and the secondary opens Settings > Models.",
       "kind": "control-path",
       "context": {
         "path": "/?scenario=first-run-local-empty#/workspace"
@@ -2818,8 +2818,8 @@
     },
     {
       "name": "first-run-local-installed-recheck",
-      "title": "Recheck a stopped Ollama",
-      "description": "Ollama is installed but stopped: Check again re-polls and Open Local settings goes to the models tab.",
+      "title": "Recheck, then point at an Ollama server",
+      "description": "Nothing answers at the Ollama address: Check again re-probes, and the server link opens the Local card with the address field.",
       "kind": "control-path",
       "context": {
         "path": "/?scenario=first-run-local-installed#/workspace"
@@ -2827,7 +2827,7 @@
       "steps": [
         {
           "action": "expect",
-          "testId": "workspace.editorial-chat.start-ollama",
+          "testId": "workspace.editorial-chat.recheck-ollama",
           "predicate": "visible"
         },
         {
@@ -2842,11 +2842,11 @@
         },
         {
           "action": "click",
-          "testId": "workspace.editorial-chat.start-ollama"
+          "testId": "workspace.editorial-chat.set-remote-ollama"
         },
         {
           "action": "expect",
-          "testId": "settings.gates-menu.tab-models",
+          "testId": "settings.models-api-section.http-127-0-0-1-11434",
           "predicate": "visible"
         }
       ]
@@ -2854,7 +2854,7 @@
     {
       "name": "first-run-install-ollama",
       "title": "Nothing local detected",
-      "description": "No Ollama found: Check again re-runs detection and the primary action opens Local settings.",
+      "description": "No Ollama found: the card offers the download, and Check again re-probes.",
       "kind": "control-path",
       "context": {
         "path": "/?scenario=first-run#/workspace"
@@ -2867,21 +2867,17 @@
         },
         {
           "action": "click",
-          "testId": "workspace.editorial-chat.secondary"
+          "testId": "workspace.editorial-chat.recheck-ollama"
         },
         {
           "action": "expect",
-          "testId": "workspace.editorial-chat.secondary",
+          "testId": "workspace.editorial-chat.recheck-ollama",
           "predicate": "enabled",
           "timeoutMs": 10000
         },
         {
-          "action": "click",
-          "testId": "workspace.editorial-chat.install-ollama"
-        },
-        {
           "action": "expect",
-          "testId": "settings.gates-menu.tab-models",
+          "testId": "workspace.editorial-chat.install-ollama",
           "predicate": "visible"
         }
       ]

@@ -7,7 +7,7 @@
 // One assertion per control, and each one flips the value rather than writing a
 // fixed one, so a setting that silently resets to its default fails here even
 // if the default happens to match what the test wrote.
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures/test';
 import { mockBridgeOnline, mockOpenRouter, seedReadyProvider } from './fixtures/harness';
 
 async function openSettings(page: Page): Promise<void> {

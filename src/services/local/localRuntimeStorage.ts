@@ -1,16 +1,18 @@
-// Manages local-runtime discovery, process control, or persistence for localRuntimeStorage.
-// Called by LocalRuntimeStore and menu controls; depends on bridge/system APIs and runtime ids.
-// Invariant: runtime state is stored separately from detection/probe side effects.
-import { DEFAULT_OLLAMA_BASE_URL } from '../llm/ollama';
+// Persists LocalRuntimeStore settings: server addresses, the vision helper model and the prefer-local setting.
+// Called by LocalRuntimeStore; depends on core/localUrls for address normalization.
+// Invariant: reachability is never persisted; every launch probes again.
+import { isRecord } from '../../core/guards';
+import {
+  DEFAULT_COMFY_BASE_URL,
+  DEFAULT_OLLAMA_BASE_URL,
+  normalizeComfyBaseUrl,
+  normalizeOllamaBaseUrl,
+} from '../../core/localUrls';
 import { createJsonPersistenceProvider } from '../storage/persistenceProvider';
-
-export const DEFAULT_COMFY_BASE_URL = 'http://127.0.0.1:8188';
 
 const KEY = 'gatesai.local.v1';
 
 export interface RuntimePersistedState {
-  installPath: string;
-  managed: boolean;
   baseUrl: string;
 }
 
@@ -18,26 +20,37 @@ export interface LocalRuntimePersistedConfig {
   ollama: RuntimePersistedState;
   comfyui: RuntimePersistedState;
   visionModel?: string;
-  autoDetectComplete: boolean;
-  /** Epoch ms of the last successful Auto-detect run; undefined = never. */
-  autoDetectAt?: number;
+  /** New chats start on a local model when one is available. Configs saved before this setting existed read as on. */
+  preferLocalModels: boolean;
 }
 
 export const DEFAULT_LOCAL_RUNTIME_CONFIG: LocalRuntimePersistedConfig = {
-  ollama: { installPath: '', managed: true, baseUrl: DEFAULT_OLLAMA_BASE_URL },
-  comfyui: { installPath: '', managed: true, baseUrl: DEFAULT_COMFY_BASE_URL },
+  ollama: { baseUrl: DEFAULT_OLLAMA_BASE_URL },
+  comfyui: { baseUrl: DEFAULT_COMFY_BASE_URL },
   visionModel: undefined,
-  autoDetectComplete: false,
-  autoDetectAt: undefined,
+  preferLocalModels: true,
 };
+
+/**
+ * Reads any earlier shape of `gatesai.local.v1`. Fields from the retired
+ * process-manager era (installPath, managed, autoDetect*) are dropped on the
+ * next save.
+ */
+export function parseLocalRuntimeConfig(raw: unknown): LocalRuntimePersistedConfig {
+  const parsed = isRecord(raw) ? raw : {};
+  return {
+    ollama: { baseUrl: normalizeOllamaBaseUrl(persistedBaseUrl(parsed.ollama)) },
+    comfyui: { baseUrl: normalizeComfyBaseUrl(persistedBaseUrl(parsed.comfyui)) },
+    visionModel: typeof parsed.visionModel === 'string' && parsed.visionModel ? parsed.visionModel : undefined,
+    preferLocalModels: typeof parsed.preferLocalModels === 'boolean'
+      ? parsed.preferLocalModels
+      : DEFAULT_LOCAL_RUNTIME_CONFIG.preferLocalModels,
+  };
+}
 
 export const localRuntimePersistence = createJsonPersistenceProvider<LocalRuntimePersistedConfig>({
   key: KEY,
-  parse: raw => {
-    const defaults = structuredCloneSafe(DEFAULT_LOCAL_RUNTIME_CONFIG);
-    const parsed = raw && typeof raw === 'object' ? raw as Partial<LocalRuntimePersistedConfig> : {};
-    return mergeConfig(defaults, parsed);
-  },
+  parse: parseLocalRuntimeConfig,
 });
 
 export function loadLocalRuntimeConfig(): LocalRuntimePersistedConfig {
@@ -48,16 +61,6 @@ export function saveLocalRuntimeConfig(config: LocalRuntimePersistedConfig): voi
   localRuntimePersistence.save(config);
 }
 
-function mergeConfig(base: LocalRuntimePersistedConfig, parsed: Partial<LocalRuntimePersistedConfig>): LocalRuntimePersistedConfig {
-  return {
-    ollama: { ...base.ollama, ...(parsed.ollama && typeof parsed.ollama === 'object' ? parsed.ollama : {}) },
-    comfyui: { ...base.comfyui, ...(parsed.comfyui && typeof parsed.comfyui === 'object' ? parsed.comfyui : {}) },
-    visionModel: typeof parsed.visionModel === 'string' ? parsed.visionModel : base.visionModel,
-    autoDetectComplete: typeof parsed.autoDetectComplete === 'boolean' ? parsed.autoDetectComplete : base.autoDetectComplete,
-    autoDetectAt: typeof parsed.autoDetectAt === 'number' && Number.isFinite(parsed.autoDetectAt) ? parsed.autoDetectAt : base.autoDetectAt,
-  };
-}
-
-function structuredCloneSafe<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
+function persistedBaseUrl(runtime: unknown): string {
+  return isRecord(runtime) && typeof runtime.baseUrl === 'string' ? runtime.baseUrl : '';
 }

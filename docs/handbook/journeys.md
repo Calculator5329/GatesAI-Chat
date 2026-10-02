@@ -87,7 +87,7 @@ construction rather than by omission:
 | `attachments-drafted` | Desktop, two files already attached to the draft | desktop-ready with a PNG and a text file staged in the composer tray, and a persistence-conflict notice above the draft. |
 | `first-run-local-ready` | First run, Ollama online with models | No provider key and onboarding showing, but Ollama answers with three models, so the local card offers to continue with one. The menu coach mark has not been seen. |
 | `first-run-local-empty` | First run, Ollama online without models | Onboarding showing and Ollama online with no models pulled, so the local card offers a starter pull; the mocked pull streams twelve progress frames. |
-| `first-run-local-installed` | First run, Ollama installed but stopped | Onboarding showing, Ollama installed at a known path but not running, so the local card offers to start it and check again. |
+| `first-run-local-installed` | First run, Ollama not answering | Onboarding showing and nothing answering at the Ollama address, so the local card offers the Ollama download, a recheck and the remote-server hint. |
 | `local-no-embed` | Local only, embedding model missing | Ollama online with chat models but no nomic-embed-text, and an empty conversation pinned to a local model, so the semantic-memory nudge and the Install button in Agent settings render. The mocked pull streams slowly enough to cancel. |
 | `local-ollama-offline` | Local only, Ollama unreachable | The active conversation is pinned to a local model but Ollama refuses connections, so the composer shows the local-settings banner. |
 | `local-image-model` | Desktop, direct image model with ComfyUI stopped | The active conversation is pinned to the direct local image model while ComfyUI is stopped, so the composer shows the local-image-settings banner. |
@@ -105,7 +105,7 @@ locally. `window.__gatesaiScenario.calls` lists every mocked call the page made.
 |---|---|---|
 | `first-run-look-around` | With nothing configured, the onboarding offers a look around and lands in the composer. | 3 |
 | `first-run-connect-openrouter-and-chat` | Enter a placeholder key in onboarding, connect, and get the first mocked cloud reply. | 8 |
-| `first-run-install-ollama` | No Ollama found: Check again re-runs detection and the primary action opens Local settings. | 5 |
+| `first-run-install-ollama` | No Ollama found: the card offers the download, and Check again re-probes. | 4 |
 | `banner-no-model-open-models` | Nothing configured after Look around: the composer banner opens the models tab. | 4 |
 
 ### `desktop-ready`: Desktop, everything online
@@ -138,7 +138,7 @@ locally. `window.__gatesaiScenario.calls` lists every mocked call the page made.
 | `theme-persists-across-reload` | Pick the light theme, reload with storage kept straight into the settings route, and find the theme control still there. | 7 |
 | `open-model-provider-settings` | Open the menu, select Models, and verify the web-search provider card renders. | 4 |
 | `replace-openrouter-key` | Remove the stored key, enter a placeholder, connect, and see it stored again. | 8 |
-| `set-ollama-endpoint` | Enter the local Ollama URL under Models and commit it. | 5 |
+| `set-ollama-endpoint` | Enter the Ollama address in the Local card under Models and check it. | 5 |
 | `open-agent-memory-settings` | Open the menu, select Agent, and verify the persistent-instructions editor renders. | 4 |
 | `add-an-agent-memory-fact` | Type a new fact under Agent, add it, and see a third editable fact appear. | 5 |
 | `preview-memory-retrieval` | Run the memory preview for a query and keep the results panel reachable. | 5 |
@@ -286,13 +286,13 @@ locally. `window.__gatesaiScenario.calls` lists every mocked call the page made.
 
 | Journey | What it proves | Steps |
 |---|---|---|
-| `first-run-local-empty-starter-pull` | Ollama runs with no models: the primary action pulls a starter and the secondary opens Local settings. | 4 |
+| `first-run-local-empty-starter-pull` | Ollama runs with no models: the primary action pulls the starter model and the secondary opens Settings > Models. | 4 |
 
-### `first-run-local-installed`: First run, Ollama installed but stopped
+### `first-run-local-installed`: First run, Ollama not answering
 
 | Journey | What it proves | Steps |
 |---|---|---|
-| `first-run-local-installed-recheck` | Ollama is installed but stopped: Check again re-polls and Open Local settings goes to the models tab. | 5 |
+| `first-run-local-installed-recheck` | Nothing answers at the Ollama address: Check again re-probes, and the server link opens the Local card with the address field. | 5 |
 
 ### `local-no-embed`: Local only, embedding model missing
 

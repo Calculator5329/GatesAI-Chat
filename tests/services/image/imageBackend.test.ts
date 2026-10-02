@@ -15,12 +15,44 @@ function okPng(): Response {
 }
 
 describe('dispatchImageGenerate', () => {
-  it('returns a descriptive error when OpenRouter API key is not configured', async () => {
-    await expect(dispatchImageGenerate({ prompt: 'x' }, { primary: 'openrouter-image' })).rejects.toThrow(/OpenRouter API key/i);
+  it('points at local setup first when neither ComfyUI nor an OpenRouter key is available', async () => {
+    await expect(dispatchImageGenerate({ prompt: 'x' }, {
+      primary: 'openrouter-image',
+      comfyBaseUrl: 'http://127.0.0.1:8188',
+      comfyDiscovery: { baseUrl: 'http://127.0.0.1:8188', online: false, checkpoints: [], diffusionModels: [], preset: null },
+    })).rejects.toThrow(
+      'No backend can make images yet. Start ComfyUI or ComfyUI Desktop with an image model '
+      + '(Settings > Models > Local shows what is missing), or add an OpenRouter key under Settings > Models.',
+    );
   });
 
-  it('returns a descriptive error when ComfyUI base URL is not configured', async () => {
-    await expect(dispatchImageGenerate({ prompt: 'x' }, { primary: 'local-comfy' })).rejects.toThrow(/ComfyUI base URL/i);
+  it('asks for the OpenRouter key when OpenRouter was asked for while ComfyUI is running', async () => {
+    await expect(dispatchImageGenerate({ prompt: 'x' }, {
+      primary: 'openrouter-image',
+      comfyDiscovery: { baseUrl: 'http://127.0.0.1:8188', online: true, checkpoints: [], diffusionModels: [], preset: { kind: 'sdxl-lightning' } },
+    })).rejects.toThrow(/OpenRouter API key is required/);
+  });
+
+  it('says how ComfyUI gets found when no address is known', async () => {
+    await expect(dispatchImageGenerate({ prompt: 'x' }, { primary: 'local-comfy' }))
+      .rejects.toThrow(/no ComfyUI address configured\. Start ComfyUI or ComfyUI Desktop on this computer; GatesAI looks for it on ports 8188 and 8000\./);
+  });
+
+  it('says which folder to fill when ComfyUI is running without a usable model', async () => {
+    const fetch = fakeFetchBuilder([]);
+
+    await expect(dispatchImageGenerate({ prompt: 'x' }, {
+      primary: 'local-comfy',
+      comfyBaseUrl: 'http://127.0.0.1:8000',
+      comfyDiscovery: {
+        baseUrl: 'http://127.0.0.1:8000',
+        online: true,
+        checkpoints: ['stable-audio-open-1.0.safetensors'],
+        diffusionModels: [],
+        preset: null,
+      },
+      fetch,
+    })).rejects.toThrow(/ComfyUI is running at http:\/\/127\.0\.0\.1:8000 but has no image model.*models\/checkpoints/);
   });
 
   it('routes to OpenRouter GPT-5.4 Image 2', async () => {

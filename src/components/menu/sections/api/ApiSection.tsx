@@ -1,16 +1,12 @@
 // Renders API-provider controls for Api Section.
-// Called by ApiSection or GatesMenu; depends on provider/local-runtime stores and shared form controls.
+// Called by GatesMenu (desktop only; Web Lite folds keys into Settings); depends on provider stores and shared form controls.
 // Invariant: provider secrets and catalog state are changed only through store actions.
-import { useEffect, useState, type CSSProperties } from 'react';
+import type { CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tokens } from '../../../../core/styleTokens';
-import {
-  useLocalRuntimeStore,
-  useOllamaStore,
-  useProviderStore,
-  useSearchStore,
-} from '../../../../stores/context';
-import { Button, Card, Input, Pill, SecretKeyField } from '../../../ui';
+import { useProviderStore, useSearchStore } from '../../../../stores/context';
+import { Card, Pill, SecretKeyField } from '../../../ui';
+import { LocalCard } from './LocalCard';
 import { ProviderCard, OPENROUTER_PROVIDER_INFO } from './ProviderCard';
 import { ProviderAvatar } from './ProviderAvatar';
 
@@ -20,19 +16,20 @@ export const ApiSection = observer(function ApiSection() {
   return (
     <>
       <h1 style={tokens.h1}>Models</h1>
-      <div style={tokens.kicker}>OpenRouter · Ollama · Brave search</div>
+      <div style={tokens.kicker}>Local · OpenRouter · Brave search</div>
 
       <Card style={{ padding: '14px 18px', marginBottom: 28, background: 'var(--success-card-bg)', borderColor: 'var(--success-card-border)' }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-dim)', lineHeight: 1.55 }}>
-          Cloud chat uses your own OpenRouter key; local chat uses Ollama on this
-          computer; web answers and research use Brave Search. Keys are stored in the OS credential store on desktop and{' '}
-          <code style={tokens.mono}>localStorage</code> in the browser, and used
-          only as the required request header for each provider.
+          Local chat runs on Ollama, on this computer or a server you name, and
+          local images on ComfyUI. Both are found on their own. Cloud chat uses
+          your own OpenRouter key; web answers and research use Brave Search.
+          Keys are stored in the OS credential store and used only as the
+          required request header for each provider.
         </div>
       </Card>
 
+      <LocalCard />
       <ProviderCard info={OPENROUTER_PROVIDER_INFO} providers={providers} />
-      <LocalModelsCard />
       <SearchCard />
     </>
   );
@@ -61,61 +58,6 @@ export const SearchCard = observer(function SearchCard() {
         />
         <div style={hintStyle}>
           Web answers use a compact search budget per turn.
-        </div>
-      </div>
-    </Card>
-  );
-});
-
-const LocalModelsCard = observer(function LocalModelsCard() {
-  const local = useLocalRuntimeStore();
-  const ollama = useOllamaStore();
-  const online = local.runtimes.ollama.status === 'online';
-  const [draft, setDraft] = useState(local.ollamaBaseUrl);
-  useEffect(() => {
-    setDraft(local.ollamaBaseUrl);
-  }, [local.ollamaBaseUrl]);
-
-  const commit = (): void => {
-    local.setBaseUrl('ollama', draft);
-    void ollama.refresh();
-  };
-
-  return (
-    <Card style={{ marginBottom: 12 }}>
-      <div style={cardHeaderStyle}>
-        <ProviderAvatar name="Ollama" />
-        <div style={{ flex: 1 }}>
-          <div style={cardTitleStyle}>Local models</div>
-          <div style={cardDescStyle}>
-            {online
-              ? `Ollama online · ${ollama.count} model${ollama.count === 1 ? '' : 's'}`
-              : 'Ollama not running. Start it and refresh.'}
-          </div>
-        </div>
-        {online ? <Pill>● Online</Pill> : <Pill tone="muted">Offline</Pill>}
-      </div>
-
-      <div style={localPanelStyle}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Input data-testid="settings.models-api-section.http-127-0-0-1-11434"
-            value={draft}
-            onChange={e => setDraft(e.currentTarget.value)}
-            onKeyDown={e => { if (e.key === 'Enter') commit(); }}
-            placeholder="http://127.0.0.1:11434"
-            style={{ flex: 1, minWidth: 220 }}
-          />
-          <Button data-testid="settings.models-api-section.commit" onClick={commit} disabled={ollama.fetching}>
-            {ollama.fetching ? 'Refreshing…' : 'Refresh models'}
-          </Button>
-        </div>
-        {ollama.lastError && (
-          <div style={{ fontSize: 11.5, color: 'var(--danger)' }}>
-            Catalog refresh failed: {ollama.lastError}
-          </div>
-        )}
-        <div style={hintStyle}>
-          Models installed with <code style={tokens.mono}>ollama pull</code> appear in the model picker automatically.
         </div>
       </div>
     </Card>

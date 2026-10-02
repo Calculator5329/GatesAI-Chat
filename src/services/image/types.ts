@@ -5,6 +5,7 @@
  * ComfyUI adapts it to its API. Keeping the tool pinned to this shape is what
  * lets us add future backends without touching the tool contract.
  */
+import type { ComfyDiscovery } from './comfyDiscovery';
 
 export const IMAGE_ASPECT_RATIOS = ['1:1', '3:2', '2:3', '16:9', '9:16'] as const;
 export type ImageAspectRatio = typeof IMAGE_ASPECT_RATIOS[number];
@@ -25,10 +26,10 @@ export interface GenerateImageRequest {
 }
 
 /**
- * Generation result. Producers return EITHER a hosted URL the UI can render
- * directly OR raw bytes the runner needs to persist. Local backends that
- * already save to disk (ComfyUI) return a `url`; everything else returns
- * `base64`. Exactly one of `{url, base64}` is set.
+ * Generation result. Producers return EITHER a hosted URL the runner fetches
+ * OR raw bytes it persists directly. ComfyUI and OpenRouter both return
+ * `base64`; ComfyUI reads its own /view output so the bytes travel the same
+ * transport as the render request. Exactly one of `{url, base64}` is set.
  */
 export interface GenerateImageResult {
   /** Raw image bytes, base64-encoded (no `data:` prefix). Set when the runner
@@ -101,6 +102,8 @@ export function comfySettingsForMode(mode: LocalComfyMode): Pick<ImageBackendSna
 export interface ImageBackendSnapshot {
   primary: ImageBackendId;
   comfyBaseUrl?: string;
+  /** Latest discovery of the ComfyUI at `comfyBaseUrl`; picks the built-in workflow. */
+  comfyDiscovery?: ComfyDiscovery;
   comfyQualityPreset?: ComfyQualityPreset;
   comfyUpscaleFactor?: UpscaleFactor;
   comfyQualitySteps?: number;

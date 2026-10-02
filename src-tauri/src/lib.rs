@@ -8,6 +8,7 @@ mod http_health;
 mod brave_search;
 mod desktop;
 mod fetch_page;
+mod local_http;
 mod local_runtime;
 mod secrets;
 mod webkit_dmabuf;
@@ -33,8 +34,6 @@ fn cleanup_children(app: &tauri::AppHandle) {
     let _ = child.kill();
     log::info!("[gatesai] bridge sidecar killed");
   }
-  let runtime_state = app.state::<local_runtime::LocalRuntimeState>();
-  local_runtime::kill_all(&runtime_state);
 }
 
 /// Open a filesystem path with the OS default handler (browser for .html,
@@ -74,19 +73,13 @@ pub fn run() {
       secrets::secret_set,
       secrets::secret_get,
       secrets::secret_delete,
-      local_runtime::spawn_runtime,
-      local_runtime::stop_runtime,
-      local_runtime::runtime_status,
-      local_runtime::probe_http,
-      local_runtime::ollama_tags,
-      local_runtime::path_exists,
-      local_runtime::pick_directory,
+      local_http::local_http_request,
+      local_http::local_http_cancel,
       local_runtime::pick_file,
-      local_runtime::runtime_candidate_paths,
     ])
     .manage(desktop::DesktopState::default())
     .manage(BridgeChild(Mutex::new(None)))
-    .manage(local_runtime::LocalRuntimeState::default())
+    .manage(local_http::LocalHttpState::default())
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

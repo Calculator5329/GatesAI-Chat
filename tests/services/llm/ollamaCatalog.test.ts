@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mapOllamaTagsToModels } from '../../../src/services/llm/ollamaCatalog';
+import { contextWindowFor } from '../../../src/core/tokens';
 
 const TAGS_RESPONSE = {
   models: [
@@ -81,6 +82,78 @@ describe('mapOllamaTagsToModels', () => {
     });
 
     expect(out.map(m => m.providerModelId)).toEqual(['llama3.1:8b']);
+  });
+
+  it('trusts reported capabilities over the name rules', () => {
+    const out = mapOllamaTagsToModels({
+      models: [
+        {
+          name: 'gemma4:12b',
+          capabilities: ['completion', 'vision', 'audio', 'tools', 'thinking'],
+          details: { parameter_size: '12B', context_length: 262_144 },
+        },
+        { name: 'qwen2.5:3b', capabilities: ['completion'], details: { context_length: 32_768 } },
+        { name: 'house-embedder:latest', capabilities: ['embedding'], details: { embedding_length: 768 } },
+        { name: 'nomic-embed-text:latest', capabilities: ['embedding'] },
+      ],
+    });
+
+    expect(out.map(m => m.providerModelId)).toEqual(['gemma4:12b', 'qwen2.5:3b']);
+    expect(out[0]).toMatchObject({ supportsTools: true, supportsVision: true, supportsThinking: true });
+    expect(out[1]).toMatchObject({ supportsTools: false, supportsVision: false, supportsThinking: false });
+  });
+
+  it('keeps the reported context as a ceiling and budgets against the Ollama default', () => {
+    const [gemma] = mapOllamaTagsToModels({
+      models: [{ name: 'gemma4:12b', capabilities: ['completion', 'tools'], details: { context_length: 262_144 } }],
+    });
+
+    expect(gemma).not.toHaveProperty('contextLength');
+    expect(gemma?.maxContextLength).toBe(262_144);
+    expect(contextWindowFor(gemma)).toBe(8_000);
+  });
+
+  it('parses the reported parameter size into billions', () => {
+    const out = mapOllamaTagsToModels({
+      models: [
+        { name: 'gemma4:12b', details: { parameter_size: '12.2B' } },
+        { name: 'qwen3.5:4b', details: { parameter_size: '4B' } },
+        { name: 'tiny:latest', details: { parameter_size: '567M' } },
+        { name: 'odd:latest', details: { parameter_size: 'unknown' } },
+      ],
+    });
+
+    expect(out[0]?.parameterBillions).toBe(12.2);
+    expect(out[1]?.parameterBillions).toBe(4);
+    expect(out[2]?.parameterBillions).toBeCloseTo(0.567);
+    expect(out[3]).not.toHaveProperty('parameterBillions');
+  });
+
+  it('keeps Ollama cloud models in the catalog, marked with their remote host', () => {
+    const out = mapOllamaTagsToModels({
+      models: [
+        { name: 'gpt-oss:120b-cloud', remote_model: 'gpt-oss:120b', remote_host: 'https://ollama.com:443', capabilities: ['completion', 'tools'] },
+        { name: 'qwen3.5:4b', capabilities: ['completion', 'tools'] },
+      ],
+    });
+
+    expect(out.map(m => m.providerModelId)).toEqual(['gpt-oss:120b-cloud', 'qwen3.5:4b']);
+    expect(out[0]?.remoteHost).toBe('https://ollama.com:443');
+    expect(out[1]).not.toHaveProperty('remoteHost');
+  });
+
+  it('falls back to the name rules per entry when capabilities are absent', () => {
+    const out = mapOllamaTagsToModels({
+      models: [
+        { name: 'gemma2:9b', details: { parameter_size: '9B' } },
+        { name: 'gemma4:12b', capabilities: ['completion', 'tools'] },
+      ],
+    });
+
+    expect(out[0]).toMatchObject({ providerModelId: 'gemma2:9b', supportsTools: false });
+    expect(out[0]).not.toHaveProperty('supportsThinking');
+    expect(out[0]).not.toHaveProperty('contextLength');
+    expect(out[1]).toMatchObject({ providerModelId: 'gemma4:12b', supportsTools: true });
   });
 
   it('returns [] when the response is malformed', () => {

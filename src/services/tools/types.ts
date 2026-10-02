@@ -110,6 +110,8 @@ export interface LocalRuntimeFacade {
   readonly comfyBaseUrl?: string;
   readonly comfyReady: boolean;
   readonly visionModel?: string;
+  /** Bearer token for a remote Ollama that requires one; unset for a plain local Ollama. */
+  readonly ollamaApiKey?: string;
 }
 
 export interface ExecStreamFacade {

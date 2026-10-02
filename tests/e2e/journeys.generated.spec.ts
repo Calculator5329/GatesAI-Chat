@@ -143,7 +143,7 @@ async function recordFinalPageState(page: import("@playwright/test").Page, journ
 
 const observationRunText = process.env.AGENT_HANDLES_OBSERVATION_RUN;
 const observationRun = observationRunText ? JSON.parse(observationRunText) : null;
-const manifestDigest = "333775823c0151498d1d0c5dac84111324976c2698806cbf385e555ead648458";
+const manifestDigest = "7519112aaf5f7fb487417e97c178c561c84e9b8e554234f2c9f8ed6dc1ee0678";
 const sha256 = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
 const artifactIdentity = (testInfo: import("@playwright/test").TestInfo) => ({
   testId: testInfo.testId, project: testInfo.project.name, retry: testInfo.retry, repeatEachIndex: testInfo.repeatEachIndex,
@@ -776,7 +776,7 @@ test("replace-openrouter-key: Remove the stored key, enter a placeholder, connec
   await recordFinalPageState(page, "replace-openrouter-key", testInfo);
 });
 
-test("set-ollama-endpoint: Enter the local Ollama URL under Models and commit it.", async ({ page }, testInfo) => {
+test("set-ollama-endpoint: Enter the Ollama address in the Local card under Models and check it.", async ({ page }, testInfo) => {
   await page.goto("/?scenario=desktop-ready#/workspace");
   await page.getByTestId("workspace.sidebar-settings-button.settings-and-menu").click();
   await reconcileRuntime(page, "set-ollama-endpoint", 1, testInfo);
@@ -1512,7 +1512,7 @@ test("first-run-local-ready-continue: Ollama has models: the local card offers t
   await recordFinalPageState(page, "first-run-local-ready-continue", testInfo);
 });
 
-test("first-run-local-empty-starter-pull: Ollama runs with no models: the primary action pulls a starter and the secondary opens Local settings.", async ({
+test("first-run-local-empty-starter-pull: Ollama runs with no models: the primary action pulls the starter model and the secondary opens Settings > Models.", async ({
   page,
 }, testInfo) => {
   await page.goto("/?scenario=first-run-local-empty#/workspace");
@@ -1527,37 +1527,33 @@ test("first-run-local-empty-starter-pull: Ollama runs with no models: the primar
   await recordFinalPageState(page, "first-run-local-empty-starter-pull", testInfo);
 });
 
-test("first-run-local-installed-recheck: Ollama is installed but stopped: Check again re-polls and Open Local settings goes to the models tab.", async ({
+test("first-run-local-installed-recheck: Nothing answers at the Ollama address: Check again re-probes, and the server link opens the Local card with the address field.", async ({
   page,
 }, testInfo) => {
   await page.goto("/?scenario=first-run-local-installed#/workspace");
-  await expect(page.getByTestId("workspace.editorial-chat.start-ollama")).toBeVisible();
+  await expect(page.getByTestId("workspace.editorial-chat.recheck-ollama")).toBeVisible();
   await reconcileRuntime(page, "first-run-local-installed-recheck", 1, testInfo);
   await page.getByTestId("workspace.editorial-chat.recheck-ollama").click();
   await reconcileRuntime(page, "first-run-local-installed-recheck", 2, testInfo);
   await expect(page.getByTestId("workspace.editorial-chat.recheck-ollama")).toBeEnabled({ timeout: 10000 });
   await reconcileRuntime(page, "first-run-local-installed-recheck", 3, testInfo);
-  await page.getByTestId("workspace.editorial-chat.start-ollama").click();
+  await page.getByTestId("workspace.editorial-chat.set-remote-ollama").click();
   await reconcileRuntime(page, "first-run-local-installed-recheck", 4, testInfo);
-  await expect(page.getByTestId("settings.gates-menu.tab-models")).toBeVisible();
+  await expect(page.getByTestId("settings.models-api-section.http-127-0-0-1-11434")).toBeVisible();
   await reconcileRuntime(page, "first-run-local-installed-recheck", 5, testInfo);
   await recordFinalPageState(page, "first-run-local-installed-recheck", testInfo);
 });
 
-test("first-run-install-ollama: No Ollama found: Check again re-runs detection and the primary action opens Local settings.", async ({
-  page,
-}, testInfo) => {
+test("first-run-install-ollama: No Ollama found: the card offers the download, and Check again re-probes.", async ({ page }, testInfo) => {
   await page.goto("/?scenario=first-run#/workspace");
   await expect(page.getByTestId("workspace.editorial-chat.install-ollama")).toBeVisible();
   await reconcileRuntime(page, "first-run-install-ollama", 1, testInfo);
-  await page.getByTestId("workspace.editorial-chat.secondary").click();
+  await page.getByTestId("workspace.editorial-chat.recheck-ollama").click();
   await reconcileRuntime(page, "first-run-install-ollama", 2, testInfo);
-  await expect(page.getByTestId("workspace.editorial-chat.secondary")).toBeEnabled({ timeout: 10000 });
+  await expect(page.getByTestId("workspace.editorial-chat.recheck-ollama")).toBeEnabled({ timeout: 10000 });
   await reconcileRuntime(page, "first-run-install-ollama", 3, testInfo);
-  await page.getByTestId("workspace.editorial-chat.install-ollama").click();
+  await expect(page.getByTestId("workspace.editorial-chat.install-ollama")).toBeVisible();
   await reconcileRuntime(page, "first-run-install-ollama", 4, testInfo);
-  await expect(page.getByTestId("settings.gates-menu.tab-models")).toBeVisible();
-  await reconcileRuntime(page, "first-run-install-ollama", 5, testInfo);
   await recordFinalPageState(page, "first-run-install-ollama", testInfo);
 });
 

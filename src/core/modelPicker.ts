@@ -6,7 +6,7 @@ import type { Model } from './types';
 import { modelSupportsVision } from './modelCapabilities';
 import type { ModelPickerSource } from './modelPickerAvailability';
 import { bestLocalModel } from './defaultModel';
-import { localModelContextLength, localModelMetaFor } from './localModelMeta';
+import { localModelMaxContextLength, localModelMetaFor } from './localModelMeta';
 
 export type SourceFilter = ModelPickerSource;
 export type CapabilityFilter = 'vision' | 'tools' | 'reasoning' | 'fast' | 'free';
@@ -24,7 +24,7 @@ export const VERIFIED_SECTION_TITLE = 'Verified';
 export interface ModelMeta {
   tag: string;
   capabilities: Array<'vision' | 'reasoning' | 'fast' | 'tools'>;
-  costLabel?: '$' | '$$' | '$$$' | 'LOCAL' | 'FREE';
+  costLabel?: '$' | '$$' | '$$$' | 'LOCAL' | 'CLOUD' | 'FREE';
 }
 
 export interface PickerSection {
@@ -352,8 +352,8 @@ export function emptyStateMessage(query: string, hasCapFilters: boolean, source:
   if (trimmed && hasCapFilters) return `No models match "${trimmed}" with the selected capability filters.`;
   if (trimmed) return `No models match "${trimmed}".`;
   if (hasCapFilters) return 'No models match the selected capability filters.';
-  if (source === 'local') return 'No local models available. Start Ollama in Local settings, then refresh its model catalog.';
-  if (source === 'image') return 'No image models available. Start and connect ComfyUI in Local settings.';
+  if (source === 'local') return 'No local models yet. Start Ollama, or download a model from Settings > Models > Local.';
+  if (source === 'image') return 'No image models available. Start ComfyUI or ComfyUI Desktop and GatesAI finds it.';
   return 'No models available.';
 }
 
@@ -377,7 +377,9 @@ export function badgesForModel(model: Model): ModelBadge[] {
   const badges: ModelBadge[] = [];
   if (model.id === AUTO_MODEL.id) badges.push({ label: 'AUTO', tone: 'accent' });
   else if (model.providerId === 'ollama') {
-    badges.push({ label: 'LOCAL', title: 'Local endpoint; no cloud token cost' });
+    badges.push(meta?.costLabel === 'CLOUD'
+      ? { label: 'CLOUD', title: 'Listed by your Ollama server; runs on Ollama\'s cloud' }
+      : { label: 'LOCAL', title: 'Local endpoint; no cloud token cost' });
   }
   else if (model.providerId === 'local-image') badges.push({ label: 'IMAGE' });
 
@@ -387,8 +389,8 @@ export function badgesForModel(model: Model): ModelBadge[] {
     if (meta?.capabilities.includes('vision')) badges.push({ label: 'vision', icon: 'vision', title: 'Vision' });
     if (meta?.capabilities.includes('reasoning')) badges.push({ label: 'reasoning', title: 'Reasoning' });
     if (meta?.capabilities.includes('fast')) badges.push({ label: 'fast', title: 'Fast' });
-    const ctx = formatContext(localModelContextLength(model));
-    if (ctx) badges.push({ label: ctx, title: 'Context window' });
+    const maxCtx = formatContext(localModelMaxContextLength(model));
+    if (maxCtx) badges.push({ label: `up to ${maxCtx}`, title: 'Most context this model supports; Ollama runs a smaller window unless configured' });
   } else if (model.providerId === 'local-image') {
     badges.push({ label: 'online', tone: 'accent' });
   } else {

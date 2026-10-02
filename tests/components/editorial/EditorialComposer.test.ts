@@ -36,7 +36,7 @@ function buildStore(): RootStore {
   const router = new RouterStore();
   const bridge = new BridgeStore();
   const execStream = new ExecStreamStore();
-  const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
+  const localRuntime = new LocalRuntimeStore({ probesEnabled: false });
   const imageJobs = new ImageJobStore();
   const skills = new SkillsStore(bridge, () => ['thread']);
   const search = new SearchStore(undefined, { autoPersist: false, useKeychainSecrets: false });
@@ -218,7 +218,7 @@ describe('EditorialComposer API-key banner', () => {
 
     act(() => store!.ui.setDraft('a neon greenhouse at night'));
 
-    expect(rendered.textContent).toContain('Start and connect ComfyUI');
+    expect(rendered.textContent).toContain('Start ComfyUI or ComfyUI Desktop');
     const sendWrapper = sendControl(rendered);
     expect(sendWrapper.disabled).toBe(true);
     expect(sendWrapper.style.opacity).toBe('0.45');
@@ -231,13 +231,20 @@ describe('EditorialComposer API-key banner', () => {
     store.chat.setThreadModel(threadId, 'image-direct-comfy');
     runInAction(() => {
       store!.localRuntime.runtimes.comfyui.status = 'online';
+      store!.localRuntime.comfyDiscovery = {
+        baseUrl: 'http://127.0.0.1:8188',
+        online: true,
+        checkpoints: ['sdxl_lightning_4step.safetensors'],
+        diffusionModels: [],
+        preset: { kind: 'sdxl-lightning' },
+      };
     });
     const rendered = render(store);
 
     act(() => store!.ui.setDraft('a neon greenhouse at night'));
 
     expect(rendered.textContent).not.toContain('Please enter an OpenRouter API key to chat.');
-    expect(rendered.textContent).not.toContain('Start and connect ComfyUI');
+    expect(rendered.textContent).not.toContain('Start ComfyUI or ComfyUI Desktop');
     const sendWrapper = sendControl(rendered);
     expect(sendWrapper.disabled).toBe(false);
     expect(sendWrapper.style.opacity).toBe('1');
@@ -372,7 +379,7 @@ describe('EditorialComposer API-key banner', () => {
       rendered.querySelector('[data-source-filter="local"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     expect(rendered.querySelector('[data-model-row="ollama-llama3"]')).toBeNull();
-    expect(rendered.textContent).toContain('Start Ollama in Local settings');
+    expect(rendered.textContent).toContain('No local models yet. Start Ollama');
   });
 
   it('shows local rows with readiness badges once Ollama is online', async () => {
@@ -515,7 +522,31 @@ describe('EditorialComposer audit banners and a11y (Batch B/C/E)', () => {
     store.chat.setThreadModel(threadId, 'ollama-llama3');
 
     const rendered = render(store);
-    expect(rendered.textContent).toContain('Start Ollama to chat with this local model.');
+    expect(rendered.textContent).toContain('Nothing is answering at http://127.0.0.1:11434. Start Ollama, then come back to this window or press Check again.');
+  });
+
+  it('names a started chat\'s local model that Ollama no longer lists and holds Send', () => {
+    store = buildStore();
+    store.providers.setKey('openrouter', 'sk-test');
+    store.registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-llama3',
+      name: 'Llama 3 Local',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'llama3',
+    }]);
+    store.providers.setAvailable('ollama', true);
+    runInAction(() => {
+      store!.localRuntime.runtimes.ollama.status = 'online';
+      store!.chat.activeThread!.modelId = 'ollama-gemma4:12b';
+      store!.chat.activeThread!.messages.push({ id: 'u1', role: 'user', content: 'hi', createdAt: 1 });
+      store!.ui.draft = 'one more';
+    });
+
+    const rendered = render(store);
+    expect(rendered.textContent).toContain('gemma4:12b is not on the Ollama at http://127.0.0.1:11434.');
+    expect(sendControl(rendered).disabled).toBe(true);
+    expect(rendered.querySelector('button.composer-model-label')?.getAttribute('aria-label')).toBe('Model: gemma4:12b');
   });
 
   it('exposes the model picker as an accessible button', () => {

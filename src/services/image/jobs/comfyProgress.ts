@@ -3,12 +3,13 @@
 // Invariant: progress updates are advisory while terminal job status remains authoritative.
 import type { JobProgress, ProgressEvent } from './progress';
 import { logger } from '../../diagnostics/logger';
+import { localFetch } from '../../local/localHttp';
 
 export interface ComfyProgressOptions {
   baseUrl: string;
   clientId: string;
-  /** Optional injectable for tests; defaults to global fetch. */
-  fetch?: typeof fetch;
+  /** Injectable for tests; defaults to `localFetch`, so `/interrupt` reaches a ComfyUI started without CORS. */
+  fetch?: typeof localFetch;
 }
 
 interface ComfyFrame {
@@ -17,18 +18,18 @@ interface ComfyFrame {
 }
 
 export function createComfyProgress(opts: ComfyProgressOptions): JobProgress {
-  const fetchImpl = opts.fetch ?? globalThis.fetch.bind(globalThis);
+  const fetchImpl = opts.fetch ?? localFetch;
   const trimmed = opts.baseUrl.replace(/\/+$/, '');
   const wsUrl = trimmed.replace(/^http/, 'ws') + `/ws?clientId=${encodeURIComponent(opts.clientId)}`;
   const listeners = new Set<(e: ProgressEvent) => void>();
   let disposed = false;
   let ws: WebSocket | null = null;
 
-  // Construct the WebSocket inside a try/catch — `new WebSocket(url)`
-  // throws synchronously on malformed URLs and we don't want that to
-  // surface as an uncaught renderer error during a job dispatch. If
-  // construction fails, progress just stays silent (HTTP polling in
-  // `comfyClient.waitForImage` still drives the actual render).
+  // The socket stays in the webview, so step progress needs ComfyUI's
+  // --enable-cors-header; without it the handshake is refused and images
+  // still arrive through ComfyClient's /history polling.
+  // `new WebSocket(url)` throws synchronously on malformed URLs, so a
+  // failed construction only leaves progress silent.
   try {
     ws = new WebSocket(wsUrl);
   } catch (err) {
@@ -64,14 +65,13 @@ export function createComfyProgress(opts: ComfyProgressOptions): JobProgress {
       }
     };
 
-    // The `error` event on a WebSocket is fired on connect failure or
-    // mid-stream socket errors. With no handler, browsers log it as
-    // "WebSocket connection to '...' failed: ..." and (in some
-    // webviews) bubble it to `window.onerror`. Attach a no-op-ish
-    // handler so the event is consumed cleanly.
-    ws.onerror = (ev) => {
+    // `error` fires on a refused handshake or a mid-stream failure. With no
+    // handler some webviews bubble it to `window.onerror`. A refused socket
+    // is the normal case without --enable-cors-header, so it logs at info
+    // and stays out of the error trail.
+    ws.onerror = () => {
       if (disposed) return;
-      logger.warn('comfy-progress', `WebSocket error for ${wsUrl}`, ev);
+      logger.info('comfy-progress', `No progress socket at ${wsUrl}; step progress needs ComfyUI started with --enable-cors-header. The image still arrives.`);
     };
 
     ws.onclose = (ev) => {
@@ -79,7 +79,7 @@ export function createComfyProgress(opts: ComfyProgressOptions): JobProgress {
       // Render keeps going via HTTP polling in `comfyClient`; we just
       // stop emitting progress events. No state mutation needed.
       if (!ev.wasClean) {
-        logger.warn('comfy-progress', `WebSocket closed unexpectedly (code ${ev.code}); progress events will stop.`);
+        logger.info('comfy-progress', `Progress socket closed (code ${ev.code}); progress events stop, the render continues.`);
       }
     };
   }

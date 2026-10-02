@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 // Broad UI coverage against the default (desktop-mode) build with the LLM and
 // bridge mocked: load, navigation, the streamed chat flow, thread previews +
 // body search, and persisted model favorites.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 import {
   makeThread,
   mockBridgeOnline,
@@ -224,13 +224,20 @@ test.describe('desktop without a configured provider', () => {
   test('shows first-run onboarding and disables send', async ({ page }) => {
     await page.goto('/');
 
-    // First boot shows the local-first hero empty state (redesigned
-    // 2026-07-11) with a provider CTA instead of the old three-card panel.
+    // First boot shows the local-first hero (redesigned 2026-07-11) and the
+    // setup panel; the read-only welcome tour does not count as having
+    // chatted. With no Ollama answering, the Local card offers the install.
     await expect(page.getByText('LOCAL-FIRST AI WORKSPACE')).toBeVisible();
-    await expect(page.getByText('Please enter an OpenRouter API key to chat.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Open models' })).toBeVisible();
+    await expect(page.locator('[data-onboarding-path="local"]')).toHaveAttribute('data-ollama-status', 'offline');
+    await expect(page.getByTestId('workspace.editorial-chat.install-ollama')).toBeVisible();
+    await expect(page.getByTestId('settings.secret-key.input-onboarding-openrouter')).toBeVisible();
     await page.locator('.composer-textarea').fill('hello without a key');
     await expect(page.locator('button.composer-send-control[aria-label="Send"]')).toBeDisabled();
+
+    // Hiding the panel leaves the composer's own pointer to a provider.
+    await page.getByTestId('workspace.editorial-chat.look-around').click();
+    await expect(page.getByText('Please enter an OpenRouter API key to chat.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open models' })).toBeVisible();
   });
 });
 

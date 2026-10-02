@@ -5,6 +5,7 @@ import type { ActivityItem, AssistantMessage, ChatSnapshot, Message, StreamActiv
 import type { LlmRequest } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { resolveBackgroundModelId, resolveDefaultModelId } from '../core/defaultModel';
+import { OLLAMA_MODEL_ID_PREFIX } from '../core/localModelMeta';
 import { splitAttachmentFooter } from '../core/attachments';
 import { appendMessageText, messageText } from '../core/messageParts';
 import {
@@ -160,6 +161,9 @@ export class ChatStore {
   private semanticContextProvider: ((userText: string, threadId: string) => RagContextBundle | string | Promise<RagContextBundle | string>) | null = null;
   private toolStoresProvider: (() => ToolStoreContext) | null = null;
   private activeSkillProvider: ((threadId: string) => WorkspaceSkill | undefined) | null = null;
+  private preferLocalModelsProvider: () => boolean = () => false;
+  /** Threads whose model the user picked this session; default-model reconciliation leaves them alone. Not persisted. */
+  private readonly explicitModelThreadIds = new Set<string>();
   private readonly isAutoNamingEnabled: () => boolean;
   private readonly undoService: UndoService | null;
 
@@ -236,7 +240,7 @@ export class ChatStore {
       logger.info('persistence', 'Emergency chat compaction notice shown', { message });
       runInAction(() => { this.compactionNotice = message; });
     });
-    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'autoNamer' | 'turnRunner' | 'turnEngine' | 'agentTasks' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'stopUserSystemPromptPersistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'workspacePersistenceContext' | 'disposed' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'isAutoNamingEnabled' | 'undoService'>(this, {
+    makeAutoObservable<this, 'providers' | 'registry' | 'profile' | 'autoNamer' | 'turnRunner' | 'turnEngine' | 'agentTasks' | 'persistence' | 'leaderElection' | 'stopLeaderElectionSubscription' | 'stopUserSystemPromptPersistence' | 'hydrationByThread' | 'workspacePersistenceHydrating' | 'workspacePersistenceContext' | 'disposed' | 'recentSummariesProvider' | 'semanticContextProvider' | 'toolStoresProvider' | 'activeSkillProvider' | 'preferLocalModelsProvider' | 'explicitModelThreadIds' | 'isAutoNamingEnabled' | 'undoService'>(this, {
       providers: false,
       registry: false,
       profile: false,
@@ -256,6 +260,10 @@ export class ChatStore {
       semanticContextProvider: false,
       toolStoresProvider: false,
       activeSkillProvider: false,
+      preferLocalModelsProvider: false,
+      explicitModelThreadIds: false,
+      // Plain getter: model picker recents live outside MobX, so a cached computed would go stale.
+      defaultModelId: false,
       isAutoNamingEnabled: false,
       undoService: false,
     });
@@ -433,12 +441,27 @@ export class ChatStore {
     return this.threads.find(t => t.id === this.activeThreadId) ?? null;
   }
 
+  /** Ollama tag the active chat is kept on although the current Ollama does not list it; null otherwise. */
+  get activeMissingLocalModelTag(): string | null {
+    const thread = this.activeThread;
+    if (!thread || !this.keepsMissingLocalModel(thread)) return null;
+    return thread.modelId.slice(OLLAMA_MODEL_ID_PREFIX.length);
+  }
+
+  /** Model a new chat starts on; see resolveDefaultModelId for the rules. */
   get defaultModelId(): string {
+    const ollamaOnline = this.providers.getConfig('ollama').available === true;
+    const localModels = this.registry.all.filter(model => model.providerId === 'ollama');
+    const preferLocalModels = this.preferLocalModelsProvider();
+    // Recents only matter when a local pick is possible; skipping the storage read keeps headless boots quiet.
+    const localPickPossible = preferLocalModels && ollamaOnline && localModels.length > 0;
     return resolveDefaultModelId({
       hasOpenRouterKey: !!this.providers.getConfig('openrouter').apiKey,
-      ollamaOnline: this.providers.getConfig('ollama').available === true,
-      localModels: this.registry.all.filter(model => model.providerId === 'ollama'),
+      ollamaOnline,
+      localModels,
       registry: this.registry,
+      preferLocalModels,
+      recentModelIds: localPickPossible ? this.registry.recentModelIds() : [],
     });
   }
 
@@ -457,12 +480,19 @@ export class ChatStore {
     return [...new Set(ids)];
   }
 
+  /**
+   * Moves untouched empty chats from the cloud default to a resolved local
+   * default. RootStore runs it when the default changes; applySnapshot runs it
+   * for threads that arrive from storage or an import. Never touches a thread
+   * whose model the user picked.
+   */
   reconcileDefaultModelForEmptyThreads(): void {
     const nextDefault = this.defaultModelId;
     if (nextDefault === DEFAULT_MODEL_ID) return;
     let changed = false;
     for (const thread of this.threads) {
       if (thread.deletedAt != null || thread.messages.length > 0 || thread.modelId !== DEFAULT_MODEL_ID) continue;
+      if (this.explicitModelThreadIds.has(thread.id)) continue;
       thread.modelId = nextDefault;
       thread.contextMode = 'micro';
       changed = true;
@@ -753,7 +783,9 @@ export class ChatStore {
     return this.agentTasks.retry(threadId);
   }
 
+  /** An explicit model pick; reconcileDefaultModelForEmptyThreads never overrides it. */
   setThreadModel(threadId: string, modelId: string): void {
+    this.explicitModelThreadIds.add(threadId);
     this.updateThread(threadId, () => ({ modelId }));
   }
 
@@ -809,6 +841,11 @@ export class ChatStore {
 
   setThreadSkill(threadId: string, skillId: string | undefined): void {
     this.updateThread(threadId, () => ({ skillId }));
+  }
+
+  /** RootStore wires this to LocalRuntimeStore.preferLocalModels; standalone stores keep the cloud-first default. */
+  setPreferLocalModelsProvider(fn: () => boolean): void {
+    this.preferLocalModelsProvider = fn;
   }
 
   setRecentSummariesProvider(fn: () => string[]): void {
@@ -1169,10 +1206,7 @@ export class ChatStore {
           if (idx < 0) return null;
           const current = this.threads[idx];
           if (!current.archived) return current;
-          const hydrated = this.registry.findById(thread.modelId)
-            ? thread
-            : { ...thread, modelId: this.defaultModelId };
-          const next = { ...hydrated };
+          const next = { ...thread, modelId: this.usableModelId(thread) };
           delete next.archived;
           this.threads[idx] = next;
           return this.threads[idx];
@@ -1201,9 +1235,27 @@ export class ChatStore {
     if (!threadId) return null;
     const thread = this.findThread(threadId);
     if (!thread) return null;
-    if (this.registry.findById(thread.modelId)) return thread;
-    thread.modelId = this.defaultModelId;
+    const modelId = this.usableModelId(thread);
+    if (thread.modelId !== modelId) thread.modelId = modelId;
     return thread;
+  }
+
+  /**
+   * True for a started chat on a local model the registry no longer lists:
+   * it keeps that model (Ollama may be pointed elsewhere or the model was
+   * removed) instead of silently moving to the default.
+   */
+  private keepsMissingLocalModel(thread: Thread): boolean {
+    return thread.messages.length > 0
+      && thread.modelId.startsWith(OLLAMA_MODEL_ID_PREFIX)
+      && !this.registry.findById(thread.modelId);
+  }
+
+  /** The thread's own model when it resolves or is kept, otherwise the default. */
+  private usableModelId(thread: Thread): string {
+    return this.registry.findById(thread.modelId) || this.keepsMissingLocalModel(thread)
+      ? thread.modelId
+      : this.defaultModelId;
   }
 
   private findThread(id: string): Thread | undefined {
@@ -1212,11 +1264,10 @@ export class ChatStore {
 
   private applySnapshot(snapshot: ChatSnapshot): void {
     this.agentTasks.clearAllTimers();
-    this.threads = snapshot.threads.map(thread =>
-      this.registry.findById(thread.modelId)
-        ? thread
-        : { ...thread, modelId: this.defaultModelId }
-    );
+    this.threads = snapshot.threads.map(thread => {
+      const modelId = this.usableModelId(thread);
+      return modelId === thread.modelId ? thread : { ...thread, modelId };
+    });
     this.activeThreadId = normalizeActiveThreadId(this.threads, snapshot.activeThreadId);
     if (!this.activeThreadId) {
       const thread = createEmptyThread(newId('t'), Date.now(), this.defaultModelId);
@@ -1224,6 +1275,7 @@ export class ChatStore {
       this.activeThreadId = thread.id;
     }
     this.agentTasks.reconcileOnBoot();
+    this.reconcileDefaultModelForEmptyThreads();
   }
 
   private schedulePersistSnapshot(snapshot: ChatSnapshot): void {

@@ -1,5 +1,19 @@
-import { describe, expect, it } from 'vitest';
-import { applyFilenamePrefix, ComfyClient, stripWorkflowMetadata, substituteWorkflow } from '../../../src/services/image/comfyClient';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  applyFilenamePrefix,
+  builtInComfyWorkflow,
+  ComfyClient,
+  stripWorkflowMetadata,
+  substituteWorkflow,
+} from '../../../src/services/image/comfyClient';
+import type { ComfyDiscovery } from '../../../src/services/image/comfyDiscovery';
+import { bytesToBase64 } from '../../../src/services/image/types';
+
+const runtime = vi.hoisted(() => ({ tauri: false }));
+vi.mock('../../../src/core/runtime', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../../src/core/runtime')>(),
+  isTauri: () => runtime.tauri,
+}));
 
 function pngBytes(): Uint8Array {
   return new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -71,7 +85,11 @@ describe('applyFilenamePrefix', () => {
 });
 
 describe('ComfyClient', () => {
-  it('submits a prompt, polls /history, and returns a /view URL pointing at the saved file', async () => {
+  afterEach(() => {
+    runtime.tauri = false;
+  });
+
+  it('submits a prompt, polls /history, and reads the saved file back through the same transport', async () => {
     let pollCount = 0;
     const { fetch: fakeFetch, calls } = makeFakeFetch([
       {
@@ -95,6 +113,10 @@ describe('ComfyClient', () => {
           }), { status: 200, headers: { 'content-type': 'application/json' } });
         },
       },
+      {
+        match: (u) => u.includes('/view?'),
+        respond: () => new Response(pngBytes().buffer as ArrayBuffer, { status: 200, headers: { 'content-type': 'image/png' } }),
+      },
     ]);
 
     const client = new ComfyClient({
@@ -110,19 +132,27 @@ describe('ComfyClient', () => {
     expect(result.backend).toBe('local-comfy');
     expect(result.mime).toBe('image/png');
     expect(result.seed).toBe(999);
-    // Runner now records the hosted URL — no double-write to /workspace.
-    expect(result.base64).toBeUndefined();
-    expect(result.url).toContain('/view?');
-    expect(result.url).toContain('filename=gatesai_00001_.png');
-    expect(result.url).toContain('subfolder=gatesai');
-    expect(result.url).toContain('type=output');
+    // A webview <img> or fetch of /view carries the app's Origin, which
+    // ComfyUI refuses, so the client hands back the bytes instead of a URL.
+    expect(result.url).toBeUndefined();
+    expect(result.base64).toBe(bytesToBase64(pngBytes()));
+    expect(result.endpoint).toBe('http://127.0.0.1:8188/view?filename=gatesai_00001_.png&subfolder=gatesai&type=output');
 
-    const promptCall = calls.find((c) => c.url.endsWith('/prompt'))!;
-    expect(promptCall).toBeTruthy();
-    // Poll happened at least once before success.
-    expect(calls.filter((c) => c.url.includes('/history/')).length).toBeGreaterThanOrEqual(1);
-    // No /view fetch — the URL is returned for the UI to load directly.
-    expect(calls.some((c) => c.url.includes('/view'))).toBe(false);
+    expect(calls.map((c) => new URL(c.url).pathname)).toEqual(['/prompt', '/history/abc123', '/history/abc123', '/view']);
+  });
+
+  it('fails with the ComfyUI response when the saved file cannot be read', async () => {
+    const { fetch: fakeFetch } = makeFakeFetch([
+      { match: (u) => u.endsWith('/prompt'), respond: () => new Response(JSON.stringify({ prompt_id: 'p' }), { status: 200 }) },
+      {
+        match: (u) => u.includes('/history/'),
+        respond: () => new Response(JSON.stringify({ p: { outputs: { '9': { images: [{ filename: 'a.png', subfolder: '', type: 'output' }] } } } }), { status: 200 }),
+      },
+      { match: (u) => u.includes('/view?'), respond: () => new Response('file not found', { status: 404, statusText: 'Not Found' }) },
+    ]);
+    const client = new ComfyClient({ baseUrl: 'http://h', fetch: fakeFetch, sleep: async () => undefined });
+
+    await expect(client.generate({ prompt: 'x' })).rejects.toThrow(/comfy 404 Not Found: file not found \[\/view\]/);
   });
 
   it('substitutes PROMPT/WIDTH/HEIGHT/SEED into the submitted workflow', async () => {
@@ -312,11 +342,23 @@ describe('ComfyClient', () => {
     await expect(client.generate({ prompt: 'x' })).rejects.toThrow(/timed out/);
   });
 
-  it('explains opaque webview network failures with the base URL and CORS hint', async () => {
+  it('in a browser, explains an opaque network failure with the base URL and the CORS flag', async () => {
     const fakeFetch: typeof fetch = async () => { throw new TypeError('Load failed'); };
     const client = new ComfyClient({ baseUrl: 'http://127.0.0.1:8188', fetch: fakeFetch, sleep: async () => undefined });
     await expect(client.generate({ prompt: 'x' }))
       .rejects.toThrow(/could not reach ComfyUI at http:\/\/127\.0\.0\.1:8188 \(Load failed\).*--enable-cors-header/s);
+  });
+
+  it('on desktop, says nothing answered and does not blame the CORS flag', async () => {
+    runtime.tauri = true;
+    const fakeFetch: typeof fetch = async () => { throw new Error('error sending request: connection refused'); };
+    const client = new ComfyClient({ baseUrl: 'http://127.0.0.1:8000', fetch: fakeFetch, sleep: async () => undefined });
+
+    const error = await client.generate({ prompt: 'x' }).catch((err: unknown) => err);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toMatch(/could not reach ComfyUI at http:\/\/127\.0\.0\.1:8000 \(error sending request: connection refused\)\. Start ComfyUI or ComfyUI Desktop/);
+    expect((error as Error).message).not.toMatch(/cors/i);
   });
 
   it('reports a cancelled fetch as cancelled, not a connectivity failure', async () => {
@@ -335,5 +377,128 @@ describe('ComfyClient', () => {
     ]);
     const client = new ComfyClient({ baseUrl: 'http://h', fetch: fakeFetch, sleep: async () => undefined });
     await expect(client.generate({ prompt: 'x' })).rejects.toThrow(/comfy 400.*bad workflow/);
+  });
+});
+
+type WorkflowNodes = Record<string, { class_type: string; inputs: Record<string, unknown> }>;
+
+function discovered(overrides: Partial<ComfyDiscovery>): ComfyDiscovery {
+  return {
+    baseUrl: 'http://127.0.0.1:8188',
+    online: true,
+    checkpoints: [],
+    diffusionModels: [],
+    textEncoders: [],
+    vaes: [],
+    preset: null,
+    ...overrides,
+  };
+}
+
+function nodesOf(workflow: Record<string, unknown>, classType: string) {
+  return Object.values(workflow as WorkflowNodes).filter((node) => node.class_type === classType);
+}
+
+const KLEIN_IN_SUBFOLDERS = {
+  diffusionModels: ['flux2/FLUX-2-Klein-4B-fp8.safetensors'],
+  textEncoders: ['qwen\\Qwen_3_4b.safetensors'],
+  vaes: ['flux2/flux2-vae.safetensors'],
+};
+
+describe('builtInComfyWorkflow', () => {
+  it('runs FLUX.2 Klein with the file names ComfyUI reported', () => {
+    const { workflow } = builtInComfyWorkflow({
+      discovery: discovered({ ...KLEIN_IN_SUBFOLDERS, preset: { kind: 'flux2-klein' } }),
+      qualityPreset: 'full',
+    });
+
+    expect(nodesOf(workflow, 'UNETLoader')[0].inputs.unet_name).toBe('flux2/FLUX-2-Klein-4B-fp8.safetensors');
+    expect(nodesOf(workflow, 'CLIPLoader')[0].inputs.clip_name).toBe('qwen\\Qwen_3_4b.safetensors');
+    expect(nodesOf(workflow, 'VAELoader')[0].inputs.vae_name).toBe('flux2/flux2-vae.safetensors');
+  });
+
+  it('drafts with SDXL Lightning when it sits next to Klein', () => {
+    const { workflow, checkpoint } = builtInComfyWorkflow({
+      discovery: discovered({
+        ...KLEIN_IN_SUBFOLDERS,
+        checkpoints: ['sdxl/SDXL_Lightning_4step.safetensors'],
+        vaes: [...KLEIN_IN_SUBFOLDERS.vaes, 'sdxl/sdxl_vae_fp16_fix.safetensors'],
+        preset: { kind: 'flux2-klein' },
+      }),
+      qualityPreset: 'quick',
+      draftSteps: 5,
+    });
+
+    expect(checkpoint).toBe('sdxl/SDXL_Lightning_4step.safetensors');
+    expect(nodesOf(workflow, 'VAELoader')[0].inputs.vae_name).toBe('sdxl/sdxl_vae_fp16_fix.safetensors');
+    expect(nodesOf(workflow, 'KSampler')[0].inputs.steps).toBe(5);
+  });
+
+  it('drafts with Klein at draft steps and no upscale when Lightning is absent', () => {
+    const { workflow } = builtInComfyWorkflow({
+      discovery: discovered({ ...KLEIN_IN_SUBFOLDERS, preset: { kind: 'flux2-klein' } }),
+      qualityPreset: 'quick',
+      upscaleFactor: 2,
+      draftSteps: 4,
+    });
+
+    expect(nodesOf(workflow, 'Flux2Scheduler')[0].inputs.steps).toBe(4);
+    expect(nodesOf(workflow, 'ImageScaleBy')).toEqual([]);
+  });
+
+  it('decodes SDXL Lightning with its own VAE when the fp16 fix is not installed', () => {
+    const { workflow, checkpoint } = builtInComfyWorkflow({
+      discovery: discovered({ checkpoints: ['SDXL_Lightning_4step.safetensors'], preset: { kind: 'sdxl-lightning' } }),
+      qualityPreset: 'full',
+    });
+
+    expect(checkpoint).toBe('SDXL_Lightning_4step.safetensors');
+    expect(nodesOf(workflow, 'VAELoader')).toEqual([]);
+    expect(nodesOf(workflow, 'VAEDecode')[0].inputs.vae).toEqual(['1', 2]);
+  });
+
+  it('runs any other checkpoint through the generic workflow in both modes', () => {
+    const discovery = discovered({
+      checkpoints: ['sdxl/juggernautXL_v9.safetensors'],
+      preset: { kind: 'checkpoint', checkpoint: 'sdxl/juggernautXL_v9.safetensors' },
+    });
+
+    for (const qualityPreset of ['full', 'quick'] as const) {
+      const { workflow } = builtInComfyWorkflow({ discovery, qualityPreset });
+      expect(nodesOf(workflow, 'CheckpointLoaderSimple')[0].inputs.ckpt_name).toBe('sdxl/juggernautXL_v9.safetensors');
+      expect(nodesOf(workflow, 'UNETLoader')).toEqual([]);
+    }
+  });
+});
+
+describe('ComfyClient with discovery', () => {
+  it('submits the checkpoint name ComfyUI reported, not the default file name', async () => {
+    const submitted: Array<{ prompt: WorkflowNodes }> = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/prompt')) {
+        submitted.push(JSON.parse(init!.body as string));
+        return new Response(JSON.stringify({ prompt_id: 'p' }), { status: 200 });
+      }
+      if (url.includes('/history/')) {
+        return new Response(JSON.stringify({ p: { outputs: { '8': { images: [{ filename: 'a.png', subfolder: '', type: 'output' }] } } } }), { status: 200 });
+      }
+      return new Response(new Blob([pngBytes().buffer as ArrayBuffer]), { status: 200 });
+    };
+    const client = new ComfyClient({
+      baseUrl: 'http://127.0.0.1:8000',
+      fetch: fetchImpl,
+      sleep: async () => undefined,
+      discovery: discovered({
+        baseUrl: 'http://127.0.0.1:8000',
+        checkpoints: ['fast/SDXL_Lightning_4step.safetensors'],
+        vaes: ['sdxl_vae_fp16_fix.safetensors'],
+        preset: { kind: 'sdxl-lightning' },
+      }),
+    });
+
+    await client.generate({ prompt: 'a lighthouse', seed: 3 });
+
+    expect(nodesOf(submitted[0].prompt, 'CheckpointLoaderSimple')[0].inputs.ckpt_name).toBe('fast/SDXL_Lightning_4step.safetensors');
   });
 });

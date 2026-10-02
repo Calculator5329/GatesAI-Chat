@@ -6,10 +6,11 @@
 import { findScenario, SCENARIOS } from './catalog';
 import { braveRoutes } from './mocks/brave';
 import { BridgeFileTable, bridgeRoutes, createWebSocketPatch } from './mocks/bridge';
-import { createFetchMock } from './mocks/http';
+import { createFetchMock, hostMatches, networkFailure } from './mocks/http';
 import { ollamaRoutes } from './mocks/ollama';
 import { openRouterRoutes } from './mocks/openrouter';
 import { workspaceFiles } from './seeds';
+import { COMFY_CANDIDATE_URLS } from '../../services/image/comfyDiscovery';
 import { DEV_SCENARIO_SENTINEL, type AfterBootStore, type MockRoute, type RecordedCall, type ScenarioDefinition } from './types';
 
 export { SCENARIOS, findScenario } from './catalog';
@@ -59,7 +60,16 @@ export function routesFor(scenario: ScenarioDefinition): MockRoute[] {
     ...ollamaRoutes(scenario.network.ollama),
     ...bridgeRoutes(scenario.network.bridge),
     ...braveRoutes(scenario.network.brave),
+    ...comfyOfflineRoutes(),
   ];
+}
+
+/** No scenario mocks ComfyUI yet, so its ports answer as offline rather than reaching a real one. */
+function comfyOfflineRoutes(): MockRoute[] {
+  return COMFY_CANDIDATE_URLS.map(url => {
+    const host = new URL(url).host;
+    return { name: `comfyui.offline.${host}`, matches: req => hostMatches(req, host), respond: req => networkFailure(req.url) };
+  });
 }
 
 export function seedStorage(storage: Storage, seed: Record<string, unknown>): void {

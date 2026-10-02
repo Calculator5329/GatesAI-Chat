@@ -1,142 +1,242 @@
-// Owns observable LocalRuntimeStore state and actions for the app runtime.
-// Called by RootStore, React context hooks, and service callbacks; depends on services/core contracts.
-// Invariant: mutations happen through store actions so UI derivations stay consistent.
-import { autorun, makeAutoObservable, runInAction, toJS } from 'mobx';
+// Tracks whether Ollama and ComfyUI answer at their addresses and keeps the Ollama model list in step.
+// Called by RootStore (startMonitoring on desktop, once keychain secrets have loaded), OllamaStore (attachOllamaCatalog, probe), image tools and the UI;
+// depends on localRuntimeService.fetchOllamaTags and comfyDiscovery.findComfy.
+// Invariant: status means "answered the last probe", never "GatesAI started it"; at most one probe per runtime is in flight.
+import { autorun, makeAutoObservable, observable, reaction, runInAction } from 'mobx';
 import type { Model } from '../core/types';
 import { modelSupportsVision } from '../core/modelCapabilities';
-import { detectLocalRuntimes, type LocalRuntimeDetection } from '../services/local/autoDetect';
-import {
-  DEFAULT_COMFY_BASE_URL,
-  DEFAULT_LOCAL_RUNTIME_CONFIG,
-  loadLocalRuntimeConfig,
-  saveLocalRuntimeConfig,
-  type LocalRuntimePersistedConfig,
-} from '../services/local/localRuntimeStorage';
-import { ollamaExecutableName, runtimeInstallPlaceholder } from '../services/local/platformCopy';
-import { logger } from '../services/diagnostics/logger';
+import { normalizeComfyBaseUrl, normalizeOllamaBaseUrl, suggestOllamaPortUrl } from '../core/localUrls';
+import { isWebLite } from '../core/runtime';
+import { findComfy, type ComfyDiscovery } from '../services/image/comfyDiscovery';
+import { isOllamaTagsPayload } from '../services/llm/ollamaCatalog';
 import {
   localRuntimeService,
   type LocalRuntimeId,
   type LocalRuntimeService,
-  type LocalRuntimeStatus,
 } from '../services/local/localRuntimeService';
-import { DEFAULT_OLLAMA_BASE_URL } from '../services/llm/ollama';
+import { loadLocalRuntimeConfig, saveLocalRuntimeConfig } from '../services/local/localRuntimeStorage';
+import { logger } from '../services/diagnostics/logger';
 
-export type { LocalRuntimeId, LocalRuntimeService, LocalRuntimeStatus };
+export type { LocalRuntimeId };
+
+/** `unknown` until the first probe for the current address answers or fails. */
+export type RuntimeReachability = 'unknown' | 'online' | 'offline';
 
 export interface RuntimeState {
-  installPath: string;
-  managed: boolean;
+  /** Normalized server address. For ComfyUI, the last address discovery found it on. */
   baseUrl: string;
-  status: LocalRuntimeStatus;
-  pid?: number;
-  uptimeMs?: number;
+  status: RuntimeReachability;
+  /** A probe is in flight. */
+  checking: boolean;
+  lastCheckedAt?: number;
+  /** Why the last probe failed, written for the person reading it. */
   lastError?: string;
-  lastErrorKind?: 'not-found' | 'error';
-  logs: string[];
+}
+
+/** What the Ollama probe needs from OllamaStore, which owns the key and the model list. */
+export interface OllamaCatalogLink {
+  apiKey(): string | undefined;
+  applyTags(raw: unknown): void;
+  catalog(): readonly Model[];
 }
 
 export interface LocalRuntimeStoreDeps {
-  service?: LocalRuntimeService;
-  autoDetect?: () => Promise<LocalRuntimeDetection>;
-  getOllamaCatalog?: () => Model[];
+  service?: Pick<LocalRuntimeService, 'fetchOllamaTags'>;
+  findComfy?: (preferredUrl: string | undefined) => Promise<ComfyDiscovery>;
+  /** Calls onWake when the window regains focus or becomes visible; returns an unsubscribe. */
+  subscribeToWake?: (onWake: () => void) => () => void;
+  /** False in Web Lite, where local runtimes stay off. */
+  probesEnabled?: boolean;
 }
 
-/**
- * If `status === 'starting'` for longer than this, we assume the spawn
- * succeeded but the health check never came online (port collision, model
- * load wedged, etc.) and flip the row into a 'crashed' state so the UI
- * surfaces an actionable error instead of an indefinite spinner.
- */
-export const STARTING_WATCHDOG_MS = 45_000;
+/** Wait after the 1st, 2nd, 3rd, then every later unanswered probe in a row. */
+export const PROBE_BACKOFF_OFFLINE_MS = [10_000, 30_000, 60_000, 300_000] as const;
+export const PROBE_INTERVAL_ONLINE_MS = 60_000;
+
+const WEB_LITE_LOCAL_ERROR = 'Local models need the GatesAI desktop app.';
+
+type OllamaCheck = { ok: true; tags: unknown } | { ok: false; error: string };
 
 export class LocalRuntimeStore {
   runtimes: Record<LocalRuntimeId, RuntimeState>;
+  /** Latest ComfyUI discovery: installed models and the workflow preset the app will use. */
+  comfyDiscovery: ComfyDiscovery | null = null;
   visionModel: string | undefined;
-  autoDetectComplete: boolean;
-  autoDetectAt: number | undefined;
-  autoDetecting = false;
+  /** New chats start on a local model when one is available. */
+  preferLocalModels: boolean;
 
-  private readonly service: LocalRuntimeService;
-  private readonly detect: () => Promise<LocalRuntimeDetection>;
-  private readonly getOllamaCatalog: () => Model[];
-  private readonly statusRefreshes = new Map<LocalRuntimeId, Promise<void>>();
-  private readonly watchdogs = new Map<LocalRuntimeId, ReturnType<typeof setTimeout>>();
+  private ollamaLink: OllamaCatalogLink | null = null;
+  private readonly service: Pick<LocalRuntimeService, 'fetchOllamaTags'>;
+  private readonly findComfy: (preferredUrl: string | undefined) => Promise<ComfyDiscovery>;
+  private readonly subscribeToWake: (onWake: () => void) => () => void;
+  private readonly probesEnabled: boolean;
+  private readonly inflight = new Map<LocalRuntimeId, Promise<void>>();
+  private readonly timers = new Map<LocalRuntimeId, ReturnType<typeof setTimeout>>();
+  /** Unanswered probes in a row since the runtime last answered or its target changed. */
+  private readonly offlineStreak = new Map<LocalRuntimeId, number>();
+  private monitoring = false;
+  private disposed = false;
+  private readonly stopMonitoringHooks: Array<() => void> = [];
+  private readonly stopPersistence: () => void;
 
   constructor(deps: LocalRuntimeStoreDeps = {}) {
     const persisted = loadLocalRuntimeConfig();
+    this.service = deps.service ?? localRuntimeService;
+    this.findComfy = deps.findComfy ?? (preferredUrl => findComfy(preferredUrl));
+    this.subscribeToWake = deps.subscribeToWake ?? subscribeToWindowWake;
+    this.probesEnabled = deps.probesEnabled ?? !isWebLite();
     this.runtimes = {
-      ollama: toRuntimeState(persisted.ollama),
-      comfyui: toRuntimeState(persisted.comfyui),
+      ollama: this.initialRuntime(persisted.ollama.baseUrl),
+      comfyui: this.initialRuntime(persisted.comfyui.baseUrl),
     };
     this.visionModel = persisted.visionModel;
-    this.autoDetectComplete = persisted.autoDetectComplete;
-    this.autoDetectAt = persisted.autoDetectAt;
-    this.service = deps.service ?? localRuntimeService;
-    this.detect = deps.autoDetect ?? detectLocalRuntimes;
-    this.getOllamaCatalog = deps.getOllamaCatalog ?? (() => []);
+    this.preferLocalModels = persisted.preferLocalModels;
 
-    makeAutoObservable<this, 'service' | 'detect' | 'getOllamaCatalog' | 'statusRefreshes' | 'watchdogs'>(this, {
+    makeAutoObservable<this,
+      | 'ollamaLink'
+      | 'service'
+      | 'findComfy'
+      | 'subscribeToWake'
+      | 'probesEnabled'
+      | 'inflight'
+      | 'timers'
+      | 'offlineStreak'
+      | 'monitoring'
+      | 'disposed'
+      | 'stopMonitoringHooks'
+      | 'stopPersistence'
+    >(this, {
+      ollamaLink: observable.ref,
       service: false,
-      detect: false,
-      getOllamaCatalog: false,
-      statusRefreshes: false,
-      watchdogs: false,
+      findComfy: false,
+      subscribeToWake: false,
+      probesEnabled: false,
+      inflight: false,
+      timers: false,
+      offlineStreak: false,
+      monitoring: false,
+      disposed: false,
+      stopMonitoringHooks: false,
+      stopPersistence: false,
     });
 
-    autorun(() => {
-      if (this.visionModel && this.getOllamaCatalog().length > 0
+    this.stopPersistence = autorun(() => {
+      const catalog = this.ollamaLink?.catalog() ?? [];
+      if (this.visionModel && catalog.length > 0
           && !this.visionModels.some(model => model.providerModelId === this.visionModel)) {
         this.visionModel = undefined;
       }
-      const snap: LocalRuntimePersistedConfig = {
-        ollama: persistedStateFromRuntime(this.runtimes.ollama),
-        comfyui: persistedStateFromRuntime(this.runtimes.comfyui),
+      saveLocalRuntimeConfig({
+        ollama: { baseUrl: this.runtimes.ollama.baseUrl },
+        comfyui: { baseUrl: this.runtimes.comfyui.baseUrl },
         visionModel: this.visionModel,
-        autoDetectComplete: this.autoDetectComplete,
-        autoDetectAt: this.autoDetectAt,
-      };
-      saveLocalRuntimeConfig(snap);
+        preferLocalModels: this.preferLocalModels,
+      });
     });
   }
 
   get ollamaBaseUrl(): string {
-    return this.runtimes.ollama.baseUrl || DEFAULT_OLLAMA_BASE_URL;
+    return this.runtimes.ollama.baseUrl;
   }
 
   get comfyBaseUrl(): string {
-    return this.runtimes.comfyui.baseUrl || DEFAULT_COMFY_BASE_URL;
+    return this.runtimes.comfyui.baseUrl;
   }
 
+  /** ComfyUI answered and has a model one of the built-in workflows can use. */
   get comfyReady(): boolean {
-    const runtime = this.runtimes.comfyui;
-    return runtime.managed && runtime.status === 'online';
+    return this.comfyDiscovery?.online === true && this.comfyDiscovery.preset !== null;
   }
 
   get visionModels(): Model[] {
-    return this.getOllamaCatalog().filter(modelSupportsVision);
+    return (this.ollamaLink?.catalog() ?? []).filter(modelSupportsVision);
   }
 
-  async init(): Promise<void> {
-    if (this.autoDetectComplete) return;
-    await this.autoDetect();
+  /** OllamaStore registers here so each successful probe refreshes its model list. */
+  attachOllamaCatalog(link: OllamaCatalogLink): void {
+    this.ollamaLink = link;
   }
 
-  setInstallPath(id: LocalRuntimeId, path: string): void {
-    this.runtimes[id].installPath = path.trim();
+  /**
+   * Probes both runtimes now, then keeps probing: every 60 s while a runtime
+   * answers; while it does not, after 10 s, 30 s, 60 s, then every 5 min. The
+   * window regaining focus or becoming visible probes both at once. An
+   * address or Ollama key change, or a fresh probe, probes right away and
+   * starts the backoff over. RootStore calls this on desktop only.
+   */
+  startMonitoring(): void {
+    if (this.monitoring || this.disposed || !this.probesEnabled) return;
+    this.monitoring = true;
+    this.stopMonitoringHooks.push(
+      this.subscribeToWake(() => { void this.probeAll(); }),
+      reaction(() => this.ollamaLink?.apiKey(), () => {
+        this.offlineStreak.delete('ollama');
+        void this.probe('ollama');
+      }),
+    );
+    void this.probeAll();
   }
 
-  installPathPlaceholder(id: LocalRuntimeId): string {
-    return runtimeInstallPlaceholder(id);
+  dispose(): void {
+    this.disposed = true;
+    this.monitoring = false;
+    this.timers.forEach(timer => clearTimeout(timer));
+    this.timers.clear();
+    while (this.stopMonitoringHooks.length > 0) this.stopMonitoringHooks.pop()?.();
+    this.stopPersistence();
+  }
+
+  probeAll(): Promise<void> {
+    return Promise.all([this.probe('ollama'), this.probe('comfyui')]).then(() => undefined);
+  }
+
+  /**
+   * Checks one runtime now. A call while a probe is in flight joins it; if
+   * the address or key changed meanwhile, that probe re-runs against the new
+   * target before settling, so a stale answer is never applied. `fresh`
+   * waits out an in-flight probe and starts another with the backoff reset,
+   * for "Check again" and callers that just changed what the server holds
+   * (a finished pull or delete). Does nothing after dispose.
+   */
+  probe(id: LocalRuntimeId, options: { fresh?: boolean } = {}): Promise<void> {
+    if (this.disposed) return Promise.resolve();
+    if (!this.probesEnabled) {
+      this.runtimes[id].lastError = WEB_LITE_LOCAL_ERROR;
+      return Promise.resolve();
+    }
+    const existing = this.inflight.get(id);
+    if (options.fresh) {
+      const restart = (): Promise<void> => {
+        this.offlineStreak.delete(id);
+        return this.probe(id);
+      };
+      return existing ? existing.then(restart) : restart();
+    }
+    if (existing) return existing;
+    this.runtimes[id].checking = true;
+    const run = (id === 'ollama' ? this.probeOllama() : this.probeComfy()).finally(() => {
+      this.inflight.delete(id);
+      runInAction(() => { this.runtimes[id].checking = false; });
+      this.scheduleNext(id);
+    });
+    this.inflight.set(id, run);
+    return run;
   }
 
   setBaseUrl(id: LocalRuntimeId, url: string): void {
-    const fallback = id === 'ollama' ? DEFAULT_OLLAMA_BASE_URL : DEFAULT_COMFY_BASE_URL;
-    this.runtimes[id].baseUrl = url.trim().replace(/\/+$/, '') || fallback;
+    const next = id === 'ollama' ? normalizeOllamaBaseUrl(url) : normalizeComfyBaseUrl(url);
+    const runtime = this.runtimes[id];
+    if (next === runtime.baseUrl) return;
+    runtime.baseUrl = next;
+    this.offlineStreak.delete(id);
+    if (!this.monitoring) return;
+    runtime.status = 'unknown';
+    runtime.lastError = undefined;
+    void this.probe(id);
   }
 
-  setManaged(id: LocalRuntimeId, managed: boolean): void {
-    this.runtimes[id].managed = managed;
+  setPreferLocalModels(prefer: boolean): void {
+    this.preferLocalModels = prefer;
   }
 
   setVisionModel(model: string | undefined): void {
@@ -144,250 +244,130 @@ export class LocalRuntimeStore {
     this.visionModel = trimmed || undefined;
   }
 
-  async autoDetect(): Promise<void> {
-    this.autoDetecting = true;
-    try {
-      const detected = await this.detect();
+  private initialRuntime(baseUrl: string): RuntimeState {
+    return { baseUrl, status: this.probesEnabled ? 'unknown' : 'offline', checking: false };
+  }
+
+  private async probeOllama(): Promise<void> {
+    for (;;) {
+      const baseUrl = this.ollamaBaseUrl;
+      const apiKey = this.ollamaLink?.apiKey();
+      const check = await this.checkOllama(baseUrl, apiKey);
+      if (this.disposed) return;
+      if (baseUrl !== this.ollamaBaseUrl || apiKey !== this.ollamaLink?.apiKey()) continue;
       runInAction(() => {
-        if (detected.ollama?.installPath) {
-          this.runtimes.ollama.installPath = detected.ollama.installPath;
-          this.runtimes.ollama.lastError = undefined;
-        } else if (!this.runtimes.ollama.installPath) {
-          this.runtimes.ollama.lastError = `Auto-detect could not find ${ollamaExecutableName()} — use Browse… to point at it.`;
-        }
-        if (detected.comfyui?.installPath) {
-          this.runtimes.comfyui.installPath = detected.comfyui.installPath;
-          this.runtimes.comfyui.lastError = undefined;
-        } else if (!this.runtimes.comfyui.installPath) {
-          this.runtimes.comfyui.lastError = 'Auto-detect could not find a ComfyUI portable root — use Browse… to point at it.';
-        }
-        this.autoDetectComplete = true;
-        this.autoDetectAt = Date.now();
-        this.autoDetecting = false;
+        if (check.ok) this.ollamaLink?.applyTags(check.tags);
+        this.settle('ollama', check.ok, check.ok ? undefined : check.error);
       });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      logger.warn('local-runtime', 'Auto-detect failed', { err });
-      runInAction(() => {
-        this.runtimes.ollama.lastError = `Auto-detect failed: ${message}`;
-        this.runtimes.comfyui.lastError = `Auto-detect failed: ${message}`;
-        this.autoDetecting = false;
-      });
+      return;
     }
   }
 
-  async browseFor(id: LocalRuntimeId): Promise<void> {
-    const path = id === 'ollama'
-      ? await this.service.pickFile()
-      : await this.service.pickDirectory();
-    if (path) this.setInstallPath(id, path);
+  private async checkOllama(baseUrl: string, apiKey: string | undefined): Promise<OllamaCheck> {
+    try {
+      const tags = await this.service.fetchOllamaTags(baseUrl, apiKey);
+      if (!isOllamaTagsPayload(tags)) return { ok: false, error: notOllamaError(baseUrl) };
+      return { ok: true, tags };
+    } catch (err) {
+      return { ok: false, error: ollamaProbeError(baseUrl, err) };
+    }
   }
 
-  async start(id: LocalRuntimeId): Promise<void> {
+  private async probeComfy(): Promise<void> {
+    for (;;) {
+      const preferred = this.comfyBaseUrl;
+      const discovery = await this.discoverComfy(preferred);
+      if (this.disposed) return;
+      if (preferred !== this.comfyBaseUrl) continue;
+      runInAction(() => {
+        this.comfyDiscovery = discovery;
+        if (discovery.online) this.runtimes.comfyui.baseUrl = discovery.baseUrl;
+        this.settle('comfyui', discovery.online, discovery.online && !discovery.preset
+          ? `ComfyUI is running at ${discovery.baseUrl}, but it has no image model GatesAI can use.`
+          : discovery.error);
+      });
+      return;
+    }
+  }
+
+  private async discoverComfy(preferred: string): Promise<ComfyDiscovery> {
+    try {
+      return await this.findComfy(preferred);
+    } catch (err) {
+      logger.warn('local-runtime', 'ComfyUI discovery threw', { err });
+      return {
+        baseUrl: preferred,
+        online: false,
+        error: `Nothing is answering at ${preferred}.`,
+        checkpoints: [],
+        diffusionModels: [],
+        preset: null,
+      };
+    }
+  }
+
+  private settle(id: LocalRuntimeId, online: boolean, error: string | undefined): void {
     const runtime = this.runtimes[id];
-    if (!runtime.managed) {
-      runtime.lastError = 'Enable "Manage this process from GatesAI" before starting it here.';
-      runtime.lastErrorKind = 'error';
-      return;
+    const status = online ? 'online' : 'offline';
+    if (runtime.status !== status) {
+      logger.info('local-runtime', `${id} is ${status}`, { baseUrl: runtime.baseUrl, error });
     }
-    if (!runtime.installPath) {
-      runtime.lastError = `Choose a ${id === 'ollama' ? 'Ollama executable' : 'ComfyUI portable folder'} first.`;
-      runtime.lastErrorKind = 'error';
-      return;
+    runtime.status = status;
+    runtime.lastError = error;
+    runtime.lastCheckedAt = Date.now();
+  }
+
+  private scheduleNext(id: LocalRuntimeId): void {
+    if (!this.monitoring || this.disposed) return;
+    const pending = this.timers.get(id);
+    if (pending) clearTimeout(pending);
+    this.timers.set(id, setTimeout(() => {
+      this.timers.delete(id);
+      void this.probe(id);
+    }, this.nextProbeDelay(id)));
+  }
+
+  /** Counts the probe that just settled toward the backoff, or clears it when the runtime answered. */
+  private nextProbeDelay(id: LocalRuntimeId): number {
+    if (this.runtimes[id].status === 'online') {
+      this.offlineStreak.delete(id);
+      return PROBE_INTERVAL_ONLINE_MS;
     }
-
-    runtime.status = 'starting';
-    runtime.lastError = undefined;
-    runtime.lastErrorKind = undefined;
-    this.armWatchdog(id);
-    try {
-      await this.service.startRuntime(id, {
-        installPath: runtime.installPath,
-      });
-      await this.refreshStatus(id);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (isAddressInUseError(message) || isAlreadyRunningOutsideGatesAI(message)) {
-        const probe = await this.testConnection(id);
-        if (probe.ok) {
-          this.clearWatchdog(id);
-          runInAction(() => {
-            runtime.status = 'online';
-            runtime.pid = undefined;
-            runtime.uptimeMs = undefined;
-            runtime.lastError = `${runtimeLabel(id)} is already running on ${id === 'ollama' ? this.ollamaBaseUrl : this.comfyBaseUrl}; GatesAI will use that existing server.`;
-          });
-          return;
-        }
-      }
-      this.clearWatchdog(id);
-      logger.error('local-runtime', 'Failed to start runtime', { id, message });
-      runInAction(() => {
-        runtime.status = 'crashed';
-        runtime.lastError = message;
-        runtime.lastErrorKind = 'error';
-      });
-    }
-  }
-
-  async stop(id: LocalRuntimeId): Promise<void> {
-    this.clearWatchdog(id);
-    await this.service.stopRuntime(id);
-    runInAction(() => {
-      this.runtimes[id].status = 'stopped';
-      this.runtimes[id].pid = undefined;
-      this.runtimes[id].uptimeMs = undefined;
-    });
-  }
-
-  /**
-   * Probe the runtime's base URL once and report whether it answered.
-   * Used by the Test button next to Base URL inputs so the user gets
-   * immediate feedback after editing rather than waiting on the next
-   * poll tick. Does NOT mutate runtime state — pure probe.
-   */
-  async testConnection(id: LocalRuntimeId): Promise<{ ok: true } | { ok: false; error: string }> {
-    const baseUrl = id === 'ollama' ? this.ollamaBaseUrl : this.comfyBaseUrl;
-    const probeUrl = id === 'ollama' ? `${baseUrl}/api/version` : `${baseUrl}/system_stats`;
-    try {
-      await this.service.probeHttp(probeUrl);
-      return { ok: true };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return { ok: false, error: msg.includes('aborted') ? `No response from ${probeUrl} (timeout)` : `${msg} (${probeUrl})` };
-    }
-  }
-
-  fetchOllamaTags(apiKey?: string): Promise<unknown> {
-    return this.service.fetchOllamaTags(this.ollamaBaseUrl, apiKey);
-  }
-
-  private armWatchdog(id: LocalRuntimeId): void {
-    this.clearWatchdog(id);
-    const timer = setTimeout(() => {
-      runInAction(() => {
-        const runtime = this.runtimes[id];
-        if (runtime.status !== 'starting') return;
-        runtime.status = 'crashed';
-        runtime.lastError = `${id === 'ollama' ? 'Ollama' : 'ComfyUI'} did not become healthy within ${Math.round(STARTING_WATCHDOG_MS / 1000)}s. Open Logs to see why.`;
-        runtime.lastErrorKind = 'error';
-      });
-    }, STARTING_WATCHDOG_MS);
-    this.watchdogs.set(id, timer);
-  }
-
-  private clearWatchdog(id: LocalRuntimeId): void {
-    const t = this.watchdogs.get(id);
-    if (t) {
-      clearTimeout(t);
-      this.watchdogs.delete(id);
-    }
-  }
-
-  async refreshStatus(id: LocalRuntimeId): Promise<void> {
-    const existing = this.statusRefreshes.get(id);
-    if (existing) return existing;
-    const refresh = this.doRefreshStatus(id).finally(() => {
-      this.statusRefreshes.delete(id);
-    });
-    this.statusRefreshes.set(id, refresh);
-    return refresh;
-  }
-
-  private async doRefreshStatus(id: LocalRuntimeId): Promise<void> {
-    const snapshot = await this.service.getRuntimeStatus(id);
-    runInAction(() => {
-      const runtime = this.runtimes[id];
-      // Sticky-starting: while the user-initiated start watchdog is still
-      // armed, the host reports 'offline' for the entire boot window
-      // (process spawned but health endpoint not yet answering — totally
-      // normal for ComfyUI's 30–90s CUDA + model-load startup). Without
-      // this gate, the pill would flick straight to "Offline" and the
-      // Start button would re-appear, making it look like nothing happened.
-      // Only let 'online' (success) or 'crashed' (real failure) break out
-      // of the starting state. The watchdog itself still fires at the
-      // STARTING_WATCHDOG_MS timeout to flip stuck-starting → crashed.
-      const inStartWindow = this.watchdogs.has(id);
-      const reportedStatus = snapshot.status;
-      const effectiveStatus =
-        inStartWindow && (reportedStatus === 'offline' || reportedStatus === 'stopped')
-          ? 'starting'
-          : reportedStatus;
-
-      runtime.status = effectiveStatus;
-      runtime.pid = snapshot.pid;
-      runtime.uptimeMs = snapshot.uptimeMs;
-      runtime.logs = snapshot.logs;
-      // Don't clobber the lastError we set ourselves on disabled-toggle /
-      // missing-path / spawn-failure paths with a stale `last_error`
-      // string from the host while we're still booting.
-      if (!(inStartWindow && (reportedStatus === 'offline' || reportedStatus === 'stopped'))) {
-        runtime.lastError = snapshot.lastError;
-        runtime.lastErrorKind = snapshot.lastError ? 'error' : undefined;
-      }
-    });
-    if (snapshot.status === 'online' || snapshot.status === 'crashed') {
-      this.clearWatchdog(id);
-    }
-  }
-
-  /**
-   * Eagerly refresh both runtimes. Called by the panel on mount so the
-   * first paint reflects current state instead of the persisted snapshot.
-   */
-  refreshAll(): void {
-    void this.refreshStatus('ollama');
-    void this.refreshStatus('comfyui');
-  }
-
-  resetConfig(): void {
-    this.watchdogs.forEach(timer => clearTimeout(timer));
-    this.watchdogs.clear();
-    this.runtimes = {
-      ollama: toRuntimeState(DEFAULT_LOCAL_RUNTIME_CONFIG.ollama),
-      comfyui: toRuntimeState(DEFAULT_LOCAL_RUNTIME_CONFIG.comfyui),
-    };
-    this.visionModel = DEFAULT_LOCAL_RUNTIME_CONFIG.visionModel;
-    this.autoDetectComplete = DEFAULT_LOCAL_RUNTIME_CONFIG.autoDetectComplete;
-    this.autoDetectAt = DEFAULT_LOCAL_RUNTIME_CONFIG.autoDetectAt;
-  }
-
-  selectDefaultVisionModel(): void {
-    if (this.visionModel) return;
-    const first = this.visionModels[0];
-    if (first) this.visionModel = first.providerModelId;
+    const streak = this.offlineStreak.get(id) ?? 0;
+    this.offlineStreak.set(id, streak + 1);
+    return PROBE_BACKOFF_OFFLINE_MS[Math.min(streak, PROBE_BACKOFF_OFFLINE_MS.length - 1)];
   }
 }
 
-function toRuntimeState(persisted: LocalRuntimePersistedConfig['ollama']): RuntimeState {
-  return {
-    installPath: persisted.installPath,
-    managed: persisted.managed,
-    baseUrl: persisted.baseUrl,
-    status: 'stopped',
-    lastErrorKind: undefined,
-    logs: [],
+/** One short sentence for a failed tags request; statuses arrive as "HTTP 401" or "Ollama 401". */
+function ollamaProbeError(baseUrl: string, err: unknown): string {
+  // Response.json() throws SyntaxError when a 200 body is not JSON, such as a web page.
+  if (err instanceof SyntaxError) return notOllamaError(baseUrl);
+  const message = err instanceof Error ? err.message : String(err);
+  const status = /\b(?:HTTP|Ollama)\s+(\d{3})\b/i.exec(message)?.[1];
+  if (status === '401' || status === '403') {
+    return `${baseUrl} turned the request away (HTTP ${status}). Check the Ollama API key in Settings > Models.`;
+  }
+  if (status) return `${baseUrl} answered with HTTP ${status}.`;
+  return `Nothing is answering at ${baseUrl}.`;
+}
+
+/** Something answered with a body that is not an Ollama model list; on port 80 or 443 that is usually another web server. */
+function notOllamaError(baseUrl: string): string {
+  const suggestion = suggestOllamaPortUrl(baseUrl);
+  const hint = suggestion ? ` Ollama usually listens on port 11434, for example ${suggestion}.` : '';
+  return `${baseUrl} answered, but it isn't Ollama.${hint}`;
+}
+
+function subscribeToWindowWake(onWake: () => void): () => void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return () => {};
+  const onVisibility = (): void => {
+    if (document.visibilityState === 'visible') onWake();
   };
-}
-
-function persistedStateFromRuntime(runtime: RuntimeState): LocalRuntimePersistedConfig['ollama'] {
-  const { installPath, managed, baseUrl } = toJS(runtime);
-  return { installPath, managed, baseUrl };
-}
-
-function isAddressInUseError(message: string): boolean {
-  const lower = message.toLowerCase();
-  return lower.includes('address already in use')
-    || lower.includes('only one usage of each socket address')
-    || lower.includes('cannot assign requested address')
-    || lower.includes('bind:')
-    || lower.includes('eaddrinuse');
-}
-
-function isAlreadyRunningOutsideGatesAI(message: string): boolean {
-  return message.toLowerCase().includes('already running outside gatesai');
-}
-
-function runtimeLabel(id: LocalRuntimeId): string {
-  return id === 'ollama' ? 'Ollama' : 'ComfyUI';
+  window.addEventListener('focus', onWake);
+  document.addEventListener('visibilitychange', onVisibility);
+  return () => {
+    window.removeEventListener('focus', onWake);
+    document.removeEventListener('visibilitychange', onVisibility);
+  };
 }

@@ -1,4 +1,4 @@
-import { runInAction } from 'mobx';
+import { autorun, runInAction } from 'mobx';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OllamaStore } from '../../src/stores/OllamaStore';
 import { LocalRuntimeStore } from '../../src/stores/LocalRuntimeStore';
@@ -10,29 +10,22 @@ const TAGS_OK = {
 };
 
 const STARTER_TAGS = {
-  models: [{ name: 'llama3.2:3b', model: 'llama3.2:3b', size: 2e9, modified_at: '2026-04-20T00:00:00Z' }],
+  models: [{ name: 'qwen3.5:4b', model: 'qwen3.5:4b', size: 3.4e9, modified_at: '2026-04-20T00:00:00Z' }],
 };
 
-function makeLocalRuntime(): LocalRuntimeStore {
+type FetchTags = (baseUrl: string, apiKey?: string) => Promise<unknown>;
+
+function makeLocalRuntime(fetchOllamaTags: FetchTags = async () => ({ models: [] })): LocalRuntimeStore {
   return new LocalRuntimeStore({
-    service: {
-      startRuntime: async () => {},
-      stopRuntime: async () => {},
-      getRuntimeStatus: async () => ({ running: false, status: 'stopped', logs: [] }),
-      probeHttp: async () => {},
-      fetchOllamaTags: async () => ({ models: [] }),
-      pathExists: async () => false,
-      pickDirectory: async () => null,
-      pickFile: async () => null,
-      getCandidatePaths: async () => null,
-    },
-    autoDetect: async () => ({}),
+    service: { fetchOllamaTags },
+    findComfy: async () => ({ baseUrl: 'http://127.0.0.1:8188', online: false, checkpoints: [], diffusionModels: [], preset: null }),
+    subscribeToWake: () => () => {},
   });
 }
 
 describe('OllamaStore', () => {
   beforeEach(() => clearAppStorage());
-  afterEach(() => { clearAppStorage(); vi.unstubAllGlobals(); });
+  afterEach(() => { clearAppStorage(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
   it('starts with empty catalog and reads URL from LocalRuntimeStore', () => {
     const local = makeLocalRuntime();
@@ -53,36 +46,57 @@ describe('OllamaStore', () => {
   });
 
   it('refresh() loads /api/tags through LocalRuntimeStore', async () => {
-    const fetchTags = vi.fn(async () => TAGS_OK);
+    const fetchTags = vi.fn<FetchTags>(async () => TAGS_OK);
     const reg = new ModelRegistry();
-    const local = makeLocalRuntime();
-    (local as unknown as { service: { fetchOllamaTags: typeof fetchTags } }).service.fetchOllamaTags = fetchTags;
+    const local = makeLocalRuntime(fetchTags);
     local.setBaseUrl('ollama', 'http://10.0.0.5:11434');
     const store = new OllamaStore(reg, local);
     await store.refresh();
     expect(fetchTags).toHaveBeenCalledWith('http://10.0.0.5:11434', undefined);
     expect(store.catalog).toHaveLength(1);
+    expect(store.online).toBe(true);
     expect(store.lastError).toBeUndefined();
     expect(reg.all.some(m => m.providerId === 'ollama' && m.providerModelId === 'llama3.1:8b')).toBe(true);
   });
 
-  it('refresh() captures network errors into lastError', async () => {
-    const local = makeLocalRuntime();
-    (local as unknown as { service: { fetchOllamaTags: () => Promise<unknown> } }).service.fetchOllamaTags = async () => { throw new Error('ECONNREFUSED'); };
+  it('applyTags() leaves the registry untouched when a probe returns the same tags', () => {
+    vi.useFakeTimers({ now: 1_000 });
+    const reg = new ModelRegistry();
+    const store = new OllamaStore(reg, makeLocalRuntime());
+    let registryChanges = -1;
+    const stop = autorun(() => { void reg.all; registryChanges += 1; });
+
+    store.applyTags(TAGS_OK);
+    expect(registryChanges).toBe(1);
+    expect(store.lastRefreshAt).toBe(1_000);
+
+    vi.setSystemTime(2_000);
+    store.applyTags(structuredClone(TAGS_OK));
+    expect(registryChanges).toBe(1);
+    expect(store.lastRefreshAt).toBe(1_000);
+
+    store.applyTags(STARTER_TAGS);
+    expect(registryChanges).toBe(2);
+    expect(store.catalog.map(model => model.id)).toEqual(['ollama-qwen3.5:4b']);
+    expect(store.lastRefreshAt).toBe(2_000);
+    stop();
+  });
+
+  it('refresh() reports an unreachable server in lastError', async () => {
+    const local = makeLocalRuntime(async () => { throw new Error('ECONNREFUSED'); });
     const store = new OllamaStore(new ModelRegistry(), local);
     await store.refresh();
-    expect(store.lastError).toMatch(/ECONNREFUSED/);
+    expect(store.online).toBe(false);
+    expect(store.lastError).toBe('Nothing is answering at http://127.0.0.1:11434.');
   });
 
   it('persists auth/catalog; new store rehydrates without a fetch', async () => {
-    const local = makeLocalRuntime();
-    (local as unknown as { service: { fetchOllamaTags: () => Promise<unknown> } }).service.fetchOllamaTags = async () => TAGS_OK;
+    const local = makeLocalRuntime(async () => TAGS_OK);
     const reg = new ModelRegistry();
     const store = new OllamaStore(reg, local);
     await store.refresh();
 
-    const local2 = makeLocalRuntime();
-    (local2 as unknown as { service: { fetchOllamaTags: () => Promise<unknown> } }).service.fetchOllamaTags = async () => { throw new Error('should not be called'); };
+    const local2 = makeLocalRuntime(async () => { throw new Error('should not be called'); });
     const reg2 = new ModelRegistry();
     const store2 = new OllamaStore(reg2, local2);
     expect(store2.catalog).toHaveLength(1);
@@ -100,8 +114,7 @@ describe('OllamaStore', () => {
   });
 
   it('clearCatalog() empties the registry slice and storage', async () => {
-    const local = makeLocalRuntime();
-    (local as unknown as { service: { fetchOllamaTags: () => Promise<unknown> } }).service.fetchOllamaTags = async () => TAGS_OK;
+    const local = makeLocalRuntime(async () => TAGS_OK);
     const reg = new ModelRegistry();
     const store = new OllamaStore(reg, local);
     await store.refresh();
@@ -116,31 +129,30 @@ describe('OllamaStore', () => {
     const store = new OllamaStore(new ModelRegistry(), local);
     vi.stubGlobal('fetch', vi.fn(async () => pendingPullResponse()));
 
-    const first = store.startPull('llama3.2:3b');
-    await vi.waitFor(() => expect(store.isPulling('llama3.2:3b')).toBe(true));
+    const first = store.startPull('qwen3.5:4b');
+    await vi.waitFor(() => expect(store.isPulling('qwen3.5:4b')).toBe(true));
 
-    await expect(store.startPull('llama3.2:3b')).resolves.toBe(false);
+    await expect(store.startPull('qwen3.5:4b')).resolves.toBe(false);
     await expect(store.startPull('qwen2.5:7b')).resolves.toBe(false);
-    expect(store.pulls.get('qwen2.5:7b')?.error).toMatch(/Finish or cancel llama3\.2:3b/);
+    expect(store.pulls.get('qwen2.5:7b')?.error).toMatch(/Finish or cancel qwen3\.5:4b/);
 
-    store.cancelPull('llama3.2:3b');
+    store.cancelPull('qwen3.5:4b');
     await first;
   });
 
   it('startPull() refreshes the catalog after completion', async () => {
-    const fetchTags = vi.fn(async () => STARTER_TAGS);
-    const local = makeLocalRuntime();
-    (local as unknown as { service: { fetchOllamaTags: typeof fetchTags } }).service.fetchOllamaTags = fetchTags;
+    const fetchTags = vi.fn<FetchTags>(async () => STARTER_TAGS);
+    const local = makeLocalRuntime(fetchTags);
     runInAction(() => { local.runtimes.ollama.status = 'online'; });
     const reg = new ModelRegistry();
     const store = new OllamaStore(reg, local);
     vi.stubGlobal('fetch', vi.fn(async () => pullResponse([{ status: 'success' }])));
 
-    await expect(store.startPull('llama3.2:3b')).resolves.toBe(true);
+    await expect(store.startPull('qwen3.5:4b')).resolves.toBe(true);
 
     expect(fetchTags).toHaveBeenCalled();
-    expect(store.pulls.get('llama3.2:3b')).toEqual({ percent: 100, phase: 'Installed' });
-    expect(reg.all.some(model => model.providerId === 'ollama' && model.providerModelId === 'llama3.2:3b')).toBe(true);
+    expect(store.pulls.get('qwen3.5:4b')).toEqual({ percent: 100, phase: 'Installed' });
+    expect(reg.all.some(model => model.providerId === 'ollama' && model.providerModelId === 'qwen3.5:4b')).toBe(true);
   });
 
   it('cancelPull() aborts the active pull', async () => {
@@ -149,12 +161,12 @@ describe('OllamaStore', () => {
     const store = new OllamaStore(new ModelRegistry(), local);
     vi.stubGlobal('fetch', vi.fn(async () => pendingPullResponse()));
 
-    const promise = store.startPull('llama3.2:3b');
-    await vi.waitFor(() => expect(store.isPulling('llama3.2:3b')).toBe(true));
-    store.cancelPull('llama3.2:3b');
+    const promise = store.startPull('qwen3.5:4b');
+    await vi.waitFor(() => expect(store.isPulling('qwen3.5:4b')).toBe(true));
+    store.cancelPull('qwen3.5:4b');
 
     await expect(promise).resolves.toBe(false);
-    expect(store.pulls.get('llama3.2:3b')?.phase).toBe('Cancelled');
+    expect(store.pulls.get('qwen3.5:4b')?.phase).toBe('Cancelled');
   });
 });
 

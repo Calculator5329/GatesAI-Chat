@@ -1,4 +1,5 @@
 import { ensureOk } from './sse';
+import { localFetch } from '../local/localHttp';
 import { finiteNumber, isRecord, readUtf8Lines } from './streamCore';
 
 export interface OllamaPullProgress {
@@ -34,7 +35,7 @@ export async function pullModel(
   if (!model) throw new Error('Choose an Ollama model to pull.');
 
   callbacks.onProgress?.({ phase: 'Starting pull', percent: 0 });
-  const response = await fetch(`${normalizeBaseUrl(callbacks.baseUrl)}/api/pull`, {
+  const response = await localFetch(`${normalizeBaseUrl(callbacks.baseUrl)}/api/pull`, {
     method: 'POST',
     headers: headersFor(callbacks.apiKey),
     body: JSON.stringify({ model, stream: true }),
@@ -64,7 +65,7 @@ export async function deleteModel(
 ): Promise<void> {
   const model = name.trim();
   if (!model) throw new Error('Choose an Ollama model to delete.');
-  const response = await fetch(`${normalizeBaseUrl(opts.baseUrl)}/api/delete`, {
+  const response = await localFetch(`${normalizeBaseUrl(opts.baseUrl)}/api/delete`, {
     method: 'DELETE',
     headers: headersFor(opts.apiKey),
     body: JSON.stringify({ model }),

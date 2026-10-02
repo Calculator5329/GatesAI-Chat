@@ -16,7 +16,26 @@
  * stacks).
  */
 
+/** Model files the FLUX.2 Klein workflow loads, named as ComfyUI reports them. */
+export interface Flux2KleinFiles {
+  /** UNETLoader unet_name (models/diffusion_models). */
+  unet: string;
+  /** CLIPLoader clip_name (models/text_encoders). */
+  textEncoder: string;
+  /** VAELoader vae_name (models/vae). */
+  vae: string;
+}
+
+/** Filenames from the official FLUX.2 Klein 4B downloads. */
+export const FLUX2_KLEIN_DEFAULT_FILES: Flux2KleinFiles = {
+  unet: 'flux-2-klein-4b-fp8.safetensors',
+  textEncoder: 'qwen_3_4b.safetensors',
+  vae: 'flux2-vae.safetensors',
+};
+
 export interface BuildOptions {
+  /** Files to load. Defaults to {@link FLUX2_KLEIN_DEFAULT_FILES}. */
+  files?: Flux2KleinFiles;
   /** Sampling steps for the base pass. Default 12 from the local quality study. */
   steps?: number;
   /** Classifier-free guidance. Default 1.0 from the local quality study. */
@@ -46,19 +65,20 @@ export function buildFinalFlux2KleinWorkflow(opts: BuildOptions = {}): Record<st
   const baseSteps = opts.steps ?? 12;
   const cfg = opts.cfg ?? DEFAULT_GUIDANCE;
   const hiresSteps = opts.hiresSteps ?? baseSteps;
+  const files = opts.files ?? FLUX2_KLEIN_DEFAULT_FILES;
 
   const base: Record<string, unknown> = {
     '1': {
       class_type: 'UNETLoader',
-      inputs: { unet_name: 'flux-2-klein-4b-fp8.safetensors', weight_dtype: 'default' },
+      inputs: { unet_name: files.unet, weight_dtype: 'default' },
     },
     '2': {
       class_type: 'CLIPLoader',
-      inputs: { clip_name: 'qwen_3_4b.safetensors', type: 'flux2' },
+      inputs: { clip_name: files.textEncoder, type: 'flux2' },
     },
     '3': {
       class_type: 'VAELoader',
-      inputs: { vae_name: 'flux2-vae.safetensors' },
+      inputs: { vae_name: files.vae },
     },
     '4': {
       class_type: 'CLIPTextEncode',

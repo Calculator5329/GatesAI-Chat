@@ -68,6 +68,6 @@ now. No other API providers.
 
 - [ ] Audit current provider integrations against the OpenRouter+Ollama+ComfyUI policy; remove/park anything else.
 - [ ] Self-update loop: define the safe path (edit own repo → rebuild → installer → user installs) and how far it can be closed.
-- [ ] ComfyUI seamless integration (today requires `--enable-cors-header`).
+- [x] ComfyUI seamless integration (today requires `--enable-cors-header`). *(2026-10-02: GatesAI finds ComfyUI on 8188 or 8000, reads its models and picks a workflow; HTTP goes through Rust so the flag is only needed for live progress.)*
 - [ ] Browser-use deepening beyond Brave Search.
 - [ ] Cross-platform release health: publish the macOS .dmg as a stable public asset (build is green as of v4.6.1; win+linux published).

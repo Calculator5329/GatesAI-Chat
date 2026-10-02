@@ -42,23 +42,21 @@ async function ollamaOnline(store: AfterBootStore): Promise<void> {
   if (runtime) {
     runInAction(() => {
       runtime.runtimes.ollama.status = 'online';
-      runtime.runtimes.ollama.installPath = '/usr/local/bin/ollama';
       runtime.runtimes.ollama.lastError = undefined;
-      runtime.runtimes.ollama.lastErrorKind = undefined;
-      runtime.runtimes.comfyui.status = 'stopped';
+      runtime.runtimes.comfyui.status = 'offline';
     });
   }
   await store.ollama?.refresh();
 }
 
-/** Ollama installed but not running: the empty state offers to start it. */
-async function ollamaInstalledStopped(store: AfterBootStore): Promise<void> {
+/** Ollama not answering: the empty state offers the download, a recheck and the remote-server hint. */
+async function ollamaOffline(store: AfterBootStore): Promise<void> {
   const runtime = store.localRuntime;
   if (!runtime) return;
   runInAction(() => {
-    runtime.runtimes.ollama.status = 'stopped';
-    runtime.runtimes.ollama.installPath = '/usr/local/bin/ollama';
-    runtime.runtimes.comfyui.status = 'stopped';
+    runtime.runtimes.ollama.status = 'offline';
+    runtime.runtimes.ollama.lastError = 'Nothing is answering at http://127.0.0.1:11434.';
+    runtime.runtimes.comfyui.status = 'offline';
   });
 }
 
@@ -357,11 +355,11 @@ export const SCENARIOS: ScenarioDefinition[] = [
   },
   {
     name: 'first-run-local-installed',
-    title: 'First run, Ollama installed but stopped',
-    description: 'Onboarding showing, Ollama installed at a known path but not running, so the local card offers to start it and check again.',
+    title: 'First run, Ollama not answering',
+    description: 'Onboarding showing and nothing answering at the Ollama address, so the local card offers the Ollama download, a recheck and the remote-server hint.',
     seed: () => buildSeed({ readyProvider: false, onboardingDismissed: false }),
     network: { openrouter: 'offline', ollama: 'offline', bridge: 'offline' },
-    afterBoot: ollamaInstalledStopped,
+    afterBoot: ollamaOffline,
   },
   {
     name: 'local-no-embed',

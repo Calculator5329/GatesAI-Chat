@@ -1,5 +1,77 @@
 # Changelog
 
+## 2026-10-02: Local setup finds Ollama and ComfyUI on its own
+
+- **What changed for you.** Setting up local models used to mean an
+  install-path field, a "managed" toggle, `OLLAMA_ORIGINS=*` for Ollama, and
+  `--enable-cors-header` plus a hand-picked workflow file for ComfyUI. Now
+  Settings → Models opens on one **Local** card with three rows (Chat,
+  Images, Memory), each showing what GatesAI found and the one next step.
+  Ollama is picked up when you switch back to GatesAI after starting it (or
+  press Check again), on this computer or on a server you type in (`192.168.1.20` becomes `http://192.168.1.20:11434`).
+  ComfyUI and ComfyUI Desktop are found on 8188 or 8000, and GatesAI reads
+  which models they hold and picks the workflow itself (FLUX.2 Klein, SDXL
+  Lightning, or any SDXL-family checkpoint). New chats start on a local
+  model whenever one is installed; the card has the switch to turn that
+  off.
+- **What went away.** GatesAI no longer starts or stops Ollama or ComfyUI;
+  it finds them. The first-run "Start Ollama" button is gone; an "Install
+  Ollama" link, Check again, and a pointer to the server address in
+  Settings → Models replace it. The "Ollama is offline" banner above the
+  composer has its own Check again. The
+  image backend setting became `auto`: ComfyUI when it is ready, OpenRouter
+  otherwise. Web Lite is unchanged and stays cloud-only. The launch code is
+  archived under `docs/archive/local-runtime-spawn-20261002/`, and with it
+  `spawn_runtime`, a Tauri command that ran whatever program path the
+  webview handed it.
+- **Mechanism.** A Rust command, `local_http_request`
+  (`src-tauri/src/local_http.rs`, ADR
+  `adr/2026-10-01-local-http-passthrough.md`), makes every Ollama and
+  ComfyUI HTTP call and streams the response back, so CORS never applies.
+  Paths are a fixed allowlist with strict single-segment rules; loopback
+  traffic skips any environment proxy. `LocalRuntimeStore` probes on boot,
+  on window focus, every 60 s while a runtime answers, and while it does not
+  after 10 s, 30 s, 60 s, then every 5 min, so a down server or a web page
+  on :8000 is not hit forever. A web page answering in place of Ollama now
+  says so and suggests port 11434. On desktop the first probe waits up to
+  3 s for the keychain, so a keyed remote Ollama is checked with its key.
+  `comfyDiscovery.ts` reads `/object_info` to choose the preset.
+- **Picking and keeping models.** Ollama coming online later no longer
+  moves a model you picked this session, and a chat with messages never
+  changes model on its own. (An empty chat you set to the cloud default
+  goes back to local after a restart; picks are not saved per chat.) New
+  chats default to the largest installed local model that can use tools,
+  never an Ollama cloud model, which is badged CLOUD in the picker. On the
+  dev machine's nine tags (2026-10-02) that ranks gpt-oss:20b, then
+  qwen2.5-coder:14b, then gemma4:12b; without an OpenRouter key, chat
+  titles run on qwen2.5:3b. A started chat whose local model Ollama no longer
+  lists keeps it and says so above the composer; regenerate, follow-ups
+  and scheduled tasks on it fail with that same sentence (or "the Ollama
+  at ... is not answering") instead of asking for an OpenRouter key. Local
+  chats budget against the 8K window Ollama runs by default, not the 262K
+  the model was trained for; the picker shows that ceiling as "up to 262K".
+- **First run.** The read-only welcome tour no longer counts as having
+  chatted, so a first launch shows the setup panel (local and cloud on
+  desktop, the OpenRouter key on Web Lite) instead of skipping straight to
+  an empty chat with a key banner.
+- **Known gap.** ComfyUI's live step progress still comes over a WebSocket
+  from the webview, which ComfyUI refuses without `--enable-cors-header`.
+  Renders still finish and appear; they just show no percentage. On the
+  roadmap.
+- **Test ids.** `workspace.editorial-chat.start-ollama`, `.secondary` and
+  `.open-local-settings-3` are tombstoned in `agent-handles.json`. The
+  ratchet reports two disappeared interaction sites,
+  `candidate:77e04f2f95231bd0` and `candidate:e5068297f0bdb08b`: the Ollama
+  address field and its Check button, which moved from `ApiSection.tsx` to
+  `LocalCard.tsx` with their test ids unchanged. Left for an owner verdict,
+  not re-baselined.
+- **Verification.** `npm run ci` green (1,532 Vitest tests in 186 files,
+  typecheck, lint); `npm run test:e2e` 145 of 145 passed, with ports 11434,
+  8188 and 8000 refused so the run never touched this machine's Ollama or
+  ComfyUI; `cargo test` 36 of 36. The agent-handles adoption receipt is
+  byte-identical (sha256 84da18ec...) and `scan check` reports the registry
+  matches sources. Each new unit test was run red before its fix.
+
 ## 2026-10-01: v4.8.1, the first public release since July
 
 - **What changed for you.** The public download was still v4.6.1 from

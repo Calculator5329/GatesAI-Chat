@@ -5,10 +5,11 @@ import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, use
 import { autorun } from 'mobx';
 import { observer } from 'mobx-react-lite';
 import { useEditorial, useUiStore } from '../../stores/context';
-import { isTauri, isWebLite } from '../../core/runtime';
+import { isWebLite } from '../../core/runtime';
 import { clientPlatform } from '../../core/clientPlatform';
 import { recommendedDownload } from '../../core/downloads';
 import { bestLocalModel } from '../../core/defaultModel';
+import { isLoopbackBaseUrl } from '../../core/localUrls';
 import type { Message, Model } from '../../core/types';
 import { groupMessagesByDate } from '../../core/threadSelectors';
 import { Icons, SecretKeyField } from '../ui';
@@ -27,6 +28,9 @@ import {
 import { pinScrollToBottom, readerScrolledUpSinceLastPin, resolveScrollFollow, shouldDisengageScrollFollow } from './scrollFollow';
 
 const STICKY_BOTTOM_PX = 100;
+const STARTER_OLLAMA_MODEL = 'qwen3.5:4b';
+const STARTER_OLLAMA_MODEL_SIZE = '3.4 GB';
+const OLLAMA_DOWNLOAD_URL = 'https://ollama.com/download';
 const INITIAL_RENDERED_MESSAGES = 120;
 const RENDERED_MESSAGE_PAGE_SIZE = 80;
 const MESSAGE_PLACEHOLDER_STYLE: CSSProperties = {
@@ -150,17 +154,10 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
 }: {
   onReady: (message: string) => void;
 }) {
-  const { chat, providers, registry, localRuntime, ui, openrouter, ollama } = useEditorial();
+  const { chat, providers, registry, ui, openrouter, ollama } = useEditorial();
   const webLite = isWebLite();
   const [cloudState, setCloudState] = useState<'idle' | 'checking' | 'error'>('idle');
   const [cloudMessage, setCloudMessage] = useState<string | null>(null);
-  const [localChecking, setLocalChecking] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (webLite || !isTauri()) return;
-    localRuntime.refreshAll();
-  }, [localRuntime, webLite]);
 
   const validateOpenRouterKey = useCallback(async (key: string) => {
     if (cloudState === 'checking') return;
@@ -181,25 +178,6 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
     ui.focusComposer();
   }, [cloudState, onReady, openrouter, providers, ui]);
 
-  const refreshLocal = useCallback(async () => {
-    if (localChecking) return;
-    setLocalChecking(true);
-    setLocalError(null);
-    try {
-      if (!localRuntime.autoDetectComplete && !localRuntime.runtimes.ollama.installPath) {
-        await localRuntime.autoDetect();
-      }
-      await localRuntime.refreshStatus('ollama');
-      if (localRuntime.runtimes.ollama.status === 'online') {
-        await ollama.refresh();
-      }
-    } catch (err) {
-      setLocalError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLocalChecking(false);
-    }
-  }, [localChecking, localRuntime, ollama]);
-
   const localModels = registry.all.filter(model => model.providerId === 'ollama');
 
   useEffect(() => {
@@ -211,8 +189,9 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
     chat.reconcileDefaultModelForEmptyThreads();
   }, [chat, localModels, ollama.online, webLite]);
 
-  const activeLocalModel = localModels.find(model => model.id === chat.activeThread?.modelId);
-  const localModelForChat = activeLocalModel ?? bestLocalModel(localModels);
+  const localModelForChat = localModels.find(model => model.id === chat.activeThread?.modelId)
+    ?? localModels.find(model => model.id === chat.defaultModelId)
+    ?? bestLocalModel(localModels);
   const selectLocalModel = useCallback(() => {
     const threadId = chat.activeThreadId;
     const model = localModelForChat;
@@ -225,10 +204,10 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
   }, [chat, localModelForChat, localModels.length, onReady, ui]);
 
   const startStarterPull = useCallback(async () => {
-    const ok = await ollama.startPull('llama3.2:3b');
+    const ok = await ollama.startPull(STARTER_OLLAMA_MODEL);
     if (!ok) return;
     const threadId = chat.activeThreadId;
-    const model = registry.all.find(item => item.providerId === 'ollama' && item.providerModelId === 'llama3.2:3b')
+    const model = registry.all.find(item => item.providerId === 'ollama' && item.providerModelId === STARTER_OLLAMA_MODEL)
       ?? bestLocalModel(registry.all.filter(item => item.providerId === 'ollama'));
     if (!threadId || !model) return;
     chat.setThreadModel(threadId, model.id);
@@ -248,9 +227,6 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
         <OllamaOnboardingCard
           models={localModels}
           selectedModel={localModelForChat}
-          checking={localChecking || ollama.fetching || localRuntime.autoDetecting}
-          error={localError ?? ollama.lastError ?? null}
-          onRefresh={refreshLocal}
           onSelect={selectLocalModel}
           onStarterPull={startStarterPull}
         />
@@ -297,57 +273,56 @@ const FirstRunOnboardingPanel = observer(function FirstRunOnboardingPanel({
   );
 });
 
+/**
+ * The Local onboarding card. It follows LocalRuntimeStore's live probe, so
+ * starting Ollama (or pointing GatesAI at a server) flips it without a click:
+ * looking -> not answering -> running without models -> ready.
+ */
 const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
   models,
   selectedModel,
-  checking,
-  error,
-  onRefresh,
   onSelect,
   onStarterPull,
 }: {
   models: Model[];
   selectedModel: Model | undefined;
-  checking: boolean;
-  error: string | null;
-  onRefresh: () => void;
   onSelect: () => void;
   onStarterPull: () => void;
 }) {
   const { localRuntime, ollama, router } = useEditorial();
   const runtime = localRuntime.runtimes.ollama;
-  const online = runtime.status === 'online';
-  const ready = online && models.length > 0;
-  const notDetected = !runtime.installPath && runtime.status !== 'online';
-  const buttonLabel = checking ? 'Checking...' : 'Check again';
-  const starter = 'llama3.2:3b';
-  const starterState = ollama.pulls.get(starter);
+  const starterState = ollama.pulls.get(STARTER_OLLAMA_MODEL);
+  const starterPulling = ollama.isPulling(STARTER_OLLAMA_MODEL);
   const openLocalSettings = () => router.goMenu('models');
 
   return (
-    <section className="editorial-onboarding__card" data-onboarding-path="local">
+    <section className="editorial-onboarding__card" data-onboarding-path="local" data-ollama-status={runtime.status}>
       <div className="editorial-onboarding__kicker">Local</div>
       <h2>Start with local models</h2>
-      {ready ? (
+      {runtime.status === 'unknown' ? (
+        <p role="status">Looking for Ollama at {localRuntime.ollamaBaseUrl}...</p>
+      ) : runtime.status === 'online' && models.length > 0 ? (
         <>
           <p>
-            Ollama detected - {formatModelCount(models.length)} ready. {selectedModel?.name ?? 'A local model'}
+            Ollama is running with {formatModelCount(models.length)}. {selectedModel?.name ?? 'A local model'}
             {' '}is selected for this chat, and GatesAI will not switch providers unless you choose another model.
           </p>
           <button data-testid="workspace.editorial-chat.continue-with" type="button" className="editorial-empty-state__primary" onClick={onSelect}>
-            Continue with {selectedModel?.name ?? 'local model'}
+            Chat with {selectedModel?.name ?? 'a local model'}
           </button>
         </>
-      ) : online ? (
+      ) : runtime.status === 'online' ? (
         <>
-          <p>Ollama is running, but no chat models are pulled yet. Add one here and keep the whole conversation on this machine.</p>
+          <p>Ollama is running, but no chat models are pulled yet. Get a small model that runs on most laptops and keep the whole conversation on this machine.</p>
           <button data-testid="workspace.editorial-chat.primary"
             type="button"
             className="editorial-empty-state__primary"
             onClick={onStarterPull}
-            disabled={checking || ollama.isPulling(starter)}
+            disabled={starterPulling}
           >
-            {ollama.isPulling(starter) ? `Pulling ${Math.round(starterState?.percent ?? 0)}%` : 'Get a starter model'}
+            {starterPulling
+              ? `Pulling ${Math.round(starterState?.percent ?? 0)}%`
+              : `Get ${STARTER_OLLAMA_MODEL} (${STARTER_OLLAMA_MODEL_SIZE})`}
           </button>
           {starterState && (
             <div
@@ -359,34 +334,52 @@ const OllamaOnboardingCard = observer(function OllamaOnboardingCard({
             </div>
           )}
           <button data-testid="workspace.editorial-chat.open-local-settings" type="button" className="editorial-empty-state__secondary" onClick={openLocalSettings}>
-            Open Local settings
+            Open Settings &gt; Models
           </button>
         </>
-      ) : notDetected ? (
+      ) : isLoopbackBaseUrl(runtime.baseUrl) ? (
         <>
-          <p>Run chat and tools on your machine with Ollama - no account or cloud key. Local settings can help you install or connect it.</p>
-          <button data-testid="workspace.editorial-chat.install-ollama" type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
-            Open Local settings
+          <p>Run chat on your own machine with Ollama, no account or cloud key. Once Ollama is running, GatesAI picks it up on its own.</p>
+          {runtime.lastError && <p role="status">{runtime.lastError}</p>}
+          <p>Ollama on another computer? Set its address in Settings &gt; Models.</p>
+          <a data-testid="workspace.editorial-chat.install-ollama"
+            href={OLLAMA_DOWNLOAD_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="editorial-empty-state__primary"
+            style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}
+          >
+            Install Ollama
+          </a>
+          <button data-testid="workspace.editorial-chat.recheck-ollama"
+            type="button"
+            className="editorial-empty-state__secondary"
+            onClick={() => void ollama.refresh()}
+            disabled={runtime.checking}
+          >
+            {runtime.checking ? 'Checking...' : 'Check again'}
           </button>
-          <button data-testid="workspace.editorial-chat.secondary" type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
-            {buttonLabel}
+          <button data-testid="workspace.editorial-chat.set-remote-ollama" type="button" className="editorial-empty-state__secondary" onClick={openLocalSettings}>
+            Open Settings &gt; Models
           </button>
         </>
       ) : (
         <>
-          <p>Ollama is configured but not running. Start it from Local settings; GatesAI will not silently fall back to cloud.</p>
-          <button data-testid="workspace.editorial-chat.start-ollama" type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
-            Open Local settings
+          <p>GatesAI is set to use the Ollama server at {runtime.baseUrl}, and it is not answering.</p>
+          {runtime.lastError && <p role="status">{runtime.lastError}</p>}
+          <p>On the server, Ollama has to listen beyond localhost: set OLLAMA_HOST=0.0.0.0:11434 and restart it.</p>
+          <button data-testid="workspace.editorial-chat.open-remote-ollama-settings" type="button" className="editorial-empty-state__primary" onClick={openLocalSettings}>
+            Open Settings &gt; Models
           </button>
-          <button data-testid="workspace.editorial-chat.recheck-ollama" type="button" className="editorial-empty-state__secondary" onClick={onRefresh} disabled={checking}>
-            {buttonLabel}
+          <button data-testid="workspace.editorial-chat.recheck-remote-ollama"
+            type="button"
+            className="editorial-empty-state__secondary"
+            onClick={() => void ollama.refresh()}
+            disabled={runtime.checking}
+          >
+            {runtime.checking ? 'Checking...' : 'Check again'}
           </button>
         </>
-      )}
-      {error && (
-        <div className="editorial-onboarding__status" data-tone="error" role="alert">
-          {error}
-        </div>
       )}
     </section>
   );

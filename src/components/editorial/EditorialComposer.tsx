@@ -10,7 +10,7 @@ import { useEditorial } from '../../stores/context';
 import { normalizeOpenRouterThinkingEffort, type ChatContextMode, type ChatThinkingEffort } from '../../stores/ChatStore';
 import { isWebLite } from '../../core/runtime';
 import { AttachmentTray } from './composer/AttachmentTray';
-import { LocalImageBanner, ModelsKeyBanner, NoticeBanner, OllamaOfflineBanner } from './composer/ComposerBanners';
+import { LocalImageBanner, LocalModelMissingBanner, ModelsKeyBanner, NoticeBanner, OllamaOfflineBanner } from './composer/ComposerBanners';
 import { ComposerInput } from './composer/ComposerInput';
 import { ComposerMeta } from './composer/ComposerMeta';
 import { handleClipboardImagePaste } from './composer/composerAttachments';
@@ -72,9 +72,13 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
     && (activeThread?.messages.length ?? 0) === 0
     && !chat.threads.some(thread => !thread.readOnly && thread.messages.length > 0);
   // Context-aware send gating: direct-image → Comfy health; Ollama model → Ollama
-  // health; everything else → OpenRouter/provider key. Mutually exclusive banners.
-  const routeBlock: 'models-key' | 'ollama-offline' | 'comfy-offline' | null = (() => {
+  // health; a started chat whose local model Ollama no longer lists → that
+  // model's banner; everything else → OpenRouter/provider key. Mutually exclusive banners.
+  const routeBlock: 'models-key' | 'ollama-offline' | 'comfy-offline' | 'local-model-missing' | null = (() => {
     if (directImageMode) return directImageReady ? null : 'comfy-offline';
+    if (chat.activeMissingLocalModelTag) {
+      return providers.isConnected('ollama') ? 'local-model-missing' : 'ollama-offline';
+    }
     if (currentModel?.providerId === 'ollama') {
       return providers.isConnected('ollama') ? null : 'ollama-offline';
     }
@@ -176,6 +180,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
         {/* Banner stack: route block → multi-tab conflict → compaction → per-thread error */}
         {routeBlock === 'comfy-offline' && <LocalImageBanner />}
         {routeBlock === 'ollama-offline' && <OllamaOfflineBanner />}
+        {routeBlock === 'local-model-missing' && <LocalModelMissingBanner />}
         {routeBlock === 'models-key' && !onboardingVisible && <ModelsKeyBanner />}
         {chat.persistenceConflict && (
           <NoticeBanner
@@ -233,6 +238,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
         <ComposerMeta
           activeThread={activeThread}
           currentModel={currentModel}
+          missingLocalModelTag={chat.activeMissingLocalModelTag}
           defaultModelId={chat.defaultModelId}
           modelOpen={modelOpen}
           onToggleModel={toggleModelPopover}

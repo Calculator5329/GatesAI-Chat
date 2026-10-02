@@ -3,28 +3,28 @@
   "predicateVersion": 4,
   "grammar": "area.component.element[.qualifier]",
   "generatedFrom": "src/**/*.{tsx,jsx} and journeys/manifest.json",
-  "sourceDigest": "sha256:378315ca829453c7e5c8188c7c6802c6d7f0dca918e9e8e6fffc1166b7ecf572",
+  "sourceDigest": "sha256:e9ec06f06d986b949f7eccc91e265092c14a13dc6c053ef895d73dce60ed0b23",
   "journeyCoverage": {
     "controlPath": 102,
     "urlPath": 2
   },
   "coverage": {
-    "controlCandidates": 224,
-    "definiteCandidates": 196,
+    "controlCandidates": 232,
+    "definiteCandidates": 204,
     "reviewRequiredCandidates": 28,
-    "identifiedCandidates": 224,
+    "identifiedCandidates": 230,
     "nonInteractiveCandidates": 0,
     "unreachableCandidates": 0,
-    "unresolvedCandidates": 0,
+    "unresolvedCandidates": 2,
     "invalidIdentityMigrations": 0,
-    "interactiveElements": 224,
-    "identifiedInteractive": 224,
-    "unidentifiedInteractive": 0,
-    "maximumUnidentifiedInteractive": 0
+    "interactiveElements": 232,
+    "identifiedInteractive": 230,
+    "unidentifiedInteractive": 2,
+    "maximumUnidentifiedInteractive": 2
   },
   "interactionFingerprint": {
     "algorithm": "candidate-site-sha256/v1",
-    "digest": "sha256:0da53abbc7e2dd9c1ec2b9a38e0401b03719f6b87a9bb3396271811286bb8782",
+    "digest": "sha256:02f4efa4ab3e5df9dbe669a3dc3f2ac2ce16eea51bf603e0c0bfdb540200f8fd",
     "sites": [
       "candidate:0301d7966ea101ce",
       "candidate:03cf1f812fd795ba",
@@ -51,6 +51,7 @@
       "candidate:194be6858582aef4",
       "candidate:19791eee2564051e",
       "candidate:1ab468e92d13f1c1",
+      "candidate:1b0acebd2062909a",
       "candidate:1ba2c6c9374f9b84",
       "candidate:1d03a94aff783269",
       "candidate:20fa72c70f84ccc8",
@@ -72,6 +73,7 @@
       "candidate:31e594f354113e78",
       "candidate:333b4d6b11976c7d",
       "candidate:3660eaaabe94e0b2",
+      "candidate:38b048f459664007",
       "candidate:3aabc10888e90731",
       "candidate:3d9a5205562012c7",
       "candidate:3e9cc94cd3431076",
@@ -88,6 +90,7 @@
       "candidate:45caa626d09c2f8b",
       "candidate:4629b70c56799440",
       "candidate:464965ac2d729e33",
+      "candidate:466453492e28d4ee",
       "candidate:46b657cad4db1772",
       "candidate:4fe2b5e5ac94f799",
       "candidate:50533289a9a7fa4c",
@@ -102,6 +105,7 @@
       "candidate:5704dd09a42dab74",
       "candidate:585aa3d5bf5451c8",
       "candidate:58d16d4fddb894a6",
+      "candidate:58dc1025649851be",
       "candidate:599b731aeaac88be",
       "candidate:5baa4ad827e66650",
       "candidate:5d38b206a4783f6d",
@@ -129,7 +133,6 @@
       "candidate:724b85c31e7369a4",
       "candidate:729b4117bce03d19",
       "candidate:75ab3d7c559a11cb",
-      "candidate:77e04f2f95231bd0",
       "candidate:79f3847bb89035b2",
       "candidate:7a81f457fe018f20",
       "candidate:7b9f707f3176edca",
@@ -154,6 +157,7 @@
       "candidate:875cae287d965481",
       "candidate:87744a4889f8a138",
       "candidate:87a08c1005a2bd4f",
+      "candidate:8a40e1d39840ac26",
       "candidate:8abbfd4c338bde6b",
       "candidate:8b9f333e65dec065",
       "candidate:8d2d8e46029fe7c0",
@@ -182,6 +186,7 @@
       "candidate:a2d66f5441843dc3",
       "candidate:a5a1f208188907e2",
       "candidate:a5c2839f67cad63c",
+      "candidate:a6c70cd9b464c138",
       "candidate:a7cefb729a2d486d",
       "candidate:a7d5e59120fe23b7",
       "candidate:a819aa3b521cb237",
@@ -196,6 +201,7 @@
       "candidate:b0920c94633f492a",
       "candidate:b293ccaef4c35648",
       "candidate:b2e00328877a22f2",
+      "candidate:b5f92ae7aae1f98a",
       "candidate:b7ccf62b1b46413a",
       "candidate:b7dcc03bbd679983",
       "candidate:b7dfe7fe76c966aa",
@@ -218,6 +224,8 @@
       "candidate:cca477a36626ae0a",
       "candidate:cd378fe34f941d6e",
       "candidate:ce482d071a686bb5",
+      "candidate:ceb4bab896226e81",
+      "candidate:d2479a95c0836c45",
       "candidate:d29245a55dee224a",
       "candidate:d4e3913f453503fd",
       "candidate:d5c3a4f70798e86f",
@@ -229,7 +237,6 @@
       "candidate:de623624474c6a32",
       "candidate:df0eb3e71a0568a8",
       "candidate:e34fe70a738355a2",
-      "candidate:e5068297f0bdb08b",
       "candidate:e5311bb7a94f12ec",
       "candidate:e5600e3f9be0de48",
       "candidate:e5ba68b016107721",
@@ -239,6 +246,7 @@
       "candidate:e89dc437491e84e4",
       "candidate:e94487ac7d4f3a05",
       "candidate:e9e4a2093825ad70",
+      "candidate:ec408d88a6656a78",
       "candidate:ec8434bffd6f2972",
       "candidate:ecf82e9cf980ec4b",
       "candidate:ecfa1a69c2121c03",
@@ -394,9 +402,8 @@
     "workspace.editorial-chat.primary",
     "workspace.editorial-chat.pull-nomic-embed-text",
     "workspace.editorial-chat.recheck-ollama",
-    "workspace.editorial-chat.secondary",
+    "workspace.editorial-chat.set-remote-ollama",
     "workspace.editorial-chat.show",
-    "workspace.editorial-chat.start-ollama",
     "workspace.editorial-chat.stream",
     "workspace.editorial-composer.dismiss-chat-error",
     "workspace.editorial-message.actions-html-assistant",
@@ -922,9 +929,74 @@
       ]
     },
     {
+      "id": "settings.local-card.comfy-guide",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 144,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "a",
+      "actions": [
+        "click"
+      ]
+    },
+    {
+      "id": "settings.local-card.install-ollama",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 117,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "a",
+      "actions": [
+        "click"
+      ]
+    },
+    {
+      "id": "settings.local-card.prefer-local",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 46,
+      "element": "jsx-prop",
+      "attribute": "testId",
+      "tag": "Toggle",
+      "actions": [
+        "click"
+      ]
+    },
+    {
+      "id": "settings.local-card.pull-embed",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 186,
+      "element": "jsx-prop",
+      "attribute": "testId",
+      "tag": "PullAction"
+    },
+    {
+      "id": "settings.local-card.pull-embed-cancel",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 186,
+      "element": "jsx-prop",
+      "attribute": "cancelTestId",
+      "tag": "PullAction"
+    },
+    {
+      "id": "settings.local-card.pull-starter",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 132,
+      "element": "jsx-prop",
+      "attribute": "testId",
+      "tag": "PullAction"
+    },
+    {
+      "id": "settings.local-card.pull-starter-cancel",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 132,
+      "element": "jsx-prop",
+      "attribute": "cancelTestId",
+      "tag": "PullAction"
+    },
+    {
       "id": "settings.models-api-section.commit",
-      "file": "src/components/menu/sections/api/ApiSection.tsx",
-      "line": 108,
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 101,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "Button",
@@ -934,8 +1006,8 @@
     },
     {
       "id": "settings.models-api-section.http-127-0-0-1-11434",
-      "file": "src/components/menu/sections/api/ApiSection.tsx",
-      "line": 101,
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 93,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "Input",
@@ -968,9 +1040,17 @@
       ]
     },
     {
+      "id": "settings.models.local-card",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 28,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "Card"
+    },
+    {
       "id": "settings.models.search-card",
       "file": "src/components/menu/sections/api/ApiSection.tsx",
-      "line": 44,
+      "line": 41,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "Card"
@@ -1257,7 +1337,7 @@
     {
       "id": "workspace.composer-banners.dismiss-notice",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 97,
+      "line": 166,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1268,7 +1348,7 @@
     {
       "id": "workspace.composer-banners.editorial-banner-action",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 93,
+      "line": 162,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1279,7 +1359,7 @@
     {
       "id": "workspace.composer-banners.open-local-image-settings",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 119,
+      "line": 188,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1290,7 +1370,7 @@
     {
       "id": "workspace.composer-banners.open-local-settings",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 61,
+      "line": 98,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1301,7 +1381,29 @@
     {
       "id": "workspace.composer-banners.open-models",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 24,
+      "line": 26,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
+    },
+    {
+      "id": "workspace.composer-banners.open-models-for-missing-local-model",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 130,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
+    },
+    {
+      "id": "workspace.composer-banners.recheck-ollama",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 88,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1334,7 +1436,7 @@
     {
       "id": "workspace.composer-meta.local-context-mode",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 147,
+      "line": 151,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "select",
@@ -1345,7 +1447,7 @@
     {
       "id": "workspace.composer-meta.model",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 79,
+      "line": 83,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1356,7 +1458,7 @@
     {
       "id": "workspace.composer-meta.thinking-effort",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 163,
+      "line": 167,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "select",
@@ -1367,7 +1469,7 @@
     {
       "id": "workspace.composer-meta.workspace-skill",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 109,
+      "line": 113,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1400,7 +1502,7 @@
     {
       "id": "workspace.composer.draft",
       "file": "src/components/editorial/EditorialComposer.tsx",
-      "line": 213,
+      "line": 218,
       "element": "jsx-prop",
       "attribute": "testId",
       "tag": "ComposerInput",
@@ -1493,7 +1595,7 @@
     {
       "id": "workspace.editorial-chat.cancel",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 131,
+      "line": 135,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1504,7 +1606,7 @@
     {
       "id": "workspace.editorial-chat.continue-with",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 337,
+      "line": 310,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1515,7 +1617,7 @@
     {
       "id": "workspace.editorial-chat.dismiss",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 140,
+      "line": 144,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1526,7 +1628,7 @@
     {
       "id": "workspace.editorial-chat.dismiss-download-cue",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 423,
+      "line": 416,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1537,7 +1639,7 @@
     {
       "id": "workspace.editorial-chat.editorial-jump-to-bottom",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 800,
+      "line": 793,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1548,10 +1650,10 @@
     {
       "id": "workspace.editorial-chat.install-ollama",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 368,
+      "line": 345,
       "element": "jsx-prop",
       "attribute": "data-testid",
-      "tag": "button",
+      "tag": "a",
       "actions": [
         "click"
       ]
@@ -1559,7 +1661,7 @@
     {
       "id": "workspace.editorial-chat.link",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 435,
+      "line": 428,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "a",
@@ -1570,7 +1672,7 @@
     {
       "id": "workspace.editorial-chat.look-around",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 292,
+      "line": 268,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1581,7 +1683,7 @@
     {
       "id": "workspace.editorial-chat.open-local-settings",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 361,
+      "line": 336,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1590,40 +1692,7 @@
       ]
     },
     {
-      "id": "workspace.editorial-chat.primary",
-      "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 344,
-      "element": "jsx-prop",
-      "attribute": "data-testid",
-      "tag": "button",
-      "actions": [
-        "click"
-      ]
-    },
-    {
-      "id": "workspace.editorial-chat.pull-nomic-embed-text",
-      "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 136,
-      "element": "jsx-prop",
-      "attribute": "data-testid",
-      "tag": "button",
-      "actions": [
-        "click"
-      ]
-    },
-    {
-      "id": "workspace.editorial-chat.recheck-ollama",
-      "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 381,
-      "element": "jsx-prop",
-      "attribute": "data-testid",
-      "tag": "button",
-      "actions": [
-        "click"
-      ]
-    },
-    {
-      "id": "workspace.editorial-chat.secondary",
+      "id": "workspace.editorial-chat.open-remote-ollama-settings",
       "file": "src/components/editorial/EditorialChat.tsx",
       "line": 371,
       "element": "jsx-prop",
@@ -1634,9 +1703,9 @@
       ]
     },
     {
-      "id": "workspace.editorial-chat.show",
+      "id": "workspace.editorial-chat.primary",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 750,
+      "line": 317,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1645,9 +1714,53 @@
       ]
     },
     {
-      "id": "workspace.editorial-chat.start-ollama",
+      "id": "workspace.editorial-chat.pull-nomic-embed-text",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 378,
+      "line": 140,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
+    },
+    {
+      "id": "workspace.editorial-chat.recheck-ollama",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 354,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
+    },
+    {
+      "id": "workspace.editorial-chat.recheck-remote-ollama",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 374,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
+    },
+    {
+      "id": "workspace.editorial-chat.set-remote-ollama",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 362,
+      "element": "jsx-prop",
+      "attribute": "data-testid",
+      "tag": "button",
+      "actions": [
+        "click"
+      ]
+    },
+    {
+      "id": "workspace.editorial-chat.show",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 743,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1658,7 +1771,7 @@
     {
       "id": "workspace.editorial-chat.stream",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 742,
+      "line": 735,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "div",
@@ -1667,7 +1780,7 @@
     {
       "id": "workspace.editorial-composer.dismiss-chat-error",
       "file": "src/components/editorial/EditorialComposer.tsx",
-      "line": 202,
+      "line": 207,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -2036,7 +2149,7 @@
     {
       "id": "workspace.image-job-card.action",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 213,
+      "line": 218,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -2047,7 +2160,7 @@
     {
       "id": "workspace.image-job-card.cancel-render",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 142,
+      "line": 147,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -2058,7 +2171,7 @@
     {
       "id": "workspace.image-job-card.image",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 251,
+      "line": 256,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -2069,7 +2182,7 @@
     {
       "id": "workspace.image-job-card.retry",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 212,
+      "line": 217,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -2080,7 +2193,7 @@
     {
       "id": "workspace.image-job-card.retry-cancelled",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 242,
+      "line": 247,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -2100,7 +2213,7 @@
     {
       "id": "workspace.image-job.open-unscoped",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 291,
+      "line": 296,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -3095,7 +3208,7 @@
     {
       "pattern": "workspace.image-job-card.cancel-pending-*",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 163,
+      "line": 168,
       "attribute": "data-testid",
       "tag": "button",
       "actions": [
@@ -3105,7 +3218,7 @@
     {
       "pattern": "workspace.image-job.open-*",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 282,
+      "line": 287,
       "attribute": "testId",
       "tag": "GridTile",
       "actions": [
@@ -3602,10 +3715,6 @@
         "to": "workspace.editorial-chat.install-ollama"
       },
       {
-        "from": "workspace.editorial-chat.open-local-settings-3",
-        "to": "workspace.editorial-chat.start-ollama"
-      },
-      {
         "from": "workspace.editorial-chat.secondary-2",
         "to": "workspace.editorial-chat.recheck-ollama"
       },
@@ -3695,6 +3804,21 @@
         "id": "workspace.editorial-sidebar.settings-amp-menu-live-here",
         "removedAt": "2026-09-13",
         "reason": "The first-run coachmark taught that the brand mark opens the menu; the brand mark now always goes home and Settings is the labeled button at the foot of the sidebar."
+      },
+      {
+        "id": "workspace.editorial-chat.start-ollama",
+        "removedAt": "2026-10-01",
+        "reason": "GatesAI no longer starts Ollama; it probes for a running one (local or a server), so the onboarding card has no Start button."
+      },
+      {
+        "id": "workspace.editorial-chat.secondary",
+        "removedAt": "2026-10-01",
+        "reason": "The offline onboarding state's generic secondary button became the named recheck-ollama and set-remote-ollama controls."
+      },
+      {
+        "id": "workspace.editorial-chat.open-local-settings-3",
+        "removedAt": "2026-10-01",
+        "reason": "Earlier name of workspace.editorial-chat.start-ollama, which was removed with the Start Ollama button."
       }
     ]
   },
@@ -4042,7 +4166,19 @@
     {
       "id": "candidate:b7ccf62b1b46413a",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 24,
+      "line": 26,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:a6c70cd9b464c138",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 88,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4054,7 +4190,7 @@
     {
       "id": "candidate:ff3bb6f7708bdf6d",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 61,
+      "line": 98,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4066,19 +4202,7 @@
     {
       "id": "candidate:5baa4ad827e66650",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 93,
-      "element": "button",
-      "classification": "definite",
-      "evidence": [
-        "native:button"
-      ],
-      "identified": true,
-      "disposition": "identified"
-    },
-    {
-      "id": "candidate:869a936084046ece",
-      "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 97,
+      "line": 130,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4090,7 +4214,31 @@
     {
       "id": "candidate:4fe2b5e5ac94f799",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 119,
+      "line": 162,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:869a936084046ece",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 166,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:58dc1025649851be",
+      "file": "src/components/editorial/composer/ComposerBanners.tsx",
+      "line": 188,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4162,7 +4310,7 @@
     {
       "id": "candidate:93b3c023550112cc",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 79,
+      "line": 83,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4174,7 +4322,7 @@
     {
       "id": "candidate:bb2247b12c98acca",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 109,
+      "line": 113,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4186,7 +4334,7 @@
     {
       "id": "candidate:c2445f6f06d65408",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 147,
+      "line": 151,
       "element": "select",
       "classification": "definite",
       "evidence": [
@@ -4198,7 +4346,7 @@
     {
       "id": "candidate:45caa626d09c2f8b",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 163,
+      "line": 167,
       "element": "select",
       "classification": "definite",
       "evidence": [
@@ -4246,7 +4394,7 @@
     {
       "id": "candidate:9204573d60516385",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 131,
+      "line": 135,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4258,7 +4406,7 @@
     {
       "id": "candidate:7b9f707f3176edca",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 136,
+      "line": 140,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4270,7 +4418,7 @@
     {
       "id": "candidate:c8d8b14db021ffd9",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 140,
+      "line": 144,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4282,7 +4430,7 @@
     {
       "id": "candidate:6a36bcae8d2e8a4f",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 292,
+      "line": 268,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4294,7 +4442,7 @@
     {
       "id": "candidate:404431a21c155a87",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 337,
+      "line": 310,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4306,7 +4454,7 @@
     {
       "id": "candidate:c0740ae7b47b946f",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 344,
+      "line": 317,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4318,7 +4466,31 @@
     {
       "id": "candidate:9a7d84d2bbb79c59",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 361,
+      "line": 336,
+      "element": "button",
+      "classification": "definite",
+      "evidence": [
+        "native:button"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:b5f92ae7aae1f98a",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 345,
+      "element": "a",
+      "classification": "definite",
+      "evidence": [
+        "a[href]"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:7fafef641f5d7950",
+      "file": "src/components/editorial/EditorialChat.tsx",
+      "line": 354,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4330,19 +4502,7 @@
     {
       "id": "candidate:8d2d8e46029fe7c0",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 368,
-      "element": "button",
-      "classification": "definite",
-      "evidence": [
-        "native:button"
-      ],
-      "identified": true,
-      "disposition": "identified"
-    },
-    {
-      "id": "candidate:7fafef641f5d7950",
-      "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 371,
+      "line": 362,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4354,7 +4514,7 @@
     {
       "id": "candidate:7a81f457fe018f20",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 378,
+      "line": 371,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4366,7 +4526,7 @@
     {
       "id": "candidate:cb70ba586df2e4d5",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 381,
+      "line": 374,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4378,7 +4538,7 @@
     {
       "id": "candidate:a1debdf6e6a16ed0",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 423,
+      "line": 416,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4390,7 +4550,7 @@
     {
       "id": "candidate:a87adc15ddeb58a3",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 435,
+      "line": 428,
       "element": "a",
       "classification": "definite",
       "evidence": [
@@ -4402,7 +4562,7 @@
     {
       "id": "candidate:a0169c41be9e322c",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 750,
+      "line": 743,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4414,7 +4574,7 @@
     {
       "id": "candidate:0301d7966ea101ce",
       "file": "src/components/editorial/EditorialChat.tsx",
-      "line": 800,
+      "line": 793,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4426,7 +4586,7 @@
     {
       "id": "candidate:3fd909d37b6b7349",
       "file": "src/components/editorial/EditorialComposer.tsx",
-      "line": 202,
+      "line": 207,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4438,7 +4598,7 @@
     {
       "id": "candidate:aa670016417f9500",
       "file": "src/components/editorial/EditorialComposer.tsx",
-      "line": 212,
+      "line": 217,
       "element": "ComposerInput",
       "classification": "review-required",
       "evidence": [
@@ -5023,7 +5183,7 @@
     {
       "id": "candidate:9a86e873f8a926d1",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 142,
+      "line": 147,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -5035,7 +5195,7 @@
     {
       "id": "candidate:8043eb3edceef479",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 163,
+      "line": 168,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -5047,7 +5207,7 @@
     {
       "id": "candidate:93ec89a4fc337e32",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 212,
+      "line": 217,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -5059,7 +5219,7 @@
     {
       "id": "candidate:50533289a9a7fa4c",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 213,
+      "line": 218,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -5071,7 +5231,7 @@
     {
       "id": "candidate:1337dc331ab488f3",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 242,
+      "line": 247,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -5083,7 +5243,7 @@
     {
       "id": "candidate:6d1291e8fc8f3e85",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 251,
+      "line": 256,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -5095,7 +5255,7 @@
     {
       "id": "candidate:3fdb1da7f7d72cfe",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 282,
+      "line": 287,
       "element": "GridTile",
       "classification": "review-required",
       "evidence": [
@@ -5107,7 +5267,7 @@
     {
       "id": "candidate:129a85e0dd9778a1",
       "file": "src/components/editorial/ImageJobCard.tsx",
-      "line": 290,
+      "line": 295,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -5974,9 +6134,21 @@
       "disposition": "identified"
     },
     {
-      "id": "candidate:77e04f2f95231bd0",
-      "file": "src/components/menu/sections/api/ApiSection.tsx",
-      "line": 101,
+      "id": "candidate:d2479a95c0836c45",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 45,
+      "element": "Toggle",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Toggle"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:8a40e1d39840ac26",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 93,
       "element": "Input",
       "classification": "definite",
       "evidence": [
@@ -5986,9 +6158,9 @@
       "disposition": "identified"
     },
     {
-      "id": "candidate:e5068297f0bdb08b",
-      "file": "src/components/menu/sections/api/ApiSection.tsx",
-      "line": 108,
+      "id": "candidate:38b048f459664007",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 101,
       "element": "Button",
       "classification": "definite",
       "evidence": [
@@ -5996,6 +6168,54 @@
       ],
       "identified": true,
       "disposition": "identified"
+    },
+    {
+      "id": "candidate:466453492e28d4ee",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 117,
+      "element": "a",
+      "classification": "definite",
+      "evidence": [
+        "a[href]"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ec408d88a6656a78",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 144,
+      "element": "a",
+      "classification": "definite",
+      "evidence": [
+        "a[href]"
+      ],
+      "identified": true,
+      "disposition": "identified"
+    },
+    {
+      "id": "candidate:ceb4bab896226e81",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 212,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": false,
+      "disposition": "unresolved"
+    },
+    {
+      "id": "candidate:1b0acebd2062909a",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 215,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": false,
+      "disposition": "unresolved"
     },
     {
       "id": "candidate:a2d66f5441843dc3",
@@ -6407,6 +6627,52 @@
       "disposition": "identified"
     }
   ],
-  "unresolvedCandidates": [],
-  "unidentifiedInteractive": []
+  "unresolvedCandidates": [
+    {
+      "id": "candidate:ceb4bab896226e81",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 212,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": false,
+      "disposition": "unresolved"
+    },
+    {
+      "id": "candidate:1b0acebd2062909a",
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 215,
+      "element": "Button",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ],
+      "identified": false,
+      "disposition": "unresolved"
+    }
+  ],
+  "unidentifiedInteractive": [
+    {
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 212,
+      "element": "Button",
+      "candidateId": "candidate:ceb4bab896226e81",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ]
+    },
+    {
+      "file": "src/components/menu/sections/api/LocalCard.tsx",
+      "line": 215,
+      "element": "Button",
+      "candidateId": "candidate:1b0acebd2062909a",
+      "classification": "definite",
+      "evidence": [
+        "configured-wrapper:Button"
+      ]
+    }
+  ]
 }

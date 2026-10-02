@@ -670,32 +670,27 @@ mid-render loses in-flight work.
 
 ## Local runtimes
 
-`LocalRuntimeStore` owns the app-facing state for Ollama and ComfyUI. It follows
-the normal UI → Store → Service direction:
+`LocalRuntimeStore` owns the app-facing state for Ollama and ComfyUI. GatesAI
+never starts either one; it only checks whether something answers at the
+configured address (2026-10-02 local-first rework). It follows the normal
+UI → Store → Service direction:
 
-- UI: `components/menu/sections/Local.tsx` renders runtime rows, local LLM
-  controls, ComfyUI image-generation settings, and the local vision picker.
-- Store: `LocalRuntimeStore` persists install paths / managed flags under
-  `gatesai.local.v1`, runs auto-detect once, starts/stops runtimes, polls
-  `runtime_status`, and exposes `ollamaBaseUrl`, `comfyBaseUrl`, and
-  `visionModel` facades to other stores/tools.
-- Service: `services/local/localRuntimeService.ts` wraps Tauri invokes only;
-  `services/local/autoDetect.ts` contains deterministic path-candidate logic
-  seeded by host-side home/AppData paths.
-- Host: `src-tauri/src/local_runtime.rs` parses the runtime id into a
-  `RuntimeKind` enum (`Ollama` | `ComfyUI`) that owns the health URL and
-  process spec, spawns child processes, captures stdout/stderr into a bounded
-  log buffer, reports health via the shared `http_health::probe_health` helper,
-  and kills managed children when the app window is destroyed. The same probe
-  helper is reused by the bridge sidecar's "already running?" check in
-  `lib.rs`. Mutex poisoning recovers via `into_inner()` with a logged warning
-  rather than surfacing a string error to the WebView.
-
-Ollama is launched as `ollama serve` and health-checked at
-`http://127.0.0.1:11434/api/version`. ComfyUI is launched through the portable
-Python runtime with `--windows-standalone-build` and the WebView CORS origins
-appended automatically; health is `http://127.0.0.1:8188/system_stats`. Health
-URLs are derived in Rust from the runtime id, not accepted from the WebView.
+- UI: `components/menu/sections/api/LocalCard.tsx` (Settings > Models > Local)
+  shows Chat, Images, Memory and the "start new chats on a local model"
+  toggle, each with live status and one next step.
+- Store: `LocalRuntimeStore` persists the two addresses and the local-first
+  preference under `gatesai.local.v1`, probes on boot, window focus, address
+  change and a backing-off interval, and exposes `ollamaBaseUrl`,
+  `comfyBaseUrl`, `comfyDiscovery` and `visionModel` to other stores and tools.
+- Service: `services/local/localRuntimeService.ts` fetches Ollama's
+  `/api/tags` and wraps the `pick_file` dialog; `services/image/comfyDiscovery.ts`
+  looks for ComfyUI on :8188 then :8000 and reads which models it has. Both go
+  through `localFetch`.
+- Host: `src-tauri/src/local_http.rs` is the allowlisted pass-through that
+  lets the webview reach Ollama and ComfyUI without CORS setup (ADR
+  2026-10-01). `local_runtime.rs` keeps only `pick_file`. The spawn and
+  path-detection code is archived under
+  `docs/archive/local-runtime-spawn-20261002/`.
 
 `ImageGenStore` keeps the image-generation backend contract but reads the
 ComfyUI base URL from `LocalRuntimeStore` at the point of use, the URL is no

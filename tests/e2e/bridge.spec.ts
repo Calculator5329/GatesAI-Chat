@@ -1,6 +1,6 @@
 // Bridge-dependent UI flows, exercised with a faked online bridge: attachment
 // upload and a Settings danger-zone action.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 import {
   makeThread,
   mockBridgeOnline,

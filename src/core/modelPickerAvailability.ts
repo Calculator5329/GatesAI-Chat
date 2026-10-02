@@ -18,8 +18,8 @@ export type ModelPickerSource = 'auto' | 'cloud' | 'local' | 'image';
  * - `webLite`: browser-hosted build with no Tauri shell. No local backends can
  *   ever run here, so local/image are impossible regardless of cached state.
  * - `ollamaOnline`: the local Ollama runtime is reachable right now.
- * - `comfyReady`: ComfyUI is managed and online (matches
- *   `LocalRuntimeStore.comfyReady`).
+ * - `comfyReady`: ComfyUI answered the last probe and has a model one of the
+ *   built-in workflows can use (read from `LocalRuntimeStore.comfyReady`).
  */
 export interface RuntimeAvailability {
   webLite: boolean;

@@ -186,7 +186,17 @@ describe('imageFailureAdvice', () => {
       error: 'failed to fetch generated image',
     };
 
-    expect(imageFailureAdvice(failed)).toMatch(/ComfyUI is online/i);
+    expect(imageFailureAdvice(failed)).toMatch(/ComfyUI is running/i);
+  });
+
+  it('points setup gaps at the Local card, not at missing image data', () => {
+    for (const error of [
+      'ComfyUI is running at http://127.0.0.1:8188 but has no image model GatesAI can use. ',
+      'No backend can make images yet. Start ComfyUI or ComfyUI Desktop with an image model.',
+    ]) {
+      const failed: CompletedJob = { ...baseJob, backend: 'local-comfy', status: 'failed', error };
+      expect(imageFailureAdvice(failed)).toMatch(/Settings > Models > Local/);
+    }
   });
 });
 

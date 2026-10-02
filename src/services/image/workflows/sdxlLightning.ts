@@ -1,3 +1,18 @@
+/** Checkpoint filename from ByteDance/SDXL-Lightning that the quick workflow is tuned for. */
+export const SDXL_LIGHTNING_CHECKPOINT = 'sdxl_lightning_4step.safetensors';
+/** SDXL VAE patched to decode in fp16 without washed-out or black images. */
+export const SDXL_FP16_FIX_VAE = 'sdxl_vae_fp16_fix.safetensors';
+
+export interface SdxlLightningOptions {
+  steps?: number;
+  cfg?: number;
+  /**
+   * VAELoader file. Defaults to {@link SDXL_FP16_FIX_VAE}; `null` decodes
+   * with the checkpoint's own VAE when no separate VAE is installed.
+   */
+  vae?: string | null;
+}
+
 /**
  * Quick-prototype workflow: SDXL Lightning at base resolution with configurable sampling
  * steps, no hi-res fix. Trades polished-image detail
@@ -8,17 +23,17 @@
  * time. That defeated the point of the quick lane — users picking quick
  * want a fast preview, not a polished hi-res render.
  *
- * Includes the fp16-fix VAE so SDXL renders don't come out washed-out.
+ * The checkpoint name stays a `{{CHECKPOINT}}` token that ComfyClient fills
+ * with the file ComfyUI actually reported.
  */
-export function buildSdxlLightningQuickWorkflow(steps = 8, cfg = 1): Record<string, unknown> {
-  return {
+export function buildSdxlLightningQuickWorkflow(opts: SdxlLightningOptions = {}): Record<string, unknown> {
+  const steps = opts.steps ?? 8;
+  const cfg = opts.cfg ?? 1;
+  const vae = opts.vae === undefined ? SDXL_FP16_FIX_VAE : opts.vae;
+  const workflow: Record<string, unknown> = {
   '1': {
     class_type: 'CheckpointLoaderSimple',
     inputs: { ckpt_name: '{{CHECKPOINT}}' },
-  },
-  '2': {
-    class_type: 'VAELoader',
-    inputs: { vae_name: 'sdxl_vae_fp16_fix.safetensors' },
   },
   '3': {
     class_type: 'CLIPTextEncode',
@@ -52,13 +67,17 @@ export function buildSdxlLightningQuickWorkflow(steps = 8, cfg = 1): Record<stri
   },
   '7': {
     class_type: 'VAEDecode',
-    inputs: { samples: ['6', 0], vae: ['2', 0] },
+    inputs: { samples: ['6', 0], vae: vae ? ['2', 0] : ['1', 2] },
   },
   '8': {
     class_type: 'SaveImage',
     inputs: { filename_prefix: 'gatesai_quick', images: ['7', 0] },
   },
   };
+  if (vae) {
+    workflow['2'] = { class_type: 'VAELoader', inputs: { vae_name: vae } };
+  }
+  return workflow;
 }
 
 export const SDXL_LIGHTNING_QUICK_WORKFLOW: Record<string, unknown> = buildSdxlLightningQuickWorkflow();

@@ -821,6 +821,29 @@ describe('ChatStore', () => {
     expect(chat.activeThread?.modelId).toBe('or-nemotron-3-ultra-free');
   });
 
+  it('keeps a started chat on its local model after Ollama stops listing it', () => {
+    const { chat, registry } = setup();
+    const gemma = { id: 'ollama-gemma4:12b', name: 'gemma4:12b', vendor: 'Ollama', providerId: 'ollama' as const, providerModelId: 'gemma4:12b' };
+    registry.setDynamicForProvider('ollama', [gemma]);
+    const startedId = chat.createThread();
+    chat.setThreadModel(startedId, gemma.id);
+    runInAction(() => {
+      chat.threads.find(thread => thread.id === startedId)!.messages.push({ id: 'u1', role: 'user', content: 'hi', createdAt: 1 });
+    });
+    const emptyId = chat.createThread();
+    chat.setThreadModel(emptyId, gemma.id);
+    chat.createThread();
+
+    registry.setDynamicForProvider('ollama', []);
+
+    expect(chat.selectThread(startedId)).toBe(true);
+    expect(chat.activeThread?.modelId).toBe('ollama-gemma4:12b');
+    expect(chat.activeMissingLocalModelTag).toBe('gemma4:12b');
+    expect(chat.selectThread(emptyId)).toBe(true);
+    expect(chat.activeThread?.modelId).toBe(chat.defaultModelId);
+    expect(chat.activeMissingLocalModelTag).toBeNull();
+  });
+
   it('passes per-thread thinking effort to model requests', async () => {
     const { chat, mock } = setup([
       { type: 'text', delta: 'ok' },
@@ -2270,7 +2293,9 @@ describe('ChatStore', () => {
     expect(mock.calls).toHaveLength(0);
     expect(enqueued).toHaveLength(0);
     expect(chat.activeThread!.messages.at(-1)?.role).toBe('assistant');
-    expect(messageText(chat.activeThread!.messages.at(-1)!)).toContain('ComfyUI is not running');
+    const blocked = messageText(chat.activeThread!.messages.at(-1)!);
+    expect(blocked).toContain('ComfyUI is not ready');
+    expect(blocked).toContain('Settings > Models > Local');
   });
 
   it('does not post an orphan image completion assistant message', () => {

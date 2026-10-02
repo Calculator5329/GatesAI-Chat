@@ -2,7 +2,7 @@
 // persistence through Web Locks. The elected leader remains writable while a
 // follower is read-only, then the follower refreshes and takes over when the
 // leader closes.
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures/test';
 import {
   makeThread,
   mockBridgeOnline,

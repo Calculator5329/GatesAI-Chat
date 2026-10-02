@@ -92,7 +92,7 @@ export interface NetworkPlan {
 export interface AfterBootStore {
   localRuntime?: {
     runtimes: {
-      ollama: { status: string; installPath: string; lastError?: string; lastErrorKind?: string };
+      ollama: { status: string; lastError?: string };
       comfyui: { status: string };
     };
   };

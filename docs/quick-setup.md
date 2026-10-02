@@ -1,163 +1,106 @@
 # GatesAI Chat: Quick Setup
 
-Ship this file next to **`GatesAI Chat_<version>_x64-setup.exe`**. Following it end‑to‑end gets you working **local image generation** with **zero accounts and no API keys**, just the app + ComfyUI + a few model files.
+GatesAI runs models on your own machine first. Install the app, have Ollama
+running, and you can chat with no account and no API key. Local images and
+cloud models are optional extras.
 
-> Optional bits (Ollama for local chat, cloud LLM keys) are at the bottom. Skip them if you only want pictures.
+Everything local lives in one place inside the app: **Settings → Models →
+Local** (Settings is the gear at the foot of the sidebar). It shows what
+GatesAI found and, when something is missing, the one next step.
 
 ---
 
 ## 1. Install GatesAI Chat
 
-1. Run **`GatesAI Chat_<version>_x64-setup.exe`** and complete the installer.
-2. Launch **GatesAI Chat** from the Start menu.
+| Platform | Download |
+| --- | --- |
+| Windows 10/11 | [`GatesAI-Chat-Setup-x64.exe`](https://github.com/Calculator5329/GatesAI-Chat-releases/releases/latest/download/GatesAI-Chat-Setup-x64.exe) |
+| Linux x86_64 | [`GatesAI-Chat-x86_64.AppImage`](https://github.com/Calculator5329/GatesAI-Chat-releases/releases/latest/download/GatesAI-Chat-x86_64.AppImage) |
 
-The companion **bridge** process (`gatesai-bridge.exe`) is bundled and starts automatically. Open **Menu → Workspace**, you should see **Bridge online**. If not, close and re‑open the app.
-
----
-
-## 2. Install ComfyUI (one time)
-
-GatesAI talks to a local ComfyUI server for image generation. Use the official **portable Windows build**, no Python install required.
-
-1. Download **ComfyUI Windows Portable** from the project's releases page (search "ComfyUI windows portable").
-2. Unzip to a permanent folder, e.g. `C:\Tools\ComfyUI_windows_portable`.
-3. Done. **Do not start it manually**. GatesAI will start and stop it for you.
+The bridge that runs file and shell tools is bundled and starts with the app.
 
 ---
 
-## 3. Drop in the model files
+## 2. Local chat with Ollama
 
-GatesAI ships three direct image modes. **Normal** and **Upscale** use the same FLUX.2 Klein files; **Draft** uses SDXL Lightning. Files go inside your ComfyUI folder and filenames must match exactly.
+1. Install Ollama from [ollama.com/download](https://ollama.com/download).
+   It runs in the background after install.
+2. Open GatesAI. It finds Ollama at `http://127.0.0.1:11434` by itself and
+   lists every model you have, labeled with what each can do (tools, images,
+   thinking).
+3. No models yet? The first screen offers **Get qwen3.5:4b (3.4 GB)**.
+   It can call tools, read images and think step by step. From a terminal it
+   is `ollama pull qwen3.5:4b`.
 
-First create the model folders:
+New chats start on a local model whenever one is installed, even if you also
+have a cloud key. Turn that off with **Start new chats on a local model** in
+**Settings → Models → Local**. Existing chats keep the model they were on.
 
-```powershell
-$models = "C:\Tools\ComfyUI_windows_portable\ComfyUI\models"
-New-Item -ItemType Directory -Force -Path `
-  "$models\checkpoints", `
-  "$models\diffusion_models", `
-  "$models\text_encoders", `
-  "$models\vae" | Out-Null
-```
+If Ollama stops or starts later, GatesAI notices on its next check: right
+away when you switch back to its window, otherwise within five minutes.
+**Check again** checks now. There is nothing to start or toggle by hand.
 
-Change `$models` if you installed ComfyUI somewhere else.
+### Ollama on another machine
 
-### Draft mode: SDXL Lightning
+Use a GPU box, a home server or a hosted Ollama instead of this computer:
 
-Fast preview lane, native size, no upscale.
+1. On the server, let Ollama listen beyond localhost by setting
+   `OLLAMA_HOST=0.0.0.0:11434` in its environment, then restart it.
+2. In GatesAI, open **Settings → Models → Local**, type the server's address
+   into the Chat row in place of `http://127.0.0.1:11434`, and press Enter.
+   Any of these work: `192.168.1.20`, `gpu-box:11434`, `100.80.1.2`
+   (Tailscale), `https://ollama.example.com`. Port 11434 is assumed when you
+   leave it out.
+3. If the server sits behind a proxy that wants a bearer token, paste it into
+   the API key field that appears under a server address. It is stored in
+   your OS keychain.
 
-| File | Goes in | Download |
-| --- | --- | --- |
-| `sdxl_lightning_4step.safetensors` | `ComfyUI\models\checkpoints\` | `https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors` |
-| `sdxl_vae_fp16_fix.safetensors` | `ComfyUI\models\vae\` | `https://huggingface.co/madebyollin/sdxl-vae-fp16-fix/resolve/main/sdxl_vae.safetensors` |
-
-Resumable download commands:
-
-```powershell
-curl -L -C - -o "$models\checkpoints\sdxl_lightning_4step.safetensors" `
-  "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors"
-
-curl -L -C - -o "$models\vae\sdxl_vae_fp16_fix.safetensors" `
-  "https://huggingface.co/madebyollin/sdxl-vae-fp16-fix/resolve/main/sdxl_vae.safetensors"
-```
-
-### Normal mode: FLUX.2 Klein
-
-Default quality lane, native size, no upscale.
-
-### Upscale mode: FLUX.2 Klein 2x
-
-Same files as Normal, plus a built-in 2x hires-fix refinement pass. No extra upscaler model is required.
-
-| File | Goes in | Download |
-| --- | --- | --- |
-| `flux-2-klein-4b-fp8.safetensors` | `ComfyUI\models\diffusion_models\` | `https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b.safetensors` |
-| `qwen_3_4b.safetensors` | `ComfyUI\models\text_encoders\` | `https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors` |
-| `flux2-vae.safetensors` | `ComfyUI\models\vae\` | `https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/vae/flux2-vae.safetensors` |
-
-Resumable download commands:
-
-```powershell
-curl -L -C - -o "$models\diffusion_models\flux-2-klein-4b-fp8.safetensors" `
-  "https://huggingface.co/black-forest-labs/FLUX.2-klein-4b-fp8/resolve/main/flux-2-klein-4b.safetensors"
-
-curl -L -C - -o "$models\text_encoders\qwen_3_4b.safetensors" `
-  "https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors"
-
-curl -L -C - -o "$models\vae\flux2-vae.safetensors" `
-  "https://huggingface.co/Comfy-Org/flux2-klein-4B/resolve/main/split_files/vae/flux2-vae.safetensors"
-```
-
-You may need to sign in to Hugging Face and accept the model terms before the FLUX.2 Klein download works. If a large download fails, re-run the same `curl -L -C -` command; it resumes instead of starting over.
+The server must serve Ollama at the root of its address:
+`https://ollama.example.com` works, `https://example.com/ollama` does not.
+You do not need `OLLAMA_ORIGINS` on the server.
 
 ---
 
-## 4. Point GatesAI at ComfyUI
+## 3. Local images with ComfyUI (optional)
 
-Inside the app:
+1. Install [ComfyUI Desktop](https://www.comfy.org/download) (or a manual
+   ComfyUI install) and start it.
+2. Put one image model into it. [ComfyUI setup](comfyui-setup.md) has the two
+   we recommend (a light one and a quality one), their download pages and the
+   folder each goes in.
+3. That's it. GatesAI finds ComfyUI on port 8188 or 8000, reads which models
+   it has and picks a matching workflow. No `--enable-cors-header`, no
+   workflow editing.
 
-1. Open **Menu → Local**.
-2. Under **Runtimes → ComfyUI**, click **Auto‑detect** (or **Browse…** to your `ComfyUI_windows_portable` folder).
-3. Leave **Manage this process from GatesAI** ON. Click **Start**. Wait for the status to read **Online** (default URL `http://127.0.0.1:8188`).
-4. Under **Local image generation**:
-   - Leave **Default local mode** on **Normal** for FLUX.2 Klein without upscale.
-   - Pick **Draft** for SDXL Lightning previews, or set **Flux upscale** to **2x** for Upscale-quality FLUX renders.
-   - **Prompt enhancement: Off** (no LLM rewrite) is the simplest path: your text goes straight to the model.
-   - Click **Set image_generate to ComfyUI**.
-
-That's the entire setup.
-
----
-
-## 5. Generate your first image
-
-You have two ways to produce images. Pick whichever fits.
-
-**Direct image mode (no chat, no API key, fully offline):**
-
-1. In the **header model picker**, choose one of:
-   - **Draft image. SDXL**
-   - **Normal image. Flux 2 Klein**
-   - **Upscale image. Flux 2 Klein 2x**
-2. Type your prompt in the composer and send. Your message is the prompt, no LLM round‑trip.
-
-**Chat‑driven (via a chat model that can call tools):**
-
-1. Pick any chat model (cloud or Ollama, see optional sections below).
-2. Ask: *"draw a glass cathedral at golden hour"*. The model calls the `image_generate` tool; the render appears inline with progress.
-
-Finished images also collect under **Menu → Gallery**. Files land in `ComfyUI\output\gatesai\`.
+Then ask any chat model for a picture ("draw a glass cathedral at golden
+hour"). The image appears in the chat, and the file lands in ComfyUI's
+`output/gatesai/` folder. When ComfyUI is not running, image
+requests fall back to OpenRouter if you have a key.
 
 ---
 
-## Optional: Local LLM via Ollama
+## Optional: memory across chats
 
-Want chat that runs on your machine too?
+Recall over past chats and notes uses the `nomic-embed-text` model through
+Ollama. **Settings → Models → Local → Memory** shows whether it is installed; from
+a terminal it is `ollama pull nomic-embed-text`.
 
-1. Install **Ollama** from `ollama.com`. Pull a model: `ollama pull llama3.1`.
-2. **Menu → Local → Runtimes → Ollama**: Auto‑detect, then **Start**.
-3. **Local LLMs**: leave Base URL at `http://127.0.0.1:11434`, click **Refresh** on **Catalog**.
-4. Pick the Ollama model from the header and chat as usual.
+## Optional: cloud models
 
-For vision tools (so chat models can describe images you attach), pull a vision model (e.g. `ollama pull qwen2.5vl:7b`) and select it under **Menu → Local → Local vision**.
-
----
-
-## Optional: Cloud LLMs
-
-Add API keys under **Menu → Settings → API** (OpenRouter, OpenAI, Anthropic, Gemini, Groq). You can mix cloud chat with local ComfyUI image gen freely.
+Add an OpenRouter key under **Settings → Models → OpenRouter** to use cloud
+models. You can switch between local and cloud in any chat.
 
 ---
 
 ## Troubleshooting
 
-| Symptom | Fix |
+| What you see | What to do |
 | --- | --- |
-| **Bridge offline** | Close and re-open the app. Another process may be using port `7331`. Re-poll under **Menu → Workspace**. |
-| **"Add an API key…" when sending** | Either configure an API key, install Ollama, or pick **ComfyUI (direct, no chat)** for offline image-only use. |
-| **`image_generate` errors** | Check that ComfyUI shows **Online** under **Menu → Local** and that **Set image_generate to ComfyUI** was clicked. Confirm the model files for your chosen preset are in the right `ComfyUI\models\...` subfolders. |
-| **ComfyUI starts but renders fail with "missing checkpoint" / "missing unet"** | A model file is in the wrong folder or the filename does not match the table in step 3. |
-| **Ollama models missing from picker** | Ollama running, then **Local → Local LLMs → Refresh**. |
+| Chat row says **Nothing is answering at http://127.0.0.1:11434** | Ollama is not running. Open the Ollama app or run `ollama serve`. |
+| A server address stays offline | On the server, check `OLLAMA_HOST=0.0.0.0:11434` and that port 11434 is open. From this machine, `curl http://<server>:11434/api/version` should print a version. |
+| Ollama is online but the model list is empty | Download a model from the Local card, or `ollama pull qwen3.5:4b`. |
+| Images row says ComfyUI is online but has no usable model | Add a model as described in [ComfyUI setup](comfyui-setup.md). |
+| **Bridge offline** | Close and re-open the app. Another program may be using port `7331`. |
 
 ---
 
@@ -176,4 +119,4 @@ Artifacts:
 - **Bridge sidecar** must exist at `src-tauri\binaries\gatesai-bridge-x86_64-pc-windows-msvc.exe` before bundling.
 - **Linux AppImage:** on a Linux host, build or copy the sidecar to `src-tauri/binaries/gatesai-bridge-x86_64-unknown-linux-gnu`, then run `npx tauri build --bundles appimage`. `scripts/prepare-linux-sidecar.sh` does this from `../gatesai-bridge` or from `GATESAI_BRIDGE_BIN`.
 
-For deeper architecture, see **`docs/tech_spec.md`** and **`docs/architecture.md`**.
+For deeper architecture, see `docs/architecture.md`.

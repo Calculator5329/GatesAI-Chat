@@ -3,14 +3,23 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, toJS } from 'mobx';
 import type { ImageBackendConfig } from '../services/image/imageBackend';
+import type { ComfyDiscovery } from '../services/image/comfyDiscovery';
 import type { ImageBackendId } from '../services/image/types';
-import type { LocalRuntimeStore } from './LocalRuntimeStore';
 import {
   DEFAULT_IMAGE_GEN_CONFIG,
   loadImageGenConfig,
   saveImageGenConfig,
+  type ImageBackendChoice,
   type ImageGenConfig,
 } from '../services/imageGenStorage';
+
+/** What image generation reads from LocalRuntimeStore. */
+export interface ImageGenLocalRuntime {
+  readonly comfyBaseUrl: string;
+  /** ComfyUI answered and has a model the app can use. */
+  readonly comfyReady: boolean;
+  readonly comfyDiscovery: ComfyDiscovery | null;
+}
 
 /**
  * Owns image-generation credentials + backend selection. Kept separate
@@ -21,13 +30,17 @@ import {
  * UI asks {@link getCredential} for backend readiness; the `image_generate`
  * tool asks {@link toBackendConfig} to get a plain config snapshot for the
  * dispatcher.
+ *
+ * Local first: until the user picks a backend, a running ComfyUI wins when it
+ * has a built-in workflow's model or the user set a custom workflow, and
+ * OpenRouter covers the time it does not.
  */
 export class ImageGenStore {
   config: ImageGenConfig;
-  private readonly localRuntime?: LocalRuntimeStore;
+  private readonly localRuntime?: ImageGenLocalRuntime;
   private readonly getOpenRouterKey: () => string | undefined;
 
-  constructor(localRuntime?: LocalRuntimeStore, getOpenRouterKey: () => string | undefined = () => undefined) {
+  constructor(localRuntime?: ImageGenLocalRuntime, getOpenRouterKey: () => string | undefined = () => undefined) {
     this.localRuntime = localRuntime;
     this.getOpenRouterKey = getOpenRouterKey;
     this.config = loadImageGenConfig();
@@ -41,11 +54,13 @@ export class ImageGenStore {
     });
   }
 
-  get backend(): ImageBackendId {
-    return this.config.backend;
+  /** What the user asked for: `auto` or an explicit backend. */
+  get backendChoice(): ImageBackendChoice {
+    return this.config.backendChoice;
   }
 
-  get effectiveBackend(): ImageBackendId {
+  /** The backend image generation uses right now. */
+  get backend(): ImageBackendId {
     return this.resolveEffectiveBackend();
   }
 
@@ -53,8 +68,9 @@ export class ImageGenStore {
     return this.config.comfyWorkflowPath;
   }
 
-  setBackend(backend: ImageBackendId): void {
-    this.config = { ...this.config, backend };
+  /** Records an explicit pick; `auto` hands the choice back to the app. */
+  setBackend(backendChoice: ImageBackendChoice): void {
+    this.config = { ...this.config, backendChoice };
   }
 
   setComfyWorkflowPath(path: string): void {
@@ -94,7 +110,7 @@ export class ImageGenStore {
    */
   getCredential(backend: ImageBackendId = this.backend): string | null {
     switch (backend) {
-      case 'local-comfy': return this.localRuntime?.comfyBaseUrl ?? null;
+      case 'local-comfy': return this.comfyBaseUrl ?? null;
       case 'openrouter-image': return this.getOpenRouterKey() ?? null;
     }
   }
@@ -106,9 +122,11 @@ export class ImageGenStore {
    * dispatcher (path → JSON).
    */
   toBackendConfig(): Omit<ImageBackendConfig, 'comfyWorkflowTemplate' | 'fetch'> {
+    const discovery = this.localRuntime?.comfyDiscovery;
     return {
       primary: this.resolveEffectiveBackend(),
-      comfyBaseUrl: this.localRuntime?.comfyBaseUrl,
+      comfyBaseUrl: this.comfyBaseUrl,
+      comfyDiscovery: discovery ? toJS(discovery) : undefined,
       comfyQualityPreset: this.config.comfyQualityPreset ?? 'full',
       comfyUpscaleFactor: this.config.comfyUpscaleFactor ?? 1,
       comfyQualitySteps: this.config.comfyQualitySteps ?? 12,
@@ -118,18 +136,30 @@ export class ImageGenStore {
     };
   }
 
-  private resolveEffectiveBackend(): ImageBackendId {
-    const configured = this.config.backend;
-    const openRouterReady = !!this.getOpenRouterKey()?.trim();
-    const comfyReady = this.localRuntime?.runtimes.comfyui.status === 'online';
+  /** The server discovery found, else the configured address. */
+  private get comfyBaseUrl(): string | undefined {
+    const discovery = this.localRuntime?.comfyDiscovery;
+    return discovery?.online ? discovery.baseUrl : this.localRuntime?.comfyBaseUrl;
+  }
 
-    if (configured === 'local-comfy' && !comfyReady && openRouterReady) {
+  private resolveEffectiveBackend(): ImageBackendId {
+    const choice = this.config.backendChoice;
+    const openRouterReady = !!this.getOpenRouterKey()?.trim();
+    const comfyOnline = this.localRuntime?.comfyDiscovery?.online ?? false;
+    // A custom workflow brings its own model choice, so it needs no preset.
+    const comfyUsable = (this.localRuntime?.comfyReady ?? false) || (comfyOnline && !!this.config.comfyWorkflowPath);
+
+    if (choice === 'auto') {
+      // A running ComfyUI without a model beats a missing key: its error says which folder to fill.
+      return comfyUsable || (comfyOnline && !openRouterReady) ? 'local-comfy' : 'openrouter-image';
+    }
+    if (choice === 'local-comfy' && !comfyUsable && openRouterReady) {
       return 'openrouter-image';
     }
-    if (configured === 'openrouter-image' && !openRouterReady && comfyReady) {
+    if (choice === 'openrouter-image' && !openRouterReady && comfyUsable) {
       return 'local-comfy';
     }
-    return configured;
+    return choice;
   }
 }
 

@@ -29,8 +29,10 @@ light themes, serif chat prose, and operational controls kept small and out of t
 
 Prebuilt desktop installers are on the
 [latest release](https://github.com/Calculator5329/GatesAI-Chat-releases/releases/latest). The
-desktop app bundles the bridge, so the file and shell tools work without extra setup. Image
-generation uses OpenRouter or a local ComfyUI install you configure yourself.
+desktop app bundles the bridge, so the file and shell tools work without extra setup. For local
+chat, have Ollama running on this machine or on a server; for local images, have ComfyUI running
+with one image model. GatesAI finds both on its own. [Quick setup](docs/quick-setup.md) walks
+through it.
 
 | Platform | Download | Runs on |
 | --- | --- | --- |
@@ -54,9 +56,10 @@ and on desktop also mirrors into a readable `chat-history` library of HTML and M
 
 Models come from one streaming `LlmProvider` contract with two implementations behind it: the live
 OpenRouter catalog (refreshed from `/api/v1/models`, with pricing and favorites) and local Ollama
-models. You can switch mid-conversation. New chats start on Nemotron 3 Ultra free
-(`nvidia/nemotron-3-ultra-550b-a55b:free`), which costs nothing but is rate-limited on the free
-tier. To use anything else from OpenRouter, connect a key under Menu → Models → OpenRouter.
+models. You can switch mid-conversation. On desktop, new chats start on a local Ollama model
+whenever one is installed (Menu → Models → Local turns this off). Otherwise they start on
+Nemotron 3 Ultra free (`nvidia/nemotron-3-ultra-550b-a55b:free`), which costs nothing but is
+rate-limited on the free tier. To use anything else from OpenRouter, connect a key under Menu → Models → OpenRouter.
 
 The assistant's tools live in one registry: `memory`, `recall`, `library`, `notes`, `thread`,
 `chat_history`, `spawn_task`, `web_search` (Brave), `fetch_page`, `fs`, `terminal`, `inspect_file`,
@@ -145,7 +148,7 @@ npm run test       # Vitest unit and component suite
 npm run typecheck  # tsc project build plus the test project
 npm run lint       # ESLint, including the architecture-boundary import rules
 npm run ci         # all three, in order
-npm run test:e2e   # Playwright: 144 tests, 39 hand-written plus 105 generated journeys,
+npm run test:e2e   # Playwright: 145 tests, 41 hand-written plus 104 generated journeys,
                    # across desktop-mocked, web-lite, web-lite-journeys, mobile-journeys
 npm run test:watch # Vitest in watch mode
 npm run model-compat:catalog # free live-catalog policy audit

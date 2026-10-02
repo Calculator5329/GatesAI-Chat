@@ -1,9 +1,12 @@
-// Fetch interception for dev scenarios. Every provider seam in the app calls
-// the global `fetch` at request time (openaiCompat, openrouterCatalog,
-// health.ts, ollama.ts, localRuntimeService, braveClient, the OpenRouter image
-// client through wrapGlobalFetch), so replacing window.fetch before the stores
-// boot is enough to answer all of them. Unmatched requests fall through to the
-// real fetch so Vite's own traffic and the agent-handles drive API keep working.
+// Fetch interception for dev scenarios. Every provider seam in the app reaches
+// the global `fetch` at request time: openaiCompat, openrouterCatalog,
+// health.ts and braveClient call it directly, the OpenRouter image client
+// through wrapGlobalFetch, and the Ollama and ComfyUI callers (ollama.ts,
+// localRuntimeService, comfyDiscovery, comfyClient) through localFetch, which
+// outside Tauri is plain window.fetch looked up per call. Scenarios run in the
+// browser, so replacing window.fetch before the stores boot answers all of
+// them. Unmatched requests fall through to the real fetch so Vite's own
+// traffic and the agent-handles drive API keep working.
 import type { MockRequest, MockRoute, RecordedCall } from '../types';
 
 export interface FetchMock {

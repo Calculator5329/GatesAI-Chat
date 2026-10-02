@@ -5,9 +5,9 @@ import { jsonResponse, hostMatches, networkFailure, streamedResponse } from './h
 
 export const OLLAMA_HOST = '127.0.0.1:11434';
 
+/** A scenario that names no Ollama gets an offline one, never the machine's real server. */
 export function ollamaRoutes(plan: OllamaPlan | 'offline' | undefined): MockRoute[] {
-  if (!plan) return [];
-  if (plan === 'offline') {
+  if (!plan || plan === 'offline') {
     return [{ name: 'ollama.offline', matches: req => hostMatches(req, OLLAMA_HOST), respond: req => networkFailure(req.url) }];
   }
   const tags = {

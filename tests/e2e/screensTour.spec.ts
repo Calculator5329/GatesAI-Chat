@@ -1,6 +1,6 @@
 import { mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { expect, test, type Page, type TestInfo } from './fixtures/test';
 import { mockBridgeOnline, mockOllama, mockOpenRouter } from './fixtures/harness';
 import type { RetrievalTrace } from '../../src/core/types';
 
@@ -377,7 +377,7 @@ async function forceOllamaOnline(page: Page, options: { keepOnboarding?: boolean
           };
           localRuntime?: {
             runtimes: {
-              ollama: { status: string; installPath: string; lastError?: string; lastErrorKind?: string };
+              ollama: { status: string; lastError?: string };
               comfyui: { status: string };
             };
           };
@@ -389,10 +389,8 @@ async function forceOllamaOnline(page: Page, options: { keepOnboarding?: boolean
     store?.providers?.remove('openrouter');
     if (store?.localRuntime) {
       store.localRuntime.runtimes.ollama.status = 'online';
-      store.localRuntime.runtimes.ollama.installPath = 'C:\\Program Files\\Ollama\\ollama.exe';
       store.localRuntime.runtimes.ollama.lastError = undefined;
-      store.localRuntime.runtimes.ollama.lastErrorKind = undefined;
-      store.localRuntime.runtimes.comfyui.status = 'stopped';
+      store.localRuntime.runtimes.comfyui.status = 'offline';
     }
     await store?.ollama?.refresh();
     const threadId = store?.chat?.activeThreadId;

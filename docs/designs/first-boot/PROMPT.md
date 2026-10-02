@@ -169,7 +169,7 @@ Opening the model control uses the existing lazy-loaded model picker. It exposes
 - `Open Local settings` routes to `/#/menu/local`; it does not claim Ollama was installed or started.
 - When Ollama is online and models hydrate, an untouched empty thread still on the compiled cloud default adopts the best local model and `micro` context. A thread with messages or any explicit model choice is never overwritten.
 - `Continue with …` explicitly assigns the selected local model, dismisses onboarding, replaces the cards with the local-ready message, and focuses the composer at the end of its draft.
-- `Get a starter model` pulls exactly `llama3.2:3b`. On success it chooses that newly registered model if present, otherwise the best local model, dismisses onboarding, shows the ready message, and focuses the composer. Failure stays in the card.
+- `Get a starter model` pulls exactly `qwen3.5:4b`. On success it chooses that newly registered model if present, otherwise the best local model, dismisses onboarding, shows the ready message, and focuses the composer. Failure stays in the card.
 - Local conversation routing must remain pinned to the chosen Ollama model unless the person selects another model. No cloud fallback.
 
 ### Cloud path
@@ -320,11 +320,9 @@ Example OpenRouter catalog model after mapping:
 
 | Capability | Existing call/endpoint | Example response/input |
 | --- | --- | --- |
-| Runtime status | Tauri `runtime_status({ id: 'ollama' })` | `{ "running": true, "status": "online", "pid": 1234, "uptimeMs": 42000, "logs": [] }` |
-| Runtime discovery | Tauri `runtime_candidate_paths`, `path_exists`; store `autoDetect()` | `{ "platform": "linux", "homeDir": "/home/user", "localAppData": "", "comfyCandidates": [] }` |
-| Runtime health | Tauri `probe_http`; Ollama probe `${baseUrl}/api/version` | Success/failure only. |
-| Ollama catalog | Tauri `ollama_tags` on Desktop or `GET ${baseUrl}/api/tags` | `{ "models": [{ "name": "qwen2.5:7b" }, { "name": "nomic-embed-text:latest" }] }`; embedding tags are excluded from chat `Model[]` but retained in `tagNames`. |
-| Ollama pull | `POST ${baseUrl}/api/pull` with `{ "model": "llama3.2:3b", "stream": true }` | NDJSON `{ "status": "pulling manifest", "digest": "sha256:…", "total": 100, "completed": 20 }`; mapped to phase/percent. |
+| Runtime health | Reachability probes from `LocalRuntimeStore` (boot, window focus, URL change, interval) through `localFetch` (Tauri `local_http_request`, ADR 2026-10-01) | Online when `/api/tags` answers; ComfyUI via `findComfy` on :8188 then :8000. |
+| Ollama catalog | `GET ${baseUrl}/api/tags` through `localFetch` (any http(s) host on Desktop) | `{ "models": [{ "name": "qwen3.5:4b", "capabilities": ["completion", "vision", "tools", "thinking"], "details": { "context_length": 262144 } }] }`; embedding models are excluded from chat `Model[]` but retained in `tagNames`. |
+| Ollama pull | `POST ${baseUrl}/api/pull` with `{ "model": "qwen3.5:4b", "stream": true }` | NDJSON `{ "status": "pulling manifest", "digest": "sha256:…", "total": 100, "completed": 20 }`; mapped to phase/percent. |
 | OpenRouter validation/catalog | `GET https://openrouter.ai/api/v1/models` with candidate key as Bearer authorization | `{ "data": [{ "id": "google/gemini-3-flash", "name": "Gemini 3 Flash", "context_length": 1000000, "pricing": { "prompt": "0.0000005", "completion": "0.000003" }, "architecture": { "output_modalities": ["text"] } }] }` |
 | Provider readiness | `providers.isConnected(providerId)` / `providers.hasUsableProvider` | Boolean, derived from the routed provider’s `ready()` state. |
 | Desktop downloads | Pure `recommendedDownload(os, arch)` data | `{ "kind": "linux-appimage", "label": "Download for Linux (AppImage)", "runsOn": "Linux x86_64 (AppImage)", "url": "…" }` |
@@ -393,7 +391,7 @@ Example OpenRouter catalog model after mapping:
 - Local card exists and precedes Cloud in the DOM.
 - Keyless Desktop can route to Local settings without an OpenRouter nag.
 - Detected local models default only untouched empty chats; explicit model choices remain intact.
-- Online Ollama with no models can pull `llama3.2:3b` and then select it.
+- Online Ollama with no models can pull `qwen3.5:4b` and then select it.
 - Valid OpenRouter paste validates, persists, dismisses setup, and reports model count; rejected key stays unpersisted.
 - Look around persists dismissal.
 - Web Lite omits Local and disables attachments.

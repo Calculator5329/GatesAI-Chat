@@ -1,5 +1,10 @@
 # GatesAI Local Image Generation Prerequisites
 
+> **Superseded (2026-10-02).** Use [ComfyUI setup](comfyui-setup.md) instead.
+> GatesAI now finds a running ComfyUI or ComfyUI Desktop on its own and picks
+> a workflow from the models it has, so the fixed file names, workflow path
+> and portable-folder steps below no longer apply. Kept for history.
+
 This is the minimal setup sheet for GatesAI Chat local image generation using
 ComfyUI.
 

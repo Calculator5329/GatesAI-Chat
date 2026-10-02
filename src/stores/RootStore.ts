@@ -36,6 +36,7 @@ import { installMultiTabStorageListener } from '../services/storage/persistenceP
 import { purgeRetiredLocalSlots } from '../services/persistence/retiredSlots';
 import { WebLocksLeaderElection } from '../services/storage/webLocksLeaderElection';
 import { toolRegistry } from '../services/tools/registry';
+import type { LocalRuntimeFacade } from '../services/tools/types';
 import { runtimeMode, type GatesRuntimeMode } from '../core/runtime';
 import {
   downloadDataExport,
@@ -47,6 +48,9 @@ import {
 } from '../services/chat/dataExport';
 import { getSecret, migrateDesktopSecretsFromLocalStorage, SECRET_NAMES } from '../services/secretStorage';
 import { UndoService } from '../services/undo/UndoService';
+
+/** Longest boot waits on the keychain before local runtime probes start anyway. */
+export const KEYCHAIN_WAIT_MS = 3_000;
 
 export class RootStore {
   readonly registry: ModelRegistry;
@@ -84,7 +88,6 @@ export class RootStore {
 
   constructor(options: { runtime?: GatesRuntimeMode } = {}) {
     this.runtime = options.runtime ?? runtimeMode();
-    let ollamaStore: OllamaStore | null = null;
     this.registry = new ModelRegistry();
     this.profile = new UserProfileStore();
     this.undo = new UndoService();
@@ -92,12 +95,9 @@ export class RootStore {
     this.dock = new DockStore({ runtime: this.runtime });
     this.whatsNew = new WhatsNewStore();
     this.router = new RouterStore();
-    this.localRuntime = new LocalRuntimeStore({
-      getOllamaCatalog: () => ollamaStore?.catalog ?? [],
-    });
+    this.localRuntime = new LocalRuntimeStore({ probesEnabled: this.runtime !== 'web-lite' });
     this.search = new SearchStore(undefined, { autoPersist: false });
     this.ollama = new OllamaStore(this.registry, this.localRuntime, { autoPersist: false });
-    ollamaStore = this.ollama;
     this.providers = new ProviderStore(this.registry, () => ({
       ollama: {
         baseUrl: this.localRuntime.ollamaBaseUrl,
@@ -159,8 +159,21 @@ export class RootStore {
     this.chat.setRecentSummariesProvider(() =>
       this.summary.recentSummariesExcluding(this.chat.activeThreadId)
     );
+    this.chat.setPreferLocalModelsProvider(() => this.localRuntime.preferLocalModels);
     this.chat.setSemanticContextProvider((userText, threadId) => this.rag.semanticContextBundleForUserText(userText, threadId));
     this.chat.setActiveSkillProvider(threadId => this.skills.findById(this.chat.threads.find(t => t.id === threadId)?.skillId));
+
+    // Tools see the local runtimes live, plus the Ollama key that only
+    // OllamaStore holds, so describe_image can reach a keyed remote Ollama.
+    const localRuntime = this.localRuntime;
+    const ollama = this.ollama;
+    const toolLocalRuntime: LocalRuntimeFacade = {
+      get ollamaBaseUrl() { return localRuntime.ollamaBaseUrl; },
+      get comfyBaseUrl() { return localRuntime.comfyBaseUrl; },
+      get comfyReady() { return localRuntime.comfyReady; },
+      get visionModel() { return localRuntime.visionModel; },
+      get ollamaApiKey() { return ollama.config.apiKey; },
+    };
 
     // Auxiliary stores tools need at execution time. Lazy getter so the
     // wiring stays one-way (tools reach back through ChatStore's context).
@@ -171,7 +184,7 @@ export class RootStore {
       execStream: this.execStream,
       imageGen: this.imageGen,
       imageJobs: this.imageJobs,
-      localRuntime: this.localRuntime,
+      localRuntime: toolLocalRuntime,
       search: this.search,
       rag: this.rag,
       library: this.library,
@@ -185,7 +198,7 @@ export class RootStore {
     if (this.booted) return;
     this.booted = true;
     purgeRetiredLocalSlots();
-    void this.hydrateSecretsAtBoot();
+    const secretsHydrated = this.hydrateSecretsAtBoot();
 
     let attemptedOpenRouterCatalogHydrationForKey: string | null = null;
     this.disposers.push(autorun(() => {
@@ -201,24 +214,6 @@ export class RootStore {
       ) {
         attemptedOpenRouterCatalogHydrationForKey = key;
         void this.openrouter.refresh();
-      }
-    }));
-
-    let attemptedOllamaCatalogHydrationForKey: string | null = null;
-    this.disposers.push(autorun(() => {
-      const online = this.localRuntime.runtimes.ollama.status === 'online';
-      const key = `${this.localRuntime.ollamaBaseUrl}|${this.ollama.config.apiKey ?? ''}`;
-      if (!online) {
-        attemptedOllamaCatalogHydrationForKey = null;
-        return;
-      }
-      if (
-        attemptedOllamaCatalogHydrationForKey !== key
-        && this.ollama.count === 0
-        && !this.ollama.fetching
-      ) {
-        attemptedOllamaCatalogHydrationForKey = key;
-        void this.ollama.refresh();
       }
     }));
 
@@ -296,7 +291,11 @@ export class RootStore {
 
     if (this.runtime === 'desktop') {
       this.bridge.start();
-      void this.localRuntime.init();
+      // After the keychain answers, so a keyed remote Ollama is probed with its key from the start.
+      // An unlock prompt left open must not hide a running Ollama: give up waiting after
+      // KEYCHAIN_WAIT_MS; a key that lands later re-probes on its own.
+      const keychainWait = new Promise<void>(resolve => { setTimeout(resolve, KEYCHAIN_WAIT_MS); });
+      void Promise.race([secretsHydrated, keychainWait]).finally(() => this.localRuntime.startMonitoring());
       this.updates.startBackgroundChecks();
 
       const bridge = this.bridge;
@@ -319,7 +318,8 @@ export class RootStore {
 
     this.disposers.push(autorun(() => {
       if (this.ui.onboardingDismissed) return;
-      if (this.chat.threads.some(thread => thread.messages.length > 0)) {
+      // The seeded welcome tour is read-only and must not count as the user having chatted.
+      if (this.chat.threads.some(thread => !thread.readOnly && thread.messages.length > 0)) {
         this.ui.setOnboardingDismissed(true);
       }
     }));
@@ -349,6 +349,7 @@ export class RootStore {
     this.providers.dispose();
     this.search.dispose();
     this.ollama.dispose();
+    this.localRuntime.dispose();
     this.chat.dispose();
     this.undo.clear();
     // Flush the departing leader while it still owns the lock, then release

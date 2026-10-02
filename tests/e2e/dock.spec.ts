@@ -1,6 +1,6 @@
 // Right dock panel framework (W-1): open a workspace markdown file in the
 // dock through the command palette against the desktop-mocked project.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 import { mockBridgeOnline, mockOpenRouter, seedReadyProvider } from './fixtures/harness';
 
 test.describe('dock (mocked bridge)', () => {

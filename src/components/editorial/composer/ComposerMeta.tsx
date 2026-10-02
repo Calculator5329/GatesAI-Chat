@@ -25,6 +25,8 @@ const ModelPopover = lazy(() => import('../ModelPopover'));
 interface ComposerMetaProps {
   activeThread: Thread | null;
   currentModel: Model | undefined;
+  /** Ollama tag the chat is kept on although Ollama does not list it; the chip names it over the fallback. */
+  missingLocalModelTag: string | null;
   defaultModelId: string;
   modelOpen: boolean;
   onToggleModel: () => void;
@@ -51,6 +53,7 @@ interface ComposerMetaProps {
 export function ComposerMeta({
   activeThread,
   currentModel,
+  missingLocalModelTag,
   defaultModelId,
   modelOpen,
   onToggleModel,
@@ -73,6 +76,7 @@ export function ComposerMeta({
   hasText,
   streamActivity,
 }: ComposerMetaProps) {
+  const modelLabel = missingLocalModelTag ?? currentModel?.name ?? 'Select model';
   return (
     <div className="editorial-composer__meta" style={META_ROW_STYLE}>
       <div style={{ position: 'relative' }}>
@@ -81,7 +85,7 @@ export function ComposerMeta({
           className="composer-model-label"
           aria-haspopup="listbox"
           aria-expanded={modelOpen}
-          aria-label={`Model: ${currentModel?.name ?? 'Select model'}`}
+          aria-label={`Model: ${modelLabel}`}
           onClick={onToggleModel}
           onKeyDown={e => {
             if (e.key === 'Escape') onCloseModel();
@@ -90,7 +94,7 @@ export function ComposerMeta({
         >
           <span style={ACCENT_DOT_STYLE} />
           <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {currentModel?.name ?? 'Select model'}
+            {modelLabel}
           </span>
           <Icons.Chevron />
         </button>

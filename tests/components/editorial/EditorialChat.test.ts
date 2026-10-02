@@ -50,14 +50,23 @@ let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 let store: RootStore | null = null;
 
-function buildStore(): RootStore {
+type FetchTags = (baseUrl: string, apiKey?: string) => Promise<unknown>;
+
+/** Pass fetchOllamaTags to drive the live Ollama probe; without it probes are off and Ollama reads as offline. */
+function buildStore(fetchOllamaTags?: FetchTags): RootStore {
   const registry = new ModelRegistry();
   const profile = new UserProfileStore();
   const ui = new UiStore();
   const router = new RouterStore();
   const bridge = new BridgeStore();
   const execStream = new ExecStreamStore();
-  const localRuntime = new LocalRuntimeStore({ autoDetect: async () => ({}) });
+  const localRuntime = fetchOllamaTags
+    ? new LocalRuntimeStore({
+      service: { fetchOllamaTags },
+      findComfy: async () => ({ baseUrl: 'http://127.0.0.1:8188', online: false, checkpoints: [], diffusionModels: [], preset: null }),
+      subscribeToWake: () => () => {},
+    })
+    : new LocalRuntimeStore({ probesEnabled: false });
   const ollama = new OllamaStore(registry, localRuntime);
   const providers = new ProviderStore(registry, () => ({
     ollama: {
@@ -152,7 +161,7 @@ afterEach(() => {
 });
 
 describe('EditorialChat empty state (Batch C)', () => {
-  it('leads with the local path and links Local settings when Ollama is not detected', () => {
+  it('leads with the local path and offers the Ollama download when nothing answers', () => {
     store = buildStore();
     const initialModelId = store.chat.activeThread?.modelId;
     const rendered = renderChat(store);
@@ -166,15 +175,19 @@ describe('EditorialChat empty state (Batch C)', () => {
     expect(rendered.textContent).toContain('Start with local models');
     expect(rendered.textContent).toContain('Just look around');
     expect(rendered.textContent).toContain('no account or cloud key');
-    expect(rendered.textContent).toContain('Open Local settings');
+    expect(rendered.textContent).toContain('Ollama on another computer? Set its address in Settings > Models.');
+    const install = rendered.querySelector<HTMLAnchorElement>('[data-testid="workspace.editorial-chat.install-ollama"]');
+    expect(install?.textContent).toBe('Install Ollama');
+    expect(install?.href).toBe('https://ollama.com/download');
+    expect(install?.target).toBe('_blank');
     expect(localCard).not.toBeNull();
     expect(cloudCard).not.toBeNull();
     expect(localCard!.compareDocumentPosition(cloudCard!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(store.chat.activeThread?.modelId).toBe(initialModelId);
     expect(rendered.textContent).not.toContain('Connect OpenRouter in Models');
 
-    const openLocal = Array.from(rendered.querySelectorAll('button'))
-      .find(button => button.textContent === 'Open Local settings') as HTMLButtonElement | undefined;
+    const openLocal = rendered.querySelector<HTMLButtonElement>('[data-testid="workspace.editorial-chat.set-remote-ollama"]');
+    expect(openLocal?.textContent).toBe('Open Settings > Models');
     act(() => openLocal?.click());
 
     expect(store.router.menuSection).toBe('models');
@@ -247,7 +260,7 @@ describe('EditorialChat empty state (Batch C)', () => {
     const localCard = rendered.querySelector('[data-onboarding-path="local"]');
     const cloudCard = rendered.querySelector('[data-onboarding-path="cloud"]');
     const useLocal = Array.from(rendered.querySelectorAll('button'))
-      .find(button => button.textContent?.includes('Continue with Llama 3 Local')) as HTMLButtonElement | undefined;
+      .find(button => button.textContent?.includes('Chat with Llama 3 Local')) as HTMLButtonElement | undefined;
 
     expect(store.chat.activeThread?.modelId).toBe('ollama-llama3');
     expect(rendered.textContent).toContain('Llama 3 Local is selected for this chat');
@@ -271,40 +284,91 @@ describe('EditorialChat empty state (Batch C)', () => {
     });
     vi.spyOn(store.ollama, 'startPull').mockImplementation(async () => {
       store!.registry.setDynamicForProvider('ollama', [{
-        id: 'ollama-llama3.2:3b',
-        name: 'llama3.2:3b',
+        id: 'ollama-qwen3.5:4b',
+        name: 'qwen3.5:4b',
         vendor: 'Ollama',
         providerId: 'ollama',
-        providerModelId: 'llama3.2:3b',
+        providerModelId: 'qwen3.5:4b',
       }]);
       return true;
     });
     const rendered = renderChat(store);
-    const starter = Array.from(rendered.querySelectorAll('button'))
-      .find(button => button.textContent?.includes('Get a starter model')) as HTMLButtonElement | undefined;
+    const starter = rendered.querySelector<HTMLButtonElement>('[data-testid="workspace.editorial-chat.primary"]');
+    expect(starter?.textContent).toBe('Get qwen3.5:4b (3.4 GB)');
 
     await act(async () => {
       starter?.click();
-      await vi.waitFor(() => expect(store!.chat.activeThread?.modelId).toBe('ollama-llama3.2:3b'));
+      await vi.waitFor(() => expect(store!.chat.activeThread?.modelId).toBe('ollama-qwen3.5:4b'));
     });
 
-    expect(store.ollama.startPull).toHaveBeenCalledWith('llama3.2:3b');
+    expect(store.ollama.startPull).toHaveBeenCalledWith('qwen3.5:4b');
     expect(store.ui.onboardingDismissed).toBe(true);
-    expect(rendered.textContent).toContain('Ollama detected - llama3.2:3b ready.');
+    expect(rendered.textContent).toContain('Ollama detected - qwen3.5:4b ready.');
+  });
+
+  it('follows the live probe from looking for Ollama to a one-click local chat', async () => {
+    store = buildStore(async () => ({ models: [{ name: 'qwen3.5:4b', capabilities: ['completion', 'tools'] }] }));
+    const rendered = renderChat(store);
+
+    expect(rendered.textContent).toContain('Looking for Ollama at http://127.0.0.1:11434...');
+
+    await act(async () => { await store!.localRuntime.probe('ollama'); });
+
+    const chatWith = rendered.querySelector<HTMLButtonElement>('[data-testid="workspace.editorial-chat.continue-with"]');
+    expect(chatWith?.textContent).toBe('Chat with qwen3.5:4b');
+    act(() => chatWith?.click());
+    expect(store.chat.activeThread?.modelId).toBe('ollama-qwen3.5:4b');
+    expect(store.ui.onboardingDismissed).toBe(true);
+  });
+
+  it('points a silent remote Ollama at its settings instead of a local install', () => {
+    store = buildStore();
+    runInAction(() => {
+      store!.localRuntime.runtimes.ollama.baseUrl = 'http://192.168.1.20:11434';
+      store!.localRuntime.runtimes.ollama.status = 'offline';
+    });
+    const rendered = renderChat(store);
+
+    expect(rendered.querySelector('[data-testid="workspace.editorial-chat.install-ollama"]')).toBeNull();
+    expect(rendered.textContent).toContain('the Ollama server at http://192.168.1.20:11434');
+    expect(rendered.textContent).toContain('OLLAMA_HOST=0.0.0.0:11434');
+    const open = rendered.querySelector<HTMLButtonElement>('[data-testid="workspace.editorial-chat.open-remote-ollama-settings"]');
+    act(() => open?.click());
+    expect(store.router.menuSection).toBe('models');
+  });
+
+  it('says why Ollama is offline, and Check again moves on once it answers', async () => {
+    let answering = false;
+    store = buildStore(async () => {
+      if (!answering) throw new TypeError('Failed to fetch');
+      return { models: [] };
+    });
+    await store.localRuntime.probe('ollama');
+    const rendered = renderChat(store);
+
+    expect(rendered.textContent).toContain('Nothing is answering at http://127.0.0.1:11434.');
+    answering = true;
+    const recheck = rendered.querySelector<HTMLButtonElement>('[data-testid="workspace.editorial-chat.recheck-ollama"]');
+    await act(async () => {
+      recheck?.click();
+      await vi.waitFor(() => expect(store!.localRuntime.runtimes.ollama.status).toBe('online'));
+    });
+
+    expect(rendered.querySelector('[data-testid="workspace.editorial-chat.primary"]')?.textContent).toBe('Get qwen3.5:4b (3.4 GB)');
   });
 
   it('offers optional semantic memory after a local model is ready', () => {
     store = buildStore();
     store.registry.setDynamicForProvider('ollama', [{
-      id: 'ollama-llama3.2:3b',
-      name: 'llama3.2:3b',
+      id: 'ollama-qwen3.5:4b',
+      name: 'qwen3.5:4b',
       vendor: 'Ollama',
       providerId: 'ollama',
-      providerModelId: 'llama3.2:3b',
+      providerModelId: 'qwen3.5:4b',
     }]);
     runInAction(() => {
       store!.localRuntime.runtimes.ollama.status = 'online';
-      store!.chat.activeThread!.modelId = 'ollama-llama3.2:3b';
+      store!.chat.activeThread!.modelId = 'ollama-qwen3.5:4b';
     });
     store.ui.setOnboardingDismissed(true);
     const pull = vi.spyOn(store.ollama, 'startPull').mockResolvedValue(true);

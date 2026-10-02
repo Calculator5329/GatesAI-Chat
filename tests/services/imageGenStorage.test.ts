@@ -9,7 +9,7 @@ describe('imageGenStorage', () => {
   it('defaults local ComfyUI generation to normal FLUX.2 Klein without upscale', () => {
     const config = loadImageGenConfig();
 
-    expect(config.backend).toBe('openrouter-image');
+    expect(config.backendChoice).toBe('auto');
     expect(config.comfyQualityPreset).toBe('full');
     expect(config.comfyUpscaleFactor).toBe(1);
     expect(config.comfyQualitySteps).toBe(12);
@@ -39,7 +39,6 @@ describe('imageGenStorage', () => {
 
     const config = loadImageGenConfig();
 
-    expect(config.backend).toBe('local-comfy');
     expect(config.comfyQualityPreset).toBe('full');
     expect(config.comfyWorkflowPath).toBeUndefined();
   });
@@ -70,15 +69,24 @@ describe('imageGenStorage', () => {
     expect(config.comfyUpscaleFactor).toBe(1);
   });
 
-  it('migrates retired image backends to OpenRouter image generation', () => {
-    for (const backend of ['local-a1111', 'cloud-openrouter', 'cloud-openai', 'cloud-gemini']) {
+  it('treats the old always-saved backend field as no explicit choice', () => {
+    for (const backend of ['openrouter-image', 'local-comfy', 'local-a1111', 'cloud-gemini']) {
       clearAppStorage();
       localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({ backend }));
 
       const config = loadImageGenConfig();
 
-      expect(config.backend).toBe('openrouter-image');
+      expect(config.backendChoice).toBe('auto');
+      expect('backend' in config).toBe(false);
     }
+  });
+
+  it('keeps an explicit backend choice and resets an unknown one to auto', () => {
+    localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({ backendChoice: 'openrouter-image' }));
+    expect(loadImageGenConfig().backendChoice).toBe('openrouter-image');
+
+    localStorage.setItem('gatesai.imagegen.v1', JSON.stringify({ backendChoice: 'cloud-gemini' }));
+    expect(loadImageGenConfig().backendChoice).toBe('auto');
   });
 
   it('drops retired local/cloud/prompt enhancement fields on load', () => {

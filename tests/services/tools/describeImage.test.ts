@@ -35,13 +35,40 @@ describe('describe_image tool', () => {
     });
   });
 
+  it('sends the Ollama key as a bearer token only when one is set', async () => {
+    const sent: Headers[] = [];
+    globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      sent.push(new Headers(init?.headers));
+      return new Response(JSON.stringify({ message: { content: 'ok' } }), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    await describeImageTool.execute({ path: '/workspace/artifacts/fox.png' }, makeCtx({ ollamaApiKey: 'test-ollama-key' }));
+    await describeImageTool.execute({ path: '/workspace/artifacts/fox.png' }, makeCtx());
+
+    expect(sent[0].get('Authorization')).toBe('Bearer test-ollama-key');
+    expect(sent[1].has('Authorization')).toBe(false);
+  });
+
+  it('passes the turn abort signal so Stop cancels the vision request', async () => {
+    let seen: AbortSignal | null | undefined;
+    globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      seen = init?.signal;
+      return new Response(JSON.stringify({ message: { content: 'ok' } }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const controller = new AbortController();
+
+    await describeImageTool.execute({ path: '/workspace/artifacts/fox.png' }, makeCtx({ signal: controller.signal }));
+
+    expect(seen).toBe(controller.signal);
+  });
+
   it('reports a clear error when no local vision model is selected', async () => {
     const out = await describeImageTool.execute(
       { path: '/workspace/artifacts/fox.png' },
       makeCtx({ visionModel: undefined }),
     );
 
-    expect(out).toMatch(/No local vision model selected/i);
+    expect(out).toMatch(/No local vision model selected\. Add an Ollama vision model in Settings > Models\./);
   });
 
   it('requires the bridge so workspace images can be read', async () => {
@@ -54,11 +81,12 @@ describe('describe_image tool', () => {
   });
 });
 
-function makeCtx(opts: { visionModel?: string; bridgeOnline?: boolean } = {}): ToolContext {
+function makeCtx(opts: { visionModel?: string; bridgeOnline?: boolean; ollamaApiKey?: string; signal?: AbortSignal } = {}): ToolContext {
   return {
     profile: undefined,
     chat: undefined,
     threadId: 't-test',
+    signal: opts.signal,
     bridge: {
       isOnline: opts.bridgeOnline ?? true,
       client: { request: vi.fn() },
@@ -67,6 +95,7 @@ function makeCtx(opts: { visionModel?: string; bridgeOnline?: boolean } = {}): T
     localRuntime: {
       ollamaBaseUrl: 'http://127.0.0.1:11434',
       visionModel: Object.prototype.hasOwnProperty.call(opts, 'visionModel') ? opts.visionModel : 'qwen2.5-vl:7b',
+      ollamaApiKey: opts.ollamaApiKey,
     },
   } as unknown as ToolContext;
 }

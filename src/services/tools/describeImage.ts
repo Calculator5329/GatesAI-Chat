@@ -5,6 +5,7 @@ import type { Tool } from './types';
 import { PROTECTED_CHAT_HISTORY_DENIAL, denyProtectedChatHistoryPath } from './protectedWorkspacePaths';
 import { requireBridge } from './requireBridge';
 import { isRecord } from '../../core/guards';
+import { localFetch } from '../local/localHttp';
 
 const DESCRIBE_IMAGE_BRIDGE_OFFLINE = 'Error: bridge is offline, so GatesAI cannot read the image file.';
 
@@ -32,7 +33,7 @@ export const describeImageTool: Tool = {
       offline: DESCRIBE_IMAGE_BRIDGE_OFFLINE,
     });
     if (!guard.ok) return guard.error;
-    if (!ctx.localRuntime?.visionModel) return 'Error: No local vision model selected in the Local menu.';
+    if (!ctx.localRuntime?.visionModel) return 'Error: No local vision model selected. Add an Ollama vision model in Settings > Models.';
 
     const image = await guard.bridge.readAttachmentBase64(path);
     if (!image) return `Error: could not read image at ${path}.`;
@@ -41,9 +42,12 @@ export const describeImageTool: Tool = {
       ? args.question.trim()
       : 'Describe this image in detail.';
 
-    const resp = await fetch(`${ctx.localRuntime.ollamaBaseUrl.replace(/\/+$/, '')}/api/chat`, {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (ctx.localRuntime.ollamaApiKey) headers.Authorization = `Bearer ${ctx.localRuntime.ollamaApiKey}`;
+    const resp = await localFetch(`${ctx.localRuntime.ollamaBaseUrl.replace(/\/+$/, '')}/api/chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
+      signal: ctx.signal,
       body: JSON.stringify({
         model: ctx.localRuntime.visionModel,
         stream: false,

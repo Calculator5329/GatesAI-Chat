@@ -1,9 +1,11 @@
 // Route/notice banners that stack above the composer input. Each route-block
 // banner links to the settings surface that would unblock sending; NoticeBanner
 // is the generic dismissable notice used for persistence/compaction messages.
+import type { CSSProperties } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useEditorial } from '../../../stores/context';
 import { isWebLite } from '../../../core/runtime';
+import { missingLocalModelMessage } from '../../../core/localModelMeta';
 
 export const ModelsKeyBanner = observer(function ModelsKeyBanner() {
   const { router } = useEditorial();
@@ -42,8 +44,31 @@ export const ModelsKeyBanner = observer(function ModelsKeyBanner() {
   );
 });
 
+const BANNER_ACTION_STYLE: CSSProperties = {
+  padding: '4px 10px',
+  border: '1px solid var(--border)',
+  borderRadius: 6,
+  background: 'transparent',
+  color: 'var(--accent)',
+  cursor: 'pointer',
+  fontSize: 12,
+  fontFamily: 'inherit',
+};
+
+/**
+ * Follows the live Ollama probe and says what is wrong. While Ollama stays
+ * down the probe backs off to every 5 minutes, so the banner offers Check
+ * again; returning to the window also re-probes.
+ */
 export const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
-  const { router } = useEditorial();
+  const { localRuntime, ollama, router } = useEditorial();
+  const runtime = localRuntime.runtimes.ollama;
+  const canRecheck = runtime.status !== 'unknown' && !isWebLite();
+  const message = runtime.status === 'unknown'
+    ? `Looking for Ollama at ${localRuntime.ollamaBaseUrl}...`
+    : isWebLite()
+      ? 'Local models need the GatesAI desktop app.'
+      : `${runtime.lastError ?? `Nothing is answering at ${localRuntime.ollamaBaseUrl}.`} Start Ollama, then come back to this window or press Check again.`;
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -57,8 +82,52 @@ export const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
       fontSize: 13,
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
     }}>
-      <span>Start Ollama to chat with this local model.</span>
-      <button data-testid="workspace.composer-banners.open-local-settings"
+      <span>{message}</span>
+      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        {canRecheck && (
+          <button data-testid="workspace.composer-banners.recheck-ollama"
+            type="button"
+            className="editorial-banner-action"
+            onClick={() => void ollama.refresh()}
+            disabled={runtime.checking}
+            style={BANNER_ACTION_STYLE}
+          >
+            {runtime.checking ? 'Checking...' : 'Check again'}
+          </button>
+        )}
+        <button data-testid="workspace.composer-banners.open-local-settings"
+          type="button"
+          className="editorial-banner-action"
+          onClick={() => router.goMenu('models')}
+          style={BANNER_ACTION_STYLE}
+        >
+          Open Settings &gt; Models
+        </button>
+      </div>
+    </div>
+  );
+});
+
+/** A started chat stays on its local model after Ollama stops listing it; says so instead of a provider error. */
+export const LocalModelMissingBanner = observer(function LocalModelMissingBanner() {
+  const { chat, localRuntime, router } = useEditorial();
+  const tag = chat.activeMissingLocalModelTag;
+  if (!tag) return null;
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 12,
+      padding: '8px 12px',
+      marginBottom: 8,
+      border: '1px solid var(--border)',
+      borderRadius: 8,
+      background: 'var(--panel)',
+      color: 'var(--text-dim)',
+      fontSize: 13,
+      fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
+    }}>
+      <span>{missingLocalModelMessage(tag, localRuntime.ollamaBaseUrl)}</span>
+      <button data-testid="workspace.composer-banners.open-models-for-missing-local-model"
         type="button"
         className="editorial-banner-action"
         onClick={() => router.goMenu('models')}
@@ -73,7 +142,7 @@ export const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
           fontFamily: 'inherit',
         }}
       >
-        Open local settings
+        Open Settings &gt; Models
       </button>
     </div>
   );
@@ -115,7 +184,7 @@ export const LocalImageBanner = observer(function LocalImageBanner() {
       fontSize: 13,
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
     }}>
-      <span>Start and connect ComfyUI to use local image generation.</span>
+      <span>Start ComfyUI or ComfyUI Desktop to use local image generation; GatesAI finds it on its own.</span>
       <button data-testid="workspace.composer-banners.open-local-image-settings"
         type="button"
         className="editorial-banner-action"
@@ -131,7 +200,7 @@ export const LocalImageBanner = observer(function LocalImageBanner() {
           fontFamily: 'inherit',
         }}
       >
-        Open local settings
+        Open Settings &gt; Models
       </button>
     </div>
   );

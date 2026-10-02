@@ -621,7 +621,7 @@
       </div>
       <div class="grid cols-2">
         <div class="card"><h3>Tauri responsibilities</h3><p><code>src-tauri/src/lib.rs</code> opens workspace paths, starts the bridge sidecar, kills managed child processes on window destroy, and exposes local runtime commands.</p></div>
-        <div class="card"><h3>Local runtime responsibilities</h3><p><code>src-tauri/src/local_runtime.rs</code> starts/stops Ollama and ComfyUI, probes health endpoints, records logs, provides file/folder pickers, and suggests install paths.</p></div>
+        <div class="card"><h3>Local runtime responsibilities</h3><p><code>src-tauri/src/local_http.rs</code> passes allowlisted requests from the webview to Ollama and ComfyUI, so neither needs CORS setup. GatesAI never starts them. <code>local_runtime.rs</code> keeps only the file picker.</p></div>
       </div>
     </section>
 
@@ -707,7 +707,7 @@
         <div class="card"><h3>Bridge</h3><p><code>client.ts</code> wraps the bridge WebSocket as typed request/response RPC. Attachments and image bytes are resolved through bridge helpers.</p></div>
         <div class="card"><h3>Tools</h3><p>Each tool exports a JSON-schema definition and an <code>execute()</code> function. The registry chooses a per-turn subset from user text and runtime availability.</p></div>
         <div class="card"><h3>Image</h3><p><code>imageBackend.ts</code> currently has one branch: <code>local-comfy</code>. <code>comfyClient.ts</code> queues workflows and reads outputs.</p></div>
-        <div class="card"><h3>Local runtime</h3><p><code>localRuntimeService.ts</code> calls Tauri commands; <code>autoDetect.ts</code> finds likely install paths; storage keeps local runtime settings.</p></div>
+        <div class="card"><h3>Local runtime</h3><p><code>localHttp.ts</code> routes Ollama and ComfyUI calls through the Rust pass-through; <code>comfyDiscovery.ts</code> finds ComfyUI and its models; storage keeps the two addresses and the local-first preference.</p></div>
         <div class="card"><h3>Persistence</h3><p>Storage helpers load, sanitize, migrate, and save JSON snapshots. The stores decide when to persist through MobX autoruns.</p></div>
       </div>
     </section>

@@ -2,17 +2,28 @@
 // Called by ImageJobStore and image tools; depends on provider configs, ComfyUI/OpenRouter APIs, and bridge file writes.
 // Invariant: backend clients return normalized job artifacts and leave queue ownership to ImageJobStore.
 import {
+  bytesToBase64,
   dimsForRequest,
+  mimeFromUrl,
   safeText,
-  wrapGlobalFetch,
   type GenerateImageRequest,
   type GenerateImageResult,
   type ImageBackend,
 } from './types';
 import { buildFinalFlux2KleinWorkflow } from './workflows/finalFlux2Klein';
 import { logger } from '../diagnostics/logger';
-import { buildSdxlLightningQuickWorkflow } from './workflows/sdxlLightning';
+import { buildSdxlLightningQuickWorkflow, SDXL_LIGHTNING_CHECKPOINT, type SdxlLightningOptions } from './workflows/sdxlLightning';
+import { buildCheckpointWorkflow } from './workflows/checkpoint';
+import {
+  findFlux2KleinFiles,
+  findSdxlLightningFiles,
+  type ComfyDiscovery,
+  type ComfyFetch,
+  type SdxlLightningFiles,
+} from './comfyDiscovery';
+import { localFetch } from '../local/localHttp';
 import { isRecord } from '../../core/guards';
+import { isTauri } from '../../core/runtime';
 
 /**
  * Client for ComfyUI's `/prompt` API. ComfyUI runs arbitrary node
@@ -26,10 +37,16 @@ import { isRecord } from '../../core/guards';
  * same tokens. That keeps the tool schema stable while accommodating
  * the "every user has a bespoke workflow" reality of ComfyUI.
  *
+ * Without a custom template, the built-in workflow comes from what
+ * discovery found installed (see {@link builtInComfyWorkflow}).
+ *
  * Protocol:
  *   1. POST `/prompt` with `{prompt: <workflow>}` → `{prompt_id}`.
  *   2. Poll `/history/<prompt_id>` until it appears with outputs.
- *   3. For each output image, GET `/view?filename=…&subfolder=…&type=output`.
+ *   3. GET `/view?filename=…&subfolder=…&type=output` for the first image.
+ *
+ * Every request goes through `localFetch` by default, so on desktop it
+ * travels the Rust pass-through and ComfyUI never sees a browser Origin.
  *
  * Failure modes surfaced to the caller as `Error` with the ComfyUI
  * response body so the tool can return a model-readable message.
@@ -39,6 +56,8 @@ export interface ComfyClientDeps {
   clientId?: string;
   /** Override the default SDXL txt2img template. */
   workflowTemplate?: Record<string, unknown>;
+  /** What discovery found on this server; picks the built-in workflow and its exact file names. */
+  discovery?: ComfyDiscovery;
   /** Built-in workflow choice when no explicit template is supplied. */
   qualityPreset?: 'full' | 'quick';
   /** Hires-fix multiplier for `full` mode. `1` (default) = no hires pass. */
@@ -47,16 +66,15 @@ export interface ComfyClientDeps {
   draftSteps?: number;
   cfg?: number;
   /**
-   * Checkpoint filename for the quick (Lightning) workflow.
-   * Substituted into {{CHECKPOINT}} in the built-in template.
-   * Defaults to 'sdxl_lightning_4step.safetensors'.
+   * Substituted into {{CHECKPOINT}}. Defaults to the checkpoint the built-in
+   * workflow uses, else 'sdxl_lightning_4step.safetensors'.
    */
   checkpoint?: string;
   /** How many times to poll /history. 120 × 500ms = 60s default. */
   maxPollAttempts?: number;
   pollIntervalMs?: number;
-  /** Injectable clock + fetch for tests. */
-  fetch?: typeof fetch;
+  /** Injectable clock + fetch for tests. Defaults to `localFetch`. */
+  fetch?: ComfyFetch;
   sleep?: (ms: number) => Promise<void>;
 }
 
@@ -79,7 +97,7 @@ export class ComfyClient implements ImageBackend {
   private readonly clientId: string;
   private readonly workflowTemplate: Record<string, unknown>;
   private readonly checkpoint: string;
-  private readonly fetchImpl: typeof fetch;
+  private readonly fetchImpl: ComfyFetch;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly maxPoll: number;
   private readonly pollIntervalMs: number;
@@ -87,14 +105,12 @@ export class ComfyClient implements ImageBackend {
   constructor(deps: ComfyClientDeps) {
     this.baseUrl = deps.baseUrl.replace(/\/+$/, '');
     this.clientId = deps.clientId ?? 'gatesai-chat';
-    this.checkpoint = deps.checkpoint ?? 'sdxl_lightning_4step.safetensors';
-    const isQuick = deps.qualityPreset === 'quick';
-    this.workflowTemplate = deps.workflowTemplate ?? (
-      isQuick
-        ? buildSdxlLightningQuickWorkflow(deps.draftSteps, deps.cfg)
-        : buildFinalFlux2KleinWorkflow({ upscaleFactor: deps.upscaleFactor, steps: deps.qualitySteps, cfg: deps.cfg })
-    );
-    this.fetchImpl = wrapGlobalFetch(deps.fetch);
+    const builtIn = builtInComfyWorkflow(deps);
+    this.checkpoint = deps.checkpoint ?? builtIn.checkpoint ?? SDXL_LIGHTNING_CHECKPOINT;
+    this.workflowTemplate = deps.workflowTemplate ?? builtIn.workflow;
+    // Called as a plain function so a native fetch never sees the client as `this`.
+    const fetchImpl = deps.fetch ?? localFetch;
+    this.fetchImpl = (url, init) => fetchImpl(url, init);
     this.sleep = deps.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.maxPoll = deps.maxPollAttempts ?? DEFAULT_POLL_ATTEMPTS;
     this.pollIntervalMs = deps.pollIntervalMs ?? DEFAULT_POLL_INTERVAL;
@@ -133,17 +149,7 @@ export class ComfyClient implements ImageBackend {
       });
     } catch (err) {
       if (req.signal?.aborted) throw new Error('cancelled');
-      // WebView network failures are opaque one-liners ("Load failed" /
-      // "Failed to fetch") that don't say which URL or why. The two real
-      // causes are a down server and a ComfyUI started without
-      // --enable-cors-header (it 403s foreign Origins, which the webview
-      // reports as a generic network error). Spell both out.
-      const reason = err instanceof Error ? err.message : String(err);
-      throw new Error(
-        `could not reach ComfyUI at ${this.baseUrl} (${reason}). `
-        + 'Either the server is not running, or it was started without '
-        + '--enable-cors-header and is rejecting cross-origin requests from the app.',
-      );
+      throw new Error(unreachableMessage(this.baseUrl, err));
     }
     if (!promptResp.ok) {
       const text = await safeText(promptResp);
@@ -163,14 +169,22 @@ export class ComfyClient implements ImageBackend {
     // just need the metadata so we can build the /view URL.
     const image = await this.waitForImage(promptId, req.signal);
     const viewUrl = `${this.baseUrl}/view?filename=${encodeURIComponent(image.filename)}&subfolder=${encodeURIComponent(image.subfolder)}&type=${encodeURIComponent(image.type)}`;
+    // Read the bytes here, through the same transport as /prompt. A plain
+    // webview fetch of /view carries the app's Origin, which ComfyUI refuses.
+    const viewResp = await this.fetchImpl(viewUrl, { signal: req.signal });
+    if (!viewResp.ok) {
+      const text = await safeText(viewResp);
+      throw new Error(`comfy ${viewResp.status} ${viewResp.statusText}: ${text || '(no body)'} [/view]`);
+    }
+    const bytes = new Uint8Array(await viewResp.arrayBuffer());
 
     return {
-      url: viewUrl,
-      mime: 'image/png',
+      base64: bytesToBase64(bytes),
+      mime: viewResp.headers.get('content-type')?.split(';')[0] || mimeFromUrl(image.filename),
       width,
       height,
       seed,
-      endpoint: `${this.baseUrl}/prompt`,
+      endpoint: viewUrl,
       backend: 'local-comfy',
     };
   }
@@ -212,6 +226,75 @@ export class ComfyClient implements ImageBackend {
     }
     throw new Error(`comfy timed out after ${this.maxPoll * this.pollIntervalMs}ms waiting for prompt ${promptId}`);
   }
+}
+
+type BuiltInWorkflowOptions = Pick<
+  ComfyClientDeps,
+  'discovery' | 'qualityPreset' | 'upscaleFactor' | 'qualitySteps' | 'draftSteps' | 'cfg'
+>;
+
+export interface BuiltInWorkflow {
+  workflow: Record<string, unknown>;
+  /** Checkpoint for the `{{CHECKPOINT}}` token, when the workflow loads one. */
+  checkpoint?: string;
+}
+
+/**
+ * Picks the built-in workflow for a quality mode and what discovery found:
+ *
+ * | discovered preset | full (normal/upscale) | quick (draft)                       |
+ * | flux2-klein       | FLUX.2 Klein          | SDXL Lightning if installed, else Klein at draft steps |
+ * | sdxl-lightning    | SDXL Lightning        | SDXL Lightning                      |
+ * | checkpoint        | generic checkpoint    | generic checkpoint                  |
+ * | none / offline    | FLUX.2 Klein defaults | SDXL Lightning defaults             |
+ *
+ * File names are the ones ComfyUI reported, so models in subfolders or with
+ * different capitalization still load.
+ */
+export function builtInComfyWorkflow(opts: BuiltInWorkflowOptions): BuiltInWorkflow {
+  const quick = opts.qualityPreset === 'quick';
+  const discovery = opts.discovery;
+  const lightning = (files: SdxlLightningFiles | null): BuiltInWorkflow => {
+    const options: SdxlLightningOptions = { steps: opts.draftSteps, cfg: opts.cfg };
+    if (files) options.vae = files.vae;
+    return { workflow: buildSdxlLightningQuickWorkflow(options), checkpoint: files?.checkpoint };
+  };
+  const klein = (): BuiltInWorkflow => ({
+    workflow: buildFinalFlux2KleinWorkflow({
+      files: (discovery && findFlux2KleinFiles(discovery)) ?? undefined,
+      upscaleFactor: quick ? 1 : opts.upscaleFactor,
+      steps: quick ? opts.draftSteps : opts.qualitySteps,
+      cfg: opts.cfg,
+    }),
+  });
+
+  const preset = discovery?.preset;
+  if (!discovery || !preset) return quick ? lightning(null) : klein();
+  switch (preset.kind) {
+    case 'flux2-klein': {
+      const draftFiles = quick ? findSdxlLightningFiles(discovery) : null;
+      return draftFiles ? lightning(draftFiles) : klein();
+    }
+    case 'sdxl-lightning':
+      return lightning(findSdxlLightningFiles(discovery));
+    case 'checkpoint':
+      return { workflow: buildCheckpointWorkflow({ checkpoint: preset.checkpoint }), checkpoint: preset.checkpoint };
+  }
+}
+
+/**
+ * On desktop the request went through the Rust pass-through, so a failure
+ * means nothing answered. In a browser, ComfyUI also refuses pages from
+ * another origin unless it was started with --enable-cors-header, and the
+ * browser reports that as the same opaque network error.
+ */
+function unreachableMessage(baseUrl: string, err: unknown): string {
+  const reason = err instanceof Error ? err.message : String(err);
+  if (isTauri()) {
+    return `could not reach ComfyUI at ${baseUrl} (${reason}). Start ComfyUI or ComfyUI Desktop; GatesAI finds it on its own.`;
+  }
+  return `could not reach ComfyUI at ${baseUrl} (${reason}). Either it is not running, or it was started without `
+    + '--enable-cors-header, so it refuses requests from a browser page.';
 }
 
 function parsePromptResp(value: unknown): PromptResp {

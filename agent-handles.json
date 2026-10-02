@@ -99,7 +99,6 @@
     "workspace.attachment-tray.remove-2": "workspace.attachment-tray.remove-path",
     "workspace.composer-banners.open-local-settings-2": "workspace.composer-banners.open-local-image-settings",
     "workspace.editorial-chat.open-local-settings-2": "workspace.editorial-chat.install-ollama",
-    "workspace.editorial-chat.open-local-settings-3": "workspace.editorial-chat.start-ollama",
     "workspace.editorial-chat.secondary-2": "workspace.editorial-chat.recheck-ollama",
     "workspace.editorial-sidebar.close-sidebar-2": "workspace.editorial-sidebar.close-mobile-sidebar",
     "workspace.html-artifact-preview.open-2": "workspace.html-artifact-preview.toggle-source",
@@ -137,6 +136,18 @@
     "workspace.editorial-sidebar.settings-amp-menu-live-here": {
       "removedAt": "2026-09-13",
       "reason": "The first-run coachmark taught that the brand mark opens the menu; the brand mark now always goes home and Settings is the labeled button at the foot of the sidebar."
+    },
+    "workspace.editorial-chat.start-ollama": {
+      "removedAt": "2026-10-01",
+      "reason": "GatesAI no longer starts Ollama; it probes for a running one (local or a server), so the onboarding card has no Start button."
+    },
+    "workspace.editorial-chat.secondary": {
+      "removedAt": "2026-10-01",
+      "reason": "The offline onboarding state's generic secondary button became the named recheck-ollama and set-remote-ollama controls."
+    },
+    "workspace.editorial-chat.open-local-settings-3": {
+      "removedAt": "2026-10-01",
+      "reason": "Earlier name of workspace.editorial-chat.start-ollama, which was removed with the Start Ollama button."
     }
   }
 }

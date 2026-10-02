@@ -1,6 +1,6 @@
 // W-2 artifact contract surface: the desktop registry feeds the command
 // palette and opens a stable-id HTML artifact in the dedicated dock panel.
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures/test';
 import { mockBridgeOnline, mockOpenRouter, seedReadyProvider } from './fixtures/harness';
 
 test.describe('HTML artifact contract (mocked bridge)', () => {
