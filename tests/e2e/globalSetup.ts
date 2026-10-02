@@ -1,4 +1,4 @@
-import type { FullConfig } from '@playwright/test';
+import { chromium, type FullConfig } from '@playwright/test';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -35,6 +35,7 @@ export default async function globalSetup(_config: FullConfig) {
     reuseExisting: !isCI,
     started,
   });
+  await warmServers([DESKTOP_PORT, WEB_LITE_PORT]);
 
   return async () => {
     for (const server of started.reverse()) await stopServer(server);
@@ -81,6 +82,38 @@ async function waitForServer(url: string, child: ChildProcess, label: string): P
     await delay(250);
   }
   throw new Error(`${label} dev server did not become ready at ${url}.`);
+}
+
+// Pages loaded once before any spec runs, each with the element that proves
+// it rendered: the shell, and the lazily loaded menu. (Not networkidle: the
+// app polls the bridge, so the network never goes quiet.)
+const WARM_PAGES = [
+  { path: '/', ready: '#root > *' },
+  { path: '/#/menu/settings', ready: '.gates-menu__tabs' },
+];
+
+/**
+ * Load each app once before the specs start. The HTML probe passes as soon as
+ * Vite serves index.html, but on a cold cache (the first run after an install,
+ * or a fresh clone) Vite still has to optimize dependencies and compile the
+ * app on the first page load. The earliest specs on each server raced that
+ * work across parallel workers and hit their 10 s timeouts: 9 failures from a
+ * cold cache on 2026-09-26, all passing warm.
+ */
+async function warmServers(ports: number[]): Promise<void> {
+  const browser = await chromium.launch();
+  try {
+    for (const port of ports) {
+      const page = await browser.newPage();
+      for (const warm of WARM_PAGES) {
+        await page.goto(`http://127.0.0.1:${port}${warm.path}`, { timeout: SERVER_TIMEOUT_MS });
+        await page.locator(warm.ready).first().waitFor({ timeout: SERVER_TIMEOUT_MS });
+      }
+      await page.close();
+    }
+  } finally {
+    await browser.close();
+  }
 }
 
 /** What is answering on this URL: nothing, this app, or a foreign server. */

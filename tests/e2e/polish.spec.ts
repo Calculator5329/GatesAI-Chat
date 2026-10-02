@@ -16,6 +16,10 @@ test.describe('chat interaction polish', () => {
   test('draws keyboard focus around the rounded composer instead of the textarea', async ({ page }) => {
     await mockOpenRouter(page);
     await page.goto('/');
+    // The row's border-color transitions, so a read right after focus or blur
+    // can land mid-fade and match the other state (2 of 9 runs, 2026-10-01).
+    // This test is about where focus is drawn, not the fade.
+    await page.addStyleTag({ content: '.composer-row { transition: none !important; }' });
     const textarea = page.locator('.composer-textarea');
     await textarea.focus();
 
