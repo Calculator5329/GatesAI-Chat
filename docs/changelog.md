@@ -11,6 +11,15 @@
 - **Release.** Version 4.8.1 in `package.json`, `package-lock.json` and
   `tauri.conf.json`. Gates on this commit: 1400 unit tests, typecheck and lint
   green; 145 e2e tests green after the two test fixes below.
+- **How it published.** The tag's workflow (run 36965355680) built and signed
+  the Windows, Linux and macOS bundles, then failed the publish steps on the
+  same expired token. The Windows and Linux artifacts from that run were
+  published by hand to `GatesAI-Chat-releases` with `gh release create`, with
+  a `latest.json` built exactly as the `updater-manifest` job builds it. Both
+  updater signatures were verified against the pubkey pinned in
+  `tauri.conf.json` first. Anonymous `releases/latest/download/` links resolve
+  and `latest.json` reports 4.8.1. Until `RELEASES_TOKEN` is replaced, every
+  tag needs the same manual publish.
 
 ## 2026-10-01: The e2e run no longer flakes on a cold cache or a fading border
 
