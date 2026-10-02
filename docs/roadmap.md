@@ -76,33 +76,33 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
 
 ### Next up (priority order)
 
-- [ ] **Live ComfyUI progress without `--enable-cors-header`.** The progress
+- [ ] <!-- workspace:id=work:62cd37dd-1e95-5bbc-a6e2-7d6251465c02 --> **Live ComfyUI progress without `--enable-cors-header`.** The progress
       WebSocket (`src/services/image/jobs/comfyProgress.ts`) still opens from
       the webview, so ComfyUI refuses it unless started with the flag; renders
       finish through polling but show no percentage. Options: a Rust
       WebSocket relay next to `local_http.rs` (new dependency, needs an ADR
       note) or polling ComfyUI's queue for coarse progress.
-- [x] **Archive the unused Ollama and ComfyUI spawn path.** The 2026-10-02
+- [x] <!-- workspace:id=work:c31dfe95-cb8a-5b08-99a8-a09d89697721 --> **Archive the unused Ollama and ComfyUI spawn path.** The 2026-10-02
       local-first rework stopped starting runtimes. `src/services/local/autoDetect.ts`,
       `platformCopy.ts`, `LocalRuntimeService` start/stop, the spawn code in
       `src-tauri/src/local_runtime.rs` and the scenario `installPath` fields
       are now unreferenced; move them to `_archive/` with a note.
       Done 2026-10-02: archived to `docs/archive/local-runtime-spawn-20261002/`
       with a README; six commands unregistered, `pick_file` kept.
-- [ ] **Harden the local pass-through edges.** Cancel in-flight
+- [ ] <!-- workspace:id=work:bc72722f-40b0-5abd-ae29-112e3145f862 --> **Harden the local pass-through edges.** Cancel in-flight
       `local_http_request` calls when the webview reloads (today an Ollama
       reply keeps generating to the end), and trust the OS certificate store
       so an https Ollama behind a private CA works.
-- [ ] **Wrong-port hint for more than a 200 web page.** `suggestOllamaPortUrl`
+- [ ] <!-- workspace:id=work:bb821957-db43-5a92-9657-61eed1346508 --> **Wrong-port hint for more than a 200 web page.** `suggestOllamaPortUrl`
       (`src/core/localUrls.ts`) only fires when a non-Ollama page answers
       with 200. A typed address with no port that nothing answers (port 80),
       a 404, or an https auth wall gets no hint, or an http one. Cover those
       from the probe's error shape.
-- [ ] **Keep explicit model picks on empty chats across restarts.**
+- [ ] <!-- workspace:id=work:5fe30041-5a40-5bbb-9f86-ff5921a8e587 --> **Keep explicit model picks on empty chats across restarts.**
       `ChatStore.explicitModelThreadIds` lives in memory, so an empty chat set
       to the cloud default moves back to local after a restart. Persisting it
       is a thread field plus a migration; worth it only if this bites.
-- [ ] **Web Lite wording for imported local chats.** A desktop export with
+- [ ] <!-- workspace:id=work:b1c16b79-3486-5fef-980d-26b0024f9017 --> **Web Lite wording for imported local chats.** A desktop export with
       an `ollama-` chat, imported into Web Lite, gets "Local models need the
       GatesAI desktop app." with an "Open Settings > Models" action that
       cannot help there. Say "this chat ran on a local model; pick a cloud
