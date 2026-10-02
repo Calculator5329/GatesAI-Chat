@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-10-01: v4.8.1, the first public release since July
+
+- **What changed for you.** The public download was still v4.6.1 from
+  2026-07-14. The v4.7.0 and v4.8.0 tags both built their installers, then
+  failed to publish them with "Bad credentials": the `RELEASES_TOKEN` secret
+  that lets CI write to `GatesAI-Chat-releases` was set 2026-06-14 and has
+  expired. v4.8.1 is v4.8.0 plus the one-row-per-model menu fix, and its notes
+  (`docs/release-notes/v4.8.1.md`) carry everything since v4.6.1.
+- **Release.** Version 4.8.1 in `package.json`, `package-lock.json` and
+  `tauri.conf.json`. Gates on this commit: 1400 unit tests, typecheck and lint
+  green; 145 e2e tests green after the two test fixes below.
+
+## 2026-10-01: The e2e run no longer flakes on a cold cache or a fading border
+
+- **What changed for you.** Two causes of red e2e runs that had nothing to do
+  with the app. On a cold Vite cache the first specs on each dev server raced
+  dependency optimization and hit their 10 s timeouts (9 failures on
+  2026-09-26, all passing warm). And the composer focus test failed about 2
+  runs in 9 because it read the row's border while its color was mid-fade.
+- **Mechanism.** `tests/e2e/globalSetup.ts` loads the shell and the settings
+  menu once on each server before any spec starts (written 2026-09-26, left
+  uncommitted, landed now). `polish.spec.ts` turns off the row's transition
+  for the focus test, which is about where focus is drawn, not the fade.
+- **Evidence.** The focus test failed 2 of 9 repeats before the change and
+  passed 15 of 15 after. Full e2e: 144 passed and only that test failed
+  before the fix.
+
 ## 2026-09-28: Each model gets one row in the model menu
 
 - **What changed for you.** A model you had just picked could show twice:
