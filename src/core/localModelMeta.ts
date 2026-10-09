@@ -102,6 +102,11 @@ export function localModelParameterBillions(model: OllamaCatalogModel): number |
   return match ? Number(match[1]) : undefined;
 }
 
+/** True for a coding-tuned model (qwen2.5-coder, devstral, codestral, ...), which the chat default ranks last. */
+export function isCodingTunedLocalModel(model: OllamaCatalogModel): boolean {
+  return /coder|codestral|codellama|codegemma|devstral/i.test(model.providerModelId);
+}
+
 /** True for an Ollama cloud model: the local server lists it but runs it on `remoteHost`. */
 export function isOllamaCloudModel(model: OllamaCatalogModel): boolean {
   return Boolean(model.remoteHost);

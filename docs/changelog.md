@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-08: A coding model no longer becomes your default chat model
+
+- **What changed for you.** With several local models installed, a new
+  chat picked the largest tool-capable one, so `qwen2.5-coder:14b` beat
+  `gemma4:12b` even though a coding-tuned model is a poor general chat
+  partner. Now general chat models rank ahead of coding-tuned ones
+  (anything named coder, codestral, codellama, codegemma or devstral) at
+  any size; a coding model is still picked when it is all you have. A
+  model you picked recently still wins over the ranking, as before.
+- **Evidence.** `tests/core/defaultModel.test.ts` "ranks coding-tuned
+  models below general chat models of any size" failed before the change
+  (`devstral:24b` was picked) and passes after; `npm run ci` green
+  (1533 tests, typecheck, lint).
+
 ## 2026-10-02: Local setup finds Ollama and ComfyUI on its own
 
 - **What changed for you.** Setting up local models used to mean an

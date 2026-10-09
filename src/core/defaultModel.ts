@@ -1,7 +1,7 @@
 import { DEFAULT_MODEL_ID } from './models';
 import type { Model } from './types';
 import { isLocalChatModel } from './localModelRules';
-import { isOllamaCloudModel, localModelParameterBillions } from './localModelMeta';
+import { isCodingTunedLocalModel, isOllamaCloudModel, localModelParameterBillions } from './localModelMeta';
 
 export interface DefaultModelRegistry {
   readonly all: readonly Model[];
@@ -84,7 +84,8 @@ function runsOnThisMachine(model: Model): boolean {
 }
 
 /**
- * Tool support first, then (for background helpers) a small-size tier, then
+ * Tool support first, then general chat models ahead of coding-tuned ones
+ * (Ethan, 2026-10-08), then (for background helpers) a small-size tier, then
  * parameter count descending, then catalog order. Context length is left out:
  * Ollama reports the trained maximum, which ties across modern families.
  */
@@ -95,6 +96,9 @@ function compareLocalModels(
 ): number {
   const toolsDelta = toolsScore(b.model) - toolsScore(a.model);
   if (toolsDelta !== 0) return toolsDelta;
+
+  const generalDelta = Number(isCodingTunedLocalModel(a.model)) - Number(isCodingTunedLocalModel(b.model));
+  if (generalDelta !== 0) return generalDelta;
 
   if (options.preferSmall) {
     const sizeDelta = smallSizeScore(b.model) - smallSizeScore(a.model);

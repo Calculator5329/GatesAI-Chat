@@ -136,6 +136,17 @@ describe('resolveDefaultModelId', () => {
     expect(bestLocalModel(mapOllamaTagsToModels(tags))?.providerModelId).toBe('gemma4:12b');
   });
 
+  it('ranks coding-tuned models below general chat models of any size', () => {
+    const models = [
+      local('qwen2.5-coder:14b', { parameterBillions: 14.8 }),
+      local('gemma4:12b', { parameterBillions: 12.2 }),
+      local('devstral:24b', { parameterBillions: 23.6 }),
+    ];
+
+    expect(bestLocalModel(models)?.providerModelId).toBe('gemma4:12b');
+    expect(bestLocalModel([models[0], models[2]])?.providerModelId).toBe('devstral:24b');
+  });
+
   it('never picks an Ollama cloud model as the local default', () => {
     const cloud = local('gpt-oss:120b-cloud', { remoteHost: 'https://ollama.com:443', parameterBillions: 116.8 });
     const onDevice = local('qwen3.5:4b', { parameterBillions: 4 });
