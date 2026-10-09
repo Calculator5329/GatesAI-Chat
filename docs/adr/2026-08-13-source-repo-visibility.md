@@ -1,6 +1,7 @@
-# ADR: GatesAI Chat source repository stays private
+# ADR: GatesAI Chat source repository visibility
 
-- Status: Accepted (owner ruling), with one owner action outstanding
+- Status: Superseded 2026-08-16, the source stays public (see the last
+  section). The 2026-08-13 record below is kept as written.
 - Date: 2026-08-13
 - Ruling: `repo-visibility-packet-20260810`, D1 `q-gatesai-chat = adr`
 - Owner note, verbatim: "private gates ai chat repo for now, no need to
@@ -110,3 +111,30 @@ while the repo was public stays cloned.
 If the Web Lite demo matters more than closing the source, the alternative is
 to leave the repo public and reopen this record with a new ruling. Do not
 resolve that conflict by editing this file; record a new decision.
+
+## 2026-08-16: reopened, the source stays public
+
+Ethan answered inbox ask `gatesai-chat-is-public-today-and-your-d1--20260813070`
+with "Leave it public and reopen D1 with a new ruling". The private flip above
+was cancelled, the repo stays public, and the Web Lite demo stays on Pages.
+Visibility changes remain owner-only.
+
+This file still read "stays private" until 2026-10-08, and an agent flagged a
+routine `master` push that day as a possible leak because of it. The push was
+the default-model fix (`e8552e8`), with no personal data in it.
+
+### History secret scan, 2026-10-08
+
+The scan the original acceptance asked for, run after the fact because the
+history has been public since at least 2026-08-13.
+
+- Scope: all refs, 768 commits (678 with diffs, the rest merges), added
+  lines only.
+- Patterns: Anthropic, OpenRouter, OpenAI, GitHub, AWS, Google API, Slack,
+  Hugging Face, Groq and Replicate key formats, plus PEM private keys.
+- Result: zero matches. Fake keys planted in a copy of the same patch did
+  match, so the zero is not a dead pattern.
+- `.env.firebase` was committed in `ce3ff22` (2026-05-10) and removed in
+  `1e94242` (2026-07-10). Ethan read it: its only line is the
+  `VITE_GATESAI_WEB` build flag, so nothing needs rotating.
+- Not covered: secrets in formats outside that list.

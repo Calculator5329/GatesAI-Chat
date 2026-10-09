@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-10-08: The visibility ADR no longer says the repo is private
+
+- **What changed for you.** The visibility ADR still said "stays private"
+  two months after you ruled to keep the repo public, and today it made an
+  agent flag a routine push as a possible leak. It now records the
+  2026-08-16 ruling, so a push to this public repo stops looking like an
+  accident.
+- **Evidence.** The history secret scan never ran, so it ran now: 768
+  commits, 14 key formats, zero matches, with a planted-key control that
+  did match. The `.env.firebase` that was public from May to July holds
+  only the `VITE_GATESAI_WEB` build flag.
+
 ## 2026-10-08: A coding model no longer becomes your default chat model
 
 - **What changed for you.** With several local models installed, a new

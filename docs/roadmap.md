@@ -252,11 +252,11 @@ sibling repos (`../gatesai-bridge` etc.) from this repo's sessions.
       cancelled and the repo stays public. This also supersedes the
       waiting-on-you packet's "keep the split, write it down" recommendation
       for the visibility card (ask 2426f25f). Follow-up filed below.)*
-- [ ] <!-- workspace:id=work:bd17833e-59ce-58fb-a1b6-59568c2f3e05 --> **Update `docs/adr/2026-08-13-source-repo-visibility.md` for the
+- [x] <!-- workspace:id=work:bd17833e-59ce-58fb-a1b6-59568c2f3e05 --> **Update `docs/adr/2026-08-13-source-repo-visibility.md` for the
       2026-08-16 leave-it-public ruling**, the ADR records D1 as "private";
       append the reopened ruling so the ADR and reality agree, and run the
       full git-history secret scan the original acceptance asked for, since
-      the history is public today and was never scanned.
+      the history is public today and was never scanned. *(done 2026-10-08: ADR marked superseded with the 2026-08-16 ruling; history scan found zero key matches, and the once-committed `.env.firebase` holds only a build flag.)*
 - [x] <!-- workspace:id=work:6c110178-4045-53be-af10-6f9d456ad526 --> **Demo GIF at the top of the README.** *(capture pending owner hands,
       script ready, 2026-07-17)* Everything except the recording itself is
       landed: `scripts/demo-capture.md` is an exact click-by-click 20–40s
