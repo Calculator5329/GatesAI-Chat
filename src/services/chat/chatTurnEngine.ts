@@ -6,7 +6,7 @@
 import type { Message, StreamActivity, Thread } from '../../core/types';
 import { formatAttachmentFooter, toMessageAttachmentRef } from '../../core/attachments';
 import { messageText, setMessageText, userMessageParts } from '../../core/messageParts';
-import { StreamingTextBuffer } from '../streaming/StreamingTextBuffer';
+import { StreamingTextBuffer, defaultScheduleFlush } from '../streaming/StreamingTextBuffer';
 import { logEvent } from '../diagnostics/chatLog';
 import { logger } from '../diagnostics/logger';
 import type { StreamingRoundActivityUpdate } from './streamingRoundExecutor';
@@ -38,6 +38,8 @@ export interface ChatTurnEngineHost {
 export interface ChatTurnEngineDeps {
   host: ChatTurnEngineHost;
   turnRunner: TurnRunner;
+  /** Frame scheduler for coalesced reasoning updates; defaults to rAF. */
+  scheduleFlush?: (flush: () => void) => void;
 }
 
 /**
@@ -49,10 +51,14 @@ export class ChatTurnEngine {
   private readonly turnRunner: TurnRunner;
   private readonly controllersByThread = new Map<string, AbortController>();
   private readonly textBuffer = new StreamingTextBuffer();
+  /** Reasoning received since the last frame, by assistant message id. */
+  private readonly pendingReasoning = new Map<string, { threadId: string; text: string }>();
+  private readonly scheduleFlush: (flush: () => void) => void;
 
   constructor(deps: ChatTurnEngineDeps) {
     this.host = deps.host;
     this.turnRunner = deps.turnRunner;
+    this.scheduleFlush = deps.scheduleFlush ?? defaultScheduleFlush;
   }
 
   isThreadStreaming(threadId: string): boolean {
@@ -164,12 +170,14 @@ export class ChatTurnEngine {
     this.host.setStreamingMessageId(threadId, undefined);
     this.host.setStreamActivity(threadId, undefined);
     this.controllersByThread.delete(threadId);
+    this.dropPendingReasoning(threadId);
   }
 
   abortAllStreams(): void {
     for (const controller of this.controllersByThread.values()) controller.abort();
     this.controllersByThread.clear();
     this.textBuffer.cancelAll();
+    this.pendingReasoning.clear();
   }
 
   applyRoundActivityUpdate(threadId: string, messageId: string, update: StreamingRoundActivityUpdate): void {
@@ -183,6 +191,9 @@ export class ChatTurnEngine {
         round: update.round,
       });
     }
+    // A new round or a retry starts the Thinking row fresh; reasoning still
+    // waiting for its frame belongs to the attempt that just ended.
+    if (update.phase === 'connecting') this.dropPendingReasoning(threadId);
     this.host.runInAction(() => {
       const existing = this.host.getStreamActivity(threadId);
       if (update.phase === 'connecting') {
@@ -207,14 +218,40 @@ export class ChatTurnEngine {
     });
   }
 
-  /** Appends streamed reasoning to the live activity row; a new round's `connecting` update starts it fresh. */
+  /**
+   * Appends streamed reasoning to the live activity row, at most once per
+   * frame: a thinking model sends a token per chunk, and one MobX update per
+   * token re-rendered the row hundreds of times a second. A new round's or
+   * retry's `connecting` update starts the row fresh.
+   */
   appendStreamReasoning(threadId: string, messageId: string, delta: string): void {
     if (!delta || !this.ownsStreamingTurn(threadId, messageId)) return;
+    const pending = this.pendingReasoning.get(messageId);
+    if (pending) {
+      pending.text += delta;
+      return;
+    }
+    this.pendingReasoning.set(messageId, { threadId, text: delta });
+    this.scheduleFlush(() => this.flushReasoning(messageId));
+  }
+
+  private flushReasoning(messageId: string): void {
+    const pending = this.pendingReasoning.get(messageId);
+    if (!pending) return;
+    this.pendingReasoning.delete(messageId);
+    const { threadId, text } = pending;
+    if (!this.ownsStreamingTurn(threadId, messageId)) return;
     this.host.runInAction(() => {
       const existing = this.host.getStreamActivity(threadId);
       if (!existing || existing.messageId !== messageId || existing.phase === 'stalled') return;
-      this.host.setStreamActivity(threadId, { ...existing, reasoning: (existing.reasoning ?? '') + delta });
+      this.host.setStreamActivity(threadId, { ...existing, reasoning: (existing.reasoning ?? '') + text });
     });
+  }
+
+  private dropPendingReasoning(threadId: string): void {
+    for (const [messageId, pending] of this.pendingReasoning) {
+      if (pending.threadId === threadId) this.pendingReasoning.delete(messageId);
+    }
   }
 
   markStreamActivityPhase(threadId: string, messageId: string, phase: StreamActivity['phase']): void {

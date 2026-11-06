@@ -143,7 +143,8 @@ function positiveInteger(value: number | undefined, fallback: number): number {
   return Math.max(1, Math.floor(value));
 }
 
-function defaultScheduleFlush(flush: FlushCallback): void {
+/** One flush per animation frame (or ~24 ms where there is no rAF). */
+export function defaultScheduleFlush(flush: FlushCallback): void {
   if (typeof globalThis.requestAnimationFrame === 'function') {
     globalThis.requestAnimationFrame(() => flush());
     return;

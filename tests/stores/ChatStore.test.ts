@@ -1771,6 +1771,7 @@ describe('ChatStore', () => {
     vi.advanceTimersByTime(PROVIDER_STREAM_INITIAL_STALL_MS - 1_000);
     release?.();
     await flush(10);
+    vi.advanceTimersByTime(30); // reasoning reaches the row on the next frame (review F8)
     const assistant = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
     const live = chat.activitiesForMessage(assistant as AssistantMessage, { streaming: true });
     expect(live.find(item => item.id.endsWith(':provider-stream'))).toMatchObject({
@@ -1780,7 +1781,7 @@ describe('ChatStore', () => {
       detail: { type: 'markdown', content: 'Light scatters' },
     });
 
-    vi.advanceTimersByTime(PROVIDER_STREAM_STALL_MS - 1);
+    vi.advanceTimersByTime(PROVIDER_STREAM_STALL_MS - 31); // 30 ms already spent above
     release?.();
     await flush(20);
     vi.advanceTimersByTime(30);

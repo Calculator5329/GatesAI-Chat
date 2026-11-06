@@ -55,6 +55,50 @@ describe('ChatTurnEngine', () => {
     expect(run).toHaveBeenCalledOnce();
   });
 
+  it('coalesces reasoning chunks into one store update per frame, and a retry drops the stale ones (review F8)', () => {
+    const activity: Record<string, StreamActivity> = {
+      t1: { messageId: 'm-a', phase: 'streaming', startedAt: 1, lastProviderAt: 1, round: 0 } as StreamActivity,
+    };
+    const frames: Array<() => void> = [];
+    const setStreamActivity = vi.fn((threadId: string, next: StreamActivity | undefined) => {
+      if (next === undefined) delete activity[threadId];
+      else activity[threadId] = next;
+    });
+    const host: ChatTurnEngineHost = {
+      runInAction: fn => fn(),
+      newMessageId: () => 'm',
+      ensureThreadModel: () => makeThread(),
+      findMessage: () => undefined,
+      appendMessage: vi.fn(),
+      setActiveThreadId: vi.fn(),
+      setThreadLastError: vi.fn(),
+      getStreamingMessageId: () => 'm-a',
+      setStreamingMessageId: vi.fn(),
+      getStreamActivity: threadId => activity[threadId],
+      setStreamActivity,
+      appendChunk: vi.fn(),
+    };
+    const engine = new ChatTurnEngine({
+      host,
+      turnRunner: { run: vi.fn() } as unknown as TurnRunner,
+      scheduleFlush: flush => { frames.push(flush); },
+    });
+
+    for (const token of ['Light', ' scatters', ' off', ' air', '.']) engine.appendStreamReasoning('t1', 'm-a', token);
+    expect(setStreamActivity).not.toHaveBeenCalled();
+    expect(frames).toHaveLength(1);
+    frames.shift()!();
+    expect(setStreamActivity).toHaveBeenCalledTimes(1);
+    expect(activity.t1?.reasoning).toBe('Light scatters off air.');
+
+    // Reasoning still waiting for its frame when a retry reconnects is dropped.
+    engine.appendStreamReasoning('t1', 'm-a', ' stale');
+    engine.applyRoundActivityUpdate('t1', 'm-a', { phase: 'connecting', at: 2, round: 0, providerId: 'ollama', providerModelId: 'gemma4:12b' });
+    for (const frame of frames.splice(0)) frame();
+    expect(activity.t1).toMatchObject({ phase: 'connecting' });
+    expect(activity.t1?.reasoning).toBeUndefined();
+  });
+
   it('ignores empty sends', () => {
     const run = vi.fn(async () => undefined);
     const host: ChatTurnEngineHost = {
