@@ -91,8 +91,13 @@ export function buildActivitiesForMessage(args: {
   if (streaming && streamActivity?.messageId === message.id) {
     const stalled = streamActivity.phase === 'stalled';
     const reasoning = streamActivity.reasoning?.trim();
-    // Live reasoning (Ollama `message.thinking`) rides on this row until the
-    // answer starts; it is never stored on the message or replayed to the model.
+    // Live reasoning (from any provider that emits `reasoning` chunks; today
+    // Ollama `message.thinking`) lives only on StreamActivity: it is never
+    // stored on the message or replayed to the model, and a new round or
+    // retry starts it empty. The verb reads "Thinking" while there is
+    // reasoning, no answer text yet and no stall. The reasoning tail stays as
+    // the row's detail for the rest of the round, also after the answer starts
+    // and on a stalled row, until the stream ends.
     const thinkingAloud = Boolean(reasoning) && !stalled && messageText(message).trim().length === 0;
     items.push({
       id: `${message.id}:provider-stream`,
