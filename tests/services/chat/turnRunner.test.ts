@@ -422,6 +422,25 @@ describe('TurnRunner', () => {
     expect(sent!.description.length).toBeLessThan(full.description.length);
   });
 
+  it('a slim-window turn with the bridge online tells the model /workspace/attachments is read-only (fix round 3, finding 2)', async () => {
+    const { runner, provider, registry, thread } = setup([[{ type: 'done', finishReason: 'stop' }]], { bridgeOnline: true });
+    // No contextLength: the 4096 fallback, so micro mode with the micro fs tool.
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-gemma4:12b', name: 'gemma4:12b', vendor: 'Ollama', providerId: 'ollama',
+      providerModelId: 'gemma4:12b', supportsTools: true,
+    }]);
+    thread.modelId = 'ollama-gemma4:12b';
+    thread.messages = [{ id: 'u-1', role: 'user', content: 'edit the csv I uploaded', createdAt: 1 }];
+
+    await runner.run(thread.id, new AbortController().signal);
+
+    const request = provider.calls[0];
+    expect(request.maxTokens).toBe(512); // micro
+    const fs = request.tools?.find(tool => tool.name === 'fs');
+    expect(fs).toBeDefined();
+    expect(fs!.description).toContain('Rule: /workspace/attachments/ is read-only (files the user uploaded): never write, move or delete there.');
+  });
+
   it('composes the global user prompt without dropping the runtime safety contract', async () => {
     const { runner, provider, profile, thread } = setup([[
       { type: 'text', delta: 'Done.' },

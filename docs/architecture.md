@@ -351,7 +351,9 @@ Context modes in `contextModes.ts` select prompt/messages/tools:
 - `bare`: latest user message only and no tools.
 - `micro`: forced for an Ollama model whose loaded window is under 8000
   tokens; minimal local system prompt, latest user message, a small
-  filesystem schema when relevant, and web search/recall when available. A
+  filesystem schema when relevant (it carries the full fs tool's
+  attachments-are-read-only `Rule:` line, `FS_ATTACHMENTS_RULE`, since the
+  bridge does not enforce it), and web search/recall when available. A
   chat with no mode picked runs `full`. Micro sets `maxTokens` to
   `MICRO_LOCAL_MAX_TOKENS` (512), which the budget reserves for the reply,
   but the cap does **not** reach Ollama on chat turns today:

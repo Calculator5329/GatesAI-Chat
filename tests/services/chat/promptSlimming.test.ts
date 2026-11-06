@@ -63,21 +63,57 @@ describe('compact sentence cuts (F2)', () => {
   });
 });
 
+/**
+ * Every def slim (micro) mode can send: everything toolsForContextMode offers
+ * with every gate open. Some are hand-written for micro (the fs tool), not
+ * taken from the registry.
+ */
+function slimModeToolDefs(): ToolDef[] {
+  return toolsForContextMode({
+    mode: 'micro',
+    toolsAllowed: true,
+    userText: 'edit the csv file I uploaded, then fetch https://example.com',
+    bridgeOnline: true,
+    webSearchAvailable: true,
+    semanticRecallAvailable: true,
+    toolAllowlist: toolRegistry.toolDefs().map(tool => tool.name),
+  }) ?? [];
+}
+
 describe('Rule: lines survive compaction (F1)', () => {
   const builtIns = toolRegistry.toolDefs();
+  const slimDefs = slimModeToolDefs();
   const compactByName = new Map(compactToolDefs(builtIns).map(tool => [tool.name, tool.description]));
   const compactOf = (name: string) => compactByName.get(name) ?? '';
   const ruleLines = (description: string) => description.split('\n').map(line => line.trim()).filter(line => line.startsWith('Rule: '));
 
-  it('keeps every Rule: line of every built-in tool verbatim and in order, after the summary and bullets', () => {
-    const tools = builtIns.filter(tool => ruleLines(tool.description).length > 0);
+  it('keeps every Rule: line of every tool a turn can send verbatim and in order, after the summary and bullets', () => {
+    // Fix round 3, finding 2: the micro defs are checked too, not only the registry's.
+    const tools = [...builtIns, ...slimDefs].filter(tool => ruleLines(tool.description).length > 0);
     // The named rules below live in at least these tools; guards against a vacuous pass.
     expect(tools.map(tool => tool.name)).toEqual(expect.arrayContaining(['fs', 'memory', 'thread', 'git', 'image_generate']));
     for (const tool of tools) {
-      const compactLines = compactOf(tool.name).split('\n');
+      const [compact] = compactToolDefs([tool]);
+      const compactLines = compact.description.split('\n');
       const rules = ruleLines(tool.description);
       expect(compactLines.slice(-rules.length), tool.name).toEqual(rules);
     }
+  });
+
+  it('a slim-mode def carries every Rule: line of the built-in tool it stands in for (fix round 3, finding 2)', () => {
+    // Guards against a vacuous pass: the hand-written micro fs def is in the set.
+    expect(slimDefs.map(tool => tool.name)).toContain('fs');
+    for (const tool of slimDefs) {
+      const builtIn = toolRegistry.get(tool.name)?.def;
+      if (!builtIn) continue;
+      expect(ruleLines(tool.description), tool.name).toEqual(expect.arrayContaining(ruleLines(builtIn.description)));
+    }
+  });
+
+  it('micro fs: /workspace/attachments is read-only, also after compaction', () => {
+    const fs = slimDefs.find(tool => tool.name === 'fs')!;
+    const [compact] = compactToolDefs([fs]);
+    expect(compact.description).toContain('Rule: /workspace/attachments/ is read-only (files the user uploaded): never write, move or delete there.');
   });
 
   it('keeps a Rule: line found in the opening paragraph out of the summary sentence cut', () => {

@@ -19,6 +19,12 @@ import type { Tool, ToolExecuteResult } from './types';
 import { buildDiffArtifact } from '../diff/diffArtifact';
 
 /**
+ * The attachments rule. Also on the hand-written micro fs tool
+ * (services/chat/contextModes), so a slim window gets the same line.
+ */
+export const FS_ATTACHMENTS_RULE = 'Rule: /workspace/attachments/ is read-only (files the user uploaded): never write, move or delete there.';
+
+/**
  * fs — read and write files inside ~/GatesAI/workspace/ via the bridge.
  *
  * Every action is path-addressed; the bridge enforces the path jail
@@ -50,7 +56,7 @@ export const fsTool: Tool = {
       '    /workspace/artifacts/data/         — reusable JSON/CSV/SQLite/data outputs',
       '    /workspace/artifacts/reports/      — user-facing docs, markdown, HTML, PDFs, and summaries',
       '    /workspace/artifacts/exports/      — finished deliverables that do not fit the categories above',
-      'Rule: /workspace/attachments/ is read-only (files the user uploaded): never write, move or delete there.',
+      FS_ATTACHMENTS_RULE,
       '',
       'Actions:',
       '• `read` — read a file. Returns content (utf8 for text, base64 for binary), size, mime.',
