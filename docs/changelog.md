@@ -31,29 +31,38 @@
 ## 2026-11-06: Local models run inside the window they actually load
 
 - **What changed for you.** A chat on an Ollama model now plans its
-  context around the window the model really loads with, not a guess.
-  The app reads it from `/api/ps` once the model has loaded, else the
-  Modelfile's `num_ctx`, else Ollama's 4096 default; Ollama cloud models
-  use their full window. Below a 32k window the system prompt and tool
-  descriptions are shortened (safety and argument rules, written as
-  `Rule:` lines, survive word for word), and below 8k the chat runs in
-  micro mode. The composer shows the mode the next turn will actually run.
-  A local model's thinking now streams into the live Thinking row instead
-  of being dropped, and auto-titles ask the model not to think, so a title
-  no longer holds up your next message. (3268189, b4781a3, 2a6741d,
-  819a3b6, eadca7c, c69114a, e720ffc, 1dd1354, 4c1e344, 0668429, 1b1f09c,
-  1856daa)
+  context around the window the model really loads with, not a guess. The
+  app takes the Modelfile's `num_ctx`, else the window `/api/ps` reports
+  once the model has loaded, else Ollama's 4096 default; Ollama cloud
+  models use their full window for both the prompt and the budget. The
+  Modelfile wins because GatesAI's own turns load at that window, whatever
+  another app loaded the model with. Changing the Ollama address forgets
+  what the old server reported, and "Check again" retries a failed lookup.
+  Below a 32k window the system prompt and tool descriptions are shortened
+  (safety and argument rules, written as `Rule:` lines, survive word for
+  word), and below 8k the chat runs in micro mode, whose small file tool
+  keeps the rule that your uploaded attachments are read-only. The
+  composer shows the mode the next turn will actually run. A local model's
+  thinking now streams into the live Thinking row instead of being
+  dropped, without a store update per token. Auto-titles ask the model not
+  to think, so a title no longer holds up your next message. (3268189,
+  b4781a3, 2a6741d, 819a3b6, eadca7c, c69114a, e720ffc, 1dd1354, 4c1e344,
+  0668429, 1b1f09c, 1856daa, 1b967e8, f001fec, 5305e1d, 8e5022f, 5c81306)
 - **Evidence.** Measured live through the app's own code path with a new
-  opt-in harness (`vitest.live.config.ts`, never part of `npm run ci`):
-  on gemma4-abliterated:26b at its 16k window, 1.8k to 2.6k prompt tokens
-  per turn, and turn 2 went from 30.9 s to 8.1 s once titles stopped
-  thinking; on qwen3.8-abliterated:27b, 2.1k to 3.0k prompt tokens, warm
-  turns of 3.1 s and 6.5 s (with a tool round-trip), and every request
-  went to qwen3.8 alone. A reviewer found 11 issues in the first round
-  (rules lost in compaction, "e.g." ending a sentence, the 4096 fallback
-  forcing micro on cloud and big-window models, two tests that passed on
-  the old code); each was fixed with a test watched failing first. Full
-  write-up: `docs/audits/2026-11-05-local-models.md`.
+  opt-in harness (`vitest.live.config.ts`, never part of `npm run ci`): on
+  gemma4-abliterated:26b at its 16k window, 1.8k to 2.6k prompt tokens per
+  turn, and turn 2 went from 30.9 s to 8.1 s once titles stopped thinking;
+  on qwen3.8-abliterated:27b, 2.1k to 3.0k prompt tokens, warm turns of
+  3.1 s and 6.5 s (with a tool round-trip), and every request went to
+  qwen3.8 alone. A reviewer found 11 issues in the first round (rules lost
+  in compaction, "e.g." ending a sentence, the 4096 fallback forcing micro
+  on cloud and big-window models, two tests that passed on the old code);
+  each was fixed with a test watched failing first. A second reviewer
+  found five more (another app's load outranking the Modelfile, the
+  attachments rule missing in micro mode, a store update per thinking
+  token, no retry after a failed lookup, cloud prompt and budget
+  disagreeing), fixed the same way. Full write-up:
+  `docs/audits/2026-11-05-local-models.md`.
 - **Still open.** The thinking row is live only and does not survive a
   reload (needs a schema migration). Micro mode's 512-token reply cap does
   not reach Ollama yet. Semantic memory loads a second Ollama model for
