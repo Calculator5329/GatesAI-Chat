@@ -58,6 +58,13 @@ describe('isLoopbackBaseUrl', () => {
 });
 
 describe('suggestOllamaPortUrl', () => {
+  it('only suggests plain http on an explicit TLS mismatch, keeping the port and path', () => {
+    expect(suggestOllamaPortUrl('https://gpu-box:11434', true)).toBe('http://gpu-box:11434');
+    expect(suggestOllamaPortUrl('https://gpu-box:11500/ollama', true)).toBe('http://gpu-box:11500/ollama');
+    expect(suggestOllamaPortUrl('https://gpu-box', true)).toBe('http://gpu-box:11434');
+    expect(suggestOllamaPortUrl('https://gpu-box:11434')).toBeUndefined();
+  });
+
   it.each([
     ['http://gpu-box', 'http://gpu-box:11434'],
     ['https://ollama.example.com/proxy', 'http://ollama.example.com:11434'],

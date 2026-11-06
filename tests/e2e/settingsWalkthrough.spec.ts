@@ -109,6 +109,32 @@ test.describe('settings walkthrough (persistence)', () => {
     await expect(page.getByText(fact)).toHaveCount(0);
   });
 
+  test('the Local card suggests port 11434 after an HTTP 404 page', async ({ page }) => {
+    await page.route('https://gpu-box/api/tags', route => route.fulfill({ status: 404, body: '' }));
+    await page.goto('/#/menu/models');
+    const field = page.getByRole('textbox', { name: 'Ollama address' });
+    await field.fill('https://gpu-box');
+    await field.press('Enter');
+
+    await expect(page.getByTestId('settings.models.local-card')).toContainText(
+      'https://gpu-box answered with HTTP 404. Ollama usually listens on port 11434, for example http://gpu-box:11434.',
+    );
+  });
+
+  for (const status of [401, 403]) {
+    test(`the Local card points an HTTP ${status} auth wall at the API key`, async ({ page }) => {
+      await page.route('https://gpu-box/api/tags', route => route.fulfill({ status, body: '' }));
+      await page.goto('/#/menu/models');
+      const field = page.getByRole('textbox', { name: 'Ollama address' });
+      await field.fill('https://gpu-box');
+      await field.press('Enter');
+
+      const card = page.getByTestId('settings.models.local-card');
+      await expect(card).toContainText(`https://gpu-box turned the request away (HTTP ${status}). Check the Ollama API key in Settings > Models.`);
+      await expect(card).not.toContainText('gpu-box:11434');
+    });
+  }
+
   test('the Ollama address survives a reload', async ({ page }) => {
     const address = 'http://127.0.0.1:11500';
     await page.goto('/#/menu/models');

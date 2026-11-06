@@ -268,6 +268,48 @@ describe('LocalRuntimeStore reachability', () => {
     );
   });
 
+  it.each([
+    ['connection refused', 'http://gpu-box', new TypeError('error sending request: Connection refused (os error 111)'), 'http://gpu-box:11434'],
+    ['connection refused on https', 'https://gpu-box', new TypeError('error sending request: Connection refused (os error 111)'), 'http://gpu-box:11434'],
+    ['404', 'http://gpu-box', new Error('Ollama 404'), 'http://gpu-box:11434'],
+    ['https to plain-http Ollama', 'https://gpu-box:11434', new TypeError('error sending request: received corrupt message of type InvalidContentType'), 'http://gpu-box:11434'],
+  ])('offers a plain-http port hint for %s', async (_case, address, error, suggested) => {
+    const { store } = harness({ fetchOllamaTags: async () => { throw error; } });
+    store.setBaseUrl('ollama', address);
+
+    await store.probe('ollama');
+
+    expect(store.runtimes.ollama.status).toBe('offline');
+    expect(store.runtimes.ollama.lastError).toContain(suggested);
+    store.dispose();
+  });
+
+  it.each([
+    ['https://gpu-box', new Error('HTTP 401'), '401'],
+    ['https://gpu-box', new Error('Ollama 403'), '403'],
+  ])('points an auth wall at the API key, not another port (%s %s)', async (address, error, status) => {
+    const { store } = harness({ fetchOllamaTags: async () => { throw error; } });
+    store.setBaseUrl('ollama', address);
+    await store.probe('ollama');
+    expect(store.runtimes.ollama.lastError).toBe(
+      `${address} turned the request away (HTTP ${status}). Check the Ollama API key in Settings > Models.`,
+    );
+    store.dispose();
+  });
+
+  it.each([
+    ['https://ollama.lan', new TypeError('invalid peer certificate: UnknownIssuer'), 'https://ollama.lan answered, but its TLS certificate is not trusted.'],
+    ['https://gpu-box:11434', new TypeError('invalid peer certificate: UnknownIssuer'), 'https://gpu-box:11434 answered, but its TLS certificate is not trusted.'],
+    ['http://gpu-bxo', new TypeError('error sending request: dns error: failed to lookup address information: Name or service not known'), 'No host named gpu-bxo was found. Check the address for typos.'],
+    ['http://gpu-box:11500', new TypeError('Connection refused'), 'Nothing is answering at http://gpu-box:11500.'],
+  ])('gives no port hint when the port is not the problem at %s', async (address, error, expected) => {
+    const { store } = harness({ fetchOllamaTags: async () => { throw error; } });
+    store.setBaseUrl('ollama', address);
+    await store.probe('ollama');
+    expect(store.runtimes.ollama.lastError).toBe(expected);
+    store.dispose();
+  });
+
   it('sends nothing for a fresh probe that was still waiting when the store was disposed', async () => {
     const pending = deferred<unknown>();
     const { store, fetchOllamaTags } = harness({ fetchOllamaTags: () => pending.promise });

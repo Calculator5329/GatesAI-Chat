@@ -40,18 +40,25 @@ export function isLoopbackBaseUrl(baseUrl: string): boolean {
 /**
  * The same host on Ollama's port when a base URL names none, so it sits on 80
  * or 443: `http://gpu-box` -> `http://gpu-box:11434`. Ollama itself speaks
- * plain http, so the suggestion does too. Undefined when the URL has a port or
- * does not parse. LocalRuntimeStore offers it when a web page answers instead
- * of Ollama.
+ * plain http, so the suggestion does too. A TLS/plain-http mismatch
+ * (`plainHttp`) also converts an explicit https port, keeping port and path.
+ * Undefined for other explicit ports or invalid URLs. LocalRuntimeStore
+ * offers it after a failed probe; auth walls never get one.
  */
-export function suggestOllamaPortUrl(baseUrl: string): string | undefined {
+export function suggestOllamaPortUrl(baseUrl: string, plainHttp = false): string | undefined {
   let url: URL;
   try {
     url = new URL(baseUrl);
   } catch {
     return undefined;
   }
-  if (url.port || (url.protocol !== 'http:' && url.protocol !== 'https:')) return undefined;
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined;
+  if (plainHttp && url.protocol === 'https:') {
+    url.protocol = 'http:';
+    if (!url.port) url.port = String(OLLAMA_PORT);
+    return url.toString().replace(/\/+$/, '');
+  }
+  if (url.port) return undefined;
   return `http://${url.hostname}:${OLLAMA_PORT}`;
 }
 

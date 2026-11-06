@@ -339,7 +339,16 @@ export class LocalRuntimeStore {
   }
 }
 
-/** One short sentence for a failed tags request; statuses arrive as "HTTP 401" or "Ollama 401". */
+const TLS_MISMATCH = /wrong[_ ]version[_ ]number|InvalidContentType|packet length too long|record overflow/i;
+const UNTRUSTED_CERTIFICATE = /invalid peer certificate|UnknownIssuer|certificate verify failed|self[- ]signed certificate/i;
+const UNKNOWN_HOST = /dns error|failed to lookup address|Name or service not known|nodename nor servname|No such host is known/i;
+
+/**
+ * One short sentence for a failed tags request; statuses arrive as "HTTP 401"
+ * or "Ollama 401". The port hint is only offered where a wrong port is a
+ * plausible cause: an auth wall means the right server answered and wants a
+ * key, and a certificate or name-lookup failure is not about the port.
+ */
 function ollamaProbeError(baseUrl: string, err: unknown): string {
   // Response.json() throws SyntaxError when a 200 body is not JSON, such as a web page.
   if (err instanceof SyntaxError) return notOllamaError(baseUrl);
@@ -348,8 +357,21 @@ function ollamaProbeError(baseUrl: string, err: unknown): string {
   if (status === '401' || status === '403') {
     return `${baseUrl} turned the request away (HTTP ${status}). Check the Ollama API key in Settings > Models.`;
   }
-  if (status) return `${baseUrl} answered with HTTP ${status}.`;
-  return `Nothing is answering at ${baseUrl}.`;
+  if (!status && UNTRUSTED_CERTIFICATE.test(message)) return `${baseUrl} answered, but its TLS certificate is not trusted.`;
+  if (!status && UNKNOWN_HOST.test(message)) return `No host named ${hostOf(baseUrl)} was found. Check the address for typos.`;
+  const tlsMismatch = baseUrl.startsWith('https://') && TLS_MISMATCH.test(message);
+  const suggestion = suggestOllamaPortUrl(baseUrl, tlsMismatch);
+  const hint = suggestion
+    ? tlsMismatch
+      ? ` Ollama usually speaks plain http, for example ${suggestion}.`
+      : ` Ollama usually listens on port 11434, for example ${suggestion}.`
+    : '';
+  if (status) return `${baseUrl} answered with HTTP ${status}.${hint}`;
+  return `Nothing is answering at ${baseUrl}.${hint}`;
+}
+
+function hostOf(baseUrl: string): string {
+  try { return new URL(baseUrl).hostname || baseUrl; } catch { return baseUrl; }
 }
 
 /** Something answered with a body that is not an Ollama model list; on port 80 or 443 that is usually another web server. */
