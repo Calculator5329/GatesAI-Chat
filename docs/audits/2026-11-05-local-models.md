@@ -233,8 +233,16 @@ or reading code.
   content, so a transient error after thinking alone was never retried. Red first: an
   executor test and a ChatStore test, which also asserts the retry clears the Thinking
   row.
-- R8 (0668429): reasoning updated the store once per chunk. It is now coalesced to one
-  update per frame. Red first: five chunks in one frame made five updates.
+- R8 (0668429): reasoning updated the store once per chunk. The reasoning text was
+  coalesced to one update per frame (red first: five chunks in one frame made five
+  updates), but that test stubbed the host and counted only reasoning writes: each
+  chunk still sent a `streaming` activity update with a new `lastProviderAt`, one MobX
+  action, projection and `ActivityRow` render per token. Corrected in fix round 3
+  (review-02 finding 3): a reasoning chunk now reports the `streaming` phase only when
+  the phase changes, the stall timer runs on the executor's own timestamp, and
+  `ActivityMarkdown` is memoized. Red first at the store level: 40 chunks in one frame
+  through the real engine into a real `ChatStore` made 40 activity writes; now one for
+  the phase and one for the text.
 - R9 (1b1f09c): the `activityProjection.ts` comment now says what the row does.
 - R10 (this commit): this audit's hashes, the F4 gating claim and the red-first lists are
   corrected; `docs/architecture.md` says the micro 512 cap does not reach Ollama.

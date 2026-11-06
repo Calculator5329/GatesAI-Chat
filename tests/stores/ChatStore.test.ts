@@ -1,4 +1,4 @@
-import { runInAction } from 'mobx';
+import { reaction, runInAction } from 'mobx';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatStore, PROVIDER_STREAM_INITIAL_STALL_MS, PROVIDER_STREAM_STALL_MS } from '../../src/stores/ChatStore';
 import { threadLlmSpendUsd } from '../../src/core/threadSelectors';
@@ -1791,6 +1791,53 @@ describe('ChatStore', () => {
     expect(messageText(reply)).toBe('Rayleigh scattering.');
     expect(messageText(reply)).not.toContain('Light scatters');
     expect(reply.finishReason).toBe('stop');
+  });
+
+  it('a burst of reasoning chunks inside one frame writes the activity row once for the phase and once for the text (fix round 3, finding 3)', async () => {
+    vi.useFakeTimers();
+    const { chat, providers } = setup();
+    const CHUNKS = 40;
+    let release: (() => void) | undefined;
+    const thinker: LlmProvider = {
+      id: 'ollama',
+      ready: () => true,
+      async *stream() {
+        await new Promise<void>(resolve => { release = resolve; });
+        for (let i = 0; i < CHUNKS; i += 1) yield { type: 'reasoning', delta: `t${i} ` };
+        await new Promise<void>(resolve => { release = resolve; });
+        yield { type: 'text', delta: 'Answer.' };
+        yield { type: 'done', finishReason: 'stop' };
+      },
+    };
+    installMockProvider(providers, thinker);
+    chat.createThread();
+    const threadId = chat.activeThreadId!;
+
+    chat.sendMessage('think hard');
+    await flush(10);
+    expect(chat.streamActivityByThread[threadId]).toMatchObject({ phase: 'connecting' });
+
+    // Every write replaces the StreamActivity object; count them.
+    const writes: Array<{ phase: string; reasoning?: string }> = [];
+    const stop = reaction(
+      () => chat.streamActivityByThread[threadId],
+      activity => { if (activity) writes.push({ phase: activity.phase, reasoning: activity.reasoning }); },
+    );
+    release?.();
+    await flush(CHUNKS * 6);
+    // All chunks arrived before the frame: only the connecting -> streaming phase change.
+    expect(writes).toEqual([{ phase: 'streaming', reasoning: undefined }]);
+
+    vi.advanceTimersByTime(30); // the frame
+    expect(writes).toHaveLength(2);
+    expect(writes[1].reasoning).toBe(Array.from({ length: CHUNKS }, (_, i) => `t${i} `).join(''));
+    stop();
+
+    release?.();
+    await flush(20);
+    vi.advanceTimersByTime(30);
+    await flush(10);
+    expect(messageText(chat.activeThread!.messages.find(m => m.role === 'assistant')!)).toBe('Answer.');
   });
 
   it('retries a transient failure that came after thinking only, and the retry clears the Thinking row (review F7)', async () => {

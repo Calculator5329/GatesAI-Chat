@@ -200,12 +200,14 @@ export class StreamingRoundExecutor {
     // `state.receivedContent`, which blocks a transient retry: a retry after
     // thinking alone loses nothing the user kept.
     let heardFromProvider = false;
+    let emittedPhase: StreamActivity['phase'] | null = null;
 
     const clearStallTimer = () => {
       if (stallTimer) clearTimeout(stallTimer);
       stallTimer = null;
     };
     const emitActivity = (phase: StreamActivity['phase'], extras: Partial<StreamingRoundActivityUpdate> = {}) => {
+      emittedPhase = phase;
       options.callbacks?.onActivityPhase?.({
         phase,
         at: Date.now(),
@@ -244,8 +246,14 @@ export class StreamingRoundExecutor {
         if (chunk.type !== 'done') {
           heardFromProvider = true;
           if (chunk.type !== 'reasoning') state.receivedContent = true;
+          // The stall timer runs on this local timestamp. A reasoning chunk
+          // (one per token on a thinking model) reports activity only when
+          // the phase changes; its text reaches the row through the engine's
+          // per-frame flush, so a think costs no store write per token.
           lastProviderAt = Date.now();
-          emitActivity('streaming', { at: lastProviderAt });
+          if (chunk.type !== 'reasoning' || emittedPhase !== 'streaming') {
+            emitActivity('streaming', { at: lastProviderAt });
+          }
           armStallTimer(this.stallMs);
         }
 

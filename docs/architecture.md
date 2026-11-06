@@ -436,10 +436,16 @@ Local model window and prompt tiers (QW-1, SP-2;
   (`core/llm.ts`) whenever a frame carries it; this is not gated on the
   model's `supportsThinking`. TurnRunner hands them to
   `ChatTurnEngine.appendStreamReasoning`, which coalesces them into one
-  update of the live `StreamActivity.reasoning` per frame. The
-  provider-stream activity row shows it as "Thinking" with a tail of the
-  text (`activityProjection.ts`). Reasoning counts as stream activity for
-  the stall timers, but not as received content: a transient error after
+  update of the live `StreamActivity.reasoning` per frame. A reasoning
+  chunk makes no store write of its own: `StreamingRoundExecutor` reports
+  the `streaming` phase only when the phase changes (text and tool-call
+  chunks still report it per chunk) and runs the stall timer on its own
+  timestamp, so during a think the row's `lastProviderAt` (its elapsed
+  clock) stays at the start of streaming. `ActivityMarkdown` is memoized on
+  its text. The provider-stream activity row shows it as "Thinking" with a
+  tail of the text (`activityProjection.ts`). Reasoning counts as stream
+  activity for the stall timers, but not as received content: a transient
+  error after
   thinking alone is still retried, and the retry's `connecting` update
   starts the row empty. It is display-only: never stored on the message,
   persisted, or replayed to the model.
