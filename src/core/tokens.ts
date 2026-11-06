@@ -63,7 +63,8 @@ export function estimateWireTokens(messages: LlmMessage[], tools: ToolDef[] = []
 
 export function estimateToolTokens(tools: ToolDef[]): number {
   if (tools.length === 0) return 0;
-  const key = tools.map(tool => tool.name).join('|');
+  // Compact schemas (SP-2) share names with the full ones, so the key carries the description sizes too.
+  const key = tools.map(tool => `${tool.name}:${tool.description.length}`).join('|');
   const cached = toolTokenCache.get(key);
   if (cached != null) return cached;
   const value = estimateTokens(JSON.stringify(tools));

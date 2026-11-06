@@ -33,6 +33,8 @@ import {
   latestUserMessageContent,
   latestUserPromptBody,
   reservedOutputTokensForContextMode,
+  toolsForPrompt,
+  usesCompactPrompt,
   systemPromptForContextMode,
   toolsForContextMode,
   wireMessagesForContextMode,
@@ -104,7 +106,7 @@ export interface TurnRouter {
 
 export interface TurnProfile extends ProfileFacade {
   defaultSystemPrompt: string;
-  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; semanticContext?: string; userSystemPrompt?: string }): string | undefined;
+  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; semanticContext?: string; userSystemPrompt?: string; compact?: boolean }): string | undefined;
 }
 
 export interface TurnHost {
@@ -520,6 +522,7 @@ export class TurnRunner {
     const bridge = extras?.bridge;
     const model = this.registry.findById(thread.modelId);
     const mode = effectiveContextMode(thread, model);
+    const compactPrompt = usesCompactPrompt(model);
     const activeSkill = this.getActiveSkill(thread.id);
     const userSystemPrompt = this.getUserSystemPrompt(thread.id);
     const systemPrompt = thread.agentTask
@@ -529,13 +532,14 @@ export class TurnRunner {
           () => this.profile.composeSystemPrompt({
             runtimeContext: buildRuntimeContext({ bridge }),
             threadContext: mode === 'full' ? thread.threadContext : undefined,
-            recentSummaries: mode === 'full' ? recentSummaries : [],
+            recentSummaries: mode === 'full' && !compactPrompt ? recentSummaries : [],
             userSystemPrompt,
+            compact: compactPrompt,
           }),
           userSystemPrompt,
         );
     const runningAgentTasks = countRunningAgentTasks(this.chat.threads);
-    const tools = toolsForContextMode({
+    const tools = toolsForPrompt(toolsForContextMode({
       mode,
       toolsAllowed: model?.supportsTools !== false,
       userText: latestUserMessageContent(thread),
@@ -547,7 +551,7 @@ export class TurnRunner {
       spawnTaskRunningCount: runningAgentTasks,
       spawnTaskMaxConcurrent: MAX_CONCURRENT_AGENT_TASKS,
       toolAllowlist: activeSkill?.tools,
-    });
+    }), compactPrompt);
     const finalSystemPrompt = appendMemoryEvidenceInstruction(
       appendImageGenAddendum(
         appendArtifactContractPrompt(

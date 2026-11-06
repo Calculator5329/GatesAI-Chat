@@ -40,9 +40,21 @@ export interface LocalModelMeta {
   costLabel: 'LOCAL' | 'CLOUD';
 }
 
-export type LocalModelContextProfile = 'full' | 'slim';
+/**
+ * How much prompt a local model gets, from its loaded window: `slim` (< 8000)
+ * forces micro mode, `compact` (< 32768) keeps the chat's mode but sends the
+ * compact prompt and tool schemas (SP-2), `full` sends everything.
+ */
+export type LocalModelContextProfile = 'full' | 'compact' | 'slim';
 
 export const SMALL_LOCAL_CONTEXT_TOKENS = 8_000;
+
+/**
+ * Below this loaded window (and at or above SMALL_LOCAL_CONTEXT_TOKENS) a
+ * local turn keeps full history but sends the compact prompt and tool
+ * schemas (SP-2; services/chat/promptSlimming). 16384-window models land here.
+ */
+export const COMPACT_LOCAL_CONTEXT_TOKENS = 32_768;
 
 interface LocalFamilyMeta {
   family: string;
@@ -124,7 +136,9 @@ export function isOllamaCloudModel(model: OllamaCatalogModel): boolean {
 export function localModelContextProfile(model: Model): LocalModelContextProfile {
   if (model.providerId !== 'ollama') return 'full';
   const contextLength = localModelContextLength(model);
-  return contextLength != null && contextLength < SMALL_LOCAL_CONTEXT_TOKENS ? 'slim' : 'full';
+  if (contextLength == null) return 'full';
+  if (contextLength < SMALL_LOCAL_CONTEXT_TOKENS) return 'slim';
+  return contextLength < COMPACT_LOCAL_CONTEXT_TOKENS ? 'compact' : 'full';
 }
 
 /**

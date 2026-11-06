@@ -338,7 +338,8 @@ Availability is gated in layers:
   actions require the bridge; its semantic search additionally requires RAG.
   `web_search` appears only with a Brave key.
 - Provider/model state: context mode hides tools if the model lacks tool
-  support; Ollama defaults to `micro` mode with a smaller tool set.
+  support; an Ollama model with a small loaded window is forced to `micro`
+  mode with a smaller tool set (see "Local model window and prompt tiers").
 - Skill allowlists: an active skill can restrict tools; `thread` is always
   allowed so the model can work with the active thread.
 
@@ -348,8 +349,49 @@ Context modes in `contextModes.ts` select prompt/messages/tools:
   context, skill instructions, and relevance-selected tools.
 - `system-tools`: latest user message with normal system/tools.
 - `bare`: latest user message only and no tools.
-- `micro`: default for Ollama; minimal local system prompt, latest user message,
-  a small filesystem schema when relevant, and web search/recall when available.
+- `micro`: forced for an Ollama model whose loaded window is under 8000
+  tokens; minimal local system prompt, latest user message, 512-token reply
+  cap, a small filesystem schema when relevant, and web search/recall when
+  available. A chat with no mode picked runs `full`.
+
+Local model window and prompt tiers (QW-1, SP-2;
+`docs/audits/2026-11-05-local-models.md`):
+
+- The window is the one the model **loads with**, never the trained maximum
+  (`/api/tags` `details.context_length`, kept as `maxContextLength` for
+  display). `OllamaStore` reads the Modelfile `num_ctx` from `POST /api/show`
+  once per tag digest (through `LocalRuntimeStore.fetchOllamaNumCtx`; it
+  never loads a model) into `contextLength`. A format profile that sends
+  `num_ctx` itself (`modelFormatProfiles.ts`, qwen2.5) wins. With neither,
+  the window is Ollama's own default, `OLLAMA_DEFAULT_CONTEXT_TOKENS` = 4096
+  in `core/tokens.ts` (measured on Ollama 0.40.4).
+- `localModelContextProfile` (`core/localModelMeta.ts`) maps that window to
+  a tier. `slim`, under `SMALL_LOCAL_CONTEXT_TOKENS` (8000), forces `micro`
+  (or `bare` if picked). `compact`, under `COMPACT_LOCAL_CONTEXT_TOKENS`
+  (32768), keeps the chat's mode and history. It sends the compact bridge
+  contract (`UserProfileStore.composeSystemPrompt({ compact })`), no recent
+  summaries, and compact tool schemas (`services/chat/promptSlimming.ts`).
+  `full` sends everything. Cloud models are always `full`.
+- Compact schemas shrink prose only. A tool keeps its opening sentences and
+  one line per action bullet, and property descriptions are cut to their
+  first sentence. Names, types, enums, `required`, `properties` and `items`
+  are untouched, so any call the full schema accepts is still valid. The
+  user's own instructions (SP-1), bio and thread context are never
+  shortened. Measured with the bridge online: tools go from 6428 to 3755
+  estimated tokens, and the bridge contract from 699 to 186. The SP-2 test
+  in `tests/services/chat/turnRunner.test.ts` asserts the total stays under
+  60% of the full request.
+- The budget's default reply reserve is `min(4096, window / 4)`
+  (`replyReserveTokensFor`), so a 4096 window still fits a prompt.
+- The composer's local-context select shows `ChatStore.activeLocalContext`,
+  the mode the next turn will run. Its title says when a small window forces
+  `micro`.
+- Ollama `message.thinking` streams as `reasoning` chunks
+  (`core/llm.ts`). TurnRunner appends them to the live
+  `StreamActivity.reasoning`, which the provider-stream activity row shows
+  as "Thinking" with a tail of the text (`activityProjection.ts`). Reasoning
+  counts as stream activity for the stall timers. It is display-only: never
+  stored on the message, persisted, or replayed to the model.
 
 Static tool list generated from `src/services/tools/registry.ts`:
 
@@ -491,7 +533,8 @@ Ollama:
 - `OllamaStore` owns API key, `toolsEnabled`, `/api/tags` catalog hydration,
   dynamic model registration, model pulls, cancellation, and deletion.
 - `OllamaProvider` streams local chat responses and emits local usage with
-  `costUsd: 0`. `contextModes.ts` defaults Ollama threads to `micro` mode.
+  `costUsd: 0`. `contextModes.ts` forces `micro` only for a small loaded
+  window. Otherwise a chat runs its own mode, or `full`.
 
 ComfyUI image jobs:
 

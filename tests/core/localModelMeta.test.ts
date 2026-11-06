@@ -5,6 +5,7 @@ import {
   localModelMaxContextLength,
   localModelMetaFor,
   localModelParameterBillions,
+  COMPACT_LOCAL_CONTEXT_TOKENS,
   SMALL_LOCAL_CONTEXT_TOKENS,
 } from '../../src/core/localModelMeta';
 import { badgesForModel } from '../../src/core/modelPicker';
@@ -59,8 +60,8 @@ describe('localModelMetaFor', () => {
   it('decides the slim profile from the loaded window, never the family table', () => {
     // qwen's family row says 128K, but an unconfigured qwen still loads at 4096.
     expect(localModelContextProfile(model('qwen3.5:9b', { maxContextLength: 262_144 }))).toBe('slim');
-    // A Modelfile `num_ctx 16384` (read from /api/show) makes it a full-context model.
-    expect(localModelContextProfile(model('gemma4-abliterated:26b', { contextLength: 16_384 }))).toBe('full');
+    // A Modelfile `num_ctx 16384` (read from /api/show) lifts it out of micro, into the compact tier.
+    expect(localModelContextProfile(model('gemma4-abliterated:26b', { contextLength: 16_384 }))).toBe('compact');
     expect(contextWindowFor(model('gemma4-abliterated:26b', { contextLength: 16_384 }))).toBe(16_384);
   });
 
@@ -104,8 +105,13 @@ describe('localModelMetaFor', () => {
     expect(localModelContextProfile(meta)).toBe('slim');
   });
 
-  it('uses full context profile for local models at or above the threshold', () => {
-    const meta = model('large-local', { contextLength: SMALL_LOCAL_CONTEXT_TOKENS });
+  it('uses the compact profile from the small threshold up to the compact one', () => {
+    expect(localModelContextProfile(model('mid-local', { contextLength: SMALL_LOCAL_CONTEXT_TOKENS }))).toBe('compact');
+    expect(localModelContextProfile(model('mid-local', { contextLength: COMPACT_LOCAL_CONTEXT_TOKENS - 1 }))).toBe('compact');
+  });
+
+  it('uses full context profile for local models at or above the compact threshold', () => {
+    const meta = model('large-local', { contextLength: COMPACT_LOCAL_CONTEXT_TOKENS });
 
     expect(localModelContextProfile(meta)).toBe('full');
   });

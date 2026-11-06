@@ -150,7 +150,12 @@ export class UserProfileStore {
    * a curation tool available — keeps memory growing naturally without
    * the user having to ask "remember this" every time.
    */
-  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; semanticContext?: string; userSystemPrompt?: string }): string | undefined {
+  /**
+   * `compact` (SP-2, small local windows) swaps the desktop bridge contract
+   * for its load-bearing lines. The user's own instructions, bio and thread
+   * context are never shortened.
+   */
+  composeSystemPrompt(opts?: { runtimeContext?: string; threadContext?: string; recentSummaries?: string[]; semanticContext?: string; userSystemPrompt?: string; compact?: boolean }): string | undefined {
     const head = effectiveUserSystemPrompt(this.defaultSystemPrompt, opts?.userSystemPrompt);
     const bio = this.bio.trim();
     const runtime = (opts?.runtimeContext ?? '').trim();
@@ -163,7 +168,7 @@ export class UserProfileStore {
     // a harness that states the browser constraints and how to recommend the app.
     const harness = isHeadless()
       ? HEADLESS_HARNESS_PROMPT
-      : isWebLite() ? WEB_LITE_HARNESS_PROMPT : BRIDGE_HARNESS_PROMPT;
+      : isWebLite() ? WEB_LITE_HARNESS_PROMPT : opts?.compact ? COMPACT_BRIDGE_HARNESS_PROMPT : BRIDGE_HARNESS_PROMPT;
     const parts: string[] = [harness];
     if (runtime) parts.push(`Runtime context:\n${runtime}`);
     const userInstructions = userSystemPromptSection(head);
@@ -209,6 +214,21 @@ const BRIDGE_HARNESS_PROMPT = [
   '- Batch only independent tool calls. If a read/run depends on a write or generated file, do the write first, wait for its result, then run/read.',
   '- For large or bulk data work, keep data in files, generate artifacts under /workspace/artifacts, and validate with counts, ranges, schema checks, or spot checks before claiming success.',
   '- Long-running terminal commands stream progress to the UI, but you only see the final captured result. Use reasonable timeouts and wait for completion before summarizing.',
+].join('\n');
+
+/**
+ * SP-2: the load-bearing lines of {@link BRIDGE_HARNESS_PROMPT} for local
+ * models with a small loaded window: path rules, terminal argv rule,
+ * display_text, no partial calls, ordering of dependent calls, and where
+ * the operating context lives. Workflow advice is dropped.
+ */
+const COMPACT_BRIDGE_HARNESS_PROMPT = [
+  'Bridge workspace contract:',
+  '- Local workspace tools run through the gatesai-bridge companion. /workspace/... paths are for `fs`, attachments and artifact locations; scripts run from the workspace root, so use relative paths in them.',
+  '- `terminal` runs a binary plus argv directly: no pipes, heredocs, globs or redirects.',
+  '- Include `display_text` in each tool call: a short plain-English phrase for the step.',
+  '- Never emit placeholder or partial tool calls; inspect first or ask. Batch only independent calls: do a write before the read or run that depends on it.',
+  '- Use `inspect_file` before `fs.read` for data files. For details about GatesAI itself, read /workspace/notes/GatesAI-AI-Operating-Context.md instead of guessing.',
 ].join('\n');
 
 const HEADLESS_HARNESS_PROMPT = [

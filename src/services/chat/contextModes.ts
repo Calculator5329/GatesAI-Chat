@@ -10,6 +10,7 @@ import { isHeadless, isWebLite } from '../../core/runtime';
 import { messageText } from '../../core/messageParts';
 import { localModelContextProfile } from '../../core/localModelMeta';
 import { appendUserSystemPrompt } from './userSystemPrompt';
+import { compactToolDefs } from './promptSlimming';
 
 export type ChatContextMode = NonNullable<Thread['contextMode']>;
 
@@ -74,6 +75,16 @@ export function effectiveContextMode(thread: Thread, model: Model | undefined): 
   if (!model || model.providerId !== 'ollama') return 'full';
   if (localModelContextProfile(model) === 'slim') return thread.contextMode === 'bare' ? 'bare' : 'micro';
   return thread.contextMode ?? 'full';
+}
+
+/** SP-2: a local model whose loaded window is under COMPACT_LOCAL_CONTEXT_TOKENS gets the compact prompt and tool schemas. */
+export function usesCompactPrompt(model: Model | undefined): boolean {
+  return Boolean(model && model.providerId === 'ollama' && localModelContextProfile(model) !== 'full');
+}
+
+/** The tools a turn sends: compact schemas when the prompt is compact (services/chat/promptSlimming). */
+export function toolsForPrompt(tools: ToolDef[] | undefined, compact: boolean): ToolDef[] | undefined {
+  return compact && tools ? compactToolDefs(tools) : tools;
 }
 
 export function systemPromptForContextMode(

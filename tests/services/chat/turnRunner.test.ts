@@ -12,9 +12,10 @@ import type { StreamingRoundActivityUpdate } from '../../../src/services/chat/st
 import { clearAppStorage } from '../../helpers/storage';
 import { appendMessageText, messageText, messageToolCalls, messageToolResults } from '../../../src/core/messageParts';
 import type { RagContextBundle } from '../../../src/services/rag/retrieval';
-import { SMALL_LOCAL_CONTEXT_TOKENS } from '../../../src/core/localModelMeta';
+import { COMPACT_LOCAL_CONTEXT_TOKENS, SMALL_LOCAL_CONTEXT_TOKENS } from '../../../src/core/localModelMeta';
 import type { ToolStoreContext } from '../../../src/services/chat/toolBatchExecutor';
-import { estimateLlmPayloadTokens } from '../../../src/core/tokens';
+import { estimateLlmPayloadTokens, estimateTokens } from '../../../src/core/tokens';
+import { toolRegistry, withDisplayTextToolDef } from '../../../src/services/tools/registry';
 
 class ScriptedProvider implements LlmProvider {
   readonly id: ProviderId = 'openrouter';
@@ -276,6 +277,67 @@ describe('TurnRunner', () => {
     const sent = estimateLlmPayloadTokens({ systemPrompt: request.systemPrompt, messages: request.messages, tools: request.tools, reservedOutputTokens: 0 });
     expect(sent).toBeGreaterThan(4_000);
     expect(sent + 4_096).toBeLessThan(16_384);
+  });
+
+  it('SP-2: slims prompt and tool schemas for a sub-32k local window, never for a large one', async () => {
+    const runFor = async (contextLength: number) => {
+      const ctx = setup([[{ type: 'text', delta: 'Done.' }, { type: 'done', finishReason: 'stop' }]], {
+        bridgeOnline: true,
+        getUserSystemPrompt: () => 'Answer like a pirate.',
+      });
+      ctx.registry.setDynamicForProvider('ollama', [{
+        id: 'ollama-local', name: 'local', vendor: 'Ollama', providerId: 'ollama',
+        providerModelId: 'gemma4-abliterated:26b', supportsTools: true, contextLength,
+      }]);
+      ctx.thread.modelId = 'ollama-local';
+      ctx.thread.messages = [
+        { id: 'u-1', role: 'user', content: 'Hi there.', createdAt: 1 },
+        { id: 'a-1', role: 'assistant', content: 'Hello!', createdAt: 2 },
+        { id: 'u-2', role: 'user', content: 'Read my notes file and summarize it.', createdAt: 3 },
+      ];
+      await ctx.runner.run(ctx.thread.id, new AbortController().signal);
+      const request = ctx.provider.calls[0];
+      return {
+        request,
+        tokens: estimateLlmPayloadTokens({ systemPrompt: request.systemPrompt, messages: request.messages, tools: request.tools, reservedOutputTokens: 0 }),
+        toolTokens: estimateTokens(JSON.stringify(request.tools ?? [])),
+        systemTokens: estimateTokens(request.systemPrompt ?? ''),
+      };
+    };
+
+    const compact = await runFor(16_384);
+    const large = await runFor(COMPACT_LOCAL_CONTEXT_TOKENS);
+
+    // Same turn shape: history, the same tools, the user's own instructions (SP-1).
+    expect(compact.request.messages).toEqual(large.request.messages);
+    expect(compact.request.tools?.map(tool => tool.name)).toEqual(large.request.tools?.map(tool => tool.name));
+    expect(compact.request.systemPrompt).toContain('Answer like a pirate.');
+    expect(compact.request.systemPrompt).toContain('display_text');
+    // Measurably shorter: at least 40% fewer estimated tokens overall.
+    expect(compact.tokens).toBeLessThan(large.tokens * 0.6);
+    expect(compact.toolTokens).toBeLessThan(large.toolTokens * 0.6);
+    expect(compact.systemTokens).toBeLessThan(large.systemTokens);
+    // Still valid: every schema keeps its structure; only prose shrinks.
+    const stripProse = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(stripProse);
+      if (value && typeof value === 'object') {
+        return Object.fromEntries(Object.entries(value).filter(([key]) => key !== 'description').map(([key, inner]) => [key, stripProse(inner)]));
+      }
+      return value;
+    };
+    for (const [index, tool] of (compact.request.tools ?? []).entries()) {
+      const full = large.request.tools![index];
+      expect(stripProse(tool.parameters)).toEqual(stripProse(full.parameters));
+      expect(tool.description.length).toBeGreaterThan(0);
+      expect(tool.description.length).toBeLessThanOrEqual(full.description.length);
+    }
+    // No regression at or above the threshold: tools go out exactly as registered.
+    for (const tool of large.request.tools ?? []) {
+      // spawn_task's description is built per turn from the running-task count.
+      if (tool.name === 'spawn_task') continue;
+      expect(tool).toEqual(withDisplayTextToolDef(toolRegistry.get(tool.name)!).def);
+    }
+    expect(large.request.systemPrompt).toContain('artifact-first workflow');
   });
 
   it('composes the global user prompt without dropping the runtime safety contract', async () => {

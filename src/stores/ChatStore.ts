@@ -51,6 +51,8 @@ import {
   reservedOutputTokensForContextMode,
   systemPromptForContextMode,
   toolsForContextMode,
+  toolsForPrompt,
+  usesCompactPrompt,
   wireMessagesForContextMode,
   type ChatContextMode,
 } from '../services/chat/contextModes';
@@ -644,7 +646,8 @@ export class ChatStore {
     const extras = this.toolStoresProvider?.();
     const bridge = extras?.bridge;
     const mode = effectiveContextMode(thread, model);
-    const tools = toolsForContextMode({
+    const compactPrompt = usesCompactPrompt(model);
+    const tools = toolsForPrompt(toolsForContextMode({
       mode,
       toolsAllowed: model?.supportsTools !== false,
       userText: latestUserText,
@@ -656,7 +659,7 @@ export class ChatStore {
       spawnTaskRunningCount: this.runningAgentTaskCount(),
       spawnTaskMaxConcurrent: MAX_CONCURRENT_AGENT_TASKS,
       toolAllowlist: this.activeSkillProvider?.(thread.id)?.tools,
-    });
+    }), compactPrompt);
     const activeSkill = this.activeSkillProvider?.(thread.id);
     const userSystemPrompt = this.systemPromptForThread(thread.id);
     const systemPrompt = appendArtifactContractPrompt(
@@ -666,8 +669,9 @@ export class ChatStore {
           () => this.profile.composeSystemPrompt({
             runtimeContext: buildRuntimeContext({ bridge }),
             threadContext: mode === 'full' ? thread.threadContext : undefined,
-            recentSummaries: mode === 'full' ? this.recentSummariesProvider?.() ?? [] : [],
+            recentSummaries: mode === 'full' && !compactPrompt ? this.recentSummariesProvider?.() ?? [] : [],
             userSystemPrompt,
+            compact: compactPrompt,
           }),
           userSystemPrompt,
         ),
