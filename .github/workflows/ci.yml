@@ -55,7 +55,10 @@ jobs:
 
   e2e:
     name: Playwright e2e (Linux)
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest is 26.04 (seen 2026-11-06) and Playwright 1.60
+    # cannot install Chromium there ("does not support chromium on
+    # ubuntu26.04-x64"). Move back once Playwright supports it.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
