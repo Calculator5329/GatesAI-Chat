@@ -23,7 +23,10 @@ let host: HTMLDivElement | null = null;
 let chat: ChatStore | null = null;
 let router: RouterStore | null = null;
 
-beforeEach(() => clearAppStorage());
+beforeEach(() => {
+  vi.stubEnv('VITE_GATESAI_WEB', '0');
+  clearAppStorage();
+});
 
 afterEach(() => {
   if (root) act(() => root?.unmount());
@@ -35,6 +38,7 @@ afterEach(() => {
   router?.destroy();
   router = null;
   clearAppStorage();
+  vi.unstubAllEnvs();
 });
 
 describe('LocalModelMissingBanner', () => {
@@ -86,5 +90,44 @@ describe('OllamaOfflineBanner', () => {
     });
 
     expect(probe).toHaveBeenCalledWith('ollama', { fresh: true });
+  });
+});
+
+
+describe('OllamaOfflineBanner runtime wording', () => {
+  it.each(['offline', 'unknown'] as const)('guides an imported local chat to a cloud model in Web Lite (%s)', status => {
+    vi.stubEnv('VITE_GATESAI_WEB', '1');
+    const localRuntime = new LocalRuntimeStore({ probesEnabled: false });
+    router = new RouterStore();
+    const store = { router, localRuntime } as RootStore;
+    runInAction(() => { localRuntime.runtimes.ollama.status = status; });
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    act(() => root!.render(createElement(StoreProvider, { store, children: createElement(OllamaOfflineBanner) })));
+
+    expect(host.textContent).toBe('This chat ran on a local model. Pick a cloud model to continue.');
+    expect(host.querySelector('button')).toBeNull();
+    localRuntime.dispose();
+  });
+
+  it('keeps the desktop error and Models settings action', () => {
+    const localRuntime = new LocalRuntimeStore({ probesEnabled: false });
+    router = new RouterStore();
+    const store = { router, localRuntime } as RootStore;
+    runInAction(() => {
+      localRuntime.runtimes.ollama.status = 'offline';
+      localRuntime.runtimes.ollama.lastError = 'Nothing is answering at http://gpu-box.';
+    });
+    const goMenu = vi.spyOn(router, 'goMenu');
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    act(() => root!.render(createElement(StoreProvider, { store, children: createElement(OllamaOfflineBanner) })));
+
+    expect(host.textContent).toContain('Nothing is answering at http://gpu-box. Start Ollama');
+    act(() => host!.querySelector<HTMLButtonElement>('[data-testid="workspace.composer-banners.open-local-settings"]')!.click());
+    expect(goMenu).toHaveBeenCalledWith('models');
+    localRuntime.dispose();
   });
 });

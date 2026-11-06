@@ -3,7 +3,7 @@
   "predicateVersion": 4,
   "grammar": "area.component.element[.qualifier]",
   "generatedFrom": "src/**/*.{tsx,jsx} and journeys/manifest.json",
-  "sourceDigest": "sha256:e9ec06f06d986b949f7eccc91e265092c14a13dc6c053ef895d73dce60ed0b23",
+  "sourceDigest": "sha256:d3d9d10cd7d7edbab03b5602543732801e03dd1bd575bf797daadc0e5161c3b8",
   "journeyCoverage": {
     "controlPath": 102,
     "urlPath": 2
@@ -1337,7 +1337,7 @@
     {
       "id": "workspace.composer-banners.dismiss-notice",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 166,
+      "line": 167,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1348,7 +1348,7 @@
     {
       "id": "workspace.composer-banners.editorial-banner-action",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 162,
+      "line": 163,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1359,7 +1359,7 @@
     {
       "id": "workspace.composer-banners.open-local-image-settings",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 188,
+      "line": 189,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1370,7 +1370,7 @@
     {
       "id": "workspace.composer-banners.open-local-settings",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 98,
+      "line": 99,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1392,7 +1392,7 @@
     {
       "id": "workspace.composer-banners.open-models-for-missing-local-model",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 130,
+      "line": 131,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1403,7 +1403,7 @@
     {
       "id": "workspace.composer-banners.recheck-ollama",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 88,
+      "line": 89,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -4178,7 +4178,7 @@
     {
       "id": "candidate:a6c70cd9b464c138",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 88,
+      "line": 89,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4190,7 +4190,7 @@
     {
       "id": "candidate:ff3bb6f7708bdf6d",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 98,
+      "line": 99,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4202,7 +4202,7 @@
     {
       "id": "candidate:5baa4ad827e66650",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 130,
+      "line": 131,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4214,7 +4214,7 @@
     {
       "id": "candidate:4fe2b5e5ac94f799",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 162,
+      "line": 163,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4226,7 +4226,7 @@
     {
       "id": "candidate:869a936084046ece",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 166,
+      "line": 167,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4238,7 +4238,7 @@
     {
       "id": "candidate:58dc1025649851be",
       "file": "src/components/editorial/composer/ComposerBanners.tsx",
-      "line": 188,
+      "line": 189,
       "element": "button",
       "classification": "definite",
       "evidence": [

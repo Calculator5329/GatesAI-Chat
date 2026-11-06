@@ -24,6 +24,19 @@ test.describe('web lite (no bridge)', () => {
     await expect(page.locator('.md-body', { hasText: 'Mock reply from the assistant.' })).toBeVisible();
   });
 
+  test('an imported local chat asks for a cloud model without a dead settings action', async ({ page }) => {
+    const thread = makeThread('imported-local', 'Imported local chat', [
+      { id: 'local-user', role: 'user', content: 'A desktop conversation', createdAt: 1 },
+    ]);
+    thread.modelId = 'ollama-gemma4:12b';
+    await seedThreads(page, [thread], thread.id);
+    await page.goto('/#/workspace');
+
+    await expect(page.getByText('This chat ran on a local model. Pick a cloud model to continue.', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('workspace.composer-banners.open-local-settings')).toHaveCount(0);
+    await expect(page.getByTestId('workspace.composer-banners.recheck-ollama')).toHaveCount(0);
+  });
+
   test('redirects retired menu hashes to their new homes', async ({ page }) => {
     await page.goto('/#/menu/gallery');
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();

@@ -63,11 +63,12 @@ const BANNER_ACTION_STYLE: CSSProperties = {
 export const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
   const { localRuntime, ollama, router } = useEditorial();
   const runtime = localRuntime.runtimes.ollama;
-  const canRecheck = runtime.status !== 'unknown' && !isWebLite();
-  const message = runtime.status === 'unknown'
-    ? `Looking for Ollama at ${localRuntime.ollamaBaseUrl}...`
-    : isWebLite()
-      ? 'Local models need the GatesAI desktop app.'
+  const webLite = isWebLite();
+  const canRecheck = runtime.status !== 'unknown';
+  const message = webLite
+    ? 'This chat ran on a local model. Pick a cloud model to continue.'
+    : runtime.status === 'unknown'
+      ? `Looking for Ollama at ${localRuntime.ollamaBaseUrl}...`
       : `${runtime.lastError ?? `Nothing is answering at ${localRuntime.ollamaBaseUrl}.`} Start Ollama, then come back to this window or press Check again.`;
   return (
     <div style={{
@@ -83,7 +84,7 @@ export const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
       fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
     }}>
       <span>{message}</span>
-      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+      {!webLite && <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
         {canRecheck && (
           <button data-testid="workspace.composer-banners.recheck-ollama"
             type="button"
@@ -103,7 +104,7 @@ export const OllamaOfflineBanner = observer(function OllamaOfflineBanner() {
         >
           Open Settings &gt; Models
         </button>
-      </div>
+      </div>}
     </div>
   );
 });
