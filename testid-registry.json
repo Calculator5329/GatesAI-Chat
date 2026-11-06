@@ -3,7 +3,7 @@
   "predicateVersion": 4,
   "grammar": "area.component.element[.qualifier]",
   "generatedFrom": "src/**/*.{tsx,jsx} and journeys/manifest.json",
-  "sourceDigest": "sha256:a326bed7f8162beaa892393e7a40384d999aa5963657de6ce62c99514a0d2d7a",
+  "sourceDigest": "sha256:640e2f34eab3fa8772042afd10e2fe7457397bf173906a1b02568d168b62fce3",
   "journeyCoverage": {
     "controlPath": 102,
     "urlPath": 2
