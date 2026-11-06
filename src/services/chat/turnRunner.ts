@@ -8,7 +8,7 @@ import type { ChatFacade, ProfileFacade } from '../tools/types';
 import { contextWindowFor, estimateLlmPayloadTokens } from '../../core/tokens';
 import { normalizeLlmUsageForModel } from '../../core/usage';
 import { isImageMime } from '../../core/attachments';
-import { runsOnThisMachine } from '../../core/defaultModel';
+import { isOnDeviceModelId } from '../../core/defaultModel';
 import {
   appendToolCalls,
   appendToolResults,
@@ -589,8 +589,7 @@ export class TurnRunner {
 
   private async compactThreadContext(thread: Thread, signal: AbortSignal): Promise<void> {
     // The compaction models are cloud models; a local thread's tool output stays local.
-    const model = this.registry.findById(thread.modelId);
-    const localThread = model != null && runsOnThisMachine(model);
+    const localThread = isOnDeviceModelId(this.registry, thread.modelId);
     await compactLargeToolResultsInThread(thread, {
       replaceContent: (result, content) => {
         this.host.replaceToolResultContent(result, content);

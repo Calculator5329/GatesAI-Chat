@@ -1,7 +1,7 @@
 import { DEFAULT_MODEL_ID } from './models';
 import type { Model } from './types';
 import { isLocalChatModel } from './localModelRules';
-import { isCodingTunedLocalModel, isOllamaCloudModel, localModelParameterBillions } from './localModelMeta';
+import { isCodingTunedLocalModel, isOllamaCloudModel, localModelParameterBillions, OLLAMA_MODEL_ID_PREFIX } from './localModelMeta';
 
 export interface DefaultModelRegistry {
   readonly all: readonly Model[];
@@ -79,12 +79,7 @@ function rankLocalModels(
     .map(item => item.model);
 }
 
-/**
- * True for a chat model the user's own Ollama runs (not an Ollama cloud model). A chat on
- * one keeps its background helpers on it: nothing goes to a cloud model, and no second
- * local model loads next to it and evicts it from the GPU.
- */
-export function runsOnThisMachine(model: Model): boolean {
+function runsOnThisMachine(model: Model): boolean {
   return isLocalChatModel(model) && !isOllamaCloudModel(model);
 }
 
@@ -126,4 +121,21 @@ function smallSizeScore(model: Model): number {
   if (size <= 8) return 2;
   if (size <= 14) return 1;
   return 0;
+}
+
+/**
+ * True when a thread on this model keeps its content on the user's own Ollama: any Ollama
+ * tag that is not an Ollama cloud model, vision-only tags included. An `ollama-` id with no
+ * catalog entry (the tag was deleted or the host changed) counts too, so its background
+ * helpers are skipped rather than handed to a cloud model.
+ */
+export function isOnDeviceModelId(registry: DefaultModelRegistry, modelId: string): boolean {
+  const model = registry.findById(modelId);
+  if (model) return model.providerId === 'ollama' && !isOllamaCloudModel(model);
+  return modelId.startsWith(OLLAMA_MODEL_ID_PREFIX);
+}
+
+/** True for a local chat model the user's Ollama runs; the pick for on-device background work. */
+export function isOnDeviceChatModel(model: Model | undefined): model is Model {
+  return model != null && runsOnThisMachine(model);
 }

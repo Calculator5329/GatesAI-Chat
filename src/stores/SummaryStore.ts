@@ -3,12 +3,12 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { LlmRequest, ProviderId } from '../core/llm';
-import type { Thread } from '../core/types';
+import type { Model, Thread } from '../core/types';
 import type { ChatStore } from './ChatStore';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import { logger } from '../services/diagnostics/logger';
-import { resolveBackgroundModelId, runsOnThisMachine } from '../core/defaultModel';
+import { isOnDeviceChatModel, isOnDeviceModelId, resolveBackgroundModelId } from '../core/defaultModel';
 import { messageText, messageToolResults } from '../core/messageParts';
 
 /**
@@ -223,20 +223,29 @@ export class SummaryStore {
   }
 
   /**
-   * A thread on a local model is summarized by that model, so its content never reaches a
-   * cloud model and no second local model is loaded. Otherwise a cheap cloud model or the
-   * small local one. Returns no provider to skip quietly.
+   * A thread on a local model is summarized on the device: by the active chat's local
+   * model when there is one (it is the model already loaded, so nothing is evicted), else
+   * by the thread's own model, else (tag deleted) not at all. The summarizer call never
+   * reaches a cloud model; the finished summary is still shared into other chats' prompts
+   * under "Recent conversations", cloud chats included (open decision in docs/roadmap.md).
+   * Other threads use a cheap cloud model or the small local one. No provider = skip.
    */
   private pickSummarizer(thread: Thread): { provider: ReturnType<ProviderStore['router']['get']> | null; providerModelId: string } {
-    const own = this.registry.findById(thread.modelId);
-    const resolvedId = own && runsOnThisMachine(own) ? own.id : resolveBackgroundModelId({
+    if (isOnDeviceModelId(this.registry, thread.modelId)) {
+      const active = this.registry.findById(this.chat.activeThread?.modelId);
+      const own = this.registry.findById(thread.modelId);
+      return this.summarizerFor(isOnDeviceChatModel(active) ? active : own);
+    }
+    const resolvedId = resolveBackgroundModelId({
       hasOpenRouterKey: !!this.providers.getConfig('openrouter').apiKey,
       ollamaOnline: this.providers.getConfig('ollama').available === true,
       localModels: this.registry.all.filter(model => model.providerId === 'ollama'),
       registry: this.registry,
     });
-    if (!resolvedId) return { provider: null, providerModelId: '' };
-    const model = this.registry.findById(resolvedId);
+    return this.summarizerFor(resolvedId ? this.registry.findById(resolvedId) : undefined);
+  }
+
+  private summarizerFor(model: Model | undefined): { provider: ReturnType<ProviderStore['router']['get']> | null; providerModelId: string } {
     if (!model) return { provider: null, providerModelId: '' };
     const provider = this.providers.router.get(model.providerId as ProviderId);
     return provider.ready()

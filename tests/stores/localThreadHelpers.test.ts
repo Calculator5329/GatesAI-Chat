@@ -17,6 +17,7 @@ import type { Model } from '../../src/core/types';
 
 const CHAT_MODEL = 'ollama-gemma4:26b';
 const SMALL_MODEL = 'ollama-milo-e4b:4b';
+const VISION_MODEL = 'ollama-moondream:1.8b';
 
 function ollamaModel(id: string, providerModelId: string, parameterBillions: number): Model {
   return {
@@ -48,12 +49,36 @@ class Recorder implements LlmProvider {
   }
 }
 
+function fillThread(chat: ChatStore, threadId: string): void {
+  const thread = chat.threads.find(t => t.id === threadId)!;
+  runInAction(() => {
+    thread.messages.push(
+      { id: `${threadId}-1`, role: 'user', content: 'private question one', createdAt: 1 },
+      { id: `${threadId}-2`, role: 'assistant', content: 'answer one', createdAt: 2 },
+      { id: `${threadId}-3`, role: 'user', content: 'private question two', createdAt: 3 },
+      { id: `${threadId}-4`, role: 'assistant', content: 'answer two', createdAt: 4 },
+    );
+  });
+}
+
+async function summarizeOnce(chat: ChatStore, providers: ProviderStore, registry: ModelRegistry): Promise<void> {
+  const summary = new SummaryStore(chat, providers, registry);
+  (summary as unknown as { lastActivityAt: number }).lastActivityAt = 0;
+  await summary.tick();
+  summary.stop();
+}
+
+function summaryCalls(recorder: Recorder) {
+  return recorder.calls.filter(c => (c.request.systemPrompt ?? '').startsWith('Summarize'));
+}
+
 function setup(withOpenRouterKey: boolean) {
   clearAppStorage();
   const registry = new ModelRegistry();
   registry.setDynamicForProvider('ollama', [
     ollamaModel(CHAT_MODEL, 'gemma4:26b', 25.2),
     ollamaModel(SMALL_MODEL, 'milo-e4b:4b', 4),
+    ollamaModel(VISION_MODEL, 'moondream:1.8b', 1.8),
   ]);
   const providers = new ProviderStore(registry, () => ({
     ollama: { baseUrl: 'http://127.0.0.1:11434', available: true, toolsEnabled: true },
@@ -171,6 +196,45 @@ describe('background helpers for a chat on a local model', () => {
     const compacted = chat.activeThread!.messages.find(m => m.id === 'a-local-compact');
     if (compacted?.role !== 'assistant') throw new Error('expected assistant');
     expect(compacted.toolResults?.[0].content.length).toBeLessThan(1_000_000);
+    chat.dispose();
+  });
+
+  it('treats a vision-only local tag as local too', async () => {
+    const { chat, recorder } = setup(true);
+    const threadId = chat.createThread();
+    chat.setThreadModel(threadId, VISION_MODEL);
+    chat.sendMessage('what is in this picture');
+    await flush(60);
+
+    expect(recorder.calls.map(c => c.routedAs).filter(id => id.startsWith('or-'))).toEqual([]);
+    chat.dispose();
+  });
+
+  it('summarizes an idle local chat on the active chat\'s local model, so no second model loads', async () => {
+    const { chat, providers, registry, recorder } = setup(true);
+    const idleId = chat.createThread();
+    chat.setThreadModel(idleId, CHAT_MODEL);
+    fillThread(chat, idleId);
+    const activeId = chat.createThread();
+    chat.setThreadModel(activeId, SMALL_MODEL);
+
+    await summarizeOnce(chat, providers, registry);
+
+    expect(summaryCalls(recorder).map(c => c.request.modelId)).toEqual(['milo-e4b:4b']);
+    chat.dispose();
+  });
+
+  it('never summarizes a thread whose local model was deleted, rather than sending it to the cloud', async () => {
+    const { chat, providers, registry, recorder } = setup(true);
+    const goneId = chat.createThread();
+    chat.setThreadModel(goneId, 'ollama-gone-model:7b');
+    fillThread(chat, goneId);
+    chat.createThread();
+
+    await summarizeOnce(chat, providers, registry);
+
+    expect(summaryCalls(recorder)).toEqual([]);
+    expect(chat.threads.find(t => t.id === goneId)?.summary).toBeUndefined();
     chat.dispose();
   });
 });
