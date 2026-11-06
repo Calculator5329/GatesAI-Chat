@@ -3,7 +3,8 @@
 // Invariant: mutations happen through store actions so UI derivations stay consistent.
 import { autorun, comparer, makeAutoObservable, reaction, runInAction, toJS } from 'mobx';
 import type { Model } from '../core/types';
-import { extractOllamaTagNames, mapOllamaTagsToModels } from '../services/llm/ollamaCatalog';
+import { extractOllamaTagDigests, extractOllamaTagNames, mapOllamaTagsToModels } from '../services/llm/ollamaCatalog';
+import { resolveModelFormatProfile } from '../services/llm/modelFormatProfiles';
 import {
   loadOllamaConfig,
   saveOllamaConfig,
@@ -44,6 +45,13 @@ export class OllamaStore {
   private activePull: { model: string; controller: AbortController } | null = null;
   private configPersistenceDisposer: (() => void) | null = null;
   private secretPersistenceDisposer: (() => void) | null = null;
+  /**
+   * Tag → Modelfile `num_ctx` from /api/show, with the digest it was read for.
+   * Digest `null` marks a window restored from storage and not yet re-checked.
+   */
+  private readonly loadedWindows = new Map<string, { digest: string | null; numCtx: number | undefined }>();
+  private readonly windowLookups = new Set<string>();
+  private tagDigests = new Map<string, string>();
 
   constructor(registry: ModelRegistry, localRuntime: LocalRuntimeStore, options: OllamaStoreOptions = {}) {
     this.registry = registry;
@@ -57,6 +65,9 @@ export class OllamaStore {
     this.tagNames = persisted.tagNames;
     this.lastRefreshAt = persisted.lastRefreshAt;
     if (persisted.catalog.length) registry.setDynamicForProvider('ollama', persisted.catalog);
+    for (const model of persisted.catalog) {
+      this.loadedWindows.set(model.providerModelId, { digest: null, numCtx: model.contextLength });
+    }
 
     makeAutoObservable<this,
       'registry'
@@ -65,6 +76,9 @@ export class OllamaStore {
       | 'activePull'
       | 'configPersistenceDisposer'
       | 'secretPersistenceDisposer'
+      | 'loadedWindows'
+      | 'windowLookups'
+      | 'tagDigests'
     >(this, {
       registry: false,
       localRuntime: false,
@@ -72,6 +86,9 @@ export class OllamaStore {
       activePull: false,
       configPersistenceDisposer: false,
       secretPersistenceDisposer: false,
+      loadedWindows: false,
+      windowLookups: false,
+      tagDigests: false,
     });
 
     localRuntime.attachOllamaCatalog({
@@ -247,14 +264,61 @@ export class OllamaStore {
    * Called by LocalRuntimeStore with the body of a successful GET /api/tags.
    * An answer that maps to the same tags and models changes nothing, so the
    * periodic probe does not re-render registry observers or rewrite storage.
+   * Each model's loaded window (`contextLength`) is then looked up once per
+   * tag digest; see `loadedWindowFor`.
    */
   applyTags(raw: unknown): void {
+    this.tagDigests = extractOllamaTagDigests(raw);
     const tagNames = extractOllamaTagNames(raw);
-    const catalog = mapOllamaTagsToModels(raw);
-    if (comparer.structural(tagNames, this.tagNames) && comparer.structural(catalog, this.catalog)) return;
-    this.tagNames = tagNames;
-    this.catalog = catalog;
-    this.lastRefreshAt = Date.now();
+    const catalog = mapOllamaTagsToModels(raw).map(model => this.withLoadedWindow(model));
+    if (!comparer.structural(tagNames, this.tagNames) || !comparer.structural(catalog, this.catalog)) {
+      this.tagNames = tagNames;
+      this.catalog = catalog;
+      this.lastRefreshAt = Date.now();
+    }
+    this.lookUpLoadedWindows();
+  }
+
+  /**
+   * The window a tag loads with: the `num_ctx` GatesAI sends for its format
+   * profile, else its Modelfile `num_ctx` read for the current digest.
+   * Undefined leaves budgeting on Ollama's own default (core/tokens).
+   */
+  private loadedWindowFor(tag: string): number | undefined {
+    const sent = resolveModelFormatProfile(tag).ollama?.numCtx;
+    if (sent) return sent;
+    const known = this.loadedWindows.get(tag);
+    if (!known) return undefined;
+    return known.digest === null || known.digest === this.tagDigests.get(tag) ? known.numCtx : undefined;
+  }
+
+  private withLoadedWindow(model: Model): Model {
+    const window = this.loadedWindowFor(model.providerModelId);
+    if (window === model.contextLength) return model;
+    const next: Model = { ...model };
+    if (window) next.contextLength = window;
+    else delete next.contextLength;
+    return next;
+  }
+
+  /** POST /api/show for each tag whose window was not read for its current digest. Never loads a model. */
+  private lookUpLoadedWindows(): void {
+    for (const [tag, digest] of this.tagDigests) {
+      if (resolveModelFormatProfile(tag).ollama?.numCtx) continue;
+      if (this.loadedWindows.get(tag)?.digest === digest) continue;
+      const key = `${tag}@${digest}`;
+      if (this.windowLookups.has(key)) continue;
+      this.windowLookups.add(key);
+      void this.localRuntime.fetchOllamaNumCtx(tag).then(numCtx => {
+        this.windowLookups.delete(key);
+        if (numCtx === null || this.tagDigests.get(tag) !== digest) return;
+        this.loadedWindows.set(tag, { digest, numCtx });
+        runInAction(() => {
+          const catalog = this.catalog.map(model => this.withLoadedWindow(model));
+          if (!comparer.structural(catalog, this.catalog)) this.catalog = catalog;
+        });
+      });
+    }
   }
 
   clearCatalog(): void {

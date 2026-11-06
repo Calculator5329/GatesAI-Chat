@@ -263,6 +263,7 @@ export class TurnRunner {
         messages: request.messages,
         tools: request.tools,
         reservedOutputTokens: request.maxTokens,
+        contextWindow,
       });
       if (requestedTokens > contextWindow * COMPACTION_TRIGGER_FRACTION) {
         this.host.updateAssistantMessage(threadId, assistantMessage.id, message => {
@@ -287,6 +288,7 @@ export class TurnRunner {
           messages: request.messages,
           tools: request.tools,
           reservedOutputTokens: request.maxTokens,
+          contextWindow,
         });
       }
       if (requestedTokens > contextWindow) {

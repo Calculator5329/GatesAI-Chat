@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapOllamaTagsToModels } from '../../../src/services/llm/ollamaCatalog';
+import { mapOllamaTagsToModels, parseOllamaShowNumCtx } from '../../../src/services/llm/ollamaCatalog';
 import { contextWindowFor } from '../../../src/core/tokens';
 
 const TAGS_RESPONSE = {
@@ -110,7 +110,7 @@ describe('mapOllamaTagsToModels', () => {
 
     expect(gemma).not.toHaveProperty('contextLength');
     expect(gemma?.maxContextLength).toBe(262_144);
-    expect(contextWindowFor(gemma)).toBe(8_000);
+    expect(contextWindowFor(gemma)).toBe(4_096);
   });
 
   it('parses the reported parameter size into billions', () => {
@@ -160,5 +160,21 @@ describe('mapOllamaTagsToModels', () => {
     expect(mapOllamaTagsToModels(null)).toEqual([]);
     expect(mapOllamaTagsToModels({})).toEqual([]);
     expect(mapOllamaTagsToModels({ models: 'not-an-array' })).toEqual([]);
+  });
+});
+
+describe('parseOllamaShowNumCtx', () => {
+  it('reads num_ctx from the /api/show parameters block', () => {
+    // Verbatim shape of gemma4-abliterated:26b on Ollama 0.40.4.
+    const parameters = 'num_ctx                        16384\nstop                           "<bos>"\ntemperature                    1\ntop_k                          64';
+    expect(parseOllamaShowNumCtx({ parameters })).toBe(16_384);
+    expect(parseOllamaShowNumCtx({ parameters: 'min_p   0\nnum_ctx   16384\ntop_p  0.95' })).toBe(16_384);
+  });
+
+  it('is undefined when the Modelfile sets no num_ctx', () => {
+    expect(parseOllamaShowNumCtx({ parameters: 'temperature   1\ntop_k   64' })).toBeUndefined();
+    expect(parseOllamaShowNumCtx({})).toBeUndefined();
+    expect(parseOllamaShowNumCtx(null)).toBeUndefined();
+    expect(parseOllamaShowNumCtx({ parameters: 'num_ctx 0' })).toBeUndefined();
   });
 });

@@ -2022,6 +2022,8 @@ describe('ChatStore', () => {
       vendor: 'Ollama',
       providerId: 'ollama',
       providerModelId: 'llama3.1',
+      // A Modelfile num_ctx; without one Ollama loads at 4096 and the turn is forced to micro.
+      contextLength: 16_384,
     }]);
     chat.setThreadModel(chat.activeThreadId!, 'ollama-llama3.1');
     chat.setThreadContextMode(chat.activeThreadId!, 'system-tools');

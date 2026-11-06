@@ -8,6 +8,7 @@ import {
   SMALL_LOCAL_CONTEXT_TOKENS,
 } from '../../src/core/localModelMeta';
 import { badgesForModel } from '../../src/core/modelPicker';
+import { contextWindowFor, OLLAMA_DEFAULT_CONTEXT_TOKENS } from '../../src/core/tokens';
 import type { OllamaCatalogModel } from '../../src/core/localModelMeta';
 
 function model(providerModelId: string, patch: Partial<OllamaCatalogModel> = {}): OllamaCatalogModel {
@@ -48,8 +49,19 @@ describe('localModelMetaFor', () => {
     const gemma = model('gemma4:12b', { maxContextLength: 262_144 });
 
     expect(localModelMaxContextLength(gemma)).toBe(262_144);
-    expect(localModelContextLength(gemma)).toBe(8_192);
+    // No Modelfile num_ctx and none sent: Ollama loads it at its own 4096 default
+    // (measured on Ollama 0.40.4, 2026-11-05), not the family's trained size.
+    expect(localModelContextLength(gemma)).toBe(OLLAMA_DEFAULT_CONTEXT_TOKENS);
+    expect(contextWindowFor(gemma)).toBe(OLLAMA_DEFAULT_CONTEXT_TOKENS);
     expect(badgesForModel(gemma)).toContainEqual(expect.objectContaining({ label: 'up to 262K' }));
+  });
+
+  it('decides the slim profile from the loaded window, never the family table', () => {
+    // qwen's family row says 128K, but an unconfigured qwen still loads at 4096.
+    expect(localModelContextProfile(model('qwen3.5:9b', { maxContextLength: 262_144 }))).toBe('slim');
+    // A Modelfile `num_ctx 16384` (read from /api/show) makes it a full-context model.
+    expect(localModelContextProfile(model('gemma4-abliterated:26b', { contextLength: 16_384 }))).toBe('full');
+    expect(contextWindowFor(model('gemma4-abliterated:26b', { contextLength: 16_384 }))).toBe(16_384);
   });
 
   it('prefers the reported parameter size over the tag name', () => {

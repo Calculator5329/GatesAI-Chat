@@ -1,6 +1,7 @@
 import type { Model } from './types';
 import { modelSupportsVision } from './modelCapabilities';
 import { ollamaModelSupportsTools } from './localModelRules';
+import { contextWindowFor } from './tokens';
 
 /** Registry ids of Ollama models are `ollama-<tag>` (services/llm/ollamaCatalog). */
 export const OLLAMA_MODEL_ID_PREFIX = 'ollama-';
@@ -16,8 +17,10 @@ export type LocalModelChip = 'vision' | 'reasoning' | 'fast' | 'tools';
  * An Ollama catalog entry. Each extra field is set only when /api/tags
  * reported it. `supportsThinking` decides the reasoning chip.
  * `maxContextLength` is the trained maximum (`details.context_length`), shown
- * as a ceiling and never budgeted against: Ollama runs a smaller window unless
- * configured, so budgeting keeps the provider default from core/tokens.
+ * as a ceiling and never budgeted against. `contextLength` is the window the
+ * model actually loads with: the Modelfile `num_ctx` from /api/show, or the
+ * one GatesAI sends (services/llm/modelFormatProfiles); unset means Ollama's
+ * own default (core/tokens OLLAMA_DEFAULT_CONTEXT_TOKENS).
  * `parameterBillions` comes from `details.parameter_size`. `remoteHost` marks
  * an Ollama cloud model, listed by the local server but run elsewhere.
  */
@@ -86,8 +89,14 @@ export function localModelMetaFor(model: OllamaCatalogModel): LocalModelMeta | n
   };
 }
 
+/**
+ * The window an Ollama model runs with: what /api/show or the request sets,
+ * else Ollama's default. Never the family table, which holds trained sizes
+ * that Ollama does not load unless told to.
+ */
 export function localModelContextLength(model: Model): number | undefined {
-  return model.contextLength ?? model.contextWindow ?? localModelMetaFor(model)?.contextLength;
+  if (model.providerId !== 'ollama') return model.contextLength ?? model.contextWindow;
+  return contextWindowFor(model);
 }
 
 /** Most context the model supports, for display only: what Ollama reported, else the family table. */

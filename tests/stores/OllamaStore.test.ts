@@ -82,6 +82,44 @@ describe('OllamaStore', () => {
     stop();
   });
 
+  it('reads each model\'s loaded window from /api/show into contextLength, once per digest', async () => {
+    const tags = {
+      models: [
+        { name: 'gemma4-abliterated:26b', digest: 'c18f9229521d', details: { context_length: 262_144 } },
+        { name: 'gemma4:12b', digest: '4eb23ef187e2', details: { context_length: 262_144 } },
+        { name: 'qwen2.5-coder:14b', digest: '9ec8897f747e', details: { context_length: 32_768 } },
+      ],
+    };
+    const numCtxByTag: Record<string, number | undefined> = { 'gemma4-abliterated:26b': 16_384, 'qwen2.5-coder:14b': 8_192 };
+    const fetchOllamaNumCtx = vi.fn(async (_baseUrl: string, tag: string) => numCtxByTag[tag]);
+    const local = new LocalRuntimeStore({
+      service: { fetchOllamaTags: async () => tags, fetchOllamaNumCtx },
+      findComfy: async () => ({ baseUrl: 'http://127.0.0.1:8188', online: false, checkpoints: [], diffusionModels: [], preset: null }),
+      subscribeToWake: () => () => {},
+    });
+    const store = new OllamaStore(new ModelRegistry(), local);
+    const windowOf = (tag: string) => store.catalog.find(m => m.providerModelId === tag)?.contextLength;
+
+    await store.refresh();
+    await vi.waitFor(() => expect(windowOf('gemma4-abliterated:26b')).toBe(16_384));
+    // No num_ctx in the Modelfile: left unset, so budgeting falls back to Ollama's own default.
+    expect(windowOf('gemma4:12b')).toBeUndefined();
+    // GatesAI sends num_ctx 32768 for the qwen2.5 profile, so that is the window it runs with.
+    expect(windowOf('qwen2.5-coder:14b')).toBe(32_768);
+    expect(fetchOllamaNumCtx.mock.calls.map(call => call[1])).toEqual(['gemma4-abliterated:26b', 'gemma4:12b']);
+
+    await store.refresh();
+    expect(windowOf('gemma4-abliterated:26b')).toBe(16_384);
+    expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(2);
+
+    // A re-created tag (new digest) is looked up again.
+    numCtxByTag['gemma4-abliterated:26b'] = 8_192;
+    tags.models[0].digest = 'ffff00000000';
+    await store.refresh();
+    await vi.waitFor(() => expect(windowOf('gemma4-abliterated:26b')).toBe(8_192));
+    expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(3);
+  });
+
   it('refresh() reports an unreachable server in lastError', async () => {
     const local = makeLocalRuntime(async () => { throw new Error('ECONNREFUSED'); });
     const store = new OllamaStore(new ModelRegistry(), local);

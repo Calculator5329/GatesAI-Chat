@@ -13,6 +13,8 @@ import { clearAppStorage } from '../../helpers/storage';
 import { appendMessageText, messageText, messageToolCalls, messageToolResults } from '../../../src/core/messageParts';
 import type { RagContextBundle } from '../../../src/services/rag/retrieval';
 import { SMALL_LOCAL_CONTEXT_TOKENS } from '../../../src/core/localModelMeta';
+import type { ToolStoreContext } from '../../../src/services/chat/toolBatchExecutor';
+import { estimateLlmPayloadTokens } from '../../../src/core/tokens';
 
 class ScriptedProvider implements LlmProvider {
   readonly id: ProviderId = 'openrouter';
@@ -124,6 +126,8 @@ function makeThread(): Thread {
 function setup(script: LlmChunk[][], options: {
   getUserSystemPrompt?: (threadId: string) => string;
   getSemanticContext?: (userText: string, threadId: string) => RagContextBundle | string;
+  /** A bridge that reports online, so the full desktop tool set is offered. */
+  bridgeOnline?: boolean;
 } = {}) {
   const registry = new ModelRegistry();
   const profile = new UserProfileStore();
@@ -145,7 +149,9 @@ function setup(script: LlmChunk[][], options: {
       llmComplete: async () => '',
     },
     createId: prefix => `${prefix}-${++id}`,
-    getToolStores: () => undefined,
+    getToolStores: () => (options.bridgeOnline
+      ? { bridge: { isOnline: true, platform: 'linux', version: 'test' } } as unknown as ToolStoreContext
+      : undefined),
     getRecentSummaries: () => [],
     getUserSystemPrompt: options.getUserSystemPrompt,
     getSemanticContext: options.getSemanticContext,
@@ -233,6 +239,43 @@ describe('TurnRunner', () => {
 
     expect(bare.provider.calls[0].messages.some(message => message.content.includes('A bounded excerpt.'))).toBe(false);
     expect(retrievalCalls).toBe(1);
+  });
+
+  it('sends a full-context turn with the bridge tool set on a 16k local window instead of refusing it', async () => {
+    // QW-1: gemma4-abliterated:26b loads at num_ctx 16384 (Modelfile). With the
+    // bridge online the full prompt + tools is ~7-8k tokens, which the old 8000
+    // budget (plus a 4096 reply reserve) refused before anything was sent.
+    const { runner, provider, registry, thread, host } = setup([[
+      { type: 'text', delta: 'Done.' },
+      { type: 'done', finishReason: 'stop' },
+    ]], { bridgeOnline: true });
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-gemma4-abliterated:26b',
+      name: 'gemma4-abliterated:26b',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'gemma4-abliterated:26b',
+      supportsTools: true,
+      contextLength: 16_384,
+    }]);
+    thread.modelId = 'ollama-gemma4-abliterated:26b';
+    thread.messages = [
+      { id: 'u-1', role: 'user', content: 'Hi there.', createdAt: 1 },
+      { id: 'a-1', role: 'assistant', content: 'Hello!', createdAt: 2 },
+      { id: 'u-2', role: 'user', content: 'Read my notes file and summarize it.', createdAt: 3 },
+    ];
+
+    await runner.run(thread.id, new AbortController().signal);
+
+    expect(host.errors[thread.id]).toBeUndefined();
+    expect(provider.calls).toHaveLength(1);
+    const request = provider.calls[0];
+    // Full mode: history and bridge tools both go out.
+    expect(request.messages.map(message => message.content)).toEqual(['Hi there.', 'Hello!', 'Read my notes file and summarize it.']);
+    expect(request.tools?.map(tool => tool.name)).toContain('fs');
+    const sent = estimateLlmPayloadTokens({ systemPrompt: request.systemPrompt, messages: request.messages, tools: request.tools, reservedOutputTokens: 0 });
+    expect(sent).toBeGreaterThan(4_000);
+    expect(sent + 4_096).toBeLessThan(16_384);
   });
 
   it('composes the global user prompt without dropping the runtime safety contract', async () => {

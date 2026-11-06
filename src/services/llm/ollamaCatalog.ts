@@ -31,8 +31,9 @@ export function extractOllamaTagNames(raw: unknown): string[] {
  * are dropped and tools, vision and thinking come from that list. Older
  * entries fall back to the name rules in core/localModelRules and
  * core/modelCapabilities. `details.context_length` is the trained maximum,
- * not the window Ollama runs with, so it lands in `maxContextLength` and
- * `contextLength` stays unset: budgeting keeps the provider default.
+ * not the window Ollama runs with, so it lands in `maxContextLength`.
+ * `contextLength` (the loaded window) is filled in later by OllamaStore from
+ * /api/show; see `parseOllamaShowNumCtx`.
  */
 export function mapOllamaTagsToModels(raw: unknown): OllamaCatalogModel[] {
   if (!isOllamaTagsPayload(raw)) return [];
@@ -63,6 +64,30 @@ export function mapOllamaTagsToModels(raw: unknown): OllamaCatalogModel[] {
     });
   }
   return out;
+}
+
+/** Tag → digest from /api/tags; a changed digest means the tag was re-created and its Modelfile may differ. */
+export function extractOllamaTagDigests(raw: unknown): Map<string, string> {
+  const out = new Map<string, string>();
+  if (!isOllamaTagsPayload(raw)) return out;
+  for (const tag of raw.models) {
+    if (isRecord(tag) && typeof tag.name === 'string' && tag.name) {
+      out.set(tag.name, typeof tag.digest === 'string' ? tag.digest : '');
+    }
+  }
+  return out;
+}
+
+/**
+ * Reads `num_ctx` from a POST /api/show body. `parameters` is Ollama's
+ * Modelfile PARAMETER block as text ("num_ctx    16384\nstop ..."), so this
+ * is the window the model loads with. Undefined when the Modelfile sets none.
+ */
+export function parseOllamaShowNumCtx(raw: unknown): number | undefined {
+  if (!isRecord(raw) || typeof raw.parameters !== 'string') return undefined;
+  const match = /^\s*num_ctx\s+(\d+)\s*$/m.exec(raw.parameters);
+  const value = match ? Number(match[1]) : NaN;
+  return Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
 function reportedCapabilities(value: unknown): string[] | null {

@@ -23,10 +23,17 @@ export const DEFAULT_RESERVED_REPLY_TOKENS = 4096;
 const TOOL_TOKEN_CACHE_LIMIT = 64;
 const toolTokenCache = new Map<string, number>();
 
+/**
+ * The window Ollama loads a model with when neither its Modelfile nor the
+ * request sets `num_ctx`. Measured on Ollama 0.40.4 (/api/ps context_length,
+ * 2026-11-05). A larger budget than this lets Ollama silently cut the prompt.
+ */
+export const OLLAMA_DEFAULT_CONTEXT_TOKENS = 4_096;
+
 /** Default context windows by provider, used when `model.contextLength` is unset. */
 const DEFAULT_WINDOW_BY_PROVIDER: Record<ProviderId, number> = {
   openrouter: 128_000,
-  ollama: 8_000,
+  ollama: OLLAMA_DEFAULT_CONTEXT_TOKENS,
   // Synthetic provider — never sent to a tokenizer. Pick a small window so
   // any debug accounting that lands here doesn't allocate megabytes.
   'local-image': 4_000,
@@ -72,18 +79,30 @@ export function clearTokenEstimateCaches(): void {
   toolTokenCache.clear();
 }
 
+/**
+ * Reply room budgeted when a request sets no `maxTokens`: the default 4096,
+ * capped at a quarter of the window so a small local window (4096) is not
+ * spent entirely on the reply before the prompt is counted.
+ */
+export function replyReserveTokensFor(contextWindow?: number): number {
+  if (!contextWindow || contextWindow <= 0) return DEFAULT_RESERVED_REPLY_TOKENS;
+  return Math.min(DEFAULT_RESERVED_REPLY_TOKENS, Math.floor(contextWindow / 4));
+}
+
 export function estimateLlmPayloadTokens(args: {
   systemPrompt?: string;
   messages: LlmMessage[];
   tools?: ToolDef[];
   reservedOutputTokens?: number;
+  /** Caps the default reply reserve; see `replyReserveTokensFor`. */
+  contextWindow?: number;
 }): number {
   const system = args.systemPrompt
     ? estimateTokens(args.systemPrompt) + MESSAGE_OVERHEAD_TOKENS
     : 0;
   return system
     + estimateWireTokens(args.messages, args.tools ?? [])
-    + (args.reservedOutputTokens ?? DEFAULT_RESERVED_REPLY_TOKENS);
+    + (args.reservedOutputTokens ?? replyReserveTokensFor(args.contextWindow));
 }
 
 export function contextWindowFor(model: Model | undefined | null): number {

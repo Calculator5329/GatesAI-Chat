@@ -40,8 +40,12 @@ export interface OllamaCatalogLink {
   catalog(): readonly Model[];
 }
 
+type LocalRuntimeProbeService = Pick<LocalRuntimeService, 'fetchOllamaTags'>
+  & Partial<Pick<LocalRuntimeService, 'fetchOllamaNumCtx'>>;
+
 export interface LocalRuntimeStoreDeps {
-  service?: Pick<LocalRuntimeService, 'fetchOllamaTags'>;
+  /** Without `fetchOllamaNumCtx` (most tests), loaded windows are never looked up. */
+  service?: LocalRuntimeProbeService;
   findComfy?: (preferredUrl: string | undefined) => Promise<ComfyDiscovery>;
   /** Calls onWake when the window regains focus or becomes visible; returns an unsubscribe. */
   subscribeToWake?: (onWake: () => void) => () => void;
@@ -66,7 +70,7 @@ export class LocalRuntimeStore {
   preferLocalModels: boolean;
 
   private ollamaLink: OllamaCatalogLink | null = null;
-  private readonly service: Pick<LocalRuntimeService, 'fetchOllamaTags'>;
+  private readonly service: LocalRuntimeProbeService;
   private readonly findComfy: (preferredUrl: string | undefined) => Promise<ComfyDiscovery>;
   private readonly subscribeToWake: (onWake: () => void) => () => void;
   private readonly probesEnabled: boolean;
@@ -150,6 +154,22 @@ export class LocalRuntimeStore {
 
   get visionModels(): Model[] {
     return (this.ollamaLink?.catalog() ?? []).filter(modelSupportsVision);
+  }
+
+  /**
+   * The Modelfile `num_ctx` for one tag on the configured Ollama (POST
+   * /api/show). Undefined when it sets none; null when the lookup failed or
+   * this build has none, so the caller can try again later. Never loads the
+   * model.
+   */
+  async fetchOllamaNumCtx(tag: string): Promise<number | undefined | null> {
+    if (!this.service.fetchOllamaNumCtx) return null;
+    try {
+      return await this.service.fetchOllamaNumCtx(this.ollamaBaseUrl, tag, this.ollamaLink?.apiKey());
+    } catch (err) {
+      logger.warn('local-runtime', 'Ollama /api/show lookup failed', { tag, err });
+      return null;
+    }
   }
 
   /** OllamaStore registers here so each successful probe refreshes its model list. */

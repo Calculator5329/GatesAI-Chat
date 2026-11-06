@@ -664,6 +664,7 @@ export class ChatStore {
       messages: wireMessagesForContextMode(thread, mode),
       tools,
       reservedOutputTokens: reservedOutputTokensForContextMode(mode),
+      contextWindow: window,
     });
     return { window, isLocalImage: false, baseUsed };
   }
