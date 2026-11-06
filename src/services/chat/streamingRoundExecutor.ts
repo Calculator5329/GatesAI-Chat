@@ -46,6 +46,8 @@ export interface StreamingRoundActivityUpdate {
 
 export interface StreamingRoundCallbacks {
   onChunk?: (delta: string) => void;
+  /** Reasoning text streamed apart from the answer; display-only, never part of `text`. */
+  onReasoning?: (delta: string) => void;
   onActivityPhase?: (update: StreamingRoundActivityUpdate) => void;
   onUsage?: (usage: LlmUsage) => void;
   onStructuredOutput?: (value: unknown) => void;
@@ -244,6 +246,8 @@ export class StreamingRoundExecutor {
         if (chunk.type === 'text') {
           state.text += chunk.delta;
           options.callbacks?.onChunk?.(chunk.delta);
+        } else if (chunk.type === 'reasoning') {
+          options.callbacks?.onReasoning?.(chunk.delta);
         } else if (chunk.type === 'tool_call') {
           state.toolCalls.push(chunk.call);
         } else if (chunk.type === 'usage') {

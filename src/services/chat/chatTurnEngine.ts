@@ -207,6 +207,16 @@ export class ChatTurnEngine {
     });
   }
 
+  /** Appends streamed reasoning to the live activity row; a new round's `connecting` update starts it fresh. */
+  appendStreamReasoning(threadId: string, messageId: string, delta: string): void {
+    if (!delta || !this.ownsStreamingTurn(threadId, messageId)) return;
+    this.host.runInAction(() => {
+      const existing = this.host.getStreamActivity(threadId);
+      if (!existing || existing.messageId !== messageId || existing.phase === 'stalled') return;
+      this.host.setStreamActivity(threadId, { ...existing, reasoning: (existing.reasoning ?? '') + delta });
+    });
+  }
+
   markStreamActivityPhase(threadId: string, messageId: string, phase: StreamActivity['phase']): void {
     if (!this.ownsStreamingTurn(threadId, messageId)) return;
     this.host.runInAction(() => {

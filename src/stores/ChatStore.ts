@@ -308,6 +308,8 @@ export class ChatStore {
         this.turnEngine.applyRoundActivityUpdate(threadId, messageId, update),
       markStreamActivityPhase: (threadId, messageId, phase) =>
         this.turnEngine.markStreamActivityPhase(threadId, messageId, phase),
+      appendStreamReasoning: (threadId, messageId, delta) =>
+        this.turnEngine.appendStreamReasoning(threadId, messageId, delta),
       updateAssistantMessage: (threadId, messageId, updater, options) => {
         let updated: AssistantMessage | undefined;
         runInAction(() => {

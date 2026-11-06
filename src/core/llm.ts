@@ -130,6 +130,8 @@ export interface LlmUsage {
  */
 export type LlmChunk =
   | { type: 'text'; delta: string }
+  /** Model reasoning streamed apart from the answer (Ollama `message.thinking`). Shown live, never replayed to the model. */
+  | { type: 'reasoning'; delta: string }
   | { type: 'tool_call'; call: ToolCall }
   | { type: 'usage'; usage: LlmUsage }
   | { type: 'done'; finishReason?: 'stop' | 'length' | 'tool_use' | 'cancelled' | 'content_filter' | 'error'; error?: string };

@@ -39,6 +39,7 @@ interface OllamaStreamFrame {
   message?: {
     role?: string;
     content?: string;
+    thinking?: string;
     tool_calls?: unknown[];
   };
   done?: boolean;
@@ -182,6 +183,7 @@ export class OllamaProvider implements LlmProvider {
       return { chunks, terminal: true, toolUseSeen };
     }
 
+    if (frame.message?.thinking) chunks.push({ type: 'reasoning', delta: frame.message.thinking });
     if (frame.message?.content) chunks.push({ type: 'text', delta: frame.message.content });
     const toolCalls = frame.message?.tool_calls ?? [];
     for (let i = 0; i < toolCalls.length; i++) {
@@ -249,6 +251,7 @@ function parseOllamaMessage(value: unknown): OllamaStreamFrame['message'] {
   return {
     role: typeof value.role === 'string' ? value.role : undefined,
     content: typeof value.content === 'string' ? value.content : undefined,
+    thinking: typeof value.thinking === 'string' ? value.thinking : undefined,
     tool_calls: Array.isArray(value.tool_calls) ? value.tool_calls : undefined,
   };
 }

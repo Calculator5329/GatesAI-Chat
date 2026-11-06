@@ -217,6 +217,27 @@ describe('OllamaProvider — streaming response', () => {
     vi.unstubAllGlobals();
   });
 
+  it('emits reasoning chunks from message.thinking ahead of the answer text', async () => {
+    // Frame shape measured from Ollama 0.40.4 with qwen3.8 / gemma4 (2026-11-05):
+    // thinking streams in its own field with empty content until the answer starts.
+    vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([
+      JSON.stringify({ message: { role: 'assistant', content: '', thinking: 'The user' }, done: false }),
+      JSON.stringify({ message: { role: 'assistant', content: '', thinking: ' is asking' }, done: false }),
+      JSON.stringify({ message: { role: 'assistant', content: 'Rayleigh.' }, done: false }),
+      JSON.stringify({ message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' }),
+    ])));
+    const p = new OllamaProvider({ baseUrl: 'http://h:1' });
+    const chunks = [];
+    for await (const c of p.stream({ modelId: 'm', messages: [] }, new AbortController().signal)) chunks.push(c);
+    expect(chunks).toEqual([
+      { type: 'reasoning', delta: 'The user' },
+      { type: 'reasoning', delta: ' is asking' },
+      { type: 'text', delta: 'Rayleigh.' },
+      { type: 'done', finishReason: 'stop' },
+    ]);
+    vi.unstubAllGlobals();
+  });
+
   it('emits local zero-cost usage from final token counts', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ndjsonResponse([
       JSON.stringify({ message: { role: 'assistant', content: 'Hello' }, done: false }),

@@ -90,12 +90,19 @@ export function buildActivitiesForMessage(args: {
 
   if (streaming && streamActivity?.messageId === message.id) {
     const stalled = streamActivity.phase === 'stalled';
+    const reasoning = streamActivity.reasoning?.trim();
+    // Live reasoning (Ollama `message.thinking`) rides on this row until the
+    // answer starts; it is never stored on the message or replayed to the model.
+    const thinkingAloud = Boolean(reasoning) && !stalled && messageText(message).trim().length === 0;
     items.push({
       id: `${message.id}:provider-stream`,
       kind: 'thinking',
       state: stalled ? 'failed' : 'running',
-      verb: providerStreamVerb(streamActivity.phase, message.preTokenLabel, streamActivity.providerId, streamActivity.providerModelId),
+      verb: thinkingAloud
+        ? 'Thinking'
+        : providerStreamVerb(streamActivity.phase, message.preTokenLabel, streamActivity.providerId, streamActivity.providerModelId),
       summary: stalled ? streamActivity.stallReason : undefined,
+      ...(reasoning ? { detail: { type: 'markdown' as const, content: reasoningTail(reasoning) } } : {}),
       startedAt: streamActivity.lastProviderAt,
       finishedAt: stalled ? Date.now() : undefined,
     });
@@ -111,6 +118,13 @@ export function buildActivitiesForMessage(args: {
   }
 
   return items;
+}
+
+/** Most recent reasoning shown live; a long think keeps its tail so the row stays light. */
+export const LIVE_REASONING_MAX_CHARS = 4_000;
+
+function reasoningTail(reasoning: string): string {
+  return reasoning.length <= LIVE_REASONING_MAX_CHARS ? reasoning : `…${reasoning.slice(-LIVE_REASONING_MAX_CHARS)}`;
 }
 
 function stateForToolResult(result: ToolResult, artifactStatus?: string): ActivityItem['state'] {

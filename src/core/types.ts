@@ -282,6 +282,8 @@ export interface StreamActivity {
   providerId?: string;
   providerModelId?: string;
   stallReason?: string;
+  /** Reasoning the provider streamed this round (Ollama `message.thinking`). UI-only; dropped when the stream ends. */
+  reasoning?: string;
 }
 
 /**

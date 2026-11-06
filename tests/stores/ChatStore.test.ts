@@ -6,7 +6,7 @@ import { ProviderStore } from '../../src/stores/ProviderStore';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
 import { UserProfileStore } from '../../src/stores/UserProfileStore';
 import type { LlmChunk, LlmProvider, LlmRequest, ProviderId } from '../../src/core/llm';
-import type { ChatSnapshot, Thread } from '../../src/core/types';
+import type { AssistantMessage, ChatSnapshot, Thread } from '../../src/core/types';
 import type { LlmRouter } from '../../src/services/llm/router';
 import type { BridgeClientFacade, ToolContext } from '../../src/services/tools/types';
 import { MockProvider, flush, installMockProvider } from '../helpers/mockProvider';
@@ -1742,6 +1742,54 @@ describe('ChatStore', () => {
     expect(reply.finishReason).toBe('error');
     expect(messageText(reply)).toContain('No provider data arrived');
     expect(chat.lastError).toContain('No provider data arrived');
+  });
+
+  it('shows streamed reasoning in the live thinking row and keeps a long think alive', async () => {
+    vi.useFakeTimers();
+    const { chat, providers } = setup();
+    let release: (() => void) | undefined;
+    const pause = () => new Promise<void>(resolve => { release = resolve; });
+    const thinkingProvider: LlmProvider = {
+      id: 'ollama',
+      ready: () => true,
+      async *stream() {
+        // Two long gaps between reasoning frames add up past the initial stall
+        // window; only reasoning counting as provider activity keeps it alive.
+        await pause();
+        yield { type: 'reasoning', delta: 'Light scatters' };
+        await pause();
+        yield { type: 'reasoning', delta: ' off air.' };
+        yield { type: 'text', delta: 'Rayleigh scattering.' };
+        yield { type: 'done', finishReason: 'stop' };
+      },
+    };
+    installMockProvider(providers, thinkingProvider);
+    chat.createThread();
+
+    chat.sendMessage('why is the sky blue');
+    await flush(10);
+    vi.advanceTimersByTime(PROVIDER_STREAM_INITIAL_STALL_MS - 1_000);
+    release?.();
+    await flush(10);
+    const assistant = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
+    const live = chat.activitiesForMessage(assistant as AssistantMessage, { streaming: true });
+    expect(live.find(item => item.id.endsWith(':provider-stream'))).toMatchObject({
+      kind: 'thinking',
+      state: 'running',
+      verb: 'Thinking',
+      detail: { type: 'markdown', content: 'Light scatters' },
+    });
+
+    vi.advanceTimersByTime(PROVIDER_STREAM_STALL_MS - 1);
+    release?.();
+    await flush(20);
+    vi.advanceTimersByTime(30);
+    await flush(10);
+
+    const reply = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
+    expect(messageText(reply)).toBe('Rayleigh scattering.');
+    expect(messageText(reply)).not.toContain('Light scatters');
+    expect(reply.finishReason).toBe('stop');
   });
 
   it('aborts a provider stream that goes idle after partial text', async () => {

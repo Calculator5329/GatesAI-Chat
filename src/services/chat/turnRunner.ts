@@ -117,6 +117,8 @@ export interface TurnHost {
   clearStreamingState(threadId: string, messageId: string): void;
   applyRoundActivityUpdate(threadId: string, messageId: string, update: StreamingRoundActivityUpdate): void;
   markStreamActivityPhase(threadId: string, messageId: string, phase: StreamActivity['phase']): void;
+  /** Live reasoning text for the streaming activity row. Optional: hosts without a live surface drop it. */
+  appendStreamReasoning?(threadId: string, messageId: string, delta: string): void;
   updateAssistantMessage(
     threadId: string,
     messageId: string,
@@ -310,6 +312,7 @@ export class TurnRunner {
             if (!this.host.ownsTurn(threadId, assistantMessage.id)) return;
             this.host.queueTextChunk(threadId, assistantMessage.id, delta);
           },
+          onReasoning: delta => this.host.appendStreamReasoning?.(threadId, assistantMessage.id, delta),
         },
       });
 
