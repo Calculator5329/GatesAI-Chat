@@ -16,6 +16,7 @@ import { COMPACT_LOCAL_CONTEXT_TOKENS, SMALL_LOCAL_CONTEXT_TOKENS } from '../../
 import type { ToolStoreContext } from '../../../src/services/chat/toolBatchExecutor';
 import { estimateLlmPayloadTokens, estimateTokens } from '../../../src/core/tokens';
 import { toolRegistry, withDisplayTextToolDef } from '../../../src/services/tools/registry';
+import { compactToolDescription } from '../../../src/services/chat/promptSlimming';
 
 class ScriptedProvider implements LlmProvider {
   readonly id: ProviderId = 'openrouter';
@@ -129,6 +130,8 @@ function setup(script: LlmChunk[][], options: {
   getSemanticContext?: (userText: string, threadId: string) => RagContextBundle | string;
   /** A bridge that reports online, so the full desktop tool set is offered. */
   bridgeOnline?: boolean;
+  /** A Brave key is set, so `web_search` is offered (also in micro mode). */
+  webSearch?: boolean;
 } = {}) {
   const registry = new ModelRegistry();
   const profile = new UserProfileStore();
@@ -150,8 +153,11 @@ function setup(script: LlmChunk[][], options: {
       llmComplete: async () => '',
     },
     createId: prefix => `${prefix}-${++id}`,
-    getToolStores: () => (options.bridgeOnline
-      ? { bridge: { isOnline: true, platform: 'linux', version: 'test' } } as unknown as ToolStoreContext
+    getToolStores: () => (options.bridgeOnline || options.webSearch
+      ? {
+        ...(options.bridgeOnline ? { bridge: { isOnline: true, platform: 'linux', version: 'test' } } : {}),
+        ...(options.webSearch ? { search: { braveReady: true } } : {}),
+      } as unknown as ToolStoreContext
       : undefined),
     getRecentSummaries: () => [],
     getUserSystemPrompt: options.getUserSystemPrompt,
@@ -340,6 +346,26 @@ describe('TurnRunner', () => {
       expect(tool).toEqual(withDisplayTextToolDef(toolRegistry.get(tool.name)!).def);
     }
     expect(large.request.systemPrompt).toContain('artifact-first workflow');
+  });
+
+  it('F3: a slim window (Ollama default 4096) runs micro mode with compact tool schemas', async () => {
+    const { runner, provider, registry, thread } = setup([[{ type: 'done', finishReason: 'stop' }]], { webSearch: true });
+    // No contextLength: nothing set num_ctx, so the window is Ollama's 4096 default.
+    registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-gemma4:12b', name: 'gemma4:12b', vendor: 'Ollama', providerId: 'ollama',
+      providerModelId: 'gemma4:12b', supportsTools: true,
+    }]);
+    thread.modelId = 'ollama-gemma4:12b';
+
+    await runner.run(thread.id, new AbortController().signal);
+
+    const request = provider.calls[0];
+    expect(request.maxTokens).toBe(512); // micro's reply cap
+    const sent = request.tools?.find(tool => tool.name === 'web_search');
+    const full = withDisplayTextToolDef(toolRegistry.get('web_search')!).def;
+    expect(sent).toBeDefined();
+    expect(sent!.description).toBe(compactToolDescription(full.description));
+    expect(sent!.description.length).toBeLessThan(full.description.length);
   });
 
   it('composes the global user prompt without dropping the runtime safety contract', async () => {
