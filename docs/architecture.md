@@ -350,28 +350,55 @@ Context modes in `contextModes.ts` select prompt/messages/tools:
 - `system-tools`: latest user message with normal system/tools.
 - `bare`: latest user message only and no tools.
 - `micro`: forced for an Ollama model whose loaded window is under 8000
-  tokens; minimal local system prompt, latest user message, 512-token reply
-  cap, a small filesystem schema when relevant, and web search/recall when
-  available. A chat with no mode picked runs `full`.
+  tokens; minimal local system prompt, latest user message, a small
+  filesystem schema when relevant, and web search/recall when available. A
+  chat with no mode picked runs `full`. Micro sets `maxTokens` to
+  `MICRO_LOCAL_MAX_TOKENS` (512), which the budget reserves for the reply,
+  but the cap does **not** reach Ollama on chat turns today:
+  `OllamaProvider` sends `num_predict` only when `thinkingEffort === 'none'`
+  (thinking tokens count against it), and TurnRunner sets `thinkingEffort`
+  for OpenRouter models only. Auto-titles, which send thinking off, are the
+  one Ollama path where a cap is enforced.
 
 Local model window and prompt tiers (QW-1, SP-2;
 `docs/audits/2026-11-05-local-models.md`):
 
 - The window is the one the model **loads with**, never the trained maximum
   (`/api/tags` `details.context_length`, kept as `maxContextLength` for
-  display). `OllamaStore` reads the Modelfile `num_ctx` from `POST /api/show`
-  once per tag digest (through `LocalRuntimeStore.fetchOllamaNumCtx`; it
-  never loads a model) into `contextLength`. A format profile that sends
-  `num_ctx` itself (`modelFormatProfiles.ts`, qwen2.5) wins. With neither,
-  the window is Ollama's own default, `OLLAMA_DEFAULT_CONTEXT_TOKENS` = 4096
-  in `core/tokens.ts` (measured on Ollama 0.40.4).
+  display). `OllamaStore` derives `contextLength` per tag
+  (`loadedWindowFor`), most authoritative first:
+  1. a format profile that sends `num_ctx` itself (`modelFormatProfiles.ts`,
+     qwen2.5);
+  2. the window last **observed** in `GET /api/ps` `context_length`, read on
+     the same 60 s probe as `/api/tags` (`LocalRuntimeStore`, through
+     `localFetch`; a failed `/api/ps` never takes the probe offline). It is
+     kept after the model unloads and dropped when the tag's digest changes;
+  3. the Modelfile `num_ctx` from `POST /api/show`, read once per tag digest
+     (`LocalRuntimeStore.fetchOllamaNumCtx`; it never loads a model). A
+     failed or empty answer is not retried for that tag and digest this
+     session, and warns once;
+  4. otherwise Ollama's own default, `OLLAMA_DEFAULT_CONTEXT_TOKENS` = 4096
+     in `core/tokens.ts` (measured on Ollama 0.40.4).
+
+  The digest, Modelfile `num_ctx` and observed window ride on the catalog
+  entries in the `gatesai.ollama.v1` slot (optional fields, no schema
+  change), so a restart neither re-asks `/api/show` nor forgets `/api/ps`.
+  Ollama cloud models (`remoteHost` set) never get the local fallback: they
+  budget against their reported maximum (32768 if none is reported) and
+  always run `full`; `/api/show`
+  and `/api/ps` are not consulted for them.
 - `localModelContextProfile` (`core/localModelMeta.ts`) maps that window to
-  a tier. `slim`, under `SMALL_LOCAL_CONTEXT_TOKENS` (8000), forces `micro`
-  (or `bare` if picked). `compact`, under `COMPACT_LOCAL_CONTEXT_TOKENS`
-  (32768), keeps the chat's mode and history. It sends the compact bridge
-  contract (`UserProfileStore.composeSystemPrompt({ compact })`), no recent
-  summaries, and compact tool schemas (`services/chat/promptSlimming.ts`).
-  `full` sends everything. Cloud models are always `full`.
+  a tier. `usesCompactPrompt` (`contextModes.ts`) is true for both `slim`
+  and `compact`, so both send compact tool schemas:
+  - `slim`, under `SMALL_LOCAL_CONTEXT_TOKENS` (8000): micro mode (or
+    `bare` if picked) **plus compact tool schemas** for the micro tool set.
+    The smallest windows need the cut most.
+  - `compact`, 8000 to under `COMPACT_LOCAL_CONTEXT_TOKENS` (32768): keeps
+    the chat's mode and history, and sends the compact prompt: the compact
+    bridge contract (`UserProfileStore.composeSystemPrompt({ compact })`),
+    no recent summaries, and compact tool schemas
+    (`services/chat/promptSlimming.ts`).
+  - `full` sends everything.
 - Compact schemas shrink prose only. A tool keeps its opening sentences and
   one line per action bullet, and property descriptions are cut to their
   first sentence ("e.g.", "i.e.", "etc." and "vs." do not end a sentence).

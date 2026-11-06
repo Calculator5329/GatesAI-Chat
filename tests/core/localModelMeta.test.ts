@@ -115,4 +115,14 @@ describe('localModelMetaFor', () => {
 
     expect(localModelContextProfile(meta)).toBe('full');
   });
+
+  it('never gives an Ollama cloud model the 4096 local fallback (review F4)', () => {
+    const cloud = model('gpt-oss:120b-cloud', { remoteHost: 'https://ollama.com:443', maxContextLength: 131_072 });
+    expect(localModelContextProfile(cloud)).toBe('full');
+    expect(localModelContextLength(cloud)).toBe(131_072);
+    // Nothing reported: still full, budgeted at no less than the compact threshold.
+    const unreported = model('mystery:cloud', { remoteHost: 'https://ollama.com:443' });
+    expect(localModelContextProfile(unreported)).toBe('full');
+    expect(localModelContextLength(unreported)).toBeGreaterThanOrEqual(COMPACT_LOCAL_CONTEXT_TOKENS);
+  });
 });

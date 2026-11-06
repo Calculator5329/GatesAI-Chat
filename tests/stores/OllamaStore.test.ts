@@ -4,6 +4,16 @@ import { OllamaStore } from '../../src/stores/OllamaStore';
 import { LocalRuntimeStore } from '../../src/stores/LocalRuntimeStore';
 import { ModelRegistry } from '../../src/stores/ModelRegistry';
 import { clearAppStorage } from '../helpers/storage';
+import { localModelContextProfile, type OllamaCatalogModel } from '../../src/core/localModelMeta';
+import { contextWindowFor } from '../../src/core/tokens';
+import { createEmptyThread } from '../../src/core/threadOps';
+import { effectiveContextMode, wireMessagesForContextMode } from '../../src/services/chat/contextModes';
+import { logger } from '../../src/services/diagnostics/logger';
+
+/** Lets fire-and-forget /api/show lookups settle. */
+async function flushLookups(): Promise<void> {
+  for (let i = 0; i < 5; i += 1) await Promise.resolve();
+}
 
 const TAGS_OK = {
   models: [{ name: 'llama3.1:8b', model: 'llama3.1:8b', size: 4.7e9, modified_at: '2026-04-20T00:00:00Z' }],
@@ -118,6 +128,144 @@ describe('OllamaStore', () => {
     await store.refresh();
     await vi.waitFor(() => expect(windowOf('gemma4-abliterated:26b')).toBe(8_192));
     expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(3);
+  });
+
+  describe('observed window from /api/ps (review F4) and /api/show traffic (F6)', () => {
+    const PLAIN_TAG = 'gemma4:12b';
+    const CLOUD_TAG = 'gpt-oss:120b-cloud';
+    const makeTags = () => ({
+      models: [
+        { name: PLAIN_TAG, digest: 'aaa111', details: { context_length: 262_144 } },
+        { name: CLOUD_TAG, digest: 'ccc333', remote_model: 'gpt-oss:120b', remote_host: 'https://ollama.com:443', details: { context_length: 131_072 } },
+      ],
+    });
+    const runningAt = (contextLength: number, digest = 'aaa111') => ({
+      models: [{ name: PLAIN_TAG, model: PLAIN_TAG, digest, size_vram: 9e9, context_length: contextLength }],
+    });
+
+    function harness(state: { tags: ReturnType<typeof makeTags>; running: unknown; numCtx?: () => Promise<number | undefined> }) {
+      const fetchOllamaNumCtx = vi.fn(async (_baseUrl: string, _tag: string) => (state.numCtx ? state.numCtx() : undefined));
+      const fetchOllamaRunning = vi.fn(async () => state.running);
+      const local = new LocalRuntimeStore({
+        service: { fetchOllamaTags: async () => state.tags, fetchOllamaNumCtx, fetchOllamaRunning },
+        findComfy: async () => ({ baseUrl: 'http://127.0.0.1:8188', online: false, checkpoints: [], diffusionModels: [], preset: null }),
+        subscribeToWake: () => () => {},
+      });
+      const store = new OllamaStore(new ModelRegistry(), local);
+      const model = (tag: string) => store.catalog.find(m => m.providerModelId === tag)!;
+      return { store, model, fetchOllamaNumCtx, fetchOllamaRunning };
+    }
+
+    function threadWithHistory(modelId: string) {
+      const thread = createEmptyThread('t-1', 1, modelId);
+      thread.messages = [
+        { id: 'u-1', role: 'user', content: 'Hi there.', createdAt: 1 },
+        { id: 'a-1', role: 'assistant', content: 'Hello!', createdAt: 2 },
+        { id: 'u-2', role: 'user', content: 'And then?', createdAt: 3 },
+      ];
+      return thread;
+    }
+
+    it('a plain tag with no num_ctx that /api/ps reports at 32768 runs full and sends history', async () => {
+      const state = { tags: makeTags(), running: runningAt(32_768) };
+      const { store, model } = harness(state);
+
+      await store.refresh();
+      await vi.waitFor(() => expect(model(PLAIN_TAG).contextLength).toBe(32_768));
+
+      const plain = model(PLAIN_TAG);
+      expect((plain as OllamaCatalogModel).observedContextLength).toBe(32_768);
+      expect(localModelContextProfile(plain)).toBe('full');
+      const thread = threadWithHistory(plain.id);
+      expect(wireMessagesForContextMode(thread, effectiveContextMode(thread, plain))).toHaveLength(3);
+    });
+
+    it('a failed /api/ps leaves the probe online and the window as it was', async () => {
+      const { store, model, fetchOllamaRunning } = harness({ tags: makeTags(), running: { models: [] } });
+      fetchOllamaRunning.mockRejectedValue(new Error('Ollama 404'));
+
+      await store.refresh();
+
+      expect(fetchOllamaRunning).toHaveBeenCalledTimes(1);
+      expect(store.online).toBe(true);
+      expect(model(PLAIN_TAG).contextLength).toBeUndefined();
+    });
+
+    it('with /api/ps silent a plain tag stays on the 4096 fallback, slim', async () => {
+      const { store, model } = harness({ tags: makeTags(), running: { models: [] } });
+
+      await store.refresh();
+      await flushLookups();
+
+      const plain = model(PLAIN_TAG);
+      expect(plain.contextLength).toBeUndefined();
+      expect(contextWindowFor(plain)).toBe(4_096);
+      expect(localModelContextProfile(plain)).toBe('slim');
+    });
+
+    it('an Ollama cloud tag never gets the 4096 fallback: it uses the reported maximum and runs full', async () => {
+      const { store, model, fetchOllamaNumCtx } = harness({ tags: makeTags(), running: { models: [] } });
+
+      await store.refresh();
+      await flushLookups();
+
+      const cloud = model(CLOUD_TAG);
+      expect(cloud.contextLength).toBe(131_072);
+      expect(localModelContextProfile(cloud)).toBe('full');
+      expect(fetchOllamaNumCtx.mock.calls.map(call => call[1])).not.toContain(CLOUD_TAG);
+    });
+
+    it('keeps the observed window after the model unloads, and drops it when the digest changes', async () => {
+      const state = { tags: makeTags(), running: runningAt(32_768) as unknown };
+      const { store, model } = harness(state);
+      await store.refresh();
+      await vi.waitFor(() => expect(model(PLAIN_TAG).contextLength).toBe(32_768));
+
+      state.running = { models: [] };
+      await store.refresh();
+      await flushLookups();
+      expect(model(PLAIN_TAG).contextLength).toBe(32_768);
+
+      state.tags.models[0].digest = 'bbb222';
+      await store.refresh();
+      await flushLookups();
+      expect(model(PLAIN_TAG).contextLength).toBeUndefined();
+    });
+
+    it('a model observed loaded runs full after a restart, without re-POSTing /api/show', async () => {
+      const state = { tags: makeTags(), running: runningAt(32_768) as unknown };
+      const first = harness(state);
+      await first.store.refresh();
+      await vi.waitFor(() => expect(first.model(PLAIN_TAG).contextLength).toBe(32_768));
+      await flushLookups();
+      expect(first.fetchOllamaNumCtx).toHaveBeenCalledTimes(1);
+      first.store.dispose();
+
+      state.running = { models: [] };
+      const second = harness(state);
+      expect(second.model(PLAIN_TAG).contextLength).toBe(32_768);
+      await second.store.refresh();
+      await flushLookups();
+      expect(second.model(PLAIN_TAG).contextLength).toBe(32_768);
+      expect(second.fetchOllamaNumCtx).not.toHaveBeenCalled();
+    });
+
+    it('remembers a failed /api/show for the session per tag and digest: one request and one warning, not one per probe', async () => {
+      const warn = vi.spyOn(logger, 'warn');
+      const { store, fetchOllamaNumCtx } = harness({
+        tags: makeTags(),
+        running: { models: [] },
+        numCtx: async () => { throw new Error('Ollama 500'); },
+      });
+
+      for (let probe = 0; probe < 3; probe += 1) {
+        await store.refresh();
+        await flushLookups();
+      }
+
+      expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls.filter(call => String(call[1]).includes('/api/show'))).toHaveLength(1);
+    });
   });
 
   it('refresh() reports an unreachable server in lastError', async () => {

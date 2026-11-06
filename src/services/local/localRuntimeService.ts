@@ -20,6 +20,11 @@ export interface LocalRuntimeService {
    * Modelfile sets none; rejects on a non-2xx status or after 8 s.
    */
   fetchOllamaNumCtx(baseUrl: string, tag: string, apiKey?: string): Promise<number | undefined>;
+  /**
+   * GET `${baseUrl}/api/ps`: the models loaded right now, each with the
+   * `context_length` Ollama gave it. Rejects on a non-2xx status or after 8 s.
+   */
+  fetchOllamaRunning(baseUrl: string, apiKey?: string): Promise<unknown>;
   /** Native open-file dialog; null when cancelled or outside the desktop app. */
   pickFile(): Promise<string | null>;
 }
@@ -30,6 +35,16 @@ export const localRuntimeService: LocalRuntimeService = {
     if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
     return await withTimeout<unknown>(TAGS_TIMEOUT_MS, async signal => {
       const resp = await localFetch(`${baseUrl.trim().replace(/\/+$/, '')}/api/tags`, { headers, signal });
+      if (!resp.ok) throw new Error(`Ollama ${resp.status}`);
+      return await resp.json();
+    });
+  },
+
+  async fetchOllamaRunning(baseUrl, apiKey) {
+    const headers: Record<string, string> = {};
+    if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+    return await withTimeout<unknown>(TAGS_TIMEOUT_MS, async signal => {
+      const resp = await localFetch(`${baseUrl.trim().replace(/\/+$/, '')}/api/ps`, { headers, signal });
       if (!resp.ok) throw new Error(`Ollama ${resp.status}`);
       return await resp.json();
     });

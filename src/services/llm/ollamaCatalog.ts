@@ -90,6 +90,35 @@ export function parseOllamaShowNumCtx(raw: unknown): number | undefined {
   return Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
+export interface OllamaRunningWindow {
+  tag: string;
+  /** The digest of the loaded model, when /api/ps reports it. */
+  digest?: string;
+  /** The window this model was loaded with (`context_length`). */
+  contextLength: number;
+}
+
+/**
+ * Reads GET /api/ps: each loaded model and the window Ollama loaded it with.
+ * Entries without a positive `context_length` (older servers) are skipped.
+ */
+export function parseOllamaRunningWindows(raw: unknown): OllamaRunningWindow[] {
+  if (!isRecord(raw) || !Array.isArray(raw.models)) return [];
+  const out: OllamaRunningWindow[] = [];
+  for (const entry of raw.models) {
+    if (!isRecord(entry)) continue;
+    const tag = typeof entry.name === 'string' && entry.name ? entry.name : typeof entry.model === 'string' ? entry.model : '';
+    const contextLength = typeof entry.context_length === 'number' ? entry.context_length : NaN;
+    if (!tag || !Number.isFinite(contextLength) || contextLength <= 0) continue;
+    out.push({
+      tag,
+      contextLength,
+      ...(typeof entry.digest === 'string' && entry.digest ? { digest: entry.digest } : {}),
+    });
+  }
+  return out;
+}
+
 function reportedCapabilities(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
   return value.filter((item): item is string => typeof item === 'string');

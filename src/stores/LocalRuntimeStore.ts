@@ -37,14 +37,16 @@ export interface RuntimeState {
 export interface OllamaCatalogLink {
   apiKey(): string | undefined;
   applyTags(raw: unknown): void;
+  /** The GET /api/ps body from the same probe, applied after `applyTags`. */
+  applyRunning?(raw: unknown): void;
   catalog(): readonly Model[];
 }
 
 type LocalRuntimeProbeService = Pick<LocalRuntimeService, 'fetchOllamaTags'>
-  & Partial<Pick<LocalRuntimeService, 'fetchOllamaNumCtx'>>;
+  & Partial<Pick<LocalRuntimeService, 'fetchOllamaNumCtx' | 'fetchOllamaRunning'>>;
 
 export interface LocalRuntimeStoreDeps {
-  /** Without `fetchOllamaNumCtx` (most tests), loaded windows are never looked up. */
+  /** Without `fetchOllamaNumCtx` / `fetchOllamaRunning` (most tests), loaded windows are never looked up. */
   service?: LocalRuntimeProbeService;
   findComfy?: (preferredUrl: string | undefined) => Promise<ComfyDiscovery>;
   /** Calls onWake when the window regains focus or becomes visible; returns an unsubscribe. */
@@ -59,7 +61,7 @@ export const PROBE_INTERVAL_ONLINE_MS = 60_000;
 
 const WEB_LITE_LOCAL_ERROR = 'Local models need the GatesAI desktop app.';
 
-type OllamaCheck = { ok: true; tags: unknown } | { ok: false; error: string };
+type OllamaCheck = { ok: true; tags: unknown; running?: unknown } | { ok: false; error: string };
 
 export class LocalRuntimeStore {
   runtimes: Record<LocalRuntimeId, RuntimeState>;
@@ -159,8 +161,9 @@ export class LocalRuntimeStore {
   /**
    * The Modelfile `num_ctx` for one tag on the configured Ollama (POST
    * /api/show). Undefined when it sets none; null when the lookup failed or
-   * this build has none, so the caller can try again later. Never loads the
-   * model.
+   * this build has none. OllamaStore does not retry a failed lookup for the
+   * same tag digest this session, so this warns once per tag and digest.
+   * Never loads the model.
    */
   async fetchOllamaNumCtx(tag: string): Promise<number | undefined | null> {
     if (!this.service.fetchOllamaNumCtx) return null;
@@ -276,7 +279,10 @@ export class LocalRuntimeStore {
       if (this.disposed) return;
       if (baseUrl !== this.ollamaBaseUrl || apiKey !== this.ollamaLink?.apiKey()) continue;
       runInAction(() => {
-        if (check.ok) this.ollamaLink?.applyTags(check.tags);
+        if (check.ok) {
+          this.ollamaLink?.applyTags(check.tags);
+          if (check.running !== undefined) this.ollamaLink?.applyRunning?.(check.running);
+        }
         this.settle('ollama', check.ok, check.ok ? undefined : check.error);
       });
       return;
@@ -287,9 +293,24 @@ export class LocalRuntimeStore {
     try {
       const tags = await this.service.fetchOllamaTags(baseUrl, apiKey);
       if (!isOllamaTagsPayload(tags)) return { ok: false, error: notOllamaError(baseUrl) };
-      return { ok: true, tags };
+      return { ok: true, tags, running: await this.fetchOllamaRunning(baseUrl, apiKey) };
     } catch (err) {
       return { ok: false, error: ollamaProbeError(baseUrl, err) };
+    }
+  }
+
+  /**
+   * GET /api/ps on the same probe: which models are loaded and with what
+   * window. Best effort: a failure (older server, timeout) leaves the probe
+   * online and is logged at debug level only, since it repeats every 60 s.
+   */
+  private async fetchOllamaRunning(baseUrl: string, apiKey: string | undefined): Promise<unknown> {
+    if (!this.service.fetchOllamaRunning) return undefined;
+    try {
+      return await this.service.fetchOllamaRunning(baseUrl, apiKey);
+    } catch (err) {
+      logger.debug('local-runtime', 'Ollama /api/ps lookup failed', { err });
+      return undefined;
     }
   }
 

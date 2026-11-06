@@ -20,7 +20,9 @@ export type LocalModelChip = 'vision' | 'reasoning' | 'fast' | 'tools';
  * as a ceiling and never budgeted against. `contextLength` is the window the
  * model actually loads with: the Modelfile `num_ctx` from /api/show, or the
  * one GatesAI sends (services/llm/modelFormatProfiles); unset means Ollama's
- * own default (core/tokens OLLAMA_DEFAULT_CONTEXT_TOKENS).
+ * own default (core/tokens OLLAMA_DEFAULT_CONTEXT_TOKENS). OllamaStore
+ * derives it from the facts below, which are kept only while the tag's
+ * `digest` is unchanged and persist with the catalog.
  * `parameterBillions` comes from `details.parameter_size`. `remoteHost` marks
  * an Ollama cloud model, listed by the local server but run elsewhere.
  */
@@ -29,6 +31,18 @@ export type OllamaCatalogModel = Model & {
   maxContextLength?: number;
   parameterBillions?: number;
   remoteHost?: string;
+  /** Tag digest from /api/tags; a new digest means the tag was re-created. */
+  digest?: string;
+  /** Modelfile `num_ctx` from POST /api/show; unset when it sets none. */
+  modelfileNumCtx?: number;
+  /** The digest /api/show last answered for, so a restart does not ask again. */
+  modelfileCheckedDigest?: string;
+  /**
+   * `context_length` that GET /api/ps last reported while the model was
+   * loaded: the window Ollama really gave it (Modelfile, server
+   * OLLAMA_CONTEXT_LENGTH or its VRAM-based default). Kept after unload.
+   */
+  observedContextLength?: number;
 };
 
 export interface LocalModelMeta {
@@ -108,7 +122,17 @@ export function localModelMetaFor(model: OllamaCatalogModel): LocalModelMeta | n
  */
 export function localModelContextLength(model: Model): number | undefined {
   if (model.providerId !== 'ollama') return model.contextLength ?? model.contextWindow;
+  if (isOllamaCloudModel(model)) return model.contextLength ?? ollamaCloudContextLength(model);
   return contextWindowFor(model);
+}
+
+/**
+ * An Ollama cloud model runs on Ollama's servers, not with the local 4096
+ * default: its window is the reported maximum, else the compact threshold so
+ * it still runs `full`.
+ */
+export function ollamaCloudContextLength(model: OllamaCatalogModel): number {
+  return model.maxContextLength ?? COMPACT_LOCAL_CONTEXT_TOKENS;
 }
 
 /** Most context the model supports, for display only: what Ollama reported, else the family table. */
@@ -134,7 +158,7 @@ export function isOllamaCloudModel(model: OllamaCatalogModel): boolean {
 }
 
 export function localModelContextProfile(model: Model): LocalModelContextProfile {
-  if (model.providerId !== 'ollama') return 'full';
+  if (model.providerId !== 'ollama' || isOllamaCloudModel(model)) return 'full';
   const contextLength = localModelContextLength(model);
   if (contextLength == null) return 'full';
   if (contextLength < SMALL_LOCAL_CONTEXT_TOKENS) return 'slim';

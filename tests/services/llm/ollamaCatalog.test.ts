@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapOllamaTagsToModels, parseOllamaShowNumCtx } from '../../../src/services/llm/ollamaCatalog';
+import { mapOllamaTagsToModels, parseOllamaRunningWindows, parseOllamaShowNumCtx } from '../../../src/services/llm/ollamaCatalog';
 import { contextWindowFor } from '../../../src/core/tokens';
 
 const TAGS_RESPONSE = {
@@ -176,5 +176,25 @@ describe('parseOllamaShowNumCtx', () => {
     expect(parseOllamaShowNumCtx({})).toBeUndefined();
     expect(parseOllamaShowNumCtx(null)).toBeUndefined();
     expect(parseOllamaShowNumCtx({ parameters: 'num_ctx 0' })).toBeUndefined();
+  });
+});
+
+describe('parseOllamaRunningWindows', () => {
+  it('reads each loaded model and its context_length from /api/ps', () => {
+    const raw = {
+      models: [
+        { name: 'gemma4:12b', model: 'gemma4:12b', digest: 'aaa111', size_vram: 9e9, context_length: 32_768 },
+        { model: 'qwen3.5:4b', context_length: 4_096 },
+        { name: 'old-server:1b' },
+        { name: 'broken', context_length: 0 },
+        'junk',
+      ],
+    };
+    expect(parseOllamaRunningWindows(raw)).toEqual([
+      { tag: 'gemma4:12b', digest: 'aaa111', contextLength: 32_768 },
+      { tag: 'qwen3.5:4b', contextLength: 4_096 },
+    ]);
+    expect(parseOllamaRunningWindows({ models: [] })).toEqual([]);
+    expect(parseOllamaRunningWindows(null)).toEqual([]);
   });
 });
