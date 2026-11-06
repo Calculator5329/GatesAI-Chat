@@ -217,6 +217,17 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
 - [ ] **vitest 5 for the dev-tree advisories.** `npm audit` (dev) reports
       critical vitest/tinypool advisories fixable only by vitest 5, plus
       typescript-eslint/minimatch moderates. Dev-only, not shipped.
+- [ ] **katex 0.19 for the last production advisories.** After the
+      2026-11-05 security pass `npm audit --omit=dev` reports 5 low, all in
+      the katex chain; the only fix is katex 0.19, a breaking release. Needs
+      a check of math rendering in replies and exports.
+- [ ] **[ETHAN] Web Lite deploys on every master push.**
+      `deploy-web-lite.yml` has a push trigger, unlike the landing page's
+      manual-only deploy. It has failed on every push since 2026-10-02, so
+      the live demo is still d1da64d; the 2026-11-06 runs fail at the
+      agent-handles ratchet. Once the ratchet verdict lands, the next master
+      push publishes about five weeks of changes to Pages unattended. Keep
+      the push trigger, or make it `workflow_dispatch` only.
 
 - [ ] **[ETHAN] Should cloud chats see your local chats?** A local chat's
       background helpers now stay on the device (2026-11-06), but its finished
