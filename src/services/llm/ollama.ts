@@ -100,12 +100,19 @@ export class OllamaProvider implements LlmProvider {
     if (format.ollama?.stop?.length) {
       options.stop = format.ollama.stop;
     }
+    // Ollama counts thinking tokens against num_predict, so a cap is only sent
+    // once thinking is off; otherwise a thinking model can spend it all and answer nothing.
+    const thinkingOff = req.thinkingEffort === 'none';
+    if (thinkingOff && typeof req.maxTokens === 'number' && req.maxTokens > 0) {
+      options.num_predict = req.maxTokens;
+    }
 
     const body = {
       model: req.modelId,
       messages: buildOllamaMessages(req.messages, req.systemPrompt),
       stream: true,
       keep_alive: '5m',
+      ...(thinkingOff ? { think: false } : {}),
       ...(req.responseFormat ? { format: req.responseFormat.type === 'json_object' ? 'json' : req.responseFormat.schema } : {}),
       ...(useTools ? { tools: req.tools!.map(toOllamaTool) } : {}),
       ...(Object.keys(options).length ? { options } : {}),

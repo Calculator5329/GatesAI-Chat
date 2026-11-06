@@ -78,6 +78,11 @@ export async function generateThreadTitle(
       modelId: providerModelId,
       messages: [{ role: 'user', content: prompt }],
       systemPrompt: SYSTEM_PROMPT,
+      // A title is a few words; a local thinking model would otherwise reason for
+      // hundreds of tokens and hold Ollama's single slot while the user waits.
+      // No maxTokens: on OpenRouter 'none' is a no-op and a cap could cut a
+      // cloud model's default reasoning before it writes the title.
+      thinkingEffort: 'none',
     };
 
     const controller = new AbortController();

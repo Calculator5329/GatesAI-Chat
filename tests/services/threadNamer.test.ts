@@ -29,6 +29,26 @@ describe('generateThreadTitle', () => {
     expect(calls[0].modelId).toBe('google/gemini-3.1-flash-lite');
   });
 
+  it('asks for the title with thinking off, so a local model does not reason for it', async () => {
+    // Measured 2026-11-05: gemma4 thought for 585 tokens (12.5 s) per title, and
+    // Ollama queued the user's next turn behind it.
+    const calls: LlmRequest[] = [];
+    const provider: LlmProvider = {
+      id: 'ollama',
+      ready: () => true,
+      async *stream(req) {
+        calls.push(req);
+        yield { type: 'text', delta: 'Sky Colour' };
+        yield { type: 'done', finishReason: 'stop' };
+      },
+    };
+    const router = { resolve: () => ({ provider, providerModelId: 'gemma4-abliterated:26b' }) };
+
+    await generateThreadTitle({ userText: 'why is the sky blue', assistantText: 'Rayleigh.', fallbackModelId: 'ollama-gemma4-abliterated:26b' }, router);
+
+    expect(calls[0].thinkingEffort).toBe('none');
+  });
+
   it('times out a stalled stream instead of hanging the namer forever', async () => {
     // A provider whose stream never yields and never returns — the bug was that
     // `naming` would stay true forever waiting on it.

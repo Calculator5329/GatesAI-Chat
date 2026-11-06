@@ -50,6 +50,41 @@ describe('OllamaProvider — request shape', () => {
     vi.unstubAllGlobals();
   });
 
+  it('turns thinking off and caps the reply when a background call asks for a short answer', async () => {
+    const { fetchMock, getBody } = captureRequest();
+    vi.stubGlobal('fetch', fetchMock);
+    const provider = new OllamaProvider({ baseUrl: 'http://h:1' });
+
+    for await (const _ of provider.stream({
+      modelId: 'gemma4-abliterated:26b',
+      messages: [{ role: 'user', content: 'Title:' }],
+      maxTokens: 64,
+      thinkingEffort: 'none',
+    }, new AbortController().signal)) { /* drain */ }
+
+    const body = getBody() as CapturedOllamaBody & { think?: boolean };
+    expect(body.think).toBe(false);
+    expect(body.options).toMatchObject({ num_predict: 64 });
+    vi.unstubAllGlobals();
+  });
+
+  it('leaves the reply uncapped while thinking is on, since Ollama counts thinking against num_predict', async () => {
+    const { fetchMock, getBody } = captureRequest();
+    vi.stubGlobal('fetch', fetchMock);
+    const provider = new OllamaProvider({ baseUrl: 'http://h:1' });
+
+    for await (const _ of provider.stream({
+      modelId: 'gemma4-abliterated:26b',
+      messages: [{ role: 'user', content: 'hi' }],
+      maxTokens: 512,
+    }, new AbortController().signal)) { /* drain */ }
+
+    const body = getBody() as CapturedOllamaBody & { think?: boolean };
+    expect(body).not.toHaveProperty('think');
+    expect(body.options ?? {}).not.toHaveProperty('num_predict');
+    vi.unstubAllGlobals();
+  });
+
   it('keeps the complete composed system prompt as the first native message', async () => {
     const { fetchMock, getBody } = captureRequest();
     vi.stubGlobal('fetch', fetchMock);
