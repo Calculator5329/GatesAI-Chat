@@ -62,23 +62,33 @@ Ollama's count, always slightly under.
 | 3 | 2357 → 2585 | | 16.1 s | queued behind a title; 3.6 s of real work |
 | Auto-title | | | 12.5 s | thought for 585 eval tokens; the first attempt hit the namer's 15 s timeout (`done:false`) |
 
-### qwen3.8-abliterated:27b: **not measured on the final build (blocked)**
+### qwen3.8-abliterated:27b, landing stack (528f22f), measured
 
-- `gpu_room.py 14` refused the run: "only 12530 MiB free after evicting every resident,
-  14336 MiB needed; running nothing". `whisper-server` (2162 MiB) stayed resident; it
-  was not among the residents gpu_room evicted.
-  - This audit does not stop someone else's process or lower the 14 GB ask, so no
-    post-fix qwen numbers exist.
-- The only qwen data is one request from an early harness run, before any fix. It loaded
-  **outside gpu_room**, which broke the GPU rule; see Incidents. Measured, from the raw
-  done frame at 2026-11-06T05:19Z:
-  - micro mode at the then-assumed small window: system prompt 279 chars, 1 tool
-  - `prompt_eval_count` 456, load 10.1 s, prompt eval 0.84 s
-  - 83 eval tokens in 9.8 s (about 8.5 tok/s, slow enough to suggest partial CPU
-    placement; inferred)
-  - total 20.7 s
-- qwen's capabilities, `num_ctx 16384` and its window handling come from the same code
-  path as gemma4. That it behaves the same is **inferred**, not measured.
+Run by the coordinator inside `gpu_room.py 14` after this lane: it stopped
+whisper-server, measured 14758 MiB free against 14336 needed, ran the harness, and
+restarted whisper-server; `/api/ps` was empty afterwards. The stack includes the
+local-helpers change (a local chat's title, summary and compaction stay on the chat's
+model). The lane's own attempt was blocked; see Incidents.
+
+The model loads with its 16384 window (Modelfile `num_ctx`), so the tier is compact and
+mode stays full. System prompt 1526 chars, 6 tools (8 on the tool turn).
+
+| Turn | prompt_eval_count / 16384 | App estimate | Thinking | First thinking in app | First visible text | Wall | Eval tokens |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1. Sky blue (cold load, 17.2 s) | 2146 (13%) | 1883 | 161 chars, live "Thinking" row | 18.8 s | 19.7 s | 20.7 s | 88 |
+| 2. Sunsets follow-up | 2218 (14%) | 1961 | 64 chars | 1.7 s | 2.0 s | 3.1 s | 65 |
+| 3a. Tool call round | 2735 (17%) | 2420 | 70 chars | 2.3 s | tool call at 3.6 s | | 59 |
+| 3b. Tool result round | 2978 (18%) | 2504 | 25 chars | 0.6 s | 0.8 s | 6.5 s total | 101 |
+| Auto-title (namer) | 134 | 119 | off (`think:false`) | n/a | n/a | 0.7 s | 4 |
+
+- Tool round-trip: `thread {action:"list", display_text:"Listing recent threads"}`
+  returned ok and the answer counted the 4 threads.
+- Every request asked for qwen3.8 and nothing else; both title requests went to it with
+  `think:false` (the second title's response was not captured before the run ended).
+- The app's estimate is 12% to 16% under Ollama's count on qwen (gemma4: within 7%).
+  Headroom is still at least 13.4k tokens on every request; see Left.
+- qwen3.8 thinks briefly here (25 to 161 chars per round), so first text lands within
+  about 1 s of the first thinking.
 
 ## Findings
 
@@ -241,8 +251,14 @@ At the end of this lane `/api/ps` is `{"models":[]}` (measured).
 
 ## Left (follow-ups for the roadmap; this lane cannot edit it)
 
-- [ ] QW-1b: run the harness on qwen3.8-abliterated:27b when gpu_room can make 14 GB
-  free, or once gpu_room can evict whisper-server. Record the same table.
+- [x] QW-1b: run the harness on qwen3.8-abliterated:27b inside `gpu_room.py 14`
+  (done by the coordinator on 528f22f; table above). The lane's refusal was gpu_room
+  getting no answer from the user bus in the lane's sandbox, so it never saw
+  whisper-server as resident; gpu_room now says so instead of skipping silently
+  (local-ai-lab c092f4d).
+- [ ] The token estimate under-counts qwen3.8 by up to 16% (gemma4: 7%). Harmless at
+  16k with 13k headroom; on a 4k or 8k window it could let a request through that
+  overflows. Widen the reserve for local models or calibrate per family.
 - [ ] Compaction (`turnRunner.compactToolResultWithModel`) and `ChatStore.llmComplete`
   should send `thinkingEffort: 'none'`. On Ollama that turns thinking off and lets their
   caps through as `num_predict`. Needs a red test each.

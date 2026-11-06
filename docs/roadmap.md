@@ -218,6 +218,28 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       critical vitest/tinypool advisories fixable only by vitest 5, plus
       typescript-eslint/minimatch moderates. Dev-only, not shipped.
 
+- [ ] **[ETHAN] Should cloud chats see your local chats?** A local chat's
+      background helpers now stay on the device (2026-11-06), but its finished
+      summary still goes into every other chat's system prompt under "Recent
+      conversations", cloud chats included, and semantic memory can quote
+      local-chat excerpts into a cloud turn. Options: (a) wall local chats off
+      from cloud prompts entirely; (b) keep cross-chat awareness everywhere and
+      say so in Settings; (c) a per-chat "keep local" switch. Raised by the
+      local-helpers review.
+- [ ] **Remaining paths from a local chat to a cloud model.** An agent task
+      honours an explicit cloud `model` the local model writes into the tool
+      call; deep research on a local tag without tools falls back to the
+      background (cloud) model; `ChatStore.llmComplete` falls back to the
+      background model when the active model is not connected (no callers
+      today). Follows the decision above.
+- [ ] **Local-models audit follow-ups.** The open checklist at the end of
+      `docs/audits/2026-11-05-local-models.md`: compaction and `llmComplete`
+      thinking off, the micro reply cap, persisted reasoning (needs a
+      migration), embeddings loading a second model, a lighter default local
+      model, the bridge prompt when offline, history trimming on 16k windows,
+      render_ui on small windows, reconcile-pinned micro threads, and the
+      router-sync race.
+
 ### Parked (re-add excellently later, with documented value)
 
 - **Schedules**: recurring automation. Value: unattended periodic agent runs
@@ -584,7 +606,12 @@ composer quieter.
       OpenAI-compat paths (`ollama.ts:131`, `openaiCompat.ts:273`); built-in
       tool/safety instructions are preserved; documented in the user guide.
 
-- [ ] <!-- workspace:id=work:3dfec159-d37c-5b83-aade-fae701efa492 --> **SP-2: Auto-slim the system prompt for small-context local models.**
+- [x] <!-- workspace:id=work:3dfec159-d37c-5b83-aade-fae701efa492 --> **SP-2: Auto-slim the system prompt for small-context local models.**
+      *(done 2026-11-06, lane/local-models: below a 32k loaded window the prompt
+      and tool schemas are compacted, slim windows (<8000) get micro plus compact
+      schemas, `Rule:` lines survive verbatim; measured on gemma4-abliterated:26b
+      at 16k: 1.8k to 2.6k prompt tokens per turn. Rule and thresholds in
+      architecture.md)*
       Large built-in prompts + tool schemas eat the whole window on
       small-context local models (some Ollama models default to a 2–8k
       `num_ctx`), pushing out the actual conversation and causing garbage or
@@ -598,7 +625,12 @@ composer quieter.
       no regression for large-context models; a note in architecture.md on the
       slimming rule and threshold.
 
-- [ ] <!-- workspace:id=work:482a384e-6ebb-5123-b8d2-68717a62f501 --> **QW-1: Investigate the Qwen local-model failures.** Recent local
+- [x] <!-- workspace:id=work:482a384e-6ebb-5123-b8d2-68717a62f501 --> **QW-1: Investigate the Qwen local-model failures.** *(done 2026-11-06:
+      `docs/audits/2026-11-05-local-models.md`; the causes were the budget
+      ignoring the loaded window (Ollama's 4096 default), the full prompt on small
+      windows (SP-2) and thinking on helper calls; an opt-in live harness drives
+      real turns. Measured live on gemma4-abliterated:26b and
+      qwen3.8-abliterated:27b; the qwen2.5 tags named below were not re-run)* Recent local
       sessions with Qwen models (`qwen2.5:7b` / `qwen2.5-coder:14b`, offered
       in `components/menu/sections/Local.tsx`) failed, reproduce and root-
       cause before fixing. Candidate causes to rule out: system-prompt/tool-

@@ -1,5 +1,66 @@
 # Changelog
 
+## 2026-11-06: A local chat's background work stays on your machine
+
+- **What changed for you.** A chat on a model your own Ollama runs now
+  keeps its helpers local. Before, with an OpenRouter key set, three
+  background calls sent that chat's content to cloud Gemini: the
+  auto-title (your first message and the start of the reply), the idle
+  summary (the last 30 messages), and the compaction of oversized tool
+  results such as file reads. Without a key, the title and summary loaded
+  the smallest local model, which on a 16 GB card pushes the chat model off
+  the GPU so your next message waits for a reload. Now the title is written
+  by the chat's own model (thinking off), the summary by the model you are
+  chatting with (else the thread's own), and big tool results are trimmed
+  without a model. A thread whose local model was deleted is not summarized
+  at all. Cloud chats are unchanged.
+- **Evidence.** Nine tests in `tests/stores/localThreadHelpers.test.ts`,
+  eight watched failing for the bug's reason first (the cloud-chat control
+  passes either way), plus a mutation check that the summary's thinking-off
+  flag is load-bearing. Live, through the real code path on
+  qwen3.8-abliterated:27b (inside `gpu_room.py 14`): before the fix the
+  harness refused two title requests for `milo-e4b-v4`; after it, both
+  title requests went to qwen3.8 with `think:false` and no other model was
+  asked for. A second reviewer found the deleted-tag, vision-tag and
+  summary-eviction gaps; each was fixed with a red test.
+- **Still open.** A finished summary of a local chat still goes into other
+  chats' system prompts under "Recent conversations", cloud chats included,
+  and semantic memory can quote local chats into cloud turns. Whether cloud
+  chats should see local chats at all is a decision on the roadmap.
+
+## 2026-11-06: Local models run inside the window they actually load
+
+- **What changed for you.** A chat on an Ollama model now plans its
+  context around the window the model really loads with, not a guess.
+  The app reads it from `/api/ps` once the model has loaded, else the
+  Modelfile's `num_ctx`, else Ollama's 4096 default; Ollama cloud models
+  use their full window. Below a 32k window the system prompt and tool
+  descriptions are shortened (safety and argument rules, written as
+  `Rule:` lines, survive word for word), and below 8k the chat runs in
+  micro mode. The composer shows the mode the next turn will actually run.
+  A local model's thinking now streams into the live Thinking row instead
+  of being dropped, and auto-titles ask the model not to think, so a title
+  no longer holds up your next message. (3268189, b4781a3, 2a6741d,
+  819a3b6, eadca7c, c69114a, e720ffc, 1dd1354, 4c1e344, 0668429, 1b1f09c,
+  1856daa)
+- **Evidence.** Measured live through the app's own code path with a new
+  opt-in harness (`vitest.live.config.ts`, never part of `npm run ci`):
+  on gemma4-abliterated:26b at its 16k window, 1.8k to 2.6k prompt tokens
+  per turn, and turn 2 went from 30.9 s to 8.1 s once titles stopped
+  thinking; on qwen3.8-abliterated:27b, 2.1k to 3.0k prompt tokens, warm
+  turns of 3.1 s and 6.5 s (with a tool round-trip), and every request
+  went to qwen3.8 alone. A reviewer found 11 issues in the first round
+  (rules lost in compaction, "e.g." ending a sentence, the 4096 fallback
+  forcing micro on cloud and big-window models, two tests that passed on
+  the old code); each was fixed with a test watched failing first. Full
+  write-up: `docs/audits/2026-11-05-local-models.md`.
+- **Still open.** The thinking row is live only and does not survive a
+  reload (needs a schema migration). Micro mode's 512-token reply cap does
+  not reach Ollama yet. Semantic memory loads a second Ollama model for
+  embeddings, which can push the chat model off a 16 GB card. The token
+  estimate runs up to 16% under Ollama's count on qwen. The full list is
+  on the roadmap under "Local-models audit follow-ups".
+
 ## 2026-11-05: Security patches for the sanitiser, the TLS stack and zod
 
 - **What changed for you.** Mermaid diagrams in model replies are
