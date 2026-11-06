@@ -50,6 +50,7 @@ export const fsTool: Tool = {
       '    /workspace/artifacts/data/         — reusable JSON/CSV/SQLite/data outputs',
       '    /workspace/artifacts/reports/      — user-facing docs, markdown, HTML, PDFs, and summaries',
       '    /workspace/artifacts/exports/      — finished deliverables that do not fit the categories above',
+      'Rule: /workspace/attachments/ is read-only (files the user uploaded): never write, move or delete there.',
       '',
       'Actions:',
       '• `read` — read a file. Returns content (utf8 for text, base64 for binary), size, mime.',

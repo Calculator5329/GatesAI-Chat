@@ -313,9 +313,11 @@ describe('TurnRunner', () => {
     expect(compact.request.tools?.map(tool => tool.name)).toEqual(large.request.tools?.map(tool => tool.name));
     expect(compact.request.systemPrompt).toContain('Answer like a pirate.');
     expect(compact.request.systemPrompt).toContain('display_text');
-    // Measurably shorter: at least 40% fewer estimated tokens overall.
-    expect(compact.tokens).toBeLessThan(large.tokens * 0.6);
-    expect(compact.toolTokens).toBeLessThan(large.toolTokens * 0.6);
+    // Measurably shorter: at least 35% fewer estimated tokens. (This was 40%
+    // until review F1 made every `Rule:` line survive verbatim; on this
+    // fixture that is 4973 of 8115 overall and 4301 of 6930 for tools.)
+    expect(compact.tokens).toBeLessThan(large.tokens * 0.65);
+    expect(compact.toolTokens).toBeLessThan(large.toolTokens * 0.65);
     expect(compact.systemTokens).toBeLessThan(large.systemTokens);
     // Still valid: every schema keeps its structure; only prose shrinks.
     const stripProse = (value: unknown): unknown => {

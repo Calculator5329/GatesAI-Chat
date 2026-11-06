@@ -39,7 +39,7 @@ export const artifactTool: Tool = {
       '- `update_html_artifact` reuses an existing id, validates before writing, and bumps its registry revision.',
       '- `list_artifacts` returns the versioned HTML artifact registry.',
       '',
-      'Create once and update in place by id; never fork a second artifact just to fix the first.',
+      'Rule: Create once and update in place by id; never fork a second artifact just to fix the first.',
     ].join('\n'),
     parameters: {
       type: 'object',

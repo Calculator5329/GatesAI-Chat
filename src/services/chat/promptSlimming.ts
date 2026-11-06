@@ -22,15 +22,24 @@ export function compactToolDefs(tools: ToolDef[]): ToolDef[] {
 }
 
 /**
- * Keeps the opening paragraph (cut to two sentences) and each action bullet
- * that names an identifier (cut to its first sentence). Path tables,
- * examples and workflow prose are dropped; the action enum still lists
- * every action.
+ * A description line that starts with `Rule: ` is load-bearing (a safety or
+ * argument rule) and is never cut or clipped (F1). Full mode sends the same
+ * line, so it reads as plain prose there.
+ */
+const RULE_LINE = /^Rule: /;
+
+/**
+ * Keeps the opening paragraph (cut to two sentences), each action bullet
+ * that names an identifier (cut to its first sentence), then every `Rule: `
+ * line verbatim in its original order. Path tables, examples and workflow
+ * prose are dropped; the action enum still lists every action.
  */
 export function compactToolDescription(description: string): string {
   const lines = description.split('\n');
+  const rules = lines.map(line => line.trim()).filter(line => RULE_LINE.test(line));
+  const prose = lines.filter(line => !RULE_LINE.test(line.trim()));
   const summaryLines: string[] = [];
-  for (const line of lines) {
+  for (const line of prose) {
     if (!line.trim()) {
       if (summaryLines.length) break;
       continue;
@@ -39,10 +48,10 @@ export function compactToolDescription(description: string): string {
     summaryLines.push(line.trim());
   }
   const summary = clip(firstSentences(summaryLines.join(' '), 2), SUMMARY_MAX_CHARS);
-  const bullets = lines
+  const bullets = prose
     .filter(line => ACTION_BULLET.test(line))
     .map(line => clip(firstSentences(line.trim(), 1), BULLET_MAX_CHARS));
-  const compact = [summary, ...bullets].filter(Boolean).join('\n');
+  const compact = [summary, ...bullets, ...rules].filter(Boolean).join('\n');
   return compact.length > 0 && compact.length < description.length ? compact : description;
 }
 

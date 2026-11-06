@@ -63,6 +63,56 @@ describe('compact sentence cuts (F2)', () => {
   });
 });
 
+describe('Rule: lines survive compaction (F1)', () => {
+  const builtIns = toolRegistry.toolDefs();
+  const compactByName = new Map(compactToolDefs(builtIns).map(tool => [tool.name, tool.description]));
+  const compactOf = (name: string) => compactByName.get(name) ?? '';
+  const ruleLines = (description: string) => description.split('\n').map(line => line.trim()).filter(line => line.startsWith('Rule: '));
+
+  it('keeps every Rule: line of every built-in tool verbatim and in order, after the summary and bullets', () => {
+    const tools = builtIns.filter(tool => ruleLines(tool.description).length > 0);
+    // The named rules below live in at least these tools; guards against a vacuous pass.
+    expect(tools.map(tool => tool.name)).toEqual(expect.arrayContaining(['fs', 'memory', 'thread', 'git', 'image_generate']));
+    for (const tool of tools) {
+      const compactLines = compactOf(tool.name).split('\n');
+      const rules = ruleLines(tool.description);
+      expect(compactLines.slice(-rules.length), tool.name).toEqual(rules);
+    }
+  });
+
+  it('keeps a Rule: line found in the opening paragraph out of the summary sentence cut', () => {
+    const description = ['Do a thing. Second sentence. Third.', 'Rule: Never do the bad thing, e.g. this. Or that, ever.', '', '• `go` — go. More.'].join('\n');
+    expect(compactToolDescription(description)).toBe([
+      'Do a thing. Second sentence.',
+      '• `go` — go.',
+      'Rule: Never do the bad thing, e.g. this. Or that, ever.',
+    ].join('\n'));
+  });
+
+  it('fs: /workspace/attachments is read-only', () => {
+    expect(compactOf('fs')).toMatch(/Rule: \/workspace\/attachments\/ is read-only.*never write, move or delete there/);
+  });
+
+  it('memory: never save what the user asked you to forget', () => {
+    expect(compactOf('memory')).toContain('Rule: Do NOT save transient context (today\'s plans, hypotheticals, things they asked you to forget).');
+  });
+
+  it('thread: each action\'s required arguments', () => {
+    const compact = compactOf('thread');
+    expect(compact).toContain('Rule: `switch_to` requires `id`');
+    expect(compact).toContain('Rule: `rename` requires `title`.');
+    expect(compact).toContain('Rule: `set_context` requires `context` (pass empty string to clear).');
+  });
+
+  it('git: the restore confirmation literal', () => {
+    expect(compactOf('git')).toContain('Rule: `restore` and `restore_staged` require `paths` and `confirm: "restore local changes"`.');
+  });
+
+  it('image_generate: width and height are multiples of 16', () => {
+    expect(compactOf('image_generate')).toContain('Rule: `width` and `height` must be supplied together, and each must be a multiple of 16.');
+  });
+});
+
 describe('compactToolDefs', () => {
   it('shortens property prose and keeps every structural field', () => {
     const [compact] = compactToolDefs([TOOL]);

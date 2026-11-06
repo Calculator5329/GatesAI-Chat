@@ -24,10 +24,11 @@ export const memoryTool: Tool = {
     description: [
       'Manage long-term memory about the user. One tool with four actions:',
       '',
-      '• `add` — save a single durable fact. Use proactively for things the user says are persistent: identity, role, preferences, recurring projects. Do NOT save transient context (today\'s plans, hypotheticals, things they asked you to forget). One fact per call. Write in third person ("User prefers concise answers").',
+      '• `add` — save a single durable fact. Use proactively for things the user says are persistent: identity, role, preferences, recurring projects. One fact per call. Write in third person ("User prefers concise answers").',
       '• `remove` — forget a fact. Pass either `fact` (substring match — first hit wins) or `index` (0-based, from `list`).',
       '• `update` — replace a fact. Pass `fact` (substring match) plus `next` (the new value), or `index` plus `next`.',
       '• `list` — return the current facts as a numbered list. Use this when the user asks what you remember about them.',
+      'Rule: Do NOT save transient context (today\'s plans, hypotheticals, things they asked you to forget).',
       '',
       'Memory persists across all conversations and surfaces in your system prompt every turn under "About the user".',
     ].join('\n'),

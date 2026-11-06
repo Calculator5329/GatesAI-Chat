@@ -22,7 +22,7 @@ export const fetchPageTool: Tool = {
     name: 'fetch_page',
     description: [
       'Read the readable text of a public web page by URL. Use this after web_search when snippets are not enough, or when the user gives a specific page to inspect.',
-      'Only public HTTPS URLs are allowed. HTTP/HTTPS localhost URLs are allowed for local development. Private and internal network addresses are blocked.',
+      'Rule: Only public HTTPS URLs are allowed. HTTP/HTTPS localhost URLs are allowed for local development. Private and internal network addresses are blocked.',
     ].join('\n'),
     parameters: {
       type: 'object',

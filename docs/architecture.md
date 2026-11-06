@@ -374,13 +374,17 @@ Local model window and prompt tiers (QW-1, SP-2;
   `full` sends everything. Cloud models are always `full`.
 - Compact schemas shrink prose only. A tool keeps its opening sentences and
   one line per action bullet, and property descriptions are cut to their
-  first sentence. Names, types, enums, `required`, `properties` and `items`
-  are untouched, so any call the full schema accepts is still valid. The
-  user's own instructions (SP-1), bio and thread context are never
-  shortened. Measured with the bridge online: tools go from 6428 to 3755
-  estimated tokens, and the bridge contract from 699 to 186. The SP-2 test
-  in `tests/services/chat/turnRunner.test.ts` asserts the total stays under
-  60% of the full request.
+  first sentence ("e.g.", "i.e.", "etc." and "vs." do not end a sentence).
+  A description line that starts with `Rule: ` is a safety or argument rule
+  and is kept verbatim, after the summary and bullets, in its original
+  order; full mode sends the same line as plain prose. New tool rules that
+  a small model must not lose belong on a `Rule:` line. Names, types,
+  enums, `required`, `properties` and `items` are untouched, so any call
+  the full schema accepts is still valid. The user's own instructions
+  (SP-1), bio and thread context are never shortened. On the SP-2 test
+  fixture in `tests/services/chat/turnRunner.test.ts` (bridge online, 15
+  tools) tools estimate 4301 tokens against 6930 full, and the whole
+  request 4973 against 8115; the test asserts both stay under 65%.
 - The budget's default reply reserve is `min(4096, window / 4)`
   (`replyReserveTokensFor`), so a 4096 window still fits a prompt.
 - The composer's local-context select shows `ChatStore.activeLocalContext`,

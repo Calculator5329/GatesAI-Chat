@@ -43,6 +43,7 @@ export const imageGenerateTool: Tool = {
       '  prompt_file — optional /workspace JSON file for overnight batches. Shape: { defaults?: {...}, prompts: [{ prompt, count?, aspect_ratio?, width?, height?, seed?, filename? }] }.',
       '  aspect_ratio — 1:1 (default), 3:2, 2:3, 16:9, 9:16.',
       '  width + height — optional explicit pixel dimensions for local ComfyUI; ignored by OpenRouter image generation.',
+      'Rule: `width` and `height` must be supplied together, and each must be a multiple of 16.',
       '  count — how many images to generate (1–10). Default 1.',
       '  seed — optional integer for reproducibility.',
       '  batch_name — optional slug prefix for prompt_file output filenames.',
