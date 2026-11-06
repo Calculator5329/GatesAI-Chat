@@ -1,8 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LlmChunk, LlmProvider, LlmRequest, ProviderId } from '../../../src/core/llm';
 import type { AssistantMessage, StreamActivity, Thread, ToolResult } from '../../../src/core/types';
 import { DEFAULT_MODEL_ID } from '../../../src/core/models';
 import { ModelRegistry } from '../../../src/stores/ModelRegistry';
+import { LocalRuntimeStore } from '../../../src/stores/LocalRuntimeStore';
+import { OllamaStore } from '../../../src/stores/OllamaStore';
 import { UserProfileStore } from '../../../src/stores/UserProfileStore';
 import {
   TurnRunner,
@@ -252,20 +254,33 @@ describe('TurnRunner', () => {
     // QW-1: gemma4-abliterated:26b loads at num_ctx 16384 (Modelfile). With the
     // bridge online the full prompt + tools is ~7-8k tokens, which the old 8000
     // budget (plus a 4096 reply reserve) refused before anything was sent.
+    // Review F5: nothing here hand-sets contextLength. The catalog entry comes
+    // from /api/tags (trained maximum only) and the window is learned the way
+    // the app learns it: OllamaStore's POST /api/show answering num_ctx 16384.
     const { runner, provider, registry, thread, host } = setup([[
       { type: 'text', delta: 'Done.' },
       { type: 'done', finishReason: 'stop' },
     ]], { bridgeOnline: true });
-    registry.setDynamicForProvider('ollama', [{
-      id: 'ollama-gemma4-abliterated:26b',
-      name: 'gemma4-abliterated:26b',
-      vendor: 'Ollama',
-      providerId: 'ollama',
-      providerModelId: 'gemma4-abliterated:26b',
-      supportsTools: true,
-      contextLength: 16_384,
-    }]);
-    thread.modelId = 'ollama-gemma4-abliterated:26b';
+    const tag = 'gemma4-abliterated:26b';
+    const fetchOllamaNumCtx = vi.fn(async () => 16_384);
+    const local = new LocalRuntimeStore({
+      service: {
+        fetchOllamaTags: async () => ({ models: [{
+          name: tag, model: tag, digest: 'd26b',
+          capabilities: ['completion', 'tools', 'thinking'],
+          details: { parameter_size: '25.8B', context_length: 262_144 },
+        }] }),
+        fetchOllamaNumCtx,
+        fetchOllamaRunning: async () => ({ models: [] }),
+      },
+      findComfy: async () => ({ baseUrl: 'http://127.0.0.1:8188', online: false, checkpoints: [], diffusionModels: [], preset: null }),
+      subscribeToWake: () => () => {},
+    });
+    const ollama = new OllamaStore(registry, local);
+    await ollama.refresh();
+    for (let i = 0; i < 5; i += 1) await Promise.resolve();
+    thread.modelId = `ollama-${tag}`;
+    expect(registry.findById(thread.modelId)).toBeDefined();
     thread.messages = [
       { id: 'u-1', role: 'user', content: 'Hi there.', createdAt: 1 },
       { id: 'a-1', role: 'assistant', content: 'Hello!', createdAt: 2 },
@@ -283,6 +298,7 @@ describe('TurnRunner', () => {
     const sent = estimateLlmPayloadTokens({ systemPrompt: request.systemPrompt, messages: request.messages, tools: request.tools, reservedOutputTokens: 0 });
     expect(sent).toBeGreaterThan(4_000);
     expect(sent + 4_096).toBeLessThan(16_384);
+    expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(1);
   });
 
   it('SP-2: slims prompt and tool schemas for a sub-32k local window, never for a large one', async () => {
