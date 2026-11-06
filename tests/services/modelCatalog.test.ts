@@ -49,7 +49,6 @@ describe('curated model catalog', () => {
         'nvidia/nemotron-3-ultra-550b-a55b',
         'nvidia/nemotron-3-ultra-550b-a55b:free',
         'nvidia/nemotron-3-super-120b-a12b',
-        'nvidia/nemotron-3-super-120b-a12b:free',
         'nvidia/nemotron-3-nano-30b-a3b',
         'deepseek/deepseek-v4-pro-0813',
         'moonshotai/kimi-k3',
@@ -70,6 +69,8 @@ describe('curated model catalog', () => {
     expect(byId.get('or-nemotron-3-ultra')?.providerModelId).toBe('nvidia/nemotron-3-ultra-550b-a55b');
     expect(byId.get('or-nemotron-3-ultra-free')?.pricing).toEqual({ prompt: 0, completion: 0 });
     expect(byId.get('or-nemotron-3-super')?.providerModelId).toBe('nvidia/nemotron-3-super-120b-a12b');
+    // The free Super route left OpenRouter (absent from the 2026-11-05 feed): it leaves the
+    // default catalog but stays in MODELS so saved threads still resolve.
     expect(byId.get('or-nemotron-3-super-free')?.pricing).toEqual({ prompt: 0, completion: 0 });
     // The free Nano route left OpenRouter; the id survives on the paid route.
     expect(byId.get('or-nemotron-3-nano-free')?.providerModelId).toBe('nvidia/nemotron-3-nano-30b-a3b');
