@@ -444,15 +444,15 @@ describe('EditorialMessage markdown rendering', () => {
         expect(attr.name.startsWith('on'), `${element.tagName} carries ${attr.name}`).toBe(false);
       }
     }
-    for (const anchor of Array.from(body!.querySelectorAll('a'))) {
-      expect(anchor.getAttribute('href') ?? '').not.toMatch(/^\s*javascript:/i);
-    }
+    const links = Array.from(body!.querySelectorAll('a'));
+    expect(links, 'the javascript: link must still render as a link so its href is checked').toHaveLength(1);
+    expect(links[0].getAttribute('href') ?? '').not.toMatch(/^\s*javascript:/i);
     // The payload stays visible as inert text rather than vanishing silently.
     expect(body!.textContent).toContain('<img src="x" onerror="window.__gatesaiXss=1">');
     expect(xssWindow.__gatesaiXss).toBeUndefined();
   });
 
-  it('keeps mermaid on its strict security level so labels are sanitised', async () => {
+  it('pins mermaid to its strict security level (whole-SVG DOMPurify pass, no click directives)', async () => {
     const mermaid = (await import('mermaid')).default;
     renderMessage({
       id: 'm-mermaid-strict',
