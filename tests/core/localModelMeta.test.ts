@@ -65,6 +65,18 @@ describe('localModelMetaFor', () => {
     expect(contextWindowFor(model('gemma4-abliterated:26b', { contextLength: 16_384 }))).toBe(16_384);
   });
 
+  it('a cloud entry with no contextLength: the tier and the budget use the same window (fix round 3, finding 5)', () => {
+    const reported = model('gpt-oss:120b-cloud', { remoteHost: 'https://ollama.com:443', maxContextLength: 131_072 });
+    const unreported = model('gpt-oss:20b-cloud', { remoteHost: 'https://ollama.com:443' });
+
+    expect(contextWindowFor(reported)).toBe(131_072);
+    expect(localModelContextLength(reported)).toBe(131_072);
+    // No reported maximum: the compact threshold, so it still runs full.
+    expect(contextWindowFor(unreported)).toBe(COMPACT_LOCAL_CONTEXT_TOKENS);
+    expect(localModelContextLength(unreported)).toBe(COMPACT_LOCAL_CONTEXT_TOKENS);
+    expect(localModelContextProfile(unreported)).toBe('full');
+  });
+
   it('prefers the reported parameter size over the tag name', () => {
     expect(localModelParameterBillions(model('gemma4:12b', { parameterBillions: 12.2 }))).toBe(12.2);
     expect(localModelParameterBillions(model('qwen2.5:7b'))).toBe(7);

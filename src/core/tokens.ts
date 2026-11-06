@@ -106,11 +106,39 @@ export function estimateLlmPayloadTokens(args: {
     + (args.reservedOutputTokens ?? replyReserveTokensFor(args.contextWindow));
 }
 
+/**
+ * Window for an Ollama cloud model with no reported maximum: the compact-tier
+ * threshold (core/localModelMeta COMPACT_LOCAL_CONTEXT_TOKENS), so it still
+ * runs `full`.
+ */
+const OLLAMA_CLOUD_FALLBACK_CONTEXT_TOKENS = 32_768;
+
+/**
+ * An Ollama cloud model (`remoteHost` set) runs on Ollama's servers, not with
+ * the local 4096 default: its window is the reported maximum
+ * (`maxContextLength`), else 32768.
+ */
+export function ollamaCloudContextLength(model: Model & { maxContextLength?: number }): number {
+  return model.maxContextLength ?? OLLAMA_CLOUD_FALLBACK_CONTEXT_TOKENS;
+}
+
+/**
+ * The window a request to this model is budgeted against. For Ollama this is
+ * also the window its prompt tier is picked from (core/localModelMeta
+ * `localModelContextLength`), so the two cannot disagree: the derived
+ * `contextLength`, else a cloud model's reported maximum, else Ollama's own
+ * default.
+ */
 export function contextWindowFor(model: Model | undefined | null): number {
   if (!model) return 32_000;
   if (model.contextLength && model.contextLength > 0) return model.contextLength;
   if (model.contextWindow && model.contextWindow > 0) return model.contextWindow;
+  if (model.providerId === 'ollama' && isRemoteOllamaEntry(model)) return ollamaCloudContextLength(model);
   return DEFAULT_WINDOW_BY_PROVIDER[model.providerId] ?? 32_000;
+}
+
+function isRemoteOllamaEntry(model: Model): model is Model & { remoteHost: string; maxContextLength?: number } {
+  return 'remoteHost' in model && Boolean((model as { remoteHost?: unknown }).remoteHost);
 }
 
 export interface TokenUsage {

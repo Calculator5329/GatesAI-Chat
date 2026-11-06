@@ -395,7 +395,10 @@ Local model window and prompt tiers (QW-1, SP-2;
   facts stay, since the same digest is the same manifest on any server.
   Ollama cloud models (`remoteHost` set) never get the local fallback: they
   budget against their reported maximum (32768 if none is reported) and
-  always run `full`; `/api/show`
+  always run `full`, also when an entry restored from an old snapshot has no
+  `contextLength`: `contextWindowFor` (`core/tokens.ts`) is the one function
+  for an Ollama model's window, used by both the budget and the tier
+  (`localModelContextLength`); `/api/show`
   and `/api/ps` are not consulted for them.
 - `localModelContextProfile` (`core/localModelMeta.ts`) maps that window to
   a tier. `usesCompactPrompt` (`contextModes.ts`) is true for both `slim`

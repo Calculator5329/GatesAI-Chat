@@ -14,9 +14,15 @@ import type { StreamingRoundActivityUpdate } from '../../../src/services/chat/st
 import { clearAppStorage } from '../../helpers/storage';
 import { appendMessageText, messageText, messageToolCalls, messageToolResults } from '../../../src/core/messageParts';
 import type { RagContextBundle } from '../../../src/services/rag/retrieval';
-import { COMPACT_LOCAL_CONTEXT_TOKENS, SMALL_LOCAL_CONTEXT_TOKENS } from '../../../src/core/localModelMeta';
+import {
+  COMPACT_LOCAL_CONTEXT_TOKENS,
+  SMALL_LOCAL_CONTEXT_TOKENS,
+  localModelContextLength,
+  localModelContextProfile,
+  type OllamaCatalogModel,
+} from '../../../src/core/localModelMeta';
 import type { ToolStoreContext } from '../../../src/services/chat/toolBatchExecutor';
-import { estimateLlmPayloadTokens, estimateTokens } from '../../../src/core/tokens';
+import { contextWindowFor, estimateLlmPayloadTokens, estimateTokens } from '../../../src/core/tokens';
 import { toolRegistry, withDisplayTextToolDef } from '../../../src/services/tools/registry';
 import { compactToolDescription } from '../../../src/services/chat/promptSlimming';
 
@@ -299,6 +305,38 @@ describe('TurnRunner', () => {
     expect(sent).toBeGreaterThan(4_000);
     expect(sent + 4_096).toBeLessThan(16_384);
     expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(1);
+  });
+
+  it('budgets an Ollama cloud entry with no contextLength against the window its tier uses, not the 4096 local fallback', async () => {
+    // Fix round 3, finding 5: an entry restored from an old snapshot has
+    // remoteHost and maxContextLength but no contextLength. The tier ran it
+    // `full` (reported maximum) while the budget used contextWindowFor's 4096
+    // and refused the turn.
+    const { runner, provider, registry, thread, host } = setup([[
+      { type: 'text', delta: 'Done.' },
+      { type: 'done', finishReason: 'stop' },
+    ]], { bridgeOnline: true });
+    const cloud: OllamaCatalogModel = {
+      id: 'ollama-gpt-oss:120b-cloud', name: 'gpt-oss:120b-cloud', vendor: 'Ollama', providerId: 'ollama',
+      providerModelId: 'gpt-oss:120b-cloud', supportsTools: true,
+      remoteHost: 'https://ollama.com:443', maxContextLength: 131_072,
+    };
+    registry.setDynamicForProvider('ollama', [cloud]);
+    thread.modelId = cloud.id;
+    thread.messages = [
+      { id: 'u-1', role: 'user', content: 'Hi there.', createdAt: 1 },
+      { id: 'a-1', role: 'assistant', content: 'Hello!', createdAt: 2 },
+      { id: 'u-2', role: 'user', content: 'Read my notes file and summarize it.', createdAt: 3 },
+    ];
+
+    await runner.run(thread.id, new AbortController().signal);
+
+    expect(host.errors[thread.id]).toBeUndefined();
+    expect(provider.calls).toHaveLength(1);
+    expect(provider.calls[0].messages.map(message => message.content)).toEqual(['Hi there.', 'Hello!', 'Read my notes file and summarize it.']);
+    // One window decides both: the tier and the budget.
+    expect(localModelContextProfile(cloud)).toBe('full');
+    expect(contextWindowFor(cloud)).toBe(localModelContextLength(cloud));
   });
 
   it('SP-2: slims prompt and tool schemas for a sub-32k local window, never for a large one', async () => {

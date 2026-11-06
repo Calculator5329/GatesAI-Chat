@@ -1,7 +1,7 @@
 import type { Model } from './types';
 import { modelSupportsVision } from './modelCapabilities';
 import { ollamaModelSupportsTools } from './localModelRules';
-import { contextWindowFor } from './tokens';
+import { contextWindowFor, ollamaCloudContextLength } from './tokens';
 
 /** Registry ids of Ollama models are `ollama-<tag>` (services/llm/ollamaCatalog). */
 export const OLLAMA_MODEL_ID_PREFIX = 'ollama-';
@@ -119,23 +119,17 @@ export function localModelMetaFor(model: OllamaCatalogModel): LocalModelMeta | n
 
 /**
  * The window an Ollama model runs with: what /api/show or the request sets,
- * else Ollama's default. Never the family table, which holds trained sizes
- * that Ollama does not load unless told to.
+ * a cloud model's reported maximum, else Ollama's default. Never the family
+ * table, which holds trained sizes that Ollama does not load unless told to.
+ * It is `contextWindowFor`, the function TurnRunner budgets with, so the
+ * tier and the budget always agree.
  */
 export function localModelContextLength(model: Model): number | undefined {
   if (model.providerId !== 'ollama') return model.contextLength ?? model.contextWindow;
-  if (isOllamaCloudModel(model)) return model.contextLength ?? ollamaCloudContextLength(model);
   return contextWindowFor(model);
 }
 
-/**
- * An Ollama cloud model runs on Ollama's servers, not with the local 4096
- * default: its window is the reported maximum, else the compact threshold so
- * it still runs `full`.
- */
-export function ollamaCloudContextLength(model: OllamaCatalogModel): number {
-  return model.maxContextLength ?? COMPACT_LOCAL_CONTEXT_TOKENS;
-}
+export { ollamaCloudContextLength };
 
 /** Most context the model supports, for display only: what Ollama reported, else the family table. */
 export function localModelMaxContextLength(model: OllamaCatalogModel): number | undefined {
