@@ -105,6 +105,39 @@ test.describe('web lite without a configured provider', () => {
 });
 
 
+// Real mermaid + its bundled DOMPurify in a real browser: the jsdom unit tests
+// mock mermaid, so only this proves a hostile diagram label cannot run script.
+test('renders a mermaid diagram from model output without running an injected event handler', async ({ page }) => {
+  await seedReadyProvider(page);
+  await mockOpenRouter(page);
+  const content = [
+    'Diagram below.',
+    '',
+    '```mermaid',
+    'graph TD',
+    '  A["<img src=x onerror=window.__gatesaiXss=1>Start"] --> B["<b onmouseover=window.__gatesaiXss=2>End</b>"]',
+    '```',
+  ].join('\n');
+  await seedThreads(page, [makeThread('xss-mermaid', 'Mermaid', [
+    { id: 'xss-mermaid-message', role: 'assistant', content, createdAt: 1 },
+  ])], 'xss-mermaid');
+  await page.goto('/#/workspace');
+
+  const diagram = page.locator('.mermaid-diagram svg');
+  await expect(diagram).toBeVisible();
+  await expect(diagram).toContainText('Start');
+  await diagram.locator('text=End').first().hover();
+  // Every image the label kept must have finished (an error counts) before the
+  // flag is read, so a surviving onerror would already have fired.
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('.mermaid-diagram img'))
+    .every(img => (img as HTMLImageElement).complete));
+  const handlerAttrs = await page.locator('.mermaid-diagram').evaluate(root =>
+    Array.from(root.querySelectorAll('*')).flatMap(element =>
+      Array.from(element.attributes).filter(attr => attr.name.startsWith('on')).map(attr => `${element.tagName}[${attr.name}]`)));
+  expect(handlerAttrs).toEqual([]);
+  expect(await page.evaluate(() => (window as typeof window & { __gatesaiXss?: number }).__gatesaiXss)).toBeUndefined();
+});
+
 test('downloads exact response bytes and provenance offline, including after reload', async ({ page, context }) => {
   await seedReadyProvider(page);
   await mockOpenRouter(page);

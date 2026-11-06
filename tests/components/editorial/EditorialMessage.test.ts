@@ -409,6 +409,66 @@ describe('EditorialMessage markdown rendering', () => {
     expect(rendered.querySelector('.mermaid-diagram svg')).not.toBeNull();
   });
 
+  // Model output is untrusted. These pin the two markdown defences: raw HTML
+  // is never parsed into elements (react-markdown renders it as text because
+  // no rehype-raw is wired in), and link URLs pass markdownUrlTransform, which
+  // blanks script-capable schemes. The real-browser mermaid + DOMPurify check
+  // lives in tests/e2e/web-lite.spec.ts.
+  it('neutralises script and event-handler HTML in model output', async () => {
+    const xssWindow = window as typeof window & { __gatesaiXss?: number };
+    delete xssWindow.__gatesaiXss;
+    const rendered = renderMessage({
+      id: 'm-xss',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: [
+        'Before <img src="x" onerror="window.__gatesaiXss=1"> after.',
+        '',
+        '<script>window.__gatesaiXss=2</script>',
+        '',
+        '<div onclick="window.__gatesaiXss=3"><svg onload="window.__gatesaiXss=4"></svg></div>',
+        '',
+        '[click me](javascript:window.__gatesaiXss=5)',
+      ].join('\n'),
+    });
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    const body = rendered.querySelector('.md-body');
+    expect(body).not.toBeNull();
+    expect(body!.querySelector('script, img, svg, div[onclick]')).toBeNull();
+    for (const element of Array.from(body!.querySelectorAll('*'))) {
+      for (const attr of Array.from(element.attributes)) {
+        expect(attr.name.startsWith('on'), `${element.tagName} carries ${attr.name}`).toBe(false);
+      }
+    }
+    for (const anchor of Array.from(body!.querySelectorAll('a'))) {
+      expect(anchor.getAttribute('href') ?? '').not.toMatch(/^\s*javascript:/i);
+    }
+    // The payload stays visible as inert text rather than vanishing silently.
+    expect(body!.textContent).toContain('<img src="x" onerror="window.__gatesaiXss=1">');
+    expect(xssWindow.__gatesaiXss).toBeUndefined();
+  });
+
+  it('keeps mermaid on its strict security level so labels are sanitised', async () => {
+    const mermaid = (await import('mermaid')).default;
+    renderMessage({
+      id: 'm-mermaid-strict',
+      role: 'assistant',
+      createdAt: Date.now(),
+      content: '```mermaid\ngraph TD\n  A["<img src=x onerror=alert(1)>"] --> B\n```',
+    });
+
+    await act(async () => {
+      await flushMicrotasks();
+    });
+
+    const lastConfig = vi.mocked(mermaid.initialize).mock.lastCall?.[0];
+    expect(lastConfig?.securityLevel).toBe('strict');
+  });
+
   it('renders unknown-language code with copy and wrap controls', async () => {
     const writeText = vi.fn(async () => undefined);
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
