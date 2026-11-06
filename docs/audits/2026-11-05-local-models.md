@@ -31,7 +31,11 @@ frame or a test. **Inferred** means read from code or worked out without a live 
 
 ## Measurements
 
-### gemma4-abliterated:26b, final build (50e8959), measured
+Commit hashes below are the ones on `lane/local-models` after the rebase onto master
+278cfbc (`git log --oneline master..HEAD`). An earlier draft cited pre-rebase hashes
+that no longer exist.
+
+### gemma4-abliterated:26b, final build (1856daa), measured
 
 The model loads with its 16384 window, so the context tier is compact and mode stays
 full. The system prompt is 1526 chars, with 6 tools (8 on the tool turn).
@@ -49,7 +53,7 @@ threads."}` returned ok. The final answer was "There are 4 recent chat threads."
 is at least 13.8k tokens on every request. The app's estimate lands within 7% of
 Ollama's count, always slightly under.
 
-### gemma4-abliterated:26b, before the namer fix (7a0a79c), measured
+### gemma4-abliterated:26b, before the namer fix (819a3b6), measured
 
 | Turn | prompt_eval_count | First visible text | Wall | Note |
 | --- | --- | --- | --- | --- |
@@ -78,7 +82,7 @@ Ollama's count, always slightly under.
 
 ## Findings
 
-### F1. The reconcile step pinned micro mode, and the composer showed something else (fixed, 853f596)
+### F1. The reconcile step pinned micro mode, and the composer showed something else (fixed, 2a6741d)
 
 - Measured: before the fix, `ChatStore` reconcile wrote `contextMode = 'micro'` onto
   any thread on a small-window local model. Moving that thread to a 16k model kept it
@@ -89,7 +93,7 @@ Ollama's count, always slightly under.
 - Red first: a RootStore.ollama test (a moved chat on a 16k model should be full) and an
   EditorialComposer test.
 
-### F2. Budget used a family-table 8000 and ignored the Modelfile's 16384 (fixed, cf88076)
+### F2. Budget used a family-table 8000 and ignored the Modelfile's 16384 (fixed, 3268189)
 
 - Measured: `/api/show` returns `parameters: "num_ctx 16384"` for both big models. The
   app budgeted gemma4 at 8000 from its family table, and the slim/micro decision used
@@ -98,8 +102,12 @@ Ollama's count, always slightly under.
   `contextLength`. A format-profile `numCtx` still wins, since the request sends it.
 - Measured after the fix: the live catalog entry has `contextLength` 16384.
 - Red first: an OllamaStore window test and localModelMeta tests.
+- Correction (review round, a4d3916): the TurnRunner "16k local window" test hand-set
+  `contextLength` 16384, so it also passed on master and proved nothing about this
+  path. It now learns the window through OllamaStore's `/api/show`, and was seen red
+  against master 278cfbc ("This thread is too large to send safely").
 
-### F3. Unconfigured models were budgeted above what Ollama loads (fixed, cf88076)
+### F3. Unconfigured models were budgeted above what Ollama loads (fixed, 3268189)
 
 - Measured: a model with no `num_ctx` loads at 4096. The app budgeted gemma4:12b at
   its family size, so Ollama would silently cut the prompt.
@@ -108,20 +116,23 @@ Ollama's count, always slightly under.
   reserves the whole window for the reply and refuses even a bare prompt.
 - Red first: a ChatStore bare-prompt reserve test.
 
-### F4. Ollama `message.thinking` was dropped (fixed, 07f110a)
+### F4. Ollama `message.thinking` was dropped (fixed, 1dd1354)
 
 - Measured: Ollama streams `message.thinking` separately from `content`, and the
   provider ignored it.
-- Fix: it now arrives as reasoning chunks, gated on `supportsThinking`, into the
-  existing live "Thinking" activity row. No new UI.
+- Fix: it now arrives as reasoning chunks into the existing live "Thinking" activity
+  row. No new UI. It is **not** gated on `supportsThinking`: `ollama.ts` pushes a
+  reasoning chunk whenever a frame carries `message.thinking` (an earlier draft of this
+  audit said it was gated; it is not). A model that never thinks simply sends no such
+  frames.
 - Measured live: the row read "Thinking: The…" 3.6 s into turn 2, 3.7 s before the
   first answer text.
 - Red first: an OllamaProvider reasoning test and a ChatStore thinking-row test.
 - Not persisted: the row is live-only (see Left).
 
-### F5. Auto-titles thought on the chat model and queued the user's next turn (fixed, 50e8959)
+### F5. Auto-titles thought on the chat model and queued the user's next turn (fixed, 1856daa)
 
-Raw repro, measured at 7a0a79c. The namer's request:
+Raw repro, measured at 819a3b6. The namer's request:
 
 ```json
 {"model":"gemma4-abliterated:26b","stream":true,"keep_alive":"5m",
@@ -141,7 +152,7 @@ serves one request at a time, so turn 2 waited: 30.9 s wall for 9.2 s of work.
 - Red first: a threadNamer test (`thinkingEffort` was undefined) and an OllamaProvider
   test (`think` was undefined).
 
-### F6. OllamaProvider never sent `maxTokens` (partly fixed, 50e8959)
+### F6. OllamaProvider never sent `maxTokens` (partly fixed, 1856daa)
 
 - Inferred from code, confirmed by the measured request bodies: `options` carried only
   temperature, `num_ctx` and stop. Micro's 512 cap, compaction's cap and `llmComplete`'s
@@ -150,24 +161,69 @@ serves one request at a time, so turn 2 waited: 30.9 s wall for 9.2 s of work.
   thinking tokens against `num_predict`, so a 512 cap on a thinking model could be spent
   entirely on thinking and leave no answer (inferred from Ollama's accounting, not
   measured).
-- Red first: the OllamaProvider short-answer test, plus a guard test showing the cap is
-  not sent while thinking is on.
+- Red first: the OllamaProvider short-answer test.
+- Guard, not red first: "leaves the reply uncapped while thinking is on". Before the fix
+  no cap was ever sent, so it passed on master too; it only stops a future change from
+  sending the cap while thinking is on. An earlier draft listed it under red first.
 - Left: compaction and `llmComplete` still leave thinking on, so their caps still don't
   reach Ollama (see Left).
 
-### SP-2. Compact prompt below a 32k window (done, 7a0a79c)
+### SP-2. Compact prompt below a 32k window (done, 819a3b6)
 
 - The tier comes from the effective loaded window (`localModelContextProfile`):
-  - slim below 8000 forces micro
+  - slim below 8000 forces micro, and also gets compact tool schemas
+    (`usesCompactPrompt` covers slim; guarded by a TurnRunner test since e720ffc)
   - compact from 8000 to 32767 gives the compact harness prompt, compact tool schemas
     (the first sentences of each description, structure unchanged) and no recent-chat
     summaries
   - full at 32768 and above
-- Unit test (measured): on the same fixture the compact request estimates under 0.6× the
+- Unit test (measured): on the same fixture the compact request estimated under 0.6× the
   large-window request. Unfixed, both came to 8054 estimated tokens. Tool schemas stay
   structurally equal, and the large model's tools are unchanged.
+- Review round (c69114a): safety and argument rules now survive compaction as `Rule:`
+  lines, which costs some of the cut. On today's fixture the compact request is 4973 of
+  8115 estimated tokens (61%) and the tools 4301 of 6930 (62%); the test bar moved from
+  0.6× to 0.65×. Measured by the unit test, not live.
 - Live (measured): 1816 to 2581 prompt tokens against 16384.
 - Documented in `docs/architecture.md`, "Local model window and prompt tiers".
+
+## Review round (review-01, 2026-11-06)
+
+Reviewer findings are numbered R1 to R11 here so they don't clash with F1 to F6 above.
+No live Ollama, GPU or harness run in this round; every result below is from unit tests
+or reading code.
+
+- R1 (c69114a): SP-2 compaction dropped safety and argument rules. A description line
+  starting `Rule: ` is now kept verbatim. Converted: fs attachments read-only, memory's
+  never-save rule, thread's required arguments, git's restore confirmation literal,
+  image_generate's multiple-of-16 size, and a sweep (ask_user, sqlite_query,
+  chat_history, notes, artifact, fetch_page). Red first: one generic test plus one per
+  named rule.
+- R2 (eadca7c): "e.g.", "i.e.", "etc." and "vs." ended a sentence, which cut the micro
+  fs JSON example and terminal's `cmd` description. Red first: both.
+- R3 (e720ffc): slim windows also get compact tool schemas; documented, plus a guard test
+  at 4096 (passes before and after; the behaviour was right, the docs were not).
+- R4 (b4781a3): cloud models (`remoteHost`) never take the 4096 fallback and always run
+  `full`. The probe reads `GET /api/ps`; a loaded model's `context_length` is the
+  observed window and beats the Modelfile `num_ctx`. It persists on the catalog entry
+  (no schema change) and is dropped on a digest change. Red first: ps 32768 runs full
+  with history, cloud runs full, kept after unload, survives a restart. That `/api/ps`
+  reports `context_length` on Ollama 0.40.4 rests on the measured setup above; the
+  digest format matching `/api/tags` is **inferred** (matched loosely by prefix).
+- R5 (a4d3916): see the correction under F2.
+- R6 (b4781a3): a failed `/api/show` is remembered per tag and digest for the session
+  (one warning, not one POST per 60 s probe), and restored entries keep their digest so
+  a launch does not re-ask. Red first: 6 calls became 1.
+- R7 (4c1e344): reasoning kept the stall timer alive but also counted as received
+  content, so a transient error after thinking alone was never retried. Red first: an
+  executor test and a ChatStore test, which also asserts the retry clears the Thinking
+  row.
+- R8 (0668429): reasoning updated the store once per chunk. It is now coalesced to one
+  update per frame. Red first: five chunks in one frame made five updates.
+- R9 (1b1f09c): the `activityProjection.ts` comment now says what the row does.
+- R10 (this commit): this audit's hashes, the F4 gating claim and the red-first lists are
+  corrected; `docs/architecture.md` says the micro 512 cap does not reach Ollama.
+- R11: no code change; tracked under Left (text not available to this round, see there).
 
 ## Incidents (GPU rules)
 
@@ -190,12 +246,21 @@ At the end of this lane `/api/ps` is `{"models":[]}` (measured).
 - [ ] Compaction (`turnRunner.compactToolResultWithModel`) and `ChatStore.llmComplete`
   should send `thinkingEffort: 'none'`. On Ollama that turns thinking off and lets their
   caps through as `num_predict`. Needs a red test each.
-- [ ] Micro mode's 512 cap still doesn't reach Ollama on thinking models. Decide between
-  turning thinking off in micro and sending a cap sized for thinking plus answer.
+- [ ] Micro mode's 512 cap doesn't reach Ollama on any chat turn: `OllamaProvider` sends
+  `num_predict` only when `thinkingEffort === 'none'`, and TurnRunner sets
+  `thinkingEffort` for OpenRouter models only. Decide between turning thinking off in
+  micro and sending a cap sized for thinking plus answer.
 - [ ] Persist reasoning on the message so the Thinking row survives a reload. This needs
   a persistence schema change, a migration and a `schemaVersion` bump.
-- [ ] Read `/api/ps` `context_length` (or `OLLAMA_CONTEXT_LENGTH`) so a server-wide
-  default is honoured; today only the Modelfile `num_ctx` is.
+- [x] Read `/api/ps` `context_length` so a server-wide default is honoured (b4781a3).
+  Until a tag has been loaded once, a server-wide `OLLAMA_CONTEXT_LENGTH` is still not
+  seen and the 4096 fallback applies (inferred).
+- [ ] render_ui's compact schema keeps only the opening of its spec-shape prose; two
+  `Rule:` lines would not make it callable, since it needs the component catalog.
+  Decide whether small windows should get render_ui at all.
+- [ ] R11 from review-01: its text was not readable by the fix round (permission on the
+  review file). Placeholder; the coordinator should replace this line with the
+  reviewer's wording.
 - [ ] Semantic memory embeds with a second Ollama model while a chat model is loaded.
   On a 16 GB card that evicts or splits the chat model. Gate embedding on VRAM, or
   queue it.

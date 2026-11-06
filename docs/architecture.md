@@ -418,11 +418,16 @@ Local model window and prompt tiers (QW-1, SP-2;
   the mode the next turn will run. Its title says when a small window forces
   `micro`.
 - Ollama `message.thinking` streams as `reasoning` chunks
-  (`core/llm.ts`). TurnRunner appends them to the live
-  `StreamActivity.reasoning`, which the provider-stream activity row shows
-  as "Thinking" with a tail of the text (`activityProjection.ts`). Reasoning
-  counts as stream activity for the stall timers. It is display-only: never
-  stored on the message, persisted, or replayed to the model.
+  (`core/llm.ts`) whenever a frame carries it; this is not gated on the
+  model's `supportsThinking`. TurnRunner hands them to
+  `ChatTurnEngine.appendStreamReasoning`, which coalesces them into one
+  update of the live `StreamActivity.reasoning` per frame. The
+  provider-stream activity row shows it as "Thinking" with a tail of the
+  text (`activityProjection.ts`). Reasoning counts as stream activity for
+  the stall timers, but not as received content: a transient error after
+  thinking alone is still retried, and the retry's `connecting` update
+  starts the row empty. It is display-only: never stored on the message,
+  persisted, or replayed to the model.
 
 Static tool list generated from `src/services/tools/registry.ts`:
 
