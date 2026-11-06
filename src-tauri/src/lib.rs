@@ -130,6 +130,11 @@ pub fn run() {
       eprintln!("[gatesai] spawned bridge sidecar");
       Ok(())
     })
+    .on_page_load(|webview, payload| {
+      if payload.event() == tauri::webview::PageLoadEvent::Started {
+        webview.state::<local_http::LocalHttpState>().cancel_webview(webview.label());
+      }
+    })
     .on_window_event(|window, event| {
       if let tauri::WindowEvent::CloseRequested { api, .. } = event {
         if desktop::close_to_tray_enabled(window) {

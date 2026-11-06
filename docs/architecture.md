@@ -793,6 +793,12 @@ the Brave API with the user's key.
 `local_http_request`: http or https to any host, no userinfo, the normalized
 path must be on a fixed Ollama/ComfyUI API allowlist, only `Content-Type`,
 `Accept` and `Authorization` headers pass, and redirects are not followed.
+Requests are tracked by the invoking webview label and request id. JS
+AbortSignals cancel one request; Tauri's page-load Started hook cancels all
+requests belonging to the reloading or navigating webview. Completion tokens
+keep a cancelled task's cleanup from removing a replacement request with the
+same id. Other webviews retain their requests. Registry ownership and cancel
+logic live in `src-tauri/src/local_http/requests.rs`.
 Rationale in `docs/adr/2026-10-01-local-http-passthrough.md`.
 
 **Secrets.** On desktop, API keys live in the OS credential store via the

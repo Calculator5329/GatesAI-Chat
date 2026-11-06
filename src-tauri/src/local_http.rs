@@ -15,7 +15,6 @@ use std::time::Duration;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use reqwest::{Method, Url};
 use serde::{Deserialize, Serialize};
-use tauri::async_runtime::JoinHandle;
 use tauri::ipc::{Channel, InvokeResponseBody};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -91,12 +90,15 @@ enum LocalHttpEvent {
   Error { message: String },
 }
 
-/// In-flight requests by id, so `local_http_cancel` can abort the task even
+mod requests;
+use requests::RequestRegistry;
+
+/// In-flight requests by webview and id, so `local_http_cancel` can abort the task even
 /// while it is waiting on a slow server, plus the shared HTTP clients. The
 /// clients are built once so connections are kept alive across the many
 /// polls of one ComfyUI render; a build failure is reported per request.
 pub struct LocalHttpState {
-  tasks: Arc<Mutex<HashMap<String, JoinHandle<()>>>>,
+  tasks: Arc<Mutex<RequestRegistry>>,
   clients: Result<Clients, String>,
 }
 
@@ -106,6 +108,17 @@ impl Default for LocalHttpState {
       tasks: Arc::default(),
       clients: Clients::build().map_err(|err| format!("Could not set up the local runtime HTTP client: {err}.")),
     }
+  }
+}
+
+impl LocalHttpState {
+  /// A new document cannot abort the old document's JS AbortSignals.
+  pub fn cancel_webview(&self, owner: &str) {
+    lock(&self.tasks).cancel_webview(owner);
+  }
+
+  fn cancel_request(&self, owner: String, id: String) {
+    lock(&self.tasks).cancel(&(owner, id));
   }
 }
 
@@ -144,6 +157,7 @@ impl Clients {
 /// `error`. A connection failure is a single `error` with no `head`.
 #[tauri::command]
 pub async fn local_http_request(
+  webview: tauri::Webview,
   request: LocalHttpRequest,
   on_event: Channel<InvokeResponseBody>,
   state: tauri::State<'_, LocalHttpState>,
@@ -161,26 +175,27 @@ pub async fn local_http_request(
 
   let registry = Arc::clone(&state.tasks);
   let mut tasks = lock(&state.tasks);
-  if tasks.contains_key(&request.id) {
+  let key = (webview.label().to_string(), request.id.clone());
+  if tasks.contains(&key) {
     return Err(format!("Local request {} is already running.", request.id));
   }
-  let id = request.id.clone();
+  let task_key = key.clone();
+  let token = Arc::new(());
+  let task_token = Arc::clone(&token);
   // The lock is held until the handle is inserted, so the task's own removal
   // always runs after the insert.
   let handle = tauri::async_runtime::spawn(async move {
     stream_response(outgoing, &on_event).await;
-    lock(&registry).remove(&id);
+    lock(&registry).finish(&task_key, &task_token);
   });
-  tasks.insert(request.id, handle);
+  tasks.insert(key, token, Box::new(move || handle.abort()));
   Ok(())
 }
 
 /// Aborts an in-flight request. Unknown or finished ids are a no-op.
 #[tauri::command]
-pub fn local_http_cancel(id: String, state: tauri::State<'_, LocalHttpState>) {
-  if let Some(handle) = lock(&state.tasks).remove(&id) {
-    handle.abort();
-  }
+pub fn local_http_cancel(webview: tauri::Webview, id: String, state: tauri::State<'_, LocalHttpState>) {
+  state.cancel_request(webview.label().to_string(), id);
 }
 
 async fn stream_response(request: reqwest::RequestBuilder, channel: &Channel<InvokeResponseBody>) {
@@ -313,7 +328,7 @@ fn describe_error(err: &reqwest::Error) -> String {
   message
 }
 
-fn lock(tasks: &Mutex<HashMap<String, JoinHandle<()>>>) -> MutexGuard<'_, HashMap<String, JoinHandle<()>>> {
+fn lock(tasks: &Mutex<RequestRegistry>) -> MutexGuard<'_, RequestRegistry> {
   tasks.lock().unwrap_or_else(|poison| {
     log::warn!("[gatesai] local http task registry lock was poisoned; recovering");
     poison.into_inner()
@@ -323,6 +338,47 @@ fn lock(tasks: &Mutex<HashMap<String, JoinHandle<()>>>) -> MutexGuard<'_, HashMa
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  struct DropSignal(std::sync::mpsc::Sender<()>);
+
+  impl Drop for DropSignal {
+    fn drop(&mut self) {
+      let _ = self.0.send(());
+    }
+  }
+
+  // No listener or network needed: dropping this pending future signals
+  // that cancellation actually stopped the task, not just registry tracking.
+  fn pending_request(state: &LocalHttpState, owner: &str, id: &str) -> std::sync::mpsc::Receiver<()> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let dropped = DropSignal(tx);
+    let handle = tauri::async_runtime::spawn(async move {
+      let _dropped = dropped;
+      std::future::pending::<()>().await;
+    });
+    lock(&state.tasks).insert((owner.into(), id.into()), Arc::new(()), Box::new(move || handle.abort()));
+    rx
+  }
+
+  #[test]
+  fn reload_aborts_every_request_owned_by_that_webview() {
+    let state = LocalHttpState::default();
+    let first = pending_request(&state, "main", "chat");
+    let second = pending_request(&state, "main", "pull");
+    let other = pending_request(&state, "other", "chat");
+
+    state.cancel_webview("main");
+
+    assert!(lock(&state.tasks).contains(&("other".into(), "chat".into())));
+    let first_stopped = first.recv_timeout(Duration::from_secs(1));
+    let second_stopped = second.recv_timeout(Duration::from_secs(1));
+    let other_running = other.try_recv();
+    state.cancel_request("other".into(), "chat".into());
+    assert!(first_stopped.is_ok(), "reloading must stop the chat task");
+    assert!(second_stopped.is_ok(), "reloading must stop the pull task");
+    assert!(matches!(other_running, Err(std::sync::mpsc::TryRecvError::Empty)));
+    assert!(other.recv_timeout(Duration::from_secs(1)).is_ok());
+  }
 
   #[test]
   fn allows_ollama_and_comfy_api_urls_on_any_http_host() {
