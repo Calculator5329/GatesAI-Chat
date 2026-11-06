@@ -4,7 +4,7 @@ import { autorun, makeAutoObservable, runInAction } from 'mobx';
 import type { ActivityItem, AssistantMessage, ChatSnapshot, Message, StreamActivity, Thread } from '../core/types';
 import type { LlmRequest } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
-import { resolveBackgroundModelId, resolveDefaultModelId } from '../core/defaultModel';
+import { resolveBackgroundModelId, resolveDefaultModelId, runsOnThisMachine } from '../core/defaultModel';
 import { localModelContextProfile, OLLAMA_MODEL_ID_PREFIX } from '../core/localModelMeta';
 import { splitAttachmentFooter } from '../core/attachments';
 import { appendMessageText, messageText } from '../core/messageParts';
@@ -494,6 +494,8 @@ export class ChatStore {
   }
 
   private backgroundModelCandidates(fallbackModelId: string): string[] {
+    const own = this.registry.findById(fallbackModelId);
+    if (own && runsOnThisMachine(own)) return [own.id];
     const ids = [this.backgroundModelId, fallbackModelId, this.defaultModelId]
       .filter((id): id is string => typeof id === 'string' && id.length > 0);
     return [...new Set(ids)];

@@ -79,7 +79,12 @@ function rankLocalModels(
     .map(item => item.model);
 }
 
-function runsOnThisMachine(model: Model): boolean {
+/**
+ * True for a chat model the user's own Ollama runs (not an Ollama cloud model). A chat on
+ * one keeps its background helpers on it: nothing goes to a cloud model, and no second
+ * local model loads next to it and evicts it from the GPU.
+ */
+export function runsOnThisMachine(model: Model): boolean {
   return isLocalChatModel(model) && !isOllamaCloudModel(model);
 }
 

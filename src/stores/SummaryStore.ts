@@ -8,7 +8,7 @@ import type { ChatStore } from './ChatStore';
 import type { ProviderStore } from './ProviderStore';
 import type { ModelRegistry } from './ModelRegistry';
 import { logger } from '../services/diagnostics/logger';
-import { resolveBackgroundModelId } from '../core/defaultModel';
+import { resolveBackgroundModelId, runsOnThisMachine } from '../core/defaultModel';
 import { messageText, messageToolResults } from '../core/messageParts';
 
 /**
@@ -177,7 +177,7 @@ export class SummaryStore {
   }
 
   private async summarizeOne(thread: Thread): Promise<void> {
-    const { provider, providerModelId } = this.pickSummarizer();
+    const { provider, providerModelId } = this.pickSummarizer(thread);
     if (!provider) {
       // Nothing connected at all — quietly skip.
       return;
@@ -190,6 +190,8 @@ export class SummaryStore {
       messages: [{ role: 'user', content: transcript }],
       maxTokens: MAX_SUMMARY_TOKENS,
       temperature: 0.3,
+      // A local thinking model would spend the whole cap reasoning; on OpenRouter 'none' is a no-op.
+      thinkingEffort: 'none',
     };
 
     const controller = new AbortController();
@@ -220,9 +222,14 @@ export class SummaryStore {
     });
   }
 
-  /** Pick a cheap cloud model or small local model; return null to silently skip. */
-  private pickSummarizer(): { provider: ReturnType<ProviderStore['router']['get']> | null; providerModelId: string } {
-    const resolvedId = resolveBackgroundModelId({
+  /**
+   * A thread on a local model is summarized by that model, so its content never reaches a
+   * cloud model and no second local model is loaded. Otherwise a cheap cloud model or the
+   * small local one. Returns no provider to skip quietly.
+   */
+  private pickSummarizer(thread: Thread): { provider: ReturnType<ProviderStore['router']['get']> | null; providerModelId: string } {
+    const own = this.registry.findById(thread.modelId);
+    const resolvedId = own && runsOnThisMachine(own) ? own.id : resolveBackgroundModelId({
       hasOpenRouterKey: !!this.providers.getConfig('openrouter').apiKey,
       ollamaOnline: this.providers.getConfig('ollama').available === true,
       localModels: this.registry.all.filter(model => model.providerId === 'ollama'),
