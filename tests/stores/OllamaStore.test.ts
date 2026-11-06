@@ -313,19 +313,45 @@ describe('OllamaStore', () => {
 
     it('remembers a failed /api/show for the session per tag and digest: one request and one warning, not one per probe', async () => {
       const warn = vi.spyOn(logger, 'warn');
-      const { store, fetchOllamaNumCtx } = harness({
+      const { store, local, fetchOllamaNumCtx } = harness({
         tags: makeTags(),
         running: { models: [] },
         numCtx: async () => { throw new Error('Ollama 500'); },
       });
 
+      await store.refresh();
+      await flushLookups();
+      // The periodic probe (not an explicit refresh) does not ask again.
       for (let probe = 0; probe < 3; probe += 1) {
-        await store.refresh();
+        await local.probe('ollama');
         await flushLookups();
       }
 
       expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(1);
       expect(warn.mock.calls.filter(call => String(call[1]).includes('/api/show'))).toHaveLength(1);
+    });
+
+    // Fix round 3, finding 4: one 8 s timeout at launch left a 16k tag on 4096
+    // until /api/ps saw a load or the app restarted.
+    it('an explicit refresh ("Check again") retries a failed /api/show', async () => {
+      const { store, local, model, fetchOllamaNumCtx } = harness({
+        tags: makeTags(),
+        running: { models: [] },
+        numCtx: async () => { throw new Error('timed out'); },
+      });
+      await store.refresh();
+      await flushLookups();
+      await local.probe('ollama');
+      await flushLookups();
+      expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(1);
+      expect(model(PLAIN_TAG).contextLength).toBeUndefined();
+
+      fetchOllamaNumCtx.mockImplementation(async () => 16_384);
+      await store.refresh();
+      await flushLookups();
+
+      expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(2);
+      expect(model(PLAIN_TAG).contextLength).toBe(16_384);
     });
   });
 

@@ -261,8 +261,14 @@ export class OllamaStore {
     }
   }
 
-  /** Probes Ollama now; a successful answer refreshes the catalog through applyTags. */
+  /**
+   * Probes Ollama now; a successful answer refreshes the catalog through
+   * applyTags. An explicit refresh ("Check again", or after a pull or delete)
+   * also asks /api/show again for tags whose lookup failed; the periodic
+   * probe does not.
+   */
   refresh(): Promise<void> {
+    this.failedWindowLookups.clear();
     return this.localRuntime.probe('ollama', { fresh: true });
   }
 
