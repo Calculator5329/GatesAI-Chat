@@ -5,6 +5,7 @@ import { DEFAULT_MODEL_ID } from '../../src/core/models';
 import { createEmptyThread } from '../../src/core/threadOps';
 import type { Model } from '../../src/core/types';
 import { clearAppStorage } from '../helpers/storage';
+import { effectiveContextMode } from '../../src/services/chat/contextModes';
 
 const QWEN: Model = {
   id: 'ollama-qwen3.5:4b',
@@ -232,6 +233,25 @@ describe('RootStore — Ollama config bridge', () => {
     probeAgain(root);
 
     expect(modelOf()).toBe(DEFAULT_MODEL_ID);
+    root.dispose();
+  });
+
+  it('leaves the context mode of a moved chat to the model window, so a 16k model keeps full history', () => {
+    // QW-1: reconcile used to pin every moved chat to micro (latest message
+    // only, 512-token replies, tools cut to recall) even on a 16k model.
+    const root = bootWithOpenRouterKey();
+    const emptyId = root.chat.createThread();
+    const gemma: Model = { ...QWEN, id: 'ollama-gemma4-abliterated:26b', name: 'gemma4-abliterated:26b', providerModelId: 'gemma4-abliterated:26b', contextLength: 16_384 };
+    runInAction(() => {
+      root.registry.setDynamicForProvider('ollama', [gemma]);
+      root.localRuntime.runtimes.ollama.status = 'online';
+    });
+
+    const moved = root.chat.threads.find(thread => thread.id === emptyId)!;
+    expect(moved.modelId).toBe(gemma.id);
+    expect(effectiveContextMode(moved, gemma)).toBe('full');
+    // An unconfigured tag loads at 4096, so the same rule still picks micro there.
+    expect(effectiveContextMode(moved, { ...gemma, contextLength: undefined })).toBe('micro');
     root.dispose();
   });
 

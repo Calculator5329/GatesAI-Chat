@@ -34,7 +34,7 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
   const activeSkill = skills.findById(activeThread?.skillId);
   const activeSkillLabel = activeSkill?.name ?? activeThread?.skillId ?? '';
   const webLite = isWebLite();
-  const localContextMode = activeThread?.contextMode ?? (currentModel?.providerId === 'ollama' ? 'micro' : 'full');
+  const localContext = chat.activeLocalContext;
   const thinkingEffort = normalizeOpenRouterThinkingEffort(activeThread?.thinkingEffort);
 
   const {
@@ -252,7 +252,8 @@ export const EditorialComposer = observer(function EditorialComposer({ textareaR
           skillsLoading={skills.loading}
           activeSkillLabel={activeSkillLabel}
           onPickSkill={pickSkill}
-          localContextMode={localContextMode}
+          localContextMode={localContext.mode}
+          localContextSmallWindow={localContext.smallWindow}
           onContextModeChange={onContextModeChange}
           thinkingEffort={thinkingEffort}
           onThinkingEffortChange={onThinkingEffortChange}

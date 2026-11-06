@@ -41,6 +41,8 @@ interface ComposerMetaProps {
   activeSkillLabel: string;
   onPickSkill: (skillId: string | undefined) => void;
   localContextMode: ChatContextMode;
+  /** Set when the model's loaded window forces micro tools. */
+  localContextSmallWindow?: number;
   onContextModeChange: (mode: ChatContextMode) => void;
   thinkingEffort: ChatThinkingEffort;
   onThinkingEffortChange: (effort: ChatThinkingEffort) => void;
@@ -68,6 +70,7 @@ export function ComposerMeta({
   activeSkillLabel,
   onPickSkill,
   localContextMode,
+  localContextSmallWindow,
   onContextModeChange,
   thinkingEffort,
   onThinkingEffortChange,
@@ -152,7 +155,9 @@ export function ComposerMeta({
             className="composer-local-select"
             value={localContextMode}
             onChange={e => onContextModeChange(e.currentTarget.value as ChatContextMode)}
-            title="Local context mode"
+            title={localContextSmallWindow
+              ? `This model loads with a ${localContextSmallWindow}-token window, so turns run micro tools. Set num_ctx in its Modelfile for more.`
+              : 'Local context mode'}
             style={LOCAL_CONTEXT_SELECT_STYLE}
           >
             <option value="full">full context</option>

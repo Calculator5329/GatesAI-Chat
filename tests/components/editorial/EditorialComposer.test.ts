@@ -334,8 +334,31 @@ describe('EditorialComposer API-key banner', () => {
     });
 
     const rendered = render(store);
-    expect((rendered.querySelector('select') as HTMLSelectElement | null)?.value).toBe('micro');
+    // 8000 is not a small window, so with no mode picked the turn runs full context.
+    expect((rendered.querySelector('select') as HTMLSelectElement | null)?.value).toBe('full');
     expect(rendered.textContent).not.toContain('local Ã‚· micro tools');
+  });
+
+  it('shows the context mode the turn will actually run, including micro forced by a small window', () => {
+    store = buildStore();
+    store.registry.setDynamicForProvider('ollama', [{
+      id: 'ollama-gemma4:12b',
+      name: 'gemma4:12b',
+      vendor: 'Ollama',
+      providerId: 'ollama',
+      providerModelId: 'gemma4:12b',
+    }]);
+    store.chat.setThreadModel(store.chat.activeThreadId!, 'ollama-gemma4:12b');
+    store.chat.setThreadContextMode(store.chat.activeThreadId!, 'full');
+    runInAction(() => {
+      store!.localRuntime.runtimes.ollama.status = 'online';
+    });
+
+    const rendered = render(store);
+    const select = rendered.querySelector('select[data-testid="workspace.composer-meta.local-context-mode"]') as HTMLSelectElement | null;
+    // No num_ctx: Ollama loads it at 4096, so the turn runs micro whatever was picked.
+    expect(select?.value).toBe('micro');
+    expect(select?.title).toContain('4096');
   });
 
   it('model picker auto row selects the resolved cloud default when local is offline', async () => {

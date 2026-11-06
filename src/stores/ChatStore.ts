@@ -5,7 +5,7 @@ import type { ActivityItem, AssistantMessage, ChatSnapshot, Message, StreamActiv
 import type { LlmRequest } from '../core/llm';
 import { DEFAULT_MODEL_ID } from '../core/models';
 import { resolveBackgroundModelId, resolveDefaultModelId } from '../core/defaultModel';
-import { OLLAMA_MODEL_ID_PREFIX } from '../core/localModelMeta';
+import { localModelContextProfile, OLLAMA_MODEL_ID_PREFIX } from '../core/localModelMeta';
 import { splitAttachmentFooter } from '../core/attachments';
 import { appendMessageText, messageText } from '../core/messageParts';
 import {
@@ -443,6 +443,21 @@ export class ChatStore {
     return this.threads.find(t => t.id === this.activeThreadId) ?? null;
   }
 
+  /**
+   * The context mode the active chat's next turn runs in, for the composer's
+   * selector. `smallWindow` is set when the model's loaded window forces
+   * micro whatever the chat picked (services/chat/contextModes).
+   */
+  get activeLocalContext(): { mode: ChatContextMode; smallWindow?: number } {
+    const thread = this.activeThread;
+    const model = this.registry.findById(thread?.modelId ?? '') ?? this.registry.findById(this.defaultModelId);
+    if (!thread) return { mode: 'full' };
+    const mode = effectiveContextMode(thread, model);
+    return model && localModelContextProfile(model) === 'slim'
+      ? { mode, smallWindow: contextWindowFor(model) }
+      : { mode };
+  }
+
   /** Ollama tag the active chat is kept on although the current Ollama does not list it; null otherwise. */
   get activeMissingLocalModelTag(): string | null {
     const thread = this.activeThread;
@@ -495,8 +510,9 @@ export class ChatStore {
     for (const thread of this.threads) {
       if (thread.deletedAt != null || thread.messages.length > 0 || thread.modelId !== DEFAULT_MODEL_ID) continue;
       if (this.explicitModelThreadIds.has(thread.id)) continue;
+      // The context mode is left unset: effectiveContextMode picks micro only
+      // when the model's loaded window is small.
       thread.modelId = nextDefault;
-      thread.contextMode = 'micro';
       changed = true;
     }
     if (changed) this.schedulePersistSnapshot(this.snapshot);
