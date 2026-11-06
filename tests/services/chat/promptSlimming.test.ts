@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { ToolDef } from '../../../src/core/llm';
 import { compactToolDefs, compactToolDescription } from '../../../src/services/chat/promptSlimming';
 import { estimateToolTokens } from '../../../src/core/tokens';
+import { toolsForContextMode } from '../../../src/services/chat/contextModes';
+import { toolRegistry } from '../../../src/services/tools/registry';
 
 const TOOL: ToolDef = {
   name: 'demo',
@@ -36,6 +38,28 @@ describe('compactToolDescription', () => {
 
   it('leaves an already short description as it is', () => {
     expect(compactToolDescription('Look up the weather.')).toBe('Look up the weather.');
+  });
+});
+
+describe('compact sentence cuts (F2)', () => {
+  it('does not end a sentence at e.g., i.e., etc. or vs.', () => {
+    expect(compactToolDescription('Pick a tool, e.g. fs, i.e. the file one. Then call it, vs. guessing etc. and more. Dropped sentence here.'))
+      .toBe('Pick a tool, e.g. fs, i.e. the file one. Then call it, vs. guessing etc. and more.');
+    expect(compactToolDescription('Use one, E.G. this. Or that. Dropped.')).toBe('Use one, E.G. this. Or that.');
+  });
+
+  it('keeps the JSON example of the micro fs tool', () => {
+    const tools = toolsForContextMode({ mode: 'micro', toolsAllowed: true, userText: 'write a file', bridgeOnline: true });
+    const fs = tools?.find(tool => tool.name === 'fs');
+    expect(fs).toBeDefined();
+    const [compact] = compactToolDefs([fs!]);
+    expect(compact.description).toContain('{"action":"write","path":"/workspace/artifacts/reports/out.html","content":"..."}');
+  });
+
+  it('keeps the whole terminal `cmd` sentence', () => {
+    const terminal = toolRegistry.get('terminal')!.def;
+    const [compact] = compactToolDefs([terminal]);
+    expect(compact.parameters.properties?.cmd.description).toBe('Binary to run (basename only, e.g. "python").');
   });
 });
 

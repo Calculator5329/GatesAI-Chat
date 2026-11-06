@@ -65,15 +65,20 @@ function compactPropertySchema(schema: JsonSchema): JsonSchema {
   return out;
 }
 
+/** A period that closes one of these is not a sentence end (F2: "e.g." used to cut examples off). */
+const ABBREVIATION_END = /(?:^|[^a-z])(?:e\.g|i\.e|etc|vs)\.$/i;
+
 function firstSentences(text: string, count: number): string {
   const collapsed = text.replace(/\s+/g, ' ').trim();
-  let end = 0;
-  for (let found = 0; found < count; found += 1) {
-    const match = /[.!?](\s|$)/.exec(collapsed.slice(end));
-    if (!match) return collapsed;
-    end += match.index + 1;
+  const boundary = /[.!?](?=\s|$)/g;
+  let found = 0;
+  for (let match = boundary.exec(collapsed); match; match = boundary.exec(collapsed)) {
+    const end = match.index + 1;
+    if (ABBREVIATION_END.test(collapsed.slice(0, end))) continue;
+    found += 1;
+    if (found === count) return collapsed.slice(0, end);
   }
-  return collapsed.slice(0, end);
+  return collapsed;
 }
 
 function clip(text: string, max: number): string {
