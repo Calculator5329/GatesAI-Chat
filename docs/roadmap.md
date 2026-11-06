@@ -93,20 +93,26 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       `local_http_request` calls when the webview reloads (today an Ollama
       reply keeps generating to the end), and trust the OS certificate store
       so an https Ollama behind a private CA works.
-- [ ] <!-- workspace:id=work:bb821957-db43-5a92-9657-61eed1346508 --> **Wrong-port hint for more than a 200 web page.** `suggestOllamaPortUrl`
+      Cancel half done 2026-11-05 (requests owned per webview, aborted on
+      page-load Started; changelog). Open: the OS certificate store, which
+      needs reqwest's native-roots feature (a new transitive dependency).
+- [x] <!-- workspace:id=work:bb821957-db43-5a92-9657-61eed1346508 --> **Wrong-port hint for more than a 200 web page.** `suggestOllamaPortUrl`
       (`src/core/localUrls.ts`) only fires when a non-Ollama page answers
       with 200. A typed address with no port that nothing answers (port 80),
       a 404, or an https auth wall gets no hint, or an http one. Cover those
       from the probe's error shape.
+      Done 2026-11-05: refused, 404, auth wall (key hint, no port),
+      TLS mismatch; certificate and DNS failures get no port hint.
 - [ ] <!-- workspace:id=work:5fe30041-5a40-5bbb-9f86-ff5921a8e587 --> **Keep explicit model picks on empty chats across restarts.**
       `ChatStore.explicitModelThreadIds` lives in memory, so an empty chat set
       to the cloud default moves back to local after a restart. Persisting it
       is a thread field plus a migration; worth it only if this bites.
-- [ ] <!-- workspace:id=work:b1c16b79-3486-5fef-980d-26b0024f9017 --> **Web Lite wording for imported local chats.** A desktop export with
+- [x] <!-- workspace:id=work:b1c16b79-3486-5fef-980d-26b0024f9017 --> **Web Lite wording for imported local chats.** A desktop export with
       an `ollama-` chat, imported into Web Lite, gets "Local models need the
       GatesAI desktop app." with an "Open Settings > Models" action that
       cannot help there. Say "this chat ran on a local model; pick a cloud
       model to continue" instead.
+      Done 2026-11-05 (changelog).
 - [x] <!-- workspace:id=work:d76261d4-e89e-53e7-8d76-4d9474394fe9 --> **Switchable UI packs, with an AI-native pack ("Aurora").** *(done
       2026-08-11, `core/uiPacks.ts` is the registry, `UiStore.uiPack` the
       persisted choice, and `Settings` + the command palette both switch it.
@@ -201,6 +207,16 @@ Foundation sweep (same day, follow-up pass before new roadmap work):
       and re-enabled without destructive removal)* This is intentionally a
       small local capability, not a restoration of the old plugin host or
       Offline Library service.
+
+- [ ] **Tauri 2.12 upgrade to clear the zip advisories.** zip 4.6.1 (four
+      RUSTSEC advisories in archive extraction) comes in on Windows only
+      through tauri-plugin-updater 2.10.1; updater 2.14.1 needs tauri 2.12.5,
+      newer wry/tao/muda, and matching `@tauri-apps/*` npm packages. Also
+      drops the unmaintained `unic-*`, `fxhash` and `rand` 0.7 warnings.
+      Found by the 2026-11-05 security pass.
+- [ ] **vitest 5 for the dev-tree advisories.** `npm audit` (dev) reports
+      critical vitest/tinypool advisories fixable only by vitest 5, plus
+      typescript-eslint/minimatch moderates. Dev-only, not shipped.
 
 ### Parked (re-add excellently later, with documented value)
 

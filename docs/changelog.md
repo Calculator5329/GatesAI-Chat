@@ -1,5 +1,56 @@
 # Changelog
 
+## 2026-11-05: Security patches for the sanitiser, the TLS stack and zod
+
+- **What changed for you.** Mermaid diagrams in model replies are
+  sanitised by DOMPurify, which had critical XSS advisories; it is now
+  3.4.17 (mermaid 11.16.0 to 11.17.2). zod, which validates `render_ui`
+  schemas at runtime, moves 4.3.6 to 4.6.7 (memory-exhaustion advisory).
+  The desktop's Rust TLS stack is patched: rustls 0.23.46, rustls-webpki
+  0.103.16, webpki-roots 1.0.11, quinn-proto 0.11.19, tokio 1.54.1; plist
+  1.10.3 brings quick-xml 0.42; tauri-plugin-log 2.9.2 drops rkyv. All
+  lockfile-only, in range, no new direct dependency and no `overrides`.
+- **Evidence.** `npm audit --omit=dev`: 1 critical, 1 high, 1 moderate,
+  4 low before; 5 low after (the katex chain, whose only fix is the
+  breaking katex 0.19). `cargo audit`: 19 vulnerabilities before, 4 after.
+  A reviewer reproduced both numbers and checked every changed package's
+  integrity hash. New tests: hostile `<script>`, `onerror=` and
+  `javascript:` in a reply render as inert text; mermaid stays on
+  securityLevel `strict`; a Web Lite e2e renders a real diagram with
+  `onerror`/`onmouseover` labels and finds no handler left. Each was
+  watched failing with its protection removed.
+- **Still open.** zip 4.6.1 (four advisories, all in archive extraction;
+  compiled on Windows only through tauri-plugin-updater 2.10.1; our code
+  never calls zip). Fixing it needs tauri-plugin-updater 2.14 and tauri
+  2.12, a framework upgrade on the roadmap. The dev-only tree still
+  reports vitest/tinypool advisories that need vitest 5. macOS: plist
+  1.10.3 compiles for `aarch64-apple-darwin` and every plist call tauri
+  2.10.3 makes exists in it, but a full macOS build has not run here (an
+  objc2 build script needs Apple's SDK); the release job is the first one.
+
+## 2026-11-05: Better Ollama address hints, honest Web Lite wording, reloads stop local replies
+
+- **What changed for you.** A typed Ollama address with no port that is
+  refused or answers 404 now suggests `http://host:11434`; an `https://`
+  address pointed at plain-http Ollama suggests the http form. An HTTP
+  401/403 auth wall points at the API key instead of another port, and a
+  certificate or name-lookup failure says so in its own sentence. In Web
+  Lite, a chat imported from the desktop that ran on a local model says
+  "This chat ran on a local model. Pick a cloud model to continue."
+  instead of offering a Settings button that could not help there. On the
+  desktop, reloading the window now stops every local request that page
+  started, so an Ollama reply no longer keeps generating to the end in
+  the background. A model download started from that page stops too;
+  Ollama keeps the partial download and resumes it on the next Pull.
+- **Evidence.** Seven new hint cases and two Web Lite banner cases were
+  watched failing first; the Rust request registry has five new tests
+  (cargo 41/41, up from 36). `npm run ci` 1554 tests in 187 files;
+  `npm run test:e2e` 150/150. Not yet seen in a real Tauri window: a
+  reload during a streamed reply; the cancel path is proved by unit tests
+  and by reading wry's page-load events. A request the old page sends in
+  the same instant as the reload can escape the cancel (sub-millisecond
+  window, noted in the review).
+
 ## 2026-10-08: The visibility ADR no longer says the repo is private
 
 - **What changed for you.** The visibility ADR still said "stays private"
