@@ -3,7 +3,7 @@
   "predicateVersion": 4,
   "grammar": "area.component.element[.qualifier]",
   "generatedFrom": "src/**/*.{tsx,jsx} and journeys/manifest.json",
-  "sourceDigest": "sha256:d3d9d10cd7d7edbab03b5602543732801e03dd1bd575bf797daadc0e5161c3b8",
+  "sourceDigest": "sha256:a326bed7f8162beaa892393e7a40384d999aa5963657de6ce62c99514a0d2d7a",
   "journeyCoverage": {
     "controlPath": 102,
     "urlPath": 2
@@ -1436,7 +1436,7 @@
     {
       "id": "workspace.composer-meta.local-context-mode",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 151,
+      "line": 154,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "select",
@@ -1447,7 +1447,7 @@
     {
       "id": "workspace.composer-meta.model",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 83,
+      "line": 86,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -1458,7 +1458,7 @@
     {
       "id": "workspace.composer-meta.thinking-effort",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 167,
+      "line": 172,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "select",
@@ -1469,7 +1469,7 @@
     {
       "id": "workspace.composer-meta.workspace-skill",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 113,
+      "line": 116,
       "element": "jsx-prop",
       "attribute": "data-testid",
       "tag": "button",
@@ -4310,7 +4310,7 @@
     {
       "id": "candidate:93b3c023550112cc",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 83,
+      "line": 86,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4322,7 +4322,7 @@
     {
       "id": "candidate:bb2247b12c98acca",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 113,
+      "line": 116,
       "element": "button",
       "classification": "definite",
       "evidence": [
@@ -4334,7 +4334,7 @@
     {
       "id": "candidate:c2445f6f06d65408",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 151,
+      "line": 154,
       "element": "select",
       "classification": "definite",
       "evidence": [
@@ -4346,7 +4346,7 @@
     {
       "id": "candidate:45caa626d09c2f8b",
       "file": "src/components/editorial/composer/ComposerMeta.tsx",
-      "line": 167,
+      "line": 172,
       "element": "select",
       "classification": "definite",
       "evidence": [
