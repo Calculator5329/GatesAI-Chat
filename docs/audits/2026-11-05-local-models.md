@@ -258,9 +258,11 @@ At the end of this lane `/api/ps` is `{"models":[]}` (measured).
 - [ ] render_ui's compact schema keeps only the opening of its spec-shape prose; two
   `Rule:` lines would not make it callable, since it needs the component catalog.
   Decide whether small windows should get render_ui at all.
-- [ ] R11 from review-01: its text was not readable by the fix round (permission on the
-  review file). Placeholder; the coordinator should replace this line with the
-  reviewer's wording.
+- [ ] R11 from review-01: threads the old reconcile step already pinned to `'micro'`
+  keep that stored value, so they still run micro on a 16k model. The composer now
+  shows the mode honestly and the user can switch it back; no migration clears it.
+  Decide whether a one-time cleanup of reconcile-written `'micro'` values is worth a
+  migration (it cannot tell them apart from a user's own pick without one).
 - [ ] Semantic memory embeds with a second Ollama model while a chat model is loaded.
   On a 16 GB card that evicts or splits the chat model. Gate embedding on VRAM, or
   queue it.
