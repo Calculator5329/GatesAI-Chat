@@ -369,20 +369,30 @@ Local model window and prompt tiers (QW-1, SP-2;
   (`loadedWindowFor`), most authoritative first:
   1. a format profile that sends `num_ctx` itself (`modelFormatProfiles.ts`,
      qwen2.5);
-  2. the window last **observed** in `GET /api/ps` `context_length`, read on
-     the same 60 s probe as `/api/tags` (`LocalRuntimeStore`, through
-     `localFetch`; a failed `/api/ps` never takes the probe offline). It is
-     kept after the model unloads and dropped when the tag's digest changes;
-  3. the Modelfile `num_ctx` from `POST /api/show`, read once per tag digest
-     (`LocalRuntimeStore.fetchOllamaNumCtx`; it never loads a model). A
-     failed or empty answer is not retried for that tag and digest this
-     session, and warns once;
+  2. the Modelfile `num_ctx` from `POST /api/show`, read once per tag digest
+     (`LocalRuntimeStore.fetchOllamaNumCtx`; it never loads a model).
+     GatesAI sends no `num_ctx` for such a tag, so Ollama loads it at this
+     window, reloading a runner another client loaded with a different one.
+     A failed answer is not retried for that tag and digest by the periodic
+     probe and warns once; an explicit refresh ("Check again", or the
+     refresh after a pull or delete) asks again;
+  3. only when the Modelfile sets no `num_ctx` (or it is not known yet): the
+     window last **observed** in `GET /api/ps` `context_length`, read on the
+     same 60 s probe as `/api/tags` (`LocalRuntimeStore`, through
+     `localFetch`; a failed `/api/ps` never takes the probe offline). An
+     entry whose digest clearly differs from the listed tag's is ignored. It
+     is kept after the model unloads and dropped when the tag's digest
+     changes. It cannot tell GatesAI's own load from another client's, so
+     with no Modelfile `num_ctx` a foreign load can still set it;
   4. otherwise Ollama's own default, `OLLAMA_DEFAULT_CONTEXT_TOKENS` = 4096
      in `core/tokens.ts` (measured on Ollama 0.40.4).
 
   The digest, Modelfile `num_ctx` and observed window ride on the catalog
   entries in the `gatesai.ollama.v1` slot (optional fields, no schema
   change), so a restart neither re-asks `/api/show` nor forgets `/api/ps`.
+  Changing the Ollama base URL drops every observed window and the
+  failed-lookup memory (`OllamaStore.forgetHostWindowFacts`); the Modelfile
+  facts stay, since the same digest is the same manifest on any server.
   Ollama cloud models (`remoteHost` set) never get the local fallback: they
   budget against their reported maximum (32768 if none is reported) and
   always run `full`; `/api/show`

@@ -153,7 +153,7 @@ describe('OllamaStore', () => {
       });
       const store = new OllamaStore(new ModelRegistry(), local);
       const model = (tag: string) => store.catalog.find(m => m.providerModelId === tag)!;
-      return { store, model, fetchOllamaNumCtx, fetchOllamaRunning };
+      return { store, local, model, fetchOllamaNumCtx, fetchOllamaRunning };
     }
 
     function threadWithHistory(modelId: string) {
@@ -178,6 +178,67 @@ describe('OllamaStore', () => {
       expect(localModelContextProfile(plain)).toBe('full');
       const thread = threadWithHistory(plain.id);
       expect(wireMessagesForContextMode(thread, effectiveContextMode(thread, plain))).toHaveLength(3);
+    });
+
+    // Fix round 3, finding 1: GatesAI sends no num_ctx for a plain tag, so
+    // Ollama loads it at the Modelfile window whatever another client last
+    // loaded it with. /api/ps only fills in when the Modelfile sets none.
+    it('a Modelfile num_ctx of 16384 beats an /api/ps window of 65536 another client loaded: 16384, compact', async () => {
+      const { store, model } = harness({ tags: makeTags(), running: runningAt(65_536), numCtx: async () => 16_384 });
+
+      await store.refresh();
+      await flushLookups();
+
+      const plain = model(PLAIN_TAG);
+      expect((plain as OllamaCatalogModel).observedContextLength).toBe(65_536);
+      expect(plain.contextLength).toBe(16_384);
+      expect(contextWindowFor(plain)).toBe(16_384);
+      expect(localModelContextProfile(plain)).toBe('compact');
+    });
+
+    it('a Modelfile num_ctx of 16384 beats an /api/ps window of 2048 another client loaded', async () => {
+      const { store, model } = harness({ tags: makeTags(), running: runningAt(2_048), numCtx: async () => 16_384 });
+
+      await store.refresh();
+      await flushLookups();
+
+      expect(model(PLAIN_TAG).contextLength).toBe(16_384);
+      expect(localModelContextProfile(model(PLAIN_TAG))).toBe('compact');
+    });
+
+    it('ignores an /api/ps entry whose digest does not match the listed tag (a stale runner of a re-created tag)', async () => {
+      const { store, model } = harness({ tags: makeTags(), running: runningAt(32_768, 'zzz999') });
+
+      await store.refresh();
+      await flushLookups();
+
+      expect((model(PLAIN_TAG) as OllamaCatalogModel).observedContextLength).toBeUndefined();
+      expect(model(PLAIN_TAG).contextLength).toBeUndefined();
+    });
+
+    it('a base URL change drops the observed windows and the failed /api/show memory of the old host', async () => {
+      const state = { tags: makeTags(), running: runningAt(32_768) as unknown };
+      const { store, local, model, fetchOllamaNumCtx } = harness({
+        ...state,
+        numCtx: async () => { throw new Error('Ollama 500'); },
+      });
+      await store.refresh();
+      await flushLookups();
+      expect(model(PLAIN_TAG).contextLength).toBe(32_768);
+      expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(1);
+
+      local.setBaseUrl('ollama', 'http://10.0.0.9:11434');
+
+      // Host A's load says nothing about host B, even for the same digest.
+      expect((model(PLAIN_TAG) as OllamaCatalogModel).observedContextLength).toBeUndefined();
+      expect(model(PLAIN_TAG).contextLength).toBeUndefined();
+      // The periodic probe of host B asks /api/show again.
+      fetchOllamaNumCtx.mockImplementation(async () => 16_384);
+      await local.probe('ollama');
+      await flushLookups();
+      expect(fetchOllamaNumCtx).toHaveBeenCalledTimes(2);
+      expect(fetchOllamaNumCtx.mock.calls[1][0]).toBe('http://10.0.0.9:11434');
+      expect(model(PLAIN_TAG).contextLength).toBe(16_384);
     });
 
     it('a failed /api/ps leaves the probe online and the window as it was', async () => {

@@ -39,6 +39,8 @@ export interface OllamaCatalogLink {
   applyTags(raw: unknown): void;
   /** The GET /api/ps body from the same probe, applied after `applyTags`. */
   applyRunning?(raw: unknown): void;
+  /** The Ollama base URL changed: facts learned from the previous server no longer apply. */
+  hostChanged?(): void;
   catalog(): readonly Model[];
 }
 
@@ -252,6 +254,7 @@ export class LocalRuntimeStore {
     if (next === runtime.baseUrl) return;
     runtime.baseUrl = next;
     this.offlineStreak.delete(id);
+    if (id === 'ollama') this.ollamaLink?.hostChanged?.();
     if (!this.monitoring) return;
     runtime.status = 'unknown';
     runtime.lastError = undefined;

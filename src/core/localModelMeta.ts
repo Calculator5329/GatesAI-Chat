@@ -39,8 +39,10 @@ export type OllamaCatalogModel = Model & {
   modelfileCheckedDigest?: string;
   /**
    * `context_length` that GET /api/ps last reported while the model was
-   * loaded: the window Ollama really gave it (Modelfile, server
-   * OLLAMA_CONTEXT_LENGTH or its VRAM-based default). Kept after unload.
+   * loaded: the window Ollama gave whichever client loaded it last (Modelfile,
+   * that client's `num_ctx`, server OLLAMA_CONTEXT_LENGTH or its VRAM-based
+   * default). Decides the window only when the Modelfile sets no `num_ctx`.
+   * Kept after unload; dropped on a new digest or a new base URL.
    */
   observedContextLength?: number;
 };

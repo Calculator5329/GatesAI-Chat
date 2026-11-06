@@ -215,9 +215,14 @@ or reading code.
   at 4096 (passes before and after; the behaviour was right, the docs were not).
 - R4 (b4781a3): cloud models (`remoteHost`) never take the 4096 fallback and always run
   `full`. The probe reads `GET /api/ps`; a loaded model's `context_length` is the
-  observed window and beats the Modelfile `num_ctx`. It persists on the catalog entry
-  (no schema change) and is dropped on a digest change. Red first: ps 32768 runs full
-  with history, cloud runs full, kept after unload, survives a restart. That `/api/ps`
+  observed window. It persists on the catalog entry (no schema change) and is dropped
+  on a digest change. Red first: ps 32768 runs full with history, cloud runs full, kept
+  after unload, survives a restart. Corrected in fix round 3 (review-02 finding 1): the
+  observed window first beat the Modelfile `num_ctx`, but `/api/ps` shows whoever last
+  loaded the model, and GatesAI's own turn runs at the Modelfile window. The order is
+  now profile `num_ctx`, Modelfile `num_ctx`, observed window (only when the Modelfile
+  sets none), 4096; a base URL change drops the observed windows and the failed
+  `/api/show` memory. That `/api/ps`
   reports `context_length` on Ollama 0.40.4 rests on the measured setup above; the
   digest format matching `/api/tags` is **inferred** (matched loosely by prefix).
 - R5 (a4d3916): see the correction under F2.
@@ -268,9 +273,12 @@ At the end of this lane `/api/ps` is `{"models":[]}` (measured).
   micro and sending a cap sized for thinking plus answer.
 - [ ] Persist reasoning on the message so the Thinking row survives a reload. This needs
   a persistence schema change, a migration and a `schemaVersion` bump.
-- [x] Read `/api/ps` `context_length` so a server-wide default is honoured (b4781a3).
-  Until a tag has been loaded once, a server-wide `OLLAMA_CONTEXT_LENGTH` is still not
-  seen and the 4096 fallback applies (inferred).
+- [x] Read `/api/ps` `context_length` so a server-wide default is honoured (b4781a3;
+  since fix round 3 only for a tag whose Modelfile sets no `num_ctx`, below the
+  Modelfile in precedence). Until such a tag has been loaded once, a server-wide
+  `OLLAMA_CONTEXT_LENGTH` is still not seen and the 4096 fallback applies (inferred).
+  Residual: with no Modelfile `num_ctx`, another client's load (Open WebUI at 65536,
+  say) still sets the observed window, since `/api/ps` cannot tell its load from ours.
 - [ ] render_ui's compact schema keeps only the opening of its spec-shape prose; two
   `Rule:` lines would not make it callable, since it needs the component catalog.
   Decide whether small windows should get render_ui at all.
