@@ -195,6 +195,11 @@ export class StreamingRoundExecutor {
     let stalledReason: string | null = null;
     let stallTimer: ReturnType<typeof setTimeout> | null = null;
     let lastProviderAt = Date.now();
+    // Any non-terminal chunk, reasoning included, proves the provider is alive
+    // (stall timer, cold-start wording). Only answer-bearing chunks set
+    // `state.receivedContent`, which blocks a transient retry: a retry after
+    // thinking alone loses nothing the user kept.
+    let heardFromProvider = false;
 
     const clearStallTimer = () => {
       if (stallTimer) clearTimeout(stallTimer);
@@ -218,7 +223,7 @@ export class StreamingRoundExecutor {
           providerId: options.providerId,
           providerModelId: options.providerModelId,
           idleSeconds,
-          coldStart: !state.receivedContent,
+          coldStart: !heardFromProvider,
         });
         emitActivity('stalled', {
           stallReason: stalledReason,
@@ -237,7 +242,8 @@ export class StreamingRoundExecutor {
       for await (const chunk of options.stream(options.request, controller.signal)) {
         if (controller.signal.aborted) continue;
         if (chunk.type !== 'done') {
-          state.receivedContent = true;
+          heardFromProvider = true;
+          if (chunk.type !== 'reasoning') state.receivedContent = true;
           lastProviderAt = Date.now();
           emitActivity('streaming', { at: lastProviderAt });
           armStallTimer(this.stallMs);

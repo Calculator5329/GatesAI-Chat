@@ -269,6 +269,73 @@ describe('StreamingRoundExecutor', () => {
     expect(outcome).toMatchObject({ status: 'completed', text: 'recovered', retryAttempts: 1 });
   });
 
+  it('retries a transient error after reasoning only: thinking is not received content (review F7)', async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const reasoning: string[] = [];
+    const phases: string[] = [];
+    const executor = new StreamingRoundExecutor({ retryPolicy: transientProviderRetryPolicy });
+
+    const promise = executor.execute({
+      request,
+      stream: async function*(): AsyncIterable<LlmChunk> {
+        calls += 1;
+        if (calls === 1) {
+          yield { type: 'reasoning', delta: 'Let me think' };
+          throw new TypeError('Failed to fetch');
+        }
+        yield { type: 'text', delta: 'recovered' };
+        yield { type: 'done', finishReason: 'stop' };
+      },
+      signal: new AbortController().signal,
+      round: 0,
+      providerId: 'ollama',
+      providerModelId: 'gemma4:12b',
+      callbacks: {
+        onReasoning: delta => reasoning.push(delta),
+        onActivityPhase: update => phases.push(update.phase),
+      },
+    });
+
+    await flush();
+    expect(calls).toBe(1);
+    await vi.advanceTimersByTimeAsync(1_000);
+    const outcome = await promise;
+
+    expect(calls).toBe(2);
+    expect(reasoning).toEqual(['Let me think']);
+    expect(outcome).toMatchObject({ status: 'completed', text: 'recovered', retryAttempts: 1 });
+    // The retry starts with a fresh `connecting` update, which resets the live row.
+    expect(phases).toEqual(['connecting', 'streaming', 'connecting', 'streaming']);
+  });
+
+  it('a stall after reasoning only uses the mid-stream language, not the cold-start one', async () => {
+    vi.useFakeTimers();
+    const executor = new StreamingRoundExecutor({ initialStallMs: 5, stallMs: 5 });
+
+    const promise = executor.execute({
+      request,
+      stream: async function*(_req: LlmRequest, signal: AbortSignal): AsyncIterable<LlmChunk> {
+        yield { type: 'reasoning', delta: 'hmm' };
+        await new Promise<void>(resolve => {
+          signal.addEventListener('abort', () => resolve(), { once: true });
+        });
+      },
+      signal: new AbortController().signal,
+      round: 0,
+      providerId: 'ollama',
+      providerModelId: 'llama3:8b',
+      callbacks: {},
+    });
+
+    await flush();
+    await vi.advanceTimersByTimeAsync(6);
+    const outcome = await promise;
+
+    expect(outcome.status).toBe('stalled');
+    expect(outcome.status === 'stalled' ? outcome.error : '').toContain('local model went quiet');
+  });
+
   it('does not retry a transient error after the first token', async () => {
     let calls = 0;
     const chunks: string[] = [];

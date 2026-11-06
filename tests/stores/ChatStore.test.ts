@@ -1792,6 +1792,56 @@ describe('ChatStore', () => {
     expect(reply.finishReason).toBe('stop');
   });
 
+  it('retries a transient failure that came after thinking only, and the retry clears the Thinking row (review F7)', async () => {
+    vi.useFakeTimers();
+    const { chat, providers } = setup();
+    let attempts = 0;
+    let release: (() => void) | undefined;
+    const flakyThinker: LlmProvider = {
+      id: 'ollama',
+      ready: () => true,
+      async *stream() {
+        attempts += 1;
+        if (attempts === 1) {
+          yield { type: 'reasoning', delta: 'A stale thought' };
+          await new Promise<void>(resolve => { release = resolve; });
+          throw new TypeError('Failed to fetch');
+        }
+        await new Promise<void>(resolve => { release = resolve; });
+        yield { type: 'text', delta: 'Recovered.' };
+        yield { type: 'done', finishReason: 'stop' };
+      },
+    };
+    installMockProvider(providers, flakyThinker);
+    chat.createThread();
+    const threadId = chat.activeThreadId!;
+
+    chat.sendMessage('why is the sky blue');
+    await flush(10);
+    vi.advanceTimersByTime(50);
+    await flush(10);
+    expect(chat.streamActivityByThread[threadId]?.reasoning).toBe('A stale thought');
+
+    release?.();
+    await flush(10);
+    vi.advanceTimersByTime(1_000); // first transient-retry delay
+    await flush(20);
+    vi.advanceTimersByTime(50);
+    await flush(10);
+
+    expect(attempts).toBe(2);
+    expect(chat.streamActivityByThread[threadId]).toMatchObject({ phase: 'connecting' });
+    expect(chat.streamActivityByThread[threadId]?.reasoning).toBeUndefined();
+
+    release?.();
+    await flush(20);
+    vi.advanceTimersByTime(50);
+    await flush(10);
+    const reply = chat.activeThread!.messages.find(m => m.role === 'assistant')!;
+    expect(messageText(reply)).toBe('Recovered.');
+    expect(reply.finishReason).toBe('stop');
+  });
+
   it('aborts a provider stream that goes idle after partial text', async () => {
     vi.useFakeTimers();
     const { chat, providers } = setup();
